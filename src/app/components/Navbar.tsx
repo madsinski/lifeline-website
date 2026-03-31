@@ -98,7 +98,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-start mr-8">
             <LifelineLogo size="sm" />
-            <span className="ml-2 pl-2 border-l border-gray-300 text-[13px] tracking-[1px] text-gray-500 font-light leading-none mt-[0.5px]">Health</span>
+            <span className="ml-2 pl-2 border-l border-gray-300 text-[13px] tracking-[1px] text-gray-500 font-light leading-none mt-[0.5px] h-[18px]">Health</span>
           </Link>
 
           {/* Desktop nav */}
