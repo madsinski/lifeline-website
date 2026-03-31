@@ -707,18 +707,9 @@ export default function AdminMessagesPage() {
         ) : (<>
         {/* Thread header */}
         <div className="px-6 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-500">
-              {selected.clientName
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#1F2937]">{selected.clientName}</p>
-              <p className="text-xs text-gray-400">{selected.clientEmail}</p>
-            </div>
+          <div>
+            <p className="text-sm font-semibold text-[#1F2937]">{selected.clientName}</p>
+            <p className="text-xs text-gray-400">{selected.clientEmail}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
