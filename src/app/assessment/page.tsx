@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import MedaliaButton from "../components/MedaliaButton";
+import { PhoneMockup } from "../components/PhoneMockup";
 
 const packages = [
   {
@@ -365,8 +366,37 @@ export default function AssessmentPage() {
         </div>
       </section>
 
-      {/* Locations */}
+      {/* Results preview */}
       <section className="py-24 sm:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
+                Your results, <span className="text-[#20c858]">explained</span>
+              </h2>
+              <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">
+                After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.
+              </p>
+              <ul className="space-y-3">
+                {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
+                    <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex justify-center">
+              <PhoneMockup screenshot="/app-screenshot-report.jpg" alt="Health report in the app" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Locations */}
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             <div>

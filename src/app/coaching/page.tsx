@@ -631,7 +631,7 @@ export default function CoachingPage() {
             </div>
             {/* Phone mockup */}
             <div className="flex items-center justify-center">
-              <PhoneMockupCoach />
+              <PhoneMockupCoach screenshot="/app-screenshot-coach.jpg" alt="Coach messaging" />
             </div>
           </div>
         </div>
