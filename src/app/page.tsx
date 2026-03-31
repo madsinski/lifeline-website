@@ -207,7 +207,7 @@ export default function Home() {
               Take control of your health
             </h1>
             <p className="mt-8 text-lg sm:text-xl text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-              Lifeline Health Club combines comprehensive health assessments
+              Lifeline Health combines comprehensive health assessments
               with personalised daily coaching. Know your numbers, build better
               habits, track your progress.
             </p>
@@ -462,7 +462,7 @@ export default function Home() {
           </div>
           <div className="max-w-2xl mx-auto text-center mt-10 border-t border-gray-200 pt-10">
             <blockquote className="text-lg sm:text-xl text-[#1F2937] leading-relaxed italic">
-              &ldquo;Lifeline Health Club takes a holistic approach to preventive health that we fully endorse.&rdquo;
+              &ldquo;Lifeline Health takes a holistic approach to preventive health that we fully endorse.&rdquo;
             </blockquote>
             <p className="mt-4 text-sm text-[#6B7280]">
               &mdash; Dr. Gu&eth;mundur Sigur&eth;sson, Lifeline Medical

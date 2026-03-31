@@ -281,7 +281,7 @@ export default function ContactPage() {
                     </div>
                   </div>
                   <p className="text-sm font-medium text-[#1F2937]">Lagmula 5, 108 Reykjavik</p>
-                  <p className="text-xs text-[#6B7280] mt-1">Lifeline Health Club</p>
+                  <p className="text-xs text-[#6B7280] mt-1">Lifeline Health</p>
                 </div>
               </div>
             </div>

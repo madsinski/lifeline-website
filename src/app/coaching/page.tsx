@@ -535,7 +535,7 @@ export default function CoachingPage() {
                 Download the Lifeline app
               </h2>
               <p className="text-lg text-gray-300 mb-8 leading-relaxed">
-                Available on iOS and Android. Start your free 14-day trial and
+                Available on iOS and Android. Start with the free plan and
                 experience personalised health coaching powered by your
                 assessment data.
               </p>

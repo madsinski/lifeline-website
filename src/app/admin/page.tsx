@@ -12,7 +12,7 @@ const TIER_PRICES: Record<string, number> = {
 };
 
 const TIER_LABELS: Record<string, string> = {
-  "free-trial": "Free Trial",
+  "free-trial": "Free Plan",
   "self-maintained": "Self-Maintained",
   "full-access": "Full Access",
 };
@@ -277,7 +277,7 @@ export default function AdminDashboardPage() {
 
   const statCards = [
     { label: "Total Clients", value: stats.totalClients, prev: stats.prevTotalClients, color: "border-l-4 border-l-[#20c858]" },
-    { label: "Free Trial", value: stats.freeTrialCount, prev: stats.prevFreeTrialCount, color: "border-l-4 border-l-gray-400" },
+    { label: "Free Plan", value: stats.freeTrialCount, prev: stats.prevFreeTrialCount, color: "border-l-4 border-l-gray-400" },
     { label: "Self-Maintained", value: stats.selfMaintainedCount, prev: stats.prevSelfMaintainedCount, color: "border-l-4 border-l-blue-500" },
     { label: "Full Access", value: stats.fullAccessCount, prev: stats.prevFullAccessCount, color: "border-l-4 border-l-emerald-500" },
   ];
@@ -349,7 +349,7 @@ export default function AdminDashboardPage() {
           <p className="text-sm text-gray-500 mb-1">Subscription Breakdown</p>
           <div className="space-y-2 mt-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Free Trial</span>
+              <span className="text-gray-600">Free Plan</span>
               <span className="font-medium text-[#1F2937]">{stats.freeTrialCount}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
@@ -465,7 +465,7 @@ export default function AdminDashboardPage() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     client.tier === "Full Access" ? "bg-emerald-50 text-emerald-600" :
                     client.tier === "Self-Maintained" ? "bg-blue-50 text-blue-600" :
-                    client.tier === "Free Trial" ? "bg-gray-100 text-gray-600" :
+                    client.tier === "Free Plan" ? "bg-gray-100 text-gray-600" :
                     "bg-gray-50 text-gray-400"
                   }`}>
                     {client.tier}

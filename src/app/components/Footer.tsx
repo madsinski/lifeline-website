@@ -72,7 +72,7 @@ export default function Footer() {
               <LifelineLogo size="sm" />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Lifeline Health Club ehf.
+              Lifeline Health ehf.
               <br />
               Comprehensive health assessments and personalised daily coaching.
             </p>
@@ -161,7 +161,7 @@ export default function Footer() {
               Contact
             </h3>
             <ul className="space-y-3 text-sm text-gray-300">
-              <li>Lifeline Health Club ehf.</li>
+              <li>Lifeline Health ehf.</li>
               <li>Lagmula 5, 108 Reykjavik</li>
               <li>
                 <a
@@ -213,7 +213,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-700 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-400">
-            &copy; 2026 Lifeline Health Club ehf. All rights reserved.
+            &copy; 2026 Lifeline Health ehf. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <a href="/admin" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-300 border border-gray-600 rounded-full hover:bg-gray-700 hover:text-white transition-all duration-200">

@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Lifeline Health Club",
+  title: "Lifeline Health",
   description:
     "Comprehensive health assessments and personalised daily coaching. Know your numbers, build better habits, track your progress.",
 };

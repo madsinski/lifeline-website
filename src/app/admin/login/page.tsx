@@ -98,7 +98,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-gray-500 text-xs mt-6">
-          Lifeline Health Club &mdash; Admin Portal
+          Lifeline Health &mdash; Admin Portal
         </p>
       </div>
     </div>

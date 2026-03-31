@@ -992,7 +992,7 @@ function ClientRowComponent({
                         disabled={isCreating}
                         className="px-3 py-1.5 text-xs font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50"
                       >
-                        {isCreating ? "Creating..." : "Create Free Trial"}
+                        {isCreating ? "Creating..." : "Create Free Plan"}
                       </button>
                     </div>
                   ) : (

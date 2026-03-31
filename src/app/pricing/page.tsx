@@ -51,11 +51,11 @@ const assessmentPackages = [
 
 const coachingPlans = [
   {
-    name: "Free Trial",
+    name: "Free Plan",
     monthlyPrice: "0",
     annualPrice: "0",
-    period: "14 days",
-    description: "Try Lifeline risk-free",
+    period: "",
+    description: "Get started with Lifeline",
     features: [
       "Basic health questionnaire",
       "Sample action plans",
@@ -105,7 +105,7 @@ const faqs = [
   {
     question: "Do I need an assessment to use the coaching app?",
     answer:
-      "You can start the coaching app with the free trial without an assessment. However, for the best personalised experience, we recommend completing at least the Self Check-in questionnaire. The Foundational Health assessment provides the most comprehensive data for coaching.",
+      "You can start the coaching app with the free plan without an assessment. However, for the best personalised experience, we recommend completing at least the Self Check-in questionnaire. The Foundational Health assessment provides the most comprehensive data for coaching.",
   },
   {
     question: "How do I book an assessment?",
@@ -115,7 +115,7 @@ const faqs = [
   {
     question: "How do I subscribe to coaching?",
     answer:
-      "Coaching subscriptions are managed on our website. Create an account, then subscribe from the pricing page or your account page. You can start with a free 14-day trial.",
+      "Coaching subscriptions are managed on our website. Create an account, then subscribe from the pricing page or your account page. You can start with the free plan.",
   },
   {
     question: "Can I cancel my coaching subscription?",
