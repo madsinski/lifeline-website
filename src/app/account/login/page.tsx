@@ -214,7 +214,7 @@ export default function AccountLoginPage() {
                   htmlFor="phone"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Phone <span className="text-gray-400 font-normal">(optional)</span>
+                  Phone
                 </label>
                 <input
                   id="phone"
@@ -222,7 +222,7 @@ export default function AccountLoginPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none transition-all text-gray-900"
-                  placeholder="Phone number (optional)"
+                  placeholder="Phone number"
                 />
               </div>
             )}
