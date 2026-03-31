@@ -95,9 +95,9 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.5rem]">
           {/* Logo */}
-          <Link href="/" className="flex items-start gap-1.5 mr-8">
+          <Link href="/" className="flex flex-col items-start mr-8">
             <LifelineLogo size="sm" />
-            <span className="text-[10px] tracking-[2.5px] text-gray-400 font-light uppercase mt-[1px]">Health</span>
+            <span className="text-[8px] tracking-[4px] text-gray-400 font-normal uppercase ml-[1px] -mt-[1px]">Health</span>
           </Link>
 
           {/* Desktop nav */}
@@ -198,7 +198,7 @@ export default function Navbar() {
             onClick={() => setMobileOpen(false)}
           />
           {/* Menu panel */}
-          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] shadow-2xl border-l border-gray-200 mobile-menu-enter bg-white" style={{ backgroundColor: '#ffffff', opacity: 1 }}>
+          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] shadow-2xl border-l border-gray-200 mobile-menu-enter z-10" style={{ backgroundColor: '#ffffff' }}>
             <div className="px-6 py-6 space-y-2">
               {navLinks.map((link) => {
                 const isActive =
