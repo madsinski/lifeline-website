@@ -23,6 +23,7 @@ const sidebarLinks = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
+    badgeType: "clients" as const,
   },
   {
     href: "/admin/programs",
@@ -90,6 +91,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [session, setSession] = useState<boolean | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [newClientsCount, setNewClientsCount] = useState(0);
+
+  // Load unread message count and new clients count
+  useEffect(() => {
+    const loadCounts = async () => {
+      try {
+        const { count: msgCount, error: msgErr } = await supabase
+          .from("messages")
+          .select("*", { count: "exact", head: true })
+          .eq("read", false)
+          .neq("sender_role", "coach");
+        if (!msgErr && msgCount !== null) setUnreadCount(msgCount);
+      } catch {}
+      try {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { count: clientCount, error: clientErr } = await supabase
+          .from("clients")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", sevenDaysAgo);
+        if (!clientErr && clientCount !== null) setNewClientsCount(clientCount);
+      } catch {}
+    };
+    loadCounts();
+    const interval = setInterval(loadCounts, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -191,7 +219,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               link.href === "/admin"
                 ? pathname === "/admin"
                 : pathname.startsWith(link.href);
-            const hasBadge = 'badge' in link && (link as any).badge;
+            const badgeType = (link as any).badgeType as string | undefined;
+            const isMessageBadge = 'badge' in link && (link as any).badge;
+            const badgeCount = badgeType === "clients" ? newClientsCount : isMessageBadge ? unreadCount : 0;
+            const hasBadge = badgeCount > 0;
             return (
               <Link
                 key={link.href}
@@ -209,7 +240,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     {link.label}
                     {hasBadge && (
                       <span className="bg-[#20c858] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                        4
+                        {badgeCount}
                       </span>
                     )}
                   </span>
