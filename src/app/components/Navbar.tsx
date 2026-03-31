@@ -191,14 +191,14 @@ export default function Navbar() {
 
       {/* Mobile menu - slide in from right */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 top-[4.5rem] z-50">
+        <div className="lg:hidden fixed inset-0 top-[4.5rem]" style={{ zIndex: 9999 }}>
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' }}
             onClick={() => setMobileOpen(false)}
           />
           {/* Menu panel */}
-          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] shadow-2xl border-l border-gray-200 mobile-menu-enter z-10">
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '320px', maxWidth: '85vw', backgroundColor: '#ffffff', zIndex: 10, boxShadow: '-4px 0 24px rgba(0,0,0,0.15)', borderLeft: '1px solid #e5e7eb' }}>
             <div className="px-6 py-6 space-y-2">
               {navLinks.map((link) => {
                 const isActive =
