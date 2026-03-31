@@ -259,13 +259,13 @@ export default function PricingPage() {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
             {coachingPlans.map((plan) => {
               const displayPrice = isAnnual ? plan.annualPrice : plan.monthlyPrice;
               return (
                 <div
                   key={plan.name}
-                  className={`relative rounded-2xl p-8 transition-all duration-200 ${
+                  className={`relative rounded-2xl p-8 transition-all duration-200 flex flex-col ${
                     plan.popular
                       ? "bg-[#1F2937] text-white ring-2 ring-[#20c858] md:scale-105 shadow-2xl md:-my-4"
                       : "bg-white shadow-sm hover:shadow-xl hover:-translate-y-1"
@@ -305,7 +305,7 @@ export default function PricingPage() {
                         plan.popular ? "text-gray-300" : "text-[#6B7280]"
                       }`}
                     >
-                      {displayPrice === "0" ? "" : "ISK"} / {plan.period}
+                      {displayPrice === "0" ? "ISK / month" : `ISK / ${plan.period}`}
                     </span>
                     {isAnnual && plan.monthlyPrice !== "0" && (
                       <div className={`text-xs mt-1 ${plan.popular ? "text-gray-400" : "text-[#6B7280]"}`}>
@@ -314,7 +314,7 @@ export default function PricingPage() {
                       </div>
                     )}
                   </div>
-                  <ul className="space-y-3 mb-8">
+                  <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <svg
