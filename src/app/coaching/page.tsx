@@ -76,10 +76,10 @@ const pillars = [
 ];
 
 const stats = [
-  { label: "Active members", value: "2,400+", width: "85" },
-  { label: "Avg. health score improvement", value: "+24 pts", width: "72" },
-  { label: "Member satisfaction", value: "96%", width: "96" },
-  { label: "Daily actions completed", value: "180K+", width: "78" },
+  { label: "Health categories tracked", value: "12", width: "85" },
+  { label: "Structured program weeks", value: "8", width: "72" },
+  { label: "Coaching levels", value: "3", width: "96" },
+  { label: "Daily personalised actions", value: "7+", width: "78" },
 ];
 
 const subscriptions = [

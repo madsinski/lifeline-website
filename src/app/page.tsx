@@ -144,27 +144,54 @@ const pillars = [
   },
 ];
 
-const testimonials = [
+const teamQuotes = [
   {
-    name: "Gudrun Sigurdardottir",
-    improvement: "Health score +23 points",
+    name: "Dr. Guðmundur Sigurðsson",
+    role: "Medical Director",
     quote:
-      "Lifeline completely changed my approach to health. The personalised coaching and regular check-ins keep me accountable. I have never felt better.",
-    stars: 5,
+      "We built Lifeline because preventive health should be accessible to everyone. By combining medical-grade assessments with daily coaching, we help people catch issues early and build habits that last.",
   },
   {
-    name: "Bjarni Thorsson",
-    improvement: "Health score +31 points",
+    name: "Coach Sarah",
+    role: "Head of Coaching",
     quote:
-      "The combination of blood work analysis and daily coaching is incredible. My energy levels are through the roof and I have lost 12 kg in 6 months.",
-    stars: 5,
+      "Most health programs focus on one thing — a diet, a workout plan. Lifeline addresses all four pillars: exercise, nutrition, sleep, and mental wellness. That holistic approach is what drives real, lasting change.",
   },
   {
-    name: "Helga Jonsdottir",
-    improvement: "Health score +18 points",
+    name: "Dr. Anna Kristjánsdóttir",
+    role: "Clinical Psychologist",
     quote:
-      "As someone who struggled with sleep, the personalised sleep program was a game-changer. I now sleep 7+ hours consistently and wake up refreshed.",
-    stars: 5,
+      "Mental wellness is the foundation everything else is built on. Our programs use evidence-based techniques — mindfulness, cognitive restructuring, stress management — tailored to each individual.",
+  },
+];
+
+const approach = [
+  {
+    title: "Data-driven",
+    description: "Every recommendation is backed by your blood work, body composition, and health questionnaire — not generic advice.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Holistic",
+    description: "We address exercise, nutrition, sleep, and mental wellness together — because real health improvement requires all four pillars working in harmony.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Personalised",
+    description: "Your coaching adapts to your results, your goals, and your progress. No two plans are alike — because no two people are alike.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    ),
   },
 ];
 
@@ -179,18 +206,6 @@ function WaveSeparator({ from = "#ffffff", to = "#ecf0f3" }: { from?: string; to
       >
         <path d="M0,64 C360,96 720,32 1080,64 C1260,80 1380,48 1440,64 L1440,96 L0,96 Z" />
       </svg>
-    </div>
-  );
-}
-
-function StarRating({ count }: { count: number }) {
-  return (
-    <div className="flex gap-0.5 mb-3">
-      {Array.from({ length: count }).map((_, i) => (
-        <svg key={i} className="w-4 h-4 star-filled" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
     </div>
   );
 }
@@ -229,12 +244,15 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-center">
             {[
-              { label: "500+ members" },
-              { label: "95% satisfaction" },
-              { label: "4.8\u2605 app rating" },
+              { label: "Doctor-reviewed programs" },
+              { label: "Evidence-based coaching" },
+              { label: "4 pillars of health" },
               { label: "Founded in Reykjav\u00edk" },
             ].map((stat) => (
               <div key={stat.label} className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
                 <span className="text-sm font-semibold text-[#1F2937]">{stat.label}</span>
               </div>
             ))}
@@ -474,41 +492,67 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#f3f5f8" to="#ffffff" />
 
-      {/* Testimonials */}
+      {/* Our approach */}
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              What our members say
+              Our approach
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Real results from real people
+              What makes Lifeline Health different
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+            {approach.map((a) => (
+              <div
+                key={a.title}
+                className="bg-[#e6ecf4] rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mx-auto mb-5">
+                  {a.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-[#1F2937] mb-3">
+                  {a.title}
+                </h3>
+                <p className="text-sm text-[#6B7280] leading-relaxed">
+                  {a.description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Team quotes */}
+          <div className="text-center mb-12">
+            <h3 className="text-2xl font-bold text-[#1F2937]">
+              From our team
+            </h3>
+            <p className="mt-2 text-[#6B7280]">
+              The professionals behind your health journey
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((t) => (
+            {teamQuotes.map((t) => (
               <div
                 key={t.name}
                 className="bg-[#e6ecf4] rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 relative"
               >
-                {/* Large quote mark */}
                 <div className="absolute top-4 right-6 text-6xl leading-none text-[#20c858]/10 font-serif select-none">
                   &ldquo;
                 </div>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="w-12 h-12 rounded-full bg-[#20c858]/10 flex items-center justify-center text-[#20c858] font-bold text-lg">
-                    {t.name[0]}
+                    {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                   </div>
                   <div>
                     <div className="font-semibold text-[#1F2937] text-sm">
                       {t.name}
                     </div>
                     <div className="text-xs font-medium text-[#20c858]">
-                      {t.improvement}
+                      {t.role}
                     </div>
                   </div>
                 </div>
-                <StarRating count={t.stars} />
                 <p className="text-sm text-[#6B7280] leading-relaxed italic">
                   &ldquo;{t.quote}&rdquo;
                 </p>

@@ -70,7 +70,7 @@ export default function Footer() {
           <div className="md:col-span-1">
             <div className="mb-4 flex items-start">
               <LifelineLogo size="sm" variant="white" />
-              <span className="ml-2 pl-2 border-l border-gray-500 text-[13px] tracking-[1px] text-white font-light leading-none mt-[0.5px] h-[18px]">Health</span>
+              <span className="ml-2 pl-2 text-[13px] tracking-[1px] font-light leading-none mt-[0.5px] h-[18px]" style={{ borderLeft: '1px solid #ffffff', color: '#ffffff' }}>Health</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Lifeline Health ehf.
