@@ -262,69 +262,33 @@ export default function Home() {
 
       {/* How it works */}
       <section className="py-24 sm:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
               How Lifeline works
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Three simple steps to transform your health
+              Three steps to transform your health
             </p>
           </div>
-          {/* Mobile: vertical timeline */}
-          <div className="md:hidden max-w-md mx-auto">
-            {steps.map((s, i) => (
-              <div key={s.step} className="flex gap-4">
-                {/* Left column: number + connecting line */}
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-green-500/25 flex-shrink-0">
-                    {s.step}
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className="w-0.5 flex-1 my-2 border-l-2 border-dashed border-[#20c858]/30" />
-                  )}
-                </div>
-                {/* Right column: content */}
-                <div className={`flex-1 ${i < steps.length - 1 ? "pb-8" : "pb-0"}`}>
-                  <div className="text-xs font-bold text-[#20c858] mb-1">
-                    STEP {s.step}
-                  </div>
-                  <h3 className="text-lg font-semibold text-[#1F2937] mb-1">
-                    {s.title}
-                  </h3>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">
-                    {s.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
 
-          {/* Desktop: grid layout */}
-          <div className="hidden md:grid grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {steps.map((s, i) => (
-              <div
-                key={s.step}
-                className="relative bg-[#e6ecf4] rounded-2xl p-8 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 group step-connector"
-              >
-                {/* Numbered circle */}
-                <div className="w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm mb-5 shadow-lg shadow-green-500/25">
-                  {s.step}
+          <div className="space-y-16 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-0 relative">
+            {/* Connecting line (desktop only) */}
+            <div className="hidden sm:block absolute top-10 left-[16.67%] right-[16.67%] h-[2px] bg-gradient-to-r from-[#20c858]/20 via-[#20c858] to-[#20c858]/20" />
+
+            {steps.map((s) => (
+              <div key={s.step} className="flex flex-col items-center text-center relative">
+                {/* Step number */}
+                <div className="w-20 h-20 rounded-2xl bg-white border-2 border-[#20c858]/20 flex items-center justify-center mb-6 shadow-sm relative z-10">
+                  <div className="w-14 h-14 rounded-xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center">
+                    {s.icon}
+                  </div>
                 </div>
-                {/* Connecting line on desktop */}
-                {i < steps.length - 1 && (
-                  <div className="absolute top-12 -right-4 w-8 h-0.5 bg-gradient-to-r from-[#20c858] to-[#20c858]/30" />
-                )}
-                <div className="w-14 h-14 rounded-xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mb-5 group-hover:bg-[#20c858] group-hover:text-white transition-colors duration-200">
-                  {s.icon}
-                </div>
-                <div className="text-xs font-bold text-[#20c858] mb-2">
-                  STEP {s.step}
-                </div>
-                <h3 className="text-lg font-semibold text-[#1F2937] mb-2">
+                <span className="text-xs font-bold text-[#20c858] tracking-widest uppercase mb-2">Step {s.step}</span>
+                <h3 className="text-xl font-semibold text-[#1F2937] mb-3">
                   {s.title}
                 </h3>
-                <p className="text-sm text-[#6B7280] leading-relaxed">
+                <p className="text-sm text-[#6B7280] leading-relaxed max-w-[260px]">
                   {s.description}
                 </p>
               </div>
