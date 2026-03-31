@@ -4,21 +4,24 @@ interface LifelineLogoProps {
   size?: "sm" | "lg";
   className?: string;
   showHealth?: boolean;
+  variant?: "default" | "white";
 }
 
 export default function LifelineLogo({
   size = "sm",
   className = "",
   showHealth = false,
+  variant = "default",
 }: LifelineLogoProps) {
   const width = size === "lg" ? 320 : 150;
   const height = size === "lg" ? 38 : 18;
+  const src = variant === "white" ? "/lifeline-logo-white.svg" : "/lifeline-logo.svg";
 
   if (showHealth) {
     return (
       <div className={`flex flex-col items-center gap-1 ${className}`}>
         <Image
-          src="/lifeline-logo.svg"
+          src={src}
           alt="Lifeline"
           width={width}
           height={height}
@@ -34,7 +37,7 @@ export default function LifelineLogo({
 
   return (
     <Image
-      src="/lifeline-logo.svg"
+      src={src}
       alt="Lifeline"
       width={width}
       height={height}
