@@ -190,6 +190,8 @@ export default function TeamPage() {
               phone: row.phone || "",
               role: row.role as StaffRole,
               active: row.active ?? true,
+              permissions: (row.permissions as Permission[]) || defaultPermissions[row.role as StaffRole] || [],
+              invited: row.invited ?? false,
             }))
           );
         }
