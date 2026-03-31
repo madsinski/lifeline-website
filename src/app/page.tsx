@@ -413,10 +413,43 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            {/* Phone mockup */}
-            <div className="flex items-center justify-center">
-              <PhoneMockup />
-            </div>
+          </div>
+
+          {/* Three half-phone mockups */}
+          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              { src: "/app-screenshot-home.jpg", label: "Daily action plans", sublabel: "Personalised tasks every day" },
+              { src: "/app-screenshot-coach.jpg", label: "Coach interaction", sublabel: "Direct messaging with your coach" },
+              { src: "/app-screenshot-measurements.jpg", label: "Health measurements", sublabel: "Track your progress over time" },
+            ].map((phone) => (
+              <div key={phone.label} className="flex flex-col items-center">
+                {/* Half phone frame */}
+                <div className="relative w-[220px] h-[380px] overflow-hidden">
+                  {/* Phone frame */}
+                  <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[2.5rem] border-x border-t border-[#333]" />
+                  {/* Inner bezel */}
+                  <div className="absolute inset-[3px] bg-[#111] rounded-t-[2.35rem]" />
+                  {/* Screen */}
+                  <div className="absolute inset-[4px] rounded-t-[2.3rem] overflow-hidden bg-[#ecf0f3]">
+                    {/* Dynamic Island */}
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-[18px] bg-black rounded-full z-20" />
+                    {/* Screenshot */}
+                    <img
+                      src={phone.src}
+                      alt={phone.label}
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
+                  {/* Side buttons */}
+                  <div className="absolute -right-[2px] top-24 w-[3px] h-10 bg-[#333] rounded-r-sm" />
+                  <div className="absolute -left-[2px] top-20 w-[3px] h-6 bg-[#333] rounded-l-sm" />
+                  {/* Bottom fade */}
+                  <div className="absolute bottom-0 left-[4px] right-[4px] h-20 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
+                </div>
+                <h4 className="text-sm font-semibold text-[#1F2937] mt-4">{phone.label}</h4>
+                <p className="text-xs text-[#6B7280] mt-0.5">{phone.sublabel}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
