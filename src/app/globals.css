@@ -1,0 +1,239 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ecf0f3;
+  --foreground: #1F2937;
+  --primary: #20c858;
+  --primary-dark: #1ab34d;
+  --card-bg: #e6ecf4;
+  --blue: #3B82F6;
+  --purple: #8B5CF6;
+  --amber: #F59E0B;
+  --red: #EF4444;
+  --teal: #06B6D4;
+  --grey: #6B7280;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-card: var(--card-bg);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --color-amber: var(--amber);
+  --color-red: var(--red);
+  --color-teal: var(--teal);
+  --color-grey: var(--grey);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Style Medalia widget buttons to match our design */
+button.medalia-widget {
+  cursor: pointer;
+}
+
+/* Fade-in-up animation for scroll reveals */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+/* Staggered delays for children */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+
+/* Smooth accordion transition */
+@keyframes accordionOpen {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 300px;
+    padding-top: 0;
+    padding-bottom: 1.25rem;
+  }
+}
+
+.accordion-content {
+  animation: accordionOpen 0.3s ease-out both;
+  overflow: hidden;
+}
+
+/* Better focus states for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* Connecting lines for steps on desktop */
+.step-connector {
+  position: relative;
+}
+
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -1rem;
+  width: 2rem;
+  height: 2px;
+  background: linear-gradient(90deg, #20c858, #20c858/40);
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .step-connector:not(:last-child)::after {
+    display: block;
+  }
+}
+
+/* Timeline vertical line */
+.timeline-line {
+  position: relative;
+}
+
+.timeline-line::before {
+  content: '';
+  position: absolute;
+  left: 1.25rem;
+  top: 2.5rem;
+  bottom: -1.5rem;
+  width: 2px;
+  background: linear-gradient(180deg, #20c858, #20c858/20);
+}
+
+.timeline-line:last-child::before {
+  display: none;
+}
+
+/* Pillar card glow effect */
+.pillar-glow {
+  position: relative;
+}
+
+.pillar-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 1rem;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, currentColor 100%);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.pillar-glow:hover::before {
+  opacity: 0.6;
+}
+
+/* Star rating color */
+.star-filled {
+  color: #F59E0B;
+}
+
+/* Mobile menu slide-in */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.mobile-menu-enter {
+  animation: slideInRight 0.3s ease-out both;
+}
+
+/* Newsletter input */
+.newsletter-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(32, 200, 88, 0.15);
+}
+
+/* Back to top button */
+@keyframes bounceUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.back-to-top:hover {
+  animation: bounceUp 0.6s ease infinite;
+}
+
+/* Success animation */
+@keyframes checkmark {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.success-checkmark {
+  animation: checkmark 0.5s ease-out both;
+}
+
+/* Pricing toggle */
+.toggle-slider {
+  transition: transform 0.3s ease;
+}
+
+/* Progress bar animation */
+@keyframes progressFill {
+  from { width: 0%; }
+  to { width: var(--progress-width); }
+}
+
+.progress-bar-fill {
+  animation: progressFill 1.5s ease-out both;
+}

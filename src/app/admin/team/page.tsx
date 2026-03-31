@@ -1,0 +1,664 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+
+/*
+  SQL to create the staff table (also in /supabase/staff.sql):
+
+  CREATE TABLE IF NOT EXISTS staff (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT,
+    role TEXT NOT NULL CHECK (role IN ('coach', 'doctor', 'nurse', 'psychologist', 'admin')),
+    active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+  ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "Allow all staff operations" ON staff USING (true) WITH CHECK (true);
+*/
+
+// ─── Types ───────────────────────────────────────────────────
+
+type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin";
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: StaffRole;
+  active: boolean;
+}
+
+const roleLabels: Record<StaffRole, string> = {
+  coach: "Coach",
+  doctor: "Doctor",
+  nurse: "Nurse",
+  psychologist: "Psychologist",
+  admin: "Admin",
+};
+
+const roleColors: Record<StaffRole, string> = {
+  coach: "bg-emerald-100 text-emerald-700",
+  doctor: "bg-blue-100 text-blue-700",
+  nurse: "bg-purple-100 text-purple-700",
+  psychologist: "bg-amber-100 text-amber-700",
+  admin: "bg-gray-100 text-gray-700",
+};
+
+const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "admin"];
+
+// ─── Fallback mock data ───────────────────────────────────────
+
+const fallbackTeam: TeamMember[] = [
+  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", phone: "+354 555 1001", role: "coach", active: true },
+  { id: "staff-2", name: "Dr. Gudmundur Sigurdsson", email: "gudmundur@lifeline.is", phone: "+354 555 1002", role: "doctor", active: true },
+  { id: "staff-3", name: "Helga Jonsdottir", email: "helga@lifeline.is", phone: "+354 555 1003", role: "nurse", active: true },
+  { id: "staff-4", name: "Dr. Anna Kristjansdottir", email: "anna.k@lifeline.is", phone: "+354 555 1004", role: "psychologist", active: true },
+];
+
+// ─── Connection status type ───────────────────────────────────
+
+type ConnectionStatus = "loading" | "connected" | "offline";
+
+// ─── Component ──────────────────────────────────────────────
+
+const STAFF_TABLE_SQL = `CREATE TABLE IF NOT EXISTS staff (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  phone TEXT,
+  role TEXT NOT NULL CHECK (role IN ('coach', 'doctor', 'nurse', 'psychologist', 'admin')),
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all staff operations" ON staff USING (true) WITH CHECK (true);`;
+
+export default function TeamPage() {
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Partial<TeamMember>>({});
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("loading");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<{ type: "success" | "error" | "sql"; text: string } | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  // Add member form state
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newRole, setNewRole] = useState<StaffRole>("coach");
+
+  // ─── Load staff from Supabase on mount ───────────────────
+
+  const loadStaff = useCallback(async () => {
+    setConnectionStatus("loading");
+    try {
+      const { data, error } = await supabase
+        .from("staff")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.log("[Team] Supabase error loading staff:", error.message);
+        setConnectionStatus("offline");
+        setTeam(fallbackTeam);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setTeam(
+          data.map((row) => ({
+            id: row.id,
+            name: row.name,
+            email: row.email,
+            phone: row.phone || "",
+            role: row.role as StaffRole,
+            active: row.active ?? true,
+          }))
+        );
+        setConnectionStatus("connected");
+      } else {
+        // Table exists but is empty — use fallback and seed the table
+        setTeam(fallbackTeam);
+        setConnectionStatus("connected");
+        // Seed fallback data into Supabase
+        for (const member of fallbackTeam) {
+          await supabase.from("staff").insert({
+            name: member.name,
+            email: member.email,
+            phone: member.phone,
+            role: member.role,
+            active: member.active,
+          });
+        }
+        // Reload to get proper UUIDs
+        const { data: seededData } = await supabase
+          .from("staff")
+          .select("*")
+          .order("created_at", { ascending: true });
+        if (seededData && seededData.length > 0) {
+          setTeam(
+            seededData.map((row) => ({
+              id: row.id,
+              name: row.name,
+              email: row.email,
+              phone: row.phone || "",
+              role: row.role as StaffRole,
+              active: row.active ?? true,
+            }))
+          );
+        }
+      }
+    } catch {
+      console.log("[Team] Failed to connect to Supabase, using fallback data");
+      setConnectionStatus("offline");
+      setTeam(fallbackTeam);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStaff();
+  }, [loadStaff]);
+
+  // ─── Handlers ────────────────────────────────────────────
+
+  const handleAdd = async () => {
+    if (!newName.trim() || !newEmail.trim()) return;
+    setSaveError(null);
+
+    const memberData = {
+      name: newName.trim(),
+      email: newEmail.trim(),
+      phone: newPhone.trim(),
+      role: newRole,
+      active: true,
+    };
+
+    if (connectionStatus === "connected") {
+      const { data, error } = await supabase
+        .from("staff")
+        .insert(memberData)
+        .select()
+        .single();
+
+      if (error) {
+        setSaveError(`Failed to add: ${error.message}`);
+        return;
+      }
+
+      if (data) {
+        setTeam((prev) => [
+          ...prev,
+          {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            phone: data.phone || "",
+            role: data.role as StaffRole,
+            active: data.active ?? true,
+          },
+        ]);
+      }
+    } else {
+      // Offline fallback
+      const member: TeamMember = {
+        id: `staff-${Date.now()}`,
+        ...memberData,
+      };
+      setTeam((prev) => [...prev, member]);
+    }
+
+    setNewName("");
+    setNewEmail("");
+    setNewPhone("");
+    setNewRole("coach");
+    setShowAddModal(false);
+  };
+
+  const handleRemove = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this team member?")) return;
+    setSaveError(null);
+
+    if (connectionStatus === "connected") {
+      const { error } = await supabase.from("staff").delete().eq("id", id);
+      if (error) {
+        setSaveError(`Failed to remove: ${error.message}`);
+        return;
+      }
+    }
+
+    setTeam((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const toggleActive = async (id: string) => {
+    setSaveError(null);
+    const member = team.find((m) => m.id === id);
+    if (!member) return;
+
+    const newActive = !member.active;
+
+    if (connectionStatus === "connected") {
+      const { error } = await supabase
+        .from("staff")
+        .update({ active: newActive })
+        .eq("id", id);
+      if (error) {
+        setSaveError(`Failed to update: ${error.message}`);
+        return;
+      }
+    }
+
+    setTeam((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, active: newActive } : m))
+    );
+  };
+
+  const startEdit = (member: TeamMember) => {
+    setEditingId(member.id);
+    setEditValues({ name: member.name, email: member.email, phone: member.phone, role: member.role });
+  };
+
+  const saveEdit = async (id: string) => {
+    setSaveError(null);
+
+    if (connectionStatus === "connected") {
+      const { error } = await supabase
+        .from("staff")
+        .update({
+          name: editValues.name,
+          email: editValues.email,
+          phone: editValues.phone,
+          role: editValues.role,
+        })
+        .eq("id", id);
+      if (error) {
+        setSaveError(`Failed to save: ${error.message}`);
+        return;
+      }
+    }
+
+    setTeam((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? { ...m, ...editValues }
+          : m
+      )
+    );
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const syncStaff = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const { error: tableErr } = await supabase.from("staff").select("id").limit(1);
+      if (tableErr) {
+        // Table doesn't exist — show SQL
+        setSyncResult({ type: "sql", text: STAFF_TABLE_SQL });
+        setSyncing(false);
+        return;
+      }
+      // Table exists — show status
+      setSyncResult({ type: "success", text: `Staff table connected. ${team.length} member(s) loaded.` });
+    } catch {
+      setSyncResult({ type: "error", text: "Failed to check staff table." });
+    }
+    setSyncing(false);
+  };
+
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-[#1F2937]">Team Management</h2>
+            {/* Connection status indicator */}
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`inline-block w-2.5 h-2.5 rounded-full ${
+                  connectionStatus === "connected"
+                    ? "bg-green-500"
+                    : connectionStatus === "loading"
+                    ? "bg-yellow-500 animate-pulse"
+                    : "bg-red-400"
+                }`}
+              />
+              <span className="text-xs text-gray-400">
+                {connectionStatus === "connected"
+                  ? "Synced with Supabase"
+                  : connectionStatus === "loading"
+                  ? "Connecting..."
+                  : "Offline (local only)"}
+              </span>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage staff members who can be assigned to clients
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={syncStaff}
+            disabled={syncing}
+            className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+          >
+            {syncing ? "Checking..." : "Sync"}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add team member
+          </button>
+        </div>
+      </div>
+
+      {/* Sync result */}
+      {syncResult && (
+        <div className={`rounded-lg p-3 text-sm ${
+          syncResult.type === "success" ? "bg-green-50 border border-green-200 text-green-700" :
+          syncResult.type === "error" ? "bg-red-50 border border-red-200 text-red-700" :
+          "bg-blue-50 border border-blue-200 text-blue-700"
+        }`}>
+          {syncResult.type === "sql" ? (
+            <div>
+              <p className="font-medium mb-2">Staff table not found. Run this SQL in the Supabase SQL Editor:</p>
+              <pre className="bg-white rounded p-2 text-xs overflow-x-auto whitespace-pre-wrap mb-2">{syncResult.text}</pre>
+              <button
+                onClick={() => { navigator.clipboard.writeText(syncResult.text); setSyncResult({ type: "success", text: "SQL copied to clipboard!" }); }}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+              >
+                Copy SQL
+              </button>
+            </div>
+          ) : (
+            <>
+              {syncResult.text}
+              <button onClick={() => setSyncResult(null)} className="ml-2 text-xs underline">dismiss</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Save error */}
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          {saveError}
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-2xl font-bold text-[#1F2937]">{team.length}</p>
+          <p className="text-xs text-gray-500">Total members</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-2xl font-bold text-green-600">{team.filter((m) => m.active).length}</p>
+          <p className="text-xs text-gray-500">Active</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-2xl font-bold text-gray-400">{team.filter((m) => !m.active).length}</p>
+          <p className="text-xs text-gray-500">Inactive</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-2xl font-bold text-[#1F2937]">{new Set(team.map((m) => m.role)).size}</p>
+          <p className="text-xs text-gray-500">Roles</p>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {team.map((member, idx) => {
+                const isEditing = editingId === member.id;
+                return (
+                  <tr key={member.id} className={idx % 2 === 1 ? "bg-gray-50/50" : ""}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${roleColors[member.role]}`}>
+                          {getInitials(member.name)}
+                        </div>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editValues.name ?? ""}
+                            onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 w-40"
+                          />
+                        ) : (
+                          <span className="text-sm font-medium text-[#1F2937]">{member.name}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <input
+                          type="email"
+                          value={editValues.email ?? ""}
+                          onChange={(e) => setEditValues({ ...editValues, email: e.target.value })}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 w-48"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-600">{member.email}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <input
+                          type="tel"
+                          value={editValues.phone ?? ""}
+                          onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 w-36"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-600">{member.phone || "Not set"}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <select
+                          value={editValues.role ?? member.role}
+                          onChange={(e) => setEditValues({ ...editValues, role: e.target.value as StaffRole })}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                        >
+                          {roleOptions.map((r) => (
+                            <option key={r} value={r}>{roleLabels[r]}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColors[member.role]}`}>
+                          {roleLabels[member.role]}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleActive(member.id)}
+                        className="flex items-center gap-2 group"
+                      >
+                        <div className={`relative w-9 h-5 rounded-full transition-colors ${member.active ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${member.active ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </div>
+                        <span className={`text-xs ${member.active ? "text-green-600" : "text-gray-400"}`}>
+                          {member.active ? "Active" : "Inactive"}
+                        </span>
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {isEditing ? (
+                          <>
+                            <button
+                              onClick={() => saveEdit(member.id)}
+                              className="px-3 py-1 text-xs font-medium text-white bg-[#20c858] rounded hover:bg-[#1bb34d] transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEdit(member)}
+                              className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                              title="Edit"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleRemove(member.id)}
+                              className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                              title="Remove"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {team.length === 0 && (
+          <div className="text-center py-12 text-gray-400 text-sm">
+            No team members yet. Click &quot;Add team member&quot; to get started.
+          </div>
+        )}
+      </div>
+
+      {/* Connection info note */}
+      {connectionStatus === "offline" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+          <strong>Offline mode:</strong> Changes are stored locally and will not persist after page reload.
+          To enable persistence, run the SQL in <code>/supabase/staff.sql</code> in the Supabase SQL editor.
+        </div>
+      )}
+
+      {/* Add member modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-[#1F2937]">Add team member</h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Full name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="email@lifeline.is"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="+354 555 0000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as StaffRole)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                >
+                  {roleOptions.map((r) => (
+                    <option key={r} value={r}>{roleLabels[r]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAdd}
+                disabled={!newName.trim() || !newEmail.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add Member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
