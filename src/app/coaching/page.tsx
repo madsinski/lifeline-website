@@ -211,37 +211,15 @@ export default function CoachingPage() {
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="py-16 bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-[#1F2937] mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-xs text-[#6B7280] mb-3">{stat.label}</div>
-                <div className="h-1.5 bg-[#e6ecf4] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#20c858] to-[#20c858]/60 rounded-full progress-bar-fill"
-                    style={{ ["--progress-width" as string]: `${stat.width}%`, width: `${stat.width}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Why Lifeline */}
+      {/* Personal health coaching */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Why Lifeline Health
+              Your personal health coaching
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              More than an app — a complete health transformation system
+              Everything you need to build better habits and transform your health
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
