@@ -66,9 +66,24 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Close mobile menu on route change
+  // Close mobile menu and refresh user name on route change
   useEffect(() => {
     setMobileOpen(false);
+    // Refresh name from DB when navigating (catches profile edits)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase
+          .from("clients")
+          .select("full_name")
+          .eq("id", session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.full_name) {
+              setUserName(data.full_name.split(" ")[0]);
+            }
+          });
+      }
+    });
   }, [pathname]);
 
   return (
