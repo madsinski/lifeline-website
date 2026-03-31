@@ -87,6 +87,7 @@ export default function Navbar() {
   }, [pathname]);
 
   return (
+    <>
     <nav
       className={`sticky top-0 z-50 bg-white/95 backdrop-blur-lg border-b border-gray-200 transition-shadow duration-300 ${
         scrolled ? "shadow-md" : ""
@@ -189,86 +190,72 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu - slide in from right */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 top-[4.5rem]" style={{ zIndex: 9999 }}>
-          {/* Backdrop */}
-          <div
-            style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' }}
-            onClick={() => setMobileOpen(false)}
-          />
-          {/* Menu panel */}
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '320px', maxWidth: '85vw', backgroundColor: '#ffffff', zIndex: 10, boxShadow: '-4px 0 24px rgba(0,0,0,0.15)', borderLeft: '1px solid #e5e7eb' }}>
-            <div className="px-6 py-6 space-y-2">
-              {navLinks.map((link) => {
-                const isActive =
-                  link.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                      isActive
-                        ? "text-[#20c858] bg-[#20c858]/5"
-                        : "text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-              <div className="pt-4 space-y-3 border-t border-gray-100">
+    </nav>
+
+    {/* Mobile menu rendered OUTSIDE nav to avoid bg-white/95 inheritance */}
+    {mobileOpen && (
+      <div className="lg:hidden fixed inset-0 top-[4.5rem]" style={{ zIndex: 9999 }}>
+        <div
+          style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setMobileOpen(false)}
+        />
+        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '320px', maxWidth: '85vw', backgroundColor: '#ffffff', zIndex: 10, boxShadow: '-4px 0 24px rgba(0,0,0,0.15)', borderLeft: '1px solid #e5e7eb' }}>
+          <div className="px-6 py-6 space-y-2">
+            {navLinks.map((link) => {
+              const isActive =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href);
+              return (
                 <Link
-                  href="/account"
+                  key={link.href}
+                  href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50 transition-colors"
+                  className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    isActive
+                      ? "text-[#20c858] bg-[#20c858]/5"
+                      : "text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50"
+                  }`}
                 >
-                  {userName ? (
-                    <>
-                      <span className="w-6 h-6 rounded-full bg-[#20c858] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                        {userName.charAt(0).toUpperCase()}
-                      </span>
-                      <span className="truncate">{userName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-5 h-5 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                      My Account
-                    </>
-                  )}
+                  {link.label}
                 </Link>
-                <MedaliaButton
-                  label="Patient Portal"
-                  size="sm"
-                  className="w-full"
-                />
-                <Link
-                  href="/coaching#download"
-                  onClick={() => setMobileOpen(false)}
-                  className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
-                >
-                  Download App
-                </Link>
-              </div>
+              );
+            })}
+            <div className="pt-4 space-y-3 border-t border-gray-100">
+              <Link
+                href="/account"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50 transition-colors"
+              >
+                {userName ? (
+                  <>
+                    <span className="w-6 h-6 rounded-full bg-[#20c858] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                      {userName.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="truncate">{userName}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    My Account
+                  </>
+                )}
+              </Link>
+              <MedaliaButton label="Patient Portal" size="sm" className="w-full" />
+              <Link
+                href="/coaching#download"
+                onClick={() => setMobileOpen(false)}
+                className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+              >
+                Download App
+              </Link>
             </div>
           </div>
         </div>
-      )}
-    </nav>
+      </div>
+    )}
+    </>
   );
 }
