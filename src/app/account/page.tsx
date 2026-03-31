@@ -54,9 +54,11 @@ interface PaymentRow {
 }
 
 /* ---------- nav sections ---------- */
-type Section = "profile" | "billing" | "assessment" | "app" | "settings";
+type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "app" | "settings";
 const navItems: { id: Section; label: string; icon: string }[] = [
+  { id: "overview", label: "Health Overview", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
   { id: "profile", label: "Profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+  { id: "messages", label: "Messages", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
   { id: "billing", label: "Billing & Plans", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "assessment", label: "Assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
   { id: "app", label: "App & Devices", icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
@@ -71,7 +73,7 @@ function AccountPageInner() {
   const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<Section>("profile");
+  const [activeSection, setActiveSection] = useState<Section>("overview");
 
   /* profile fields */
   const [profileFirstName, setProfileFirstName] = useState("");
@@ -80,7 +82,9 @@ function AccountPageInner() {
   const [address, setAddress] = useState("");
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [dob, setDob] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
+  const [profileSaveMsg, setProfileSaveMsg] = useState("");
 
   /* subscription state */
   const [currentTier, setCurrentTier] = useState<string | null>(null);
@@ -115,6 +119,9 @@ function AccountPageInner() {
   /* coaching programs */
   const [programs, setPrograms] = useState<string[]>([]);
 
+  /* messages */
+  const [conversationsCount, setConversationsCount] = useState(0);
+
   /* ---------- auth check + load data ---------- */
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -131,7 +138,7 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth")
           .eq("id", currentUser.id)
           .single();
         if (clientData) {
@@ -142,6 +149,7 @@ function AccountPageInner() {
           setAddress(clientData.address || "");
           setEmergencyName(clientData.emergency_contact_name || "");
           setEmergencyPhone(clientData.emergency_contact_phone || "");
+          setDob(clientData.date_of_birth || "");
         } else {
           const metaName = currentUser.user_metadata?.full_name || "";
           const parts = metaName.split(" ");
@@ -198,6 +206,15 @@ function AccountPageInner() {
         }
       } catch {}
 
+      // Load conversations count
+      try {
+        const { count } = await supabase
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("client_id", currentUser.id);
+        setConversationsCount(count || 0);
+      } catch {}
+
       setLoading(false);
     });
 
@@ -228,12 +245,15 @@ function AccountPageInner() {
       address: address.trim() || null,
       emergency_contact_name: emergencyName.trim() || null,
       emergency_contact_phone: emergencyPhone.trim() || null,
+      date_of_birth: dob || null,
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     await supabase.auth.updateUser({
       data: { full_name: fullName, phone: phone.trim() },
     });
     setEditingProfile(false);
+    setProfileSaveMsg("Profile saved successfully");
+    setTimeout(() => setProfileSaveMsg(""), 3000);
   };
 
   const handleConfirmPlanChange = async () => {
@@ -416,7 +436,7 @@ function AccountPageInner() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ---- Left navigation ---- */}
           <aside className="lg:w-56 shrink-0">
-            <nav className="bg-white rounded-2xl shadow-sm p-2 lg:sticky lg:top-24 flex lg:flex-col gap-1 overflow-x-auto">
+            <nav className="bg-white rounded-2xl shadow-sm p-2 lg:sticky lg:top-24 grid grid-cols-2 lg:grid-cols-1 lg:flex lg:flex-col gap-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
@@ -438,6 +458,111 @@ function AccountPageInner() {
 
           {/* ---- Main content ---- */}
           <main className="flex-1 space-y-6">
+            {/* ============ HEALTH OVERVIEW ============ */}
+            {activeSection === "overview" && (
+              <>
+                {/* Welcome card */}
+                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-[#20c858] text-white text-xl font-bold flex items-center justify-center shrink-0">
+                      {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-[#1F2937]">
+                        Welcome back, {profileFirstName || "there"}
+                      </h2>
+                      <p className="text-sm text-[#6B7280]">Member since {memberSince}</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Quick actions */}
+                <section>
+                  <h3 className="text-sm font-medium text-[#6B7280] mb-3 px-1">Quick actions</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Link href="/assessment"
+                      className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
+                      <div className="w-10 h-10 rounded-xl bg-[#20c858]/10 flex items-center justify-center mb-3 group-hover:bg-[#20c858]/20 transition-colors">
+                        <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-[#1F2937]">Book Assessment</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5">Schedule a health check</p>
+                    </Link>
+                    <button onClick={() => setActiveSection("billing")}
+                      className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group text-left">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-[#1F2937]">View Plans</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5">Manage your subscription</p>
+                    </button>
+                    <Link href="/coaching#download"
+                      className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-3 group-hover:bg-purple-100 transition-colors">
+                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-[#1F2937]">Download App</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5">Get the Lifeline app</p>
+                    </Link>
+                  </div>
+                </section>
+
+                {/* Your plan + Assessment status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <section className="bg-white rounded-2xl shadow-sm p-6">
+                    <h3 className="text-sm font-medium text-[#6B7280] mb-3">Your plan</h3>
+                    {activeTier ? (
+                      <div>
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>
+                          {activeTier.name}
+                        </span>
+                        {subscription?.current_period_end && currentTier !== "free-trial" && (
+                          <p className="text-xs text-[#6B7280] mt-2">
+                            Next billing:{" "}
+                            <span className="font-medium text-[#1F2937]">
+                              {new Date(subscription.current_period_end).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
+                            </span>
+                          </p>
+                        )}
+                        {currentTier === "free-trial" && (
+                          <p className="text-xs text-[#6B7280] mt-2">Free forever</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-sm text-[#6B7280]">No active plan</p>
+                        <button onClick={() => setActiveSection("billing")}
+                          className="mt-2 text-sm font-medium text-[#20c858] hover:underline">
+                          Choose a plan
+                        </button>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="bg-white rounded-2xl shadow-sm p-6">
+                    <h3 className="text-sm font-medium text-[#6B7280] mb-3">Assessment status</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#ecf0f3] flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#1F2937]">No assessments yet</p>
+                        <Link href="/assessment" className="text-xs text-[#20c858] hover:underline">Book your first</Link>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </>
+            )}
+
             {/* ============ PROFILE ============ */}
             {activeSection === "profile" && (
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
@@ -495,6 +620,11 @@ function AccountPageInner() {
                           placeholder="Contact phone" />
                       </div>
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of birth</label>
+                      <input value={dob} onChange={(e) => setDob(e.target.value)} type="date"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900" />
+                    </div>
                     <div className="flex gap-3 pt-2">
                       <button onClick={handleSaveProfile}
                         className="px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors">
@@ -505,6 +635,11 @@ function AccountPageInner() {
                         Cancel
                       </button>
                     </div>
+                    {profileSaveMsg && (
+                      <div className="mt-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 font-medium">
+                        {profileSaveMsg}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -533,9 +668,42 @@ function AccountPageInner() {
                       </p>
                     </div>
                     <div>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Date of birth</span>
+                      <p className={`font-medium mt-0.5 ${dob ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
+                        {dob ? new Date(dob).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" }) : "Not set"}
+                      </p>
+                    </div>
+                    <div>
                       <span className="text-[#6B7280] text-xs uppercase tracking-wider">Member since</span>
                       <p className="text-[#1F2937] font-medium mt-0.5">{memberSince}</p>
                     </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ============ MESSAGES ============ */}
+            {activeSection === "messages" && (
+              <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Messages</h2>
+                {conversationsCount > 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-[#6B7280]">
+                      You have <span className="font-semibold text-[#1F2937]">{conversationsCount}</span> conversation{conversationsCount !== 1 ? "s" : ""}.
+                    </p>
+                    <p className="text-sm text-[#6B7280]">
+                      Open the Lifeline app to view and reply to your messages.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
+                    <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <p className="text-sm font-medium text-[#1F2937] mb-1">No messages yet</p>
+                    <p className="text-xs text-[#6B7280]">
+                      Direct messaging with your coach is available on the Full Access plan.
+                    </p>
                   </div>
                 )}
               </section>
@@ -741,8 +909,11 @@ function AccountPageInner() {
                       </table>
                     </div>
                   ) : (
-                    <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
-                      <p className="text-sm text-[#6B7280]">No payment history yet.</p>
+                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
+                      <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                      </svg>
+                      <p className="text-sm text-[#6B7280]">Your payment history will appear here after your first transaction</p>
                     </div>
                   )}
                 </section>
@@ -802,10 +973,17 @@ function AccountPageInner() {
 
                 <div>
                   <h3 className="text-sm font-medium text-[#1F2937] mb-3">Assessment History</h3>
-                  <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
-                    <p className="text-sm text-[#6B7280]">
-                      Your assessment history will appear here once you complete your first visit.
+                  <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
+                    <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <p className="text-sm text-[#6B7280] mb-3">
+                      Complete your first assessment to see results here
                     </p>
+                    <Link href="/assessment"
+                      className="inline-flex items-center justify-center px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors">
+                      Book Assessment
+                    </Link>
                   </div>
                 </div>
               </section>
@@ -855,9 +1033,12 @@ function AccountPageInner() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-[#6B7280]">
-                      No active coaching programs. Programs will appear here once assigned by your coach.
-                    </p>
+                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
+                      <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                      </svg>
+                      <p className="text-sm text-[#6B7280]">Programs will appear once you start coaching</p>
+                    </div>
                   )}
                 </div>
               </section>
