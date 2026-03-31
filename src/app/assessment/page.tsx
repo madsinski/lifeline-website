@@ -336,59 +336,49 @@ export default function AssessmentPage() {
               From booking to personalised recommendations
             </p>
           </div>
-          {/* Desktop: vertical timeline with connecting line */}
-          <div className="hidden md:block space-y-0">
-            {processSteps.map((s, i) => (
+          {/* Desktop: cards with integrated step numbers */}
+          <div className="hidden md:block space-y-4 max-w-3xl mx-auto">
+            {processSteps.map((s) => (
               <div
                 key={s.step}
-                className="relative pl-14 pb-10 last:pb-0"
+                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
               >
-                {/* Vertical connecting line */}
-                {i < processSteps.length - 1 && (
-                  <div className="absolute left-[1.19rem] top-[3.25rem] bottom-0 w-0.5 bg-gradient-to-b from-[#20c858] to-[#20c858]/20" />
-                )}
-                {/* Step number circle — aligned to top of card */}
-                <div className="absolute left-0 top-3 w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-green-500/25 z-10">
-                  {s.step}
-                </div>
-                {/* Content card */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#20c858]/10 text-[#20c858] flex items-center justify-center">
-                      {s.icon}
-                    </div>
-                    <h3 className="font-semibold text-[#1F2937]">
-                      {s.title}
-                    </h3>
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-green-500/25 flex-shrink-0">
+                    {s.step}
                   </div>
-                  <p className="text-sm text-[#6B7280] leading-relaxed ml-11">
-                    {s.description}
-                  </p>
+                  <div className="w-8 h-8 rounded-lg bg-[#20c858]/10 text-[#20c858] flex items-center justify-center flex-shrink-0">
+                    {s.icon}
+                  </div>
+                  <h3 className="font-semibold text-[#1F2937]">
+                    {s.title}
+                  </h3>
                 </div>
+                <p className="text-sm text-[#6B7280] leading-relaxed ml-[4.5rem]">
+                  {s.description}
+                </p>
               </div>
             ))}
           </div>
 
-          {/* Mobile: simple list without connecting lines */}
-          <div className="md:hidden space-y-6">
+          {/* Mobile: same integrated layout */}
+          <div className="md:hidden space-y-4">
             {processSteps.map((s) => (
-              <div key={s.step} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-green-500/25 flex-shrink-0">
-                  {s.step}
-                </div>
-                <div className="bg-white rounded-2xl p-5 shadow-sm flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#20c858]/10 text-[#20c858] flex items-center justify-center">
-                      {s.icon}
-                    </div>
-                    <h3 className="font-semibold text-[#1F2937]">
-                      {s.title}
-                    </h3>
+              <div key={s.step} className="bg-white rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-green-500/25 flex-shrink-0">
+                    {s.step}
                   </div>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">
-                    {s.description}
-                  </p>
+                  <div className="w-7 h-7 rounded-lg bg-[#20c858]/10 text-[#20c858] flex items-center justify-center flex-shrink-0">
+                    {s.icon}
+                  </div>
+                  <h3 className="font-semibold text-[#1F2937] text-sm">
+                    {s.title}
+                  </h3>
                 </div>
+                <p className="text-sm text-[#6B7280] leading-relaxed ml-12">
+                  {s.description}
+                </p>
               </div>
             ))}
           </div>
