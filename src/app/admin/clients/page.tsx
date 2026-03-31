@@ -279,13 +279,25 @@ export default function ClientsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data, error: staffError } = await supabase
+        // Try with permissions filter first, fall back to all active staff
+        let data: Record<string, unknown>[] | null = null;
+        const { data: d1, error: e1 } = await supabase
           .from("staff")
           .select("*")
           .eq("active", true)
           .contains("permissions", ["send_messages"]);
+        if (!e1 && d1 && d1.length > 0) {
+          data = d1;
+        } else {
+          // Permissions column may not exist yet — load all active staff
+          const { data: d2 } = await supabase
+            .from("staff")
+            .select("*")
+            .eq("active", true);
+          if (d2 && d2.length > 0) data = d2;
+        }
 
-        if (!staffError && data && data.length > 0) {
+        if (data && data.length > 0) {
           const mapped: StaffMember[] = data.map((s: Record<string, unknown>) => ({
             id: s.id as string,
             name: s.name as string,
@@ -323,12 +335,13 @@ export default function ClientsPage() {
       } else {
         // Create new conversation
         const defaultStaff = staffMembers[0];
+        const isRealUUID = defaultStaff?.id && !defaultStaff.id.startsWith("staff-");
         const { error: convError } = await supabase
           .from("conversations")
           .insert({
             client_id: clientId,
-            coach_id: defaultStaff?.id || "staff-1",
-            coach_name: clientName,
+            coach_id: isRealUUID ? defaultStaff.id : null,
+            coach_name: defaultStaff?.name || "Coach",
           });
 
         if (convError) {

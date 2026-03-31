@@ -173,27 +173,16 @@ select:focus-visible {
 @keyframes slideInRight {
   from {
     transform: translateX(100%);
-    opacity: 0;
   }
   to {
     transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
   }
 }
 
 .mobile-menu-enter {
-  animation: slideInRight 0.3s ease-out both;
+  animation: slideInRight 0.25s ease-out both;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
 }
 
 /* Newsletter input */

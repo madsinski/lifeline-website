@@ -46,13 +46,23 @@ const fallbackStaffMembers: StaffMember[] = [
 
 async function loadStaffFromSupabase(): Promise<StaffMember[] | null> {
   try {
-    const { data, error } = await supabase
+    // Try with permissions filter, fall back to all active staff
+    const { data: d1, error: e1 } = await supabase
       .from("staff")
       .select("*")
       .eq("active", true)
       .contains("permissions", ["send_messages"]);
 
-    if (error || !data || data.length === 0) return null;
+    let data = d1;
+    if (e1 || !d1 || d1.length === 0) {
+      const { data: d2 } = await supabase
+        .from("staff")
+        .select("*")
+        .eq("active", true);
+      data = d2;
+    }
+
+    if (!data || data.length === 0) return null;
 
     return data.map((s: Record<string, unknown>) => ({
       id: s.id as string,
