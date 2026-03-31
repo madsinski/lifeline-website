@@ -453,14 +453,14 @@ export default function CoachingPage() {
               Coaching subscriptions
             </h2>
             <p className="mt-4 text-lg text-[#6B7280]">
-              Sign up directly in the app
+              Choose the plan that fits your goals
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
             {subscriptions.map((plan) => (
               <div
                 key={plan.name}
-                className={`relative rounded-2xl p-8 transition-all duration-200 ${
+                className={`relative rounded-2xl p-8 transition-all duration-200 flex flex-col ${
                   plan.popular
                     ? "bg-[#1F2937] text-white ring-2 ring-[#20c858] md:scale-105 shadow-2xl md:-my-4"
                     : "bg-white shadow-sm hover:shadow-lg hover:-translate-y-1"
@@ -500,10 +500,10 @@ export default function CoachingPage() {
                       plan.popular ? "text-gray-300" : "text-[#6B7280]"
                     }`}
                   >
-                    {plan.price === "0" ? "ISK" : `ISK / ${plan.period}`}
+                    {plan.price === "0" ? "ISK / month" : `ISK / ${plan.period}`}
                   </span>
                 </div>
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
                       <svg
@@ -529,15 +529,16 @@ export default function CoachingPage() {
                     </li>
                   ))}
                 </ul>
-                <div
-                  className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-default ${
+                <Link
+                  href="/account/login"
+                  className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                     plan.popular
-                      ? "bg-[#20c858] text-white shadow-lg shadow-green-500/30"
-                      : "bg-[#1F2937] text-white"
+                      ? "bg-[#20c858] text-white shadow-lg shadow-green-500/30 hover:bg-[#1ab34d]"
+                      : "bg-[#1F2937] text-white hover:bg-[#374151]"
                   }`}
                 >
-                  Sign up in the app
-                </div>
+                  Get started
+                </Link>
               </div>
             ))}
           </div>
