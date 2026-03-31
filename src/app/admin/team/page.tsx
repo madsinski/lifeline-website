@@ -259,20 +259,34 @@ export default function TeamPage() {
       setTeam((prev) => [...prev, addedMember!]);
     }
 
-    // Send invite email via Supabase Auth
+    // Send invite email via Edge Function
     if (sendInvite && addedMember) {
       try {
-        const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(newEmail.trim());
-        if (inviteErr) {
-          // Admin invite requires service role — fallback to noting it
-          setInviteStatus(`Team member added. Invite email could not be sent automatically — send them a login link manually.`);
-        } else {
-          // Update invited status
-          if (connectionStatus === "connected" && addedMember.id) {
-            await supabase.from("staff").update({ invited: true }).eq("id", addedMember.id);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const resp = await fetch(
+            "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/invite-team",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ email: newEmail.trim(), name: newName.trim(), role: newRole }),
+            },
+          );
+          const result = await resp.json();
+          if (resp.ok) {
+            if (connectionStatus === "connected" && addedMember.id) {
+              await supabase.from("staff").update({ invited: true }).eq("id", addedMember.id);
+            }
+            setTeam(prev => prev.map(m => m.id === addedMember!.id ? { ...m, invited: true } : m));
+            setInviteStatus(`Invite email sent to ${newEmail.trim()}`);
+          } else {
+            setInviteStatus(`Team member added. Invite failed: ${result.error || "Unknown error"}`);
           }
-          setTeam(prev => prev.map(m => m.id === addedMember!.id ? { ...m, invited: true } : m));
-          setInviteStatus(`Invite email sent to ${newEmail.trim()}`);
+        } else {
+          setInviteStatus(`Team member added. Not authenticated — could not send invite.`);
         }
       } catch {
         setInviteStatus(`Team member added. Could not send invite email.`);
