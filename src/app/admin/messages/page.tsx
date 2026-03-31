@@ -246,16 +246,30 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
       const unread = msgs.filter((m) => !m.read).length;
       const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
 
+      // Load client name from clients table
+      let clientName = "Client";
+      let clientEmail = "";
+      try {
+        const { data: clientData } = await supabase
+          .from("clients")
+          .select("full_name, email")
+          .eq("id", conv.client_id)
+          .single();
+        if (clientData) {
+          clientName = clientData.full_name || clientData.email || "Client";
+          clientEmail = clientData.email || "";
+        }
+      } catch {}
+
       conversations.push({
         id: conv.id,
-        clientName: conv.coach_name ?? "Client",
-        clientEmail: "",
-        tier: "Full Access",
+        clientName,
+        clientEmail,
+        tier: "Active",
         lastMessage: lastMsg?.content ?? "",
         lastMessageAt: lastMsg?.createdAt ?? conv.created_at,
         unreadCount: unread,
         messages: msgs,
-        assignedStaff: fallbackStaffMembers[0],
       });
     }
 
@@ -311,45 +325,68 @@ async function markConversationReadInSupabase(conversationId: string): Promise<v
   }
 }
 
-async function createTestConversationInSupabase(): Promise<boolean> {
+interface ClientOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+async function loadClientsForNewConversation(): Promise<ClientOption[]> {
   try {
-    // Find the first client
-    const { data: clients, error: clientError } = await supabase
+    const { data, error } = await supabase
       .from("clients")
       .select("id, full_name, email")
-      .limit(1)
-      .single();
+      .order("full_name", { ascending: true });
+    if (error || !data) return [];
+    return data.map((c: Record<string, unknown>) => ({
+      id: c.id as string,
+      name: (c.full_name as string) || (c.email as string) || "Unknown",
+      email: (c.email as string) || "",
+    }));
+  } catch {
+    return [];
+  }
+}
 
-    if (clientError || !clients) return false;
+async function createConversationWithClient(
+  clientId: string,
+  staff: StaffMember,
+): Promise<string | null> {
+  try {
+    // Check if conversation already exists
+    const { data: existing } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("client_id", clientId)
+      .limit(1);
+    if (existing && existing.length > 0) return existing[0].id as string;
 
-    // Create conversation
-    const { data: conv, error: convError } = await supabase
+    const isRealUUID = staff.id && !staff.id.startsWith("staff-");
+    const { data: conv, error } = await supabase
       .from("conversations")
       .insert({
-        client_id: clients.id,
-        coach_id: "staff-1",
-        coach_name: clients.full_name || clients.email || "Client",
+        client_id: clientId,
+        coach_id: isRealUUID ? staff.id : null,
+        coach_name: staff.name,
       })
       .select()
       .single();
 
-    if (convError || !conv) return false;
+    if (error || !conv) return null;
 
     // Add welcome message
-    const { error: msgError } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: (conv as SupabaseConversation).id,
-        sender_id: "staff-1",
-        sender_name: "Coach Sarah",
-        sender_role: "coach",
-        content: "Welcome to Lifeline Health! I am Coach Sarah, your personal health coach. I am here to help you on your health journey. Feel free to message me anytime with questions about your training, nutrition, or health goals.",
-        read: true,
-      });
+    await supabase.from("messages").insert({
+      conversation_id: (conv as SupabaseConversation).id,
+      sender_id: isRealUUID ? staff.id : "system",
+      sender_name: staff.name,
+      sender_role: "coach",
+      content: `Hello! I'm ${staff.name}, your health coach at Lifeline Health. Feel free to message me anytime with questions about your training, nutrition, or health goals.`,
+      read: true,
+    });
 
-    return !msgError;
+    return (conv as SupabaseConversation).id;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -365,7 +402,10 @@ export default function AdminMessagesPage() {
   const [showDemoData, setShowDemoData] = useState(false);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>(fallbackStaffMembers);
   const [replyAsStaff, setReplyAsStaff] = useState<StaffMember>(fallbackStaffMembers[0]);
-  const [creatingTest, setCreatingTest] = useState(false);
+  const [showNewConversation, setShowNewConversation] = useState(false);
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [clientSearch, setClientSearch] = useState("");
+  const [creatingConv, setCreatingConv] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -479,16 +519,31 @@ export default function AdminMessagesPage() {
     }
   };
 
-  const handleCreateTestConversation = async () => {
-    setCreatingTest(true);
-    const success = await createTestConversationInSupabase();
-    if (success) {
-      await loadConversations();
-    } else {
-      alert("Failed to create test conversation. Make sure the database has at least one client.");
-    }
-    setCreatingTest(false);
+  const handleOpenNewConversation = async () => {
+    setShowNewConversation(true);
+    setClientSearch("");
+    const clients = await loadClientsForNewConversation();
+    setClientOptions(clients);
   };
+
+  const handleStartConversation = async (client: ClientOption) => {
+    setCreatingConv(true);
+    const convId = await createConversationWithClient(client.id, replyAsStaff);
+    if (convId) {
+      await loadConversations();
+      setSelectedId(convId);
+      setShowNewConversation(false);
+    } else {
+      alert("Failed to create conversation.");
+    }
+    setCreatingConv(false);
+  };
+
+  const filteredClients = clientOptions.filter(
+    (c) =>
+      c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+      c.email.toLowerCase().includes(clientSearch.toLowerCase())
+  );
 
   // Group messages by date for display
   const groupedMessages: { date: string; messages: Message[] }[] = [];
@@ -502,8 +557,6 @@ export default function AdminMessagesPage() {
       groupedMessages[groupedMessages.length - 1].messages.push(msg);
     }
   }
-
-  const assignedStaff = selected?.assignedStaff;
 
   return (
     <div className="flex h-[calc(100vh-140px)] bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -523,21 +576,13 @@ export default function AdminMessagesPage() {
                 </span>
               )}
               <button
-                onClick={handleCreateTestConversation}
-                disabled={creatingTest}
-                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                title="Create test conversation"
+                onClick={handleOpenNewConversation}
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                title="New conversation"
               >
-                {creatingTest ? (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                )}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
               </button>
               <button
                 onClick={loadConversations}
@@ -676,22 +721,17 @@ export default function AdminMessagesPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {assignedStaff && (
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-700">
-                  {assignedStaff.avatarInitial}
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium text-gray-700">{assignedStaff.name}</p>
-                  <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleColors[assignedStaff.role]}`}>
-                    {roleLabels[assignedStaff.role]}
-                  </span>
-                </div>
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${roleColors[replyAsStaff.role]}`}>
+                {replyAsStaff.avatarInitial}
               </div>
-            )}
-            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 font-medium">
-              {selected.tier}
-            </span>
+              <div className="text-right">
+                <p className="text-xs font-medium text-gray-700">{replyAsStaff.name}</p>
+                <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleColors[replyAsStaff.role]}`}>
+                  {roleLabels[replyAsStaff.role]}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -783,6 +823,66 @@ export default function AdminMessagesPage() {
         </div>
         </>)}
       </div>
+
+      {/* New conversation modal */}
+      {showNewConversation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#1F2937]">New conversation</h3>
+              <button
+                onClick={() => setShowNewConversation(false)}
+                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-3">
+              <p className="text-xs text-gray-500 mb-2">Message as: <span className="font-medium text-gray-700">{replyAsStaff.name}</span></p>
+              <div className="relative">
+                <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search clients..."
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 focus:border-[#20c858] text-gray-900"
+                />
+              </div>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto border border-gray-100 rounded-lg">
+              {filteredClients.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-gray-400">
+                  {clientOptions.length === 0 ? "Loading clients..." : "No clients found"}
+                </div>
+              ) : (
+                filteredClients.map((client) => (
+                  <button
+                    key={client.id}
+                    onClick={() => handleStartConversation(client)}
+                    disabled={creatingConv}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3 disabled:opacity-50"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#20c858]/10 flex items-center justify-center text-xs font-bold text-[#20c858] flex-shrink-0">
+                      {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[#1F2937] truncate">{client.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{client.email}</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
