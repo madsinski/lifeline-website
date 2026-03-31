@@ -12,7 +12,9 @@ import { supabase } from "@/lib/supabase";
     email TEXT UNIQUE NOT NULL,
     phone TEXT,
     role TEXT NOT NULL CHECK (role IN ('coach', 'doctor', 'nurse', 'psychologist', 'admin')),
+    permissions TEXT[] DEFAULT '{}',
     active BOOLEAN DEFAULT true,
+    invited BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT now()
   );
   ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
@@ -22,6 +24,23 @@ import { supabase } from "@/lib/supabase";
 // ─── Types ───────────────────────────────────────────────────
 
 type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin";
+type Permission = "manage_clients" | "manage_programs" | "manage_team" | "view_analytics" | "send_messages";
+
+const allPermissions: { key: Permission; label: string; description: string }[] = [
+  { key: "manage_clients", label: "Manage Clients", description: "View, edit, and delete client profiles" },
+  { key: "manage_programs", label: "Manage Programs", description: "Create and edit coaching programs" },
+  { key: "manage_team", label: "Manage Team", description: "Add, edit, and remove team members" },
+  { key: "view_analytics", label: "View Analytics", description: "Access analytics and reports" },
+  { key: "send_messages", label: "Send Messages", description: "Message clients directly" },
+];
+
+const defaultPermissions: Record<StaffRole, Permission[]> = {
+  admin: ["manage_clients", "manage_programs", "manage_team", "view_analytics", "send_messages"],
+  coach: ["manage_clients", "manage_programs", "send_messages"],
+  doctor: ["manage_clients", "view_analytics"],
+  nurse: ["manage_clients", "send_messages"],
+  psychologist: ["manage_clients", "send_messages"],
+};
 
 interface TeamMember {
   id: string;
@@ -30,6 +49,8 @@ interface TeamMember {
   phone: string;
   role: StaffRole;
   active: boolean;
+  permissions: Permission[];
+  invited: boolean;
 }
 
 const roleLabels: Record<StaffRole, string> = {
@@ -53,10 +74,10 @@ const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "a
 // ─── Fallback mock data ───────────────────────────────────────
 
 const fallbackTeam: TeamMember[] = [
-  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", phone: "+354 555 1001", role: "coach", active: true },
-  { id: "staff-2", name: "Dr. Gudmundur Sigurdsson", email: "gudmundur@lifeline.is", phone: "+354 555 1002", role: "doctor", active: true },
-  { id: "staff-3", name: "Helga Jonsdottir", email: "helga@lifeline.is", phone: "+354 555 1003", role: "nurse", active: true },
-  { id: "staff-4", name: "Dr. Anna Kristjansdottir", email: "anna.k@lifeline.is", phone: "+354 555 1004", role: "psychologist", active: true },
+  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", phone: "+354 555 1001", role: "coach", active: true, permissions: defaultPermissions.coach, invited: true },
+  { id: "staff-2", name: "Dr. Gudmundur Sigurdsson", email: "gudmundur@lifeline.is", phone: "+354 555 1002", role: "doctor", active: true, permissions: defaultPermissions.doctor, invited: true },
+  { id: "staff-3", name: "Helga Jonsdottir", email: "helga@lifeline.is", phone: "+354 555 1003", role: "nurse", active: true, permissions: defaultPermissions.nurse, invited: true },
+  { id: "staff-4", name: "Dr. Anna Kristjansdottir", email: "anna.k@lifeline.is", phone: "+354 555 1004", role: "psychologist", active: true, permissions: defaultPermissions.psychologist, invited: true },
 ];
 
 // ─── Connection status type ───────────────────────────────────
@@ -71,7 +92,9 @@ const STAFF_TABLE_SQL = `CREATE TABLE IF NOT EXISTS staff (
   email TEXT UNIQUE NOT NULL,
   phone TEXT,
   role TEXT NOT NULL CHECK (role IN ('coach', 'doctor', 'nurse', 'psychologist', 'admin')),
+  permissions TEXT[] DEFAULT '{}',
   active BOOLEAN DEFAULT true,
+  invited BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
@@ -92,6 +115,21 @@ export default function TeamPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newRole, setNewRole] = useState<StaffRole>("coach");
+  const [newPermissions, setNewPermissions] = useState<Permission[]>(defaultPermissions.coach);
+  const [sendInvite, setSendInvite] = useState(true);
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+
+  // Update permissions when role changes
+  const handleRoleChange = (role: StaffRole) => {
+    setNewRole(role);
+    setNewPermissions(defaultPermissions[role]);
+  };
+
+  const togglePermission = (perm: Permission) => {
+    setNewPermissions(prev =>
+      prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]
+    );
+  };
 
   // ─── Load staff from Supabase on mount ───────────────────
 
@@ -119,6 +157,8 @@ export default function TeamPage() {
             phone: row.phone || "",
             role: row.role as StaffRole,
             active: row.active ?? true,
+            permissions: (row.permissions as Permission[]) || defaultPermissions[row.role as StaffRole] || [],
+            invited: row.invited ?? false,
           }))
         );
         setConnectionStatus("connected");
@@ -170,14 +210,19 @@ export default function TeamPage() {
   const handleAdd = async () => {
     if (!newName.trim() || !newEmail.trim()) return;
     setSaveError(null);
+    setInviteStatus(null);
 
     const memberData = {
       name: newName.trim(),
       email: newEmail.trim(),
       phone: newPhone.trim(),
       role: newRole,
+      permissions: newPermissions,
       active: true,
+      invited: false,
     };
+
+    let addedMember: TeamMember | null = null;
 
     if (connectionStatus === "connected") {
       const { data, error } = await supabase
@@ -192,31 +237,51 @@ export default function TeamPage() {
       }
 
       if (data) {
-        setTeam((prev) => [
-          ...prev,
-          {
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            phone: data.phone || "",
-            role: data.role as StaffRole,
-            active: data.active ?? true,
-          },
-        ]);
+        addedMember = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone || "",
+          role: data.role as StaffRole,
+          active: data.active ?? true,
+          permissions: (data.permissions as Permission[]) || newPermissions,
+          invited: data.invited ?? false,
+        };
+        setTeam((prev) => [...prev, addedMember!]);
       }
     } else {
-      // Offline fallback
-      const member: TeamMember = {
+      addedMember = {
         id: `staff-${Date.now()}`,
         ...memberData,
       };
-      setTeam((prev) => [...prev, member]);
+      setTeam((prev) => [...prev, addedMember!]);
+    }
+
+    // Send invite email via Supabase Auth
+    if (sendInvite && addedMember) {
+      try {
+        const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(newEmail.trim());
+        if (inviteErr) {
+          // Admin invite requires service role — fallback to noting it
+          setInviteStatus(`Team member added. Invite email could not be sent automatically — send them a login link manually.`);
+        } else {
+          // Update invited status
+          if (connectionStatus === "connected" && addedMember.id) {
+            await supabase.from("staff").update({ invited: true }).eq("id", addedMember.id);
+          }
+          setTeam(prev => prev.map(m => m.id === addedMember!.id ? { ...m, invited: true } : m));
+          setInviteStatus(`Invite email sent to ${newEmail.trim()}`);
+        }
+      } catch {
+        setInviteStatus(`Team member added. Could not send invite email.`);
+      }
     }
 
     setNewName("");
     setNewEmail("");
     setNewPhone("");
     setNewRole("coach");
+    setNewPermissions(defaultPermissions.coach);
     setShowAddModal(false);
   };
 
@@ -375,6 +440,14 @@ export default function TeamPage() {
           </button>
         </div>
       </div>
+
+      {/* Invite status */}
+      {inviteStatus && (
+        <div className="rounded-lg p-3 text-sm bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-between">
+          <span>{inviteStatus}</span>
+          <button onClick={() => setInviteStatus(null)} className="text-blue-400 hover:text-blue-600 ml-2">&times;</button>
+        </div>
+      )}
 
       {/* Sync result */}
       {syncResult && (
@@ -632,13 +705,44 @@ export default function TeamPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                 <select
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as StaffRole)}
+                  onChange={(e) => handleRoleChange(e.target.value as StaffRole)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
                 >
                   {roleOptions.map((r) => (
                     <option key={r} value={r}>{roleLabels[r]}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+                <div className="space-y-2">
+                  {allPermissions.map((perm) => (
+                    <label key={perm.key} className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newPermissions.includes(perm.key)}
+                        onChange={() => togglePermission(perm.key)}
+                        className="mt-0.5 w-4 h-4 text-[#20c858] border-gray-300 rounded focus:ring-[#20c858]"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">{perm.label}</span>
+                        <p className="text-xs text-gray-400">{perm.description}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendInvite}
+                    onChange={(e) => setSendInvite(e.target.checked)}
+                    className="w-4 h-4 text-[#20c858] border-gray-300 rounded focus:ring-[#20c858]"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Send invite email</span>
+                </label>
+                <p className="text-xs text-gray-400 ml-6.5 mt-0.5">The team member will receive an email to set up their account</p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 mt-6">
@@ -653,7 +757,7 @@ export default function TeamPage() {
                 disabled={!newName.trim() || !newEmail.trim()}
                 className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Member
+                {sendInvite ? "Add & Send Invite" : "Add Member"}
               </button>
             </div>
           </div>

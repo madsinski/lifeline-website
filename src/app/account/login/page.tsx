@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import LifelineLogo from "@/app/components/LifelineLogo";
 
 export default function AccountLoginPage() {
   const router = useRouter();
@@ -102,10 +103,8 @@ export default function AccountLoginPage() {
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="text-center mb-8">
-          <Link href="/">
-            <h1 className="text-3xl font-bold text-[#1F2937] tracking-tight">
-              Lifeline <span className="text-[#20c858]">Health</span>
-            </h1>
+          <Link href="/" className="inline-block">
+            <LifelineLogo size="sm" showHealth />
           </Link>
           <p className="mt-2 text-[#6B7280] text-sm">
             {mode === "login"
