@@ -84,9 +84,9 @@ const stats = [
 
 const subscriptions = [
   {
-    name: "Free Trial",
+    name: "Free Plan",
     price: "0",
-    period: "14 days",
+    period: "",
     description: "Try Lifeline risk-free",
     features: [
       "Basic health questionnaire",
@@ -433,14 +433,14 @@ export default function CoachingPage() {
                       plan.popular ? "text-white" : "text-[#1F2937]"
                     }`}
                   >
-                    {plan.price}
+                    {plan.price === "0" ? "0" : plan.price}
                   </span>
                   <span
                     className={`text-sm ml-2 ${
                       plan.popular ? "text-gray-300" : "text-[#6B7280]"
                     }`}
                   >
-                    {plan.price === "0" ? "" : "ISK"} / {plan.period}
+                    {plan.price === "0" ? "ISK" : `ISK / ${plan.period}`}
                   </span>
                 </div>
                 <ul className="space-y-3 mb-8">
@@ -501,7 +501,7 @@ export default function CoachingPage() {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left px-6 py-4 font-semibold text-[#1F2937]">Feature</th>
-                    <th className="text-center px-4 py-4 font-semibold text-[#1F2937]">Free Trial</th>
+                    <th className="text-center px-4 py-4 font-semibold text-[#1F2937]">Free Plan</th>
                     <th className="text-center px-4 py-4 font-semibold text-[#1F2937]">Self-maintained</th>
                     <th className="text-center px-4 py-4 font-semibold text-[#20c858]">Full Access</th>
                   </tr>
