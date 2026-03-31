@@ -341,7 +341,7 @@ export default function EducationPage() {
           weekRange: row.week_range,
           days: JSON.parse(row.days || "[]"),
         }));
-        if (parsed.length === 4) {
+        if (parsed.length === weekRanges.length) {
           setSnippetWeeks(parsed);
         }
       }
