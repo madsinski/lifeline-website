@@ -96,9 +96,9 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.5rem]">
           {/* Logo */}
-          <Link href="/" className="relative mr-8">
+          <Link href="/" className="flex flex-col mr-8">
             <LifelineLogo size="sm" />
-            <span className="absolute -right-[38px] top-[1px] text-[8px] tracking-[2px] text-gray-400 font-normal uppercase">Health</span>
+            <span className="text-[7.5px] tracking-[5.5px] text-gray-400 font-medium uppercase ml-[0.5px] mt-[2px]">Health</span>
           </Link>
 
           {/* Desktop nav */}
