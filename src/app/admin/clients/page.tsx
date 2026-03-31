@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Tier = "free-trial" | "self-maintained" | "full-access";
@@ -84,7 +85,7 @@ interface StaffMember {
   active: boolean;
 }
 
-const staffMembers: StaffMember[] = [
+const fallbackStaffMembers: StaffMember[] = [
   { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", role: "coach", avatarInitial: "CS", active: true },
   { id: "staff-2", name: "Dr. Guðmundur Sigurðsson", email: "gudmundur@lifeline.is", role: "doctor", avatarInitial: "GS", active: true },
   { id: "staff-3", name: "Helga Jónsdóttir", email: "helga@lifeline.is", role: "nurse", avatarInitial: "HJ", active: true },
@@ -149,6 +150,7 @@ function daysUntil(dateStr: string | null): number | null {
 }
 
 export default function ClientsPage() {
+  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,11 +163,13 @@ export default function ClientsPage() {
   const [savingTier, setSavingTier] = useState<string | null>(null);
   const [creatingSubscription, setCreatingSubscription] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"clients" | "staff">("clients");
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(fallbackStaffMembers);
   const [coachAssignments, setCoachAssignments] = useState<Record<string, string>>({});
   const [deletingClient, setDeletingClient] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState<string | null>(null);
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -270,6 +274,74 @@ export default function ClientsPage() {
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
+
+  // Load staff from Supabase
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error: staffError } = await supabase
+          .from("staff")
+          .select("*")
+          .eq("active", true)
+          .contains("permissions", ["send_messages"]);
+
+        if (!staffError && data && data.length > 0) {
+          const mapped: StaffMember[] = data.map((s: Record<string, unknown>) => ({
+            id: s.id as string,
+            name: s.name as string,
+            email: (s.email as string) || "",
+            role: (s.role as StaffMember["role"]) || "coach",
+            avatarInitial: ((s.name as string) || "")
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase(),
+            active: true,
+          }));
+          setStaffMembers(mapped);
+        }
+      } catch {
+        // keep fallback staff
+      }
+    })();
+  }, []);
+
+  const handleSendMessageToClient = async (clientId: string, clientName: string) => {
+    setSendingMessage(clientId);
+    try {
+      // Check if conversation already exists for this client
+      const { data: existingConvs } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("client_id", clientId)
+        .limit(1);
+
+      if (existingConvs && existingConvs.length > 0) {
+        // Conversation exists, navigate to messages
+        router.push("/admin/messages");
+      } else {
+        // Create new conversation
+        const defaultStaff = staffMembers[0];
+        const { error: convError } = await supabase
+          .from("conversations")
+          .insert({
+            client_id: clientId,
+            coach_id: defaultStaff?.id || "staff-1",
+            coach_name: clientName,
+          });
+
+        if (convError) {
+          alert(`Failed to create conversation: ${convError.message}`);
+        } else {
+          router.push("/admin/messages");
+        }
+      }
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+    setSendingMessage(null);
+  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -742,8 +814,11 @@ export default function ClientsPage() {
                     onDeleteClick={() => setDeleteConfirmId(client.id)}
                     onDeleteConfirm={() => deleteClient(client.id)}
                     onDeleteCancel={() => setDeleteConfirmId(null)}
-                    assignedCoachId={coachAssignments[client.id] || "staff-1"}
+                    assignedCoachId={coachAssignments[client.id] || (staffMembers[0]?.id ?? "staff-1")}
                     onAssignCoach={handleAssignCoach}
+                    staffMembers={staffMembers}
+                    onSendMessage={handleSendMessageToClient}
+                    isSendingMessage={sendingMessage === client.id}
                   />
                 ))}
               </tbody>
@@ -777,6 +852,9 @@ function ClientRowComponent({
   onDeleteCancel,
   assignedCoachId,
   onAssignCoach,
+  staffMembers,
+  onSendMessage,
+  isSendingMessage,
 }: {
   client: Client;
   isEven: boolean;
@@ -793,6 +871,9 @@ function ClientRowComponent({
   onDeleteCancel: () => void;
   assignedCoachId: string;
   onAssignCoach: (clientId: string, staffId: string) => void;
+  staffMembers: StaffMember[];
+  onSendMessage: (clientId: string, clientName: string) => void;
+  isSendingMessage: boolean;
 }) {
   const assignedStaff = staffMembers.find((s) => s.id === assignedCoachId);
   const isActive = client.status === "active" || client.status === "trial";
@@ -969,6 +1050,28 @@ function ClientRowComponent({
                 <h4 className="text-sm font-semibold text-[#1F2937] mb-2">
                   Actions
                 </h4>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSendMessage(client.id, client.name); }}
+                  disabled={isSendingMessage}
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50 mb-2 flex items-center gap-1.5"
+                >
+                  {isSendingMessage ? (
+                    <>
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Opening...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                      Send message
+                    </>
+                  )}
+                </button>
                 {showDeleteConfirm ? (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
                     <p className="text-sm text-red-700 font-medium">

@@ -35,14 +35,42 @@ interface StaffMember {
   active: boolean;
 }
 
-// ─── Staff data ─────────────────────────────────────────────
+// ─── Staff data (fallback) ──────────────────────────────────
 
-const staffMembers: StaffMember[] = [
+const fallbackStaffMembers: StaffMember[] = [
   { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", role: "coach", avatarInitial: "CS", active: true },
   { id: "staff-2", name: "Dr. Guðmundur Sigurðsson", email: "gudmundur@lifeline.is", role: "doctor", avatarInitial: "GS", active: true },
   { id: "staff-3", name: "Helga Jónsdóttir", email: "helga@lifeline.is", role: "nurse", avatarInitial: "HJ", active: true },
   { id: "staff-4", name: "Dr. Anna Kristjánsdóttir", email: "anna.k@lifeline.is", role: "psychologist", avatarInitial: "AK", active: true },
 ];
+
+async function loadStaffFromSupabase(): Promise<StaffMember[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from("staff")
+      .select("*")
+      .eq("active", true)
+      .contains("permissions", ["send_messages"]);
+
+    if (error || !data || data.length === 0) return null;
+
+    return data.map((s: Record<string, unknown>) => ({
+      id: s.id as string,
+      name: s.name as string,
+      email: (s.email as string) || "",
+      role: (s.role as StaffMember["role"]) || "coach",
+      avatarInitial: ((s.name as string) || "")
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase(),
+      active: true,
+    }));
+  } catch {
+    return null;
+  }
+}
 
 const roleLabels: Record<StaffMember["role"], string> = {
   coach: "Coach",
@@ -69,7 +97,7 @@ const initialConversations: Conversation[] = [
     lastMessage: "Thanks! Should I finish this week as normal?",
     lastMessageAt: "2026-03-28T10:02:00Z",
     unreadCount: 2,
-    assignedStaff: staffMembers[0],
+    assignedStaff: fallbackStaffMembers[0],
     messages: [
       { id: "m1a", senderName: "Coach Sarah", senderRole: "coach", content: "Hi Jon! I updated your training program based on your latest assessment. The new program starts next week Monday.", createdAt: "2026-03-27T09:15:00Z", read: true },
       { id: "m1b", senderName: "Jon Jonsson", senderRole: "client", content: "Thanks! Should I finish this week as normal?", createdAt: "2026-03-28T10:02:00Z", read: false },
@@ -83,7 +111,7 @@ const initialConversations: Conversation[] = [
     lastMessage: "My knee has been hurting after the squats. Should I modify the exercise?",
     lastMessageAt: "2026-03-28T08:30:00Z",
     unreadCount: 1,
-    assignedStaff: staffMembers[0],
+    assignedStaff: fallbackStaffMembers[0],
     messages: [
       { id: "m2a", senderName: "Coach Sarah", senderRole: "coach", content: "Hi Anna, how is the new lower body program going?", createdAt: "2026-03-26T14:00:00Z", read: true },
       { id: "m2b", senderName: "Anna Sigurdardottir", senderRole: "client", content: "It is going well overall but I have a question.", createdAt: "2026-03-27T09:00:00Z", read: true },
@@ -99,7 +127,7 @@ const initialConversations: Conversation[] = [
     lastMessage: "That sounds great. I will start the meal prep this Sunday.",
     lastMessageAt: "2026-03-26T16:45:00Z",
     unreadCount: 0,
-    assignedStaff: staffMembers[1],
+    assignedStaff: fallbackStaffMembers[1],
     messages: [
       { id: "m3a", senderName: "Olafur Helgason", senderRole: "client", content: "Hi Coach, I wanted to ask about my nutrition plan. I have been struggling with meal prep.", createdAt: "2026-03-25T10:00:00Z", read: true },
       { id: "m3b", senderName: "Coach Sarah", senderRole: "coach", content: "Hey Olafur! I understand meal prep can be challenging. Let me suggest a simplified approach: prep just 3 proteins and 3 vegetables on Sunday, then mix and match throughout the week.", createdAt: "2026-03-25T11:15:00Z", read: true },
@@ -114,7 +142,7 @@ const initialConversations: Conversation[] = [
     lastMessage: "Can we reschedule the video call to Thursday instead?",
     lastMessageAt: "2026-03-28T07:15:00Z",
     unreadCount: 1,
-    assignedStaff: staffMembers[2],
+    assignedStaff: fallbackStaffMembers[2],
     messages: [
       { id: "m4a", senderName: "Coach Sarah", senderRole: "coach", content: "Hi Gudrun! Just a reminder that we have our monthly video call scheduled for Wednesday at 14:00.", createdAt: "2026-03-27T16:00:00Z", read: true },
       { id: "m4b", senderName: "Gudrun Magnusdottir", senderRole: "client", content: "Can we reschedule the video call to Thursday instead?", createdAt: "2026-03-28T07:15:00Z", read: false },
@@ -217,7 +245,7 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
         lastMessageAt: lastMsg?.createdAt ?? conv.created_at,
         unreadCount: unread,
         messages: msgs,
-        assignedStaff: staffMembers[0],
+        assignedStaff: fallbackStaffMembers[0],
       });
     }
 
@@ -325,7 +353,8 @@ export default function AdminMessagesPage() {
   const [dbConnected, setDbConnected] = useState(false);
   const [dbError, setDbError] = useState(false);
   const [showDemoData, setShowDemoData] = useState(false);
-  const [replyAsStaff, setReplyAsStaff] = useState<StaffMember>(staffMembers[0]);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(fallbackStaffMembers);
+  const [replyAsStaff, setReplyAsStaff] = useState<StaffMember>(fallbackStaffMembers[0]);
   const [creatingTest, setCreatingTest] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -334,11 +363,25 @@ export default function AdminMessagesPage() {
   const selected = displayConversations.find((c) => c.id === selectedId) ?? displayConversations[0] ?? null;
   const totalUnread = displayConversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
-  // Load conversations from Supabase on mount
+  // Load conversations and staff from Supabase on mount
   const loadConversations = useCallback(async () => {
     setLoading(true);
     setDbError(false);
-    const fromDb = await loadConversationsFromSupabase();
+
+    // Load staff in parallel with conversations
+    const [fromDb, liveStaff] = await Promise.all([
+      loadConversationsFromSupabase(),
+      loadStaffFromSupabase(),
+    ]);
+
+    if (liveStaff && liveStaff.length > 0) {
+      setStaffMembers(liveStaff);
+      setReplyAsStaff((prev) => {
+        const found = liveStaff.find((s) => s.id === prev.id);
+        return found ?? liveStaff[0];
+      });
+    }
+
     if (fromDb !== null) {
       // Supabase connected successfully (may be empty or have data)
       setDbConnected(true);
