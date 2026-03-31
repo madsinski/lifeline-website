@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { supabase } from "@/lib/supabase";
 
 /*
@@ -327,7 +327,7 @@ export default function TeamPage() {
 
   const startEdit = (member: TeamMember) => {
     setEditingId(member.id);
-    setEditValues({ name: member.name, email: member.email, phone: member.phone, role: member.role });
+    setEditValues({ name: member.name, email: member.email, phone: member.phone, role: member.role, permissions: member.permissions });
   };
 
   const saveEdit = async (id: string) => {
@@ -341,6 +341,7 @@ export default function TeamPage() {
           email: editValues.email,
           phone: editValues.phone,
           role: editValues.role,
+          permissions: editValues.permissions,
         })
         .eq("id", id);
       if (error) {
@@ -523,7 +524,8 @@ export default function TeamPage() {
               {team.map((member, idx) => {
                 const isEditing = editingId === member.id;
                 return (
-                  <tr key={member.id} className={idx % 2 === 1 ? "bg-gray-50/50" : ""}>
+                  <Fragment key={member.id}>
+                  <tr className={idx % 2 === 1 ? "bg-gray-50/50" : ""}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${roleColors[member.role]}`}>
@@ -637,6 +639,33 @@ export default function TeamPage() {
                       </div>
                     </td>
                   </tr>
+                  {isEditing && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={6} className="px-6 py-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Permissions</p>
+                        <div className="flex flex-wrap gap-3">
+                          {allPermissions.map((perm) => (
+                            <label key={perm.key} className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={(editValues.permissions || []).includes(perm.key)}
+                                onChange={() => {
+                                  const current = editValues.permissions || [];
+                                  const updated = current.includes(perm.key)
+                                    ? current.filter((p: Permission) => p !== perm.key)
+                                    : [...current, perm.key];
+                                  setEditValues({ ...editValues, permissions: updated });
+                                }}
+                                className="w-3.5 h-3.5 text-[#20c858] border-gray-300 rounded focus:ring-[#20c858]"
+                              />
+                              <span className="text-xs font-medium text-gray-700">{perm.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>

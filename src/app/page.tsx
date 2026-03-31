@@ -215,7 +215,7 @@ export default function Home() {
               <MedaliaButton label="Book Health Assessment" size="lg" />
               <Link
                 href="/coaching#download"
-                className="w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+                className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
               >
                 Download the App
               </Link>
@@ -422,12 +422,14 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <Link
-                href="/coaching#download"
-                className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
-              >
-                Download the App
-              </Link>
+              <div className="text-center lg:text-left">
+                <Link
+                  href="/coaching#download"
+                  className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+                >
+                  Download the App
+                </Link>
+              </div>
             </div>
             {/* Phone mockup */}
             <div className="flex items-center justify-center">
