@@ -345,10 +345,10 @@ export default function AssessmentPage() {
               >
                 {/* Vertical connecting line */}
                 {i < processSteps.length - 1 && (
-                  <div className="absolute left-[1.19rem] top-10 bottom-0 w-0.5 bg-gradient-to-b from-[#20c858] to-[#20c858]/20" />
+                  <div className="absolute left-[1.19rem] top-[3.25rem] bottom-0 w-0.5 bg-gradient-to-b from-[#20c858] to-[#20c858]/20" />
                 )}
-                {/* Step number circle */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-green-500/25 z-10">
+                {/* Step number circle — aligned to top of card */}
+                <div className="absolute left-0 top-3 w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-green-500/25 z-10">
                   {s.step}
                 </div>
                 {/* Content card */}
