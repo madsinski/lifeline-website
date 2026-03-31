@@ -211,15 +211,15 @@ export default function CoachingPage() {
         </div>
       </section>
 
-      {/* Personal health coaching */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+      {/* Why coaching */}
+      <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Your personal health coaching
+              Why health coaching <span className="text-[#20c858]">works</span>
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Everything you need to build better habits and transform your health
+              Knowledge alone doesn&apos;t create change. Coaching bridges the gap between knowing and doing.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -281,7 +281,7 @@ export default function CoachingPage() {
                 bg: "bg-red-50",
               },
             ].map((item) => (
-              <div key={item.title} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 text-center">
+              <div key={item.title} className="bg-[#f5f7fa] rounded-2xl p-6 hover:shadow-md transition-all duration-200 text-center">
                 <div className={`w-14 h-14 rounded-2xl ${item.bg} ${item.color} flex items-center justify-center mx-auto mb-4`}>
                   {item.icon}
                 </div>
@@ -294,7 +294,7 @@ export default function CoachingPage() {
       </section>
 
       {/* Four pillars in detail */}
-      <section className="py-24 sm:py-28 bg-white">
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
