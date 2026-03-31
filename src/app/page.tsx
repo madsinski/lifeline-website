@@ -562,7 +562,7 @@ export default function Home() {
             <MedaliaButton label="Book Assessment" size="lg" />
             <Link
               href="/coaching#download"
-              className="w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+              className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
             >
               Download App
             </Link>
