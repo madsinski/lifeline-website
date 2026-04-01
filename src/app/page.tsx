@@ -416,24 +416,21 @@ export default function Home() {
           </div>
 
           {/* Three half-phone mockups */}
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="mt-20 grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-10 max-w-6xl mx-auto">
             {[
               { src: "/app-screenshot-home.jpg", label: "Daily action plans", sublabel: "Personalised tasks every day" },
               { src: "/app-screenshot-coach.jpg", label: "Coach interaction", sublabel: "Direct messaging with your coach" },
               { src: "/app-screenshot-measurements.jpg", label: "Health measurements", sublabel: "Track your progress over time" },
             ].map((phone) => (
               <div key={phone.label} className="flex flex-col items-center">
-                {/* Half phone frame */}
-                <div className="relative w-[220px] h-[380px] overflow-hidden">
+                {/* Half phone frame — large */}
+                <div className="relative w-full max-w-[320px] aspect-[9/14] overflow-hidden">
                   {/* Phone frame */}
-                  <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[2.5rem] border-x border-t border-[#333]" />
+                  <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[2.8rem] border-x-[3px] border-t-[3px] border-[#2a2a2a]" />
                   {/* Inner bezel */}
-                  <div className="absolute inset-[3px] bg-[#111] rounded-t-[2.35rem]" />
+                  <div className="absolute inset-[4px] bg-[#111] rounded-t-[2.6rem]" />
                   {/* Screen */}
-                  <div className="absolute inset-[4px] rounded-t-[2.3rem] overflow-hidden bg-[#ecf0f3]">
-                    {/* Dynamic Island */}
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-[18px] bg-black rounded-full z-20" />
-                    {/* Screenshot */}
+                  <div className="absolute inset-[6px] rounded-t-[2.4rem] overflow-hidden bg-[#ecf0f3]">
                     <img
                       src={phone.src}
                       alt={phone.label}
@@ -441,13 +438,14 @@ export default function Home() {
                     />
                   </div>
                   {/* Side buttons */}
-                  <div className="absolute -right-[2px] top-24 w-[3px] h-10 bg-[#333] rounded-r-sm" />
-                  <div className="absolute -left-[2px] top-20 w-[3px] h-6 bg-[#333] rounded-l-sm" />
+                  <div className="absolute -right-[2px] top-[30%] w-[3px] h-12 bg-[#333] rounded-r-sm" />
+                  <div className="absolute -left-[2px] top-[25%] w-[3px] h-8 bg-[#333] rounded-l-sm" />
+                  <div className="absolute -left-[2px] top-[40%] w-[3px] h-8 bg-[#333] rounded-l-sm" />
                   {/* Bottom fade */}
-                  <div className="absolute bottom-0 left-[4px] right-[4px] h-20 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
+                  <div className="absolute bottom-0 left-[6px] right-[6px] h-24 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
                 </div>
-                <h4 className="text-sm font-semibold text-[#1F2937] mt-4">{phone.label}</h4>
-                <p className="text-xs text-[#6B7280] mt-0.5">{phone.sublabel}</p>
+                <h4 className="text-base font-semibold text-[#1F2937] mt-5">{phone.label}</h4>
+                <p className="text-sm text-[#6B7280] mt-1">{phone.sublabel}</p>
               </div>
             ))}
           </div>
