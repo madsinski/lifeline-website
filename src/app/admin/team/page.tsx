@@ -24,7 +24,7 @@ import { supabase } from "@/lib/supabase";
 // ─── Types ───────────────────────────────────────────────────
 
 type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin";
-type Permission = "manage_clients" | "manage_programs" | "manage_team" | "view_analytics" | "send_messages";
+type Permission = "manage_clients" | "manage_programs" | "manage_team" | "view_analytics" | "send_messages" | "app_user_access";
 
 const allPermissions: { key: Permission; label: string; description: string }[] = [
   { key: "manage_clients", label: "Manage Clients", description: "View, edit, and delete client profiles" },
@@ -32,6 +32,7 @@ const allPermissions: { key: Permission; label: string; description: string }[] 
   { key: "manage_team", label: "Manage Team", description: "Add, edit, and remove team members" },
   { key: "view_analytics", label: "View Analytics", description: "Access analytics and reports" },
   { key: "send_messages", label: "Send Messages", description: "Message clients directly" },
+  { key: "app_user_access", label: "Access Lifeline as a user", description: "Can use the Lifeline app as a regular member (grants free subscription)" },
 ];
 
 const defaultPermissions: Record<StaffRole, Permission[]> = {
@@ -110,6 +111,10 @@ export default function TeamPage() {
   const [syncResult, setSyncResult] = useState<{ type: "success" | "error" | "sql"; text: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
 
+  // Delete confirmation modal state
+  const [deleteTarget, setDeleteTarget] = useState<TeamMember | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+
   // Add member form state
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -118,6 +123,7 @@ export default function TeamPage() {
   const [newPermissions, setNewPermissions] = useState<Permission[]>(defaultPermissions.coach);
   const [sendInvite, setSendInvite] = useState(true);
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+  const [inviteSending, setInviteSending] = useState(false);
 
   // Update permissions when role changes
   const handleRoleChange = (role: StaffRole) => {
@@ -261,6 +267,8 @@ export default function TeamPage() {
 
     // Send invite email via Edge Function
     if (sendInvite && addedMember) {
+      setInviteSending(true);
+      setInviteStatus("Sending invite...");
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
@@ -283,14 +291,15 @@ export default function TeamPage() {
             setTeam(prev => prev.map(m => m.id === addedMember!.id ? { ...m, invited: true } : m));
             setInviteStatus(`Invite email sent to ${newEmail.trim()}`);
           } else {
-            setInviteStatus(`Team member added. Invite failed: ${result.error || "Unknown error"}`);
+            setInviteStatus(`Invite failed: ${result.error || "Unknown error"}`);
           }
         } else {
-          setInviteStatus(`Team member added. Not authenticated — could not send invite.`);
+          setInviteStatus(`Not authenticated — could not send invite.`);
         }
       } catch {
-        setInviteStatus(`Team member added. Could not send invite email.`);
+        setInviteStatus(`Could not send invite email.`);
       }
+      setInviteSending(false);
     }
 
     setNewName("");
@@ -301,19 +310,28 @@ export default function TeamPage() {
     setShowAddModal(false);
   };
 
-  const handleRemove = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this team member?")) return;
+  const handleRemoveClick = (member: TeamMember) => {
+    setDeleteTarget(member);
+    setDeleteConfirmName("");
+  };
+
+  const handleRemoveConfirm = async () => {
+    if (!deleteTarget) return;
     setSaveError(null);
 
     if (connectionStatus === "connected") {
-      const { error } = await supabase.from("staff").delete().eq("id", id);
+      const { error } = await supabase.from("staff").delete().eq("id", deleteTarget.id);
       if (error) {
         setSaveError(`Failed to remove: ${error.message}`);
+        setDeleteTarget(null);
+        setDeleteConfirmName("");
         return;
       }
     }
 
-    setTeam((prev) => prev.filter((m) => m.id !== id));
+    setTeam((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+    setDeleteTarget(null);
+    setDeleteConfirmName("");
   };
 
   const toggleActive = async (id: string) => {
@@ -460,9 +478,17 @@ export default function TeamPage() {
 
       {/* Invite status */}
       {inviteStatus && (
-        <div className="rounded-lg p-3 text-sm bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-between">
-          <span>{inviteStatus}</span>
-          <button onClick={() => setInviteStatus(null)} className="text-blue-400 hover:text-blue-600 ml-2">&times;</button>
+        <div className={`rounded-lg p-3 text-sm flex items-center justify-between ${
+          inviteSending ? "bg-yellow-50 border border-yellow-200 text-yellow-700" :
+          inviteStatus.startsWith("Invite email sent") ? "bg-green-50 border border-green-200 text-green-700" :
+          inviteStatus.includes("failed") || inviteStatus.includes("Could not") || inviteStatus.includes("Not authenticated") ? "bg-red-50 border border-red-200 text-red-700" :
+          "bg-blue-50 border border-blue-200 text-blue-700"
+        }`}>
+          <span className="flex items-center gap-2">
+            {inviteSending && <span className="inline-block w-3 h-3 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />}
+            {inviteStatus}
+          </span>
+          {!inviteSending && <button onClick={() => setInviteStatus(null)} className="text-gray-400 hover:text-gray-600 ml-2">&times;</button>}
         </div>
       )}
 
@@ -640,7 +666,7 @@ export default function TeamPage() {
                               </svg>
                             </button>
                             <button
-                              onClick={() => handleRemove(member.id)}
+                              onClick={() => handleRemoveClick(member)}
                               className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                               title="Remove"
                             >
@@ -697,6 +723,68 @@ export default function TeamPage() {
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
           <strong>Offline mode:</strong> Changes are stored locally and will not persist after page reload.
           To enable persistence, run the SQL in <code>/supabase/staff.sql</code> in the Supabase SQL editor.
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-red-600">Remove team member</h3>
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}
+                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-3 p-3 bg-gray-50 rounded-lg">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${roleColors[deleteTarget.role]}`}>
+                  {getInitials(deleteTarget.name)}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{deleteTarget.name}</p>
+                  <p className="text-xs text-gray-500">{roleLabels[deleteTarget.role]}</p>
+                </div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-red-700">
+                  This will permanently remove <strong>{deleteTarget.name}</strong> from the team. Any assigned clients will need to be reassigned.
+                </p>
+              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type <strong>{deleteTarget.name}</strong> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder={deleteTarget.name}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-gray-900"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveConfirm}
+                disabled={deleteConfirmName !== deleteTarget.name}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
