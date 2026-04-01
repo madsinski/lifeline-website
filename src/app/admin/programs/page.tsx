@@ -66,86 +66,36 @@ const sampleCategories: Category[] = [
     id: "exercise",
     name: "Exercise",
     programs: [
-      {
-        id: makeId(),
-        name: "Beginner Strength",
-        description: "Foundational strength training for newcomers",
-        weeks: weekRanges.map((wr) => ({
-          weekRange: wr,
-          days: Array.from({ length: 7 }, (_, d) => ({
-            day: d,
-            actions:
-              d < 5
-                ? [
-                    { id: makeId(), label: "Warm-up walk", timeGroup: "morning" as TimeGroup, details: "10 min brisk walk", priority: false },
-                    { id: makeId(), label: "Bodyweight circuit", timeGroup: "midday" as TimeGroup, details: "Squats, push-ups, lunges - 3 sets", priority: true },
-                  ]
-                : [{ id: makeId(), label: "Active recovery", timeGroup: "morning" as TimeGroup, details: "Light stretching or yoga", priority: false }],
-          })),
-        })),
-      },
+      { id: "lifeline-special", name: "Lifeline special", description: "Build foundational fitness — 3x per week", weeks: createEmptyWeeks() },
+      { id: "next-level", name: "Next level", description: "Progressive overload — 4x per week", weeks: createEmptyWeeks() },
+      { id: "performance", name: "Performance", description: "High intensity — 5x per week", weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "nutrition",
     name: "Nutrition",
     programs: [
-      {
-        id: makeId(),
-        name: "Clean Eating Basics",
-        description: "Learn the fundamentals of healthy eating",
-        weeks: weekRanges.map((wr) => ({
-          weekRange: wr,
-          days: Array.from({ length: 7 }, (_, d) => ({
-            day: d,
-            actions: [
-              { id: makeId(), label: "Meal prep", timeGroup: "morning" as TimeGroup, details: "Prepare meals for the day", priority: d === 0 },
-              { id: makeId(), label: "Hydration check", timeGroup: "midday" as TimeGroup, details: "Ensure 2L water intake", priority: false },
-            ],
-          })),
-        })),
-      },
+      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", weeks: createEmptyWeeks() },
+      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", weeks: createEmptyWeeks() },
+      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "sleep",
     name: "Sleep",
     programs: [
-      {
-        id: makeId(),
-        name: "Better Sleep Habits",
-        description: "Improve sleep quality through better routines",
-        weeks: weekRanges.map((wr) => ({
-          weekRange: wr,
-          days: Array.from({ length: 7 }, (_, d) => ({
-            day: d,
-            actions: [
-              { id: makeId(), label: "Wind-down routine", timeGroup: "evening" as TimeGroup, details: "No screens 30min before bed", priority: true },
-            ],
-          })),
-        })),
-      },
+      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", weeks: createEmptyWeeks() },
+      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", weeks: createEmptyWeeks() },
+      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "mental",
-    name: "Mental Wellness",
+    name: "Mental wellness",
     programs: [
-      {
-        id: makeId(),
-        name: "Mindfulness Starter",
-        description: "Daily mindfulness and stress management",
-        weeks: weekRanges.map((wr) => ({
-          weekRange: wr,
-          days: Array.from({ length: 7 }, (_, d) => ({
-            day: d,
-            actions: [
-              { id: makeId(), label: "Morning meditation", timeGroup: "morning" as TimeGroup, details: "5-10 min guided meditation", priority: true },
-              { id: makeId(), label: "Gratitude journal", timeGroup: "evening" as TimeGroup, details: "Write 3 things you are grateful for", priority: false },
-            ],
-          })),
-        })),
-      },
+      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", weeks: createEmptyWeeks() },
+      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", weeks: createEmptyWeeks() },
+      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", weeks: createEmptyWeeks() },
     ],
   },
 ];
@@ -465,18 +415,39 @@ export default function ProgramsCMSPage() {
     setToast({ message: `Copied ${weekRanges[sourceWeekIdx]} to ${weekRanges[targetWeekIdx]}`, type: "success" });
   };
 
+  // Map category ids to icons and colors matching the app
+  const categoryMeta: Record<string, { icon: string; color: string; label: string }> = {
+    exercise: { icon: "barbell", color: "#3B82F6", label: "Exercise" },
+    nutrition: { icon: "nutrition", color: "#20c858", label: "Nutrition" },
+    sleep: { icon: "moon", color: "#8B5CF6", label: "Sleep" },
+    mental: { icon: "happy", color: "#06B6D4", label: "Mental wellness" },
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      for (const cat of categories) {
-        await supabase.from("program_categories").upsert({ id: cat.id, name: cat.name });
+      for (let ci = 0; ci < categories.length; ci++) {
+        const cat = categories[ci];
+        const meta = categoryMeta[cat.id] || { icon: "help", color: "#6B7280", label: cat.name };
+        await supabase.from("program_categories").upsert({
+          id: cat.id,
+          key: cat.id,
+          name: cat.name,
+          label: meta.label,
+          icon: meta.icon,
+          color: meta.color,
+          sort_order: ci,
+        });
 
-        for (const prog of cat.programs) {
+        for (let pi = 0; pi < cat.programs.length; pi++) {
+          const prog = cat.programs[pi];
           await supabase.from("programs").upsert({
             id: prog.id,
             category_id: cat.id,
+            key: prog.id,
             name: prog.name,
             description: prog.description,
+            sort_order: pi,
           });
 
           await supabase.from("program_actions").delete().eq("program_id", prog.id);
@@ -508,6 +479,44 @@ export default function ProgramsCMSPage() {
       setToast({ message: "Failed to save changes", type: "error" });
     }
     setSaving(false);
+  };
+
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncList = async () => {
+    setSyncing(true);
+    try {
+      for (let ci = 0; ci < categories.length; ci++) {
+        const cat = categories[ci];
+        const meta = categoryMeta[cat.id] || { icon: "help", color: "#6B7280", label: cat.name };
+        await supabase.from("program_categories").upsert({
+          id: cat.id,
+          key: cat.id,
+          name: cat.name,
+          label: meta.label,
+          icon: meta.icon,
+          color: meta.color,
+          sort_order: ci,
+        });
+
+        for (let pi = 0; pi < cat.programs.length; pi++) {
+          const prog = cat.programs[pi];
+          await supabase.from("programs").upsert({
+            id: prog.id,
+            category_id: cat.id,
+            key: prog.id,
+            name: prog.name,
+            description: prog.description,
+            sort_order: pi,
+          });
+        }
+      }
+      setToast({ message: "Program list synced to Supabase", type: "success" });
+    } catch (err) {
+      console.error("Sync error:", err);
+      setToast({ message: "Failed to sync program list", type: "error" });
+    }
+    setSyncing(false);
   };
 
   const handleDiscard = () => {
@@ -614,6 +623,13 @@ export default function ProgramsCMSPage() {
           Import JSON
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
         </label>
+        <button
+          onClick={handleSyncList}
+          disabled={syncing}
+          className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        >
+          {syncing ? "Syncing..." : "Sync to Supabase"}
+        </button>
 
         <div className="ml-auto flex items-center gap-3">
           {dirty && (
