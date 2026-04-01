@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
-type TimeGroup = "morning" | "midday" | "evening";
+type TimeGroup = "morning" | "exercise" | "midday" | "evening";
 
 interface ProgramAction {
   id: string;
@@ -38,7 +38,7 @@ interface Category {
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const weekRanges = ["Week 1", "Week 2", "Week 3", "Week 4"];
-const timeGroups: TimeGroup[] = ["morning", "midday", "evening"];
+const timeGroups: TimeGroup[] = ["morning", "exercise", "midday", "evening"];
 
 const categoryColors: Record<string, { bg: string; border: string; text: string; badge: string }> = {
   exercise: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", badge: "bg-blue-100 text-blue-700" },
@@ -189,16 +189,16 @@ export default function ProgramsCMSPage() {
 
   const loadFromSupabase = useCallback(async () => {
     try {
-      const { data: catData } = await supabase.from("program_categories").select("*");
+      const { data: catData } = await supabase.from("program_categories").select("*").order("sort_order", { ascending: true });
       if (catData && catData.length > 0) {
-        const { data: progData } = await supabase.from("programs").select("*");
-        const { data: actData } = await supabase.from("program_actions").select("*");
+        const { data: progData } = await supabase.from("programs").select("*").order("sort_order", { ascending: true });
+        const { data: actData } = await supabase.from("program_actions").select("*").order("sort_order", { ascending: true });
 
         const built: Category[] = catData.map((cat: Record<string, string>) => {
           const catPrograms = (progData || []).filter((p: Record<string, string>) => p.category_id === cat.id);
           return {
-            id: cat.id,
-            name: cat.name,
+            id: cat.key || cat.id,
+            name: cat.label || cat.name,
             programs: catPrograms.map((p: Record<string, string>) => {
               const progActions = (actData || []).filter((a: Record<string, string>) => a.program_id === p.id);
               const weeks = weekRanges.map((wr, wi) => ({
@@ -206,18 +206,18 @@ export default function ProgramsCMSPage() {
                 days: Array.from({ length: 7 }, (_, di) => ({
                   day: di,
                   actions: progActions
-                    .filter((a: Record<string, number>) => a.week === wi && a.day === di)
-                    .map((a: Record<string, string | boolean>) => ({
+                    .filter((a: Record<string, number>) => a.week_range === wi && a.day_of_week === di)
+                    .map((a: Record<string, string | boolean | string[]>) => ({
                       id: a.id as string,
                       label: a.label as string,
                       timeGroup: (a.time_group || "morning") as TimeGroup,
-                      details: (a.details || "") as string,
+                      details: Array.isArray(a.details) ? (a.details as string[]).join("\n") : ((a.details || "") as string),
                       priority: !!a.priority,
                     })),
                 })),
               }));
               return {
-                id: p.id,
+                id: p.key || p.id,
                 name: p.name,
                 description: p.description || "",
                 weeks,
@@ -429,40 +429,47 @@ export default function ProgramsCMSPage() {
       for (let ci = 0; ci < categories.length; ci++) {
         const cat = categories[ci];
         const meta = categoryMeta[cat.id] || { icon: "help", color: "#6B7280", label: cat.name };
-        await supabase.from("program_categories").upsert({
-          id: cat.id,
+        // Upsert category by key
+        const { data: catRow } = await supabase.from("program_categories").upsert({
           key: cat.id,
-          name: cat.name,
-          label: meta.label,
+          label: meta.label || cat.name,
           icon: meta.icon,
           color: meta.color,
           sort_order: ci,
-        });
+        }, { onConflict: "key" }).select("id").single();
+
+        const categoryDbId = catRow?.id;
+        if (!categoryDbId) continue;
 
         for (let pi = 0; pi < cat.programs.length; pi++) {
           const prog = cat.programs[pi];
-          await supabase.from("programs").upsert({
-            id: prog.id,
-            category_id: cat.id,
+          // Upsert program by key
+          const { data: progRow } = await supabase.from("programs").upsert({
+            category_id: categoryDbId,
             key: prog.id,
             name: prog.name,
             description: prog.description,
             sort_order: pi,
-          });
+          }, { onConflict: "key" }).select("id").single();
 
-          await supabase.from("program_actions").delete().eq("program_id", prog.id);
+          const programDbId = progRow?.id;
+          if (!programDbId) continue;
+
+          await supabase.from("program_actions").delete().eq("program_id", programDbId);
 
           const actions = prog.weeks.flatMap((w, wi) =>
             w.days.flatMap((d, di) =>
-              d.actions.map((a) => ({
-                id: a.id,
-                program_id: prog.id,
-                week: wi,
-                day: di,
-                label: a.label,
+              d.actions.map((a, si) => ({
+                program_id: programDbId,
+                week_range: wi,
+                day_of_week: di,
                 time_group: a.timeGroup,
-                details: a.details,
+                action_key: a.id || `action-${si}`,
+                label: a.label,
+                category: cat.id,
+                details: typeof a.details === "string" ? a.details.split("\n").filter(Boolean) : a.details,
                 priority: a.priority,
+                sort_order: si,
               }))
             )
           );
@@ -489,26 +496,26 @@ export default function ProgramsCMSPage() {
       for (let ci = 0; ci < categories.length; ci++) {
         const cat = categories[ci];
         const meta = categoryMeta[cat.id] || { icon: "help", color: "#6B7280", label: cat.name };
-        await supabase.from("program_categories").upsert({
-          id: cat.id,
+        const { data: catRow } = await supabase.from("program_categories").upsert({
           key: cat.id,
-          name: cat.name,
-          label: meta.label,
+          label: meta.label || cat.name,
           icon: meta.icon,
           color: meta.color,
           sort_order: ci,
-        });
+        }, { onConflict: "key" }).select("id").single();
+
+        const categoryDbId = catRow?.id;
+        if (!categoryDbId) continue;
 
         for (let pi = 0; pi < cat.programs.length; pi++) {
           const prog = cat.programs[pi];
           await supabase.from("programs").upsert({
-            id: prog.id,
-            category_id: cat.id,
+            category_id: categoryDbId,
             key: prog.id,
             name: prog.name,
             description: prog.description,
             sort_order: pi,
-          });
+          }, { onConflict: "key" });
         }
       }
       setToast({ message: "Program list synced to Supabase", type: "success" });
