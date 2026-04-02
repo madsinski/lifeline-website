@@ -35,7 +35,8 @@ function getDateGroup(dateStr: string): string {
   const endOfWeek = new Date(today);
   endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
 
-  const date = new Date(dateStr + "T00:00:00");
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
 
   if (date.getTime() < today.getTime()) return "Past";
   if (date.getTime() === today.getTime()) return "Today";
@@ -102,7 +103,8 @@ function formatType(type: string): string {
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
   return date.toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
@@ -124,6 +126,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [hideCancel, setHideCancel] = useState(false);
 
   const loadAppointments = useCallback(async () => {
     setLoading(true);
@@ -152,9 +155,12 @@ export default function CalendarPage() {
     loadAppointments();
   }, [loadAppointments]);
 
-  const filtered = activeFilter === "all"
+  const typeFiltered = activeFilter === "all"
     ? appointments
     : appointments.filter((a) => a.type === activeFilter);
+  const filtered = hideCancel
+    ? typeFiltered.filter((a) => a.status !== "cancelled")
+    : typeFiltered;
 
   const grouped = groupByDate(filtered);
   const totalCount = filtered.length;
@@ -234,6 +240,16 @@ export default function CalendarPage() {
             </button>
           );
         })}
+        <button
+          onClick={() => setHideCancel(!hideCancel)}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            hideCancel
+              ? "bg-[#20c858] text-white"
+              : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          {hideCancel ? "Showing active only" : "Hide cancelled"}
+        </button>
       </div>
 
       {/* Error state */}
