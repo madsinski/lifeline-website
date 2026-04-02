@@ -292,6 +292,46 @@ export default function AssessmentPage() {
         </div>
       </section>
 
+      {/* Track your health + scroll phone */}
+      <section className="bg-[#ecf0f3]" style={{ height: "200vh" }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full">
+            {/* Left: scroll phone mockup */}
+            <div className="flex justify-center order-2 lg:order-1">
+              <ScrollPhone
+                inline
+                screenshot="/app-screenshot-myhealth-scroll.jpg"
+                alt="Track measurements and blood tests"
+                initialOffset={3}
+                maxTranslate={35}
+                phoneHeight="75vh"
+              />
+            </div>
+            {/* Right: text content, sticky */}
+            <div className="sticky top-0 h-screen flex items-center order-1 lg:order-2">
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
+                  Track <span className="text-[#20c858]">everything</span>
+                </h2>
+                <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">
+                  All your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your health.
+                </p>
+                <ul className="space-y-3">
+                  {["Body composition: weight, fat mass, muscle mass, BMI", "Blood pressure and vital signs", "40+ blood test biomarkers with clinical context", "Health scores across all categories", "Progress charts comparing previous check-ups"].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
+                      <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Packages */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
