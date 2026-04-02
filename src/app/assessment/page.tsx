@@ -4,6 +4,7 @@ import { useState } from "react";
 import MedaliaButton from "../components/MedaliaButton";
 import { PhoneMockup } from "../components/PhoneMockup";
 import ScrollPhone from "../components/ScrollPhone";
+import WaveSeparator from "../components/WaveSeparator";
 
 const packageColors = [
   { accent: "border-t-4 border-t-[#20c858]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#20c858]" },
@@ -207,8 +208,11 @@ export default function AssessmentPage() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
+
       {/* Process - Visual Timeline */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+      <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
@@ -225,7 +229,7 @@ export default function AssessmentPage() {
               return (
                 <div
                   key={s.step}
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
+                  className="bg-[#e6ecf4] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   <div className="flex items-start gap-6">
                     <div className="relative flex-shrink-0">
@@ -332,8 +336,11 @@ export default function AssessmentPage() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
+
       {/* Packages */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+      <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
@@ -499,6 +506,9 @@ export default function AssessmentPage() {
           </div>
         </div>
       </section>
+
+      {/* Wave separator */}
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
 
       {/* FAQ */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">

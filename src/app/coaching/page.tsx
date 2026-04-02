@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PhoneMockupCoach } from "../components/PhoneMockup";
 import ScrollPhone from "../components/ScrollPhone";
+import WaveSeparator from "../components/WaveSeparator";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "../components/PillarIcons";
 
 const pillars = [
@@ -363,8 +364,11 @@ export default function CoachingPage() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
+
       {/* What a typical day looks like */}
-      <section className="py-20 sm:py-24 bg-[#ecf0f3]">
+      <section className="py-20 sm:py-24 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
@@ -390,7 +394,7 @@ export default function CoachingPage() {
                     {item.time}
                   </div>
                   {/* Card */}
-                  <div className="flex-1 bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="flex-1 bg-[#e6ecf4] rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-sm text-[#1F2937]">
                         {item.title}
@@ -414,49 +418,58 @@ export default function CoachingPage() {
         </div>
       </section>
 
-      {/* How coaching works + scroll phone */}
-      <section className="bg-white" style={{ height: "200vh" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full">
-            {/* Left: text + cards, sticky */}
-            <div className="sticky top-0 h-screen flex items-center">
-              <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-3">
-                  How coaching works
-                </h2>
-                <p className="text-[#6B7280] mb-8">
-                  Your assessment powers your coaching experience
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {howItWorks.map((item, i) => (
-                    <div
-                      key={item.title}
-                      className="bg-[#e6ecf4] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm mb-3 shadow-lg shadow-green-500/25">
-                        {i + 1}
-                      </div>
-                      <h3 className="font-semibold text-[#1F2937] text-sm mb-1.5">
-                        {item.title}
-                      </h3>
-                      <p className="text-xs text-[#6B7280] leading-relaxed">
-                        {item.description}
-                      </p>
+      {/* How coaching works + phone mockup */}
+      <section className="py-24 sm:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Left: text + cards */}
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-3">
+                How coaching works
+              </h2>
+              <p className="text-[#6B7280] mb-8">
+                Your assessment powers your coaching experience
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {howItWorks.map((item, i) => (
+                  <div
+                    key={item.title}
+                    className="bg-[#e6ecf4] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm mb-3 shadow-lg shadow-green-500/25">
+                      {i + 1}
                     </div>
-                  ))}
-                </div>
+                    <h3 className="font-semibold text-[#1F2937] text-sm mb-1.5">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-[#6B7280] leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
-            {/* Right: scroll phone mockup */}
+            {/* Right: static phone mockup */}
             <div className="flex justify-center">
-              <ScrollPhone
-                inline
-                screenshot="/app-screenshot-coach-scroll.jpg"
-                alt="Health coach in the app"
-                initialOffset={5}
-                maxTranslate={30}
-                phoneHeight="75vh"
-              />
+              <div className="relative" style={{ height: "75vh", aspectRatio: "9/19.5" }}>
+                <div className="absolute inset-0 bg-[#1a1a1a] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#2a2a2a] shadow-2xl" />
+                <div className="absolute inset-[4px] bg-[#111] rounded-[2.6rem] sm:rounded-[3rem]" />
+                <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
+                  <img
+                    src="/app-screenshot-coach-scroll.jpg"
+                    alt="Health coach in the app"
+                    className="w-full"
+                    style={{ transform: "translateY(-3%)" }}
+                  />
+                </div>
+                <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
+                <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+                <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+                <div
+                  className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] pointer-events-none z-10"
+                  style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%)" }}
+                />
+              </div>
             </div>
           </div>
         </div>
