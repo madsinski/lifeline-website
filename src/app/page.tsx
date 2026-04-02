@@ -359,58 +359,56 @@ export default function Home() {
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
       {/* Health coaching / 4 pillars */}
+      {/* Text section */}
       <section className="py-24 sm:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            {/* Scroll-linked phone mockup — left side */}
-            <div className="order-2 lg:order-1">
-              <ScrollPhone screenshot="/app-screenshot-scroll.jpg" maxWidth={300} />
-            </div>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
+            Your daily health coach
+          </h2>
+          <p className="text-lg text-[#6B7280] mb-12 leading-relaxed max-w-2xl mx-auto">
+            The Lifeline app delivers personalised daily action plans across four pillars of health, tailored to your assessment results.
+          </p>
 
-            {/* Content — right side */}
-            <div className="order-1 lg:order-2">
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-                Your daily health coach
-              </h2>
-              <p className="text-lg text-[#6B7280] mb-10 leading-relaxed">
-                The Lifeline app delivers personalised daily action plans across four pillars of health, tailored to your assessment results.
-              </p>
-
-              {/* Pillar cards — stacked list */}
-              <div className="space-y-3 mb-10">
-                {pillars.map((p) => (
-                  <div
-                    key={p.title}
-                    className={`${p.lightBg} rounded-xl p-4 flex items-start gap-4 hover:shadow-md transition-all duration-200`}
-                  >
-                    <PillarCircle color={p.color} size="sm">
-                      <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
-                    </PillarCircle>
-                    <div>
-                      <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
-                        {p.title}
-                      </h3>
-                      <p className="text-xs text-[#6B7280] leading-relaxed">
-                        {p.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                href="/coaching#download"
-                className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+          {/* Pillar cards — 2x2 grid */}
+          <div className="grid grid-cols-2 gap-4 mb-10 max-w-xl mx-auto">
+            {pillars.map((p) => (
+              <div
+                key={p.title}
+                className={`${p.lightBg} rounded-xl p-4 flex items-start gap-3 text-left hover:shadow-md transition-all duration-200`}
               >
-                Download the App
-              </Link>
-            </div>
+                <PillarCircle color={p.color} size="sm">
+                  <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
+                </PillarCircle>
+                <div>
+                  <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
+                    {p.title}
+                  </h3>
+                  <p className="text-xs text-[#6B7280] leading-relaxed">
+                    {p.description}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
+
+          <Link
+            href="/coaching#download"
+            className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+          >
+            Download the App
+          </Link>
+        </div>
+      </section>
+
+      {/* Scroll-linked phone mockup — full width, takes over the viewport */}
+      <section className="bg-[#ecf0f3]">
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollPhone screenshot="/app-screenshot-scroll.jpg" />
         </div>
       </section>
 
       {/* Wave separator */}
-      <WaveSeparator from="#ffffff" to="#f3f5f8" />
+      <WaveSeparator from="#ecf0f3" to="#f3f5f8" />
 
       {/* Trusted by health professionals */}
       <section className="py-16 sm:py-20 bg-[#f3f5f8]">
