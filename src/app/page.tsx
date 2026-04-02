@@ -11,20 +11,10 @@ const steps = [
       "Complete body composition, blood tests and lifestyle screening at our stations or through Sameind.",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-        />
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
       </svg>
     ),
+    color: "#3B82F6",
   },
   {
     step: "2",
@@ -33,14 +23,10 @@ const steps = [
       "A Lifeline doctor reviews your results and meets with you to discuss findings and recommendations.",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
       </svg>
     ),
+    color: "#20c858",
   },
   {
     step: "3",
@@ -49,14 +35,10 @@ const steps = [
       "Download the app for daily action plans, exercise programs, nutrition guidance and progress tracking.",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
+    color: "#8B5CF6",
   },
 ];
 
@@ -272,23 +254,28 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="space-y-16 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-0 relative">
-            {/* Connecting line (desktop only) */}
-            <div className="hidden sm:block absolute top-10 left-[16.67%] right-[16.67%] h-[2px] bg-gradient-to-r from-[#20c858]/20 via-[#20c858] to-[#20c858]/20" />
+          <div className="space-y-8 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-12 relative">
+            {/* Connecting arrows (desktop only) */}
+            <div className="hidden sm:block absolute top-12 left-[30%] w-[12%] h-0.5 bg-gradient-to-r from-[#3B82F6]/40 to-[#20c858]/40" />
+            <div className="hidden sm:block absolute top-12 left-[58%] w-[12%] h-0.5 bg-gradient-to-r from-[#20c858]/40 to-[#8B5CF6]/40" />
 
             {steps.map((s) => (
               <div key={s.step} className="flex flex-col items-center text-center relative">
-                {/* Step number */}
-                <div className="w-20 h-20 rounded-2xl bg-white border-2 border-[#20c858]/20 flex items-center justify-center mb-6 shadow-sm relative z-10">
-                  <div className="w-14 h-14 rounded-xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center">
-                    {s.icon}
+                {/* Numbered circle + icon */}
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-lg" style={{ backgroundColor: `${(s as any).color}10`, border: `2px solid ${(s as any).color}25` }}>
+                    <div className="text-[#1F2937]" style={{ color: (s as any).color }}>
+                      {s.icon}
+                    </div>
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md" style={{ backgroundColor: (s as any).color }}>
+                    {s.step}
                   </div>
                 </div>
-                <span className="text-xs font-bold text-[#20c858] tracking-widest uppercase mb-2">Step {s.step}</span>
                 <h3 className="text-xl font-semibold text-[#1F2937] mb-3">
                   {s.title}
                 </h3>
-                <p className="text-sm text-[#6B7280] leading-relaxed max-w-[260px]">
+                <p className="text-sm text-[#6B7280] leading-relaxed max-w-[280px]">
                   {s.description}
                 </p>
               </div>
@@ -373,72 +360,61 @@ export default function Home() {
       {/* Health coaching / 4 pillars */}
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Phone mockup — left side */}
+            <div className="flex justify-center lg:justify-end order-2 lg:order-1">
+              <div className="flex flex-col items-center max-w-[300px] w-full">
+                <div className="relative w-full aspect-[9/18] overflow-hidden">
+                  <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[3rem] border-x-[3px] border-t-[3px] border-[#2a2a2a]" />
+                  <div className="absolute inset-[4px] bg-[#111] rounded-t-[2.8rem]" />
+                  <div className="absolute inset-[6px] rounded-t-[2.6rem] overflow-hidden bg-[#ecf0f3]">
+                    <img src="/app-screenshot-home.jpg" alt="Lifeline Health app" className="w-full h-full object-cover object-top" />
+                  </div>
+                  <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
+                  <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+                  <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+                  <div className="absolute bottom-0 left-[6px] right-[6px] h-28 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
+                </div>
+              </div>
+            </div>
+
+            {/* Content — right side */}
+            <div className="order-1 lg:order-2">
               <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
                 Your daily health coach
               </h2>
-              <p className="text-lg text-[#6B7280] mb-8 leading-relaxed">
-                The Lifeline app delivers personalised daily action plans across
-                four pillars of health. Get exercise programs, nutrition
-                guidance, sleep optimisation, and mental wellness support
-                tailored to your assessment results.
+              <p className="text-lg text-[#6B7280] mb-10 leading-relaxed">
+                The Lifeline app delivers personalised daily action plans across four pillars of health, tailored to your assessment results.
               </p>
-              <div className="grid grid-cols-2 gap-4 mb-8">
+
+              {/* Pillar cards — stacked list */}
+              <div className="space-y-3 mb-10">
                 {pillars.map((p) => (
                   <div
                     key={p.title}
-                    className={`${p.lightBg} rounded-2xl p-5 hover:shadow-md transition-all duration-200 pillar-glow ${p.glowColor} relative overflow-hidden`}
+                    className={`${p.lightBg} rounded-xl p-4 flex items-start gap-4 hover:shadow-md transition-all duration-200`}
                   >
-                    <div className="mb-3">
-                      <PillarCircle color={p.color} size="sm">
-                        <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
-                      </PillarCircle>
+                    <PillarCircle color={p.color} size="sm">
+                      <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
+                    </PillarCircle>
+                    <div>
+                      <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
+                        {p.title}
+                      </h3>
+                      <p className="text-xs text-[#6B7280] leading-relaxed">
+                        {p.description}
+                      </p>
                     </div>
-                    <h3 className={`text-base font-semibold ${p.textColor} mb-1`}>
-                      {p.title}
-                    </h3>
-                    <p className="text-xs text-[#6B7280] leading-relaxed">
-                      {p.description}
-                    </p>
                   </div>
                 ))}
               </div>
-              <div className="text-center">
-                <Link
-                  href="/coaching#download"
-                  className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
-                >
-                  Download the App
-                </Link>
-              </div>
-            </div>
-          </div>
 
-          {/* Single large phone mockup */}
-          <div className="mt-16 flex justify-center">
-            <div className="flex flex-col items-center max-w-[340px] w-full">
-              <div className="relative w-full aspect-[9/18] overflow-hidden">
-                {/* Phone frame */}
-                <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[3rem] border-x-[3px] border-t-[3px] border-[#2a2a2a]" />
-                {/* Inner bezel */}
-                <div className="absolute inset-[4px] bg-[#111] rounded-t-[2.8rem]" />
-                {/* Screen */}
-                <div className="absolute inset-[6px] rounded-t-[2.6rem] overflow-hidden bg-[#ecf0f3]">
-                  <img
-                    src="/app-screenshot-home.jpg"
-                    alt="Lifeline Health app"
-                    className="w-full h-full object-cover object-top"
-                  />
-                </div>
-                {/* Side buttons */}
-                <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
-                <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-                <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-                {/* Bottom fade */}
-                <div className="absolute bottom-0 left-[6px] right-[6px] h-28 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
-              </div>
-              <p className="text-sm text-[#6B7280] mt-4 text-center">Your personalised daily health coaching</p>
+              <Link
+                href="/coaching#download"
+                className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+              >
+                Download the App
+              </Link>
             </div>
           </div>
         </div>
