@@ -82,12 +82,29 @@ serve(async (req) => {
     const { error: subErr } = await supabaseAdmin.from('subscriptions').delete().eq('client_id', userId)
     if (subErr) console.error('Error deleting subscriptions:', subErr.message)
 
-    // 5. Delete client row
+    // 5. Get client email before deleting (needed to find auth user if IDs mismatch)
+    const { data: clientRow } = await supabaseAdmin.from('clients').select('email').eq('id', userId).single()
+    const clientEmail = clientRow?.email
+
+    // 6. Delete client row
     const { error: clientErr } = await supabaseAdmin.from('clients').delete().eq('id', userId)
     if (clientErr) console.error('Error deleting client:', clientErr.message)
+    // Also delete by email in case of ID mismatch
+    if (clientEmail) {
+      await supabaseAdmin.from('clients').delete().eq('email', clientEmail)
+    }
 
-    // 6. Delete auth user
-    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    // 7. Delete auth user — try by ID first, then look up by email
+    let { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    if (deleteAuthError && clientEmail) {
+      // ID didn't match auth user — find auth user by email
+      const { data: authList } = await supabaseAdmin.auth.admin.listUsers()
+      const authUser = authList?.users?.find((u: any) => u.email === clientEmail)
+      if (authUser) {
+        const result = await supabaseAdmin.auth.admin.deleteUser(authUser.id)
+        deleteAuthError = result.error
+      }
+    }
     if (deleteAuthError) {
       return new Response(
         JSON.stringify({ error: `Auth deletion failed: ${deleteAuthError.message}` }),

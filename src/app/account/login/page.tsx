@@ -52,13 +52,28 @@ export default function AccountLoginPage() {
       // Create client profile and free subscription
       if (signUpData?.user) {
         try {
-          await supabase.from('clients').insert({
+          const { error: insertErr } = await supabase.from('clients').insert({
             id: signUpData.user.id,
             email,
             full_name: fullName || email.split('@')[0],
             phone: phone.trim() || null,
             created_at: new Date().toISOString(),
           });
+          // Handle re-created account (same email, new auth ID)
+          if (insertErr?.code === '23505') {
+            const { data: old } = await supabase.from('clients').select('id').eq('email', email).single();
+            if (old && old.id !== signUpData.user.id) {
+              await supabase.from('subscriptions').delete().eq('client_id', old.id);
+              await supabase.from('clients').delete().eq('id', old.id);
+              await supabase.from('clients').insert({
+                id: signUpData.user.id,
+                email,
+                full_name: fullName || email.split('@')[0],
+                phone: phone.trim() || null,
+                created_at: new Date().toISOString(),
+              });
+            }
+          }
           await supabase.from('subscriptions').insert({
             client_id: signUpData.user.id,
             tier: 'free-trial',
