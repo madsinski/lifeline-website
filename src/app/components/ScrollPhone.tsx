@@ -36,15 +36,15 @@ export default function ScrollPhone({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Phone height = 80vh. The image is ~2.7x taller than the visible screen.
-  // Scroll from 0% to ~62% of the image height.
-  const maxTranslate = 62;
+  // Phone screen shows ~79% of the image at once.
+  // Scroll from 0% to 21% so the image bottom aligns with the screen bottom.
+  const maxTranslate = 21;
   const translateY = -(scrollProgress * maxTranslate);
 
   return (
     <div
       ref={containerRef}
-      style={{ height: "300vh" }} // Tall scroll space — phone content scrolls through this
+      style={{ height: "200vh" }} // Scroll space for phone content animation
     >
       <div className="sticky top-0 h-screen flex items-center justify-center">
         {/* Phone frame — 80% viewport height */}
