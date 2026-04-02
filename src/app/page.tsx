@@ -1,6 +1,7 @@
 import Link from "next/link";
 import MedaliaButton from "./components/MedaliaButton";
 import PhoneMockup from "./components/PhoneMockup";
+import ScrollPhone from "./components/ScrollPhone";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "./components/PillarIcons";
 
 const steps = [
@@ -361,21 +362,9 @@ export default function Home() {
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            {/* Phone mockup — left side */}
-            <div className="flex justify-center lg:justify-end order-2 lg:order-1">
-              <div className="flex flex-col items-center max-w-[300px] w-full">
-                <div className="relative w-full aspect-[9/18] overflow-hidden">
-                  <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[3rem] border-x-[3px] border-t-[3px] border-[#2a2a2a]" />
-                  <div className="absolute inset-[4px] bg-[#111] rounded-t-[2.8rem]" />
-                  <div className="absolute inset-[6px] rounded-t-[2.6rem] overflow-hidden bg-[#ecf0f3]">
-                    <img src="/app-screenshot-home.jpg" alt="Lifeline Health app" className="w-full h-full object-cover object-top" />
-                  </div>
-                  <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
-                  <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-                  <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-                  <div className="absolute bottom-0 left-[6px] right-[6px] h-28 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
-                </div>
-              </div>
+            {/* Scroll-linked phone mockup — left side */}
+            <div className="order-2 lg:order-1">
+              <ScrollPhone screenshot="/app-screenshot-scroll.jpg" maxWidth={300} />
             </div>
 
             {/* Content — right side */}
