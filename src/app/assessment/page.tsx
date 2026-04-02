@@ -192,8 +192,8 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
-              Health Assessment{" "}
-              <span className="text-[#20c858]">Packages</span>
+              Health{" "}
+              <span className="text-[#20c858]">Assessment</span>
             </h1>
             <p className="mt-6 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
               Get a complete picture of your health with our comprehensive
