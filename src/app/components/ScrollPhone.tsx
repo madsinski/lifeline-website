@@ -37,8 +37,8 @@ export default function ScrollPhone({
   }, []);
 
   // Phone screen shows ~60% of the image at once.
-  // Stop 50px early so the bottom nav bar stays visible.
-  const maxTranslate = 39;
+  // Stop early so the bottom content stays visible.
+  const maxTranslate = 37.5;
   const translateY = -(scrollProgress * maxTranslate);
 
   return (
