@@ -5,11 +5,26 @@ import { useEffect, useRef, useState } from "react";
 interface ScrollPhoneProps {
   screenshot?: string;
   alt?: string;
+  /** Starting image offset in % — use to hide the app header/status bar */
+  initialOffset?: number;
+  /** Max scroll distance in % */
+  maxTranslate?: number;
+  /** Height of the scroll container */
+  scrollHeight?: string;
+  /** Phone height as CSS value */
+  phoneHeight?: string;
+  /** Whether this phone is standalone (full-width centered) or inline (no container height) */
+  inline?: boolean;
 }
 
 export default function ScrollPhone({
   screenshot = "/app-screenshot-scroll.jpg",
   alt = "Lifeline Health app",
+  initialOffset = 0,
+  maxTranslate = 37.5,
+  scrollHeight = "250vh",
+  phoneHeight = "80vh",
+  inline = false,
 }: ScrollPhoneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -17,13 +32,13 @@ export default function ScrollPhone({
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
+      // For inline mode, use the parent's scroll container
+      const el = inline ? containerRef.current.closest("[data-scroll-container]") || containerRef.current.parentElement : containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
       const containerH = rect.height;
       const windowH = window.innerHeight;
 
-      // How far through the scroll container are we?
-      // When container top = viewport top → progress = 0
-      // When container bottom = viewport bottom → progress = 1
       const scrollableDistance = containerH - windowH;
       if (scrollableDistance <= 0) return;
 
@@ -34,50 +49,60 @@ export default function ScrollPhone({
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [inline]);
 
-  // Phone screen shows ~60% of the image at once.
-  // Stop early so the bottom content stays visible.
-  const maxTranslate = 37.5;
-  const translateY = -(scrollProgress * maxTranslate);
+  const translateY = -(initialOffset + scrollProgress * maxTranslate);
 
+  const phoneFrame = (
+    <div className="relative" style={{ height: phoneHeight, aspectRatio: "9/19.5" }}>
+      {/* Frame */}
+      <div className="absolute inset-0 bg-[#1a1a1a] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#2a2a2a] shadow-2xl" />
+      {/* Inner bezel */}
+      <div className="absolute inset-[4px] bg-[#111] rounded-[2.6rem] sm:rounded-[3rem]" />
+      {/* Screen */}
+      <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
+        <img
+          src={screenshot}
+          alt={alt}
+          className="w-full"
+          style={{
+            transform: `translateY(${translateY}%)`,
+            transition: "transform 0.05s linear",
+            transformOrigin: "top center",
+          }}
+        />
+      </div>
+      {/* Side buttons */}
+      <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
+      <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+      <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+      {/* Reflection */}
+      <div
+        className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] pointer-events-none z-10"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%)",
+        }}
+      />
+    </div>
+  );
+
+  // Inline mode: just render the sticky phone, parent controls the scroll container
+  if (inline) {
+    return (
+      <div ref={containerRef} className="sticky top-0 h-screen flex items-center justify-center">
+        {phoneFrame}
+      </div>
+    );
+  }
+
+  // Standalone mode: self-contained scroll container
   return (
     <div
       ref={containerRef}
-      style={{ height: "250vh" }} // Scroll space for phone content animation
+      style={{ height: scrollHeight }}
     >
       <div className="sticky top-0 h-screen flex items-center justify-center pt-8">
-        {/* Phone frame — 80% viewport height */}
-        <div className="relative" style={{ height: "80vh", aspectRatio: "9/19.5" }}>
-          {/* Frame */}
-          <div className="absolute inset-0 bg-[#1a1a1a] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#2a2a2a] shadow-2xl" />
-          {/* Inner bezel */}
-          <div className="absolute inset-[4px] bg-[#111] rounded-[2.6rem] sm:rounded-[3rem]" />
-          {/* Screen */}
-          <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
-            <img
-              src={screenshot}
-              alt={alt}
-              className="w-full"
-              style={{
-                transform: `translateY(${translateY}%)`,
-                transition: "transform 0.05s linear",
-                transformOrigin: "top center",
-              }}
-            />
-          </div>
-          {/* Side buttons */}
-          <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
-          <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-          <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-          {/* Reflection */}
-          <div
-            className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] pointer-events-none z-10"
-            style={{
-              background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%)",
-            }}
-          />
-        </div>
+        {phoneFrame}
       </div>
     </div>
   );

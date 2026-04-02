@@ -252,34 +252,43 @@ export default function AssessmentPage() {
         </div>
       </section>
 
-      {/* Results preview */}
-      <section className="py-24 sm:py-28 bg-white">
+      {/* Results preview + scroll phone */}
+      <section className="bg-white" data-scroll-container style={{ minHeight: "250vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-              Your results, <span className="text-[#20c858]">explained</span>
-            </h2>
-            <p className="text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-              After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.
-            </p>
-            <ul className="mt-8 space-y-3 max-w-md mx-auto">
-              {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                  <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {item}
-                </li>
-              ))}
-            </ul>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+            {/* Left: text content, sticky */}
+            <div className="sticky top-0 h-screen flex items-center">
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
+                  Your results, <span className="text-[#20c858]">explained</span>
+                </h2>
+                <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">
+                  After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.
+                </p>
+                <ul className="space-y-3">
+                  {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
+                      <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            {/* Right: scroll phone mockup */}
+            <div className="flex justify-center">
+              <ScrollPhone
+                inline
+                screenshot="/app-screenshot-health-scroll.jpg"
+                alt="Your health results in the app"
+                initialOffset={5}
+                maxTranslate={35}
+                phoneHeight="75vh"
+              />
+            </div>
           </div>
-        </div>
-      </section>
-
-      {/* Scroll phone mockup — health dashboard */}
-      <section className="bg-[#ecf0f3]">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollPhone screenshot="/app-screenshot-health-scroll.jpg" alt="Your health results in the app" />
         </div>
       </section>
 
@@ -364,14 +373,22 @@ export default function AssessmentPage() {
         </div>
       </section>
 
-      {/* Locations */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+      {/* Test locations */}
+      <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
+              Test <span className="text-[#20c858]">locations</span>
+            </h2>
+            <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
+              Where to complete your assessment
+            </p>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             <div>
-              <h2 className="text-2xl font-bold text-[#1F2937] mb-4">
+              <h3 className="text-xl font-bold text-[#1F2937] mb-4">
                 Lifeline Station
-              </h2>
+              </h3>
               <p className="text-[#6B7280] mb-4 leading-relaxed">
                 Visit our station for body composition analysis and
                 measurements.
@@ -401,9 +418,9 @@ export default function AssessmentPage() {
               </p>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#1F2937] mb-4">
+              <h3 className="text-xl font-bold text-[#1F2937] mb-4">
                 Sameind Blood Test Stations
-              </h2>
+              </h3>
               <p className="text-[#6B7280] mb-4 leading-relaxed">
                 Get your blood drawn at any Sameind location across Iceland.
                 Your referral is valid at all stations.
