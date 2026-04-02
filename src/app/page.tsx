@@ -415,39 +415,31 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Three half-phone mockups */}
-          <div className="mt-20 grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-10 max-w-6xl mx-auto">
-            {[
-              { src: "/app-screenshot-home.jpg", label: "Daily action plans", sublabel: "Personalised tasks every day" },
-              { src: "/app-screenshot-coach.jpg", label: "Coach interaction", sublabel: "Direct messaging with your coach" },
-              { src: "/app-screenshot-measurements.jpg", label: "Health measurements", sublabel: "Track your progress over time" },
-            ].map((phone) => (
-              <div key={phone.label} className="flex flex-col items-center">
-                {/* Half phone frame — large */}
-                <div className="relative w-full max-w-[320px] aspect-[9/14] overflow-hidden">
-                  {/* Phone frame */}
-                  <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[2.8rem] border-x-[3px] border-t-[3px] border-[#2a2a2a]" />
-                  {/* Inner bezel */}
-                  <div className="absolute inset-[4px] bg-[#111] rounded-t-[2.6rem]" />
-                  {/* Screen */}
-                  <div className="absolute inset-[6px] rounded-t-[2.4rem] overflow-hidden bg-[#ecf0f3]">
-                    <img
-                      src={phone.src}
-                      alt={phone.label}
-                      className="w-full h-full object-cover object-top"
-                    />
-                  </div>
-                  {/* Side buttons */}
-                  <div className="absolute -right-[2px] top-[30%] w-[3px] h-12 bg-[#333] rounded-r-sm" />
-                  <div className="absolute -left-[2px] top-[25%] w-[3px] h-8 bg-[#333] rounded-l-sm" />
-                  <div className="absolute -left-[2px] top-[40%] w-[3px] h-8 bg-[#333] rounded-l-sm" />
-                  {/* Bottom fade */}
-                  <div className="absolute bottom-0 left-[6px] right-[6px] h-24 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
+          {/* Single large phone mockup */}
+          <div className="mt-16 flex justify-center">
+            <div className="flex flex-col items-center max-w-[400px] w-full">
+              <div className="relative w-full aspect-[9/16] overflow-hidden">
+                {/* Phone frame */}
+                <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[3rem] border-x-[3px] border-t-[3px] border-[#2a2a2a]" />
+                {/* Inner bezel */}
+                <div className="absolute inset-[4px] bg-[#111] rounded-t-[2.8rem]" />
+                {/* Screen */}
+                <div className="absolute inset-[6px] rounded-t-[2.6rem] overflow-hidden bg-[#ecf0f3]">
+                  <img
+                    src="/app-screenshot-home.jpg"
+                    alt="Lifeline Health app"
+                    className="w-full h-full object-cover object-top"
+                  />
                 </div>
-                <h4 className="text-base font-semibold text-[#1F2937] mt-5">{phone.label}</h4>
-                <p className="text-sm text-[#6B7280] mt-1">{phone.sublabel}</p>
+                {/* Side buttons */}
+                <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
+                <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+                <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+                {/* Bottom fade */}
+                <div className="absolute bottom-0 left-[6px] right-[6px] h-28 bg-gradient-to-t from-[#1a1a1a] to-transparent z-10" />
               </div>
-            ))}
+              <p className="text-sm text-[#6B7280] mt-4 text-center">Your personalised daily health coaching</p>
+            </div>
           </div>
         </div>
       </section>
