@@ -417,8 +417,8 @@ export default function Home() {
 
           {/* Single large phone mockup */}
           <div className="mt-16 flex justify-center">
-            <div className="flex flex-col items-center max-w-[400px] w-full">
-              <div className="relative w-full aspect-[9/16] overflow-hidden">
+            <div className="flex flex-col items-center max-w-[340px] w-full">
+              <div className="relative w-full aspect-[9/18] overflow-hidden">
                 {/* Phone frame */}
                 <div className="absolute inset-0 bg-[#1a1a1a] rounded-t-[3rem] border-x-[3px] border-t-[3px] border-[#2a2a2a]" />
                 {/* Inner bezel */}
