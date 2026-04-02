@@ -46,7 +46,7 @@ export default function ScrollPhone({
       ref={containerRef}
       style={{ height: "250vh" }} // Scroll space for phone content animation
     >
-      <div className="sticky top-0 h-screen flex items-center justify-center">
+      <div className="sticky top-0 h-screen flex items-center justify-center pt-8">
         {/* Phone frame — 80% viewport height */}
         <div className="relative" style={{ height: "80vh", aspectRatio: "9/19.5" }}>
           {/* Frame */}

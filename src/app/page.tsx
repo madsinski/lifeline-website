@@ -43,47 +43,6 @@ const steps = [
   },
 ];
 
-const packages = [
-  {
-    name: "Foundational Health",
-    price: "49.900",
-    description: "Full screening, body composition, blood tests",
-    featured: true,
-    features: [
-      "Complete body composition analysis",
-      "Comprehensive blood panel",
-      "Lifestyle & nutrition questionnaire",
-      "Doctor-reviewed health report",
-      "Personal consultation with physician",
-      "Personalised recommendations",
-    ],
-  },
-  {
-    name: "Check-in",
-    price: "19.900",
-    description: "Body composition for progress tracking",
-    featured: false,
-    features: [
-      "Body composition analysis",
-      "Progress comparison report",
-      "Updated health score",
-      "Brief physician review",
-    ],
-  },
-  {
-    name: "Self Check-in",
-    price: "Free",
-    description: "Questionnaire from home",
-    featured: false,
-    features: [
-      "Online health questionnaire",
-      "Self-reported metrics tracking",
-      "Basic health score update",
-      "No visit required",
-    ],
-  },
-];
-
 const pillars = [
   {
     title: "Exercise",
@@ -288,69 +247,93 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#ffffff" to="#ecf0f3" />
 
-      {/* Health Assessment Packages */}
+      {/* Health Assessment Process */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Health Assessment Packages
+              Your health assessment
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Choose the assessment that fits your needs
+              A comprehensive screening that gives you the full picture
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {packages.map((pkg) => (
+          <div className="max-w-3xl mx-auto space-y-4">
+            {[
+              {
+                title: "Body composition analysis",
+                description: "InBody 770 scan measuring muscle mass, body fat, water balance and more — far beyond what a scale can tell you.",
+                color: "#3B82F6",
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                ),
+              },
+              {
+                title: "Comprehensive blood panel",
+                description: "40+ biomarkers including lipids, metabolic markers, thyroid, vitamins, iron, hormones and inflammatory markers.",
+                color: "#20c858",
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M5 14.5l-1.43 1.43a2.25 2.25 0 00-.659 1.591v2.228c0 1.243 1.007 2.25 2.25 2.25h13.676a2.25 2.25 0 002.25-2.25v-2.228c0-.597-.237-1.17-.659-1.591L19 14.5" />
+                  </svg>
+                ),
+              },
+              {
+                title: "Doctor-reviewed health report",
+                description: "A Lifeline physician reviews all your results and prepares a comprehensive report with your personal health score.",
+                color: "#8B5CF6",
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                ),
+              },
+              {
+                title: "Personal consultation",
+                description: "Meet with your doctor in-person or over video to discuss your findings, ask questions, and get personalised recommendations.",
+                color: "#F59E0B",
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                  </svg>
+                ),
+              },
+            ].map((item) => (
               <div
-                key={pkg.name}
-                className={`bg-[#e6ecf4] rounded-2xl p-8 flex flex-col transition-all duration-200 hover:shadow-xl hover:scale-[1.03] ${
-                  pkg.featured ? "ring-2 ring-[#20c858] shadow-lg" : "hover:shadow-lg"
-                }`}
+                key={item.title}
+                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
               >
-                {pkg.featured && (
-                  <div className="text-xs font-bold text-[#20c858] bg-[#20c858]/10 px-3 py-1 rounded-full self-start mb-3">
-                    RECOMMENDED
+                <div className="flex items-start gap-5">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${item.color}10`, border: `2px solid ${item.color}25`, color: item.color }}
+                  >
+                    {item.icon}
                   </div>
-                )}
-                <h3 className="text-lg font-semibold text-[#1F2937] mb-1">
-                  {pkg.name}
-                </h3>
-                <p className="text-sm text-[#6B7280] mb-4">{pkg.description}</p>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold text-[#1F2937]">
-                    {pkg.price}
-                  </span>
-                  {pkg.price !== "Free" && (
-                    <span className="text-sm text-[#6B7280] ml-2">ISK</span>
-                  )}
+                  <div className="flex-1 pt-1">
+                    <h3 className="font-semibold text-[#1F2937] text-lg mb-1">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-[#6B7280] leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
                 </div>
-                <ul className="space-y-2 mb-8 flex-1">
-                  {pkg.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3">
-                      <svg
-                        className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#20c858]"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-sm text-[#6B7280]">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <MedaliaButton
-                  label="Book Now"
-                  size="md"
-                  className={`w-full ${pkg.featured ? "shadow-lg shadow-green-500/30" : ""}`}
-                />
               </div>
             ))}
+          </div>
+          <div className="text-center mt-10">
+            <Link
+              href="/assessment"
+              className="inline-flex items-center gap-2 text-[#20c858] font-semibold hover:underline"
+            >
+              View assessment packages
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
       </section>
@@ -358,52 +341,46 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
-      {/* Health coaching / 4 pillars */}
-      {/* Text section */}
-      <section className="py-24 sm:py-28 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-            Your daily health coach
-          </h2>
-          <p className="text-lg text-[#6B7280] mb-12 leading-relaxed max-w-2xl mx-auto">
-            The Lifeline app delivers personalised daily action plans across four pillars of health, tailored to your assessment results.
-          </p>
+      {/* Health coaching / 4 pillars + scroll phone */}
+      <section className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-24 sm:py-28">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
+              Your daily health coach
+            </h2>
+            <p className="text-lg text-[#6B7280] leading-relaxed max-w-2xl mx-auto mb-12">
+              The Lifeline app delivers personalised daily action plans across four pillars of health, tailored to your assessment results.
+            </p>
 
-          {/* Pillar cards — 2x2 grid */}
-          <div className="grid grid-cols-2 gap-4 mb-10 max-w-xl mx-auto">
-            {pillars.map((p) => (
-              <div
-                key={p.title}
-                className={`${p.lightBg} rounded-xl p-4 flex items-start gap-3 text-left hover:shadow-md transition-all duration-200`}
-              >
-                <PillarCircle color={p.color} size="sm">
-                  <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
-                </PillarCircle>
-                <div>
-                  <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
-                    {p.title}
-                  </h3>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">
-                    {p.description}
-                  </p>
+            {/* Pillar cards — stacked vertically */}
+            <div className="space-y-3 max-w-lg mx-auto">
+              {pillars.map((p) => (
+                <div
+                  key={p.title}
+                  className={`${p.lightBg} rounded-xl p-4 flex items-start gap-4 text-left hover:shadow-md transition-all duration-200`}
+                >
+                  <PillarCircle color={p.color} size="sm">
+                    <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
+                  </PillarCircle>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
+                      {p.title}
+                    </h3>
+                    <p className="text-xs text-[#6B7280] leading-relaxed">
+                      {p.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-
-          <Link
-            href="/coaching#download"
-            className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
-          >
-            Download the App
-          </Link>
         </div>
-      </section>
 
-      {/* Scroll-linked phone mockup — full width, takes over the viewport */}
-      <section className="bg-[#ecf0f3]">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollPhone screenshot="/app-screenshot-scroll.jpg" />
+        {/* Scroll-linked phone mockup */}
+        <div className="bg-[#ecf0f3]">
+          <div className="max-w-7xl mx-auto px-4">
+            <ScrollPhone screenshot="/app-screenshot-scroll.jpg" />
+          </div>
         </div>
       </section>
 

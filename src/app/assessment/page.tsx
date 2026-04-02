@@ -3,6 +3,7 @@
 import { useState } from "react";
 import MedaliaButton from "../components/MedaliaButton";
 import { PhoneMockup } from "../components/PhoneMockup";
+import ScrollPhone from "../components/ScrollPhone";
 
 const packageColors = [
   { accent: "border-t-4 border-t-[#20c858]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#20c858]" },
@@ -206,143 +207,6 @@ export default function AssessmentPage() {
         </div>
       </section>
 
-      {/* Your assessment journey - horizontal stepper */}
-      <section className="py-16 sm:py-20 bg-white overflow-hidden">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
-              Your assessment journey
-            </h2>
-            <p className="mt-3 text-[#6B7280]">
-              Six simple steps from booking to your personalised report
-            </p>
-          </div>
-
-          {/* Desktop: horizontal stepper */}
-          <div className="hidden md:block">
-            <div className="flex items-start justify-between relative">
-              {/* Connecting line */}
-              <div className="absolute top-[18px] left-[calc(8.33%)] right-[calc(8.33%)] h-[2px] bg-gray-200">
-                <div className="h-full bg-[#20c858] border-dashed" style={{ borderTop: "2px dashed #20c858", background: "transparent" }} />
-              </div>
-              {[
-                { step: "1", title: "Book online", desc: "Schedule via patient portal" },
-                { step: "2", title: "Visit station", desc: "Body scan & measurements" },
-                { step: "3", title: "Blood test", desc: "At any Sameind location" },
-                { step: "4", title: "Questionnaire", desc: "Lifestyle & habits survey" },
-                { step: "5", title: "Doctor review", desc: "Physician analyses results" },
-                { step: "6", title: "Your report", desc: "Personalised health plan" },
-              ].map((s) => (
-                <div key={s.step} className="flex flex-col items-center text-center relative z-10" style={{ width: "16.666%" }}>
-                  <div className="w-9 h-9 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-md shadow-green-500/20 mb-3">
-                    {s.step}
-                  </div>
-                  <h3 className="text-sm font-semibold text-[#1F2937] mb-1">{s.title}</h3>
-                  <p className="text-xs text-[#6B7280] leading-snug px-1">{s.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Mobile: simple numbered list, no connecting lines */}
-          <div className="md:hidden">
-            <div className="space-y-6">
-              {[
-                { step: "1", title: "Book online", desc: "Schedule via patient portal" },
-                { step: "2", title: "Visit station", desc: "Body scan & measurements" },
-                { step: "3", title: "Blood test", desc: "At any Sameind location" },
-                { step: "4", title: "Questionnaire", desc: "Lifestyle & habits survey" },
-                { step: "5", title: "Doctor review", desc: "Physician analyses results" },
-                { step: "6", title: "Your report", desc: "Personalised health plan" },
-              ].map((s) => (
-                <div key={s.step} className="flex items-start gap-4">
-                  <div className="w-9 h-9 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm shadow-md shadow-green-500/20 flex-shrink-0">
-                    {s.step}
-                  </div>
-                  <div className="pt-1">
-                    <h3 className="text-sm font-semibold text-[#1F2937] mb-0.5">{s.title}</h3>
-                    <p className="text-xs text-[#6B7280] leading-snug">{s.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Packages detail */}
-      <section className="py-24 sm:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {packages.map((pkg, i) => {
-              const color = packageColors[i];
-              return (
-              <div
-                key={pkg.name}
-                className={`bg-[#e6ecf4] rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-200 ${color.accent}`}
-              >
-                <div className={`w-14 h-14 rounded-xl ${color.iconBg} ${color.iconText} flex items-center justify-center mb-4`}>
-                  {pkg.icon}
-                </div>
-                <h3 className="text-xl font-semibold text-[#1F2937] mb-1">
-                  {pkg.name}
-                </h3>
-                <p className="text-sm text-[#6B7280] mb-4">{pkg.description}</p>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold text-[#1F2937]">
-                    {pkg.price}
-                  </span>
-                  {pkg.price !== "Free" && (
-                    <span className="text-sm text-[#6B7280] ml-2">ISK</span>
-                  )}
-                </div>
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-[#1F2937] mb-3">
-                    What&apos;s included:
-                  </h4>
-                  <ul className="space-y-2">
-                    {pkg.includes.map((item) => (
-                      <li key={item} className="flex items-start gap-3">
-                        <svg
-                          className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#20c858]"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span className="text-sm text-[#6B7280]">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="bg-white/60 rounded-xl p-4 mb-6">
-                  <p className="text-xs text-[#6B7280]">
-                    <span className="font-semibold text-[#1F2937]">
-                      Ideal for:{" "}
-                    </span>
-                    {pkg.ideal}
-                  </p>
-                </div>
-                <div className="mt-auto">
-                  <MedaliaButton
-                    label="Book Now"
-                    size="md"
-                    className="w-full"
-                  />
-                </div>
-              </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Process - Visual Timeline */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -391,28 +255,111 @@ export default function AssessmentPage() {
       {/* Results preview */}
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-                Your results, <span className="text-[#20c858]">explained</span>
-              </h2>
-              <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">
-                After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.
-              </p>
-              <ul className="space-y-3">
-                {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                    <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="flex justify-center">
-              <PhoneMockup screenshot="/app-screenshot-report.jpg" alt="Health report in the app" />
-            </div>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
+              Your results, <span className="text-[#20c858]">explained</span>
+            </h2>
+            <p className="text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
+              After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.
+            </p>
+            <ul className="mt-8 space-y-3 max-w-md mx-auto">
+              {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
+                <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
+                  <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Scroll phone mockup — health dashboard */}
+      <section className="bg-[#ecf0f3]">
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollPhone screenshot="/app-screenshot-health-scroll.jpg" alt="Your health results in the app" />
+        </div>
+      </section>
+
+      {/* Packages */}
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
+              Assessment <span className="text-[#20c858]">Packages</span>
+            </h2>
+            <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
+              Choose the assessment that fits your needs
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {packages.map((pkg, i) => {
+              const color = packageColors[i];
+              return (
+                <div
+                  key={pkg.name}
+                  className={`bg-[#e6ecf4] rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-200 ${color.accent}`}
+                >
+                  <div className={`w-14 h-14 rounded-xl ${color.iconBg} ${color.iconText} flex items-center justify-center mb-4`}>
+                    {pkg.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#1F2937] mb-1">
+                    {pkg.name}
+                  </h3>
+                  <p className="text-sm text-[#6B7280] mb-4">{pkg.description}</p>
+                  <div className="mb-6">
+                    <span className="text-3xl font-bold text-[#1F2937]">
+                      {pkg.price}
+                    </span>
+                    {pkg.price !== "Free" && (
+                      <span className="text-sm text-[#6B7280] ml-2">ISK</span>
+                    )}
+                  </div>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold text-[#1F2937] mb-3">
+                      What&apos;s included:
+                    </h4>
+                    <ul className="space-y-2">
+                      {pkg.includes.map((item) => (
+                        <li key={item} className="flex items-start gap-3">
+                          <svg
+                            className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#20c858]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span className="text-sm text-[#6B7280]">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="bg-white/60 rounded-xl p-4 mb-6">
+                    <p className="text-xs text-[#6B7280]">
+                      <span className="font-semibold text-[#1F2937]">
+                        Ideal for:{" "}
+                      </span>
+                      {pkg.ideal}
+                    </p>
+                  </div>
+                  <div className="mt-auto">
+                    <MedaliaButton
+                      label="Book Now"
+                      size="md"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
