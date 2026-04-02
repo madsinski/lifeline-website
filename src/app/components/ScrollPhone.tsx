@@ -32,8 +32,11 @@ export default function ScrollPhone({
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
-      // For inline mode, use the parent's scroll container
-      const el = inline ? containerRef.current.closest("[data-scroll-container]") || containerRef.current.parentElement : containerRef.current;
+      // For inline mode, walk up to find the scroll container section
+      let el: Element | null = containerRef.current;
+      if (inline) {
+        el = containerRef.current.closest("section") || containerRef.current.parentElement;
+      }
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const containerH = rect.height;

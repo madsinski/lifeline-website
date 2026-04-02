@@ -415,9 +415,9 @@ export default function CoachingPage() {
       </section>
 
       {/* How coaching works + scroll phone */}
-      <section className="bg-white" data-scroll-container style={{ minHeight: "250vh" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <section className="bg-white" style={{ height: "200vh" }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full">
             {/* Left: text + cards, sticky */}
             <div className="sticky top-0 h-screen flex items-center">
               <div>
