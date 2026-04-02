@@ -222,73 +222,71 @@ export default function CoachingPage() {
               Knowledge alone doesn&apos;t create change. Coaching bridges the gap between knowing and doing.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {[
               {
                 title: "Create real change",
                 description: "Programs built on your blood work and body composition data — not generic templates.",
                 icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 ),
-                color: "#F59E0B",
+                color: "text-amber-500",
                 bg: "bg-amber-50",
               },
               {
                 title: "Daily action plans",
                 description: "Wake up to a clear plan every day — exercise, meals, sleep habits, and mental wellness.",
                 icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                 ),
-                color: "#20c858",
+                color: "text-[#20c858]",
                 bg: "bg-green-50",
               },
               {
                 title: "Connect with coaches",
                 description: "Message your health coach directly. Get answers, adjustments, and support when you need it.",
                 icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 ),
-                color: "#3B82F6",
+                color: "text-blue-500",
                 bg: "bg-blue-50",
               },
               {
                 title: "Join the community",
                 description: "Events, challenges, and a network of people on the same journey. You are not doing this alone.",
                 icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 ),
-                color: "#8B5CF6",
+                color: "text-purple-500",
                 bg: "bg-purple-50",
               },
               {
                 title: "Motivation that lasts",
                 description: "Progress tracking, streaks, health scores, and coaching keep you engaged week after week.",
                 icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
                   </svg>
                 ),
-                color: "#06B6D4",
-                bg: "bg-teal-50",
+                color: "text-red-500",
+                bg: "bg-red-50",
               },
             ].map((item) => (
-              <div key={item.title} className="bg-[#f5f7fa] rounded-2xl p-8 hover:shadow-md transition-all duration-200 text-center">
-                <div className={`w-24 h-24 rounded-3xl ${item.bg} flex items-center justify-center mx-auto mb-6 shadow-lg`} style={{ border: `2px solid ${item.color}25` }}>
-                  <div style={{ color: item.color }}>
-                    {item.icon}
-                  </div>
+              <div key={item.title} className="bg-[#f5f7fa] rounded-2xl p-6 hover:shadow-md transition-all duration-200 text-center">
+                <div className={`w-14 h-14 rounded-2xl ${item.bg} ${item.color} flex items-center justify-center mx-auto mb-4`}>
+                  {item.icon}
                 </div>
-                <h3 className="text-base font-semibold text-[#1F2937] mb-2">{item.title}</h3>
-                <p className="text-sm text-[#6B7280] leading-relaxed">{item.description}</p>
+                <h3 className="text-sm font-semibold text-[#1F2937] mb-2">{item.title}</h3>
+                <p className="text-xs text-[#6B7280] leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
@@ -306,24 +304,57 @@ export default function CoachingPage() {
               A holistic approach to lasting well-being
             </p>
           </div>
-          <div className="space-y-4">
-            {pillars.map((pillar) => (
+          <div className="space-y-8">
+            {pillars.map((pillar, i) => (
               <div
                 key={pillar.title}
-                className={`${pillar.bgColor} rounded-xl p-5 sm:p-6 flex items-start gap-5 shadow-sm hover:shadow-md transition-all duration-200`}
+                className={`${pillar.bgColor} rounded-2xl p-8 lg:p-10 shadow-sm hover:shadow-md transition-all duration-200`}
               >
-                <PillarCircle color={pillar.color}>
-                  {pillar.icon}
-                </PillarCircle>
-                <div>
-                  <h3
-                    className={`text-lg font-semibold ${pillar.textColor} mb-1`}
-                  >
-                    {pillar.title}
-                  </h3>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">
-                    {pillar.description}
-                  </p>
+                <div
+                  className={`grid grid-cols-1 lg:grid-cols-2 gap-8 items-start ${
+                    i % 2 === 1 ? "lg:direction-rtl" : ""
+                  }`}
+                >
+                  <div>
+                    <div className="mb-4">
+                      <PillarCircle color={pillar.color}>
+                        {pillar.icon}
+                      </PillarCircle>
+                    </div>
+                    <h3
+                      className={`text-2xl font-bold ${pillar.textColor} mb-3`}
+                    >
+                      {pillar.title}
+                    </h3>
+                    <p className="text-[#6B7280] leading-relaxed mb-6">
+                      {pillar.description}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-[#1F2937] mb-4 uppercase tracking-wider">
+                      Features
+                    </h4>
+                    <ul className="space-y-3">
+                      {pillar.features.map((f) => (
+                        <li key={f} className="flex items-start gap-3">
+                          <svg
+                            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${pillar.textColor}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span className="text-sm text-[#6B7280]">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             ))}
@@ -393,40 +424,23 @@ export default function CoachingPage() {
               Your assessment powers your coaching experience
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            {howItWorks.map((item, i) => {
-              const colors = ["#3B82F6", "#20c858", "#8B5CF6", "#F59E0B"];
-              const bgs = ["bg-blue-50", "bg-green-50", "bg-purple-50", "bg-amber-50"];
-              const icons = [
-                <svg key="assess" className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
-                <svg key="plan" className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>,
-                <svg key="track" className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
-                <svg key="checkin" className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
-              ];
-              return (
-                <div
-                  key={item.title}
-                  className="bg-[#e6ecf4] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  <div className="relative mb-6">
-                    <div className={`w-24 h-24 rounded-3xl ${bgs[i]} flex items-center justify-center shadow-lg`} style={{ border: `2px solid ${colors[i]}25` }}>
-                      <div style={{ color: colors[i] }}>
-                        {icons[i]}
-                      </div>
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md" style={{ backgroundColor: colors[i] }}>
-                      {i + 1}
-                    </div>
-                  </div>
-                  <h3 className="font-semibold text-[#1F2937] mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">
-                    {item.description}
-                  </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {howItWorks.map((item, i) => (
+              <div
+                key={item.title}
+                className="bg-[#e6ecf4] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm mb-4 shadow-lg shadow-green-500/25">
+                  {i + 1}
                 </div>
-              );
-            })}
+                <h3 className="font-semibold text-[#1F2937] mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-[#6B7280] leading-relaxed">
+                  {item.description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
