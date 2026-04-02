@@ -294,13 +294,6 @@ export default function CoachingPage() {
         </div>
       </section>
 
-      {/* Scroll phone mockup — health dashboard */}
-      <section className="bg-[#ecf0f3]">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollPhone screenshot="/app-screenshot-health-scroll.jpg" alt="My health dashboard" />
-        </div>
-      </section>
-
       {/* Four pillars in detail */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -421,34 +414,50 @@ export default function CoachingPage() {
         </div>
       </section>
 
-      {/* How coaching works with assessment */}
-      <section className="py-24 sm:py-28 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              How coaching works
-            </h2>
-            <p className="mt-4 text-lg text-[#6B7280]">
-              Your assessment powers your coaching experience
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {howItWorks.map((item, i) => (
-              <div
-                key={item.title}
-                className="bg-[#e6ecf4] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <div className="w-10 h-10 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm mb-4 shadow-lg shadow-green-500/25">
-                  {i + 1}
-                </div>
-                <h3 className="font-semibold text-[#1F2937] mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-[#6B7280] leading-relaxed">
-                  {item.description}
+      {/* How coaching works + scroll phone */}
+      <section className="bg-white" data-scroll-container style={{ minHeight: "250vh" }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+            {/* Left: text + cards, sticky */}
+            <div className="sticky top-0 h-screen flex items-center">
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-3">
+                  How coaching works
+                </h2>
+                <p className="text-[#6B7280] mb-8">
+                  Your assessment powers your coaching experience
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {howItWorks.map((item, i) => (
+                    <div
+                      key={item.title}
+                      className="bg-[#e6ecf4] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm mb-3 shadow-lg shadow-green-500/25">
+                        {i + 1}
+                      </div>
+                      <h3 className="font-semibold text-[#1F2937] text-sm mb-1.5">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-[#6B7280] leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            </div>
+            {/* Right: scroll phone mockup */}
+            <div className="flex justify-center">
+              <ScrollPhone
+                inline
+                screenshot="/app-screenshot-coach-scroll.jpg"
+                alt="Health coach in the app"
+                initialOffset={5}
+                maxTranslate={30}
+                phoneHeight="75vh"
+              />
+            </div>
           </div>
         </div>
       </section>
