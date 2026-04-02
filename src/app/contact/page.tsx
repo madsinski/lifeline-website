@@ -81,7 +81,7 @@ export default function ContactPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full px-4 py-3 rounded-xl bg-[#e6ecf4] border-2 border-transparent focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
                       placeholder="Your name"
                       required
                     />
@@ -100,7 +100,7 @@ export default function ContactPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, email: e.target.value })
                       }
-                      className="w-full px-4 py-3 rounded-xl bg-[#e6ecf4] border-2 border-transparent focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
                       placeholder="your@email.com"
                       required
                     />
@@ -119,7 +119,7 @@ export default function ContactPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, subject: e.target.value })
                       }
-                      className="w-full px-4 py-3 rounded-xl bg-[#e6ecf4] border-2 border-transparent focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
                       placeholder="How can we help?"
                       required
                     />
@@ -158,11 +158,11 @@ export default function ContactPage() {
               <h2 className="text-2xl font-bold text-[#1F2937] mb-6">
                 Contact information
               </h2>
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#20c858]/10 flex items-center justify-center flex-shrink-0">
+              <div className="space-y-4">
+                <div className="bg-[#f5f7fa] rounded-xl p-5 flex items-start gap-4 shadow-sm">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center flex-shrink-0" style={{ border: "2px solid rgba(59,130,246,0.15)" }}>
                     <svg
-                      className="w-6 h-6 text-[#20c858]"
+                      className="w-6 h-6 text-[#3B82F6]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -179,17 +179,17 @@ export default function ContactPage() {
                     <h3 className="font-semibold text-[#1F2937]">Email</h3>
                     <a
                       href="mailto:contact@lifelinehealth.is"
-                      className="text-[#6B7280] hover:text-[#20c858] transition-colors duration-200"
+                      className="text-[#6B7280] hover:text-[#3B82F6] transition-colors duration-200"
                     >
                       contact@lifelinehealth.is
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#20c858]/10 flex items-center justify-center flex-shrink-0">
+                <div className="bg-[#f5f7fa] rounded-xl p-5 flex items-start gap-4 shadow-sm">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center flex-shrink-0" style={{ border: "2px solid rgba(139,92,246,0.15)" }}>
                     <svg
-                      className="w-6 h-6 text-[#20c858]"
+                      className="w-6 h-6 text-[#8B5CF6]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -220,8 +220,8 @@ export default function ContactPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#20c858]/10 flex items-center justify-center flex-shrink-0">
+                <div className="bg-[#f5f7fa] rounded-xl p-5 flex items-start gap-4 shadow-sm">
+                  <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center flex-shrink-0" style={{ border: "2px solid rgba(32,200,88,0.15)" }}>
                     <svg
                       className="w-6 h-6 text-[#20c858]"
                       fill="none"
@@ -248,19 +248,28 @@ export default function ContactPage() {
               </div>
 
               {/* Patient portal */}
-              <div className="mt-10 bg-[#e6ecf4] rounded-2xl p-6 shadow-sm">
-                <h3 className="font-semibold text-[#1F2937] mb-2">
-                  Access the Patient Portal
-                </h3>
-                <p className="text-sm text-[#6B7280] mb-4">
-                  View your assessment results, book appointments, or complete
-                  questionnaires.
-                </p>
-                <MedaliaButton
-                  label="Open Patient Portal"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                />
+              <div className="mt-8 bg-[#f5f7fa] rounded-xl p-6 shadow-sm border border-[#20c858]/15">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center flex-shrink-0" style={{ border: "2px solid rgba(32,200,88,0.15)" }}>
+                    <svg className="w-6 h-6 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#1F2937] mb-1">
+                      Access the Patient Portal
+                    </h3>
+                    <p className="text-sm text-[#6B7280] mb-4">
+                      View your assessment results, book appointments, or complete
+                      questionnaires.
+                    </p>
+                    <MedaliaButton
+                      label="Open Patient Portal"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Map placeholder */}

@@ -4,6 +4,12 @@ import { useState } from "react";
 import MedaliaButton from "../components/MedaliaButton";
 import { PhoneMockup } from "../components/PhoneMockup";
 
+const packageColors = [
+  { accent: "border-t-4 border-t-[#20c858]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#20c858]" },
+  { accent: "border-t-4 border-t-[#3B82F6]", iconBg: "bg-blue-50 border border-blue-100", iconText: "text-[#3B82F6]" },
+  { accent: "border-t-4 border-t-[#8B5CF6]", iconBg: "bg-purple-50 border border-purple-100", iconText: "text-[#8B5CF6]" },
+];
+
 const packages = [
   {
     name: "Foundational Health",
@@ -67,6 +73,14 @@ const packages = [
   },
 ];
 
+const stepColors = [
+  { bg: "bg-blue-50", border: "border-blue-100", text: "text-[#3B82F6]", badge: "bg-[#3B82F6]" },
+  { bg: "bg-green-50", border: "border-green-100", text: "text-[#20c858]", badge: "bg-[#20c858]" },
+  { bg: "bg-purple-50", border: "border-purple-100", text: "text-[#8B5CF6]", badge: "bg-[#8B5CF6]" },
+  { bg: "bg-amber-50", border: "border-amber-100", text: "text-[#F59E0B]", badge: "bg-[#F59E0B]" },
+  { bg: "bg-cyan-50", border: "border-cyan-100", text: "text-[#06B6D4]", badge: "bg-[#06B6D4]" },
+];
+
 const processSteps = [
   {
     step: "1",
@@ -74,7 +88,7 @@ const processSteps = [
     description:
       "Open the patient portal and choose the Foundational Health or Check-in package. Pick a time that suits you.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
       </svg>
     ),
@@ -85,7 +99,7 @@ const processSteps = [
     description:
       "Come to our Lagmula 5 station in Reykjavik for your body composition scan and measurements. Takes about 20 minutes.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
       </svg>
@@ -97,7 +111,7 @@ const processSteps = [
     description:
       "Visit any Sameind blood collection station for your blood panel. Results are sent directly to Lifeline.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M5 14.5l-1.43 1.43a2.25 2.25 0 00-.659 1.591v2.228c0 1.243 1.007 2.25 2.25 2.25h13.676a2.25 2.25 0 002.25-2.25v-2.228c0-.597-.237-1.17-.659-1.591L19 14.5" />
       </svg>
     ),
@@ -108,7 +122,7 @@ const processSteps = [
     description:
       "A Lifeline physician reviews all your results and prepares your comprehensive health report.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
       </svg>
     ),
@@ -119,7 +133,7 @@ const processSteps = [
     description:
       "Meet with your doctor (in-person or video) to discuss your results, health score, and personalised recommendations.",
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
       </svg>
     ),
@@ -260,12 +274,14 @@ export default function AssessmentPage() {
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {packages.map((pkg) => (
+            {packages.map((pkg, i) => {
+              const color = packageColors[i];
+              return (
               <div
                 key={pkg.name}
-                className="bg-[#e6ecf4] rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                className={`bg-[#e6ecf4] rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-200 ${color.accent}`}
               >
-                <div className="w-14 h-14 rounded-xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mb-4">
+                <div className={`w-14 h-14 rounded-xl ${color.iconBg} ${color.iconText} flex items-center justify-center mb-4`}>
                   {pkg.icon}
                 </div>
                 <h3 className="text-xl font-semibold text-[#1F2937] mb-1">
@@ -321,7 +337,8 @@ export default function AssessmentPage() {
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -338,30 +355,35 @@ export default function AssessmentPage() {
             </p>
           </div>
           {/* Process steps */}
-          <div className="max-w-3xl mx-auto space-y-4">
-            {processSteps.map((s) => (
-              <div
-                key={s.step}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center flex-shrink-0">
-                    {s.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-[#20c858] uppercase tracking-wider">Step {s.step}</span>
+          <div className="max-w-3xl mx-auto space-y-6">
+            {processSteps.map((s, i) => {
+              const color = stepColors[i];
+              return (
+                <div
+                  key={s.step}
+                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-start gap-6">
+                    <div className="relative flex-shrink-0">
+                      <div className={`w-24 h-24 rounded-3xl ${color.bg} border ${color.border} ${color.text} flex items-center justify-center`}>
+                        {s.icon}
+                      </div>
+                      <div className={`absolute -top-2 -right-2 w-8 h-8 ${color.badge} rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg`}>
+                        {s.step}
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-[#1F2937] mb-1">
-                      {s.title}
-                    </h3>
-                    <p className="text-sm text-[#6B7280] leading-relaxed">
-                      {s.description}
-                    </p>
+                    <div className="flex-1 pt-2">
+                      <h3 className="font-semibold text-[#1F2937] text-lg mb-2">
+                        {s.title}
+                      </h3>
+                      <p className="text-sm text-[#6B7280] leading-relaxed">
+                        {s.description}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

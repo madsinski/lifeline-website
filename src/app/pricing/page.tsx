@@ -4,6 +4,28 @@ import { useState } from "react";
 import Link from "next/link";
 import MedaliaButton from "../components/MedaliaButton";
 
+const assessmentColors = [
+  { accent: "border-t-4 border-t-[#3B82F6]", iconBg: "bg-blue-50 border border-blue-100", iconText: "text-[#3B82F6]", checkColor: "text-[#3B82F6]" },
+  { accent: "border-t-4 border-t-[#20c858]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#20c858]", checkColor: "text-[#20c858]" },
+  { accent: "border-t-4 border-t-[#8B5CF6]", iconBg: "bg-purple-50 border border-purple-100", iconText: "text-[#8B5CF6]", checkColor: "text-[#8B5CF6]" },
+];
+
+const assessmentIcons = [
+  // Foundational Health - clipboard
+  <svg key="foundational" className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 011.65 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 3.98 8.25 4.555 8.25 5.438v15.312c0 .966.784 1.75 1.75 1.75h8c.966 0 1.75-.784 1.75-1.75V5.438c0-.883-.845-1.458-1.476-1.522a44.5 44.5 0 00-1.124-.08" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 11h4M12 15h4M12 19h4M8.5 11h.01M8.5 15h.01M8.5 19h.01" />
+  </svg>,
+  // Check-in - chart
+  <svg key="checkin" className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+  </svg>,
+  // Self Check-in - phone
+  <svg key="selfcheckin" className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+  </svg>,
+];
+
 const assessmentPackages = [
   {
     name: "Foundational Health",
@@ -168,58 +190,71 @@ export default function PricingPage() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {assessmentPackages.map((pkg) => (
-              <div
-                key={pkg.name}
-                className="bg-[#e6ecf4] rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-xl hover:scale-[1.03] transition-all duration-200"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-lg font-semibold text-[#1F2937]">
-                    {pkg.name}
-                  </h3>
-                  <span className="text-xs font-medium text-[#20c858] bg-[#20c858]/10 px-2 py-1 rounded-full">
-                    {pkg.type}
-                  </span>
-                </div>
-                <p className="text-sm text-[#6B7280] mb-4">
-                  {pkg.description}
-                </p>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold text-[#1F2937]">
-                    {pkg.price}
-                  </span>
-                  {pkg.unit && (
-                    <span className="text-sm text-[#6B7280] ml-2">
-                      {pkg.unit}
+            {assessmentPackages.map((pkg, i) => {
+              const color = assessmentColors[i];
+              return (
+                <div
+                  key={pkg.name}
+                  className={`bg-[#e6ecf4] rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-xl hover:scale-[1.03] transition-all duration-200 ${color.accent}`}
+                >
+                  <div className={`w-16 h-16 rounded-xl ${color.iconBg} ${color.iconText} flex items-center justify-center mb-6`}>
+                    {assessmentIcons[i]}
+                  </div>
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-lg font-semibold text-[#1F2937]">
+                      {pkg.name}
+                    </h3>
+                    <span className="text-xs font-medium text-[#20c858] bg-[#20c858]/10 px-2 py-1 rounded-full">
+                      {pkg.type}
                     </span>
-                  )}
+                  </div>
+                  <p className="text-sm text-[#6B7280] mb-4">
+                    {pkg.description}
+                  </p>
+                  <div className="mb-6">
+                    <span className="text-3xl font-bold text-[#1F2937]">
+                      {pkg.price}
+                    </span>
+                    {pkg.unit && (
+                      <span className="text-sm text-[#6B7280] ml-2">
+                        {pkg.unit}
+                      </span>
+                    )}
+                  </div>
+                  <ul className="space-y-2 mb-8 flex-1">
+                    {pkg.features.map((f) => (
+                      <li key={f} className="flex items-start gap-3">
+                        <svg
+                          className={`w-5 h-5 flex-shrink-0 mt-0.5 ${color.checkColor}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="text-sm text-[#6B7280]">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <MedaliaButton label="Book Now" size="md" className="w-full" />
                 </div>
-                <ul className="space-y-2 mb-8 flex-1">
-                  {pkg.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3">
-                      <svg
-                        className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#20c858]"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-sm text-[#6B7280]">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <MedaliaButton label="Book Now" size="md" className="w-full" />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
+
+      {/* Wave separator */}
+      <div className="relative bg-white">
+        <svg className="w-full h-16 sm:h-24 text-[#ecf0f3]" viewBox="0 0 1440 100" preserveAspectRatio="none" fill="currentColor">
+          <path d="M0,0 C360,100 1080,0 1440,100 L1440,100 L0,100 Z" />
+        </svg>
+      </div>
 
       {/* Coaching subscriptions */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
@@ -418,6 +453,28 @@ export default function PricingPage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Gradient CTA */}
+      <section className="py-24 sm:py-28 bg-gradient-to-br from-[#1a3a2a] via-[#1F2937] to-[#111827] relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_110%,rgba(32,200,88,0.15),transparent)]" />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+            Ready to start your health journey?
+          </h2>
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Get a complete picture of your health with our comprehensive assessments, or start building better habits with personalised coaching.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <MedaliaButton label="Book Assessment" size="lg" />
+            <Link
+              href="/account/login"
+              className="px-8 py-3.5 rounded-full text-sm font-semibold bg-white text-[#1F2937] hover:bg-gray-100 transition-all duration-200 shadow-lg"
+            >
+              Create Account
+            </Link>
           </div>
         </div>
       </section>
