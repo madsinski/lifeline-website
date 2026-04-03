@@ -117,10 +117,28 @@ function AccountPageInner() {
   const [showAllPayments, setShowAllPayments] = useState(false);
 
   /* coaching programs */
-  const [programs, setPrograms] = useState<string[]>([]);
+  const [programs, setPrograms] = useState<{ category_key: string; program_key: string; started_at: string }[]>([]);
 
   /* messages */
   const [conversationsCount, setConversationsCount] = useState(0);
+
+  /* assessments / appointments */
+  const [appointments, setAppointments] = useState<{ type: string; date: string; time: string; status: string }[]>([]);
+
+  /* loading states */
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  /* profile validation */
+  const [profileError, setProfileError] = useState("");
+
+  /* notification prefs (local/visual only) */
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [marketingEmails, setMarketingEmails] = useState(false);
+
+  /* has client data (for connected devices) */
+  const [hasClientData, setHasClientData] = useState(false);
 
   /* ---------- auth check + load data ---------- */
   useEffect(() => {
@@ -194,16 +212,37 @@ function AccountPageInner() {
         }
       } catch {}
 
-      // Load coaching programs
+      // Load coaching programs from client_programs
       try {
         const { data: programData } = await supabase
-          .from("coaching_programs")
-          .select("name")
-          .eq("client_id", currentUser.id)
-          .eq("active", true);
+          .from("client_programs")
+          .select("category_key, program_key, started_at")
+          .eq("client_id", currentUser.id);
         if (programData && programData.length > 0) {
-          setPrograms(programData.map((p: { name: string }) => p.name));
+          setPrograms(programData);
         }
+      } catch {}
+
+      // Load appointments
+      try {
+        const { data: apptData } = await supabase
+          .from("appointments")
+          .select("type, date, time, status")
+          .eq("client_id", currentUser.id)
+          .order("date", { ascending: false });
+        if (apptData && apptData.length > 0) {
+          setAppointments(apptData);
+        }
+      } catch {}
+
+      // Check if client has any data (for connected devices)
+      try {
+        const { data: clientCheck } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("id", currentUser.id)
+          .single();
+        setHasClientData(!!clientCheck);
       } catch {}
 
       // Load conversations count
@@ -238,6 +277,12 @@ function AccountPageInner() {
   /* ---------- actions ---------- */
   const handleSaveProfile = async () => {
     if (!user) return;
+    setProfileError("");
+    if (!profileFirstName.trim()) {
+      setProfileError("First name is required.");
+      return;
+    }
+    setProfileSaving(true);
     const fullName = `${profileFirstName.trim()} ${profileLastName.trim()}`.trim();
     await supabase.from("clients").update({
       full_name: fullName,
@@ -251,9 +296,10 @@ function AccountPageInner() {
     await supabase.auth.updateUser({
       data: { full_name: fullName, phone: phone.trim() },
     });
+    setProfileSaving(false);
     setEditingProfile(false);
     setProfileSaveMsg("Profile saved successfully");
-    setTimeout(() => setProfileSaveMsg(""), 3000);
+    setTimeout(() => setProfileSaveMsg(""), 5000);
   };
 
   const handleConfirmPlanChange = async () => {
@@ -436,7 +482,7 @@ function AccountPageInner() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ---- Left navigation ---- */}
           <aside className="lg:w-56 shrink-0">
-            <nav className="bg-white rounded-2xl shadow-sm p-2 lg:sticky lg:top-24 grid grid-cols-2 lg:grid-cols-1 lg:flex lg:flex-col gap-1">
+            <nav className="bg-white rounded-2xl shadow-sm p-2 lg:sticky lg:top-24 flex overflow-x-auto flex-nowrap lg:flex-col gap-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
@@ -479,7 +525,7 @@ function AccountPageInner() {
                 {/* Quick actions */}
                 <section>
                   <h3 className="text-sm font-medium text-[#6B7280] mb-3 px-1">Quick actions</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link href="/assessment"
                       className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
                       <div className="w-10 h-10 rounded-xl bg-[#20c858]/10 flex items-center justify-center mb-3 group-hover:bg-[#20c858]/20 transition-colors">
@@ -510,6 +556,16 @@ function AccountPageInner() {
                       <p className="text-sm font-semibold text-[#1F2937]">Download App</p>
                       <p className="text-xs text-[#6B7280] mt-0.5">Get the Lifeline app</p>
                     </Link>
+                    <a href="https://medalia.is" target="_blank" rel="noopener noreferrer"
+                      className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
+                      <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors">
+                        <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-[#1F2937]">Patient Portal</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5">Open medalia.is</p>
+                    </a>
                   </div>
                 </section>
 
@@ -625,12 +681,18 @@ function AccountPageInner() {
                       <input value={dob} onChange={(e) => setDob(e.target.value)} type="date"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900" />
                     </div>
+                    {profileError && (
+                      <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 font-medium">
+                        {profileError}
+                      </div>
+                    )}
                     <div className="flex gap-3 pt-2">
-                      <button onClick={handleSaveProfile}
-                        className="px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors">
-                        Save changes
+                      <button onClick={handleSaveProfile} disabled={profileSaving}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50">
+                        {profileSaving && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
+                        {profileSaving ? "Saving..." : "Save changes"}
                       </button>
-                      <button onClick={() => setEditingProfile(false)}
+                      <button onClick={() => { setEditingProfile(false); setProfileError(""); }}
                         className="px-5 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
                         Cancel
                       </button>
@@ -694,6 +756,13 @@ function AccountPageInner() {
                     <p className="text-sm text-[#6B7280]">
                       Open the Lifeline app to view and reply to your messages.
                     </p>
+                    <Link href="/coaching#download"
+                      className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      Download the App
+                    </Link>
                   </div>
                 ) : (
                   <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
@@ -701,9 +770,13 @@ function AccountPageInner() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                     <p className="text-sm font-medium text-[#1F2937] mb-1">No messages yet</p>
-                    <p className="text-xs text-[#6B7280]">
+                    <p className="text-xs text-[#6B7280] mb-3">
                       Direct messaging with your coach is available on the Full Access plan.
                     </p>
+                    <button onClick={() => setActiveSection("billing")}
+                      className="text-sm font-medium text-[#20c858] hover:underline">
+                      View billing & plans
+                    </button>
                   </div>
                 )}
               </section>
@@ -769,15 +842,18 @@ function AccountPageInner() {
                       </p>
                       <div className="flex gap-3">
                         <button onClick={async () => {
+                          setCancelLoading(true);
                           if (subscription) {
                             await supabase.from("subscriptions").update({ status: "cancelled" }).eq("id", subscription.id);
                           }
                           setCurrentTier(null);
                           setSubscription(null);
                           setShowCancelConfirm(false);
-                        }}
-                          className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors">
-                          Yes, cancel
+                          setCancelLoading(false);
+                        }} disabled={cancelLoading}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+                          {cancelLoading && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
+                          {cancelLoading ? "Cancelling..." : "Yes, cancel"}
                         </button>
                         <button onClick={() => setShowCancelConfirm(false)}
                           className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
@@ -847,16 +923,23 @@ function AccountPageInner() {
                               {isPaid ? ` at ${target.price} ISK / ${target.period}.` : " (free)."}
                             </p>
                             {isPaid && (
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 mb-3">
+                                Payment integration coming soon — contact us at{" "}
+                                <a href="mailto:hello@lifelinehealth.is" className="font-semibold underline">hello@lifelinehealth.is</a>
+                              </div>
+                            )}
+                            {!isPaid && (
                               <p className="text-xs text-[#6B7280] mb-3">
-                                Payment will be processed via our secure payment provider. Your new billing cycle starts today.
+                                Your plan will be changed immediately.
                               </p>
                             )}
                             {upgradeMsg && (
                               <p className={`text-sm mb-3 ${upgradeMsg.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>{upgradeMsg}</p>
                             )}
                             <div className="flex gap-3">
-                              <button onClick={handleConfirmPlanChange} disabled={upgradeProcessing}
-                                className="px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50">
+                              <button onClick={handleConfirmPlanChange} disabled={upgradeProcessing || isPaid}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {upgradeProcessing && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
                                 {upgradeProcessing ? "Processing..." : isPaid ? "Confirm & Pay" : "Confirm change"}
                               </button>
                               <button onClick={() => { setShowPlanConfirm(false); setPendingTier(null); setUpgradeMsg(""); }}
@@ -973,18 +1056,42 @@ function AccountPageInner() {
 
                 <div>
                   <h3 className="text-sm font-medium text-[#1F2937] mb-3">Assessment History</h3>
-                  <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
-                    <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <p className="text-sm text-[#6B7280] mb-3">
-                      Complete your first assessment to see results here
-                    </p>
-                    <Link href="/assessment"
-                      className="inline-flex items-center justify-center px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors">
-                      Book Assessment
-                    </Link>
-                  </div>
+                  {appointments.length > 0 ? (
+                    <div className="space-y-3">
+                      {appointments.map((appt, i) => (
+                        <div key={i} className="flex items-center justify-between bg-[#ecf0f3] rounded-xl px-5 py-4">
+                          <div>
+                            <p className="text-sm font-medium text-[#1F2937]">{appt.type}</p>
+                            <p className="text-xs text-[#6B7280]">
+                              {new Date(appt.date).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
+                              {appt.time ? ` at ${appt.time}` : ""}
+                            </p>
+                          </div>
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            appt.status === "completed" ? "bg-green-100 text-green-700" :
+                            appt.status === "confirmed" ? "bg-blue-100 text-blue-700" :
+                            appt.status === "cancelled" ? "bg-red-100 text-red-700" :
+                            "bg-amber-100 text-amber-700"
+                          }`}>
+                            {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
+                      <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <p className="text-sm text-[#6B7280] mb-3">
+                        Complete your first assessment to see results here
+                      </p>
+                      <Link href="/assessment"
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors">
+                        Book Assessment
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
@@ -994,42 +1101,54 @@ function AccountPageInner() {
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                 <h2 className="text-lg font-semibold text-[#1F2937] mb-6">App & Devices</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <p className="text-sm text-[#6B7280] mb-3">Download the Lifeline app</p>
-                    <div className="flex gap-3">
-                      <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1F2937] text-white text-sm font-medium rounded-lg hover:bg-[#374151] transition-colors">
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.99 2.97 12.5 4.7 9.49C5.56 7.99 7.12 7.04 8.82 7.02C10.11 7 11.33 7.89 12.12 7.89C12.91 7.89 14.38 6.82 15.92 7C16.55 7.03 18.33 7.27 19.44 8.93C19.35 8.99 17.22 10.24 17.25 12.78C17.28 15.83 19.98 16.87 20 16.88C19.98 16.93 19.56 18.39 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z" />
-                        </svg>
-                        App Store
-                      </a>
-                      <a href="https://play.google.com" target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1F2937] text-white text-sm font-medium rounded-lg hover:bg-[#374151] transition-colors">
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M3 20.5V3.5C3 2.91 3.34 2.39 3.84 2.15L13.69 12L3.84 21.85C3.34 21.61 3 21.09 3 20.5ZM16.81 15.12L6.05 21.34L14.54 12.85L16.81 15.12ZM20.16 10.81C20.5 11.08 20.75 11.5 20.75 12C20.75 12.5 20.53 12.9 20.18 13.18L17.89 14.5L15.39 12L17.89 9.5L20.16 10.81ZM6.05 2.66L16.81 8.88L14.54 11.15L6.05 2.66Z" />
-                        </svg>
-                        Google Play
-                      </a>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-[#6B7280] mb-3">Scan to download</p>
-                    <div className="w-28 h-28 bg-[#ecf0f3] rounded-xl flex items-center justify-center">
-                      <span className="text-xs text-[#6B7280]">QR Code</span>
-                    </div>
+                <div className="mb-6">
+                  <p className="text-sm text-[#6B7280] mb-3">Download the Lifeline app</p>
+                  <div className="flex gap-3">
+                    <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1F2937] text-white text-sm font-medium rounded-lg hover:bg-[#374151] transition-colors">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.99 2.97 12.5 4.7 9.49C5.56 7.99 7.12 7.04 8.82 7.02C10.11 7 11.33 7.89 12.12 7.89C12.91 7.89 14.38 6.82 15.92 7C16.55 7.03 18.33 7.27 19.44 8.93C19.35 8.99 17.22 10.24 17.25 12.78C17.28 15.83 19.98 16.87 20 16.88C19.98 16.93 19.56 18.39 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z" />
+                      </svg>
+                      App Store
+                    </a>
+                    <a href="https://play.google.com" target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1F2937] text-white text-sm font-medium rounded-lg hover:bg-[#374151] transition-colors">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 20.5V3.5C3 2.91 3.34 2.39 3.84 2.15L13.69 12L3.84 21.85C3.34 21.61 3 21.09 3 20.5ZM16.81 15.12L6.05 21.34L14.54 12.85L16.81 15.12ZM20.16 10.81C20.5 11.08 20.75 11.5 20.75 12C20.75 12.5 20.53 12.9 20.18 13.18L17.89 14.5L15.39 12L17.89 9.5L20.16 10.81ZM6.05 2.66L16.81 8.88L14.54 11.15L6.05 2.66Z" />
+                      </svg>
+                      Google Play
+                    </a>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-100">
+                {/* Patient Portal */}
+                <div className="mb-6 pb-6 border-b border-gray-100">
+                  <p className="text-sm text-[#6B7280] mb-3">Patient Portal</p>
+                  <a href="https://medalia.is" target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Open Patient Portal (medalia.is)
+                  </a>
+                </div>
+
+                <div>
                   <p className="text-sm text-[#6B7280] mb-2">Current coaching programs</p>
                   {programs.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2">
                       {programs.map((prog) => (
-                        <span key={prog} className="px-3 py-1 bg-[#20c858]/10 text-[#20c858] text-xs font-medium rounded-full">
-                          {prog}
-                        </span>
+                        <div key={`${prog.category_key}-${prog.program_key}`} className="flex items-center justify-between bg-[#ecf0f3] rounded-xl px-5 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-[#1F2937]">{prog.program_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                            <p className="text-xs text-[#6B7280]">{prog.category_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                          </div>
+                          {prog.started_at && (
+                            <span className="text-xs text-[#6B7280]">
+                              Started {new Date(prog.started_at).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}
+                            </span>
+                          )}
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -1079,24 +1198,56 @@ function AccountPageInner() {
 
                 {/* Notifications */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Notification Preferences</p>
-                      <p className="text-xs text-[#6B7280]">Email and push notification settings</p>
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-[#1F2937]">Notification Preferences</p>
+                    <p className="text-xs text-[#6B7280]">Email and push notification settings</p>
+                  </div>
+                  <div className="space-y-3 max-w-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#1F2937]">Email notifications</span>
+                      <button onClick={() => setEmailNotifications(!emailNotifications)}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${emailNotifications ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${emailNotifications ? "translate-x-5" : ""}`} />
+                      </button>
                     </div>
-                    <span className="text-sm text-[#6B7280]">Coming soon</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#1F2937]">Push notifications</span>
+                      <button onClick={() => setPushNotifications(!pushNotifications)}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${pushNotifications ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushNotifications ? "translate-x-5" : ""}`} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#1F2937]">Marketing emails</span>
+                      <button onClick={() => setMarketingEmails(!marketingEmails)}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${marketingEmails ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${marketingEmails ? "translate-x-5" : ""}`} />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Connected Devices */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Connected Devices</p>
-                      <p className="text-xs text-[#6B7280]">Manage devices linked to your account</p>
-                    </div>
-                    <span className="text-sm text-[#6B7280]">Coming soon</span>
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-[#1F2937]">Connected Devices</p>
+                    <p className="text-xs text-[#6B7280]">Devices linked to your account</p>
                   </div>
+                  {hasClientData ? (
+                    <div className="flex items-center gap-3 bg-[#ecf0f3] rounded-xl px-4 py-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#20c858]/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#1F2937]">Lifeline Health App</p>
+                        <p className="text-xs text-[#20c858]">Connected</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">No devices connected yet.</p>
+                  )}
                 </div>
 
                 {/* Delete Account */}
