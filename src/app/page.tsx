@@ -448,42 +448,10 @@ export default function Home() {
       </section>
 
       {/* Wave separator */}
-      <WaveSeparator from="#ffffff" to="#f3f5f8" />
-
-      {/* Trusted by health professionals */}
-      <section className="py-16 sm:py-20 bg-[#f3f5f8]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#6B7280] mb-6">
-              Trusted by
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-              {["Medalia.is", "Sameind", "Lifeline Medical"].map((partner) => (
-                <span
-                  key={partner}
-                  className="text-lg sm:text-xl font-semibold text-[#1F2937]/40 hover:text-[#1F2937]/70 transition-colors duration-200"
-                >
-                  {partner}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="max-w-2xl mx-auto text-center mt-10 border-t border-gray-200 pt-10">
-            <blockquote className="text-lg sm:text-xl text-[#1F2937] leading-relaxed italic">
-              &ldquo;Lifeline Health takes a holistic approach to preventive health that we fully endorse.&rdquo;
-            </blockquote>
-            <p className="mt-4 text-sm text-[#6B7280]">
-              &mdash; Dr. Gu&eth;mundur Sigur&eth;sson, Lifeline Medical
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Wave separator */}
-      <WaveSeparator from="#f3f5f8" to="#ffffff" />
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
 
       {/* Our approach */}
-      <section className="py-24 sm:py-28 bg-white">
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
@@ -497,7 +465,7 @@ export default function Home() {
             {approach.map((a) => (
               <div
                 key={a.title}
-                className="bg-[#e6ecf4] rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
+                className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
               >
                 <div className="w-14 h-14 rounded-2xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mx-auto mb-5">
                   {a.icon}
@@ -525,7 +493,7 @@ export default function Home() {
             {teamQuotes.map((t) => (
               <div
                 key={t.name}
-                className="bg-[#e6ecf4] rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 relative"
+                className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 relative"
               >
                 <div className="absolute top-4 right-6 text-6xl leading-none text-[#20c858]/10 font-serif select-none">
                   &ldquo;
@@ -548,6 +516,35 @@ export default function Home() {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trusted by */}
+      <section className="py-16 sm:py-20 bg-[#ecf0f3]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#6B7280] mb-6">
+              Trusted by
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+              {["Medalia.is", "Sameind", "Lifeline Medical"].map((partner) => (
+                <span
+                  key={partner}
+                  className="text-lg sm:text-xl font-semibold text-[#1F2937]/40 hover:text-[#1F2937]/70 transition-colors duration-200"
+                >
+                  {partner}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="max-w-2xl mx-auto text-center mt-10 border-t border-gray-200 pt-10">
+            <blockquote className="text-lg sm:text-xl text-[#1F2937] leading-relaxed italic">
+              &ldquo;Lifeline Health takes a holistic approach to preventive health that we fully endorse.&rdquo;
+            </blockquote>
+            <p className="mt-4 text-sm text-[#6B7280]">
+              &mdash; Dr. Gu&eth;mundur Sigur&eth;sson, Lifeline Medical
+            </p>
           </div>
         </div>
       </section>
