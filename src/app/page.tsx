@@ -416,12 +416,18 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-8">
+                <div className="mt-8 flex flex-wrap gap-3">
                   <Link
                     href="/coaching#download"
                     className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#20c858] rounded-full hover:bg-[#1ab34d] transition-all duration-200 shadow-lg shadow-green-500/25"
                   >
                     Download the App
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+                  >
+                    View Subscriptions
                   </Link>
                 </div>
               </div>
@@ -442,57 +448,7 @@ export default function Home() {
       </section>
 
       {/* Wave separator */}
-      <WaveSeparator from="#ffffff" to="#ecf0f3" />
-
-      {/* Health coaching / 4 pillars */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-              Your daily health coach
-            </h2>
-            <p className="text-lg text-[#6B7280] leading-relaxed max-w-2xl mx-auto">
-              Personalised daily action plans across four pillars of health, tailored to your assessment results.
-            </p>
-          </div>
-
-          {/* Pillar cards — stacked vertically */}
-          <div className="space-y-3 max-w-lg mx-auto">
-            {pillars.map((p) => (
-              <div
-                key={p.title}
-                className={`bg-white rounded-xl p-4 flex items-start gap-4 text-left hover:shadow-md transition-all duration-200`}
-              >
-                <PillarCircle color={p.color} size="sm">
-                  <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
-                </PillarCircle>
-                <div>
-                  <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
-                    {p.title}
-                  </h3>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">
-                    {p.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-10">
-            <Link
-              href="/coaching"
-              className="inline-flex items-center gap-2 text-[#20c858] font-semibold hover:underline"
-            >
-              Learn more about coaching
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Wave separator */}
-      <WaveSeparator from="#ecf0f3" to="#f3f5f8" />
+      <WaveSeparator from="#ffffff" to="#f3f5f8" />
 
       {/* Trusted by health professionals */}
       <section className="py-16 sm:py-20 bg-[#f3f5f8]">
