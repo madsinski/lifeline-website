@@ -16,7 +16,7 @@ const packages = [
   {
     name: "Foundational Health",
     price: "49.900",
-    description: "Our comprehensive health screening for new members",
+    description: "Our foundational health screening for new members",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 011.65 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 3.98 8.25 4.555 8.25 5.438v15.312c0 .966.784 1.75 1.75 1.75h8c.966 0 1.75-.784 1.75-1.75V5.438c0-.883-.845-1.458-1.476-1.522a44.5 44.5 0 00-1.124-.08" />
@@ -24,11 +24,11 @@ const packages = [
       </svg>
     ),
     includes: [
-      "Full body composition analysis (InBody 770)",
-      "Comprehensive blood panel (40+ biomarkers)",
-      "Blood pressure and resting heart rate",
+      "Body composition analysis with clinical accuracy",
+      "Targeted blood panel for metabolic health",
+      "Blood pressure screening",
       "Lifestyle and nutrition questionnaire",
-      "Doctor-reviewed comprehensive health report",
+      "Doctor-reviewed health report",
       "30-minute personal consultation with physician",
       "Personalised health score and recommendations",
       "Access to patient portal for results",
@@ -45,7 +45,7 @@ const packages = [
       </svg>
     ),
     includes: [
-      "Body composition analysis (InBody 770)",
+      "Body composition analysis",
       "Progress comparison with previous results",
       "Updated health score",
       "Brief physician review",
@@ -122,7 +122,7 @@ const processSteps = [
     step: "4",
     title: "Results reviewed",
     description:
-      "A Lifeline physician reviews all your results and prepares your comprehensive health report.",
+      "A Lifeline physician reviews all your results and prepares your personalised health report.",
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -172,9 +172,9 @@ const faqs = [
       "Yes. After booking your assessment through our patient portal, you will receive a referral that is valid at all Sameind blood collection stations across Iceland.",
   },
   {
-    question: "What biomarkers are included in the blood panel?",
+    question: "What does the blood panel include?",
     answer:
-      "Our comprehensive panel includes 40+ biomarkers covering lipid profile, metabolic markers, thyroid function, liver and kidney function, complete blood count, vitamins (D, B12, folate), iron studies, inflammatory markers, and hormone levels.",
+      "We select only the markers that matter for assessing metabolic health — no unnecessary tests. You get the most relevant insights for the best value, covering key areas like lipids, blood sugar, thyroid function, and essential vitamins.",
   },
   {
     question: "How often should I do a Check-in?",
@@ -197,9 +197,9 @@ export default function AssessmentPage() {
               <span className="text-[#20c858]">Assessment</span>
             </h1>
             <p className="mt-6 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-              Get a complete picture of your health with our comprehensive
-              screening packages. Know your numbers, understand your body, and
-              get personalised recommendations from a physician.
+              Get the health data that matters most. Our targeted screening
+              packages focus on metabolic health markers that drive real
+              change — no unnecessary tests, maximum value.
             </p>
             <div className="mt-8">
               <MedaliaButton label="Book Assessment" size="lg" />
@@ -323,13 +323,13 @@ export default function AssessmentPage() {
             <div className="sticky top-0 h-screen flex items-center order-1 lg:order-2">
               <div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-                  Track <span className="text-[#20c858]">everything</span>
+                  Track your <span className="text-[#20c858]">progress</span>
                 </h2>
                 <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">
-                  All your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your health.
+                  Your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your metabolic health.
                 </p>
                 <ul className="space-y-3 mb-6">
-                  {["Body composition: weight, fat mass, muscle mass, BMI", "Blood pressure and vital signs", "40+ blood test biomarkers with clinical context", "Health scores across all categories", "Progress charts comparing previous check-ups"].map((item) => (
+                  {["Body composition: weight, fat mass, muscle mass, BMI", "Blood pressure", "Targeted blood test markers with clinical context", "Health scores across all categories", "Progress charts comparing previous check-ups"].map((item) => (
                     <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
                       <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -456,29 +456,29 @@ export default function AssessmentPage() {
                 Visit our station for body composition analysis and
                 measurements.
               </p>
-              <div className="bg-[#e6ecf4] rounded-2xl p-6 mb-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#20c858]/10 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-                    </svg>
+              <div className="space-y-3">
+                {[
+                  { name: "Reykjavik", address: "Lagmula 5, 108 Reykjavik", hours: "Monday - Friday: 08:00 - 17:00" },
+                  { name: "Akureyri", address: "Coming soon", hours: null },
+                  { name: "Selfoss", address: "Coming soon", hours: null },
+                ].map((station) => (
+                  <div key={station.name} className="bg-[#e6ecf4] rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#20c858]/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[#1F2937] mb-0.5">{station.name}</h3>
+                        <p className="text-sm text-[#6B7280]">{station.address}</p>
+                        {station.hours && <p className="text-xs text-[#6B7280] mt-1">{station.hours}</p>}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-[#1F2937] mb-1">
-                      Reykjavik
-                    </h3>
-                    <p className="text-sm text-[#6B7280]">
-                      Lagmula 5, 108 Reykjavik
-                    </p>
-                    <p className="text-xs text-[#6B7280] mt-1">
-                      Monday - Friday: 08:00 - 17:00
-                    </p>
-                  </div>
-                </div>
+                ))}
               </div>
-              <p className="text-sm text-[#6B7280] italic">
-                Additional locations coming soon.
-              </p>
             </div>
             <div>
               <h3 className="text-xl font-bold text-[#1F2937] mb-4">

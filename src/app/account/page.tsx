@@ -961,7 +961,7 @@ function AccountPageInner() {
                     <div>
                       <h3 className="text-sm font-semibold text-[#1F2937] mb-1">Book your assessment</h3>
                       <p className="text-sm text-[#6B7280]">
-                        Visit a Lifeline Health station for comprehensive health measurements and blood work.
+                        Visit a Lifeline Health station for body composition measurements and targeted blood work.
                       </p>
                     </div>
                     <Link href="/assessment"

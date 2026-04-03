@@ -35,7 +35,7 @@ const assessmentPackages = [
     description: "Complete health screening",
     features: [
       "Full body composition analysis",
-      "Comprehensive blood panel (40+ biomarkers)",
+      "Targeted blood panel for metabolic health",
       "Lifestyle questionnaire",
       "Doctor-reviewed health report",
       "Personal physician consultation",
@@ -127,7 +127,7 @@ const faqs = [
   {
     question: "Do I need an assessment to use the coaching app?",
     answer:
-      "You can start the coaching app with the free plan without an assessment. However, for the best personalised experience, we recommend completing at least the Self Check-in questionnaire. The Foundational Health assessment provides the most comprehensive data for coaching.",
+      "You can start the coaching app with the free plan without an assessment. However, for the best personalised experience, we recommend completing at least the Self Check-in questionnaire. The Foundational Health assessment provides the best data for personalised coaching.",
   },
   {
     question: "How do I book an assessment?",
@@ -465,7 +465,7 @@ export default function PricingPage() {
             Ready to start your health journey?
           </h2>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Get a complete picture of your health with our comprehensive assessments, or start building better habits with personalised coaching.
+            Get the health data that matters with our targeted assessments, or start building better habits with personalised coaching.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <MedaliaButton label="Book Assessment" size="lg" />

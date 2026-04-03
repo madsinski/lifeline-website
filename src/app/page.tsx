@@ -150,7 +150,7 @@ export default function Home() {
               Take control of your health
             </h1>
             <p className="mt-8 text-lg sm:text-xl text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-              Lifeline Health combines comprehensive health assessments
+              Lifeline Health combines targeted health assessments
               with personalised daily coaching. Know your numbers, build better
               habits, track your progress.
             </p>
@@ -241,14 +241,14 @@ export default function Home() {
               Your health assessment
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              A comprehensive screening that gives you the full picture
+              Targeted screening focused on what matters most
             </p>
           </div>
           <div className="max-w-3xl mx-auto space-y-4">
             {[
               {
                 title: "Body composition analysis",
-                description: "InBody 770 scan measuring muscle mass, body fat, water balance and more — far beyond what a scale can tell you.",
+                description: "Clinical-accuracy body composition measurement — muscle mass, body fat, water balance and more. Far beyond what a scale can tell you.",
                 color: "#3B82F6",
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,8 +257,8 @@ export default function Home() {
                 ),
               },
               {
-                title: "Comprehensive blood panel",
-                description: "40+ biomarkers including lipids, metabolic markers, thyroid, vitamins, iron, hormones and inflammatory markers.",
+                title: "Targeted blood panel",
+                description: "We test the markers that matter for metabolic health — no unnecessary tests. Maximum insight, best value.",
                 color: "#20c858",
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +268,7 @@ export default function Home() {
               },
               {
                 title: "Doctor-reviewed health report",
-                description: "A Lifeline physician reviews all your results and prepares a comprehensive report with your personal health score.",
+                description: "A Lifeline physician reviews your results and prepares a personalised report with your health score and actionable recommendations.",
                 color: "#8B5CF6",
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
