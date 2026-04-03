@@ -101,8 +101,10 @@ const teamMembers = [
 ];
 
 const partners = [
-  { name: "Medalia.is", role: "Patient portal & health records" },
-  { name: "Sameind", role: "Blood test collection stations" },
+  { name: "Læknastofur Akureyrar", role: "Medical clinic partner", url: "https://lak.is" },
+  { name: "Medalia", role: "Patient portal & health records", url: "https://medalia.is" },
+  { name: "Sameind", role: "Blood test collection stations", url: "https://sameind.is" },
+  { name: "WorldClass", role: "Fitness & wellness partner", url: "https://worldclass.is" },
 ];
 
 const approach = [
@@ -564,28 +566,22 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {partners.map((p) => (
-              <div
+              <a
                 key={p.name}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 text-center group"
               >
-                <div className="w-14 h-14 rounded-2xl bg-[#3B82F6]/10 text-[#3B82F6] flex items-center justify-center mx-auto mb-4">
-                  {p.role.includes("Lawyer") ? (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
-                    </svg>
-                  ) : p.role.includes("Patient") ? (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M5 14.5l-1.43 1.43a2.25 2.25 0 00-.659 1.591v2.228c0 1.243 1.007 2.25 2.25 2.25h13.676a2.25 2.25 0 002.25-2.25v-2.228c0-.597-.237-1.17-.659-1.591L19 14.5" />
-                    </svg>
-                  )}
+                <div className="w-14 h-14 rounded-2xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mx-auto mb-4 group-hover:bg-[#20c858]/20 transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
                 </div>
-                <h3 className="font-semibold text-[#1F2937] mb-1">{p.name}</h3>
-                <p className="text-xs text-[#6B7280]">{p.role}</p>
-              </div>
+                <h3 className="font-semibold text-[#1F2937] mb-1 group-hover:text-[#20c858] transition-colors">{p.name}</h3>
+                <p className="text-xs text-[#6B7280] mb-2">{p.role}</p>
+                <p className="text-xs text-[#20c858] font-medium">{p.url.replace('https://', '')}</p>
+              </a>
             ))}
           </div>
         </div>
