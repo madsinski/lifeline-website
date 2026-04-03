@@ -9,7 +9,7 @@ interface ProgramAction {
   id: string;
   label: string;
   timeGroup: TimeGroup;
-  details: string;
+  details: string[];
   priority: boolean;
 }
 
@@ -27,6 +27,7 @@ interface Program {
   id: string;
   name: string;
   description: string;
+  duration: 4 | 8 | 12;
   weeks: WeekContent[];
 }
 
@@ -36,8 +37,19 @@ interface Category {
   programs: Program[];
 }
 
+interface ClientProgram {
+  id: string;
+  client_id: string;
+  full_name: string;
+  email: string;
+  category: string;
+  program_key: string;
+  current_week: number;
+  started_at: string;
+}
+
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const weekRanges = ["Week 1", "Week 2", "Week 3", "Week 4"];
+const weekRanges = ["Weeks 1-2", "Weeks 3-4", "Weeks 5-6", "Weeks 7-8"];
 const timeGroups: TimeGroup[] = ["morning", "exercise", "midday", "evening"];
 
 const categoryColors: Record<string, { bg: string; border: string; text: string; badge: string }> = {
@@ -66,57 +78,61 @@ const sampleCategories: Category[] = [
     id: "exercise",
     name: "Exercise",
     programs: [
-      { id: "lifeline-special", name: "Lifeline special", description: "Build foundational fitness — 3x per week", weeks: createEmptyWeeks() },
-      { id: "next-level", name: "Next level", description: "Progressive overload — 4x per week", weeks: createEmptyWeeks() },
-      { id: "performance", name: "Performance", description: "High intensity — 5x per week", weeks: createEmptyWeeks() },
+      { id: "lifeline-special", name: "Lifeline special", description: "Build foundational fitness — 3x per week", duration: 8, weeks: createEmptyWeeks() },
+      { id: "next-level", name: "Next level", description: "Progressive overload — 4x per week", duration: 8, weeks: createEmptyWeeks() },
+      { id: "performance", name: "Performance", description: "High intensity — 5x per week", duration: 8, weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "nutrition",
     name: "Nutrition",
     programs: [
-      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", weeks: createEmptyWeeks() },
-      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", weeks: createEmptyWeeks() },
-      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", weeks: createEmptyWeeks() },
+      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, weeks: createEmptyWeeks() },
+      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, weeks: createEmptyWeeks() },
+      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "sleep",
     name: "Sleep",
     programs: [
-      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", weeks: createEmptyWeeks() },
-      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", weeks: createEmptyWeeks() },
-      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", weeks: createEmptyWeeks() },
+      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, weeks: createEmptyWeeks() },
+      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, weeks: createEmptyWeeks() },
+      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "mental",
     name: "Mental wellness",
     programs: [
-      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", weeks: createEmptyWeeks() },
-      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", weeks: createEmptyWeeks() },
-      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", weeks: createEmptyWeeks() },
+      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, weeks: createEmptyWeeks() },
+      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, weeks: createEmptyWeeks() },
+      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, weeks: createEmptyWeeks() },
     ],
   },
 ];
 
 // Toast component
-function Toast({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) {
+function Toast({ message, type, onClose }: { message: string; type: "success" | "error" | "info"; onClose: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onClose, 3000);
+    const t = setTimeout(onClose, type === "info" ? 6000 : 3000);
     return () => clearTimeout(t);
-  }, [onClose]);
+  }, [onClose, type]);
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 animate-in ${
-      type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+    <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 animate-in max-w-md ${
+      type === "success" ? "bg-green-600 text-white" : type === "info" ? "bg-blue-600 text-white" : "bg-red-600 text-white"
     }`}>
       {type === "success" ? (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
+      ) : type === "info" ? (
+        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
       ) : (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       )}
@@ -156,8 +172,8 @@ function PhonePreview({ day, categoryId }: { day: DayContent; categoryId: string
                       {a.priority && <span className="w-1.5 h-1.5 bg-[#20c858] rounded-full flex-shrink-0" />}
                       <span className={`font-medium ${colors.text}`}>{a.label || "Untitled"}</span>
                     </div>
-                    {a.details && (
-                      <p className="text-gray-500 mt-0.5 leading-snug">{a.details}</p>
+                    {a.details.length > 0 && (
+                      <p className="text-gray-500 mt-0.5 leading-snug">{a.details.join(", ")}</p>
                     )}
                   </div>
                 ))}
@@ -175,17 +191,73 @@ function PhonePreview({ day, categoryId }: { day: DayContent; categoryId: string
 
 export default function ProgramsCMSPage() {
   const [categories, setCategories] = useState<Category[]>(sampleCategories);
-  const [activeTab, setActiveTab] = useState("exercise");
+  const [activeTab, setActiveTab] = useState<string>("exercise");
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ weekIdx: number; dayIdx: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [loadedFromDb, setLoadedFromDb] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [copySource, setCopySource] = useState<number | null>(null);
   const [activeTimeTab, setActiveTimeTab] = useState<TimeGroup | "all">("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clients tab state
+  const [showClientsTab, setShowClientsTab] = useState(false);
+  const [clientPrograms, setClientPrograms] = useState<ClientProgram[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+
+  // Program analytics: active client counts keyed by program_key
+  const [programClientCounts, setProgramClientCounts] = useState<Record<string, number>>({});
+
+  const loadClientPrograms = useCallback(async () => {
+    setLoadingClients(true);
+    try {
+      const { data } = await supabase
+        .from("client_programs")
+        .select("*, clients(full_name, email)")
+        .order("started_at", { ascending: false });
+
+      if (data) {
+        const mapped: ClientProgram[] = data.map((row: Record<string, unknown>) => {
+          const client = row.clients as Record<string, string> | null;
+          return {
+            id: row.id as string,
+            client_id: row.client_id as string,
+            full_name: client?.full_name || "Unknown",
+            email: client?.email || "",
+            category: (row.category as string) || "",
+            program_key: (row.program_key as string) || "",
+            current_week: (row.current_week as number) || 1,
+            started_at: (row.started_at as string) || "",
+          };
+        });
+        setClientPrograms(mapped);
+      }
+    } catch {
+      // Table may not exist
+    }
+    setLoadingClients(false);
+  }, []);
+
+  const loadProgramClientCounts = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from("client_programs")
+        .select("program_key");
+      if (data) {
+        const counts: Record<string, number> = {};
+        for (const row of data) {
+          const key = (row as Record<string, string>).program_key;
+          counts[key] = (counts[key] || 0) + 1;
+        }
+        setProgramClientCounts(counts);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const loadFromSupabase = useCallback(async () => {
     try {
@@ -199,7 +271,7 @@ export default function ProgramsCMSPage() {
           return {
             id: cat.key || cat.id,
             name: cat.label || cat.name,
-            programs: catPrograms.map((p: Record<string, string>) => {
+            programs: catPrograms.map((p: Record<string, string | number>) => {
               const progActions = (actData || []).filter((a: Record<string, string>) => a.program_id === p.id);
               const weeks = weekRanges.map((wr, wi) => ({
                 weekRange: wr,
@@ -211,15 +283,16 @@ export default function ProgramsCMSPage() {
                       id: a.id as string,
                       label: a.label as string,
                       timeGroup: (a.time_group || "morning") as TimeGroup,
-                      details: Array.isArray(a.details) ? (a.details as string[]).join("\n") : ((a.details || "") as string),
+                      details: Array.isArray(a.details) ? (a.details as string[]) : ((a.details || "") as string).split("\n").filter(Boolean),
                       priority: !!a.priority,
                     })),
                 })),
               }));
               return {
-                id: p.key || p.id,
-                name: p.name,
-                description: p.description || "",
+                id: (p.key || p.id) as string,
+                name: p.name as string,
+                description: (p.description || "") as string,
+                duration: ((p.duration as number) || 8) as 4 | 8 | 12,
                 weeks,
               };
             }),
@@ -236,8 +309,10 @@ export default function ProgramsCMSPage() {
 
   useEffect(() => {
     loadFromSupabase();
-  }, [loadFromSupabase]);
+    loadProgramClientCounts();
+  }, [loadFromSupabase, loadProgramClientCounts]);
 
+  const isClientsTab = showClientsTab;
   const activeCategory = categories.find((c) => c.id === activeTab)!;
   const colors = categoryColors[activeTab] || categoryColors.exercise;
 
@@ -266,12 +341,28 @@ export default function ProgramsCMSPage() {
     return { filled, total, pct: Math.round((filled / total) * 100) };
   }
 
+  // Program analytics
+  function getProgramStats(program: Program) {
+    let totalActions = 0;
+    let daysWithActions = 0;
+    const totalDays = 4 * 7;
+    for (const week of program.weeks) {
+      for (const day of week.days) {
+        totalActions += day.actions.length;
+        if (day.actions.length > 0) daysWithActions++;
+      }
+    }
+    const completeness = Math.round((daysWithActions / totalDays) * 100);
+    const activeClients = programClientCounts[program.id] || 0;
+    return { totalActions, completeness, activeClients };
+  }
+
   const updateCategories = (updated: Category[]) => {
     setCategories(updated);
     setDirty(true);
   };
 
-  const updateProgram = (programId: string, field: "name" | "description", value: string) => {
+  const updateProgram = (programId: string, field: "name" | "description" | "duration", value: string | number) => {
     updateCategories(
       categories.map((cat) => ({
         ...cat,
@@ -294,6 +385,7 @@ export default function ProgramsCMSPage() {
                   id: makeId(),
                   name: "New Program",
                   description: "",
+                  duration: 8 as 4 | 8 | 12,
                   weeks: createEmptyWeeks(),
                 },
               ],
@@ -326,7 +418,7 @@ export default function ProgramsCMSPage() {
                 ...d,
                 actions: [
                   ...d.actions,
-                  { id: makeId(), label: "", timeGroup: "morning" as TimeGroup, details: "", priority: false },
+                  { id: makeId(), label: "", timeGroup: "morning" as TimeGroup, details: [] as string[], priority: false },
                 ],
               };
             });
@@ -364,7 +456,7 @@ export default function ProgramsCMSPage() {
     dayIdx: number,
     actionId: string,
     field: keyof ProgramAction,
-    value: string | boolean
+    value: string | boolean | string[]
   ) => {
     updateCategories(
       categories.map((cat) => ({
@@ -449,6 +541,7 @@ export default function ProgramsCMSPage() {
             key: prog.id,
             name: prog.name,
             description: prog.description,
+            duration: prog.duration,
             sort_order: pi,
           }, { onConflict: "key" }).select("id").single();
 
@@ -467,7 +560,7 @@ export default function ProgramsCMSPage() {
                 action_key: a.id || `action-${si}`,
                 label: a.label,
                 category: cat.id,
-                details: typeof a.details === "string" ? a.details.split("\n").filter(Boolean) : a.details,
+                details: Array.isArray(a.details) ? a.details : (a.details as unknown as string).split("\n").filter(Boolean),
                 priority: a.priority,
                 sort_order: si,
               }))
@@ -514,6 +607,7 @@ export default function ProgramsCMSPage() {
             key: prog.id,
             name: prog.name,
             description: prog.description,
+            duration: prog.duration,
             sort_order: pi,
           }, { onConflict: "key" });
         }
@@ -570,8 +664,15 @@ export default function ProgramsCMSPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleSeedFromApp = () => {
+    setToast({
+      message: "Run the seed function from the mobile app's Settings > Developer > Seed Content to push hardcoded program content to Supabase.",
+      type: "info",
+    });
+  };
+
   // Get current program for the action editor
-  const expandedProg = activeCategory.programs.find((p) => p.id === expandedProgram);
+  const expandedProg = !isClientsTab ? activeCategory?.programs.find((p) => p.id === expandedProgram) : undefined;
   const currentDay = expandedProg && selectedCell
     ? expandedProg.weeks[selectedCell.weekIdx]?.days[selectedCell.dayIdx]
     : null;
@@ -580,7 +681,7 @@ export default function ProgramsCMSPage() {
     <div className="space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Category Tabs with summaries */}
+      {/* Top-level tabs: Categories + Clients */}
       <div className="flex items-center gap-1 bg-white rounded-xl p-1.5 shadow-sm border border-gray-100 flex-wrap">
         {categories.map((cat) => {
           const summary = getCategorySummary(cat);
@@ -590,18 +691,19 @@ export default function ProgramsCMSPage() {
               key={cat.id}
               onClick={() => {
                 setActiveTab(cat.id);
+                setShowClientsTab(false);
                 setExpandedProgram(null);
                 setSelectedCell(null);
               }}
               className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                activeTab === cat.id
+                activeTab === cat.id && !isClientsTab
                   ? "bg-[#20c858] text-white"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               <span>{cat.name}</span>
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                activeTab === cat.id
+                activeTab === cat.id && !isClientsTab
                   ? "bg-white/20 text-white"
                   : catColor?.badge || "bg-gray-100 text-gray-500"
               }`}>
@@ -610,386 +712,505 @@ export default function ProgramsCMSPage() {
             </button>
           );
         })}
+
+        {/* Clients tab */}
+        <button
+          onClick={() => {
+            setShowClientsTab(true);
+            setExpandedProgram(null);
+            setSelectedCell(null);
+            loadClientPrograms();
+          }}
+          className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            isClientsTab
+              ? "bg-[#20c858] text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Clients</span>
+        </button>
       </div>
 
-      {/* Action bar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={addProgram}
-          className="px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors"
-        >
-          + Add Program
-        </button>
-        <button
-          onClick={handleExport}
-          className="px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Export JSON
-        </button>
-        <label className="px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-          Import JSON
-          <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
-        </label>
-        <button
-          onClick={handleSyncList}
-          disabled={syncing}
-          className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-        >
-          {syncing ? "Syncing..." : "Sync to Supabase"}
-        </button>
-
-        <div className="ml-auto flex items-center gap-3">
-          {dirty && (
-            <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
-              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-              Unsaved changes
-            </span>
-          )}
-          <button
-            onClick={handleDiscard}
-            disabled={!dirty}
-            className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-          >
-            Discard
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      </div>
-
-      {/* Programs */}
-      <div className="space-y-3">
-        {activeCategory.programs.map((program) => {
-          const completeness = getProgramCompleteness(program);
-          return (
-            <div
-              key={program.id}
-              className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
-                expandedProgram === program.id ? `${colors.border}` : "border-gray-100"
-              }`}
+      {/* Clients tab content */}
+      {isClientsTab && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-gray-900">Client Programs</h2>
+            <button
+              onClick={loadClientPrograms}
+              disabled={loadingClients}
+              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              {/* Program header */}
-              <div className="flex items-center gap-4 p-4">
-                <button
-                  onClick={() => {
-                    setExpandedProgram(expandedProgram === program.id ? null : program.id);
-                    setSelectedCell(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg
-                    className={`w-5 h-5 transition-transform ${
-                      expandedProgram === program.id ? "rotate-90" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={program.name}
-                    onChange={(e) => updateProgram(program.id, "name", e.target.value)}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-                  />
-                  <input
-                    type="text"
-                    value={program.description}
-                    onChange={(e) => updateProgram(program.id, "description", e.target.value)}
-                    placeholder="Description"
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#20c858] outline-none"
-                  />
-                </div>
-                {/* Completeness */}
-                <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-                  <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        completeness.pct === 100 ? "bg-[#20c858]" : completeness.pct > 50 ? "bg-amber-400" : "bg-red-400"
-                      }`}
-                      style={{ width: `${completeness.pct}%` }}
-                    />
-                  </div>
-                  <span className={`text-xs font-medium ${
-                    completeness.pct === 100 ? "text-green-600" : completeness.pct > 50 ? "text-amber-600" : "text-red-500"
-                  }`}>
-                    {completeness.pct}%
-                  </span>
-                </div>
-                <button
-                  onClick={() => deleteProgram(program.id)}
-                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
+              {loadingClients ? "Loading..." : "Refresh"}
+            </button>
+          </div>
 
-              {/* Expanded: calendar grid */}
-              {expandedProgram === program.id && (
-                <div className="border-t border-gray-100 p-4 space-y-4">
-                  {/* Copy week controls */}
-                  {copySource !== null && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3 text-sm">
-                      <span className="text-blue-700">Copy {weekRanges[copySource]} to:</span>
-                      {weekRanges.map((wr, wi) => (
-                        wi !== copySource && (
-                          <button
-                            key={wi}
-                            onClick={() => copyWeek(program.id, copySource, wi)}
-                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium"
-                          >
-                            {wr}
-                          </button>
-                        )
-                      ))}
-                      <button onClick={() => setCopySource(null)} className="ml-auto text-blue-500 hover:text-blue-700 text-xs">
-                        Cancel
-                      </button>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Program</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Week</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Started</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {clientPrograms.map((cp) => (
+                  <tr key={cp.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{cp.full_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{cp.email}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        categoryColors[cp.category]?.badge || "bg-gray-100 text-gray-500"
+                      }`}>
+                        {cp.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{cp.program_key}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">Week {cp.current_week}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {cp.started_at ? new Date(cp.started_at).toLocaleDateString() : "-"}
+                    </td>
+                  </tr>
+                ))}
+                {clientPrograms.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      {loadingClients ? "Loading client programs..." : "No client programs found."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Category content (hidden when Clients tab is active) */}
+      {!isClientsTab && (
+        <>
+          {/* Action bar */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={addProgram}
+              className="px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors"
+            >
+              + Add Program
+            </button>
+            <button
+              onClick={handleExport}
+              className="px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Export JSON
+            </button>
+            <label className="px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              Import JSON
+              <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+            </label>
+            <button
+              onClick={handleSyncList}
+              disabled={syncing}
+              className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            >
+              {syncing ? "Syncing..." : "Sync to Supabase"}
+            </button>
+            <button
+              onClick={handleSeedFromApp}
+              className="px-3 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors"
+            >
+              Seed from App
+            </button>
+
+            <div className="ml-auto flex items-center gap-3">
+              {dirty && (
+                <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                  Unsaved changes
+                </span>
+              )}
+              <button
+                onClick={handleDiscard}
+                disabled={!dirty}
+                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+
+          {/* Programs */}
+          <div className="space-y-3">
+            {activeCategory.programs.map((program) => {
+              const completeness = getProgramCompleteness(program);
+              const stats = getProgramStats(program);
+              return (
+                <div
+                  key={program.id}
+                  className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
+                    expandedProgram === program.id ? `${colors.border}` : "border-gray-100"
+                  }`}
+                >
+                  {/* Program header */}
+                  <div className="flex items-center gap-4 p-4">
+                    <button
+                      onClick={() => {
+                        setExpandedProgram(expandedProgram === program.id ? null : program.id);
+                        setSelectedCell(null);
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <svg
+                        className={`w-5 h-5 transition-transform ${
+                          expandedProgram === program.id ? "rotate-90" : ""
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        value={program.name}
+                        onChange={(e) => updateProgram(program.id, "name", e.target.value)}
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                      />
+                      <input
+                        type="text"
+                        value={program.description}
+                        onChange={(e) => updateProgram(program.id, "description", e.target.value)}
+                        placeholder="Description"
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#20c858] outline-none"
+                      />
+                      <select
+                        value={program.duration}
+                        onChange={(e) => updateProgram(program.id, "duration", Number(e.target.value))}
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#20c858] outline-none"
+                      >
+                        <option value={4}>4 weeks</option>
+                        <option value={8}>8 weeks</option>
+                        <option value={12}>12 weeks</option>
+                      </select>
+                    </div>
+                    {/* Completeness */}
+                    <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                      <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            completeness.pct === 100 ? "bg-[#20c858]" : completeness.pct > 50 ? "bg-amber-400" : "bg-red-400"
+                          }`}
+                          style={{ width: `${completeness.pct}%` }}
+                        />
+                      </div>
+                      <span className={`text-xs font-medium ${
+                        completeness.pct === 100 ? "text-green-600" : completeness.pct > 50 ? "text-amber-600" : "text-red-500"
+                      }`}>
+                        {completeness.pct}%
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => deleteProgram(program.id)}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Analytics stats row */}
+                  {expandedProgram === program.id && (
+                    <div className="px-4 pb-2 flex items-center gap-6">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400">Total actions:</span>
+                        <span className="text-xs font-semibold text-gray-700">{stats.totalActions}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400">Completeness:</span>
+                        <span className={`text-xs font-semibold ${
+                          stats.completeness === 100 ? "text-green-600" : stats.completeness > 50 ? "text-amber-600" : "text-red-500"
+                        }`}>{stats.completeness}%</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400">Active clients:</span>
+                        <span className="text-xs font-semibold text-gray-700">{stats.activeClients}</span>
+                      </div>
                     </div>
                   )}
 
-                  {/* Calendar grid: weeks as columns, days as rows */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="p-2 text-xs text-gray-400 font-medium text-left w-16">Day</th>
+                  {/* Expanded: calendar grid */}
+                  {expandedProgram === program.id && (
+                    <div className="border-t border-gray-100 p-4 space-y-4">
+                      {/* Copy week controls */}
+                      {copySource !== null && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3 text-sm">
+                          <span className="text-blue-700">Copy {weekRanges[copySource]} to:</span>
                           {weekRanges.map((wr, wi) => (
-                            <th key={wi} className="p-2 text-xs font-medium text-gray-500 text-center">
-                              <div className="flex items-center justify-center gap-1">
+                            wi !== copySource && (
+                              <button
+                                key={wi}
+                                onClick={() => copyWeek(program.id, copySource, wi)}
+                                className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium"
+                              >
                                 {wr}
-                                <button
-                                  onClick={() => setCopySource(copySource === wi ? null : wi)}
-                                  title="Copy this week"
-                                  className="p-0.5 text-gray-300 hover:text-gray-500"
-                                >
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </th>
+                              </button>
+                            )
                           ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dayLabels.map((dayLabel, dayIdx) => (
-                          <tr key={dayIdx} className={dayIdx % 2 === 0 ? "" : "bg-gray-50/50"}>
-                            <td className="p-2 text-xs font-semibold text-gray-500">{dayLabel}</td>
-                            {weekRanges.map((_, weekIdx) => {
-                              const day = program.weeks[weekIdx].days[dayIdx];
-                              const actionCount = day.actions.length;
-                              const isSelected = selectedCell?.weekIdx === weekIdx && selectedCell?.dayIdx === dayIdx;
-                              return (
-                                <td key={weekIdx} className="p-1">
-                                  <button
-                                    onClick={() => setSelectedCell(isSelected ? null : { weekIdx, dayIdx })}
-                                    className={`w-full p-2 rounded-lg text-xs transition-all border ${
-                                      isSelected
-                                        ? `${colors.bg} ${colors.border} ring-2 ring-[#20c858]/30`
-                                        : actionCount > 0
-                                        ? `bg-white border-gray-200 hover:${colors.bg} hover:${colors.border}`
-                                        : "bg-gray-50 border-gray-100 hover:bg-gray-100"
-                                    }`}
-                                  >
-                                    {actionCount > 0 ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <span className={`font-medium ${isSelected ? colors.text : "text-gray-700"}`}>
-                                          {actionCount}
-                                        </span>
-                                        <span className={isSelected ? colors.text : "text-gray-400"}>
-                                          {actionCount === 1 ? "action" : "actions"}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-300">empty</span>
-                                    )}
-                                  </button>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                          <button onClick={() => setCopySource(null)} className="ml-auto text-blue-500 hover:text-blue-700 text-xs">
+                            Cancel
+                          </button>
+                        </div>
+                      )}
 
-                  {/* Action editor panel */}
-                  {selectedCell && currentDay && (
-                    <div className={`border rounded-xl overflow-hidden ${colors.border}`}>
-                      <div className={`${colors.bg} px-4 py-3 flex items-center justify-between`}>
-                        <div className="flex items-center gap-3">
-                          <h3 className={`text-sm font-semibold ${colors.text}`}>
-                            {dayLabels[selectedCell.dayIdx]} - {weekRanges[selectedCell.weekIdx]}
-                          </h3>
-                          <span className="text-xs text-gray-500">{currentDay.actions.length} action(s)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setShowPreview(!showPreview)}
-                            className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                              showPreview ? "bg-[#20c858] text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-                            }`}
-                          >
-                            {showPreview ? "Hide Preview" : "Preview"}
-                          </button>
-                          <button
-                            onClick={() => addAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx)}
-                            className="px-3 py-1 text-xs bg-[#20c858] text-white rounded-lg hover:bg-[#1ab34d] font-medium"
-                          >
-                            + Add Action
-                          </button>
-                        </div>
+                      {/* Calendar grid: weeks as columns, days as rows */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr>
+                              <th className="p-2 text-xs text-gray-400 font-medium text-left w-16">Day</th>
+                              {weekRanges.map((wr, wi) => (
+                                <th key={wi} className="p-2 text-xs font-medium text-gray-500 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    {wr}
+                                    <button
+                                      onClick={() => setCopySource(copySource === wi ? null : wi)}
+                                      title="Copy this week"
+                                      className="p-0.5 text-gray-300 hover:text-gray-500"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dayLabels.map((dayLabel, dayIdx) => (
+                              <tr key={dayIdx} className={dayIdx % 2 === 0 ? "" : "bg-gray-50/50"}>
+                                <td className="p-2 text-xs font-semibold text-gray-500">{dayLabel}</td>
+                                {weekRanges.map((_, weekIdx) => {
+                                  const day = program.weeks[weekIdx].days[dayIdx];
+                                  const actionCount = day.actions.length;
+                                  const isSelected = selectedCell?.weekIdx === weekIdx && selectedCell?.dayIdx === dayIdx;
+                                  return (
+                                    <td key={weekIdx} className="p-1">
+                                      <button
+                                        onClick={() => setSelectedCell(isSelected ? null : { weekIdx, dayIdx })}
+                                        className={`w-full p-2 rounded-lg text-xs transition-all border ${
+                                          isSelected
+                                            ? `${colors.bg} ${colors.border} ring-2 ring-[#20c858]/30`
+                                            : actionCount > 0
+                                            ? `bg-white border-gray-200 hover:${colors.bg} hover:${colors.border}`
+                                            : "bg-gray-50 border-gray-100 hover:bg-gray-100"
+                                        }`}
+                                      >
+                                        {actionCount > 0 ? (
+                                          <div className="flex items-center justify-center gap-1">
+                                            <span className={`font-medium ${isSelected ? colors.text : "text-gray-700"}`}>
+                                              {actionCount}
+                                            </span>
+                                            <span className={isSelected ? colors.text : "text-gray-400"}>
+                                              {actionCount === 1 ? "action" : "actions"}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-300">empty</span>
+                                        )}
+                                      </button>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
 
-                      <div className={`flex ${showPreview ? "gap-4" : ""}`}>
-                        {/* Editor side */}
-                        <div className={`flex-1 p-4 ${showPreview ? "border-r border-gray-200" : ""}`}>
-                          {/* Time group filter tabs */}
-                          <div className="flex items-center gap-1 mb-3 bg-gray-50 rounded-lg p-1 w-fit">
-                            {(["all", ...timeGroups] as const).map((tg) => (
+                      {/* Action editor panel */}
+                      {selectedCell && currentDay && (
+                        <div className={`border rounded-xl overflow-hidden ${colors.border}`}>
+                          <div className={`${colors.bg} px-4 py-3 flex items-center justify-between`}>
+                            <div className="flex items-center gap-3">
+                              <h3 className={`text-sm font-semibold ${colors.text}`}>
+                                {dayLabels[selectedCell.dayIdx]} - {weekRanges[selectedCell.weekIdx]}
+                              </h3>
+                              <span className="text-xs text-gray-500">{currentDay.actions.length} action(s)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
                               <button
-                                key={tg}
-                                onClick={() => setActiveTimeTab(tg)}
-                                className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
-                                  activeTimeTab === tg
-                                    ? "bg-white text-gray-800 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700"
+                                onClick={() => setShowPreview(!showPreview)}
+                                className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
+                                  showPreview ? "bg-[#20c858] text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                                 }`}
                               >
-                                {tg === "all" ? "All" : tg.charAt(0).toUpperCase() + tg.slice(1)}
+                                {showPreview ? "Hide Preview" : "Preview"}
                               </button>
-                            ))}
+                              <button
+                                onClick={() => addAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx)}
+                                className="px-3 py-1 text-xs bg-[#20c858] text-white rounded-lg hover:bg-[#1ab34d] font-medium"
+                              >
+                                + Add Action
+                              </button>
+                            </div>
                           </div>
 
-                          <div className="space-y-3">
-                            {currentDay.actions
-                              .filter((a) => activeTimeTab === "all" || a.timeGroup === activeTimeTab)
-                              .map((action) => (
-                                <div
-                                  key={action.id}
-                                  className={`p-3 rounded-lg border transition-colors ${
-                                    action.priority
-                                      ? `${colors.bg} ${colors.border}`
-                                      : "bg-white border-gray-200"
-                                  }`}
-                                >
-                                  <div className="flex items-start gap-2">
-                                    {/* Drag handle hint */}
-                                    <div className="mt-2 text-gray-300 cursor-grab flex-shrink-0">
-                                      <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
-                                      </svg>
-                                    </div>
-                                    <div className="flex-1 space-y-2">
-                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                        <input
-                                          type="text"
-                                          value={action.label}
-                                          onChange={(e) =>
-                                            updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "label", e.target.value)
-                                          }
-                                          placeholder="Action label"
-                                          className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 md:col-span-2"
-                                        />
-                                        <select
-                                          value={action.timeGroup}
-                                          onChange={(e) =>
-                                            updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "timeGroup", e.target.value)
-                                          }
-                                          className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-                                        >
-                                          {timeGroups.map((tg) => (
-                                            <option key={tg} value={tg}>
-                                              {tg.charAt(0).toUpperCase() + tg.slice(1)}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                      <textarea
-                                        value={action.details}
-                                        onChange={(e) =>
-                                          updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "details", e.target.value)
-                                        }
-                                        placeholder="Details (one per line)"
-                                        rows={2}
-                                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-none text-gray-900"
-                                      />
-                                      <div className="flex items-center justify-between">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                          <div className={`relative w-8 h-4 rounded-full transition-colors ${
-                                            action.priority ? "bg-[#20c858]" : "bg-gray-300"
-                                          }`}>
-                                            <input
-                                              type="checkbox"
-                                              checked={action.priority}
-                                              onChange={(e) =>
-                                                updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "priority", e.target.checked)
-                                              }
-                                              className="sr-only"
-                                            />
-                                            <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${
-                                              action.priority ? "translate-x-4" : "translate-x-0.5"
-                                            }`} />
-                                          </div>
-                                          <span className="text-xs text-gray-500">Priority</span>
-                                        </label>
-                                        <button
-                                          onClick={() =>
-                                            deleteAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id)
-                                          }
-                                          className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                        >
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <div className={`flex ${showPreview ? "gap-4" : ""}`}>
+                            {/* Editor side */}
+                            <div className={`flex-1 p-4 ${showPreview ? "border-r border-gray-200" : ""}`}>
+                              {/* Time group filter tabs */}
+                              <div className="flex items-center gap-1 mb-3 bg-gray-50 rounded-lg p-1 w-fit">
+                                {(["all", ...timeGroups] as const).map((tg) => (
+                                  <button
+                                    key={tg}
+                                    onClick={() => setActiveTimeTab(tg)}
+                                    className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                                      activeTimeTab === tg
+                                        ? "bg-white text-gray-800 shadow-sm"
+                                        : "text-gray-500 hover:text-gray-700"
+                                    }`}
+                                  >
+                                    {tg === "all" ? "All" : tg.charAt(0).toUpperCase() + tg.slice(1)}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <div className="space-y-3">
+                                {currentDay.actions
+                                  .filter((a) => activeTimeTab === "all" || a.timeGroup === activeTimeTab)
+                                  .map((action) => (
+                                    <div
+                                      key={action.id}
+                                      className={`p-3 rounded-lg border transition-colors ${
+                                        action.priority
+                                          ? `${colors.bg} ${colors.border}`
+                                          : "bg-white border-gray-200"
+                                      }`}
+                                    >
+                                      <div className="flex items-start gap-2">
+                                        {/* Drag handle hint */}
+                                        <div className="mt-2 text-gray-300 cursor-grab flex-shrink-0">
+                                          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
                                           </svg>
-                                        </button>
+                                        </div>
+                                        <div className="flex-1 space-y-2">
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                            <input
+                                              type="text"
+                                              value={action.label}
+                                              onChange={(e) =>
+                                                updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "label", e.target.value)
+                                              }
+                                              placeholder="Action label"
+                                              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 md:col-span-2"
+                                            />
+                                            <select
+                                              value={action.timeGroup}
+                                              onChange={(e) =>
+                                                updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "timeGroup", e.target.value)
+                                              }
+                                              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                            >
+                                              {timeGroups.map((tg) => (
+                                                <option key={tg} value={tg}>
+                                                  {tg.charAt(0).toUpperCase() + tg.slice(1)}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                          <textarea
+                                            value={action.details.join("\n")}
+                                            onChange={(e) =>
+                                              updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "details", e.target.value.split("\n"))
+                                            }
+                                            placeholder="Details (one per line)"
+                                            rows={2}
+                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-none text-gray-900"
+                                          />
+                                          <div className="flex items-center justify-between">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                              <div className={`relative w-8 h-4 rounded-full transition-colors ${
+                                                action.priority ? "bg-[#20c858]" : "bg-gray-300"
+                                              }`}>
+                                                <input
+                                                  type="checkbox"
+                                                  checked={action.priority}
+                                                  onChange={(e) =>
+                                                    updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "priority", e.target.checked)
+                                                  }
+                                                  className="sr-only"
+                                                />
+                                                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${
+                                                  action.priority ? "translate-x-4" : "translate-x-0.5"
+                                                }`} />
+                                              </div>
+                                              <span className="text-xs text-gray-500">Priority</span>
+                                            </label>
+                                            <button
+                                              onClick={() =>
+                                                deleteAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id)
+                                              }
+                                              className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                            >
+                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              </svg>
+                                            </button>
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
+                                  ))}
+                                {currentDay.actions.filter((a) => activeTimeTab === "all" || a.timeGroup === activeTimeTab).length === 0 && (
+                                  <div className="text-center py-8 text-gray-300 text-sm">
+                                    {activeTimeTab === "all"
+                                      ? "No actions yet. Click + Add Action to create one."
+                                      : `No ${activeTimeTab} actions. Click + Add Action or switch tabs.`}
                                   </div>
-                                </div>
-                              ))}
-                            {currentDay.actions.filter((a) => activeTimeTab === "all" || a.timeGroup === activeTimeTab).length === 0 && (
-                              <div className="text-center py-8 text-gray-300 text-sm">
-                                {activeTimeTab === "all"
-                                  ? "No actions yet. Click + Add Action to create one."
-                                  : `No ${activeTimeTab} actions. Click + Add Action or switch tabs.`}
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Preview side */}
+                            {showPreview && (
+                              <div className="p-4 flex justify-center items-start">
+                                <PhonePreview day={currentDay} categoryId={activeTab} />
                               </div>
                             )}
                           </div>
                         </div>
-
-                        {/* Preview side */}
-                        {showPreview && (
-                          <div className="p-4 flex justify-center items-start">
-                            <PhonePreview day={currentDay} categoryId={activeTab} />
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
 
-        {activeCategory.programs.length === 0 && (
-          <div className="bg-white rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm border border-gray-100">
-            No programs yet. Click &quot;+ Add Program&quot; to create one.
+            {activeCategory.programs.length === 0 && (
+              <div className="bg-white rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm border border-gray-100">
+                No programs yet. Click &quot;+ Add Program&quot; to create one.
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
