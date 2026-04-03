@@ -110,11 +110,29 @@ const teamQuotes = [
 
 const approach = [
   {
+    title: "Preventive",
+    description: "We focus on catching health issues before they become problems. Regular check-ins and tracking help you stay ahead, not play catch-up.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+    ),
+  },
+  {
     title: "Data-driven",
     description: "Every recommendation is backed by your blood work, body composition, and health questionnaire — not generic advice.",
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Doctor-led",
+    description: "A physician reviews every assessment, interprets your results, and meets with you personally. Medical oversight at every step.",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
       </svg>
     ),
   },
@@ -461,7 +479,7 @@ export default function Home() {
               What makes Lifeline Health different
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {approach.map((a) => (
               <div
                 key={a.title}
@@ -479,46 +497,54 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Team quotes */}
-          <div className="text-center mb-12">
-            <h3 className="text-2xl font-bold text-[#1F2937]">
-              From our team
-            </h3>
-            <p className="mt-2 text-[#6B7280]">
+      {/* Wave separator */}
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
+
+      {/* Our team */}
+      <section className="py-24 sm:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
+              Our team
+            </h2>
+            <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
               The professionals behind your health journey
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {teamQuotes.map((t) => (
               <div
                 key={t.name}
-                className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 relative"
+                className="bg-[#e6ecf4] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200"
               >
-                <div className="absolute top-4 right-6 text-6xl leading-none text-[#20c858]/10 font-serif select-none">
-                  &ldquo;
-                </div>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-12 h-12 rounded-full bg-[#20c858]/10 flex items-center justify-center text-[#20c858] font-bold text-lg">
+                {/* Photo placeholder */}
+                <div className="h-48 bg-gradient-to-br from-[#20c858]/20 to-[#3B82F6]/10 flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-3xl shadow-md">
                     {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                   </div>
-                  <div>
-                    <div className="font-semibold text-[#1F2937] text-sm">
-                      {t.name}
-                    </div>
-                    <div className="text-xs font-medium text-[#20c858]">
-                      {t.role}
-                    </div>
-                  </div>
                 </div>
-                <p className="text-sm text-[#6B7280] leading-relaxed italic">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
+                <div className="p-6 text-center">
+                  <h3 className="font-semibold text-[#1F2937] text-lg mb-1">
+                    {t.name}
+                  </h3>
+                  <p className="text-sm font-medium text-[#20c858] mb-4">
+                    {t.role}
+                  </p>
+                  <p className="text-sm text-[#6B7280] leading-relaxed italic">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Wave separator */}
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
 
       {/* Trusted by */}
       <section className="py-16 sm:py-20 bg-[#ecf0f3]">
