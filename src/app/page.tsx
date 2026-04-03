@@ -310,7 +310,8 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="text-center mt-10">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
+            <MedaliaButton label="Book Assessment" size="md" />
             <Link
               href="/assessment"
               className="inline-flex items-center gap-2 text-[#20c858] font-semibold hover:underline"
@@ -321,6 +322,17 @@ export default function Home() {
               </svg>
             </Link>
           </div>
+          <p className="text-sm text-[#6B7280] mt-6">
+            Access your results through our secure patient portal, powered by{" "}
+            <a
+              href="https://medalia.is"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#20c858] hover:underline"
+            >
+              Medalia.is
+            </a>
+          </p>
         </div>
       </section>
 
@@ -453,7 +465,7 @@ export default function Home() {
                 inline
                 screenshot="/app-screenshot-scroll.jpg"
                 alt="Lifeline Health app"
-                initialOffset={3}
+                initialOffset={0}
                 maxTranslate={35}
                 phoneHeight="75vh"
               />
@@ -564,34 +576,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Wave separator */}
-      <WaveSeparator from="#ffffff" to="#ecf0f3" />
-
-      {/* Patient Portal */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-            Access your health records
-          </h2>
-          <p className="text-lg text-[#6B7280] max-w-2xl mx-auto mb-4 leading-relaxed">
-            View your assessment results, questionnaire responses and health
-            reports through our secure patient portal powered by Medalia.
-          </p>
-          <p className="text-sm text-[#6B7280] mb-10">
-            In partnership with{" "}
-            <a
-              href="https://medalia.is"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#20c858] hover:underline"
-            >
-              Medalia.is
-            </a>
-          </p>
-          <MedaliaButton label="Open Patient Portal" size="lg" />
         </div>
       </section>
 
