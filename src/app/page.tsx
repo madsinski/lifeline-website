@@ -87,25 +87,22 @@ const pillars = [
   },
 ];
 
-const teamQuotes = [
-  {
-    name: "Dr. Guðmundur Sigurðsson",
-    role: "Medical Director",
-    quote:
-      "We built Lifeline because preventive health should be accessible to everyone. By combining medical-grade assessments with daily coaching, we help people catch issues early and build habits that last.",
-  },
-  {
-    name: "Coach Sarah",
-    role: "Head of Coaching",
-    quote:
-      "Most health programs focus on one thing — a diet, a workout plan. Lifeline addresses all four pillars: exercise, nutrition, sleep, and mental wellness. That holistic approach is what drives real, lasting change.",
-  },
-  {
-    name: "Dr. Anna Kristjánsdóttir",
-    role: "Clinical Psychologist",
-    quote:
-      "Mental wellness is the foundation everything else is built on. Our programs use evidence-based techniques — mindfulness, cognitive restructuring, stress management — tailored to each individual.",
-  },
+const teamMembers = [
+  { name: "Victor Guðmundsson", role: "Medical Doctor, Coach, CEO & Co-founder", category: "leadership" },
+  { name: "Mads Christian Aanesen", role: "Medical Doctor, Coach, CTO & Co-founder", category: "leadership" },
+  { name: "Vignir Sigurðsson", role: "Chief Medical Advisor, Pediatrician, Ass. Prof. HA", category: "leadership" },
+  { name: "Arna Hrund Baldursdóttir Bjartmars", role: "Nurse", category: "clinical" },
+  { name: "Ragnheiður Perla Hjaltadóttir", role: "Team member", category: "clinical" },
+  { name: "Aníta Adamsdóttir", role: "Nurse", category: "clinical" },
+  { name: "Health Coach", role: "Health Coach", category: "coach" },
+  { name: "Health Coach", role: "Health Coach", category: "coach" },
+];
+
+const partners = [
+  { name: "Ragnar Björgvinsson", role: "Lawyer & Partner" },
+  { name: "Snorri Arnar Viðarsson", role: "Lawyer & Partner" },
+  { name: "Medalia.is", role: "Patient portal & health records" },
+  { name: "Sameind", role: "Blood test collection stations" },
 ];
 
 const approach = [
@@ -514,29 +511,37 @@ export default function Home() {
               The professionals behind your health journey
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {teamQuotes.map((t) => (
+          {/* Leadership */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
+            {teamMembers.filter(t => t.category === "leadership").map((t, i) => (
               <div
-                key={t.name}
+                key={t.name + i}
                 className="bg-[#e6ecf4] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200"
               >
-                {/* Photo placeholder */}
-                <div className="h-48 bg-gradient-to-br from-[#20c858]/20 to-[#3B82F6]/10 flex items-center justify-center">
-                  <div className="w-24 h-24 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-3xl shadow-md">
+                <div className="h-40 bg-gradient-to-br from-[#20c858]/20 to-[#3B82F6]/10 flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-2xl shadow-md">
                     {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                   </div>
                 </div>
-                <div className="p-6 text-center">
-                  <h3 className="font-semibold text-[#1F2937] text-lg mb-1">
-                    {t.name}
-                  </h3>
-                  <p className="text-sm font-medium text-[#20c858] mb-4">
-                    {t.role}
-                  </p>
-                  <p className="text-sm text-[#6B7280] leading-relaxed italic">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
+                <div className="p-5 text-center">
+                  <h3 className="font-semibold text-[#1F2937] mb-1">{t.name}</h3>
+                  <p className="text-xs text-[#20c858] font-medium">{t.role}</p>
                 </div>
+              </div>
+            ))}
+          </div>
+          {/* Clinical & coaching team */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
+            {teamMembers.filter(t => t.category !== "leadership").map((t, i) => (
+              <div
+                key={t.name + i}
+                className="bg-[#e6ecf4] rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 text-center"
+              >
+                <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-lg shadow-sm mx-auto mb-3">
+                  {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                </div>
+                <h3 className="font-semibold text-[#1F2937] text-sm mb-0.5">{t.name}</h3>
+                <p className="text-xs text-[#6B7280]">{t.role}</p>
               </div>
             ))}
           </div>
@@ -546,31 +551,42 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#ffffff" to="#ecf0f3" />
 
-      {/* Trusted by */}
-      <section className="py-16 sm:py-20 bg-[#ecf0f3]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#6B7280] mb-6">
-              Trusted by
+      {/* Partners */}
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
+              Our partners
+            </h2>
+            <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
+              The people and organisations behind Lifeline Health
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-              {["Medalia.is", "Sameind", "Lifeline Medical"].map((partner) => (
-                <span
-                  key={partner}
-                  className="text-lg sm:text-xl font-semibold text-[#1F2937]/40 hover:text-[#1F2937]/70 transition-colors duration-200"
-                >
-                  {partner}
-                </span>
-              ))}
-            </div>
           </div>
-          <div className="max-w-2xl mx-auto text-center mt-10 border-t border-gray-200 pt-10">
-            <blockquote className="text-lg sm:text-xl text-[#1F2937] leading-relaxed italic">
-              &ldquo;Lifeline Health takes a holistic approach to preventive health that we fully endorse.&rdquo;
-            </blockquote>
-            <p className="mt-4 text-sm text-[#6B7280]">
-              &mdash; Dr. Gu&eth;mundur Sigur&eth;sson, Lifeline Medical
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {partners.map((p) => (
+              <div
+                key={p.name}
+                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-[#3B82F6]/10 text-[#3B82F6] flex items-center justify-center mx-auto mb-4">
+                  {p.role.includes("Lawyer") ? (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
+                    </svg>
+                  ) : p.role.includes("Patient") ? (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M5 14.5l-1.43 1.43a2.25 2.25 0 00-.659 1.591v2.228c0 1.243 1.007 2.25 2.25 2.25h13.676a2.25 2.25 0 002.25-2.25v-2.228c0-.597-.237-1.17-.659-1.591L19 14.5" />
+                    </svg>
+                  )}
+                </div>
+                <h3 className="font-semibold text-[#1F2937] mb-1">{p.name}</h3>
+                <p className="text-xs text-[#6B7280]">{p.role}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
