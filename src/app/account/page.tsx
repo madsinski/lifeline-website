@@ -483,7 +483,20 @@ function AccountPageInner() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ---- Left navigation ---- */}
           <aside className="lg:w-56 shrink-0">
-            <nav className="bg-white rounded-2xl shadow-sm p-2 lg:sticky lg:top-24 flex overflow-x-auto flex-nowrap lg:flex-col gap-1">
+            {/* Mobile: dropdown */}
+            <div className="lg:hidden">
+              <select
+                value={activeSection}
+                onChange={(e) => setActiveSection(e.target.value as Section)}
+                className="w-full bg-white rounded-2xl shadow-sm px-4 py-3.5 text-sm font-medium border border-gray-100 text-[#1F2937] appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%239CA3AF%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat pr-10"
+              >
+                {navItems.map((item) => (
+                  <option key={item.id} value={item.id}>{item.label}</option>
+                ))}
+              </select>
+            </div>
+            {/* Desktop: vertical nav */}
+            <nav className="hidden lg:flex bg-white rounded-2xl shadow-sm p-2 lg:sticky lg:top-24 flex-col gap-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
