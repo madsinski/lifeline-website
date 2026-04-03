@@ -325,13 +325,13 @@ export default function Home() {
                     All your health data, assessment results, blood tests and questionnaires are stored securely in your personal patient portal powered by Medalia.is.
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <MedaliaButton label="Open Patient Portal" size="sm" />
                     <Link
                       href="/assessment"
-                      className="inline-flex items-center justify-center px-5 py-2 text-sm font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+                      className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#20c858] rounded-full hover:bg-[#1ab34d] transition-all duration-200 shadow-md shadow-green-500/25"
                     >
                       View Packages
                     </Link>
+                    <MedaliaButton label="Patient Portal" size="sm" variant="outline" />
                   </div>
                 </div>
               </div>
