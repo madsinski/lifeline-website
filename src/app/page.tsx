@@ -101,10 +101,10 @@ const teamMembers = [
 ];
 
 const partners = [
-  { name: "Læknastofur Akureyrar", role: "Medical clinic partner", url: "https://lak.is" },
-  { name: "Medalia", role: "Patient portal & health records", url: "https://medalia.is" },
-  { name: "Sameind", role: "Blood test collection stations", url: "https://sameind.is" },
-  { name: "WorldClass", role: "Fitness & wellness partner", url: "https://worldclass.is" },
+  { name: "Læknastofur Akureyrar", role: "Medical clinic partner", url: "https://lak.is", logo: "/partner-lak.svg" },
+  { name: "Medalia", role: "Patient portal & health records", url: "https://medalia.is", logo: "/partner-medalia.png" },
+  { name: "Sameind", role: "Blood test collection stations", url: "https://sameind.is", logo: "/partner-sameind.svg" },
+  { name: "WorldClass", role: "Fitness & wellness partner", url: "https://worldclass.is", logo: "/partner-worldclass.jpg" },
 ];
 
 const approach = [
@@ -573,10 +573,8 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 text-center group"
               >
-                <div className="w-14 h-14 rounded-2xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mx-auto mb-4 group-hover:bg-[#20c858]/20 transition-colors">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                  </svg>
+                <div className="w-full h-20 flex items-center justify-center mb-4 px-4">
+                  <img src={p.logo} alt={p.name} className="max-h-16 max-w-full object-contain" />
                 </div>
                 <h3 className="font-semibold text-[#1F2937] mb-1 group-hover:text-[#20c858] transition-colors">{p.name}</h3>
                 <p className="text-xs text-[#6B7280] mb-2">{p.role}</p>
