@@ -343,45 +343,8 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
-      {/* Health coaching / 4 pillars + scroll phone */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-24 sm:py-28">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-              Your daily health coach
-            </h2>
-            <p className="text-lg text-[#6B7280] leading-relaxed max-w-2xl mx-auto mb-12">
-              The Lifeline app delivers personalised daily action plans across four pillars of health, tailored to your assessment results.
-            </p>
-
-            {/* Pillar cards — stacked vertically */}
-            <div className="space-y-3 max-w-lg mx-auto">
-              {pillars.map((p) => (
-                <div
-                  key={p.title}
-                  className={`${p.lightBg} rounded-xl p-4 flex items-start gap-4 text-left hover:shadow-md transition-all duration-200`}
-                >
-                  <PillarCircle color={p.color} size="sm">
-                    <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
-                  </PillarCircle>
-                  <div>
-                    <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
-                      {p.title}
-                    </h3>
-                    <p className="text-xs text-[#6B7280] leading-relaxed">
-                      {p.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-      </section>
-
-      {/* The app — brings it all together */}
-      <section className="bg-[#ecf0f3]" style={{ height: "200vh" }}>
+      {/* The app — brings it all together + scroll phone */}
+      <section className="bg-white" style={{ height: "200vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 h-full">
             {/* Left: text content, sticky */}
@@ -409,6 +372,16 @@ export default function Home() {
                       color: "#3B82F6",
                     },
                     {
+                      title: "Health coaching and education",
+                      description: "Structured programs, educational courses, and a personal coach to guide your journey from day one.",
+                      icon: (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+                        </svg>
+                      ),
+                      color: "#20c858",
+                    },
+                    {
                       title: "Track your progress",
                       description: "See your health scores improve over time with every check-in and completed action.",
                       icon: (
@@ -416,21 +389,11 @@ export default function Home() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                         </svg>
                       ),
-                      color: "#20c858",
-                    },
-                    {
-                      title: "Coach in your pocket",
-                      description: "Message your health coach directly, get answers, and adjust your program when you need to.",
-                      icon: (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                      ),
                       color: "#8B5CF6",
                     },
                     {
-                      title: "Community and motivation",
-                      description: "Join challenges, earn streaks, and connect with others on the same journey.",
+                      title: "Community",
+                      description: "Join challenges, earn streaks, and connect with others on the same health journey.",
                       icon: (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
@@ -474,6 +437,56 @@ export default function Home() {
                 phoneHeight="75vh"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Wave separator */}
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
+
+      {/* Health coaching / 4 pillars */}
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
+              Your daily health coach
+            </h2>
+            <p className="text-lg text-[#6B7280] leading-relaxed max-w-2xl mx-auto">
+              Personalised daily action plans across four pillars of health, tailored to your assessment results.
+            </p>
+          </div>
+
+          {/* Pillar cards — stacked vertically */}
+          <div className="space-y-3 max-w-lg mx-auto">
+            {pillars.map((p) => (
+              <div
+                key={p.title}
+                className={`bg-white rounded-xl p-4 flex items-start gap-4 text-left hover:shadow-md transition-all duration-200`}
+              >
+                <PillarCircle color={p.color} size="sm">
+                  <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{p.icon}</div>
+                </PillarCircle>
+                <div>
+                  <h3 className={`text-sm font-semibold ${p.textColor} mb-0.5`}>
+                    {p.title}
+                  </h3>
+                  <p className="text-xs text-[#6B7280] leading-relaxed">
+                    {p.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-10">
+            <Link
+              href="/coaching"
+              className="inline-flex items-center gap-2 text-[#20c858] font-semibold hover:underline"
+            >
+              Learn more about coaching
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
       </section>
