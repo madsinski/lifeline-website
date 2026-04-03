@@ -91,8 +91,8 @@ const teamMembers = [
   { name: "Victor Guðmundsson", role: "Medical Doctor, Coach, CEO & Co-founder", category: "leadership" },
   { name: "Mads Christian Aanesen", role: "Medical Doctor, Coach, CTO & Co-founder", category: "leadership" },
   { name: "Vignir Sigurðsson", role: "Chief Medical Advisor, Pediatrician, Ass. Prof. HA", category: "leadership" },
-  { name: "Ragnar Björgvinsson", role: "Lawyer & Shareholder", category: "team" },
-  { name: "Snorri Arnar Viðarsson", role: "Lawyer & Shareholder", category: "team" },
+  { name: "Ragnar Björgvinsson", role: "Legal Advisor", category: "team" },
+  { name: "Snorri Arnar Viðarsson", role: "Business Advisor", category: "team" },
   { name: "Arna Hrund Baldursdóttir Bjartmars", role: "Nurse", category: "clinical" },
   { name: "Ragnheiður Perla Hjaltadóttir", role: "Nurse", category: "clinical" },
   { name: "Aníta Adamsdóttir", role: "Nurse", category: "clinical" },
@@ -513,37 +513,19 @@ export default function Home() {
               The professionals behind your health journey
             </p>
           </div>
-          {/* Leadership */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
-            {teamMembers.filter(t => t.category === "leadership").map((t, i) => (
+          <div className="space-y-3 max-w-3xl mx-auto">
+            {teamMembers.map((t, i) => (
               <div
                 key={t.name + i}
-                className="bg-[#e6ecf4] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200"
+                className="bg-[#e6ecf4] rounded-xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-200"
               >
-                <div className="h-40 bg-gradient-to-br from-[#20c858]/20 to-[#3B82F6]/10 flex items-center justify-center">
-                  <div className="w-20 h-20 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-2xl shadow-md">
-                    {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                  </div>
-                </div>
-                <div className="p-5 text-center">
-                  <h3 className="font-semibold text-[#1F2937] mb-1">{t.name}</h3>
-                  <p className="text-xs text-[#20c858] font-medium">{t.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Clinical & coaching team */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
-            {teamMembers.filter(t => t.category !== "leadership").map((t, i) => (
-              <div
-                key={t.name + i}
-                className="bg-[#e6ecf4] rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 text-center"
-              >
-                <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-lg shadow-sm mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-lg shadow-sm flex-shrink-0">
                   {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                 </div>
-                <h3 className="font-semibold text-[#1F2937] text-sm mb-0.5">{t.name}</h3>
-                <p className="text-xs text-[#6B7280]">{t.role}</p>
+                <div>
+                  <h3 className="font-semibold text-[#1F2937] text-sm">{t.name}</h3>
+                  <p className="text-xs text-[#6B7280]">{t.role}</p>
+                </div>
               </div>
             ))}
           </div>
