@@ -91,16 +91,16 @@ const teamMembers = [
   { name: "Victor Guðmundsson", role: "Medical Doctor, Coach, CEO & Co-founder", category: "leadership" },
   { name: "Mads Christian Aanesen", role: "Medical Doctor, Coach, CTO & Co-founder", category: "leadership" },
   { name: "Vignir Sigurðsson", role: "Chief Medical Advisor, Pediatrician, Ass. Prof. HA", category: "leadership" },
+  { name: "Ragnar Björgvinsson", role: "Lawyer & Shareholder", category: "team" },
+  { name: "Snorri Arnar Viðarsson", role: "Lawyer & Shareholder", category: "team" },
   { name: "Arna Hrund Baldursdóttir Bjartmars", role: "Nurse", category: "clinical" },
-  { name: "Ragnheiður Perla Hjaltadóttir", role: "Team member", category: "clinical" },
+  { name: "Ragnheiður Perla Hjaltadóttir", role: "Nurse", category: "clinical" },
   { name: "Aníta Adamsdóttir", role: "Nurse", category: "clinical" },
   { name: "Health Coach", role: "Health Coach", category: "coach" },
   { name: "Health Coach", role: "Health Coach", category: "coach" },
 ];
 
 const partners = [
-  { name: "Ragnar Björgvinsson", role: "Lawyer & Partner" },
-  { name: "Snorri Arnar Viðarsson", role: "Lawyer & Partner" },
   { name: "Medalia.is", role: "Patient portal & health records" },
   { name: "Sameind", role: "Blood test collection stations" },
 ];
