@@ -88,16 +88,16 @@ const pillars = [
 ];
 
 const teamMembers = [
-  { name: "Victor Guðmundsson", role: "Medical Doctor, Coach, CEO & Co-founder", category: "leadership" },
-  { name: "Mads Christian Aanesen", role: "Medical Doctor, Coach, CTO & Co-founder", category: "leadership" },
-  { name: "Vignir Sigurðsson", role: "Chief Medical Advisor, Pediatrician, Ass. Prof. HA", category: "leadership" },
-  { name: "Ragnar Björgvinsson", role: "Legal Advisor", category: "team" },
-  { name: "Snorri Arnar Viðarsson", role: "Business Advisor", category: "team" },
-  { name: "Arna Hrund Baldursdóttir Bjartmars", role: "Nurse", category: "clinical" },
-  { name: "Ragnheiður Perla Hjaltadóttir", role: "Nurse", category: "clinical" },
-  { name: "Aníta Adamsdóttir", role: "Nurse", category: "clinical" },
-  { name: "Health Coach", role: "Health Coach", category: "coach" },
-  { name: "Health Coach", role: "Health Coach", category: "coach" },
+  { name: "Victor Guðmundsson", role: "Medical Doctor, Coach, CEO & Co-founder", bio: "Victor founded Lifeline to make preventive health accessible. He combines clinical expertise with coaching to help people build lasting health habits." },
+  { name: "Mads Christian Aanesen", role: "Medical Doctor, Coach, CTO & Co-founder", bio: "Mads leads the technology behind Lifeline — from the app to the health platform. A physician and coach who believes technology should make health change easier." },
+  { name: "Vignir Sigurðsson", role: "Chief Medical Advisor, Pediatrician, Ass. Prof. HA", bio: "Vignir brings decades of clinical and academic experience to Lifeline, ensuring our programs meet the highest medical standards." },
+  { name: "Ragnar Björgvinsson", role: "Legal Advisor", bio: "Ragnar advises Lifeline on legal matters, ensuring compliance and protecting the interests of the company and its members." },
+  { name: "Snorri Arnar Viðarsson", role: "Business Advisor", bio: "Snorri provides strategic business guidance, helping Lifeline grow sustainably while staying true to its mission." },
+  { name: "Arna Hrund Baldursdóttir Bjartmars", role: "Nurse", bio: "Arna performs health assessments at our stations, guiding members through body composition measurements and vital screenings." },
+  { name: "Ragnheiður Perla Hjaltadóttir", role: "Nurse", bio: "Ragnheiður supports members through the assessment process, ensuring a comfortable and thorough experience at every visit." },
+  { name: "Aníta Adamsdóttir", role: "Nurse", bio: "Aníta brings clinical care and a warm presence to our stations, helping members understand their measurements and next steps." },
+  { name: "Health Coach", role: "Health Coach", bio: "Our health coaches work directly with members on daily action plans, exercise programs, nutrition guidance, and accountability." },
+  { name: "Health Coach", role: "Health Coach", bio: "Dedicated to helping members build sustainable habits across all four pillars of health — exercise, nutrition, sleep, and mental wellness." },
 ];
 
 const partners = [
@@ -478,19 +478,19 @@ export default function Home() {
               What makes Lifeline Health different
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 max-w-6xl mx-auto">
             {approach.map((a) => (
               <div
                 key={a.title}
-                className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
+                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
               >
-                <div className="w-14 h-14 rounded-2xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mx-auto mb-5">
+                <div className="w-12 h-12 rounded-xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mx-auto mb-4">
                   {a.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-[#1F2937] mb-3">
+                <h3 className="text-sm font-semibold text-[#1F2937] mb-2">
                   {a.title}
                 </h3>
-                <p className="text-sm text-[#6B7280] leading-relaxed">
+                <p className="text-xs text-[#6B7280] leading-relaxed">
                   {a.description}
                 </p>
               </div>
@@ -513,18 +513,19 @@ export default function Home() {
               The professionals behind your health journey
             </p>
           </div>
-          <div className="space-y-3 max-w-3xl mx-auto">
+          <div className="space-y-4 max-w-3xl mx-auto">
             {teamMembers.map((t, i) => (
               <div
                 key={t.name + i}
-                className="bg-[#e6ecf4] rounded-xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-200"
+                className="bg-[#e6ecf4] rounded-2xl p-5 flex items-start gap-5 shadow-sm hover:shadow-md transition-all duration-200"
               >
-                <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center text-[#20c858] font-bold text-lg shadow-sm flex-shrink-0">
+                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#20c858]/20 to-[#3B82F6]/10 flex items-center justify-center text-[#20c858] font-bold text-xl shadow-sm flex-shrink-0">
                   {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-[#1F2937] text-sm">{t.name}</h3>
-                  <p className="text-xs text-[#6B7280]">{t.role}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-[#1F2937]">{t.name}</h3>
+                  <p className="text-xs text-[#20c858] font-medium mb-2">{t.role}</p>
+                  <p className="text-sm text-[#6B7280] leading-relaxed">{t.bio}</p>
                 </div>
               </div>
             ))}
