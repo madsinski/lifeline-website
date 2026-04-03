@@ -310,29 +310,32 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
-            <MedaliaButton label="Book Assessment" size="md" />
-            <Link
-              href="/assessment"
-              className="inline-flex items-center gap-2 text-[#20c858] font-semibold hover:underline"
-            >
-              View assessment packages
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+          {/* Actions + patient portal */}
+          <div className="mt-12 max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl p-8 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
+                <MedaliaButton label="Book Assessment" size="md" className="w-full sm:w-auto" />
+                <Link
+                  href="/assessment"
+                  className="inline-flex items-center justify-center px-8 py-3.5 text-sm font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200 w-full sm:w-auto"
+                >
+                  View Packages
+                </Link>
+              </div>
+              <div className="border-t border-gray-100 pt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-[#6B7280]">
+                  Already assessed? Access your results through our secure patient portal.
+                </p>
+                <MedaliaButton label="Patient Portal" size="sm" className="flex-shrink-0" />
+              </div>
+              <p className="text-xs text-[#6B7280]/60 mt-4 text-center">
+                Patient portal powered by{" "}
+                <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#20c858] hover:underline">
+                  Medalia.is
+                </a>
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-[#6B7280] mt-6">
-            Access your results through our secure patient portal, powered by{" "}
-            <a
-              href="https://medalia.is"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#20c858] hover:underline"
-            >
-              Medalia.is
-            </a>
-          </p>
         </div>
       </section>
 
