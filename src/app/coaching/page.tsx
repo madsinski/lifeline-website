@@ -133,23 +133,27 @@ const subscriptions = [
 const howItWorks = [
   {
     title: "Assessment first",
-    description:
-      "Your coaching program starts with a health assessment. Your results inform every recommendation the app makes.",
+    description: "Your coaching program starts with a health assessment. Your results inform every recommendation the app makes.",
+    icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+    color: "#3B82F6",
   },
   {
     title: "Daily action plans",
-    description:
-      "Each day you receive a personalised set of actions across exercise, nutrition, sleep, and mental wellness.",
+    description: "Each day you receive a personalised set of actions across exercise, nutrition, sleep, and mental wellness.",
+    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+    color: "#20c858",
   },
   {
     title: "Track and adapt",
-    description:
-      "Log your activities, track your progress, and watch your health score improve over time. The app adapts to your journey.",
+    description: "Log your activities, track your progress, and watch your health score improve over time. The app adapts to your journey.",
+    icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
+    color: "#8B5CF6",
   },
   {
     title: "Regular check-ins",
-    description:
-      "Schedule periodic Check-in assessments to measure real physiological changes and update your program.",
+    description: "Schedule periodic Check-in assessments to measure real physiological changes and update your program.",
+    icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
+    color: "#F59E0B",
   },
 ];
 
@@ -430,21 +434,36 @@ export default function CoachingPage() {
               <p className="text-[#6B7280] mb-8">
                 Your assessment powers your coaching experience
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {howItWorks.map((item, i) => (
                   <div
                     key={item.title}
-                    className="bg-[#e6ecf4] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
+                    className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-200 flex items-start gap-4 border border-gray-100 hover:border-gray-200"
                   >
-                    <div className="w-9 h-9 rounded-full bg-[#20c858] text-white flex items-center justify-center font-bold text-sm mb-3 shadow-lg shadow-green-500/25">
-                      {i + 1}
+                    <div className="relative flex-shrink-0">
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${item.color}12`, border: `2px solid ${item.color}30` }}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke={item.color} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+                        </svg>
+                      </div>
+                      <div
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-md"
+                        style={{ backgroundColor: item.color }}
+                      >
+                        {i + 1}
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-[#1F2937] text-sm mb-1.5">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs text-[#6B7280] leading-relaxed">
-                      {item.description}
-                    </p>
+                    <div className="flex-1 pt-0.5">
+                      <h3 className="font-semibold text-[#1F2937] text-sm mb-1">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-[#6B7280] leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
