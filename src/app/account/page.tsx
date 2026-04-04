@@ -480,33 +480,33 @@ function AccountPageInner() {
       </section>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 -mt-2">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* ---- Left navigation ---- */}
-          <aside className="lg:w-56 shrink-0">
-            {/* Mobile: styled dropdown */}
-            <div className="lg:hidden">
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={navItems.find(n => n.id === activeSection)?.icon || navItems[0].icon} />
-                  </svg>
-                </div>
-                <select
-                  value={activeSection}
-                  onChange={(e) => setActiveSection(e.target.value as Section)}
-                  className="w-full bg-white rounded-2xl shadow-md pl-12 pr-12 py-4 text-sm font-semibold border-2 border-[#20c858]/30 text-[#1F2937] appearance-none focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all"
-                >
-                  {navItems.map((item) => (
-                    <option key={item.id} value={item.id}>{item.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+        {/* Mobile: dropdown pinned at top of content area */}
+        <div className="lg:hidden sticky top-16 z-20 -mx-4 px-4 py-3 bg-[#ecf0f3]/95 backdrop-blur-sm">
+          <div className="relative">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={navItems.find(n => n.id === activeSection)?.icon || navItems[0].icon} />
+              </svg>
             </div>
+            <select
+              value={activeSection}
+              onChange={(e) => setActiveSection(e.target.value as Section)}
+              className="w-full bg-white rounded-2xl shadow-md pl-12 pr-12 py-4 text-sm font-semibold border-2 border-[#20c858]/30 text-[#1F2937] appearance-none focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all"
+            >
+              {navItems.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* ---- Left navigation (desktop only) ---- */}
+          <aside className="hidden lg:block lg:w-56 shrink-0">
             {/* Desktop: vertical nav */}
             <nav className="hidden lg:flex bg-white rounded-2xl shadow-sm p-2 lg:sticky lg:top-24 flex-col gap-1">
               {navItems.map((item) => (
