@@ -452,6 +452,7 @@ export default function CoachingPage() {
             {/* Right: static phone mockup */}
             <div className="flex justify-center">
               <div className="relative" style={{ height: "75vh", aspectRatio: "9/19.5" }}>
+                <div className="absolute -inset-8 sm:-inset-12 rounded-[4rem] blur-3xl opacity-40 -z-10" style={{ background: "radial-gradient(ellipse at center, rgba(32,200,88,0.25) 0%, rgba(59,130,246,0.15) 40%, transparent 70%)" }} />
                 <div className="absolute inset-0 bg-[#1a1a1a] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#2a2a2a] shadow-2xl" />
                 <div className="absolute inset-[4px] bg-[#111] rounded-[2.6rem] sm:rounded-[3rem]" />
                 <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
@@ -459,7 +460,7 @@ export default function CoachingPage() {
                     src="/app-screenshot-coach-scroll.jpg"
                     alt="Health coach in the app"
                     className="w-full"
-                    style={{ transform: "translateY(-3%)" }}
+                    style={{ transform: "translateY(-3%)", filter: "brightness(1.06) contrast(1.08) saturate(1.18)" }}
                   />
                 </div>
                 <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />

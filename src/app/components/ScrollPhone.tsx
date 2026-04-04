@@ -90,8 +90,18 @@ export default function ScrollPhone({
 
   const phoneFrame = (
     <div className="relative" style={{ height: phoneHeight, aspectRatio: "9/19.5" }}>
+      {/* Glow effect behind phone */}
+      <div
+        className="absolute -inset-8 sm:-inset-12 rounded-[4rem] blur-3xl opacity-40 -z-10"
+        style={{
+          background: "radial-gradient(ellipse at center, rgba(32,200,88,0.25) 0%, rgba(59,130,246,0.15) 40%, transparent 70%)",
+        }}
+      />
+      {/* Frame */}
       <div className="absolute inset-0 bg-[#1a1a1a] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#2a2a2a] shadow-2xl" />
+      {/* Inner bezel */}
       <div className="absolute inset-[4px] bg-[#111] rounded-[2.6rem] sm:rounded-[3rem]" />
+      {/* Screen */}
       <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
         <img
           src={screenshot}
@@ -101,16 +111,19 @@ export default function ScrollPhone({
             transform: `translateY(${translateY}%)`,
             transition: "transform 0.05s linear",
             transformOrigin: "top center",
+            filter: "brightness(1.06) contrast(1.08) saturate(1.18)",
           }}
         />
       </div>
+      {/* Side buttons */}
       <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
       <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
       <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+      {/* Screen reflection */}
       <div
         className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] pointer-events-none z-10"
         style={{
-          background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)",
         }}
       />
     </div>
