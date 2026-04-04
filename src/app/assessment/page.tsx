@@ -290,7 +290,7 @@ export default function AssessmentPage() {
               </div>
             </div>
             {/* Right: scroll phone mockup */}
-            <div className="flex justify-center">
+            <div className="flex justify-center flex-1 lg:flex-none lg:h-auto">
               <ScrollPhone
                 inline
                 screenshot="/app-screenshot-health-scroll.jpg"
@@ -309,7 +309,7 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
             {/* Left: scroll phone mockup — below text on mobile */}
-            <div className="flex justify-center order-2 lg:order-1">
+            <div className="flex justify-center flex-1 lg:flex-none lg:h-auto order-2 lg:order-1">
               <ScrollPhone
                 inline
                 screenshot="/app-screenshot-myhealth-scroll.jpg"

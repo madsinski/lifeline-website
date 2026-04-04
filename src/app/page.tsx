@@ -450,7 +450,7 @@ export default function Home() {
               </div>
             </div>
             {/* Right: scroll phone mockup */}
-            <div className="flex justify-center">
+            <div className="flex justify-center flex-1 lg:flex-none lg:h-auto">
               <ScrollPhone
                 inline
                 screenshot="/app-screenshot-scroll.jpg"
