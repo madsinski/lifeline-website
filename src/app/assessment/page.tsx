@@ -257,7 +257,7 @@ export default function AssessmentPage() {
       </section>
 
       {/* Results preview + scroll phone */}
-      <section className="bg-white" style={{ height: "300vh" }}>
+      <section className="bg-white" style={{ height: "220vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
             {/* Left: text content, static on mobile, sticky on desktop */}
@@ -305,7 +305,7 @@ export default function AssessmentPage() {
       </section>
 
       {/* Track your health + scroll phone */}
-      <section className="bg-[#ecf0f3]" style={{ height: "300vh" }}>
+      <section className="bg-[#ecf0f3]" style={{ height: "220vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
             {/* Left: scroll phone mockup — below text on mobile */}
