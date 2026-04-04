@@ -257,11 +257,11 @@ export default function AssessmentPage() {
       </section>
 
       {/* Results preview + scroll phone */}
-      <section className="bg-white" style={{ height: "200vh" }}>
+      <section className="bg-white" style={{ height: "300vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full">
-            {/* Left: text content, sticky */}
-            <div className="sticky top-0 h-screen flex items-center">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
+            {/* Left: text content, static on mobile, sticky on desktop */}
+            <div className="pt-24 sm:pt-28 lg:pt-0 lg:sticky lg:top-0 lg:h-screen flex items-center">
               <div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
                   Your results, <span className="text-[#20c858]">explained</span>
@@ -305,10 +305,10 @@ export default function AssessmentPage() {
       </section>
 
       {/* Track your health + scroll phone */}
-      <section className="bg-[#ecf0f3]" style={{ height: "200vh" }}>
+      <section className="bg-[#ecf0f3]" style={{ height: "300vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 h-full">
-            {/* Left: scroll phone mockup */}
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
+            {/* Left: scroll phone mockup — below text on mobile */}
             <div className="flex justify-center order-2 lg:order-1">
               <ScrollPhone
                 inline
@@ -319,8 +319,8 @@ export default function AssessmentPage() {
                 phoneHeight="75vh"
               />
             </div>
-            {/* Right: text content, sticky */}
-            <div className="sticky top-0 h-screen flex items-center order-1 lg:order-2">
+            {/* Right: text content, static on mobile, sticky on desktop */}
+            <div className="pt-24 sm:pt-28 lg:pt-0 lg:sticky lg:top-0 lg:h-screen flex items-center order-1 lg:order-2">
               <div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
                   Track your <span className="text-[#20c858]">progress</span>

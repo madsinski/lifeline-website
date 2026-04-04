@@ -361,11 +361,11 @@ export default function Home() {
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
       {/* The app — brings it all together + scroll phone */}
-      <section className="bg-white" style={{ height: "200vh" }}>
+      <section className="bg-white" style={{ height: "300vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 h-full">
-            {/* Left: text content, sticky */}
-            <div className="sticky top-0 h-screen flex items-center">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-16 h-full">
+            {/* Text content: static on mobile, sticky on desktop */}
+            <div className="pt-24 sm:pt-28 lg:pt-0 lg:sticky lg:top-0 lg:h-screen flex items-center">
               <div>
                 <p className="text-sm font-semibold tracking-[0.15em] uppercase text-[#20c858] mb-4">
                   The Lifeline App
