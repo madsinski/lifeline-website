@@ -47,21 +47,27 @@ export default function ScrollPhone({
         const phoneIsStuck = phoneRect.top <= stickyOffset + 2;
 
         if (!phoneIsStuck) {
-          // Phone hasn't reached its position yet — don't scroll the image
           setScrollProgress(0);
+          // Remember where the phone sticks so we can measure from that point
           return;
         }
 
-        // Phone is stuck — calculate how much further the section scrolls
+        // Phone is stuck — measure progress from the phone's current position
+        // to the bottom of the section
         const sectionBottom = sectionRect.bottom;
-        const remainingScroll = sectionBottom - windowH;
-        const totalScrollAfterStick = section.offsetHeight - windowH;
+        const phoneBottom = phoneRect.bottom;
 
-        if (totalScrollAfterStick <= 0) return;
+        // How far below the phone does the section extend?
+        const scrollRemaining = sectionBottom - windowH;
+        // Total distance the section extends below the phone when it first sticks
+        // Phone sticks when sectionRect.top = -(phoneOffsetFromSectionTop - stickyOffset)
+        // The remaining scrollable = section bottom - viewport bottom
+        const phoneOffsetInSection = phoneRect.top - sectionRect.top;
+        const totalScrollableAfterStick = sectionRect.height - phoneOffsetInSection - windowH + stickyOffset;
 
-        // Progress = how much we've scrolled since the phone got stuck
-        const scrolledPastStick = totalScrollAfterStick - remainingScroll;
-        const progress = Math.max(0, Math.min(1, scrolledPastStick / totalScrollAfterStick));
+        if (totalScrollableAfterStick <= 0) return;
+
+        const progress = Math.max(0, Math.min(1, 1 - (scrollRemaining / totalScrollableAfterStick)));
         setScrollProgress(progress);
       } else {
         // Standalone mode: simple progress based on container scroll
