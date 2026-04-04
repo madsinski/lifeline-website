@@ -383,14 +383,14 @@ export default function CoachingPage() {
             <div className="absolute left-[1.19rem] top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#3B82F6] via-[#20c858] to-[#8B5CF6]" />
             <div className="space-y-6">
               {typicalDay.map((item) => (
-                <div key={item.time} className="relative pl-14 flex items-start">
-                  {/* Colored dot */}
+                <div key={item.time} className="relative pl-14 flex items-center">
+                  {/* Colored dot — centered with card */}
                   <div
-                    className="absolute left-2 top-1.5 w-5 h-5 rounded-full border-[3px] border-white shadow-md z-10"
+                    className="absolute left-2 w-5 h-5 rounded-full border-[3px] border-white shadow-md z-10"
                     style={{ backgroundColor: item.color }}
                   />
-                  {/* Time */}
-                  <div className="w-14 flex-shrink-0 text-sm font-bold text-[#1F2937] pt-0.5">
+                  {/* Time — centered with card */}
+                  <div className="w-14 flex-shrink-0 text-sm font-bold text-[#1F2937]">
                     {item.time}
                   </div>
                   {/* Card */}
