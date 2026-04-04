@@ -256,101 +256,103 @@ export default function AssessmentPage() {
         </div>
       </section>
 
-      {/* Results preview + scroll phone */}
-      <section className="bg-white" style={{ height: "200vh" }}>
+      {/* Results preview — Desktop: side-by-side */}
+      <section className="bg-white hidden lg:block" style={{ height: "200vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
-            {/* Left: text content, static on mobile, sticky on desktop */}
-            <div className="pt-24 sm:pt-28 lg:pt-0 lg:sticky lg:top-0 lg:h-screen flex items-center">
+          <div className="grid grid-cols-2 gap-16 h-full">
+            <div className="sticky top-0 h-screen flex items-center">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-                  Your results, <span className="text-[#20c858]">explained</span>
-                </h2>
-                <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">
-                  After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.
-                </p>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Your results, <span className="text-[#20c858]">explained</span></h2>
+                <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.</p>
                 <ul className="space-y-3 mb-6">
                   {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
                     <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                      <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       {item}
                     </li>
                   ))}
                 </ul>
                 <div className="flex items-start gap-3 bg-[#ecf0f3] rounded-xl p-4">
-                  <svg className="w-5 h-5 text-[#20c858] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">
-                    All results are stored securely in your <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#20c858] hover:underline font-medium">Medalia</a> patient portal. The Lifeline app provides secure access to view your data.
-                  </p>
+                  <svg className="w-5 h-5 text-[#20c858] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                  <p className="text-xs text-[#6B7280] leading-relaxed">All results are stored securely in your <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#20c858] hover:underline font-medium">Medalia</a> patient portal.</p>
                 </div>
               </div>
             </div>
-            {/* Right: scroll phone mockup */}
-            <div className="flex justify-center flex-1 lg:flex-none lg:h-auto">
-              <ScrollPhone
-                inline
-                screenshot="/app-screenshot-health-scroll.jpg"
-                alt="Your health results in the app"
-                initialOffset={3}
-                maxTranslate={35}
-                phoneHeight="75vh"
-              />
+            <div className="flex justify-center">
+              <ScrollPhone inline screenshot="/app-screenshot-health-scroll.jpg" alt="Your health results in the app" initialOffset={3} maxTranslate={35} phoneHeight="75vh" />
             </div>
           </div>
         </div>
       </section>
+      {/* Results preview — Mobile: text then standalone phone */}
+      <section className="bg-white lg:hidden py-24 sm:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl font-bold text-[#1F2937] mb-6">Your results, <span className="text-[#20c858]">explained</span></h2>
+          <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.</p>
+          <ul className="space-y-3 mb-6">
+            {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
+              <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
+                <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+      <div className="bg-white lg:hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollPhone screenshot="/app-screenshot-health-scroll.jpg" alt="Your health results in the app" initialOffset={3} />
+        </div>
+      </div>
 
-      {/* Track your health + scroll phone */}
-      <section className="bg-[#ecf0f3]" style={{ height: "200vh" }}>
+      {/* Track progress — Desktop: side-by-side (phone left, text right) */}
+      <section className="bg-[#ecf0f3] hidden lg:block" style={{ height: "200vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
-            {/* Left: scroll phone mockup — below text on mobile */}
-            <div className="flex justify-center flex-1 lg:flex-none lg:h-auto order-2 lg:order-1">
-              <ScrollPhone
-                inline
-                screenshot="/app-screenshot-myhealth-scroll.jpg"
-                alt="Track measurements and blood tests"
-                initialOffset={2}
-                maxTranslate={35}
-                phoneHeight="75vh"
-              />
+          <div className="grid grid-cols-2 gap-16 h-full">
+            <div className="flex justify-center">
+              <ScrollPhone inline screenshot="/app-screenshot-myhealth-scroll.jpg" alt="Track measurements and blood tests" initialOffset={2} maxTranslate={35} phoneHeight="75vh" />
             </div>
-            {/* Right: text content, static on mobile, sticky on desktop */}
-            <div className="pt-24 sm:pt-28 lg:pt-0 lg:sticky lg:top-0 lg:h-screen flex items-center order-1 lg:order-2">
+            <div className="sticky top-0 h-screen flex items-center">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-                  Track your <span className="text-[#20c858]">progress</span>
-                </h2>
-                <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">
-                  Your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your metabolic health.
-                </p>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Track your <span className="text-[#20c858]">progress</span></h2>
+                <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">Your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your metabolic health.</p>
                 <ul className="space-y-3 mb-6">
                   {["Body composition: weight, fat mass, muscle mass, BMI", "Blood pressure", "Targeted blood test markers with clinical context", "Health scores across all categories", "Progress charts comparing previous check-ups"].map((item) => (
                     <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                      <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       {item}
                     </li>
                   ))}
                 </ul>
                 <div className="flex items-start gap-3 bg-white/80 rounded-xl p-4">
-                  <svg className="w-5 h-5 text-[#20c858] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">
-                    Your health data is stored securely in <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#20c858] hover:underline font-medium">Medalia</a>. The Lifeline app is a secure window into your records — your data never leaves the portal.
-                  </p>
+                  <svg className="w-5 h-5 text-[#20c858] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                  <p className="text-xs text-[#6B7280] leading-relaxed">Your health data is stored securely in <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#20c858] hover:underline font-medium">Medalia</a>. The Lifeline app is a secure window into your records.</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+      {/* Track progress — Mobile: text then standalone phone */}
+      <section className="bg-[#ecf0f3] lg:hidden py-24 sm:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl font-bold text-[#1F2937] mb-6">Track your <span className="text-[#20c858]">progress</span></h2>
+          <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">Your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your metabolic health.</p>
+          <ul className="space-y-3">
+            {["Body composition: weight, fat mass, muscle mass, BMI", "Blood pressure", "Targeted blood test markers with clinical context", "Health scores across all categories", "Progress charts comparing previous check-ups"].map((item) => (
+              <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
+                <svg className="w-5 h-5 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+      <div className="bg-[#ecf0f3] lg:hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollPhone screenshot="/app-screenshot-myhealth-scroll.jpg" alt="Track measurements and blood tests" initialOffset={2} />
+        </div>
+      </div>
 
       {/* Wave separator */}
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
