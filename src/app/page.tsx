@@ -361,7 +361,7 @@ export default function Home() {
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
       {/* The app — brings it all together + scroll phone */}
-      <section className="bg-white" style={{ height: "220vh" }}>
+      <section className="bg-white" className="h-[180vh] lg:h-[200vh]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-16 h-full">
             {/* Text content: static on mobile, sticky on desktop */}
