@@ -257,7 +257,7 @@ export default function AssessmentPage() {
       </section>
 
       {/* Results preview + scroll phone */}
-      <section className="bg-white" style={{ height: "250vh" }}>
+      <section className="bg-white" style={{ height: "300vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
             {/* Left: text content, static on mobile, sticky on desktop */}
@@ -296,7 +296,7 @@ export default function AssessmentPage() {
                 screenshot="/app-screenshot-health-scroll.jpg"
                 alt="Your health results in the app"
                 initialOffset={3}
-                maxTranslate={35}
+                maxTranslate={50}
                 phoneHeight="75vh"
               />
             </div>
@@ -305,7 +305,7 @@ export default function AssessmentPage() {
       </section>
 
       {/* Track your health + scroll phone */}
-      <section className="bg-[#ecf0f3]" style={{ height: "250vh" }}>
+      <section className="bg-[#ecf0f3]" style={{ height: "300vh" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-16 h-full">
             {/* Left: scroll phone mockup — below text on mobile */}
@@ -315,7 +315,7 @@ export default function AssessmentPage() {
                 screenshot="/app-screenshot-myhealth-scroll.jpg"
                 alt="Track measurements and blood tests"
                 initialOffset={2}
-                maxTranslate={35}
+                maxTranslate={50}
                 phoneHeight="75vh"
               />
             </div>
