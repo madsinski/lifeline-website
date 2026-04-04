@@ -40,10 +40,11 @@ export default function ScrollPhone({
         const phoneRect = phoneEl.getBoundingClientRect();
         const windowH = window.innerHeight;
 
-        // The phone becomes "stuck" when the section has scrolled enough
-        // that the phone's top matches its sticky offset (10vh)
-        const stickyOffset = windowH * 0.1; // top-[10vh]
-        const phoneIsStuck = phoneRect.top <= stickyOffset + 2; // 2px tolerance
+        // The phone becomes "stuck" when its top matches the sticky offset
+        // Mobile: top-[10vh], Desktop (lg 1024+): top-0
+        const isDesktop = window.innerWidth >= 1024;
+        const stickyOffset = isDesktop ? 0 : windowH * 0.1;
+        const phoneIsStuck = phoneRect.top <= stickyOffset + 2;
 
         if (!phoneIsStuck) {
           // Phone hasn't reached its position yet — don't scroll the image
@@ -112,7 +113,7 @@ export default function ScrollPhone({
 
   if (inline) {
     return (
-      <div ref={containerRef} className="sticky top-[10vh] h-[80vh] flex items-center justify-center">
+      <div ref={containerRef} className="sticky top-[10vh] lg:top-0 h-[80vh] lg:h-screen flex items-center justify-center">
         {phoneFrame}
       </div>
     );
