@@ -32,7 +32,6 @@ export default function ScrollPhone({
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
-      // For inline mode, walk up to find the scroll container section
       let el: Element | null = containerRef.current;
       if (inline) {
         el = containerRef.current.closest("section") || containerRef.current.parentElement;
@@ -45,8 +44,14 @@ export default function ScrollPhone({
       const scrollableDistance = containerH - windowH;
       if (scrollableDistance <= 0) return;
 
-      const progress = -rect.top / scrollableDistance;
-      setScrollProgress(Math.max(0, Math.min(1, progress)));
+      // For inline mode, delay scroll start until the phone is in view
+      // The phone is sticky and centered — don't start scrolling the image
+      // until the user has scrolled past the text content above
+      const rawProgress = -rect.top / scrollableDistance;
+      const delayStart = inline ? 0.15 : 0; // 15% delay for inline to let phone settle
+      const adjustedProgress = Math.max(0, (rawProgress - delayStart) / (1 - delayStart));
+      const progress = Math.max(0, Math.min(1, adjustedProgress));
+      setScrollProgress(progress);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -89,10 +94,10 @@ export default function ScrollPhone({
     </div>
   );
 
-  // Inline mode: just render the sticky phone, parent controls the scroll container
+  // Inline mode: sticky phone centered vertically with offset
   if (inline) {
     return (
-      <div ref={containerRef} className="sticky top-0 h-screen flex items-center justify-center">
+      <div ref={containerRef} className="sticky top-[10vh] h-[80vh] flex items-center justify-center">
         {phoneFrame}
       </div>
     );
