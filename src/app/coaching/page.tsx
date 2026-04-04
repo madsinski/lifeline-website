@@ -379,8 +379,8 @@ export default function CoachingPage() {
             </p>
           </div>
           <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-[1.19rem] top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#3B82F6] via-[#20c858] to-[#8B5CF6]" />
+            {/* Vertical line — centered on dots */}
+            <div className="absolute left-[1.125rem] top-3 bottom-3 w-px bg-gradient-to-b from-[#3B82F6] via-[#20c858] to-[#8B5CF6]" />
             <div className="space-y-6">
               {typicalDay.map((item) => (
                 <div key={item.time} className="relative pl-14 flex items-center">
