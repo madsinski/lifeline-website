@@ -5,15 +5,10 @@ import { useEffect, useRef, useState } from "react";
 interface ScrollPhoneProps {
   screenshot?: string;
   alt?: string;
-  /** Starting image offset in % — use to hide the app header/status bar */
   initialOffset?: number;
-  /** Max scroll distance in % */
   maxTranslate?: number;
-  /** Height of the scroll container */
   scrollHeight?: string;
-  /** Phone height as CSS value */
   phoneHeight?: string;
-  /** Whether this phone is standalone (full-width centered) or inline (no container height) */
   inline?: boolean;
 }
 
@@ -32,24 +27,52 @@ export default function ScrollPhone({
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
-      let el: Element | null = containerRef.current;
+
       if (inline) {
-        el = containerRef.current.closest("section") || containerRef.current.parentElement;
+        // Inline mode: measure when the phone itself has settled into sticky position
+        // The phone is sticky — image scrolling should only start once the phone
+        // is pinned (i.e., its parent has scrolled past the phone's offset)
+        const phoneEl = containerRef.current;
+        const section = phoneEl.closest("section");
+        if (!section) return;
+
+        const sectionRect = section.getBoundingClientRect();
+        const phoneRect = phoneEl.getBoundingClientRect();
+        const windowH = window.innerHeight;
+
+        // The phone becomes "stuck" when the section has scrolled enough
+        // that the phone's top matches its sticky offset (10vh)
+        const stickyOffset = windowH * 0.1; // top-[10vh]
+        const phoneIsStuck = phoneRect.top <= stickyOffset + 2; // 2px tolerance
+
+        if (!phoneIsStuck) {
+          // Phone hasn't reached its position yet — don't scroll the image
+          setScrollProgress(0);
+          return;
+        }
+
+        // Phone is stuck — calculate how much further the section scrolls
+        const sectionBottom = sectionRect.bottom;
+        const remainingScroll = sectionBottom - windowH;
+        const totalScrollAfterStick = section.offsetHeight - windowH;
+
+        if (totalScrollAfterStick <= 0) return;
+
+        // Progress = how much we've scrolled since the phone got stuck
+        const scrolledPastStick = totalScrollAfterStick - remainingScroll;
+        const progress = Math.max(0, Math.min(1, scrolledPastStick / totalScrollAfterStick));
+        setScrollProgress(progress);
+      } else {
+        // Standalone mode: simple progress based on container scroll
+        const rect = containerRef.current.getBoundingClientRect();
+        const containerH = rect.height;
+        const windowH = window.innerHeight;
+        const scrollableDistance = containerH - windowH;
+        if (scrollableDistance <= 0) return;
+
+        const progress = -rect.top / scrollableDistance;
+        setScrollProgress(Math.max(0, Math.min(1, progress)));
       }
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const containerH = rect.height;
-      const windowH = window.innerHeight;
-
-      const scrollableDistance = containerH - windowH;
-      if (scrollableDistance <= 0) return;
-
-      const rawProgress = -rect.top / scrollableDistance;
-      // On mobile inline mode, delay scroll start to let phone reach center
-      const isMobile = inline && windowH < 1024;
-      const delayStart = isMobile ? 0.15 : 0;
-      const adjustedProgress = delayStart > 0 ? Math.max(0, (rawProgress - delayStart) / (1 - delayStart)) : rawProgress;
-      setScrollProgress(Math.max(0, Math.min(1, adjustedProgress)));
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -61,11 +84,8 @@ export default function ScrollPhone({
 
   const phoneFrame = (
     <div className="relative" style={{ height: phoneHeight, aspectRatio: "9/19.5" }}>
-      {/* Frame */}
       <div className="absolute inset-0 bg-[#1a1a1a] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#2a2a2a] shadow-2xl" />
-      {/* Inner bezel */}
       <div className="absolute inset-[4px] bg-[#111] rounded-[2.6rem] sm:rounded-[3rem]" />
-      {/* Screen */}
       <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
         <img
           src={screenshot}
@@ -78,11 +98,9 @@ export default function ScrollPhone({
           }}
         />
       </div>
-      {/* Side buttons */}
       <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
       <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
       <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-      {/* Reflection */}
       <div
         className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] pointer-events-none z-10"
         style={{
@@ -92,7 +110,6 @@ export default function ScrollPhone({
     </div>
   );
 
-  // Inline mode: sticky phone centered vertically with offset
   if (inline) {
     return (
       <div ref={containerRef} className="sticky top-[10vh] h-[80vh] flex items-center justify-center">
@@ -101,7 +118,6 @@ export default function ScrollPhone({
     );
   }
 
-  // Standalone mode: self-contained scroll container
   return (
     <div
       ref={containerRef}
