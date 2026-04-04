@@ -422,8 +422,11 @@ export default function CoachingPage() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
+
       {/* How coaching works + phone mockup */}
-      <section className="py-24 sm:py-28 bg-white">
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* Left: text + cards */}
