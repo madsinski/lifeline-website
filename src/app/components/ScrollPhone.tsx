@@ -23,62 +23,24 @@ export default function ScrollPhone({
 }: ScrollPhoneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  // Track when the phone first becomes stuck (mobile only)
-  const stickPointRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
 
-      // Find the scroll container
+      // Find the section that controls scroll
       let el: Element | null = containerRef.current;
       if (inline) {
         el = containerRef.current.closest("section") || containerRef.current.parentElement;
       }
       if (!el) return;
 
-      const sectionRect = el.getBoundingClientRect();
-      const sectionH = sectionRect.height;
-      const windowH = window.innerHeight;
-      const scrollableDistance = sectionH - windowH;
+      const rect = el.getBoundingClientRect();
+      const scrollableDistance = rect.height - window.innerHeight;
       if (scrollableDistance <= 0) return;
 
-      // How far the section has scrolled (0 = top at viewport top, 1 = bottom at viewport bottom)
-      const rawProgress = -sectionRect.top / scrollableDistance;
-
-      if (inline) {
-        const isDesktop = window.innerWidth >= 1024;
-
-        if (isDesktop) {
-          // Desktop: no delay, direct progress
-          setScrollProgress(Math.max(0, Math.min(1, rawProgress)));
-        } else {
-          // Mobile: wait until phone reaches sticky position before scrolling image
-          const phoneRect = containerRef.current.getBoundingClientRect();
-          const stickyOffset = windowH * 0.1; // top-[10vh]
-          const phoneIsStuck = phoneRect.top <= stickyOffset + 2;
-
-          if (!phoneIsStuck) {
-            // Phone still moving down to its position — record the scroll position when it sticks
-            stickPointRef.current = null;
-            setScrollProgress(0);
-          } else {
-            // Phone is stuck — start scrolling the image from this point
-            if (stickPointRef.current === null) {
-              stickPointRef.current = -sectionRect.top;
-            }
-            const scrollSinceStick = -sectionRect.top - stickPointRef.current;
-            const remainingDistance = scrollableDistance - stickPointRef.current;
-            if (remainingDistance <= 0) return;
-
-            const progress = scrollSinceStick / remainingDistance;
-            setScrollProgress(Math.max(0, Math.min(1, progress)));
-          }
-        }
-      } else {
-        // Standalone mode
-        setScrollProgress(Math.max(0, Math.min(1, rawProgress)));
-      }
+      const progress = -rect.top / scrollableDistance;
+      setScrollProgress(Math.max(0, Math.min(1, progress)));
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
