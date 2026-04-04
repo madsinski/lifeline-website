@@ -23,62 +23,61 @@ export default function ScrollPhone({
 }: ScrollPhoneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  // Track when the phone first becomes stuck (mobile only)
+  const stickPointRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return;
 
+      // Find the scroll container
+      let el: Element | null = containerRef.current;
       if (inline) {
-        // Inline mode: measure when the phone itself has settled into sticky position
-        // The phone is sticky — image scrolling should only start once the phone
-        // is pinned (i.e., its parent has scrolled past the phone's offset)
-        const phoneEl = containerRef.current;
-        const section = phoneEl.closest("section");
-        if (!section) return;
+        el = containerRef.current.closest("section") || containerRef.current.parentElement;
+      }
+      if (!el) return;
 
-        const sectionRect = section.getBoundingClientRect();
-        const phoneRect = phoneEl.getBoundingClientRect();
-        const windowH = window.innerHeight;
+      const sectionRect = el.getBoundingClientRect();
+      const sectionH = sectionRect.height;
+      const windowH = window.innerHeight;
+      const scrollableDistance = sectionH - windowH;
+      if (scrollableDistance <= 0) return;
 
-        // The phone becomes "stuck" when its top matches the sticky offset
-        // Mobile: top-[10vh], Desktop (lg 1024+): top-0
+      // How far the section has scrolled (0 = top at viewport top, 1 = bottom at viewport bottom)
+      const rawProgress = -sectionRect.top / scrollableDistance;
+
+      if (inline) {
         const isDesktop = window.innerWidth >= 1024;
-        const stickyOffset = isDesktop ? 0 : windowH * 0.1;
-        const phoneIsStuck = phoneRect.top <= stickyOffset + 2;
 
-        if (!phoneIsStuck) {
-          setScrollProgress(0);
-          // Remember where the phone sticks so we can measure from that point
-          return;
+        if (isDesktop) {
+          // Desktop: no delay, direct progress
+          setScrollProgress(Math.max(0, Math.min(1, rawProgress)));
+        } else {
+          // Mobile: wait until phone reaches sticky position before scrolling image
+          const phoneRect = containerRef.current.getBoundingClientRect();
+          const stickyOffset = windowH * 0.1; // top-[10vh]
+          const phoneIsStuck = phoneRect.top <= stickyOffset + 2;
+
+          if (!phoneIsStuck) {
+            // Phone still moving down to its position — record the scroll position when it sticks
+            stickPointRef.current = null;
+            setScrollProgress(0);
+          } else {
+            // Phone is stuck — start scrolling the image from this point
+            if (stickPointRef.current === null) {
+              stickPointRef.current = -sectionRect.top;
+            }
+            const scrollSinceStick = -sectionRect.top - stickPointRef.current;
+            const remainingDistance = scrollableDistance - stickPointRef.current;
+            if (remainingDistance <= 0) return;
+
+            const progress = scrollSinceStick / remainingDistance;
+            setScrollProgress(Math.max(0, Math.min(1, progress)));
+          }
         }
-
-        // Phone is stuck — measure progress from the phone's current position
-        // to the bottom of the section
-        const sectionBottom = sectionRect.bottom;
-        const phoneBottom = phoneRect.bottom;
-
-        // How far below the phone does the section extend?
-        const scrollRemaining = sectionBottom - windowH;
-        // Total distance the section extends below the phone when it first sticks
-        // Phone sticks when sectionRect.top = -(phoneOffsetFromSectionTop - stickyOffset)
-        // The remaining scrollable = section bottom - viewport bottom
-        const phoneOffsetInSection = phoneRect.top - sectionRect.top;
-        const totalScrollableAfterStick = sectionRect.height - phoneOffsetInSection - windowH + stickyOffset;
-
-        if (totalScrollableAfterStick <= 0) return;
-
-        const progress = Math.max(0, Math.min(1, 1 - (scrollRemaining / totalScrollableAfterStick)));
-        setScrollProgress(progress);
       } else {
-        // Standalone mode: simple progress based on container scroll
-        const rect = containerRef.current.getBoundingClientRect();
-        const containerH = rect.height;
-        const windowH = window.innerHeight;
-        const scrollableDistance = containerH - windowH;
-        if (scrollableDistance <= 0) return;
-
-        const progress = -rect.top / scrollableDistance;
-        setScrollProgress(Math.max(0, Math.min(1, progress)));
+        // Standalone mode
+        setScrollProgress(Math.max(0, Math.min(1, rawProgress)));
       }
     };
 
@@ -126,10 +125,7 @@ export default function ScrollPhone({
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{ height: scrollHeight }}
-    >
+    <div ref={containerRef} style={{ height: scrollHeight }}>
       <div className="sticky top-0 h-screen flex items-center justify-center pt-8">
         {phoneFrame}
       </div>
