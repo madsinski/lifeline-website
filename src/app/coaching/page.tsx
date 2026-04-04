@@ -606,29 +606,51 @@ export default function CoachingPage() {
               See what each tier includes
             </p>
           </div>
-          <div className="bg-[#e6ecf4] rounded-2xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left px-6 py-4 font-semibold text-[#1F2937]">Feature</th>
-                    <th className="text-center px-4 py-4 font-semibold text-[#1F2937]">Free Plan</th>
-                    <th className="text-center px-4 py-4 font-semibold text-[#1F2937]">Self-maintained</th>
-                    <th className="text-center px-4 py-4 font-semibold text-[#20c858]">Full Access</th>
+          {/* Desktop: table */}
+          <div className="hidden sm:block rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#1F2937]">
+                  <th className="text-left px-6 py-5 font-semibold text-white">Feature</th>
+                  <th className="text-center px-4 py-5 font-semibold text-gray-300">Free</th>
+                  <th className="text-center px-4 py-5 font-semibold text-blue-300">Self-maintained</th>
+                  <th className="text-center px-4 py-5 font-semibold text-[#20c858] relative">
+                    Full Access
+                    <div className="absolute -top-0 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-[#20c858] text-white text-[9px] font-bold rounded-b-md uppercase tracking-wider">Best</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonFeatures.map((row, i) => (
+                  <tr key={row.feature} className={`border-b border-gray-50 transition-colors hover:bg-[#20c858]/5 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
+                    <td className="px-6 py-3.5 text-[#1F2937] font-medium">{row.feature}</td>
+                    <td className="px-4 py-3.5 text-center"><FeatureCell value={row.free} /></td>
+                    <td className="px-4 py-3.5 text-center"><FeatureCell value={row.self} /></td>
+                    <td className="px-4 py-3.5 text-center bg-[#20c858]/5"><FeatureCell value={row.full} /></td>
                   </tr>
-                </thead>
-                <tbody>
-                  {comparisonFeatures.map((row, i) => (
-                    <tr key={row.feature} className={i % 2 === 0 ? "bg-white/50" : ""}>
-                      <td className="px-6 py-3 text-[#6B7280]">{row.feature}</td>
-                      <td className="px-4 py-3 text-center"><FeatureCell value={row.free} /></td>
-                      <td className="px-4 py-3 text-center"><FeatureCell value={row.self} /></td>
-                      <td className="px-4 py-3 text-center"><FeatureCell value={row.full} /></td>
-                    </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Mobile: stacked cards per feature */}
+          <div className="sm:hidden space-y-3">
+            {comparisonFeatures.map((row) => (
+              <div key={row.feature} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <p className="text-sm font-semibold text-[#1F2937] mb-3">{row.feature}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "Free", value: row.free, color: "text-gray-500" },
+                    { label: "Self", value: row.self, color: "text-blue-600" },
+                    { label: "Full", value: row.full, color: "text-[#20c858]" },
+                  ].map((col) => (
+                    <div key={col.label} className={`text-center py-2 rounded-lg ${col.label === "Full" ? "bg-[#20c858]/8" : "bg-gray-50"}`}>
+                      <p className={`text-[10px] font-semibold uppercase tracking-wider ${col.color} mb-1`}>{col.label}</p>
+                      <FeatureCell value={col.value} />
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
