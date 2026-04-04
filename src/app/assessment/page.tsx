@@ -314,7 +314,7 @@ export default function AssessmentPage() {
                 inline
                 screenshot="/app-screenshot-myhealth-scroll.jpg"
                 alt="Track measurements and blood tests"
-                initialOffset={3}
+                initialOffset={2}
                 maxTranslate={35}
                 phoneHeight="75vh"
               />
