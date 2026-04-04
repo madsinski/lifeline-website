@@ -44,14 +44,12 @@ export default function ScrollPhone({
       const scrollableDistance = containerH - windowH;
       if (scrollableDistance <= 0) return;
 
-      // For inline mode, delay scroll start until the phone is in view
-      // The phone is sticky and centered — don't start scrolling the image
-      // until the user has scrolled past the text content above
       const rawProgress = -rect.top / scrollableDistance;
-      const delayStart = inline ? 0.15 : 0; // 15% delay for inline to let phone settle
-      const adjustedProgress = Math.max(0, (rawProgress - delayStart) / (1 - delayStart));
-      const progress = Math.max(0, Math.min(1, adjustedProgress));
-      setScrollProgress(progress);
+      // On mobile inline mode, delay scroll start to let phone reach center
+      const isMobile = inline && windowH < 1024;
+      const delayStart = isMobile ? 0.15 : 0;
+      const adjustedProgress = delayStart > 0 ? Math.max(0, (rawProgress - delayStart) / (1 - delayStart)) : rawProgress;
+      setScrollProgress(Math.max(0, Math.min(1, adjustedProgress)));
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
