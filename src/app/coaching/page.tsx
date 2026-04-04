@@ -498,8 +498,11 @@ export default function CoachingPage() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
+
       {/* Subscription tiers */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+      <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
@@ -598,8 +601,11 @@ export default function CoachingPage() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
+
       {/* Feature comparison table */}
-      <section className="py-20 sm:py-24 bg-white">
+      <section className="py-20 sm:py-24 bg-[#ecf0f3]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
