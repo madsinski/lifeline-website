@@ -268,12 +268,19 @@ export default function ProgramsCMSPage() {
       const { data: catData } = await supabase.from("program_categories").select("*").order("sort_order", { ascending: true });
       if (catData && catData.length > 0) {
         const { data: progData } = await supabase.from("programs").select("*").order("sort_order", { ascending: true });
-        // Fetch all actions — Supabase defaults to 1000 rows, so paginate
+        // Fetch all actions — Supabase defaults to 1000 rows, so paginate with deterministic order
         let actData: Record<string, unknown>[] = [];
         let actOffset = 0;
         const PAGE_SIZE = 1000;
         while (true) {
-          const { data: batch } = await supabase.from("program_actions").select("*").order("sort_order", { ascending: true }).range(actOffset, actOffset + PAGE_SIZE - 1);
+          const { data: batch } = await supabase
+            .from("program_actions")
+            .select("*")
+            .order("program_id", { ascending: true })
+            .order("week_range", { ascending: true })
+            .order("day_of_week", { ascending: true })
+            .order("sort_order", { ascending: true })
+            .range(actOffset, actOffset + PAGE_SIZE - 1);
           if (!batch || batch.length === 0) break;
           actData = actData.concat(batch);
           if (batch.length < PAGE_SIZE) break;
