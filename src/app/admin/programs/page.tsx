@@ -205,6 +205,7 @@ export default function ProgramsCMSPage() {
   const [copySource, setCopySource] = useState<number | null>(null);
   const [activeTimeTab, setActiveTimeTab] = useState<TimeGroup | "all">("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ programId: string; programName: string } | null>(null);
 
   // Clients tab state
   const [showClientsTab, setShowClientsTab] = useState(false);
@@ -365,6 +366,7 @@ export default function ProgramsCMSPage() {
     setDirty(true);
   };
 
+  const programSyncTimeout = useRef<Record<string, NodeJS.Timeout>>({});
   const updateProgram = (programId: string, field: "name" | "description" | "duration", value: string | number) => {
     updateCategories(
       categories.map((cat) => ({
@@ -374,9 +376,19 @@ export default function ProgramsCMSPage() {
         ),
       }))
     );
+    // Debounced sync to Supabase (300ms after last keystroke)
+    if (programSyncTimeout.current[programId]) clearTimeout(programSyncTimeout.current[programId]);
+    programSyncTimeout.current[programId] = setTimeout(async () => {
+      try {
+        await supabase.from("programs").update({ [field]: value }).eq("key", programId);
+      } catch {
+        // silent — will sync on full save
+      }
+    }, 300);
   };
 
-  const addProgram = () => {
+  const addProgram = async () => {
+    const newId = makeId();
     updateCategories(
       categories.map((cat) =>
         cat.id === activeTab
@@ -385,7 +397,7 @@ export default function ProgramsCMSPage() {
               programs: [
                 ...cat.programs,
                 {
-                  id: makeId(),
+                  id: newId,
                   name: "New Program",
                   description: "",
                   duration: 8 as 4 | 8 | 12,
@@ -396,15 +408,52 @@ export default function ProgramsCMSPage() {
           : cat
       )
     );
+    // Sync to Supabase
+    try {
+      const meta = categoryMeta[activeTab] || { icon: "help", color: "#6B7280", label: activeTab };
+      const { data: catRow } = await supabase.from("program_categories").upsert({
+        key: activeTab,
+        label: meta.label,
+        icon: meta.icon,
+        color: meta.color,
+      }, { onConflict: "key" }).select("id").single();
+      if (catRow) {
+        const cat = categories.find((c) => c.id === activeTab);
+        await supabase.from("programs").insert({
+          category_id: catRow.id,
+          key: newId,
+          name: "New Program",
+          description: "",
+          duration: 8,
+          sort_order: cat ? cat.programs.length : 0,
+        });
+      }
+      setToast({ message: "Program created and synced", type: "success" });
+    } catch {
+      setToast({ message: "Created locally — Supabase sync failed", type: "error" });
+    }
   };
 
-  const deleteProgram = (programId: string) => {
+  const deleteProgram = async (programId: string) => {
+    // Remove from local state
     updateCategories(
       categories.map((cat) => ({
         ...cat,
         programs: cat.programs.filter((p) => p.id !== programId),
       }))
     );
+    // Sync to Supabase — delete program actions first, then the program
+    try {
+      const { data: prog } = await supabase.from("programs").select("id").eq("key", programId).maybeSingle();
+      if (prog) {
+        await supabase.from("program_actions").delete().eq("program_id", prog.id);
+        await supabase.from("programs").delete().eq("id", prog.id);
+      }
+      setToast({ message: "Program deleted", type: "success" });
+    } catch {
+      setToast({ message: "Deleted locally — Supabase sync failed", type: "error" });
+    }
+    setPendingDelete(null);
   };
 
   const addAction = (programId: string, weekIdx: number, dayIdx: number) => {
@@ -927,7 +976,7 @@ export default function ProgramsCMSPage() {
                       </span>
                     </div>
                     <button
-                      onClick={() => deleteProgram(program.id)}
+                      onClick={() => setPendingDelete({ programId: program.id, programName: program.name })}
                       className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1213,6 +1262,42 @@ export default function ProgramsCMSPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {pendingDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setPendingDelete(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete program</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete <strong>{pendingDelete.programName}</strong>? All weekly content and actions will be permanently removed from the database.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingDelete(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteProgram(pendingDelete.programId)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
