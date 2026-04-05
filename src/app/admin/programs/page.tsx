@@ -78,9 +78,12 @@ const sampleCategories: Category[] = [
     id: "exercise",
     name: "Exercise",
     programs: [
-      { id: "lifeline-special", name: "Lifeline special", description: "Build foundational fitness — 3x per week", duration: 8, weeks: createEmptyWeeks() },
-      { id: "next-level", name: "Next level", description: "Progressive overload — 4x per week", duration: 8, weeks: createEmptyWeeks() },
-      { id: "performance", name: "Performance", description: "High intensity — 5x per week", duration: 8, weeks: createEmptyWeeks() },
+      { id: "gym-beginner", name: "Gym — Foundation", description: "Build a solid base with fundamental movements", duration: 8, weeks: createEmptyWeeks() },
+      { id: "gym-intermediate", name: "Gym — Progression", description: "Progressive overload with compound lifts", duration: 8, weeks: createEmptyWeeks() },
+      { id: "gym-advanced", name: "Gym — Performance", description: "Advanced training with periodisation", duration: 8, weeks: createEmptyWeeks() },
+      { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, weeks: createEmptyWeeks() },
+      { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, weeks: createEmptyWeeks() },
+      { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, weeks: createEmptyWeeks() },
     ],
   },
   {
