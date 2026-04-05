@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
-type TimeGroup = "morning" | "exercise" | "midday" | "evening";
+type TimeGroup = "morning" | "midday" | "evening";
 
 interface ProgramAction {
   id: string;
@@ -50,7 +50,7 @@ interface ClientProgram {
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const weekRanges = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6", "Week 7", "Week 8", "Week 9", "Week 10", "Week 11", "Week 12"];
-const timeGroups: TimeGroup[] = ["morning", "exercise", "midday", "evening"];
+const timeGroups: TimeGroup[] = ["morning", "midday", "evening"];
 
 const categoryColors: Record<string, { bg: string; border: string; text: string; badge: string }> = {
   exercise: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", badge: "bg-blue-100 text-blue-700" },
