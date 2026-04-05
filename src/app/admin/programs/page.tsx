@@ -272,14 +272,17 @@ export default function ProgramsCMSPage() {
         // Fetch actions per program to avoid Supabase row limits
         const actionsByProgram: Record<string, Record<string, unknown>[]> = {};
         for (const prog of (progData || [])) {
-          const { data: acts } = await supabase
+          const { data: acts, error: actErr } = await supabase
             .from("program_actions")
             .select("*")
             .eq("program_id", prog.id)
             .order("week_range", { ascending: true })
             .order("day_of_week", { ascending: true })
-            .order("sort_order", { ascending: true });
+            .order("sort_order", { ascending: true })
+            .limit(1000);
+          if (actErr) console.error(`[Load] Error fetching actions for ${prog.key}:`, actErr.message);
           actionsByProgram[prog.id] = acts || [];
+          console.log(`[Load] ${prog.key}: ${(acts || []).length} actions loaded`);
         }
 
         const built: Category[] = catData.map((cat: Record<string, string>) => {
