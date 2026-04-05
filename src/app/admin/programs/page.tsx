@@ -49,7 +49,7 @@ interface ClientProgram {
 }
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const weekRanges = ["Weeks 1-2", "Weeks 3-4", "Weeks 5-6", "Weeks 7-8"];
+const weekRanges = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6", "Week 7", "Week 8", "Week 9", "Week 10", "Week 11", "Week 12"];
 const timeGroups: TimeGroup[] = ["morning", "exercise", "midday", "evening"];
 
 const categoryColors: Record<string, { bg: string; border: string; text: string; badge: string }> = {
@@ -335,7 +335,7 @@ export default function ProgramsCMSPage() {
   // Completeness check
   function getProgramCompleteness(program: Program) {
     let filled = 0;
-    const total = 4 * 7;
+    const total = program.weeks.length * 7;
     for (const week of program.weeks) {
       for (const day of week.days) {
         if (day.actions.length > 0) filled++;
@@ -348,7 +348,7 @@ export default function ProgramsCMSPage() {
   function getProgramStats(program: Program) {
     let totalActions = 0;
     let daysWithActions = 0;
-    const totalDays = 4 * 7;
+    const totalDays = program.weeks.length * 7;
     for (const week of program.weeks) {
       for (const day of week.days) {
         totalActions += day.actions.length;
