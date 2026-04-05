@@ -84,6 +84,7 @@ const sampleCategories: Category[] = [
       { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, weeks: createEmptyWeeks() },
       { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, weeks: createEmptyWeeks() },
       { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, weeks: createEmptyWeeks() },
+      { id: "exercise-daily-insights", name: "Daily Insights", description: "Daily exercise tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
     ],
   },
   {
@@ -93,6 +94,7 @@ const sampleCategories: Category[] = [
       { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, weeks: createEmptyWeeks() },
       { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, weeks: createEmptyWeeks() },
       { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, weeks: createEmptyWeeks() },
+      { id: "nutrition-daily-insights", name: "Daily Insights", description: "Daily nutrition tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
     ],
   },
   {
@@ -102,6 +104,7 @@ const sampleCategories: Category[] = [
       { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, weeks: createEmptyWeeks() },
       { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, weeks: createEmptyWeeks() },
       { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, weeks: createEmptyWeeks() },
+      { id: "sleep-daily-insights", name: "Daily Insights", description: "Daily sleep tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
     ],
   },
   {
@@ -111,6 +114,7 @@ const sampleCategories: Category[] = [
       { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, weeks: createEmptyWeeks() },
       { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, weeks: createEmptyWeeks() },
       { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, weeks: createEmptyWeeks() },
+      { id: "mental-daily-insights", name: "Daily Insights", description: "Daily mental wellness tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
     ],
   },
 ];
@@ -951,12 +955,20 @@ export default function ProgramsCMSPage() {
                       </svg>
                     </button>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <input
-                        type="text"
-                        value={program.name}
-                        onChange={(e) => updateProgram(program.id, "name", e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-                      />
+                      <div className="flex items-center gap-2">
+                        {program.id.endsWith("-daily-insights") && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            Insight
+                          </span>
+                        )}
+                        <input
+                          type="text"
+                          value={program.name}
+                          onChange={(e) => updateProgram(program.id, "name", e.target.value)}
+                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                        />
+                      </div>
                       <input
                         type="text"
                         value={program.description}
