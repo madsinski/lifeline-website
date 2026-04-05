@@ -297,11 +297,11 @@ export default function ProgramsCMSPage() {
                 days: Array.from({ length: 7 }, (_, di) => ({
                   day: di,
                   actions: progActions
-                    .filter((a: Record<string, number>) => a.week_range === wi && a.day_of_week === di)
-                    .map((a: Record<string, string | boolean | string[]>) => ({
-                      id: a.id as string,
-                      label: a.label as string,
-                      timeGroup: (a.time_group || "morning") as TimeGroup,
+                    .filter((a) => (a as Record<string, number>).week_range === wi && (a as Record<string, number>).day_of_week === di)
+                    .map((a: Record<string, unknown>) => ({
+                      id: (a.id || "") as string,
+                      label: (a.label || "") as string,
+                      timeGroup: ((a.time_group || "morning") as string) as TimeGroup,
                       details: Array.isArray(a.details) ? (a.details as string[]) : ((a.details || "") as string).split("\n").filter(Boolean),
                       priority: !!a.priority,
                     })),
