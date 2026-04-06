@@ -108,9 +108,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [session, setSession] = useState<boolean | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [coachingView, setCoachingView] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [newClientsCount, setNewClientsCount] = useState(0);
+
+  // Load coaching view preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("admin_coaching_view");
+      if (saved === "true") setCoachingView(true);
+    } catch {}
+  }, []);
 
   // Load unread message count and new clients count
   useEffect(() => {
@@ -199,7 +208,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
           {!sidebarCollapsed && (
             <span className="text-lg font-bold tracking-tight">
-              Lifeline <span className="text-[#20c858]">Admin</span>
+              Lifeline <span className="text-[#20c858]">{coachingView ? "Coach" : "Admin"}</span>
             </span>
           )}
           <button
@@ -225,14 +234,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {!sidebarCollapsed && (
             <div className="min-w-0">
               <p className="text-sm font-medium text-white truncate">{userEmail ?? "Admin"}</p>
-              <p className="text-xs text-gray-400">Administrator</p>
+              <p className="text-xs text-gray-400">{coachingView ? "Health Coach" : "Administrator"}</p>
             </div>
           )}
         </div>
 
         {/* Nav Links */}
         <nav className="flex-1 py-4 space-y-1 px-2">
-          {sidebarLinks.map((link) => {
+          {(coachingView
+            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/education", "/admin/messages", "/admin/calendar"].includes(l.href))
+            : sidebarLinks
+          ).map((link) => {
             const isActive =
               link.href === "/admin"
                 ? pathname === "/admin"
@@ -271,8 +283,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
+        {/* Coaching view toggle */}
+        <div className={`px-2 pb-2 mt-auto ${sidebarCollapsed ? "flex justify-center" : ""}`}>
+          <button
+            onClick={() => {
+              const next = !coachingView;
+              setCoachingView(next);
+              try { localStorage.setItem("admin_coaching_view", String(next)); } catch {}
+              if (next && pathname === "/admin") {
+                router.push("/admin/coach");
+              } else if (!next && pathname === "/admin/coach") {
+                router.push("/admin");
+              }
+            }}
+            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              sidebarCollapsed ? "justify-center" : ""
+            } ${coachingView ? "bg-[#20c858]/15 text-[#20c858]" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`}
+            title={sidebarCollapsed ? (coachingView ? "Switch to Admin view" : "Switch to Coaching view") : undefined}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            {!sidebarCollapsed && (
+              <span className="flex items-center gap-2 flex-1">
+                {coachingView ? "Coaching view" : "Admin view"}
+                <span className={`ml-auto relative w-8 h-4 rounded-full transition-colors ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
+                  <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-4" : "translate-x-0.5"}`} />
+                </span>
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Sign out */}
-        <div className="px-2 pb-4 mt-auto">
+        <div className="px-2 pb-4">
           <button
             onClick={handleSignOut}
             className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
