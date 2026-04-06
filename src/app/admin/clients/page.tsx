@@ -503,6 +503,22 @@ export default function ClientsPage() {
     setDeleteConfirmId(null);
   };
 
+  const cleanOrphans = async () => {
+    setStatusMessage(null);
+    try {
+      const { data, error } = await supabase.rpc('clean_orphaned_clients');
+      if (error) {
+        setStatusMessage({ type: 'error', text: `Cleanup failed: ${error.message}` });
+      } else {
+        const removed = data ?? 0;
+        setStatusMessage({ type: 'success', text: removed > 0 ? `Removed ${removed} orphaned client record(s).` : 'No orphaned records found.' });
+        if (removed > 0) await fetchClients();
+      }
+    } catch (err) {
+      setStatusMessage({ type: 'error', text: `Cleanup error: ${err instanceof Error ? err.message : 'Unknown'}` });
+    }
+  };
+
   const syncClients = async () => {
     setSyncing(true);
     setStatusMessage(null);
@@ -541,7 +557,22 @@ export default function ClientsPage() {
         return;
       }
 
-      setStatusMessage({ type: "success", text: `Sync complete. ${result.created} new client(s) created from ${result.total} auth user(s).` });
+      // Clean up orphaned clients (exist in clients table but not in auth)
+      const authUserIds = (result.authUserIds as string[]) || [];
+      let orphansRemoved = 0;
+      if (authUserIds.length > 0) {
+        const { data: allClients } = await supabase.from("clients").select("id");
+        if (allClients) {
+          const authSet = new Set(authUserIds);
+          const orphans = allClients.filter((c: { id: string }) => !authSet.has(c.id));
+          for (const orphan of orphans) {
+            const { error: delErr } = await supabase.from("clients").delete().eq("id", orphan.id);
+            if (!delErr) orphansRemoved++;
+          }
+        }
+      }
+      const orphanMsg = orphansRemoved > 0 ? ` Removed ${orphansRemoved} orphaned record(s).` : '';
+      setStatusMessage({ type: "success", text: `Sync complete. ${result.created} new client(s) created from ${result.total} auth user(s).${orphanMsg}` });
       await fetchClients();
     } catch (err) {
       setStatusMessage({ type: "error", text: `Sync error: ${err instanceof Error ? err.message : "Unknown"}` });
@@ -786,8 +817,14 @@ export default function ClientsPage() {
           >
             Sync from Auth Users
           </button>
+          <button
+            onClick={cleanOrphans}
+            className="px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
+          >
+            Clean orphaned records
+          </button>
           <p className="text-gray-300 text-[10px] mt-2">
-            Requires service role key (not anon key)
+            Sync requires service role key · Clean removes clients deleted from Auth
           </p>
         </div>
       )}
