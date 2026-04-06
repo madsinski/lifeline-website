@@ -210,6 +210,7 @@ export default function ProgramsCMSPage() {
   const [activeTimeTab, setActiveTimeTab] = useState<TimeGroup | "all">("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingDelete, setPendingDelete] = useState<{ programId: string; programName: string } | null>(null);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   // Clients tab state
   const [showClientsTab, setShowClientsTab] = useState(false);
@@ -451,6 +452,80 @@ export default function ProgramsCMSPage() {
     } catch {
       setToast({ message: "Created locally — Supabase sync failed", type: "error" });
     }
+  };
+
+  const duplicateProgram = async (sourceProgram: Program) => {
+    const newId = makeId();
+    const clonedWeeks: WeekContent[] = sourceProgram.weeks.map((w) => ({
+      weekRange: w.weekRange,
+      days: w.days.map((d) => ({
+        day: d.day,
+        actions: d.actions.map((a) => ({ ...a, id: makeId() })),
+      })),
+    }));
+    updateCategories(
+      categories.map((cat) =>
+        cat.id === activeTab
+          ? {
+              ...cat,
+              programs: [
+                ...cat.programs,
+                {
+                  id: newId,
+                  name: `${sourceProgram.name} (copy)`,
+                  description: sourceProgram.description,
+                  duration: sourceProgram.duration,
+                  weeks: clonedWeeks,
+                },
+              ],
+            }
+          : cat
+      )
+    );
+    // Sync to Supabase
+    try {
+      const meta = categoryMeta[activeTab] || { icon: "help", color: "#6B7280", label: activeTab };
+      const { data: catRow } = await supabase.from("program_categories").upsert({
+        key: activeTab, label: meta.label, icon: meta.icon, color: meta.color,
+      }, { onConflict: "key" }).select("id").single();
+      if (catRow) {
+        const cat = categories.find((c) => c.id === activeTab);
+        await supabase.from("programs").insert({
+          category_id: catRow.id, key: newId, name: `${sourceProgram.name} (copy)`,
+          description: sourceProgram.description, duration: sourceProgram.duration,
+          sort_order: cat ? cat.programs.length : 0,
+        });
+      }
+      setToast({ message: `Duplicated "${sourceProgram.name}" with all content`, type: "success" });
+    } catch {
+      setToast({ message: "Duplicated locally — Supabase sync on save", type: "info" });
+    }
+    setShowDuplicateModal(false);
+  };
+
+  const fillWeeksFromSource = (programId: string, sourceWeekIdx: number) => {
+    updateCategories(
+      categories.map((cat) => ({
+        ...cat,
+        programs: cat.programs.map((p) => {
+          if (p.id !== programId) return p;
+          const sourceWeek = p.weeks[sourceWeekIdx];
+          const weeks = p.weeks.map((w, wi) => {
+            if (wi === sourceWeekIdx) return w;
+            return {
+              ...w,
+              days: sourceWeek.days.map((sd) => ({
+                day: sd.day,
+                actions: sd.actions.map((a) => ({ ...a, id: makeId() })),
+              })),
+            };
+          });
+          return { ...p, weeks };
+        }),
+      }))
+    );
+    setCopySource(null);
+    setToast({ message: `Filled all weeks from ${weekRanges[sourceWeekIdx]}`, type: "success" });
   };
 
   const deleteProgram = async (programId: string) => {
@@ -875,6 +950,12 @@ export default function ProgramsCMSPage() {
               + Add Program
             </button>
             <button
+              onClick={() => setShowDuplicateModal(true)}
+              className="px-4 py-2 bg-white border border-[#20c858] text-[#20c858] text-sm font-medium rounded-lg hover:bg-[#20c858]/5 transition-colors"
+            >
+              Duplicate Existing
+            </button>
+            <button
               onClick={handleExport}
               className="px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
             >
@@ -1037,20 +1118,27 @@ export default function ProgramsCMSPage() {
                     <div className="border-t border-gray-100 p-4 space-y-4">
                       {/* Copy week controls */}
                       {copySource !== null && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3 text-sm">
-                          <span className="text-blue-700">Copy {weekRanges[copySource]} to:</span>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3 text-sm flex-wrap">
+                          <span className="text-blue-700 font-medium">Copy {weekRanges[copySource]} to:</span>
+                          <button
+                            onClick={() => fillWeeksFromSource(program.id, copySource)}
+                            className="px-3 py-1 bg-[#20c858] text-white rounded-lg hover:bg-[#1ab34d] text-xs font-bold"
+                          >
+                            All weeks
+                          </button>
+                          <span className="text-blue-400">|</span>
                           {weekRanges.map((wr, wi) => (
                             wi !== copySource && (
                               <button
                                 key={wi}
                                 onClick={() => copyWeek(program.id, copySource, wi)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium"
+                                className="px-2.5 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium"
                               >
                                 {wr}
                               </button>
                             )
                           ))}
-                          <button onClick={() => setCopySource(null)} className="ml-auto text-blue-500 hover:text-blue-700 text-xs">
+                          <button onClick={() => setCopySource(null)} className="ml-auto text-blue-500 hover:text-blue-700 text-xs font-medium">
                             Cancel
                           </button>
                         </div>
@@ -1289,6 +1377,55 @@ export default function ProgramsCMSPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Duplicate from existing modal */}
+      {showDuplicateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDuplicateModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Duplicate program</h3>
+                <p className="text-sm text-gray-500">Copy all content from an existing program</p>
+              </div>
+              <button onClick={() => setShowDuplicateModal(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-2">
+              {categories.map((cat) => (
+                <div key={cat.id}>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-1">{cat.name}</p>
+                  {cat.programs.map((prog) => {
+                    const stats = getProgramStats(prog);
+                    return (
+                      <button
+                        key={prog.id}
+                        onClick={() => duplicateProgram(prog)}
+                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors flex items-center gap-3"
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${categoryColors[cat.id]?.bg || "bg-gray-50"}`}>
+                          <span className={`text-xs font-bold ${categoryColors[cat.id]?.text || "text-gray-500"}`}>
+                            {cat.name[0]}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{prog.name}</p>
+                          <p className="text-xs text-gray-400">{stats.totalActions} actions · {stats.completeness}% complete · {prog.duration} weeks</p>
+                        </div>
+                        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete confirmation dialog */}
