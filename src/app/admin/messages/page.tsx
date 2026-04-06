@@ -291,15 +291,39 @@ async function sendMessageToSupabase(
         conversation_id: conversationId,
         sender_id: staff.id,
         sender_name: staff.name,
-        sender_role: staff.role === "coach" ? "coach" : "coach",
+        sender_role: staff.role === "coach" ? "coach" : staff.role,
         content,
-        read: true,
+        read: false,
       })
       .select()
       .single();
 
     if (error || !data) return null;
     const row = data as SupabaseMessage;
+
+    // Send push notification to the client
+    try {
+      // Look up client_id from the conversation
+      const { data: conv } = await supabase
+        .from("conversations")
+        .select("client_id")
+        .eq("id", conversationId)
+        .single();
+
+      if (conv?.client_id) {
+        await supabase.functions.invoke("send-push-notification", {
+          body: {
+            clientId: conv.client_id,
+            title: `Message from ${staff.name}`,
+            body: content.length > 100 ? content.slice(0, 100) + "..." : content,
+            data: { conversationId, type: "coach_message" },
+          },
+        });
+      }
+    } catch {
+      // Push notification is best-effort — don't fail the message send
+    }
+
     return {
       id: row.id,
       senderName: row.sender_name,
@@ -454,6 +478,49 @@ export default function AdminMessagesPage() {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  // Realtime subscription for new messages from clients
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-messages-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload: Record<string, unknown>) => {
+          const m = payload.new as SupabaseMessage | undefined;
+          if (!m) return;
+          const newMsg: Message = {
+            id: m.id,
+            senderName: m.sender_name,
+            senderRole: m.sender_role,
+            content: m.content,
+            createdAt: m.created_at,
+            read: m.read,
+          };
+          setConversations((prev) =>
+            prev.map((c) => {
+              if (c.id === m.conversation_id) {
+                const alreadyExists = c.messages.some((msg) => msg.id === m.id);
+                if (alreadyExists) return c;
+                return {
+                  ...c,
+                  messages: [...c.messages, newMsg],
+                  lastMessage: newMsg.content,
+                  lastMessageAt: newMsg.createdAt,
+                  unreadCount: m.sender_role === "client" ? c.unreadCount + 1 : c.unreadCount,
+                };
+              }
+              return c;
+            }),
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Scroll to bottom of messages container only (not the page)
   useEffect(() => {
