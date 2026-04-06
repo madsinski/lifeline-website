@@ -11,6 +11,8 @@ interface ProgramAction {
   timeGroup: TimeGroup;
   details: string[];
   priority: boolean;
+  imageUrl?: string;
+  videoUrl?: string;
 }
 
 interface DayContent {
@@ -309,6 +311,8 @@ export default function ProgramsCMSPage() {
                       timeGroup: ((a.time_group || "morning") as string) as TimeGroup,
                       details: Array.isArray(a.details) ? (a.details as string[]) : ((a.details || "") as string).split("\n").filter(Boolean),
                       priority: !!a.priority,
+                      imageUrl: (a.image_url as string) || undefined,
+                      videoUrl: (a.video_url as string) || undefined,
                     })),
                 })),
               }));
@@ -564,7 +568,7 @@ export default function ProgramsCMSPage() {
                 ...d,
                 actions: [
                   ...d.actions,
-                  { id: makeId(), label: "", timeGroup: "morning" as TimeGroup, details: [] as string[], priority: false },
+                  { id: makeId(), label: "", timeGroup: "morning" as TimeGroup, details: [] as string[], priority: false, imageUrl: undefined, videoUrl: undefined },
                 ],
               };
             });
@@ -709,6 +713,8 @@ export default function ProgramsCMSPage() {
                 details: Array.isArray(a.details) ? a.details : (a.details as unknown as string).split("\n").filter(Boolean),
                 priority: a.priority,
                 sort_order: si,
+                image_url: a.imageUrl || null,
+                video_url: a.videoUrl || null,
               }))
             )
           );
@@ -1264,36 +1270,37 @@ export default function ProgramsCMSPage() {
                                   .map((action) => (
                                     <div
                                       key={action.id}
-                                      className={`p-3 rounded-lg border transition-colors ${
+                                      className={`p-4 rounded-xl border transition-colors ${
                                         action.priority
                                           ? `${colors.bg} ${colors.border}`
                                           : "bg-white border-gray-200"
                                       }`}
                                     >
-                                      <div className="flex items-start gap-2">
-                                        {/* Drag handle hint */}
-                                        <div className="mt-2 text-gray-300 cursor-grab flex-shrink-0">
+                                      <div className="flex items-start gap-3">
+                                        {/* Drag handle */}
+                                        <div className="mt-3 text-gray-300 cursor-grab flex-shrink-0">
                                           <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
                                           </svg>
                                         </div>
-                                        <div className="flex-1 space-y-2">
-                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                        <div className="flex-1 space-y-3">
+                                          {/* Row 1: Label + time group */}
+                                          <div className="flex gap-3">
                                             <input
                                               type="text"
                                               value={action.label}
                                               onChange={(e) =>
                                                 updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "label", e.target.value)
                                               }
-                                              placeholder="Action label"
-                                              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 md:col-span-2"
+                                              placeholder="Action label (e.g. Barbell Bench Press)"
+                                              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
                                             />
                                             <select
                                               value={action.timeGroup}
                                               onChange={(e) =>
                                                 updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "timeGroup", e.target.value)
                                               }
-                                              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                              className="w-32 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
                                             >
                                               {timeGroups.map((tg) => (
                                                 <option key={tg} value={tg}>
@@ -1302,18 +1309,54 @@ export default function ProgramsCMSPage() {
                                               ))}
                                             </select>
                                           </div>
+                                          {/* Row 2: Details textarea (larger) */}
                                           <textarea
                                             value={action.details.join("\n")}
                                             onChange={(e) =>
                                               updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "details", e.target.value.split("\n"))
                                             }
-                                            placeholder="Details (one per line)"
-                                            rows={2}
-                                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-none text-gray-900"
+                                            placeholder="Details — one item per line (e.g. 4 sets x 8 reps, 60s rest, RPE 7)"
+                                            rows={5}
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed"
                                           />
-                                          <div className="flex items-center justify-between">
+                                          {/* Row 3: Media URLs */}
+                                          <div className="flex gap-3">
+                                            <div className="flex-1">
+                                              <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Image URL</label>
+                                              <div className="flex gap-2">
+                                                <input
+                                                  type="text"
+                                                  value={action.imageUrl || ""}
+                                                  onChange={(e) =>
+                                                    updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "imageUrl" as keyof ProgramAction, e.target.value)
+                                                  }
+                                                  placeholder="https://... (exercise photo, meal image)"
+                                                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-700"
+                                                />
+                                                {action.imageUrl && (
+                                                  <div className="w-10 h-10 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0 bg-gray-50">
+                                                    <img src={action.imageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="flex-1">
+                                              <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Video URL</label>
+                                              <input
+                                                type="text"
+                                                value={action.videoUrl || ""}
+                                                onChange={(e) =>
+                                                  updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "videoUrl" as keyof ProgramAction, e.target.value)
+                                                }
+                                                placeholder="https://youtube.com/... or vimeo link"
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-700"
+                                              />
+                                            </div>
+                                          </div>
+                                          {/* Row 4: Priority + delete */}
+                                          <div className="flex items-center justify-between pt-1">
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                              <div className={`relative w-8 h-4 rounded-full transition-colors ${
+                                              <div className={`relative w-9 h-5 rounded-full transition-colors ${
                                                 action.priority ? "bg-[#20c858]" : "bg-gray-300"
                                               }`}>
                                                 <input
@@ -1324,22 +1367,31 @@ export default function ProgramsCMSPage() {
                                                   }
                                                   className="sr-only"
                                                 />
-                                                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${
+                                                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
                                                   action.priority ? "translate-x-4" : "translate-x-0.5"
                                                 }`} />
                                               </div>
-                                              <span className="text-xs text-gray-500">Priority</span>
+                                              <span className="text-xs text-gray-500 font-medium">Priority action</span>
                                             </label>
-                                            <button
-                                              onClick={() =>
-                                                deleteAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id)
-                                              }
-                                              className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                            >
-                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                              </svg>
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                              {(action.imageUrl || action.videoUrl) && (
+                                                <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                  {action.imageUrl && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                                                  {action.videoUrl && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                                  Media attached
+                                                </span>
+                                              )}
+                                              <button
+                                                onClick={() =>
+                                                  deleteAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id)
+                                                }
+                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                              >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                              </button>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>

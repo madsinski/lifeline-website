@@ -710,7 +710,7 @@ function AccountPageInner() {
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Biological sex</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sex</label>
                       <div className="flex gap-2">
                         {[
                           { key: "male", label: "Male" },
@@ -784,7 +784,7 @@ function AccountPageInner() {
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Biological sex</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Sex</span>
                       <p className={`font-medium mt-0.5 ${sex ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
                         {sex ? ({ male: "Male", female: "Female", other: "Other", prefer_not_to_say: "Prefer not to say" }[sex] || "Not set") : "Not set"}
                       </p>
