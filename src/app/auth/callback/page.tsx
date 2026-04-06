@@ -4,10 +4,18 @@ import { useEffect } from "react";
 
 export default function AuthCallbackPage() {
   useEffect(() => {
-    // Google OAuth returns the token in the URL fragment (#access_token=...)
+    // Authorization code flow: Google returns ?code= in query string
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      const appUrl = `lifelinehealth://auth?code=${encodeURIComponent(code)}`;
+      window.location.href = appUrl;
+      return;
+    }
+
+    // Legacy implicit flow: token in URL fragment (#access_token=...)
     const hash = window.location.hash;
     if (hash) {
-      // Redirect to the app with the token
       const appUrl = `lifelinehealth://auth${hash}`;
       window.location.href = appUrl;
     }
