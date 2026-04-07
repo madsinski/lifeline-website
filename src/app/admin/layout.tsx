@@ -313,43 +313,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             );
           })}
-        </nav>
+          {/* Divider */}
+          <div className={`my-2 mx-3 border-t border-gray-700`} />
 
-        {/* Coaching view toggle — admin only */}
-        {isAdmin && <div className={`px-2 pb-2 mt-auto ${sidebarCollapsed ? "flex justify-center" : ""}`}>
-          <button
-            onClick={() => {
-              const next = !coachingView;
-              setCoachingView(next);
-              try { localStorage.setItem("admin_coaching_view", String(next)); } catch {}
-              if (next && pathname === "/admin") {
-                router.push("/admin/coach");
-              } else if (!next && pathname === "/admin/coach") {
-                router.push("/admin");
-              }
-            }}
-            className={`flex items-center w-full px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
-              sidebarCollapsed ? "justify-center" : "justify-between"
-            } ${coachingView ? "bg-[#20c858]/15 text-[#20c858]" : "text-gray-400 hover:bg-gray-700 hover:text-white"}`}
-            title={sidebarCollapsed ? (coachingView ? "Switch to Admin view" : "Switch to Coaching view") : undefined}
-          >
-            {!sidebarCollapsed ? (
-              <span>{coachingView ? "Coaching view" : "Admin view"}</span>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-            )}
-            {!sidebarCollapsed && (
-              <span className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
-                <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-5" : "translate-x-0"}`} />
-              </span>
-            )}
-          </button>
-        </div>}
+          {/* Coaching view toggle — admin only */}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                const next = !coachingView;
+                setCoachingView(next);
+                try { localStorage.setItem("admin_coaching_view", String(next)); } catch {}
+                if (next && pathname === "/admin") {
+                  router.push("/admin/coach");
+                } else if (!next && pathname === "/admin/coach") {
+                  router.push("/admin");
+                }
+              }}
+              className={`flex items-center w-full px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                sidebarCollapsed ? "justify-center" : "justify-between"
+              } ${coachingView ? "bg-[#20c858]/15 text-[#20c858]" : "text-gray-400 hover:bg-gray-700 hover:text-white"}`}
+              title={sidebarCollapsed ? (coachingView ? "Switch to Admin view" : "Switch to Coaching view") : undefined}
+            >
+              {!sidebarCollapsed ? (
+                <span>{coachingView ? "Coaching view" : "Admin view"}</span>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              )}
+              {!sidebarCollapsed && (
+                <span className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
+                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-5" : "translate-x-0"}`} />
+                </span>
+              )}
+            </button>
+          )}
 
-        {/* Sign out */}
-        <div className="px-2 pb-4">
+          {/* Sign out */}
           <button
             onClick={handleSignOut}
             className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
@@ -361,7 +361,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </svg>
             {!sidebarCollapsed && <span>Sign Out</span>}
           </button>
-        </div>
+        </nav>
       </aside>
 
       {/* Main content */}
