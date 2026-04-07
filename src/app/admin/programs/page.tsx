@@ -102,7 +102,7 @@ const sampleCategories: Category[] = [
       { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "exercise-daily-insights", name: "Daily Insights", description: "Daily exercise tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "exercise-daily-insights", name: "Daily Insights", description: "Daily exercise tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
     ],
   },
   {
@@ -112,7 +112,7 @@ const sampleCategories: Category[] = [
       { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "nutrition-daily-insights", name: "Daily Insights", description: "Daily nutrition tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "nutrition-daily-insights", name: "Daily Insights", description: "Daily nutrition tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
     ],
   },
   {
@@ -122,7 +122,7 @@ const sampleCategories: Category[] = [
       { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "sleep-daily-insights", name: "Daily Insights", description: "Daily sleep tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "sleep-daily-insights", name: "Daily Insights", description: "Daily sleep tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
     ],
   },
   {
@@ -132,7 +132,7 @@ const sampleCategories: Category[] = [
       { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "mental-daily-insights", name: "Daily Insights", description: "Daily mental wellness tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "mental-daily-insights", name: "Daily Insights", description: "Daily mental wellness tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
     ],
   },
 ];
