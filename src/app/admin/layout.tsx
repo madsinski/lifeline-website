@@ -110,8 +110,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [coachingView, setCoachingView] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>("coach");
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [newClientsCount, setNewClientsCount] = useState(0);
+  const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
 
   // Load coaching view preference from localStorage
   useEffect(() => {
@@ -146,11 +149,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => clearInterval(interval);
   }, []);
 
+  const loadStaffProfile = async (email: string) => {
+    try {
+      const { data } = await supabase
+        .from("staff")
+        .select("role, permissions")
+        .eq("email", email)
+        .eq("active", true)
+        .maybeSingle();
+      if (data) {
+        setUserRole(data.role || "coach");
+        setUserPermissions((data.permissions as string[]) || []);
+        // Non-admin users default to coaching view
+        const hasManageTeam = (data.permissions as string[])?.includes("manage_team");
+        if (data.role !== "admin" && !hasManageTeam) {
+          setCoachingView(true);
+        }
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(true);
         setUserEmail(s.user?.email ?? null);
+        if (s.user?.email) loadStaffProfile(s.user.email);
       } else {
         setSession(false);
         if (pathname !== "/admin/login") {
@@ -163,6 +187,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (s) {
         setSession(true);
         setUserEmail(s.user?.email ?? null);
+        if (s.user?.email) loadStaffProfile(s.user.email);
       } else {
         setSession(false);
         if (pathname !== "/admin/login") {
@@ -234,7 +259,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {!sidebarCollapsed && (
             <div className="min-w-0">
               <p className="text-sm font-medium text-white truncate">{userEmail ?? "Admin"}</p>
-              <p className="text-xs text-gray-400">{coachingView ? "Health Coach" : "Administrator"}</p>
+              <p className="text-xs text-gray-400">{isAdmin ? (coachingView ? "Health Coach" : "Administrator") : userRole.charAt(0).toUpperCase() + userRole.slice(1)}</p>
             </div>
           )}
         </div>
@@ -244,7 +269,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {(coachingView
             ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/education", "/admin/messages", "/admin/calendar"].includes(l.href))
             : sidebarLinks
-          ).map((link) => {
+          ).filter((link) => {
+            // Permission-based filtering
+            if (link.href === "/admin/team" && !isAdmin) return false;
+            if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !isAdmin) return false;
+            if (link.href === "/admin/messages" && !userPermissions.includes("send_messages") && !isAdmin) return false;
+            if (link.href === "/admin/programs" && !userPermissions.includes("manage_programs") && !isAdmin) return false;
+            return true;
+          }).map((link) => {
             const isActive =
               link.href === "/admin"
                 ? pathname === "/admin"
@@ -283,8 +315,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        {/* Coaching view toggle */}
-        <div className={`px-2 pb-2 mt-auto ${sidebarCollapsed ? "flex justify-center" : ""}`}>
+        {/* Coaching view toggle — admin only */}
+        {isAdmin && <div className={`px-2 pb-2 mt-auto ${sidebarCollapsed ? "flex justify-center" : ""}`}>
           <button
             onClick={() => {
               const next = !coachingView;
@@ -314,7 +346,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </span>
             )}
           </button>
-        </div>
+        </div>}
 
         {/* Sign out */}
         <div className="px-2 pb-4">
