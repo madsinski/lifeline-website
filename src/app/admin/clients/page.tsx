@@ -1226,112 +1226,92 @@ function ClientRowComponent({
       {isExpanded && (
         <tr>
           <td colSpan={5} className="bg-gray-50/80 px-4 py-4">
-            <div className="space-y-3 max-w-3xl">
-
-              {/* Profile + Assigned Coach */}
-              <div className="bg-white rounded-xl border border-gray-100 p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
-                    {client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#1F2937]">{client.name}</p>
-                    <p className="text-xs text-gray-400">{client.email}</p>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onSendMessage(client.id, client.name); }}
-                    disabled={isSendingMessage}
-                    className="px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-lg hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                    Message
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                  <div><span className="text-gray-400">Phone</span><p className="text-gray-700 font-medium mt-0.5">{client.phone || "—"}</p></div>
-                  <div><span className="text-gray-400">Member since</span><p className="text-gray-700 font-medium mt-0.5">{client.joined}</p></div>
-                  <div>
-                    <span className="text-gray-400">Assigned coach</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {assignedStaff && <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${staffRoleColors[assignedStaff.role]}`}>{assignedStaff.avatarInitial}</div>}
-                      <select value={assignedCoachId} onChange={(e) => { e.stopPropagation(); onAssignCoach(client.id, e.target.value); }} onClick={(e) => e.stopPropagation()}
-                        className="px-1.5 py-0.5 border border-gray-200 rounded text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
-                        {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Status</span>
-                    <p className={`font-medium mt-0.5 ${client.status === "active" ? "text-green-600" : client.status === "trial" ? "text-amber-600" : "text-gray-500"}`}>
-                      {statusLabels[client.status]}
-                      {trialExpiring && <span className="text-amber-500 ml-1">({trialDays}d left)</span>}
-                    </p>
-                  </div>
-                </div>
+            {/* Header: avatar + info + actions */}
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 flex-shrink-0">
+                {client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
               </div>
-
-              {/* Subscription */}
-              <div className="bg-white rounded-xl border border-gray-100 p-4">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Subscription</h4>
-                {client.tier === "none" ? (
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm text-gray-400 flex-1">No active subscription</p>
-                    <button onClick={(e) => { e.stopPropagation(); onCreateSubscription(client.id); }} disabled={isCreating}
-                      className="px-3 py-1.5 text-xs font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] disabled:opacity-50">
-                      {isCreating ? "Creating..." : "Create Free Plan"}
-                    </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-[#1F2937]">{client.name}</p>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${tierColors[client.tier]}`}>{tierLabels[client.tier]}</span>
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${client.status === "active" ? "text-green-600" : client.status === "trial" ? "text-amber-600" : "text-gray-400"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusColors[client.status]}`} />
+                    {statusLabels[client.status]}
+                    {trialExpiring && <span className="text-amber-500">({trialDays}d)</span>}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">{client.email}{client.phone ? ` · ${client.phone}` : ""} · Joined {client.joined}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={(e) => { e.stopPropagation(); onSendMessage(client.id, client.name); }} disabled={isSendingMessage}
+                  className="px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-lg hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                  Message
+                </button>
+                {showDeleteConfirm ? (
+                  <div className="flex items-center gap-1">
+                    <button onClick={(e) => { e.stopPropagation(); onDeleteConfirm(); }} disabled={isDeleting}
+                      className="px-2 py-1.5 text-[10px] font-medium text-white bg-red-600 rounded-lg disabled:opacity-50">{isDeleting ? "..." : "Delete"}</button>
+                    <button onClick={(e) => { e.stopPropagation(); onDeleteCancel(); }}
+                      className="px-2 py-1.5 text-[10px] font-medium text-gray-500 bg-gray-100 rounded-lg">No</button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">Tier:</span>
+                  <button onClick={(e) => { e.stopPropagation(); onDeleteClick(); }}
+                    className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Delete client">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Two-column layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Left: Subscription + Coach */}
+              <div className="bg-white rounded-xl border border-gray-100 p-3.5 space-y-3">
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Subscription</p>
+                  {client.tier === "none" ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">No subscription</span>
+                      <button onClick={(e) => { e.stopPropagation(); onCreateSubscription(client.id); }} disabled={isCreating}
+                        className="px-2.5 py-1 text-[10px] font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] disabled:opacity-50">
+                        {isCreating ? "..." : "Create Free Plan"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
                       <select value={client.tier} onChange={(e) => { e.stopPropagation(); onChangeTier(client.id, client.subscriptionId, e.target.value as Tier); }} onClick={(e) => e.stopPropagation()} disabled={isSaving}
                         className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 disabled:opacity-50">
                         {tierOptions.map((t) => <option key={t} value={t}>{tierLabels[t]}</option>)}
                       </select>
                       {isSaving && <span className="text-[10px] text-gray-400">Saving...</span>}
+                      {client.trialEndsAt && (
+                        <span className="text-[10px] text-gray-400">
+                          Trial: {client.trialEndsAt}
+                          {trialDays !== null && trialDays >= 0 && <span className={`ml-0.5 font-medium ${trialDays <= 3 ? "text-red-500" : "text-amber-500"}`}>({trialDays}d)</span>}
+                          {trialDays !== null && trialDays < 0 && <span className="ml-0.5 font-medium text-red-500">(expired)</span>}
+                        </span>
+                      )}
                     </div>
-                    {client.trialEndsAt && (
-                      <span className="text-xs text-gray-500">
-                        Trial ends: {client.trialEndsAt}
-                        {trialDays !== null && trialDays >= 0 && <span className={`ml-1 font-medium ${trialDays <= 3 ? "text-red-500" : "text-amber-500"}`}>({trialDays}d)</span>}
-                        {trialDays !== null && trialDays < 0 && <span className="ml-1 font-medium text-red-500">(expired)</span>}
-                      </span>
-                    )}
-                    {client.subscriptionStart && <span className="text-xs text-gray-400">{client.subscriptionStart}{client.subscriptionEnd ? ` → ${client.subscriptionEnd}` : ""}</span>}
+                  )}
+                </div>
+                <div className="border-t border-gray-50 pt-2">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Assigned coach</p>
+                  <div className="flex items-center gap-2">
+                    {assignedStaff && <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${staffRoleColors[assignedStaff.role]}`}>{assignedStaff.avatarInitial}</div>}
+                    <select value={assignedCoachId} onChange={(e) => { e.stopPropagation(); onAssignCoach(client.id, e.target.value); }} onClick={(e) => e.stopPropagation()}
+                      className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
+                      {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name} ({staffRoleLabels[s.role]})</option>)}
+                    </select>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Programs */}
-              <div className="bg-white rounded-xl border border-gray-100 p-4">
+              {/* Right: Programs */}
+              <div className="bg-white rounded-xl border border-gray-100 p-3.5">
                 <ClientProgramsPanel clientId={client.id} clientName={client.name} tier={client.tier} />
               </div>
-
-              {/* Danger zone */}
-              <div className="bg-white rounded-xl border border-gray-100 p-4">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Danger zone</h4>
-                {showDeleteConfirm ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
-                    <p className="text-sm text-red-700 font-medium">Permanently delete this client and all their data?</p>
-                    <p className="text-[10px] text-red-500">Subscriptions, completions, conversations, and profile will be removed. Cannot be undone.</p>
-                    <div className="flex items-center gap-2">
-                      <button onClick={(e) => { e.stopPropagation(); onDeleteConfirm(); }} disabled={isDeleting}
-                        className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
-                        {isDeleting ? "Deleting..." : "Yes, delete permanently"}
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); onDeleteCancel(); }} disabled={isDeleting}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <button onClick={(e) => { e.stopPropagation(); onDeleteClick(); }}
-                    className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
-                    Delete client
-                  </button>
-                )}
-              </div>
-
             </div>
           </td>
         </tr>
