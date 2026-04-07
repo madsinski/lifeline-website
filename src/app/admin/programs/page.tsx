@@ -27,14 +27,25 @@ interface WeekContent {
 
 type ProgramLevel = "beginner" | "intermediate" | "advanced" | "";
 
+type ExerciseType = "gym" | "home" | "";
+
+interface ProgramPhase {
+  weeks: string;
+  name: string;
+  description: string;
+}
+
 interface Program {
   id: string;
   name: string;
+  tagline: string;
   description: string;
   duration: 4 | 8 | 12;
   level: ProgramLevel;
+  exerciseType: ExerciseType;
   targetAudience: string;
-  phases: string;
+  structuredPhases: ProgramPhase[];
+  phases: string; // legacy
   weeks: WeekContent[];
 }
 
@@ -85,12 +96,12 @@ const sampleCategories: Category[] = [
     id: "exercise",
     name: "Exercise",
     programs: [
-      { id: "gym-beginner", name: "Gym — Foundation", description: "Build a solid base with fundamental movements", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "gym-intermediate", name: "Gym — Progression", description: "Progressive overload with compound lifts", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "gym-advanced", name: "Gym — Performance", description: "Advanced training with periodisation", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "gym-beginner", name: "Gym — Foundation", description: "Build a solid base with fundamental movements", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "gym-intermediate", name: "Gym — Progression", description: "Progressive overload with compound lifts", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "gym-advanced", name: "Gym — Performance", description: "Advanced training with periodisation", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "exercise-daily-insights", name: "Daily Insights", description: "Daily exercise tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
@@ -98,9 +109,9 @@ const sampleCategories: Category[] = [
     id: "nutrition",
     name: "Nutrition",
     programs: [
-      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "nutrition-daily-insights", name: "Daily Insights", description: "Daily nutrition tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
@@ -108,9 +119,9 @@ const sampleCategories: Category[] = [
     id: "sleep",
     name: "Sleep",
     programs: [
-      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "sleep-daily-insights", name: "Daily Insights", description: "Daily sleep tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
@@ -118,9 +129,9 @@ const sampleCategories: Category[] = [
     id: "mental",
     name: "Mental wellness",
     programs: [
-      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
-      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
+      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
       { id: "mental-daily-insights", name: "Daily Insights", description: "Daily mental wellness tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
@@ -327,7 +338,17 @@ export default function ProgramsCMSPage() {
                 description: (p.description || "") as string,
                 duration: ((p.duration as number) || 8) as 4 | 8 | 12,
                 level: ((p as Record<string, unknown>).level as ProgramLevel) || "",
+                exerciseType: ((p as Record<string, unknown>).exercise_type as ExerciseType) || "",
+                tagline: ((p as Record<string, unknown>).tagline as string) || "",
                 targetAudience: ((p as Record<string, unknown>).target_audience as string) || "",
+                structuredPhases: (() => {
+                  try {
+                    const raw = (p as Record<string, unknown>).structured_phases;
+                    if (Array.isArray(raw)) return raw as ProgramPhase[];
+                    if (typeof raw === "string") return JSON.parse(raw) as ProgramPhase[];
+                  } catch {}
+                  return [];
+                })(),
                 phases: ((p as Record<string, unknown>).phases as string) || "",
                 weeks,
               };
@@ -399,7 +420,7 @@ export default function ProgramsCMSPage() {
   };
 
   const programSyncTimeout = useRef<Record<string, NodeJS.Timeout>>({});
-  const updateProgram = (programId: string, field: "name" | "description" | "duration" | "level" | "targetAudience" | "phases", value: string | number) => {
+  const updateProgram = (programId: string, field: keyof Program, value: string | number | ProgramPhase[]) => {
     updateCategories(
       categories.map((cat) => ({
         ...cat,
@@ -412,8 +433,10 @@ export default function ProgramsCMSPage() {
     if (programSyncTimeout.current[programId]) clearTimeout(programSyncTimeout.current[programId]);
     programSyncTimeout.current[programId] = setTimeout(async () => {
       try {
-        const dbField = field === "targetAudience" ? "target_audience" : field;
-        await supabase.from("programs").update({ [dbField]: value }).eq("key", programId);
+        const fieldMap: Record<string, string> = { targetAudience: "target_audience", exerciseType: "exercise_type", structuredPhases: "structured_phases" };
+        const dbField = fieldMap[field] || field;
+        const dbValue = field === "structuredPhases" ? JSON.stringify(value) : value;
+        await supabase.from("programs").update({ [dbField]: dbValue }).eq("key", programId);
       } catch {
         // silent — will sync on full save
       }
@@ -432,10 +455,13 @@ export default function ProgramsCMSPage() {
                 {
                   id: newId,
                   name: "New Program",
+                  tagline: "",
                   description: "",
                   duration: 8 as 4 | 8 | 12,
                   level: "" as ProgramLevel,
+                  exerciseType: "" as ExerciseType,
                   targetAudience: "",
+                  structuredPhases: [],
                   phases: "",
                   weeks: createEmptyWeeks(),
                 },
@@ -489,10 +515,13 @@ export default function ProgramsCMSPage() {
                 {
                   id: newId,
                   name: `${sourceProgram.name} (copy)`,
+                  tagline: sourceProgram.tagline,
                   description: sourceProgram.description,
                   duration: sourceProgram.duration,
                   level: sourceProgram.level,
+                  exerciseType: sourceProgram.exerciseType,
                   targetAudience: sourceProgram.targetAudience,
+                  structuredPhases: sourceProgram.structuredPhases.map(p => ({ ...p })),
                   phases: sourceProgram.phases,
                   weeks: clonedWeeks,
                 },
@@ -705,10 +734,13 @@ export default function ProgramsCMSPage() {
             category_id: categoryDbId,
             key: prog.id,
             name: prog.name,
-            description: prog.description,
+            tagline: prog.tagline || null,
+            description: prog.description || null,
             duration: prog.duration,
             level: prog.level || null,
+            exercise_type: prog.exerciseType || null,
             target_audience: prog.targetAudience || null,
+            structured_phases: prog.structuredPhases.length > 0 ? JSON.stringify(prog.structuredPhases) : null,
             phases: prog.phases || null,
             sort_order: pi,
           }, { onConflict: "key" }).select("id").single();
@@ -776,10 +808,13 @@ export default function ProgramsCMSPage() {
             category_id: categoryDbId,
             key: prog.id,
             name: prog.name,
-            description: prog.description,
+            tagline: prog.tagline || null,
+            description: prog.description || null,
             duration: prog.duration,
             level: prog.level || null,
+            exercise_type: prog.exerciseType || null,
             target_audience: prog.targetAudience || null,
+            structured_phases: prog.structuredPhases.length > 0 ? JSON.stringify(prog.structuredPhases) : null,
             phases: prog.phases || null,
             sort_order: pi,
           }, { onConflict: "key" });
@@ -1062,8 +1097,8 @@ export default function ProgramsCMSPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center gap-2">
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
+                      <div className="flex items-center gap-2 md:col-span-2">
                         {program.id.endsWith("-daily-insights") && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full whitespace-nowrap">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
@@ -1075,13 +1110,14 @@ export default function ProgramsCMSPage() {
                           value={program.name}
                           onChange={(e) => updateProgram(program.id, "name", e.target.value)}
                           className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                          placeholder="Program name"
                         />
                       </div>
                       <input
                         type="text"
-                        value={program.description}
-                        onChange={(e) => updateProgram(program.id, "description", e.target.value)}
-                        placeholder="Description"
+                        value={program.tagline}
+                        onChange={(e) => updateProgram(program.id, "tagline", e.target.value)}
+                        placeholder="Tagline (one-liner for card)"
                         className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#20c858] outline-none"
                       />
                       <select
@@ -1142,9 +1178,10 @@ export default function ProgramsCMSPage() {
 
                   {/* Program details panel */}
                   {expandedProgram === program.id && (
-                    <div className="border-t border-gray-100 px-4 py-4">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Program Details</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div className="border-t border-gray-100 px-4 py-4 space-y-4">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Program Details</p>
+                      {/* Row 1: Level, Exercise type, Duration info */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
                           <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Level</label>
                           <select
@@ -1158,7 +1195,21 @@ export default function ProgramsCMSPage() {
                             <option value="advanced">Advanced</option>
                           </select>
                         </div>
-                        <div className="md:col-span-2">
+                        {activeTab === "exercise" && (
+                          <div>
+                            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Exercise type</label>
+                            <select
+                              value={program.exerciseType}
+                              onChange={(e) => updateProgram(program.id, "exerciseType", e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                            >
+                              <option value="">Not set</option>
+                              <option value="gym">Gym</option>
+                              <option value="home">Home</option>
+                            </select>
+                          </div>
+                        )}
+                        <div className={activeTab === "exercise" ? "md:col-span-2" : "md:col-span-3"}>
                           <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Who is it for</label>
                           <input
                             type="text"
@@ -1169,15 +1220,84 @@ export default function ProgramsCMSPage() {
                           />
                         </div>
                       </div>
-                      <div className="mb-3">
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Program phases</label>
+                      {/* Row 2: Description */}
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Description (shown under &quot;Who is it for&quot; in the app)</label>
                         <textarea
-                          value={program.phases}
-                          onChange={(e) => updateProgram(program.id, "phases", e.target.value)}
-                          placeholder={"One phase per line, e.g.\nWeek 1-3: Foundation — learn the movements\nWeek 4-6: Building — increase volume\nWeek 7-8: Performance — test your strength"}
-                          rows={4}
+                          value={program.description}
+                          onChange={(e) => updateProgram(program.id, "description", e.target.value)}
+                          placeholder="Detailed description of the program, what to expect, and how it works..."
+                          rows={3}
                           className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed"
                         />
+                      </div>
+                      {/* Row 3: Structured phases */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Program phases</label>
+                          <button
+                            onClick={() => {
+                              const updated = [...program.structuredPhases, { weeks: "", name: "", description: "" }];
+                              updateProgram(program.id, "structuredPhases", updated);
+                            }}
+                            className="text-xs font-medium text-[#20c858] hover:underline"
+                          >
+                            + Add phase
+                          </button>
+                        </div>
+                        {program.structuredPhases.length === 0 && (
+                          <p className="text-xs text-gray-300 py-2">No phases defined. Click &quot;+ Add phase&quot; to create one.</p>
+                        )}
+                        {program.structuredPhases.map((phase, pi) => (
+                          <div key={pi} className="flex items-start gap-3 mb-2">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 mt-1">
+                              {pi + 1}
+                            </div>
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
+                              <input
+                                type="text"
+                                value={phase.weeks}
+                                onChange={(e) => {
+                                  const updated = program.structuredPhases.map((p, i) => i === pi ? { ...p, weeks: e.target.value } : p);
+                                  updateProgram(program.id, "structuredPhases", updated);
+                                }}
+                                placeholder="e.g. 1–4"
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                              />
+                              <input
+                                type="text"
+                                value={phase.name}
+                                onChange={(e) => {
+                                  const updated = program.structuredPhases.map((p, i) => i === pi ? { ...p, name: e.target.value } : p);
+                                  updateProgram(program.id, "structuredPhases", updated);
+                                }}
+                                placeholder="Phase name"
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                              />
+                              <input
+                                type="text"
+                                value={phase.description}
+                                onChange={(e) => {
+                                  const updated = program.structuredPhases.map((p, i) => i === pi ? { ...p, description: e.target.value } : p);
+                                  updateProgram(program.id, "structuredPhases", updated);
+                                }}
+                                placeholder="Description"
+                                className="md:col-span-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                              />
+                            </div>
+                            <button
+                              onClick={() => {
+                                const updated = program.structuredPhases.filter((_, i) => i !== pi);
+                                updateProgram(program.id, "structuredPhases", updated);
+                              }}
+                              className="p-1 text-red-400 hover:text-red-600 mt-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
                       </div>
                       {/* Auto-populated weekly schedule from actions */}
                       <div>
@@ -1216,7 +1336,7 @@ export default function ProgramsCMSPage() {
                             All weeks
                           </button>
                           <span className="text-blue-400">|</span>
-                          {weekRanges.map((wr, wi) => (
+                          {weekRanges.slice(0, program.duration).map((wr, wi) => (
                             wi !== copySource && (
                               <button
                                 key={wi}
@@ -1233,13 +1353,13 @@ export default function ProgramsCMSPage() {
                         </div>
                       )}
 
-                      {/* Calendar grid: weeks as columns, days as rows */}
+                      {/* Calendar grid: weeks as columns, days as rows — limited by duration */}
                       <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
                           <thead>
                             <tr>
                               <th className="p-2 text-xs text-gray-400 font-medium text-left w-16">Day</th>
-                              {weekRanges.map((wr, wi) => (
+                              {weekRanges.slice(0, program.duration).map((wr, wi) => (
                                 <th key={wi} className="p-2 text-xs font-medium text-gray-500 text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     {wr}
@@ -1261,7 +1381,7 @@ export default function ProgramsCMSPage() {
                             {dayLabels.map((dayLabel, dayIdx) => (
                               <tr key={dayIdx} className={dayIdx % 2 === 0 ? "" : "bg-gray-50/50"}>
                                 <td className="p-2 text-xs font-semibold text-gray-500">{dayLabel}</td>
-                                {weekRanges.map((_, weekIdx) => {
+                                {weekRanges.slice(0, program.duration).map((_, weekIdx) => {
                                   const day = program.weeks[weekIdx].days[dayIdx];
                                   const actionCount = day.actions.length;
                                   const isSelected = selectedCell?.weekIdx === weekIdx && selectedCell?.dayIdx === dayIdx;
