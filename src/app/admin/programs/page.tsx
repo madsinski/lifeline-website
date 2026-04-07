@@ -459,7 +459,7 @@ export default function ProgramsCMSPage() {
   };
 
   const duplicateProgram = async (sourceProgram: Program) => {
-    const newId = makeId();
+    const newId = `${sourceProgram.id}-copy-${makeId()}`;
     const clonedWeeks: WeekContent[] = sourceProgram.weeks.map((w) => ({
       weekRange: w.weekRange,
       days: w.days.map((d) => ({
