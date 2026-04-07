@@ -489,6 +489,8 @@ export default function AdminMessagesPage() {
         (payload: Record<string, unknown>) => {
           const m = payload.new as SupabaseMessage | undefined;
           if (!m) return;
+          // Skip messages sent by staff (prevents duplicates from own sends)
+          if (m.sender_role !== "client") return;
           const newMsg: Message = {
             id: m.id,
             senderName: m.sender_name,
