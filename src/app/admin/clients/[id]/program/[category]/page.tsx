@@ -128,6 +128,56 @@ export default function ClientProgramEditorPage() {
     setDirty(true);
   };
 
+  // Templates
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; category_key: string; description: string; actions: unknown[]; duration: number; level: string; exercise_type: string; target_audience: string; structured_phases: unknown; tagline: string }>>([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+
+  useEffect(() => {
+    supabase.from("program_templates").select("*").eq("category_key", categoryKey).order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setTemplates(data as typeof templates);
+    });
+  }, [categoryKey]);
+
+  const handleSaveAsTemplate = async () => {
+    const name = prompt("Template name:", programName);
+    if (!name) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("program_templates").insert({
+        name, category_key: categoryKey, description: description || "",
+        tagline: tagline || null, level: level || null, exercise_type: exerciseType || null,
+        target_audience: targetAudience || null,
+        structured_phases: phases.length > 0 ? JSON.stringify(phases) : null,
+        duration, actions, created_by: user?.id || null,
+      });
+      const { data: updated } = await supabase.from("program_templates").select("*").eq("category_key", categoryKey).order("created_at", { ascending: false });
+      if (updated) setTemplates(updated as typeof templates);
+      alert(`Template "${name}" saved`);
+    } catch { alert("Failed to save template"); }
+  };
+
+  const handleLoadTemplate = async (templateId: string) => {
+    const tmpl = templates.find(t => t.id === templateId);
+    if (!tmpl) return;
+    if (!confirm(`Load template "${tmpl.name}"? This will replace all current content.`)) return;
+    setProgramName(tmpl.name);
+    setDescription(tmpl.description || "");
+    setTagline(tmpl.tagline || "");
+    setLevel((tmpl.level || "") as ProgramLevel);
+    setExerciseType((tmpl.exercise_type || "") as ExerciseType);
+    setTargetAudience(tmpl.target_audience || "");
+    setDuration(tmpl.duration || 8);
+    setActions(Array.isArray(tmpl.actions) ? tmpl.actions as Action[] : []);
+    try {
+      const raw = tmpl.structured_phases;
+      if (Array.isArray(raw)) setPhases(raw as Phase[]);
+      else if (typeof raw === "string") setPhases(JSON.parse(raw));
+      else setPhases([]);
+    } catch { setPhases([]); }
+    setDirty(true);
+    setShowTemplateModal(false);
+  };
+
   // Action CRUD
   const addAction = (w: number, d: number) => {
     setActions(prev => [...prev, { week_range: w, day_of_week: d, time_group: "morning", label: "", details: [], priority: false }]);
@@ -189,6 +239,12 @@ export default function ClientProgramEditorPage() {
         </div>
         <div className="flex items-center gap-3">
           {dirty && <span className="text-xs text-amber-600 font-medium flex items-center gap-1"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />Unsaved</span>}
+          <button onClick={() => setShowTemplateModal(true)} className="px-3 py-2 text-xs font-medium text-purple-600 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors">
+            Templates {templates.length > 0 ? `(${templates.length})` : ""}
+          </button>
+          <button onClick={handleSaveAsTemplate} className="px-3 py-2 text-xs font-medium text-purple-600 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors">
+            Save as template
+          </button>
           <button onClick={handleShare} className={`px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${shared ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>
             {shared ? "Shared with client" : "Share with client"}
           </button>
@@ -406,6 +462,34 @@ export default function ClientProgramEditorPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Template modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowTemplateModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Load template</h3>
+              <button onClick={() => setShowTemplateModal(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">This will replace all current content with the template.</p>
+            <div className="overflow-y-auto flex-1 space-y-1">
+              {templates.length === 0 ? (
+                <p className="text-sm text-gray-300 text-center py-8">No templates for {categoryLabels[categoryKey] || categoryKey} yet.</p>
+              ) : templates.map((t) => (
+                <button key={t.id} onClick={() => handleLoadTemplate(t.id)}
+                  className="w-full text-left px-3 py-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors">
+                  <p className="text-sm font-medium text-gray-900">{t.name}</p>
+                  <p className="text-xs text-gray-400">{t.description || "No description"} · {t.duration || 8} weeks</p>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

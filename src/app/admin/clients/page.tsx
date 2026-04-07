@@ -1091,87 +1091,44 @@ function ClientProgramsPanel({ clientId, clientName, tier }: { clientId: string;
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <h4 className="text-sm font-semibold text-[#1F2937] mb-2">Programs</h4>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {categoryDefs.map((cat) => {
           const prog = programs[cat.key];
           const custom = customPrograms[cat.key];
-          const catTemplates = templates.filter(t => t.category_key === cat.key);
 
           return (
-            <div key={cat.key} className={`rounded-lg border p-2.5 ${custom ? "border-amber-200 bg-amber-50/50" : "border-gray-200 bg-white"}`}>
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: cat.color + "18" }}>
-                  <span className="text-[8px] font-bold" style={{ color: cat.color }}>{cat.label[0]}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold text-gray-700 truncate">
-                    {prog ? prog.programName : "No program"}
-                    {custom && <span className="ml-1 text-[9px] font-bold text-amber-600">CUSTOM</span>}
-                  </p>
-                  {prog && <p className="text-[9px] text-gray-400">Week {prog.week}</p>}
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex flex-wrap gap-1 mt-2">
-                {!custom ? (
+            <div key={cat.key} className="flex items-center gap-2 py-1.5">
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+              <span className="text-[10px] font-semibold text-gray-500 w-14 flex-shrink-0">{cat.label}</span>
+              <span className="text-[11px] text-gray-700 flex-1 truncate">
+                {prog ? prog.programName : "—"}
+                {prog && <span className="text-gray-400 ml-1">· W{prog.week}</span>}
+              </span>
+              {custom ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">CUSTOM</span>
                   <button
-                    onClick={() => handleCustomize(cat.key)}
-                    disabled={saving}
-                    className="px-2 py-1 text-[9px] font-semibold text-amber-700 bg-amber-100 rounded hover:bg-amber-200 transition-colors disabled:opacity-50"
+                    onClick={() => router.push(`/admin/clients/${clientId}/program/${cat.key}`)}
+                    className="text-[9px] font-semibold text-blue-600 hover:underline"
                   >
-                    Customize
+                    Edit
                   </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => router.push(`/admin/clients/${clientId}/program/${cat.key}`)}
-                      className="px-2 py-1 text-[9px] font-semibold text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleSaveAsTemplate(cat.key)}
-                      disabled={saving}
-                      className="px-2 py-1 text-[9px] font-semibold text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors disabled:opacity-50"
-                    >
-                      Save as template
-                    </button>
-                    <button
-                      onClick={() => handleRemoveCustom(cat.key)}
-                      disabled={saving}
-                      className="px-2 py-1 text-[9px] font-semibold text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => setShowTemplates(showTemplates === cat.key ? null : cat.key)}
-                  className="px-2 py-1 text-[9px] font-semibold text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors"
-                >
-                  Templates {catTemplates.length > 0 ? `(${catTemplates.length})` : ""}
-                </button>
-              </div>
-
-              {/* Template picker */}
-              {showTemplates === cat.key && (
-                <div className="mt-2 border-t border-gray-100 pt-2 space-y-1">
-                  <p className="text-[9px] font-semibold text-gray-400 uppercase">Load from template</p>
-                  {catTemplates.length === 0 ? (
-                    <p className="text-[10px] text-gray-300 py-2">No templates yet. Customize a program and save it as a template to reuse it.</p>
-                  ) : catTemplates.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleLoadTemplate(cat.key, t.id)}
-                      disabled={saving}
-                      className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-50 text-[10px] transition-colors disabled:opacity-50"
-                    >
-                      <span className="font-semibold text-gray-700">{t.name}</span>
-                      {t.description && <span className="text-gray-400 ml-1">— {t.description}</span>}
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => handleRemoveCustom(cat.key)}
+                    disabled={saving}
+                    className="text-[9px] text-red-400 hover:text-red-600 disabled:opacity-50"
+                  >
+                    &times;
+                  </button>
                 </div>
+              ) : (
+                <button
+                  onClick={() => { handleCustomize(cat.key); }}
+                  disabled={saving}
+                  className="text-[9px] font-semibold text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                >
+                  Customize
+                </button>
               )}
             </div>
           );
