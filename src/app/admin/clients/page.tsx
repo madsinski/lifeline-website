@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Tier = "free-trial" | "self-maintained" | "full-access";
@@ -157,7 +157,8 @@ export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState<"All" | Tier | "none">("All");
   const [filterStatus, setFilterStatus] = useState<"All" | Status>("All");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [expandedId, setExpandedId] = useState<string | null>(searchParams.get("expand") || null);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [savingTier, setSavingTier] = useState<string | null>(null);

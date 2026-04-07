@@ -254,9 +254,7 @@ export default function ClientProgramEditorPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <Link href="/admin/clients" className="text-sm text-gray-400 hover:text-gray-600">&larr; Clients</Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-sm text-gray-600">{clientName}</span>
+            <Link href={`/admin/clients?expand=${clientId}`} className="text-sm text-gray-400 hover:text-gray-600">&larr; {clientName}</Link>
             <span className="text-gray-300">/</span>
             <span className="text-sm font-medium" style={{ color }}>{categoryLabels[categoryKey] || categoryKey}</span>
           </div>
