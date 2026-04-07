@@ -229,6 +229,8 @@ export default function ProgramsCMSPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingDelete, setPendingDelete] = useState<{ programId: string; programName: string } | null>(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [programTemplates, setProgramTemplates] = useState<Array<{ id: string; name: string; category_key: string; description: string; actions: unknown[]; duration: number; level: string; exercise_type: string; target_audience: string; structured_phases: unknown; tagline: string }>>([]);
 
   // Clients tab state
   const [showClientsTab, setShowClientsTab] = useState(false);
@@ -367,6 +369,10 @@ export default function ProgramsCMSPage() {
   useEffect(() => {
     loadFromSupabase();
     loadProgramClientCounts();
+    // Load templates
+    supabase.from("program_templates").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setProgramTemplates(data as typeof programTemplates);
+    });
   }, [loadFromSupabase, loadProgramClientCounts]);
 
   const isClientsTab = showClientsTab;
@@ -1016,6 +1022,12 @@ export default function ProgramsCMSPage() {
               className="px-4 py-2 bg-white border border-[#20c858] text-[#20c858] text-sm font-medium rounded-lg hover:bg-[#20c858]/5 transition-colors"
             >
               Duplicate Existing
+            </button>
+            <button
+              onClick={() => setShowTemplateModal(true)}
+              className="px-4 py-2 bg-white border border-purple-400 text-purple-600 text-sm font-medium rounded-lg hover:bg-purple-50 transition-colors"
+            >
+              Templates {programTemplates.length > 0 ? `(${programTemplates.length})` : ""}
             </button>
             <button
               onClick={handleExport}
@@ -1678,6 +1690,110 @@ export default function ProgramsCMSPage() {
                   })}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template library modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowTemplateModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Template Library</h3>
+                <p className="text-sm text-gray-500">Load a template as a new program in {activeCategory?.name || "this category"}</p>
+              </div>
+              <button onClick={() => setShowTemplateModal(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-2">
+              {programTemplates.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-400">No templates yet</p>
+                  <p className="text-xs text-gray-300 mt-1">Customize a client&apos;s program and save it as a template to see it here.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Templates for current category */}
+                  {programTemplates.filter(t => t.category_key === activeTab).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-1">{activeCategory?.name || activeTab}</p>
+                      {programTemplates.filter(t => t.category_key === activeTab).map((tmpl) => (
+                        <button
+                          key={tmpl.id}
+                          onClick={async () => {
+                            const newId = `tmpl-${tmpl.id.slice(0, 8)}-${Math.random().toString(36).slice(2, 6)}`;
+                            // Create program from template actions — convert to week structure
+                            const templateActions = (tmpl.actions || []) as Array<Record<string, unknown>>;
+                            const weeks = createEmptyWeeks();
+                            for (const a of templateActions) {
+                              const wi = (a.week_range as number) || 0;
+                              const di = (a.day_of_week as number) || 0;
+                              if (wi < weeks.length && di < 7) {
+                                weeks[wi].days[di].actions.push({
+                                  id: makeId(),
+                                  label: (a.label as string) || "",
+                                  timeGroup: ((a.time_group as string) || "morning") as TimeGroup,
+                                  details: Array.isArray(a.details) ? a.details as string[] : [],
+                                  priority: !!a.priority,
+                                  imageUrl: (a.image_url as string) || undefined,
+                                  videoUrl: (a.video_url as string) || undefined,
+                                });
+                              }
+                            }
+                            updateCategories(
+                              categories.map((cat) =>
+                                cat.id === activeTab ? {
+                                  ...cat,
+                                  programs: [...cat.programs, {
+                                    id: newId,
+                                    name: tmpl.name,
+                                    tagline: tmpl.tagline || "",
+                                    description: tmpl.description || "",
+                                    duration: (tmpl.duration || 8) as 4 | 8 | 12,
+                                    level: (tmpl.level || "") as ProgramLevel,
+                                    exerciseType: (tmpl.exercise_type || "") as ExerciseType,
+                                    targetAudience: tmpl.target_audience || "",
+                                    structuredPhases: Array.isArray(tmpl.structured_phases) ? tmpl.structured_phases as ProgramPhase[] : [],
+                                    phases: "",
+                                    weeks,
+                                  }],
+                                } : cat
+                              )
+                            );
+                            setShowTemplateModal(false);
+                            setToast({ message: `Created "${tmpl.name}" from template`, type: "success" });
+                          }}
+                          className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-purple-600">T</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{tmpl.name}</p>
+                            <p className="text-xs text-gray-400">{tmpl.description || "No description"} · {tmpl.duration || 8} weeks</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Templates for other categories */}
+                  {programTemplates.filter(t => t.category_key !== activeTab).length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider px-1 mb-1">Other categories</p>
+                      {programTemplates.filter(t => t.category_key !== activeTab).map((tmpl) => (
+                        <div key={tmpl.id} className="px-4 py-2 text-xs text-gray-400">
+                          {tmpl.name} <span className="text-gray-300">({tmpl.category_key})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

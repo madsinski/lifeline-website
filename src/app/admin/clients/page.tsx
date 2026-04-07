@@ -1115,23 +1115,13 @@ function ClientProgramsPanel({ clientId, clientName, tier }: { clientId: string;
               {/* Action buttons */}
               <div className="flex flex-wrap gap-1 mt-2">
                 {!custom ? (
-                  <>
-                    <button
-                      onClick={() => handleCustomize(cat.key)}
-                      disabled={saving}
-                      className="px-2 py-1 text-[9px] font-semibold text-amber-700 bg-amber-100 rounded hover:bg-amber-200 transition-colors disabled:opacity-50"
-                    >
-                      Customize
-                    </button>
-                    {catTemplates.length > 0 && (
-                      <button
-                        onClick={() => setShowTemplates(showTemplates === cat.key ? null : cat.key)}
-                        className="px-2 py-1 text-[9px] font-semibold text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors"
-                      >
-                        Templates ({catTemplates.length})
-                      </button>
-                    )}
-                  </>
+                  <button
+                    onClick={() => handleCustomize(cat.key)}
+                    disabled={saving}
+                    className="px-2 py-1 text-[9px] font-semibold text-amber-700 bg-amber-100 rounded hover:bg-amber-200 transition-colors disabled:opacity-50"
+                  >
+                    Customize
+                  </button>
                 ) : (
                   <>
                     <button
@@ -1156,13 +1146,21 @@ function ClientProgramsPanel({ clientId, clientName, tier }: { clientId: string;
                     </button>
                   </>
                 )}
+                <button
+                  onClick={() => setShowTemplates(showTemplates === cat.key ? null : cat.key)}
+                  className="px-2 py-1 text-[9px] font-semibold text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors"
+                >
+                  Templates {catTemplates.length > 0 ? `(${catTemplates.length})` : ""}
+                </button>
               </div>
 
               {/* Template picker */}
               {showTemplates === cat.key && (
                 <div className="mt-2 border-t border-gray-100 pt-2 space-y-1">
                   <p className="text-[9px] font-semibold text-gray-400 uppercase">Load from template</p>
-                  {catTemplates.map((t) => (
+                  {catTemplates.length === 0 ? (
+                    <p className="text-[10px] text-gray-300 py-2">No templates yet. Customize a program and save it as a template to reuse it.</p>
+                  ) : catTemplates.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => handleLoadTemplate(cat.key, t.id)}
