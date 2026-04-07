@@ -465,10 +465,22 @@ export default function AdminMessagesPage() {
 
     if (liveStaff && liveStaff.length > 0) {
       setStaffMembers(liveStaff);
-      setReplyAsStaff((prev) => {
-        const found = liveStaff.find((s) => s.id === prev.id);
-        return found ?? liveStaff[0];
-      });
+      // Auto-set replyAsStaff to the currently logged-in user
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          const match = liveStaff.find((s) => s.email.toLowerCase() === user.email!.toLowerCase());
+          if (match) {
+            setReplyAsStaff(match);
+          } else {
+            setReplyAsStaff(liveStaff[0]);
+          }
+        } else {
+          setReplyAsStaff(liveStaff[0]);
+        }
+      } catch {
+        setReplyAsStaff(liveStaff[0]);
+      }
     }
 
     if (fromDb !== null) {
@@ -857,21 +869,9 @@ export default function AdminMessagesPage() {
         {/* Send message input */}
         <div className="px-4 py-3 border-t border-gray-200 bg-white flex-shrink-0">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs text-gray-400">Reply as:</span>
-            <select
-              value={replyAsStaff.id}
-              onChange={(e) => {
-                const s = staffMembers.find((sm) => sm.id === e.target.value);
-                if (s) setReplyAsStaff(s);
-              }}
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 focus:border-[#20c858] text-gray-700"
-            >
-              {staffMembers.filter((s) => s.active).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({roleLabels[s.role]})
-                </option>
-              ))}
-            </select>
+            <span className="text-xs text-gray-400">Sending as</span>
+            <span className="text-xs font-medium text-gray-700">{replyAsStaff.name}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleColors[replyAsStaff.role]}`}>{roleLabels[replyAsStaff.role]}</span>
           </div>
           <div className="flex items-end gap-3">
             <textarea

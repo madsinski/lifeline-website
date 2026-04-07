@@ -666,6 +666,28 @@ export default function TeamPage() {
                               </svg>
                             </button>
                             <button
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
+                                    redirectTo: `${window.location.origin}/admin/login`,
+                                  });
+                                  if (error) {
+                                    alert(`Failed: ${error.message}`);
+                                  } else {
+                                    alert(`Password reset email sent to ${member.email}`);
+                                  }
+                                } catch {
+                                  alert("Failed to send reset email");
+                                }
+                              }}
+                              className="p-1.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors"
+                              title="Resend login details"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                            <button
                               onClick={() => handleRemoveClick(member)}
                               className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                               title="Remove"
