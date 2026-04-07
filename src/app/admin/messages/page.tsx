@@ -305,6 +305,15 @@ async function sendMessageToSupabase(
       console.error("[Messages] Insert failed:", error?.message);
       return null;
     }
+
+    // Unarchive conversation if it was archived (so client sees it)
+    try {
+      await supabase
+        .from("conversations")
+        .update({ archived: false })
+        .eq("id", conversationId);
+    } catch {}
+
     const row = data as SupabaseMessage;
 
     // Send push notification to the client
