@@ -296,20 +296,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 router.push("/admin");
               }
             }}
-            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              sidebarCollapsed ? "justify-center" : ""
-            } ${coachingView ? "bg-[#20c858]/15 text-[#20c858]" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`}
+            className={`flex items-center w-full px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+              sidebarCollapsed ? "justify-center" : "justify-between"
+            } ${coachingView ? "bg-[#20c858]/15 text-[#20c858]" : "text-gray-400 hover:bg-gray-700 hover:text-white"}`}
             title={sidebarCollapsed ? (coachingView ? "Switch to Admin view" : "Switch to Coaching view") : undefined}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
+            {!sidebarCollapsed ? (
+              <span>{coachingView ? "Coaching view" : "Admin view"}</span>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            )}
             {!sidebarCollapsed && (
-              <span className="flex items-center gap-2 flex-1">
-                {coachingView ? "Coaching view" : "Admin view"}
-                <span className={`ml-auto relative w-8 h-4 rounded-full transition-colors ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
-                  <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-4" : "translate-x-0.5"}`} />
-                </span>
+              <span className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-[18px]" : "translate-x-0.5"}`} />
               </span>
             )}
           </button>

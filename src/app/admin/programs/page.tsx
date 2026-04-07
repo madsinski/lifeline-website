@@ -1293,7 +1293,7 @@ export default function ProgramsCMSPage() {
                                                 updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "label", e.target.value)
                                               }
                                               placeholder="Action label (e.g. Barbell Bench Press)"
-                                              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
                                             />
                                             <select
                                               value={action.timeGroup}
@@ -1315,9 +1315,9 @@ export default function ProgramsCMSPage() {
                                             onChange={(e) =>
                                               updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "details", e.target.value.split("\n"))
                                             }
-                                            placeholder="Details — one item per line (e.g. 4 sets x 8 reps, 60s rest, RPE 7)"
-                                            rows={5}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed"
+                                            placeholder="Details — one item per line&#10;&#10;e.g.&#10;4 sets x 8 reps&#10;60s rest between sets&#10;RPE 7&#10;Focus on controlled tempo"
+                                            rows={12}
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed min-h-[200px]"
                                           />
                                           {/* Row 3: Media URLs */}
                                           <div className="flex gap-3">
