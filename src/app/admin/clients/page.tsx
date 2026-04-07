@@ -215,6 +215,15 @@ export default function ClientsPage() {
           console.log("[Admin Clients] Could not fetch subscriptions separately, showing clients without subscription data");
         }
 
+        // Build coach assignments from data
+        const assignments: Record<string, string> = {};
+        for (const row of clientsData) {
+          if ((row as Record<string, unknown>).assigned_coach_id) {
+            assignments[row.id as string] = (row as Record<string, unknown>).assigned_coach_id as string;
+          }
+        }
+        setCoachAssignments(prev => ({ ...prev, ...assignments }));
+
         const normalized = clientsData.map((row) => {
           const clientRow: ClientRow = {
             ...row,
@@ -223,7 +232,6 @@ export default function ClientsPage() {
           return normalizeClient(clientRow);
         });
 
-        console.log("[Admin Clients] Normalized clients:", normalized);
         setClients(normalized);
       } else {
         console.log("[Admin Clients] No clients found in clients table, trying auth admin API...");
@@ -595,8 +603,12 @@ export default function ClientsPage() {
     </th>
   );
 
-  const handleAssignCoach = (clientId: string, staffId: string) => {
+  const handleAssignCoach = async (clientId: string, staffId: string) => {
     setCoachAssignments((prev) => ({ ...prev, [clientId]: staffId }));
+    // Persist to Supabase
+    try {
+      await supabase.from("clients").update({ assigned_coach_id: staffId }).eq("id", clientId);
+    } catch {}
   };
 
   return (
@@ -841,6 +853,7 @@ export default function ClientsPage() {
                   <SortHeader label="Email" field="email" />
                   <SortHeader label="Tier" field="tier" />
                   <SortHeader label="Status" field="status" />
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coach</th>
                   <SortHeader label="Joined" field="joined" />
                 </tr>
               </thead>
@@ -1087,47 +1100,55 @@ function ClientProgramsPanel({ clientId, clientName, tier }: { clientId: string;
     setSaving(false);
   };
 
-  if (loading) return <div><p className="text-xs text-gray-400">Loading programs...</p></div>;
+  const handleChangeWeek = async (categoryKey: string, newWeek: number) => {
+    try {
+      await supabase.from("client_programs").update({ week_number: newWeek }).eq("client_id", clientId).eq("category_key", categoryKey);
+      setPrograms(prev => ({
+        ...prev,
+        [categoryKey]: prev[categoryKey] ? { ...prev[categoryKey], week: newWeek } : prev[categoryKey],
+      }));
+    } catch {}
+  };
+
+  if (loading) return <div><p className="text-xs text-gray-400">Loading...</p></div>;
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      <h4 className="text-sm font-semibold text-[#1F2937] mb-2">Programs</h4>
-      <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Programs</p>
+      <div className="space-y-1">
         {categoryDefs.map((cat) => {
           const prog = programs[cat.key];
           const custom = customPrograms[cat.key];
 
           return (
-            <div key={cat.key} className="flex items-center gap-2 py-1.5">
-              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-              <span className="text-[10px] font-semibold text-gray-500 w-14 flex-shrink-0">{cat.label}</span>
-              <span className="text-[11px] text-gray-700 flex-1 truncate">
-                {prog ? prog.programName : "—"}
-                {prog && <span className="text-gray-400 ml-1">· W{prog.week}</span>}
+            <div key={cat.key} className="flex items-center gap-2 py-1 group">
+              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+              <span className="text-xs font-medium text-gray-500 w-16 flex-shrink-0">{cat.label}</span>
+              <span className="text-xs text-gray-700 flex-1 truncate">
+                {prog ? prog.programName : <span className="text-gray-300">Not selected</span>}
               </span>
+              {/* Week editor */}
+              {prog && (
+                <div className="flex items-center gap-0.5">
+                  <button onClick={() => handleChangeWeek(cat.key, Math.max(1, prog.week - 1))}
+                    className="w-4 h-4 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 flex items-center justify-center text-[10px]">-</button>
+                  <span className="text-[10px] font-medium text-gray-400 w-6 text-center">W{prog.week}</span>
+                  <button onClick={() => handleChangeWeek(cat.key, prog.week + 1)}
+                    className="w-4 h-4 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 flex items-center justify-center text-[10px]">+</button>
+                </div>
+              )}
+              {/* Actions */}
               {custom ? (
                 <div className="flex items-center gap-1">
-                  <span className="text-[8px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">CUSTOM</span>
-                  <button
-                    onClick={() => router.push(`/admin/clients/${clientId}/program/${cat.key}`)}
-                    className="text-[9px] font-semibold text-blue-600 hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleRemoveCustom(cat.key)}
-                    disabled={saving}
-                    className="text-[9px] text-red-400 hover:text-red-600 disabled:opacity-50"
-                  >
-                    &times;
-                  </button>
+                  <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">CUSTOM</span>
+                  <button onClick={() => router.push(`/admin/clients/${clientId}/program/${cat.key}`)}
+                    className="text-[10px] font-medium text-blue-600 hover:underline">Edit</button>
+                  <button onClick={() => handleRemoveCustom(cat.key)} disabled={saving}
+                    className="text-[10px] text-gray-300 hover:text-red-500 disabled:opacity-50">&times;</button>
                 </div>
               ) : (
-                <button
-                  onClick={() => { handleCustomize(cat.key); }}
-                  disabled={saving}
-                  className="text-[9px] font-semibold text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                >
+                <button onClick={() => handleCustomize(cat.key)} disabled={saving}
+                  className="text-[10px] font-medium text-gray-300 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50">
                   Customize
                 </button>
               )}
@@ -1221,11 +1242,21 @@ function ClientRowComponent({
             )}
           </div>
         </td>
+        <td className="px-4 py-3">
+          {assignedStaff ? (
+            <div className="flex items-center gap-1.5">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${staffRoleColors[assignedStaff.role]}`}>{assignedStaff.avatarInitial}</div>
+              <span className="text-xs text-gray-600 truncate max-w-[80px]">{assignedStaff.name.split(" ")[0]}</span>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-300">—</span>
+          )}
+        </td>
         <td className="px-4 py-3 text-sm text-gray-600">{client.joined}</td>
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={5} className="bg-gray-50/80 px-4 py-4">
+          <td colSpan={6} className="bg-gray-50/80 px-4 py-4">
             {/* Header row: name + status + message + subscription + delete */}
             <div className="flex items-center gap-2 mb-3 flex-wrap">
               <p className="text-sm font-semibold text-[#1F2937]">{client.name}</p>
