@@ -294,7 +294,7 @@ async function sendMessageToSupabase(
         conversation_id: conversationId,
         sender_id: isRealUUID ? staff.id : null,
         sender_name: staff.name,
-        sender_role: staff.role === "coach" ? "coach" : staff.role,
+        sender_role: "coach",
         content,
         read: false,
       })
