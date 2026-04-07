@@ -1159,6 +1159,44 @@ export default function ProgramsCMSPage() {
                       </span>
                     </div>
                     <button
+                      onClick={async () => {
+                        const name = prompt("Save as template:", program.name);
+                        if (!name) return;
+                        try {
+                          const { data: { user } } = await supabase.auth.getUser();
+                          // Collect all actions from this program
+                          const allActions = program.weeks.flatMap((w, wi) =>
+                            w.days.flatMap((d, di) =>
+                              d.actions.map((a) => ({
+                                week_range: wi, day_of_week: di, time_group: a.timeGroup,
+                                label: a.label, details: a.details, priority: a.priority,
+                                image_url: a.imageUrl || null, video_url: a.videoUrl || null,
+                              }))
+                            )
+                          );
+                          await supabase.from("program_templates").insert({
+                            name, category_key: activeTab, description: program.description || "",
+                            tagline: program.tagline || null, level: program.level || null,
+                            exercise_type: program.exerciseType || null,
+                            target_audience: program.targetAudience || null,
+                            structured_phases: program.structuredPhases.length > 0 ? JSON.stringify(program.structuredPhases) : null,
+                            duration: program.duration, actions: allActions,
+                            created_by: user?.id || null,
+                          });
+                          setProgramTemplates(prev => [{ id: "new", name, category_key: activeTab, description: program.description || "", actions: allActions, duration: program.duration, level: program.level || "", exercise_type: program.exerciseType || "", target_audience: program.targetAudience || "", structured_phases: program.structuredPhases, tagline: program.tagline || "" }, ...prev]);
+                          setToast({ message: `Template "${name}" saved`, type: "success" });
+                        } catch {
+                          setToast({ message: "Failed to save template", type: "error" });
+                        }
+                      }}
+                      className="p-1.5 text-purple-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                      title="Save as template"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                    </button>
+                    <button
                       onClick={() => setPendingDelete({ programId: program.id, programName: program.name })}
                       className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     >
