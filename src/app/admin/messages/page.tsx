@@ -285,11 +285,14 @@ async function sendMessageToSupabase(
   staff: StaffMember,
 ): Promise<Message | null> {
   try {
+    // Only use sender_id if it's a real UUID (not a fallback like "staff-1")
+    const isRealUUID = staff.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(staff.id);
+
     const { data, error } = await supabase
       .from("messages")
       .insert({
         conversation_id: conversationId,
-        sender_id: staff.id,
+        sender_id: isRealUUID ? staff.id : null,
         sender_name: staff.name,
         sender_role: staff.role === "coach" ? "coach" : staff.role,
         content,
@@ -298,7 +301,10 @@ async function sendMessageToSupabase(
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      console.error("[Messages] Insert failed:", error?.message);
+      return null;
+    }
     const row = data as SupabaseMessage;
 
     // Send push notification to the client
@@ -401,7 +407,7 @@ async function createConversationWithClient(
     // Add welcome message
     await supabase.from("messages").insert({
       conversation_id: (conv as SupabaseConversation).id,
-      sender_id: isRealUUID ? staff.id : "system",
+      sender_id: isRealUUID ? staff.id : null,
       sender_name: staff.name,
       sender_role: "coach",
       content: `Hello! I'm ${staff.name}, your health coach at Lifeline Health. Feel free to message me anytime with questions about your training, nutrition, or health goals.`,
