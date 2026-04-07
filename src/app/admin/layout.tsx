@@ -309,8 +309,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </svg>
             )}
             {!sidebarCollapsed && (
-              <span className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+              <span className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-[22px]" : "translate-x-0.5"}`} />
               </span>
             )}
           </button>
