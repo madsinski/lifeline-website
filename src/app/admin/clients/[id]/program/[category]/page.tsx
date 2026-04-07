@@ -125,7 +125,29 @@ export default function ClientProgramEditorPage() {
   const handleShare = async () => {
     const next = !shared;
     setShared(next);
-    setDirty(true);
+    // Save immediately so sharing takes effect without clicking Save
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("client_custom_programs").upsert({
+        client_id: clientId,
+        category_key: categoryKey,
+        program_name: programName || `Custom ${categoryLabels[categoryKey] || categoryKey}`,
+        tagline: tagline || null,
+        description: description || null,
+        target_audience: targetAudience || null,
+        level: level || null,
+        exercise_type: exerciseType || null,
+        duration,
+        structured_phases: phases.length > 0 ? JSON.stringify(phases) : null,
+        actions,
+        shared: next,
+        created_by: user?.id || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "client_id,category_key" });
+    } catch {
+      alert("Failed to update sharing status");
+      setShared(!next); // revert
+    }
   };
 
   // Templates
