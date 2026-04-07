@@ -25,11 +25,16 @@ interface WeekContent {
   days: DayContent[];
 }
 
+type ProgramLevel = "beginner" | "intermediate" | "advanced" | "";
+
 interface Program {
   id: string;
   name: string;
   description: string;
   duration: 4 | 8 | 12;
+  level: ProgramLevel;
+  targetAudience: string;
+  phases: string;
   weeks: WeekContent[];
 }
 
@@ -80,43 +85,43 @@ const sampleCategories: Category[] = [
     id: "exercise",
     name: "Exercise",
     programs: [
-      { id: "gym-beginner", name: "Gym — Foundation", description: "Build a solid base with fundamental movements", duration: 8, weeks: createEmptyWeeks() },
-      { id: "gym-intermediate", name: "Gym — Progression", description: "Progressive overload with compound lifts", duration: 8, weeks: createEmptyWeeks() },
-      { id: "gym-advanced", name: "Gym — Performance", description: "Advanced training with periodisation", duration: 8, weeks: createEmptyWeeks() },
-      { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, weeks: createEmptyWeeks() },
-      { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, weeks: createEmptyWeeks() },
-      { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, weeks: createEmptyWeeks() },
-      { id: "exercise-daily-insights", name: "Daily Insights", description: "Daily exercise tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
+      { id: "gym-beginner", name: "Gym — Foundation", description: "Build a solid base with fundamental movements", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "gym-intermediate", name: "Gym — Progression", description: "Progressive overload with compound lifts", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "gym-advanced", name: "Gym — Performance", description: "Advanced training with periodisation", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "exercise-daily-insights", name: "Daily Insights", description: "Daily exercise tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "nutrition",
     name: "Nutrition",
     programs: [
-      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, weeks: createEmptyWeeks() },
-      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, weeks: createEmptyWeeks() },
-      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, weeks: createEmptyWeeks() },
-      { id: "nutrition-daily-insights", name: "Daily Insights", description: "Daily nutrition tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
+      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "nutrition-daily-insights", name: "Daily Insights", description: "Daily nutrition tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "sleep",
     name: "Sleep",
     programs: [
-      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, weeks: createEmptyWeeks() },
-      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, weeks: createEmptyWeeks() },
-      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, weeks: createEmptyWeeks() },
-      { id: "sleep-daily-insights", name: "Daily Insights", description: "Daily sleep tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
+      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "sleep-daily-insights", name: "Daily Insights", description: "Daily sleep tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
   {
     id: "mental",
     name: "Mental wellness",
     programs: [
-      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, weeks: createEmptyWeeks() },
-      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, weeks: createEmptyWeeks() },
-      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, weeks: createEmptyWeeks() },
-      { id: "mental-daily-insights", name: "Daily Insights", description: "Daily mental wellness tips shown in the app", duration: 12, weeks: createEmptyWeeks() },
+      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
+      { id: "mental-daily-insights", name: "Daily Insights", description: "Daily mental wellness tips shown in the app", duration: 12, level: "" as ProgramLevel, targetAudience: "", phases: "", weeks: createEmptyWeeks() },
     ],
   },
 ];
@@ -321,6 +326,9 @@ export default function ProgramsCMSPage() {
                 name: p.name as string,
                 description: (p.description || "") as string,
                 duration: ((p.duration as number) || 8) as 4 | 8 | 12,
+                level: ((p as Record<string, unknown>).level as ProgramLevel) || "",
+                targetAudience: ((p as Record<string, unknown>).target_audience as string) || "",
+                phases: ((p as Record<string, unknown>).phases as string) || "",
                 weeks,
               };
             }),
@@ -391,7 +399,7 @@ export default function ProgramsCMSPage() {
   };
 
   const programSyncTimeout = useRef<Record<string, NodeJS.Timeout>>({});
-  const updateProgram = (programId: string, field: "name" | "description" | "duration", value: string | number) => {
+  const updateProgram = (programId: string, field: "name" | "description" | "duration" | "level" | "targetAudience" | "phases", value: string | number) => {
     updateCategories(
       categories.map((cat) => ({
         ...cat,
@@ -404,7 +412,8 @@ export default function ProgramsCMSPage() {
     if (programSyncTimeout.current[programId]) clearTimeout(programSyncTimeout.current[programId]);
     programSyncTimeout.current[programId] = setTimeout(async () => {
       try {
-        await supabase.from("programs").update({ [field]: value }).eq("key", programId);
+        const dbField = field === "targetAudience" ? "target_audience" : field;
+        await supabase.from("programs").update({ [dbField]: value }).eq("key", programId);
       } catch {
         // silent — will sync on full save
       }
@@ -425,6 +434,9 @@ export default function ProgramsCMSPage() {
                   name: "New Program",
                   description: "",
                   duration: 8 as 4 | 8 | 12,
+                  level: "" as ProgramLevel,
+                  targetAudience: "",
+                  phases: "",
                   weeks: createEmptyWeeks(),
                 },
               ],
@@ -479,6 +491,9 @@ export default function ProgramsCMSPage() {
                   name: `${sourceProgram.name} (copy)`,
                   description: sourceProgram.description,
                   duration: sourceProgram.duration,
+                  level: sourceProgram.level,
+                  targetAudience: sourceProgram.targetAudience,
+                  phases: sourceProgram.phases,
                   weeks: clonedWeeks,
                 },
               ],
@@ -692,6 +707,9 @@ export default function ProgramsCMSPage() {
             name: prog.name,
             description: prog.description,
             duration: prog.duration,
+            level: prog.level || null,
+            target_audience: prog.targetAudience || null,
+            phases: prog.phases || null,
             sort_order: pi,
           }, { onConflict: "key" }).select("id").single();
 
@@ -760,6 +778,9 @@ export default function ProgramsCMSPage() {
             name: prog.name,
             description: prog.description,
             duration: prog.duration,
+            level: prog.level || null,
+            target_audience: prog.targetAudience || null,
+            phases: prog.phases || null,
             sort_order: pi,
           }, { onConflict: "key" });
         }
@@ -1115,6 +1136,68 @@ export default function ProgramsCMSPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-gray-400">Active clients:</span>
                         <span className="text-xs font-semibold text-gray-700">{stats.activeClients}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Program details panel */}
+                  {expandedProgram === program.id && (
+                    <div className="border-t border-gray-100 px-4 py-4">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Program Details</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Level</label>
+                          <select
+                            value={program.level}
+                            onChange={(e) => updateProgram(program.id, "level", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                          >
+                            <option value="">Not set</option>
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Who is it for</label>
+                          <input
+                            type="text"
+                            value={program.targetAudience}
+                            onChange={(e) => updateProgram(program.id, "targetAudience", e.target.value)}
+                            placeholder="e.g. People new to strength training looking to build a solid foundation"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                          />
+                        </div>
+                      </div>
+                      <div className="mb-3">
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Program phases</label>
+                        <textarea
+                          value={program.phases}
+                          onChange={(e) => updateProgram(program.id, "phases", e.target.value)}
+                          placeholder={"One phase per line, e.g.\nWeek 1-3: Foundation — learn the movements\nWeek 4-6: Building — increase volume\nWeek 7-8: Performance — test your strength"}
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed"
+                        />
+                      </div>
+                      {/* Auto-populated weekly schedule from actions */}
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Weekly schedule (auto-generated from Week 1)</label>
+                        <div className="grid grid-cols-7 gap-1">
+                          {dayLabels.map((day, di) => {
+                            const dayActions = program.weeks[0]?.days[di]?.actions || [];
+                            const summary = dayActions.length > 0
+                              ? dayActions.map((a) => a.label).filter(Boolean).join(", ") || "Actions set"
+                              : "Rest day";
+                            return (
+                              <div key={di} className={`rounded-lg p-2 text-center ${dayActions.length > 0 ? "bg-gray-50 border border-gray-200" : "bg-gray-50/50"}`}>
+                                <p className="text-[10px] font-bold text-gray-500 mb-0.5">{day}</p>
+                                <p className={`text-[9px] leading-tight ${dayActions.length > 0 ? "text-gray-700 font-medium" : "text-gray-300"}`}>
+                                  {summary.length > 30 ? summary.slice(0, 30) + "..." : summary}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
