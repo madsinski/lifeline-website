@@ -886,6 +886,303 @@ export default function ClientsPage() {
   );
 }
 
+// ─── Client Programs Panel ──────────────────────────────────
+const categoryDefs = [
+  { key: "exercise", label: "Exercise", color: "#3B82F6", icon: "barbell" },
+  { key: "nutrition", label: "Nutrition", color: "#20c858", icon: "nutrition" },
+  { key: "sleep", label: "Sleep", color: "#8B5CF6", icon: "moon" },
+  { key: "mental", label: "Mental", color: "#06B6D4", icon: "happy" },
+];
+
+function ClientProgramsPanel({ clientId, clientName, tier }: { clientId: string; clientName: string; tier: string }) {
+  const [programs, setPrograms] = useState<Record<string, { programKey: string; programName: string; week: number; isCustom: boolean }>>({});
+  const [customPrograms, setCustomPrograms] = useState<Record<string, Record<string, unknown>>>({});
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; category_key: string; description: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCustomize, setShowCustomize] = useState<string | null>(null);
+  const [showTemplates, setShowTemplates] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const router = useRouter();
+
+  const loadPrograms = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Load client's active programs
+      const { data: clientProgs } = await supabase
+        .from("client_programs")
+        .select("category_key, program_key, week_number")
+        .eq("client_id", clientId);
+
+      // Load program names
+      const { data: allProgs } = await supabase.from("programs").select("key, name");
+      const progNames: Record<string, string> = {};
+      for (const p of allProgs || []) progNames[(p as Record<string, string>).key] = (p as Record<string, string>).name;
+
+      // Load client custom programs
+      const { data: customs } = await supabase
+        .from("client_custom_programs")
+        .select("*")
+        .eq("client_id", clientId);
+
+      const customMap: Record<string, Record<string, unknown>> = {};
+      for (const c of customs || []) {
+        customMap[(c as Record<string, string>).category_key] = c as Record<string, unknown>;
+      }
+      setCustomPrograms(customMap);
+
+      const mapped: Record<string, { programKey: string; programName: string; week: number; isCustom: boolean }> = {};
+      for (const cp of clientProgs || []) {
+        const row = cp as Record<string, unknown>;
+        const catKey = row.category_key as string;
+        const progKey = row.program_key as string;
+        const isCustom = !!customMap[catKey];
+        mapped[catKey] = {
+          programKey: progKey,
+          programName: isCustom ? (customMap[catKey].program_name as string) : (progNames[progKey] || progKey),
+          week: (row.week_number as number) || 1,
+          isCustom,
+        };
+      }
+      setPrograms(mapped);
+
+      // Load templates
+      const { data: tmpl } = await supabase
+        .from("program_templates")
+        .select("id, name, category_key, description")
+        .order("created_at", { ascending: false });
+      setTemplates((tmpl || []) as Array<{ id: string; name: string; category_key: string; description: string }>);
+    } catch {}
+    setLoading(false);
+  }, [clientId]);
+
+  useEffect(() => { loadPrograms(); }, [loadPrograms]);
+
+  const handleCustomize = async (categoryKey: string) => {
+    setSaving(true);
+    try {
+      const existing = programs[categoryKey];
+      let baseName = `Custom ${categoryDefs.find(c => c.key === categoryKey)?.label || categoryKey} for ${clientName}`;
+      let baseActions: unknown[] = [];
+
+      // If client has an active program, fork its actions
+      if (existing) {
+        baseName = `${existing.programName} (custom)`;
+        const { data: prog } = await supabase.from("programs").select("id").eq("key", existing.programKey).maybeSingle();
+        if (prog) {
+          const { data: acts } = await supabase.from("program_actions").select("*").eq("program_id", (prog as Record<string, string>).id);
+          baseActions = (acts || []).map((a: Record<string, unknown>) => ({
+            week_range: a.week_range,
+            day_of_week: a.day_of_week,
+            time_group: a.time_group,
+            label: a.label,
+            details: a.details,
+            priority: a.priority,
+            image_url: a.image_url,
+            video_url: a.video_url,
+          }));
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      await supabase.from("client_custom_programs").upsert({
+        client_id: clientId,
+        category_key: categoryKey,
+        program_name: baseName,
+        description: existing ? `Customized from ${existing.programName}` : "",
+        actions: baseActions,
+        created_by: user?.id || null,
+        created_from_program: existing?.programKey || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "client_id,category_key" });
+
+      setShowCustomize(null);
+      await loadPrograms();
+    } catch (e) {
+      alert("Failed to create custom program");
+    }
+    setSaving(false);
+  };
+
+  const handleLoadTemplate = async (categoryKey: string, templateId: string) => {
+    setSaving(true);
+    try {
+      const { data: tmpl } = await supabase
+        .from("program_templates")
+        .select("*")
+        .eq("id", templateId)
+        .single();
+
+      if (tmpl) {
+        const t = tmpl as Record<string, unknown>;
+        const { data: { user } } = await supabase.auth.getUser();
+
+        await supabase.from("client_custom_programs").upsert({
+          client_id: clientId,
+          category_key: categoryKey,
+          program_name: `${t.name as string} (for ${clientName})`,
+          description: (t.description as string) || "",
+          tagline: (t.tagline as string) || null,
+          level: (t.level as string) || null,
+          exercise_type: (t.exercise_type as string) || null,
+          target_audience: (t.target_audience as string) || null,
+          structured_phases: t.structured_phases || null,
+          duration: (t.duration as number) || 8,
+          actions: t.actions || [],
+          created_by: user?.id || null,
+          created_from_template: t.id as string,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "client_id,category_key" });
+      }
+
+      setShowTemplates(null);
+      await loadPrograms();
+    } catch {
+      alert("Failed to load template");
+    }
+    setSaving(false);
+  };
+
+  const handleSaveAsTemplate = async (categoryKey: string) => {
+    const custom = customPrograms[categoryKey];
+    if (!custom) return;
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const name = prompt("Template name:", (custom.program_name as string) || "");
+      if (!name) { setSaving(false); return; }
+
+      await supabase.from("program_templates").insert({
+        name,
+        category_key: categoryKey,
+        description: (custom.description as string) || "",
+        tagline: (custom.tagline as string) || null,
+        level: (custom.level as string) || null,
+        exercise_type: (custom.exercise_type as string) || null,
+        target_audience: (custom.target_audience as string) || null,
+        structured_phases: custom.structured_phases || null,
+        duration: (custom.duration as number) || 8,
+        actions: custom.actions || [],
+        created_by: user?.id || null,
+      });
+
+      await loadPrograms();
+      alert(`Template "${name}" saved`);
+    } catch {
+      alert("Failed to save template");
+    }
+    setSaving(false);
+  };
+
+  const handleRemoveCustom = async (categoryKey: string) => {
+    if (!confirm("Remove custom program and revert to the general program?")) return;
+    setSaving(true);
+    try {
+      await supabase.from("client_custom_programs").delete().eq("client_id", clientId).eq("category_key", categoryKey);
+      await loadPrograms();
+    } catch {
+      alert("Failed to remove custom program");
+    }
+    setSaving(false);
+  };
+
+  if (loading) return <div><p className="text-xs text-gray-400">Loading programs...</p></div>;
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <h4 className="text-sm font-semibold text-[#1F2937] mb-2">Programs</h4>
+      <div className="space-y-2">
+        {categoryDefs.map((cat) => {
+          const prog = programs[cat.key];
+          const custom = customPrograms[cat.key];
+          const catTemplates = templates.filter(t => t.category_key === cat.key);
+
+          return (
+            <div key={cat.key} className={`rounded-lg border p-2.5 ${custom ? "border-amber-200 bg-amber-50/50" : "border-gray-200 bg-white"}`}>
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: cat.color + "18" }}>
+                  <span className="text-[8px] font-bold" style={{ color: cat.color }}>{cat.label[0]}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold text-gray-700 truncate">
+                    {prog ? prog.programName : "No program"}
+                    {custom && <span className="ml-1 text-[9px] font-bold text-amber-600">CUSTOM</span>}
+                  </p>
+                  {prog && <p className="text-[9px] text-gray-400">Week {prog.week}</p>}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-1 mt-2">
+                {!custom ? (
+                  <>
+                    <button
+                      onClick={() => handleCustomize(cat.key)}
+                      disabled={saving}
+                      className="px-2 py-1 text-[9px] font-semibold text-amber-700 bg-amber-100 rounded hover:bg-amber-200 transition-colors disabled:opacity-50"
+                    >
+                      Customize
+                    </button>
+                    {catTemplates.length > 0 && (
+                      <button
+                        onClick={() => setShowTemplates(showTemplates === cat.key ? null : cat.key)}
+                        className="px-2 py-1 text-[9px] font-semibold text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors"
+                      >
+                        Templates ({catTemplates.length})
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => router.push(`/admin/clients/${clientId}/program/${cat.key}`)}
+                      className="px-2 py-1 text-[9px] font-semibold text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleSaveAsTemplate(cat.key)}
+                      disabled={saving}
+                      className="px-2 py-1 text-[9px] font-semibold text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors disabled:opacity-50"
+                    >
+                      Save as template
+                    </button>
+                    <button
+                      onClick={() => handleRemoveCustom(cat.key)}
+                      disabled={saving}
+                      className="px-2 py-1 text-[9px] font-semibold text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Template picker */}
+              {showTemplates === cat.key && (
+                <div className="mt-2 border-t border-gray-100 pt-2 space-y-1">
+                  <p className="text-[9px] font-semibold text-gray-400 uppercase">Load from template</p>
+                  {catTemplates.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleLoadTemplate(cat.key, t.id)}
+                      disabled={saving}
+                      className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-50 text-[10px] transition-colors disabled:opacity-50"
+                    >
+                      <span className="font-semibold text-gray-700">{t.name}</span>
+                      {t.description && <span className="text-gray-400 ml-1">— {t.description}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ClientRowComponent({
   client,
   isEven,
@@ -973,7 +1270,7 @@ function ClientRowComponent({
       {isExpanded && (
         <tr>
           <td colSpan={5} className="bg-gray-50 px-6 py-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Profile */}
               <div>
                 <h4 className="text-sm font-semibold text-[#1F2937] mb-2">
@@ -1094,6 +1391,9 @@ function ClientRowComponent({
                   )}
                 </div>
               </div>
+
+              {/* Programs */}
+              <ClientProgramsPanel clientId={client.id} clientName={client.name} tier={client.tier} />
 
               {/* Actions */}
               <div>
