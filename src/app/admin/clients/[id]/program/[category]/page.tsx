@@ -57,6 +57,7 @@ export default function ClientProgramEditorPage() {
   // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
   const [dirty, setDirty] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ week: number; day: number } | null>(null);
   const [copySource, setCopySource] = useState<number | null>(null);
@@ -116,6 +117,8 @@ export default function ClientProgramEditorPage() {
         updated_at: new Date().toISOString(),
       }, { onConflict: "client_id,category_key" });
       setDirty(false);
+      setSaveMsg("Saved");
+      setTimeout(() => setSaveMsg(""), 2000);
     } catch {
       alert("Failed to save");
     }
@@ -273,6 +276,7 @@ export default function ClientProgramEditorPage() {
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] disabled:opacity-50">
             {saving ? "Saving..." : "Save"}
           </button>
+          {saveMsg && <span className="text-xs font-medium text-green-600">{saveMsg}</span>}
         </div>
       </div>
 
