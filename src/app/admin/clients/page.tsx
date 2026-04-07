@@ -1115,48 +1115,58 @@ function ClientProgramsPanel({ clientId, clientName, tier }: { clientId: string;
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Programs</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {categoryDefs.map((cat) => {
           const prog = programs[cat.key];
           const custom = customPrograms[cat.key];
 
           return (
-            <div key={cat.key} className={`rounded-lg border p-3 transition-colors ${custom ? "border-amber-200 bg-amber-50/30" : "border-gray-100 bg-gray-50/50 hover:bg-gray-50"}`}>
-              {/* Top: category + program name */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                <span className="text-xs font-semibold" style={{ color: cat.color }}>{cat.label}</span>
-                {custom && <span className="text-[8px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded ml-auto">CUSTOM</span>}
+            <div key={cat.key} className={`rounded-xl border p-4 transition-colors ${custom ? "border-amber-200 bg-amber-50/30" : "border-gray-100 bg-gray-50/50"}`}>
+              {/* Header: category label + badge */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                <span className="text-sm font-bold" style={{ color: cat.color }}>{cat.label}</span>
+                {custom && <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">CUSTOM</span>}
               </div>
-              <p className="text-sm font-medium text-gray-800 mb-2 truncate">
-                {prog ? prog.programName : <span className="text-gray-300 font-normal">No program selected</span>}
+
+              {/* Program name */}
+              <p className="text-base font-semibold text-gray-800 mb-3">
+                {prog ? prog.programName : <span className="text-gray-300 font-normal text-sm">No program selected</span>}
               </p>
-              {/* Bottom: week + actions */}
-              <div className="flex items-center gap-2">
-                {prog && (
-                  <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-md px-1.5 py-0.5">
+
+              {/* Week selector */}
+              {prog && (
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs text-gray-400">Week</span>
+                  <div className="flex items-center gap-0 bg-white border border-gray-200 rounded-lg overflow-hidden">
                     <button onClick={() => handleChangeWeek(cat.key, Math.max(1, prog.week - 1))}
-                      className="w-4 h-4 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center text-xs font-bold">−</button>
-                    <span className="text-xs font-medium text-gray-600 w-8 text-center">W{prog.week}</span>
+                      className="w-7 h-7 text-gray-400 hover:text-gray-700 hover:bg-gray-50 flex items-center justify-center text-sm font-bold transition-colors">−</button>
+                    <span className="text-sm font-semibold text-gray-700 w-8 text-center border-x border-gray-200">{prog.week}</span>
                     <button onClick={() => handleChangeWeek(cat.key, prog.week + 1)}
-                      className="w-4 h-4 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center text-xs font-bold">+</button>
+                      className="w-7 h-7 text-gray-400 hover:text-gray-700 hover:bg-gray-50 flex items-center justify-center text-sm font-bold transition-colors">+</button>
                   </div>
-                )}
-                <div className="flex items-center gap-1.5 ml-auto">
-                  {custom ? (
-                    <>
-                      <button onClick={() => router.push(`/admin/clients/${clientId}/program/${cat.key}`)}
-                        className="px-2 py-1 text-[10px] font-semibold text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors">Edit program</button>
-                      <button onClick={() => handleRemoveCustom(cat.key)} disabled={saving}
-                        className="px-1.5 py-1 text-[10px] text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors disabled:opacity-50">&times;</button>
-                    </>
-                  ) : (
-                    <button onClick={() => handleCustomize(cat.key)} disabled={saving}
-                      className="px-2 py-1 text-[10px] font-semibold text-gray-400 border border-gray-200 rounded hover:text-gray-600 hover:border-gray-300 transition-colors disabled:opacity-50">
-                      Customize
-                    </button>
-                  )}
                 </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {custom ? (
+                  <>
+                    <button onClick={() => router.push(`/admin/clients/${clientId}/program/${cat.key}`)}
+                      className="flex-1 px-3 py-2 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-center">
+                      Edit program
+                    </button>
+                    <button onClick={() => handleRemoveCustom(cat.key)} disabled={saving}
+                      className="px-2.5 py-2 text-xs text-gray-400 hover:text-red-500 border border-gray-200 rounded-lg hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
+                      Remove
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => handleCustomize(cat.key)} disabled={saving}
+                    className="flex-1 px-3 py-2 text-xs font-semibold text-gray-500 border border-gray-200 rounded-lg hover:text-gray-700 hover:border-gray-300 transition-colors disabled:opacity-50 text-center">
+                    Customize
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -1267,7 +1277,7 @@ function ClientRowComponent({
             <div className="flex items-center gap-3 mb-4">
               {/* Coach selector */}
               <div className="flex items-center gap-2">
-                {assignedStaff && <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold ${staffRoleColors[assignedStaff.role]}`}>{assignedStaff.avatarInitial}</div>}
+                <span className="text-xs font-medium text-gray-500">Coach</span>
                 <select value={assignedCoachId} onChange={(e) => { e.stopPropagation(); onAssignCoach(client.id, e.target.value); }} onClick={(e) => e.stopPropagation()}
                   className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
                   {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name} ({staffRoleLabels[s.role]})</option>)}
