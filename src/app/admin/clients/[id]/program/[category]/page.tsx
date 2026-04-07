@@ -6,6 +6,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type TimeGroup = "morning" | "midday" | "evening";
+type ProgramLevel = "beginner" | "intermediate" | "advanced" | "";
+type ExerciseType = "gym" | "home" | "";
 const timeGroups: TimeGroup[] = ["morning", "midday", "evening"];
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const weekRanges = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6", "Week 7", "Week 8", "Week 9", "Week 10", "Week 11", "Week 12"];
@@ -21,51 +23,71 @@ interface Action {
   video_url?: string;
 }
 
-function makeId() {
-  return Math.random().toString(36).slice(2, 10);
+interface Phase {
+  weeks: string;
+  name: string;
+  description: string;
 }
+
+function makeId() { return Math.random().toString(36).slice(2, 10); }
+
+const categoryLabels: Record<string, string> = { exercise: "Exercise", nutrition: "Nutrition", sleep: "Sleep", mental: "Mental" };
+const categoryColors: Record<string, string> = { exercise: "#3B82F6", nutrition: "#20c858", sleep: "#8B5CF6", mental: "#06B6D4" };
 
 export default function ClientProgramEditorPage() {
   const params = useParams();
   const router = useRouter();
   const clientId = params.id as string;
   const categoryKey = params.category as string;
+  const color = categoryColors[categoryKey] || "#6B7280";
 
+  // Program state
   const [clientName, setClientName] = useState("");
   const [programName, setProgramName] = useState("");
+  const [tagline, setTagline] = useState("");
   const [description, setDescription] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [level, setLevel] = useState<ProgramLevel>("");
+  const [exerciseType, setExerciseType] = useState<ExerciseType>("");
   const [duration, setDuration] = useState(8);
+  const [phases, setPhases] = useState<Phase[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
+  const [shared, setShared] = useState(false);
+
+  // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ week: number; day: number } | null>(null);
-
-  const categoryLabels: Record<string, string> = { exercise: "Exercise", nutrition: "Nutrition", sleep: "Sleep", mental: "Mental" };
-  const categoryColors: Record<string, string> = { exercise: "#3B82F6", nutrition: "#20c858", sleep: "#8B5CF6", mental: "#06B6D4" };
-  const color = categoryColors[categoryKey] || "#6B7280";
+  const [copySource, setCopySource] = useState<number | null>(null);
+  const [activeTimeTab, setActiveTimeTab] = useState<TimeGroup | "all">("all");
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Load client name
       const { data: client } = await supabase.from("clients").select("full_name, email").eq("id", clientId).single();
       setClientName((client as Record<string, string>)?.full_name || (client as Record<string, string>)?.email || "Client");
 
-      // Load custom program
       const { data: custom } = await supabase
-        .from("client_custom_programs")
-        .select("*")
-        .eq("client_id", clientId)
-        .eq("category_key", categoryKey)
-        .maybeSingle();
+        .from("client_custom_programs").select("*")
+        .eq("client_id", clientId).eq("category_key", categoryKey).maybeSingle();
 
       if (custom) {
         const c = custom as Record<string, unknown>;
         setProgramName((c.program_name as string) || "");
+        setTagline((c.tagline as string) || "");
         setDescription((c.description as string) || "");
+        setTargetAudience((c.target_audience as string) || "");
+        setLevel(((c.level as string) || "") as ProgramLevel);
+        setExerciseType(((c.exercise_type as string) || "") as ExerciseType);
         setDuration((c.duration as number) || 8);
+        setShared(!!(c.shared));
         setActions(Array.isArray(c.actions) ? c.actions as Action[] : []);
+        try {
+          const raw = c.structured_phases;
+          if (Array.isArray(raw)) setPhases(raw as Phase[]);
+          else if (typeof raw === "string") setPhases(JSON.parse(raw));
+        } catch { setPhases([]); }
       }
     } catch {}
     setLoading(false);
@@ -81,9 +103,15 @@ export default function ClientProgramEditorPage() {
         client_id: clientId,
         category_key: categoryKey,
         program_name: programName,
-        description,
+        tagline: tagline || null,
+        description: description || null,
+        target_audience: targetAudience || null,
+        level: level || null,
+        exercise_type: exerciseType || null,
         duration,
+        structured_phases: phases.length > 0 ? JSON.stringify(phases) : null,
         actions,
+        shared,
         created_by: user?.id || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "client_id,category_key" });
@@ -94,25 +122,46 @@ export default function ClientProgramEditorPage() {
     setSaving(false);
   };
 
-  const addAction = (weekIdx: number, dayIdx: number) => {
-    setActions(prev => [...prev, {
-      week_range: weekIdx,
-      day_of_week: dayIdx,
-      time_group: "morning",
-      label: "",
-      details: [],
-      priority: false,
-    }]);
+  const handleShare = async () => {
+    const next = !shared;
+    setShared(next);
     setDirty(true);
   };
 
-  const updateAction = (idx: number, field: keyof Action, value: unknown) => {
+  // Action CRUD
+  const addAction = (w: number, d: number) => {
+    setActions(prev => [...prev, { week_range: w, day_of_week: d, time_group: "morning", label: "", details: [], priority: false }]);
+    setDirty(true);
+  };
+  const updateAction = (idx: number, field: string, value: unknown) => {
     setActions(prev => prev.map((a, i) => i === idx ? { ...a, [field]: value } : a));
     setDirty(true);
   };
-
   const deleteAction = (idx: number) => {
     setActions(prev => prev.filter((_, i) => i !== idx));
+    setDirty(true);
+  };
+
+  // Copy week
+  const copyWeek = (sourceWeek: number, targetWeek: number) => {
+    const sourceActions = actions.filter(a => a.week_range === sourceWeek);
+    const newActions = sourceActions.map(a => ({ ...a, week_range: targetWeek }));
+    setActions(prev => [...prev.filter(a => a.week_range !== targetWeek), ...newActions]);
+    setCopySource(null);
+    setDirty(true);
+  };
+  const fillAllWeeks = (sourceWeek: number) => {
+    const sourceActions = actions.filter(a => a.week_range === sourceWeek);
+    const filled: Action[] = [];
+    for (let w = 0; w < duration; w++) {
+      if (w === sourceWeek) {
+        filled.push(...sourceActions);
+      } else {
+        filled.push(...sourceActions.map(a => ({ ...a, week_range: w })));
+      }
+    }
+    setActions(filled);
+    setCopySource(null);
     setDirty(true);
   };
 
@@ -121,11 +170,7 @@ export default function ClientProgramEditorPage() {
     : [];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-[#20c858] rounded-full" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-[#20c858] rounded-full" /></div>;
   }
 
   return (
@@ -134,59 +179,116 @@ export default function ClientProgramEditorPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <Link href="/admin/clients" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-              &larr; Clients
-            </Link>
+            <Link href="/admin/clients" className="text-sm text-gray-400 hover:text-gray-600">&larr; Clients</Link>
             <span className="text-gray-300">/</span>
             <span className="text-sm text-gray-600">{clientName}</span>
+            <span className="text-gray-300">/</span>
+            <span className="text-sm font-medium" style={{ color }}>{categoryLabels[categoryKey] || categoryKey}</span>
           </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">
-            Custom {categoryLabels[categoryKey] || categoryKey} Program
-          </h1>
+          <h1 className="text-xl font-bold text-[#1F2937]">Custom Program Editor</h1>
         </div>
         <div className="flex items-center gap-3">
           {dirty && <span className="text-xs text-amber-600 font-medium flex items-center gap-1"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />Unsaved</span>}
+          <button onClick={handleShare} className={`px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${shared ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>
+            {shared ? "Shared with client" : "Share with client"}
+          </button>
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] disabled:opacity-50">
             {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
 
-      {/* Program info */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Program details */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2">
             <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Program name</label>
-            <input
-              value={programName}
-              onChange={(e) => { setProgramName(e.target.value); setDirty(true); }}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-            />
+            <input value={programName} onChange={(e) => { setProgramName(e.target.value); setDirty(true); }}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Tagline</label>
+            <input value={tagline} onChange={(e) => { setTagline(e.target.value); setDirty(true); }} placeholder="One-liner for card"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900" />
           </div>
           <div>
             <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Duration</label>
-            <select
-              value={duration}
-              onChange={(e) => { setDuration(Number(e.target.value)); setDirty(true); }}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-            >
-              <option value={4}>4 weeks</option>
-              <option value={8}>8 weeks</option>
-              <option value={12}>12 weeks</option>
+            <select value={duration} onChange={(e) => { setDuration(Number(e.target.value)); setDirty(true); }}
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
+              <option value={4}>4 weeks</option><option value={8}>8 weeks</option><option value={12}>12 weeks</option>
             </select>
           </div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Level</label>
+            <select value={level} onChange={(e) => { setLevel(e.target.value as ProgramLevel); setDirty(true); }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
+              <option value="">Not set</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
+            </select>
+          </div>
+          {categoryKey === "exercise" && (
+            <div>
+              <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Exercise type</label>
+              <select value={exerciseType} onChange={(e) => { setExerciseType(e.target.value as ExerciseType); setDirty(true); }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
+                <option value="">Not set</option><option value="gym">Gym</option><option value="home">Home</option>
+              </select>
+            </div>
+          )}
+          <div className={categoryKey === "exercise" ? "md:col-span-2" : "md:col-span-3"}>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Who is it for</label>
+            <input value={targetAudience} onChange={(e) => { setTargetAudience(e.target.value); setDirty(true); }} placeholder="Target audience"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900" />
+          </div>
+        </div>
+
         <div>
-          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Description / notes</label>
-          <textarea
-            value={description}
-            onChange={(e) => { setDescription(e.target.value); setDirty(true); }}
-            placeholder="Notes about this custom program for the client..."
-            rows={2}
-            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900"
-          />
+          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Description</label>
+          <textarea value={description} onChange={(e) => { setDescription(e.target.value); setDirty(true); }} rows={3} placeholder="Program description..."
+            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed" />
+        </div>
+
+        {/* Structured phases */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Program phases</label>
+            <button onClick={() => { setPhases(prev => [...prev, { weeks: "", name: "", description: "" }]); setDirty(true); }}
+              className="text-xs font-medium text-[#20c858] hover:underline">+ Add phase</button>
+          </div>
+          {phases.length === 0 && <p className="text-xs text-gray-300 py-1">No phases defined.</p>}
+          {phases.map((phase, pi) => (
+            <div key={pi} className="flex items-start gap-3 mb-2">
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 mt-1">{pi + 1}</div>
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
+                <input value={phase.weeks} onChange={(e) => { setPhases(prev => prev.map((p, i) => i === pi ? { ...p, weeks: e.target.value } : p)); setDirty(true); }}
+                  placeholder="e.g. 1–4" className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900" />
+                <input value={phase.name} onChange={(e) => { setPhases(prev => prev.map((p, i) => i === pi ? { ...p, name: e.target.value } : p)); setDirty(true); }}
+                  placeholder="Phase name" className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900" />
+                <input value={phase.description} onChange={(e) => { setPhases(prev => prev.map((p, i) => i === pi ? { ...p, description: e.target.value } : p)); setDirty(true); }}
+                  placeholder="Description" className="md:col-span-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900" />
+              </div>
+              <button onClick={() => { setPhases(prev => prev.filter((_, i) => i !== pi)); setDirty(true); }} className="p-1 text-red-400 hover:text-red-600 mt-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Copy week bar */}
+      {copySource !== null && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3 text-sm flex-wrap">
+          <span className="text-blue-700 font-medium">Copy {weekRanges[copySource]} to:</span>
+          <button onClick={() => fillAllWeeks(copySource)} className="px-3 py-1 bg-[#20c858] text-white rounded-lg text-xs font-bold">All weeks</button>
+          <span className="text-blue-400">|</span>
+          {weekRanges.slice(0, duration).map((wr, wi) => wi !== copySource && (
+            <button key={wi} onClick={() => copyWeek(copySource, wi)} className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium">{wr}</button>
+          ))}
+          <button onClick={() => setCopySource(null)} className="ml-auto text-blue-500 hover:text-blue-700 text-xs font-medium">Cancel</button>
+        </div>
+      )}
 
       {/* Week/Day grid */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -196,7 +298,16 @@ export default function ClientProgramEditorPage() {
               <tr>
                 <th className="p-2 text-xs text-gray-400 font-medium text-left w-14">Day</th>
                 {weekRanges.slice(0, duration).map((wr, wi) => (
-                  <th key={wi} className="p-2 text-xs font-medium text-gray-500 text-center">{wr}</th>
+                  <th key={wi} className="p-2 text-xs font-medium text-gray-500 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {wr}
+                      <button onClick={() => setCopySource(copySource === wi ? null : wi)} title="Copy this week" className="p-0.5 text-gray-300 hover:text-gray-500">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -212,15 +323,10 @@ export default function ClientProgramEditorPage() {
                         <button
                           onClick={() => setSelectedCell(isSelected ? null : { week: weekIdx, day: dayIdx })}
                           className={`w-full p-2 rounded-lg text-xs transition-all border ${
-                            isSelected ? "bg-blue-50 border-blue-300 ring-2 ring-blue-200" :
-                            count > 0 ? "bg-white border-gray-200 hover:border-blue-200" : "bg-gray-50 border-gray-100 hover:bg-gray-100"
-                          }`}
+                            isSelected ? "ring-2 ring-blue-200" : ""
+                          } ${isSelected ? "bg-blue-50 border-blue-300" : count > 0 ? "bg-white border-gray-200 hover:border-blue-200" : "bg-gray-50 border-gray-100 hover:bg-gray-100"}`}
                         >
-                          {count > 0 ? (
-                            <span className={`font-medium ${isSelected ? "text-blue-700" : "text-gray-700"}`}>{count}</span>
-                          ) : (
-                            <span className="text-gray-300">-</span>
-                          )}
+                          {count > 0 ? <span className={`font-medium ${isSelected ? "text-blue-700" : "text-gray-700"}`}>{count}</span> : <span className="text-gray-300">-</span>}
                         </button>
                       </td>
                     );
@@ -236,51 +342,61 @@ export default function ClientProgramEditorPage() {
       {selectedCell && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: color + "08" }}>
-            <h3 className="text-sm font-semibold text-gray-700">
-              {dayLabels[selectedCell.day]} — {weekRanges[selectedCell.week]}
-            </h3>
-            <button
-              onClick={() => addAction(selectedCell.week, selectedCell.day)}
-              className="px-3 py-1 text-xs font-medium text-white rounded-lg" style={{ backgroundColor: color }}
-            >
-              + Add Action
-            </button>
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-semibold text-gray-700">{dayLabels[selectedCell.day]} — {weekRanges[selectedCell.week]}</h3>
+              <span className="text-xs text-gray-400">{selectedActions.length} action(s)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Time group filter */}
+              <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1">
+                {(["all", ...timeGroups] as const).map((tg) => (
+                  <button key={tg} onClick={() => setActiveTimeTab(tg)}
+                    className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${activeTimeTab === tg ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                    {tg === "all" ? "All" : tg.charAt(0).toUpperCase() + tg.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => addAction(selectedCell.week, selectedCell.day)}
+                className="px-3 py-1 text-xs font-medium text-white rounded-lg" style={{ backgroundColor: color }}>+ Add Action</button>
+            </div>
           </div>
           <div className="p-4 space-y-3">
-            {selectedActions.length === 0 && (
+            {selectedActions.filter(a => activeTimeTab === "all" || a.time_group === activeTimeTab).length === 0 && (
               <p className="text-center text-sm text-gray-300 py-6">No actions. Click &quot;+ Add Action&quot; to create one.</p>
             )}
-            {selectedActions.map((action) => (
+            {selectedActions.filter(a => activeTimeTab === "all" || a.time_group === activeTimeTab).map((action) => (
               <div key={action._idx} className="p-4 rounded-xl border border-gray-200 space-y-3">
                 <div className="flex gap-3">
-                  <input
-                    value={action.label}
-                    onChange={(e) => updateAction(action._idx, "label", e.target.value)}
-                    placeholder="Action label"
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-                  />
-                  <select
-                    value={action.time_group}
-                    onChange={(e) => updateAction(action._idx, "time_group", e.target.value)}
-                    className="w-28 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-                  >
+                  <input value={action.label} onChange={(e) => updateAction(action._idx, "label", e.target.value)} placeholder="Action label (e.g. Barbell Bench Press)"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900" />
+                  <select value={action.time_group} onChange={(e) => updateAction(action._idx, "time_group", e.target.value)}
+                    className="w-32 px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
                     {timeGroups.map(tg => <option key={tg} value={tg}>{tg.charAt(0).toUpperCase() + tg.slice(1)}</option>)}
                   </select>
                 </div>
-                <textarea
-                  value={Array.isArray(action.details) ? action.details.join("\n") : ""}
-                  onChange={(e) => updateAction(action._idx, "details", e.target.value.split("\n"))}
-                  placeholder="Details — one per line"
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed min-h-[100px]"
-                />
-                <div className="flex items-center justify-between">
+                <textarea value={Array.isArray(action.details) ? action.details.join("\n") : ""} onChange={(e) => updateAction(action._idx, "details", e.target.value.split("\n"))}
+                  placeholder={"Details — one item per line\n\ne.g.\n4 sets x 8 reps\n60s rest between sets\nRPE 7"}
+                  rows={8} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed min-h-[150px]" />
+                {/* Media URLs */}
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Image URL</label>
+                    <input value={action.image_url || ""} onChange={(e) => updateAction(action._idx, "image_url", e.target.value)} placeholder="https://..."
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-700" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Video URL</label>
+                    <input value={action.video_url || ""} onChange={(e) => updateAction(action._idx, "video_url", e.target.value)} placeholder="https://youtube.com/..."
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-700" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-1">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <div className={`relative w-9 h-5 rounded-full transition-colors ${action.priority ? "bg-[#20c858]" : "bg-gray-300"}`}>
                       <input type="checkbox" checked={action.priority} onChange={(e) => updateAction(action._idx, "priority", e.target.checked)} className="sr-only" />
                       <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${action.priority ? "translate-x-4" : "translate-x-0.5"}`} />
                     </div>
-                    <span className="text-xs text-gray-500">Priority</span>
+                    <span className="text-xs text-gray-500 font-medium">Priority action</span>
                   </label>
                   <button onClick={() => deleteAction(action._idx)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
