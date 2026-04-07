@@ -320,6 +320,7 @@ export default function TeamPage() {
     setSaveError(null);
 
     if (connectionStatus === "connected") {
+      // Delete from staff table
       const { error } = await supabase.from("staff").delete().eq("id", deleteTarget.id);
       if (error) {
         setSaveError(`Failed to remove: ${error.message}`);
@@ -327,6 +328,32 @@ export default function TeamPage() {
         setDeleteConfirmName("");
         return;
       }
+
+      // Also delete from auth.users via Edge Function
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch(
+            "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/delete-user",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+                "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmbmliZnh6bHR4aXJpcXh2dnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzQxMDgsImV4cCI6MjA5MDQ1MDEwOH0.LHBADsUdW7SBtrxZ9KikTmAl5brBGPb3gFTMuPYrmD8",
+              },
+              body: JSON.stringify({ userId: deleteTarget.id }),
+            },
+          );
+        }
+      } catch {
+        // Auth deletion is best-effort — staff row is already gone
+      }
+
+      // Clean up: delete conversations and messages where this staff was coach
+      try {
+        await supabase.from("conversations").delete().eq("coach_id", deleteTarget.id);
+      } catch {}
     }
 
     setTeam((prev) => prev.filter((m) => m.id !== deleteTarget.id));

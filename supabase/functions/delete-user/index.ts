@@ -94,7 +94,17 @@ serve(async (req) => {
       await supabaseAdmin.from('clients').delete().eq('email', clientEmail)
     }
 
-    // 7. Delete auth user — try by ID first, then look up by email
+    // 7. Delete staff row if exists (for team members)
+    const { error: staffErr } = await supabaseAdmin.from('staff').delete().eq('id', userId)
+    if (staffErr) console.error('Error deleting staff:', staffErr.message)
+    if (clientEmail) {
+      await supabaseAdmin.from('staff').delete().eq('email', clientEmail)
+    }
+
+    // 8. Delete push tokens
+    await supabaseAdmin.from('push_tokens').delete().eq('user_id', userId).catch(() => {})
+
+    // 9. Delete auth user — try by ID first, then look up by email
     let { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (deleteAuthError && clientEmail) {
       // ID didn't match auth user — find auth user by email
