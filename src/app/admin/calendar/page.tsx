@@ -155,6 +155,9 @@ export default function CalendarPage() {
   const [newApt, setNewApt] = useState<NewAppointment>(emptyAppointment);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [clientSearch, setClientSearch] = useState("");
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const [coaches, setCoaches] = useState<{ id: string; name: string }[]>([]);
+  const [stations, setStations] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
   const loadAppointments = useCallback(async () => {
@@ -231,9 +234,26 @@ export default function CalendarPage() {
     }
   };
 
+  const loadCoaches = useCallback(async () => {
+    const { data } = await supabase.from("staff").select("id, name").eq("active", true);
+    if (data) setCoaches(data.map((s: Record<string, unknown>) => ({ id: s.id as string, name: s.name as string })));
+  }, []);
+
+  const loadStations = useCallback(async () => {
+    // Derive unique station names from existing appointments
+    const { data } = await supabase.from("appointments").select("station_name");
+    if (data) {
+      const unique = [...new Set(data.map((a: Record<string, unknown>) => a.station_name as string).filter(Boolean))].sort();
+      setStations(unique);
+    }
+  }, []);
+
   const openCreateForm = () => {
     setShowCreateForm(true);
+    setClientDropdownOpen(false);
     loadClients();
+    loadCoaches();
+    loadStations();
   };
 
   const filteredClients = clientSearch.trim().length > 0
@@ -317,34 +337,41 @@ export default function CalendarPage() {
             </div>
 
             <div className="space-y-4">
-              {/* Client search */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+              {/* Client search dropdown */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Client *</label>
                 <input
                   type="text"
-                  placeholder="Search clients..."
+                  placeholder="Start typing to search clients..."
                   value={clientSearch}
-                  onChange={(e) => setClientSearch(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 focus:border-[#20c858]"
+                  onChange={(e) => { setClientSearch(e.target.value); setClientDropdownOpen(true); if (!e.target.value.trim()) setNewApt((p) => ({ ...p, clientId: "" })); }}
+                  onFocus={() => setClientDropdownOpen(true)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 focus:border-[#20c858] ${newApt.clientId ? "border-[#20c858] bg-[#20c858]/5" : "border-gray-200"}`}
                 />
-                {clientSearch.trim() && (
-                  <div className="max-h-32 overflow-y-auto border border-gray-100 rounded-lg mt-1">
-                    {filteredClients.slice(0, 8).map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => { setNewApt((p) => ({ ...p, clientId: c.id })); setClientSearch(c.name); }}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${newApt.clientId === c.id ? "bg-[#20c858]/5 font-medium" : ""}`}
-                      >
-                        {c.name} <span className="text-gray-400 text-xs">{c.email}</span>
-                      </button>
-                    ))}
+                {newApt.clientId && <span className="absolute right-3 top-[34px] text-[#20c858]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span>}
+                {clientDropdownOpen && clientSearch.trim().length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {filteredClients.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-400">No clients found</div>
+                    ) : (
+                      filteredClients.slice(0, 8).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => { setNewApt((p) => ({ ...p, clientId: c.id })); setClientSearch(c.name); setClientDropdownOpen(false); }}
+                          className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0 ${newApt.clientId === c.id ? "bg-[#20c858]/5 font-medium" : ""}`}
+                        >
+                          <span className="font-medium text-[#1F2937]">{c.name}</span>
+                          <span className="text-gray-400 text-xs ml-2">{c.email}</span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
                 <div className="flex gap-2">
                   {(["measurement", "blood-test", "consultation"] as const).map((t) => (
                     <button
@@ -363,7 +390,7 @@ export default function CalendarPage() {
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
                   <input
                     type="date"
                     value={newApt.date}
@@ -372,7 +399,7 @@ export default function CalendarPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Time *</label>
                   <input
                     type="time"
                     value={newApt.time}
@@ -382,28 +409,40 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              {/* Station & Coach */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Station (optional)</label>
+              {/* Station dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Station</label>
+                <select
+                  value={newApt.stationName}
+                  onChange={(e) => setNewApt((p) => ({ ...p, stationName: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 text-gray-900 bg-white"
+                >
+                  <option value="">Select station...</option>
+                  {stations.map((s) => <option key={s} value={s}>{s}</option>)}
+                  <option value="__custom">+ Add new station</option>
+                </select>
+                {newApt.stationName === "__custom" && (
                   <input
                     type="text"
-                    value={newApt.stationName}
+                    placeholder="Enter new station name"
                     onChange={(e) => setNewApt((p) => ({ ...p, stationName: e.target.value }))}
-                    placeholder="e.g. Lifeline HQ"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                    className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                    autoFocus
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Coach (optional)</label>
-                  <input
-                    type="text"
-                    value={newApt.coachName}
-                    onChange={(e) => setNewApt((p) => ({ ...p, coachName: e.target.value }))}
-                    placeholder="e.g. Coach Sarah"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
-                  />
-                </div>
+                )}
+              </div>
+
+              {/* Coach dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Coach</label>
+                <select
+                  value={newApt.coachName}
+                  onChange={(e) => setNewApt((p) => ({ ...p, coachName: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 text-gray-900 bg-white"
+                >
+                  <option value="">Select coach...</option>
+                  {coaches.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
               </div>
 
               <button

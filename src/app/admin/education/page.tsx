@@ -25,6 +25,8 @@ function createEmptyModule(): Module {
     title: "New Module",
     content: "",
     readingTime: 5,
+    imageUrl: "",
+    videoUrl: "",
     quizQuestions: [],
   };
 }
@@ -130,6 +132,8 @@ export default function EducationPage() {
               title: m.title || "",
               content: m.content || m.description || "",
               readingTime: m.readingTime || 5,
+              imageUrl: (m.imageUrl as string) || "",
+              videoUrl: (m.videoUrl as string) || "",
               quizQuestions: m.quizQuestions || [],
             })),
           };
@@ -815,6 +819,91 @@ export default function EducationPage() {
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                                           {mod.content || "No content yet..."}
                                         </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Media: Image + Video */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {/* Image upload */}
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 mb-1 block">Module Image</label>
+                                    {mod.imageUrl ? (
+                                      <div className="relative group">
+                                        <img src={mod.imageUrl} alt="" className="w-full h-32 object-cover rounded-lg border border-gray-200" />
+                                        <button
+                                          onClick={() => updateModule(course.id, mod.id, "imageUrl", "")}
+                                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1.5">
+                                        <label className="flex items-center justify-center gap-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#20c858] hover:bg-[#20c858]/5 transition-colors">
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                              const file = e.target.files?.[0];
+                                              if (!file) return;
+                                              const ext = file.name.split(".").pop();
+                                              const path = `modules/${course.id}/${mod.id}.${ext}`;
+                                              const { error: uploadErr } = await supabase.storage.from("education-media").upload(path, file, { upsert: true });
+                                              if (uploadErr) { setToast({ message: `Upload failed: ${uploadErr.message}`, type: "error" }); return; }
+                                              const { data: urlData } = supabase.storage.from("education-media").getPublicUrl(path);
+                                              updateModule(course.id, mod.id, "imageUrl", urlData.publicUrl);
+                                              setToast({ message: "Image uploaded", type: "success" });
+                                            }}
+                                          />
+                                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                          <span className="text-xs text-gray-500">Upload image</span>
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={mod.imageUrl}
+                                          onChange={(e) => updateModule(course.id, mod.id, "imageUrl", e.target.value)}
+                                          placeholder="or paste image URL"
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#20c858] outline-none text-gray-600"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Video URL */}
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 mb-1 block">Video URL</label>
+                                    {mod.videoUrl ? (
+                                      <div className="relative group">
+                                        <div className="w-full h-32 bg-gray-900 rounded-lg border border-gray-200 flex items-center justify-center">
+                                          <div className="text-center">
+                                            <svg className="w-8 h-8 text-white mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            <p className="text-[10px] text-gray-400 truncate max-w-[180px]">{mod.videoUrl}</p>
+                                          </div>
+                                        </div>
+                                        <button
+                                          onClick={() => updateModule(course.id, mod.id, "videoUrl", "")}
+                                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1.5">
+                                        <div className="flex items-center justify-center gap-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-lg">
+                                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                          <span className="text-xs text-gray-400">Paste a video link below</span>
+                                        </div>
+                                        <input
+                                          type="text"
+                                          value={mod.videoUrl}
+                                          onChange={(e) => updateModule(course.id, mod.id, "videoUrl", e.target.value)}
+                                          placeholder="YouTube or Vimeo URL"
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#20c858] outline-none text-gray-600"
+                                        />
+                                        <p className="text-[10px] text-gray-400">Videos are linked by URL to save storage space</p>
                                       </div>
                                     )}
                                   </div>

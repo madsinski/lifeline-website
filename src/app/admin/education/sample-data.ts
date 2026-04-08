@@ -12,6 +12,8 @@ export interface Module {
   title: string;
   content: string;
   readingTime: number;
+  imageUrl: string;
+  videoUrl: string;
   quizQuestions: QuizQuestion[];
 }
 
@@ -48,10 +50,10 @@ export const sampleCourses: Course[] = [
     difficulty: "Beginner",
     estimatedDuration: "2 hours",
     modules: [
-      { id: makeId(), title: "Blood Pressure Basics", content: "What systolic and diastolic readings tell you.", readingTime: 8, quizQuestions: [] },
-      { id: makeId(), title: "Cholesterol Demystified", content: "HDL, LDL, triglycerides and their impact.", readingTime: 10, quizQuestions: [] },
-      { id: makeId(), title: "Blood Sugar & HbA1c", content: "Understanding glucose metabolism markers.", readingTime: 7, quizQuestions: [] },
-      { id: makeId(), title: "Body Composition", content: "BMI, body fat percentage, and lean mass.", readingTime: 6, quizQuestions: [] },
+      { id: makeId(), title: "Blood Pressure Basics", content: "What systolic and diastolic readings tell you.", readingTime: 8, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Cholesterol Demystified", content: "HDL, LDL, triglycerides and their impact.", readingTime: 10, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Blood Sugar & HbA1c", content: "Understanding glucose metabolism markers.", readingTime: 7, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Body Composition", content: "BMI, body fat percentage, and lean mass.", readingTime: 6, imageUrl: "", videoUrl: "", quizQuestions: [] },
     ],
   },
   {
@@ -62,9 +64,9 @@ export const sampleCourses: Course[] = [
     difficulty: "Beginner",
     estimatedDuration: "1.5 hours",
     modules: [
-      { id: makeId(), title: "Macronutrients 101", content: "Proteins, carbs, and fats explained.", readingTime: 10, quizQuestions: [] },
-      { id: makeId(), title: "Micronutrient Essentials", content: "Vitamins and minerals your body needs.", readingTime: 8, quizQuestions: [] },
-      { id: makeId(), title: "Meal Planning", content: "Practical strategies for healthy eating.", readingTime: 12, quizQuestions: [] },
+      { id: makeId(), title: "Macronutrients 101", content: "Proteins, carbs, and fats explained.", readingTime: 10, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Micronutrient Essentials", content: "Vitamins and minerals your body needs.", readingTime: 8, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Meal Planning", content: "Practical strategies for healthy eating.", readingTime: 12, imageUrl: "", videoUrl: "", quizQuestions: [] },
     ],
   },
   {
@@ -75,8 +77,8 @@ export const sampleCourses: Course[] = [
     difficulty: "Intermediate",
     estimatedDuration: "1 hour",
     modules: [
-      { id: makeId(), title: "Sleep Architecture", content: "Understanding sleep stages and cycles.", readingTime: 10, quizQuestions: [] },
-      { id: makeId(), title: "Sleep Hygiene", content: "Creating the ideal sleep environment.", readingTime: 8, quizQuestions: [] },
+      { id: makeId(), title: "Sleep Architecture", content: "Understanding sleep stages and cycles.", readingTime: 10, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Sleep Hygiene", content: "Creating the ideal sleep environment.", readingTime: 8, imageUrl: "", videoUrl: "", quizQuestions: [] },
     ],
   },
   {
@@ -87,9 +89,9 @@ export const sampleCourses: Course[] = [
     difficulty: "Beginner",
     estimatedDuration: "1.5 hours",
     modules: [
-      { id: makeId(), title: "Understanding Stress", content: "The physiology of stress response.", readingTime: 8, quizQuestions: [] },
-      { id: makeId(), title: "Breathing Techniques", content: "Practical breathing exercises for calm.", readingTime: 6, quizQuestions: [] },
-      { id: makeId(), title: "Mindfulness Practice", content: "Introduction to mindfulness meditation.", readingTime: 10, quizQuestions: [] },
+      { id: makeId(), title: "Understanding Stress", content: "The physiology of stress response.", readingTime: 8, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Breathing Techniques", content: "Practical breathing exercises for calm.", readingTime: 6, imageUrl: "", videoUrl: "", quizQuestions: [] },
+      { id: makeId(), title: "Mindfulness Practice", content: "Introduction to mindfulness meditation.", readingTime: 10, imageUrl: "", videoUrl: "", quizQuestions: [] },
     ],
   },
 ];
