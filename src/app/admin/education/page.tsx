@@ -671,18 +671,47 @@ export default function EducationPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 mb-1 block">Cover Image URL</label>
-                        <input
-                          type="text"
-                          value={course.coverImageUrl}
-                          onChange={(e) => updateCourse(course.id, "coverImageUrl", e.target.value)}
-                          placeholder="https://..."
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
-                        />
-                        {course.coverImageUrl && (
-                          <div className="mt-2 w-full h-16 bg-gray-200 rounded-lg overflow-hidden">
+                        <label className="text-xs font-medium text-gray-500 mb-1 block">Cover Image</label>
+                        {course.coverImageUrl ? (
+                          <div className="relative group">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={course.coverImageUrl} alt="Cover" className="w-full h-full object-cover" />
+                            <img src={course.coverImageUrl} alt="Cover" className="w-full h-28 object-cover rounded-lg border border-gray-200" />
+                            <button
+                              onClick={() => updateCourse(course.id, "coverImageUrl", "")}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <label className="flex items-center justify-center gap-2 w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#20c858] hover:bg-[#20c858]/5 transition-colors">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const ext = file.name.split(".").pop();
+                                  const path = `covers/${course.id}.${ext}`;
+                                  const { error: uploadErr } = await supabase.storage.from("education-media").upload(path, file, { upsert: true });
+                                  if (uploadErr) { setToast({ message: `Upload failed: ${uploadErr.message}`, type: "error" }); return; }
+                                  const { data: urlData } = supabase.storage.from("education-media").getPublicUrl(path);
+                                  updateCourse(course.id, "coverImageUrl", urlData.publicUrl);
+                                  setToast({ message: "Cover image uploaded", type: "success" });
+                                }}
+                              />
+                              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              <span className="text-xs text-gray-500">Upload cover</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={course.coverImageUrl}
+                              onChange={(e) => updateCourse(course.id, "coverImageUrl", e.target.value)}
+                              placeholder="or paste image URL"
+                              className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#20c858] outline-none text-gray-600"
+                            />
                           </div>
                         )}
                       </div>
