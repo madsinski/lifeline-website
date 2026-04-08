@@ -121,12 +121,41 @@ function formatTime(timeStr: string): string {
 
 // ─── Component ───────────────────────────────────────────────
 
+interface ClientOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface NewAppointment {
+  clientId: string;
+  type: "measurement" | "blood-test" | "consultation";
+  date: string;
+  time: string;
+  stationName: string;
+  coachName: string;
+}
+
+const emptyAppointment: NewAppointment = {
+  clientId: "",
+  type: "consultation",
+  date: "",
+  time: "09:00",
+  stationName: "",
+  coachName: "",
+};
+
 export default function CalendarPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [hideCancel, setHideCancel] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newApt, setNewApt] = useState<NewAppointment>(emptyAppointment);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clientSearch, setClientSearch] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const loadAppointments = useCallback(async () => {
     setLoading(true);
@@ -155,6 +184,65 @@ export default function CalendarPage() {
     loadAppointments();
   }, [loadAppointments]);
 
+  const loadClients = useCallback(async () => {
+    const { data } = await supabase
+      .from("clients")
+      .select("id, full_name, email")
+      .order("full_name", { ascending: true });
+    if (data) {
+      setClients(data.map((c: Record<string, unknown>) => ({
+        id: c.id as string,
+        name: (c.full_name as string) || (c.email as string) || "Unknown",
+        email: (c.email as string) || "",
+      })));
+    }
+  }, []);
+
+  const handleCreateAppointment = async () => {
+    if (!newApt.clientId || !newApt.date) return;
+    setCreating(true);
+    try {
+      // Format date as text like "April 8, 2026"
+      const d = new Date(newApt.date);
+      const dateText = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+      const { error: err } = await supabase.from("appointments").insert({
+        client_id: newApt.clientId,
+        type: newApt.type,
+        date: dateText,
+        time: newApt.time || "09:00",
+        station_name: newApt.stationName || null,
+        coach_name: newApt.coachName || null,
+        status: "booked",
+      });
+
+      if (err) {
+        setError(err.message);
+      } else {
+        setShowCreateForm(false);
+        setNewApt(emptyAppointment);
+        setClientSearch("");
+        loadAppointments();
+      }
+    } catch {
+      setError("Failed to create appointment");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openCreateForm = () => {
+    setShowCreateForm(true);
+    loadClients();
+  };
+
+  const filteredClients = clientSearch.trim().length > 0
+    ? clients.filter((c) =>
+        c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        c.email.toLowerCase().includes(clientSearch.toLowerCase())
+      )
+    : clients;
+
   const typeFiltered = activeFilter === "all"
     ? appointments
     : appointments.filter((a) => a.type === activeFilter);
@@ -182,6 +270,16 @@ export default function CalendarPage() {
             {totalCount} appointment{totalCount !== 1 ? "s" : ""}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={openCreateForm}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#20c858] text-white rounded-lg text-sm font-medium hover:bg-[#1bb34e] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Book Appointment
+        </button>
         <button
           onClick={loadAppointments}
           disabled={loading}
@@ -202,7 +300,123 @@ export default function CalendarPage() {
           </svg>
           Refresh
         </button>
+        </div>
       </div>
+
+      {/* Create appointment modal */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#1F2937]">Book Appointment</h3>
+              <button onClick={() => { setShowCreateForm(false); setNewApt(emptyAppointment); }} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Client search */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                <input
+                  type="text"
+                  placeholder="Search clients..."
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 focus:border-[#20c858]"
+                />
+                {clientSearch.trim() && (
+                  <div className="max-h-32 overflow-y-auto border border-gray-100 rounded-lg mt-1">
+                    {filteredClients.slice(0, 8).map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => { setNewApt((p) => ({ ...p, clientId: c.id })); setClientSearch(c.name); }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${newApt.clientId === c.id ? "bg-[#20c858]/5 font-medium" : ""}`}
+                      >
+                        {c.name} <span className="text-gray-400 text-xs">{c.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <div className="flex gap-2">
+                  {(["measurement", "blood-test", "consultation"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setNewApt((p) => ({ ...p, type: t }))}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        newApt.type === t ? "bg-[#1F2937] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {formatType(t)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date & Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={newApt.date}
+                    onChange={(e) => setNewApt((p) => ({ ...p, date: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                  <input
+                    type="time"
+                    value={newApt.time}
+                    onChange={(e) => setNewApt((p) => ({ ...p, time: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                  />
+                </div>
+              </div>
+
+              {/* Station & Coach */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Station (optional)</label>
+                  <input
+                    type="text"
+                    value={newApt.stationName}
+                    onChange={(e) => setNewApt((p) => ({ ...p, stationName: e.target.value }))}
+                    placeholder="e.g. Lifeline HQ"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Coach (optional)</label>
+                  <input
+                    type="text"
+                    value={newApt.coachName}
+                    onChange={(e) => setNewApt((p) => ({ ...p, coachName: e.target.value }))}
+                    placeholder="e.g. Coach Sarah"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleCreateAppointment}
+                disabled={!newApt.clientId || !newApt.date || creating}
+                className="w-full py-2.5 bg-[#20c858] text-white rounded-lg font-medium text-sm hover:bg-[#1bb34e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? "Booking..." : "Book Appointment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-2">

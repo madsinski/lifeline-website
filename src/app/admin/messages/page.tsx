@@ -35,14 +35,7 @@ interface StaffMember {
   active: boolean;
 }
 
-// ─── Staff data (fallback) ──────────────────────────────────
-
-const fallbackStaffMembers: StaffMember[] = [
-  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", role: "coach", avatarInitial: "CS", active: true },
-  { id: "staff-2", name: "Dr. Guðmundur Sigurðsson", email: "gudmundur@lifeline.is", role: "doctor", avatarInitial: "GS", active: true },
-  { id: "staff-3", name: "Helga Jónsdóttir", email: "helga@lifeline.is", role: "nurse", avatarInitial: "HJ", active: true },
-  { id: "staff-4", name: "Dr. Anna Kristjánsdóttir", email: "anna.k@lifeline.is", role: "psychologist", avatarInitial: "AK", active: true },
-];
+// No fallback staff — always load from Supabase
 
 async function loadStaffFromSupabase(): Promise<StaffMember[] | null> {
   try {
@@ -96,69 +89,6 @@ const roleColors: Record<StaffMember["role"], string> = {
   psychologist: "bg-amber-100 text-amber-700",
 };
 
-// ─── Mock data (fallback) ────────────────────────────────────
-
-const initialConversations: Conversation[] = [
-  {
-    id: "conv-1",
-    clientName: "Jon Jonsson",
-    clientEmail: "jon@example.com",
-    tier: "Full Access",
-    lastMessage: "Thanks! Should I finish this week as normal?",
-    lastMessageAt: "2026-03-28T10:02:00Z",
-    unreadCount: 2,
-    assignedStaff: fallbackStaffMembers[0],
-    messages: [
-      { id: "m1a", senderName: "Coach Sarah", senderRole: "coach", content: "Hi Jon! I updated your training program based on your latest assessment. The new program starts next week Monday.", createdAt: "2026-03-27T09:15:00Z", read: true },
-      { id: "m1b", senderName: "Jon Jonsson", senderRole: "client", content: "Thanks! Should I finish this week as normal?", createdAt: "2026-03-28T10:02:00Z", read: false },
-    ],
-  },
-  {
-    id: "conv-2",
-    clientName: "Anna Sigurdardottir",
-    clientEmail: "anna@example.com",
-    tier: "Full Access",
-    lastMessage: "My knee has been hurting after the squats. Should I modify the exercise?",
-    lastMessageAt: "2026-03-28T08:30:00Z",
-    unreadCount: 1,
-    assignedStaff: fallbackStaffMembers[0],
-    messages: [
-      { id: "m2a", senderName: "Coach Sarah", senderRole: "coach", content: "Hi Anna, how is the new lower body program going?", createdAt: "2026-03-26T14:00:00Z", read: true },
-      { id: "m2b", senderName: "Anna Sigurdardottir", senderRole: "client", content: "It is going well overall but I have a question.", createdAt: "2026-03-27T09:00:00Z", read: true },
-      { id: "m2c", senderName: "Coach Sarah", senderRole: "coach", content: "Of course, what is on your mind?", createdAt: "2026-03-27T09:30:00Z", read: true },
-      { id: "m2d", senderName: "Anna Sigurdardottir", senderRole: "client", content: "My knee has been hurting after the squats. Should I modify the exercise?", createdAt: "2026-03-28T08:30:00Z", read: false },
-    ],
-  },
-  {
-    id: "conv-3",
-    clientName: "Olafur Helgason",
-    clientEmail: "olafur@example.com",
-    tier: "Full Access",
-    lastMessage: "That sounds great. I will start the meal prep this Sunday.",
-    lastMessageAt: "2026-03-26T16:45:00Z",
-    unreadCount: 0,
-    assignedStaff: fallbackStaffMembers[1],
-    messages: [
-      { id: "m3a", senderName: "Olafur Helgason", senderRole: "client", content: "Hi Coach, I wanted to ask about my nutrition plan. I have been struggling with meal prep.", createdAt: "2026-03-25T10:00:00Z", read: true },
-      { id: "m3b", senderName: "Coach Sarah", senderRole: "coach", content: "Hey Olafur! I understand meal prep can be challenging. Let me suggest a simplified approach: prep just 3 proteins and 3 vegetables on Sunday, then mix and match throughout the week.", createdAt: "2026-03-25T11:15:00Z", read: true },
-      { id: "m3c", senderName: "Olafur Helgason", senderRole: "client", content: "That sounds great. I will start the meal prep this Sunday.", createdAt: "2026-03-26T16:45:00Z", read: true },
-    ],
-  },
-  {
-    id: "conv-4",
-    clientName: "Gudrun Magnusdottir",
-    clientEmail: "gudrun@example.com",
-    tier: "Full Access",
-    lastMessage: "Can we reschedule the video call to Thursday instead?",
-    lastMessageAt: "2026-03-28T07:15:00Z",
-    unreadCount: 1,
-    assignedStaff: fallbackStaffMembers[2],
-    messages: [
-      { id: "m4a", senderName: "Coach Sarah", senderRole: "coach", content: "Hi Gudrun! Just a reminder that we have our monthly video call scheduled for Wednesday at 14:00.", createdAt: "2026-03-27T16:00:00Z", read: true },
-      { id: "m4b", senderName: "Gudrun Magnusdottir", senderRole: "client", content: "Can we reschedule the video call to Thursday instead?", createdAt: "2026-03-28T07:15:00Z", read: false },
-    ],
-  },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -215,51 +145,47 @@ interface SupabaseMessage {
 
 async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
   try {
+    // Single query: conversations with all messages (no N+1)
     const { data: convRows, error: convError } = await supabase
       .from("conversations")
-      .select("*")
+      .select("*, messages(*)")
       .order("created_at", { ascending: false });
 
     if (convError) return null;
     if (!convRows || convRows.length === 0) return [];
 
+    // Batch-load all client names in one query
+    const clientIds = [...new Set(convRows.map((c: Record<string, unknown>) => c.client_id as string))];
+    const { data: clientRows } = await supabase
+      .from("clients")
+      .select("id, full_name, email")
+      .in("id", clientIds);
+    const clientMap = new Map(
+      (clientRows ?? []).map((c: Record<string, unknown>) => [c.id as string, c])
+    );
+
     const conversations: Conversation[] = [];
 
-    for (const conv of convRows as SupabaseConversation[]) {
-      const { data: msgRows, error: msgError } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", conv.id)
-        .order("created_at", { ascending: true });
+    for (const conv of convRows as (SupabaseConversation & { messages: SupabaseMessage[] })[]) {
+      const rawMsgs = (conv.messages ?? []).sort(
+        (a: SupabaseMessage, b: SupabaseMessage) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
 
-      const msgs: Message[] = (msgRows && !msgError
-        ? (msgRows as SupabaseMessage[]).map((m) => ({
-            id: m.id,
-            senderName: m.sender_name,
-            senderRole: m.sender_role,
-            content: m.content,
-            createdAt: m.created_at,
-            read: m.read,
-          }))
-        : []);
+      const msgs: Message[] = rawMsgs.map((m: SupabaseMessage) => ({
+        id: m.id,
+        senderName: m.sender_name,
+        senderRole: m.sender_role,
+        content: m.content,
+        createdAt: m.created_at,
+        read: m.read,
+      }));
 
-      const unread = msgs.filter((m) => !m.read).length;
+      const unread = msgs.filter((m) => !m.read && m.senderRole === "client").length;
       const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
 
-      // Load client name from clients table
-      let clientName = "Client";
-      let clientEmail = "";
-      try {
-        const { data: clientData } = await supabase
-          .from("clients")
-          .select("full_name, email")
-          .eq("id", conv.client_id)
-          .single();
-        if (clientData) {
-          clientName = clientData.full_name || clientData.email || "Client";
-          clientEmail = clientData.email || "";
-        }
-      } catch {}
+      const client = clientMap.get(conv.client_id) as Record<string, unknown> | undefined;
+      const clientName = (client?.full_name as string) || (client?.email as string) || "Client";
+      const clientEmail = (client?.email as string) || "";
 
       conversations.push({
         id: conv.id,
@@ -273,6 +199,9 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
       });
     }
 
+    // Sort by last message time (most recent first)
+    conversations.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+
     return conversations;
   } catch {
     return null;
@@ -285,8 +214,7 @@ async function sendMessageToSupabase(
   staff: StaffMember,
 ): Promise<Message | null> {
   try {
-    // Only use sender_id if it's a real UUID (not a fallback like "staff-1")
-    const isRealUUID = staff.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(staff.id);
+    const isRealUUID = staff.id && /^[0-9a-f]{8}-/i.test(staff.id);
 
     const { data, error } = await supabase
       .from("messages")
@@ -400,7 +328,7 @@ async function createConversationWithClient(
       .limit(1);
     if (existing && existing.length > 0) return existing[0].id as string;
 
-    const isRealUUID = staff.id && !staff.id.startsWith("staff-");
+    const isRealUUID = staff.id && /^[0-9a-f]{8}-/i.test(staff.id);
     const { data: conv, error } = await supabase
       .from("conversations")
       .insert({
@@ -438,9 +366,8 @@ export default function AdminMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [dbConnected, setDbConnected] = useState(false);
   const [dbError, setDbError] = useState(false);
-  const [showDemoData, setShowDemoData] = useState(false);
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(fallbackStaffMembers);
-  const [replyAsStaff, setReplyAsStaff] = useState<StaffMember>(fallbackStaffMembers[0]);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [replyAsStaff, setReplyAsStaff] = useState<StaffMember | null>(null);
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
   const [clientSearch, setClientSearch] = useState("");
@@ -448,9 +375,8 @@ export default function AdminMessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const displayConversations = showDemoData ? initialConversations : conversations;
-  const selected = displayConversations.find((c) => c.id === selectedId) ?? displayConversations[0] ?? null;
-  const totalUnread = displayConversations.reduce((sum, c) => sum + c.unreadCount, 0);
+  const selected = conversations.find((c) => c.id === selectedId) ?? conversations[0] ?? null;
+  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
   // Load conversations and staff from Supabase on mount
   const loadConversations = useCallback(async () => {
@@ -470,17 +396,15 @@ export default function AdminMessagesPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.email) {
           const match = liveStaff.find((s) => s.email.toLowerCase() === user.email!.toLowerCase());
-          if (match) {
-            setReplyAsStaff(match);
-          } else {
-            setReplyAsStaff(liveStaff[0]);
-          }
+          setReplyAsStaff(match ?? liveStaff[0]);
         } else {
           setReplyAsStaff(liveStaff[0]);
         }
       } catch {
         setReplyAsStaff(liveStaff[0]);
       }
+    } else {
+      setDbError(true);
     }
 
     if (fromDb !== null) {
@@ -577,7 +501,7 @@ export default function AdminMessagesPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !replyAsStaff) return;
 
     const content = newMessage.trim();
     setNewMessage("");
@@ -587,8 +511,8 @@ export default function AdminMessagesPage() {
 
     const msg: Message = supaMsg ?? {
       id: `msg-${Date.now()}`,
-      senderName: replyAsStaff.name,
-      senderRole: replyAsStaff.role,
+      senderName: replyAsStaff!.name,
+      senderRole: replyAsStaff!.role,
       content,
       createdAt: new Date().toISOString(),
       read: true,
@@ -623,6 +547,7 @@ export default function AdminMessagesPage() {
   };
 
   const handleStartConversation = async (client: ClientOption) => {
+    if (!replyAsStaff) return;
     setCreatingConv(true);
     const convId = await createConversationWithClient(client.id, replyAsStaff);
     if (convId) {
@@ -704,32 +629,10 @@ export default function AdminMessagesPage() {
           </div>
         </div>
 
-        {/* Demo data toggle */}
-        <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-          <span className="text-xs text-gray-400">Show demo data</span>
-          <button
-            onClick={() => {
-              const next = !showDemoData;
-              setShowDemoData(next);
-              if (next) {
-                setSelectedId(initialConversations[0].id);
-              } else if (conversations.length > 0) {
-                setSelectedId(conversations[0].id);
-              } else {
-                setSelectedId("");
-              }
-            }}
-            className="flex items-center"
-          >
-            <div className={`relative w-8 h-4 rounded-full transition-colors ${showDemoData ? "bg-[#20c858]" : "bg-gray-300"}`}>
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${showDemoData ? "translate-x-4" : "translate-x-0.5"}`} />
-            </div>
-          </button>
-        </div>
 
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto">
-          {displayConversations.length === 0 && !loading && (
+          {conversations.length === 0 && !loading && (
             <div className="px-4 py-12 text-center">
               <svg className="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -741,7 +644,7 @@ export default function AdminMessagesPage() {
               )}
             </div>
           )}
-          {displayConversations.map((conv) => {
+          {conversations.map((conv) => {
             const isSelected = conv.id === selectedId;
             return (
               <button
@@ -808,6 +711,7 @@ export default function AdminMessagesPage() {
             <p className="text-xs text-gray-400">{selected.clientEmail}</p>
           </div>
           <div className="flex items-center gap-3">
+            {replyAsStaff && (
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${roleColors[replyAsStaff.role]}`}>
                 {replyAsStaff.avatarInitial}
@@ -819,6 +723,7 @@ export default function AdminMessagesPage() {
                 </span>
               </div>
             </div>
+            )}
           </div>
         </div>
 
@@ -868,17 +773,19 @@ export default function AdminMessagesPage() {
 
         {/* Send message input */}
         <div className="px-4 py-3 border-t border-gray-200 bg-white flex-shrink-0">
+          {replyAsStaff && (
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-gray-400">Sending as</span>
             <span className="text-xs font-medium text-gray-700">{replyAsStaff.name}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleColors[replyAsStaff.role]}`}>{roleLabels[replyAsStaff.role]}</span>
           </div>
+          )}
           <div className="flex items-end gap-3">
             <textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={`Reply to ${selected.clientName} as ${replyAsStaff.name}...`}
+              placeholder={`Reply to ${selected.clientName}${replyAsStaff ? ` as ${replyAsStaff.name}` : ""}...`}
               rows={1}
               className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 focus:border-[#20c858] max-h-32"
               style={{ minHeight: "40px" }}
@@ -916,7 +823,7 @@ export default function AdminMessagesPage() {
             </div>
 
             <div className="mb-3">
-              <p className="text-xs text-gray-500 mb-2">Message as: <span className="font-medium text-gray-700">{replyAsStaff.name}</span></p>
+              <p className="text-xs text-gray-500 mb-2">Message as: <span className="font-medium text-gray-700">{replyAsStaff?.name ?? "Loading..."}</span></p>
               <div className="relative">
                 <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

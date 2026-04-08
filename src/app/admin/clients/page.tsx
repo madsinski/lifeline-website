@@ -1284,6 +1284,13 @@ function ClientRowComponent({
                 </select>
               </div>
 
+              {/* View profile */}
+              <a href={`/admin/clients/${client.id}`} onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Profile
+              </a>
+
               {/* Message pill */}
               <button onClick={(e) => { e.stopPropagation(); onSendMessage(client.id, client.name); }} disabled={isSendingMessage}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-full hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50">
