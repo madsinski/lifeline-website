@@ -17,11 +17,14 @@ export interface Module {
   quizQuestions: QuizQuestion[];
 }
 
+export type CourseCategory = "exercise" | "nutrition" | "sleep" | "mental";
+
 export interface Course {
   id: string;
   name: string;
   description: string;
   coverImageUrl: string;
+  category: CourseCategory;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   estimatedDuration: string;
   modules: Module[];
@@ -47,6 +50,7 @@ export const sampleCourses: Course[] = [
     name: "Understanding Your Health Numbers",
     description: "Learn to interpret key health biomarkers and what they mean for your well-being.",
     coverImageUrl: "",
+    category: "exercise",
     difficulty: "Beginner",
     estimatedDuration: "2 hours",
     modules: [
@@ -61,6 +65,7 @@ export const sampleCourses: Course[] = [
     name: "Nutrition Foundations",
     description: "Core principles of balanced nutrition for optimal health.",
     coverImageUrl: "",
+    category: "nutrition",
     difficulty: "Beginner",
     estimatedDuration: "1.5 hours",
     modules: [
@@ -74,6 +79,7 @@ export const sampleCourses: Course[] = [
     name: "Sleep Science",
     description: "Evidence-based strategies for better sleep quality.",
     coverImageUrl: "",
+    category: "sleep",
     difficulty: "Intermediate",
     estimatedDuration: "1 hour",
     modules: [
@@ -86,6 +92,7 @@ export const sampleCourses: Course[] = [
     name: "Stress Management",
     description: "Techniques to manage and reduce stress in daily life.",
     coverImageUrl: "",
+    category: "mental",
     difficulty: "Beginner",
     estimatedDuration: "1.5 hours",
     modules: [

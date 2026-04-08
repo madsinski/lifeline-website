@@ -6,6 +6,7 @@ import {
   sampleCourses,
   sampleSnippets,
   type Course,
+  type CourseCategory,
   type Module,
   type QuizQuestion,
   type SnippetWeek,
@@ -125,6 +126,7 @@ export default function EducationPage() {
             name: row.name,
             description: row.description || "",
             coverImageUrl: row.cover_image_url || "",
+            category: (row.category || "exercise") as CourseCategory,
             difficulty: (row.difficulty || "Beginner") as Course["difficulty"],
             estimatedDuration: row.estimated_duration || "",
             modules: modules.map((m: Record<string, unknown>) => ({
@@ -198,6 +200,7 @@ export default function EducationPage() {
         name: "New Course",
         description: "",
         coverImageUrl: "",
+        category: "exercise" as CourseCategory,
         difficulty: "Beginner",
         estimatedDuration: "",
         modules: [],
@@ -410,6 +413,7 @@ export default function EducationPage() {
         name: c.name,
         description: c.description,
         cover_image_url: c.coverImageUrl,
+        category: c.category,
         difficulty: c.difficulty,
         estimated_duration: c.estimatedDuration,
         modules: JSON.stringify(c.modules),
@@ -714,6 +718,19 @@ export default function EducationPage() {
                             />
                           </div>
                         )}
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 mb-1 block">Category</label>
+                        <select
+                          value={course.category}
+                          onChange={(e) => updateCourse(course.id, "category", e.target.value)}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                        >
+                          <option value="exercise">Exercise</option>
+                          <option value="nutrition">Nutrition</option>
+                          <option value="sleep">Sleep</option>
+                          <option value="mental">Mental</option>
+                        </select>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-gray-500 mb-1 block">Difficulty</label>
