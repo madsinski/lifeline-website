@@ -904,22 +904,35 @@ export default function EducationPage() {
                                   {/* Video URL */}
                                   <div>
                                     <label className="text-xs font-medium text-gray-500 mb-1 block">Video URL</label>
-                                    {mod.videoUrl ? (
+                                    {mod.videoUrl ? (() => {
+                                      const vUrl = mod.videoUrl;
+                                      const ytMatch = vUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/);
+                                      const vimeoMatch = vUrl.match(/vimeo\.com\/(\d+)/);
+                                      const embedSrc = ytMatch
+                                        ? `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`
+                                        : vimeoMatch
+                                        ? `https://player.vimeo.com/video/${vimeoMatch[1]}`
+                                        : null;
+                                      return (
                                       <div className="relative group">
-                                        <div className="w-full h-32 bg-gray-900 rounded-lg border border-gray-200 flex items-center justify-center">
-                                          <div className="text-center">
-                                            <svg className="w-8 h-8 text-white mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                            <p className="text-[10px] text-gray-400 truncate max-w-[180px]">{mod.videoUrl}</p>
-                                          </div>
-                                        </div>
+                                        {embedSrc ? (
+                                          <iframe
+                                            src={embedSrc}
+                                            className="w-full h-40 rounded-lg border border-gray-200"
+                                            allow="autoplay; fullscreen; picture-in-picture"
+                                            allowFullScreen
+                                          />
+                                        ) : (
+                                          <video src={vUrl} controls className="w-full h-40 rounded-lg border border-gray-200 bg-black object-contain" />
+                                        )}
                                         <button
                                           onClick={() => updateModule(course.id, mod.id, "videoUrl", "")}
                                           className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                         </button>
-                                      </div>
-                                    ) : (
+                                      </div>);
+                                    })() : (
                                       <div className="space-y-1.5">
                                         <div className="flex items-center justify-center gap-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-lg">
                                           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
