@@ -89,6 +89,16 @@ const sidebarLinks = [
       </svg>
     ),
   },
+  {
+    href: "/admin/feedback",
+    label: "Beta Feedback",
+    badgeType: "feedback" as const,
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+    ),
+  },
 ];
 
 function getBreadcrumbs(pathname: string) {
@@ -114,6 +124,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [newClientsCount, setNewClientsCount] = useState(0);
+  const [unresolvedFeedbackCount, setUnresolvedFeedbackCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
 
   // Load coaching view preference from localStorage
@@ -142,6 +153,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .select("*", { count: "exact", head: true })
           .gte("created_at", sevenDaysAgo);
         if (!clientErr && clientCount !== null) setNewClientsCount(clientCount);
+      } catch {}
+      try {
+        const { count: fbCount, error: fbErr } = await supabase
+          .from("beta_feedback")
+          .select("*", { count: "exact", head: true })
+          .eq("resolved", false);
+        if (!fbErr && fbCount !== null) setUnresolvedFeedbackCount(fbCount);
       } catch {}
     };
     loadCounts();
@@ -282,7 +300,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Nav Links */}
         <nav className="flex-1 py-4 space-y-1 px-2">
           {(coachingView
-            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/education", "/admin/messages", "/admin/calendar"].includes(l.href))
+            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/education", "/admin/messages", "/admin/calendar", "/admin/feedback"].includes(l.href))
             : sidebarLinks
           ).filter((link) => {
             // Permission-based filtering
@@ -298,7 +316,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 : pathname.startsWith(link.href);
             const badgeType = (link as any).badgeType as string | undefined;
             const isMessageBadge = 'badge' in link && (link as any).badge;
-            const badgeCount = badgeType === "clients" ? newClientsCount : isMessageBadge ? unreadCount : 0;
+            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : isMessageBadge ? unreadCount : 0;
             const hasBadge = badgeCount > 0;
             return (
               <Link
