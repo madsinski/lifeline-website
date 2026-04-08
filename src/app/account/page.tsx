@@ -55,13 +55,14 @@ interface PaymentRow {
 }
 
 /* ---------- nav sections ---------- */
-type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "app" | "settings";
+type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "app" | "settings";
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Health Overview", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
   { id: "profile", label: "Profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
   { id: "messages", label: "Messages", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
   { id: "billing", label: "Billing & Plans", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "assessment", label: "Assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
+  { id: "education", label: "Education", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
   { id: "app", label: "App & Devices", icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
@@ -141,6 +142,16 @@ function AccountPageInner() {
 
   /* has client data (for connected devices) */
   const [hasClientData, setHasClientData] = useState(false);
+
+  /* education */
+  const [eduCourses, setEduCourses] = useState<{ id: string; name: string; description: string; cover_image_url: string; difficulty: string; estimated_duration: string; modules: { id: string; title: string; content: string; readingTime: number; quizQuestions: { id: string; question: string; options: string[]; correctIndex: number }[] }[] }[]>([]);
+  const [eduSnippets, setEduSnippets] = useState<{ week_range: string; days: { title: string; bullets: string[] }[] }[]>([]);
+  const [eduLoading, setEduLoading] = useState(false);
+  const [eduOpenCourse, setEduOpenCourse] = useState<string | null>(null);
+  const [eduOpenModule, setEduOpenModule] = useState<string | null>(null);
+  const [eduSnippetWeek, setEduSnippetWeek] = useState(0);
+  const [eduQuizAnswers, setEduQuizAnswers] = useState<Record<string, number>>({});
+  const [eduQuizSubmitted, setEduQuizSubmitted] = useState<Record<string, boolean>>({});
 
   /* ---------- auth check + load data ---------- */
   useEffect(() => {
@@ -255,6 +266,35 @@ function AccountPageInner() {
           .select("id", { count: "exact", head: true })
           .eq("client_id", currentUser.id);
         setConversationsCount(count || 0);
+      } catch {}
+
+      // Load education courses & snippets
+      try {
+        const { data: courseData } = await supabase
+          .from("education_courses")
+          .select("*")
+          .order("created_at", { ascending: true });
+        if (courseData && courseData.length > 0) {
+          setEduCourses(courseData.map((row: Record<string, string>) => ({
+            id: row.id,
+            name: row.name,
+            description: row.description || "",
+            cover_image_url: row.cover_image_url || "",
+            difficulty: row.difficulty || "Beginner",
+            estimated_duration: row.estimated_duration || "",
+            modules: JSON.parse(row.modules || "[]"),
+          })));
+        }
+        const { data: snippetData } = await supabase
+          .from("education_snippets")
+          .select("*")
+          .order("created_at", { ascending: true });
+        if (snippetData && snippetData.length > 0) {
+          setEduSnippets(snippetData.map((row: Record<string, string>) => ({
+            week_range: row.week_range,
+            days: JSON.parse(row.days || "[]"),
+          })));
+        }
       } catch {}
 
       setLoading(false);
@@ -1151,6 +1191,237 @@ function AccountPageInner() {
             )}
 
             {/* ============ APP & DEVICES ============ */}
+            {/* ============ EDUCATION ============ */}
+            {activeSection === "education" && (
+              <section className="space-y-6">
+                {/* Daily Snippet */}
+                {eduSnippets.length > 0 && (
+                  <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-[#1F2937]">Daily Snippets</h2>
+                        <p className="text-xs text-[#6B7280]">Quick health & fitness insights, 7 days a week</p>
+                      </div>
+                    </div>
+
+                    {/* Week selector */}
+                    <div className="flex gap-1.5 mb-5 overflow-x-auto pb-1">
+                      {eduSnippets.map((sw, wi) => (
+                        <button key={wi} onClick={() => setEduSnippetWeek(wi)}
+                          className={`px-3 py-1.5 text-xs rounded-lg font-medium whitespace-nowrap transition-colors ${
+                            eduSnippetWeek === wi ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"
+                          }`}>
+                          {sw.week_range}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Snippet cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {eduSnippets[eduSnippetWeek]?.days.map((day, di) => (
+                        <div key={di} className="border border-gray-100 rounded-xl p-4 hover:border-[#20c858]/30 transition-colors">
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">
+                              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][di]}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold text-[#1F2937] mb-2">{day.title || "—"}</p>
+                          <ul className="space-y-1.5">
+                            {day.bullets.filter(Boolean).map((b, bi) => (
+                              <li key={bi} className="flex items-start gap-2 text-xs text-[#6B7280] leading-relaxed">
+                                <span className="w-1.5 h-1.5 bg-[#20c858] rounded-full mt-1.5 flex-shrink-0" />
+                                <span>{b}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Courses */}
+                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-[#1F2937]">Courses</h2>
+                      <p className="text-xs text-[#6B7280]">{eduCourses.length} course{eduCourses.length !== 1 ? "s" : ""} available</p>
+                    </div>
+                  </div>
+
+                  {eduCourses.length === 0 ? (
+                    <div className="bg-[#ecf0f3] rounded-xl p-10 text-center">
+                      <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      <p className="text-sm text-[#6B7280]">No courses available yet. Check back soon!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {eduCourses.map((course) => {
+                        const isOpen = eduOpenCourse === course.id;
+                        const totalTime = course.modules.reduce((s, m) => s + (m.readingTime || 0), 0);
+                        const diffColors: Record<string, string> = {
+                          Beginner: "bg-green-100 text-green-700",
+                          Intermediate: "bg-amber-100 text-amber-700",
+                          Advanced: "bg-red-100 text-red-700",
+                        };
+                        return (
+                          <div key={course.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                            {/* Course card header */}
+                            <button onClick={() => { setEduOpenCourse(isOpen ? null : course.id); setEduOpenModule(null); }}
+                              className="w-full flex items-center gap-4 p-5 text-left hover:bg-gray-50/50 transition-colors">
+                              {course.cover_image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={course.cover_image_url} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+                              ) : (
+                                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center flex-shrink-0">
+                                  <svg className="w-6 h-6 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                  </svg>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <h3 className="text-sm font-semibold text-[#1F2937]">{course.name}</h3>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${diffColors[course.difficulty] || "bg-gray-100 text-gray-600"}`}>
+                                    {course.difficulty}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-[#6B7280] line-clamp-1">{course.description}</p>
+                                <div className="flex items-center gap-3 mt-1.5">
+                                  <span className="text-[10px] text-[#9CA3AF]">{course.modules.length} module{course.modules.length !== 1 ? "s" : ""}</span>
+                                  <span className="text-[10px] text-[#9CA3AF]">{totalTime} min read</span>
+                                  {course.estimated_duration && <span className="text-[10px] text-[#9CA3AF]">{course.estimated_duration}</span>}
+                                </div>
+                              </div>
+                              <svg className={`w-5 h-5 text-[#9CA3AF] transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+
+                            {/* Expanded course content */}
+                            {isOpen && (
+                              <div className="border-t border-gray-100">
+                                {course.modules.length === 0 ? (
+                                  <p className="p-5 text-sm text-[#9CA3AF] text-center">No modules yet.</p>
+                                ) : (
+                                  <div className="divide-y divide-gray-100">
+                                    {course.modules.map((mod, mi) => {
+                                      const modOpen = eduOpenModule === mod.id;
+                                      return (
+                                        <div key={mod.id}>
+                                          <button onClick={() => setEduOpenModule(modOpen ? null : mod.id)}
+                                            className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-gray-50/50 transition-colors">
+                                            <span className="w-7 h-7 rounded-lg bg-[#ecf0f3] flex items-center justify-center text-xs font-semibold text-[#6B7280] flex-shrink-0">
+                                              {mi + 1}
+                                            </span>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-[#1F2937]">{mod.title}</p>
+                                              <p className="text-[10px] text-[#9CA3AF]">{mod.readingTime} min read{mod.quizQuestions?.length > 0 ? ` · ${mod.quizQuestions.length} quiz question${mod.quizQuestions.length !== 1 ? "s" : ""}` : ""}</p>
+                                            </div>
+                                            <svg className={`w-4 h-4 text-[#9CA3AF] transition-transform flex-shrink-0 ${modOpen ? "rotate-180" : ""}`}
+                                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                          </button>
+
+                                          {modOpen && (
+                                            <div className="px-5 pb-5 pt-1 ml-10">
+                                              {/* Module content */}
+                                              <div className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap mb-4">
+                                                {mod.content || "Content coming soon."}
+                                              </div>
+
+                                              {/* Quiz */}
+                                              {mod.quizQuestions && mod.quizQuestions.length > 0 && (
+                                                <div className="mt-4 border border-purple-100 rounded-xl p-4 bg-purple-50/30">
+                                                  <p className="text-xs font-semibold text-purple-700 mb-3">Knowledge Check</p>
+                                                  <div className="space-y-4">
+                                                    {mod.quizQuestions.map((q, qi) => {
+                                                      const qKey = `${mod.id}-${q.id}`;
+                                                      const answered = eduQuizSubmitted[qKey];
+                                                      const selected = eduQuizAnswers[qKey];
+                                                      return (
+                                                        <div key={q.id} className="space-y-2">
+                                                          <p className="text-sm font-medium text-[#1F2937]">{qi + 1}. {q.question}</p>
+                                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                                            {q.options.map((opt, oi) => {
+                                                              let optClass = "bg-white border-gray-200 text-[#374151] hover:border-purple-300";
+                                                              if (answered) {
+                                                                if (oi === q.correctIndex) optClass = "bg-green-50 border-green-300 text-green-800";
+                                                                else if (oi === selected && oi !== q.correctIndex) optClass = "bg-red-50 border-red-300 text-red-700";
+                                                                else optClass = "bg-white border-gray-100 text-[#9CA3AF]";
+                                                              } else if (selected === oi) {
+                                                                optClass = "bg-purple-50 border-purple-400 text-purple-800";
+                                                              }
+                                                              return (
+                                                                <button key={oi}
+                                                                  disabled={answered}
+                                                                  onClick={() => setEduQuizAnswers(prev => ({ ...prev, [qKey]: oi }))}
+                                                                  className={`px-3 py-2 text-xs text-left rounded-lg border transition-colors ${optClass}`}>
+                                                                  {opt}
+                                                                </button>
+                                                              );
+                                                            })}
+                                                          </div>
+                                                          {selected !== undefined && !answered && (
+                                                            <button onClick={() => setEduQuizSubmitted(prev => ({ ...prev, [qKey]: true }))}
+                                                              className="mt-1 px-4 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                                              Check Answer
+                                                            </button>
+                                                          )}
+                                                          {answered && (
+                                                            <p className={`text-xs font-medium ${selected === q.correctIndex ? "text-green-600" : "text-red-600"}`}>
+                                                              {selected === q.correctIndex ? "Correct!" : `Incorrect — the answer is "${q.options[q.correctIndex]}"`}
+                                                            </p>
+                                                          )}
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Empty state if no content at all */}
+                {eduCourses.length === 0 && eduSnippets.length === 0 && (
+                  <div className="bg-white rounded-2xl shadow-sm p-10 text-center">
+                    <svg className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <h3 className="text-base font-semibold text-[#1F2937] mb-1">Education content coming soon</h3>
+                    <p className="text-sm text-[#6B7280]">Your coach is preparing courses and daily snippets for you.</p>
+                  </div>
+                )}
+              </section>
+            )}
+
             {activeSection === "app" && (
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                 <h2 className="text-lg font-semibold text-[#1F2937] mb-6">App & Devices</h2>
