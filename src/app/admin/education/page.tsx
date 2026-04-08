@@ -106,6 +106,7 @@ export default function EducationPage() {
   const [dirty, setDirty] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [activeSection, setActiveSection] = useState<"courses" | "snippets">("courses");
+  const [eduCategoryFilter, setEduCategoryFilter] = useState<CourseCategory | "all">("all");
   const [previewModule, setPreviewModule] = useState<string | null>(null);
   const [snippetWeekIdx, setSnippetWeekIdx] = useState(0);
   const [snippetPreviewDay, setSnippetPreviewDay] = useState<number | null>(null);
@@ -585,7 +586,33 @@ export default function EducationPage() {
       {/* COURSES SECTION */}
       {activeSection === "courses" && (
         <div className="space-y-3">
-          {courses.length === 0 && (
+          {/* Category filter tabs */}
+          <div className="flex items-center gap-2 bg-white rounded-xl p-2 shadow-sm border border-gray-100">
+            {([
+              { key: "all" as const, label: "All", color: "bg-gray-600", count: courses.length },
+              { key: "exercise" as const, label: "Exercise", color: "bg-blue-500", count: courses.filter(c => c.category === "exercise").length },
+              { key: "nutrition" as const, label: "Nutrition", color: "bg-emerald-500", count: courses.filter(c => c.category === "nutrition").length },
+              { key: "sleep" as const, label: "Sleep", color: "bg-purple-500", count: courses.filter(c => c.category === "sleep").length },
+              { key: "mental" as const, label: "Mental", color: "bg-cyan-500", count: courses.filter(c => c.category === "mental").length },
+            ]).map((tab) => {
+              const isActive = eduCategoryFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setEduCategoryFilter(tab.key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive ? "bg-[#1F2937] text-white" : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isActive ? "bg-white" : tab.color}`} />
+                  {tab.label}
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/20" : "bg-gray-100 text-gray-500"}`}>{tab.count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {courses.filter(c => eduCategoryFilter === "all" || c.category === eduCategoryFilter).length === 0 && (
             <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
               <p className="text-gray-400 text-sm mb-4">No courses yet. Add one manually or load sample data to get started.</p>
               <div className="flex items-center justify-center gap-3">
@@ -605,7 +632,7 @@ export default function EducationPage() {
             </div>
           )}
 
-          {courses.map((course) => {
+          {courses.filter(c => eduCategoryFilter === "all" || c.category === eduCategoryFilter).map((course) => {
             const totalReadingTime = course.modules.reduce((s, m) => s + m.readingTime, 0);
             return (
               <div
@@ -641,6 +668,9 @@ export default function EducationPage() {
                         onChange={(e) => updateCourse(course.id, "name", e.target.value)}
                         className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 flex-1 min-w-[200px]"
                       />
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${({exercise:"bg-blue-100 text-blue-700",nutrition:"bg-emerald-100 text-emerald-700",sleep:"bg-purple-100 text-purple-700",mental:"bg-cyan-100 text-cyan-700"})[course.category] || "bg-gray-100 text-gray-600"}`}>
+                        {course.category}
+                      </span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${difficultyColors[course.difficulty]}`}>
                         {course.difficulty}
                       </span>
