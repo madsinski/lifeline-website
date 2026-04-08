@@ -26,6 +26,8 @@ interface ClientRow {
   address: string | null;
   created_at: string;
   updated_at: string | null;
+  terms_accepted_at: string | null;
+  terms_version: string | null;
   subscriptions: Subscription[];
 }
 
@@ -42,6 +44,8 @@ interface Client {
   subscriptionStart: string | null;
   subscriptionEnd: string | null;
   trialEndsAt: string | null;
+  termsAcceptedAt: string | null;
+  termsVersion: string | null;
 }
 
 const tierColors: Record<Tier | "none", string> = {
@@ -140,6 +144,8 @@ function normalizeClient(row: ClientRow): Client {
     trialEndsAt: sub?.trial_ends_at
       ? new Date(sub.trial_ends_at).toISOString().split("T")[0]
       : null,
+    termsAcceptedAt: row.terms_accepted_at || null,
+    termsVersion: row.terms_version || null,
   };
 }
 
@@ -261,6 +267,8 @@ export default function ClientsPage() {
                 subscriptionStart: null,
                 subscriptionEnd: null,
                 trialEndsAt: null,
+                termsAcceptedAt: null,
+                termsVersion: null,
               }))
             );
           } else {
@@ -854,6 +862,7 @@ export default function ClientsPage() {
                   <SortHeader label="Tier" field="tier" />
                   <SortHeader label="Status" field="status" />
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coach</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Terms</th>
                   <SortHeader label="Joined" field="joined" />
                 </tr>
               </thead>
@@ -1268,11 +1277,23 @@ function ClientRowComponent({
             <span className="text-xs text-gray-300">—</span>
           )}
         </td>
+        <td className="px-4 py-3">
+          {client.termsAcceptedAt ? (
+            <div className="flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-xs text-gray-500">v{client.termsVersion || "1.0"}</span>
+            </div>
+          ) : (
+            <span className="text-xs text-red-400 font-medium">Not accepted</span>
+          )}
+        </td>
         <td className="px-4 py-3 text-sm text-gray-600">{client.joined}</td>
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={6} className="bg-gray-50/80 px-5 py-4">
+          <td colSpan={7} className="bg-gray-50/80 px-5 py-4">
             {/* Top bar: coach + message + subscription + delete */}
             <div className="flex items-center gap-3 mb-4">
               {/* Coach selector */}
