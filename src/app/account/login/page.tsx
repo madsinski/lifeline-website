@@ -1,14 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 
 export default function AccountLoginPage() {
+  return (
+    <Suspense>
+      <AccountLoginContent />
+    </Suspense>
+  );
+}
+
+function AccountLoginContent() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get("ref") || "";
+  const [mode, setMode] = useState<"login" | "signup">(refCode ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -41,7 +51,10 @@ export default function AccountLoginPage() {
         email,
         password,
         options: {
-          data: { full_name: fullName },
+          data: {
+            full_name: fullName,
+            ...(refCode ? { referred_by: refCode } : {}),
+          },
         },
       });
       if (signUpError) {
