@@ -16,40 +16,57 @@ export default function ConfirmPage() {
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
+    const fullUrl = window.location.href;
+    console.log("[auth/confirm] URL:", fullUrl);
+
     // Supabase appends tokens in the URL hash after email confirmation redirect
     const hash = window.location.hash;
-    if (hash) {
-      // Extract access_token and refresh_token from the hash
+    if (hash && hash.length > 1) {
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get("access_token");
       const refreshToken = params.get("refresh_token");
       const type = params.get("type");
+      const errorParam = params.get("error");
+      const errorDescription = params.get("error_description");
 
-      if (accessToken && refreshToken && type === "signup") {
+      console.log("[auth/confirm] Hash params:", { type, hasAccessToken: !!accessToken, errorParam, errorDescription });
+
+      // Supabase may redirect with an error in the hash
+      if (errorParam) {
+        console.log("[auth/confirm] Error from Supabase:", errorDescription);
+        setStatus("error");
+        return;
+      }
+
+      if (accessToken && refreshToken) {
         supabase.auth
           .setSession({ access_token: accessToken, refresh_token: refreshToken })
           .then(({ error }) => {
+            console.log("[auth/confirm] setSession result:", error?.message ?? "success");
             setStatus(error ? "error" : "success");
           });
         return;
       }
     }
 
-    // Also check for token_hash + type in query params (Supabase PKCE flow)
+    // Check for token_hash + type in query params (Supabase PKCE flow)
     const params = new URLSearchParams(window.location.search);
     const tokenHash = params.get("token_hash");
     const type = params.get("type");
 
     if (tokenHash && type) {
+      console.log("[auth/confirm] PKCE flow:", { type, tokenHash: tokenHash.substring(0, 10) + "..." });
       supabase.auth
         .verifyOtp({ token_hash: tokenHash, type: type as any })
         .then(({ error }) => {
+          console.log("[auth/confirm] verifyOtp result:", error?.message ?? "success");
           setStatus(error ? "error" : "success");
         });
       return;
     }
 
-    // No tokens found — likely already confirmed or direct visit
+    // No tokens — Supabase already verified server-side before redirecting here
+    console.log("[auth/confirm] No tokens in URL — treating as already confirmed");
     setStatus("success");
   }, []);
 
