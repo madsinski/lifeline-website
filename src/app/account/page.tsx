@@ -153,6 +153,8 @@ function AccountPageInner() {
 
   /* coaching programs */
   const [programs, setPrograms] = useState<{ category_key: string; program_key: string; started_at: string }[]>([]);
+  const [availablePrograms, setAvailablePrograms] = useState<{ key: string; name: string; description: string; category_key: string; level: string }[]>([]);
+  const [changingProgram, setChangingProgram] = useState<string | null>(null); // category_key being changed
 
   /* messages */
   const [conversationsCount, setConversationsCount] = useState(0);
@@ -284,6 +286,17 @@ function AccountPageInner() {
           .eq("client_id", currentUser.id);
         if (programData && programData.length > 0) {
           setPrograms(programData);
+        }
+        // Load available programs
+        const { data: allProgs } = await supabase
+          .from("programs")
+          .select("key, name, description, level, category_id, program_categories!inner(key)")
+          .order("name");
+        if (allProgs) {
+          setAvailablePrograms(allProgs.map((p: any) => ({
+            key: p.key, name: p.name, description: p.description || "",
+            category_key: p.program_categories?.key || "", level: p.level || "",
+          })));
         }
       } catch {}
 
@@ -496,6 +509,40 @@ function AccountPageInner() {
     const updated = customPrograms.filter(p => p.id !== id);
     await supabase.from("clients").update({ custom_programs: updated }).eq("id", user.id);
     setCustomPrograms(updated);
+  };
+
+  const switchProgram = async (categoryKey: string, newProgramKey: string) => {
+    if (!user) return;
+    await supabase.from("client_programs").upsert({
+      client_id: user.id,
+      category_key: categoryKey,
+      program_key: newProgramKey,
+      started_at: new Date().toISOString(),
+    }, { onConflict: "client_id,category_key" });
+    setPrograms(prev => {
+      const existing = prev.filter(p => p.category_key !== categoryKey);
+      return [...existing, { category_key: categoryKey, program_key: newProgramKey, started_at: new Date().toISOString() }];
+    });
+    setChangingProgram(null);
+    setProgramSaveMsg("Program updated!");
+    setTimeout(() => setProgramSaveMsg(""), 3000);
+  };
+
+  const activateCustomProgram = async (cp: CustomProgram) => {
+    if (!user) return;
+    // Save as the active exercise program with a custom key
+    await supabase.from("client_programs").upsert({
+      client_id: user.id,
+      category_key: "exercise",
+      program_key: `custom-${cp.id}`,
+      started_at: new Date().toISOString(),
+    }, { onConflict: "client_id,category_key" });
+    setPrograms(prev => {
+      const existing = prev.filter(p => p.category_key !== "exercise");
+      return [...existing, { category_key: "exercise", program_key: `custom-${cp.id}`, started_at: new Date().toISOString() }];
+    });
+    setProgramSaveMsg(`"${cp.name}" is now your active exercise program!`);
+    setTimeout(() => setProgramSaveMsg(""), 3000);
   };
 
   const filteredExercises = exerciseLibrary.filter(ex => {
@@ -1616,28 +1663,64 @@ function AccountPageInner() {
                   <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-5 py-3">{programSaveMsg}</div>
                 )}
 
-                {/* Coach-assigned programs */}
+                {/* Assigned programs */}
                 <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Coach-assigned Programs</h2>
+                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Assigned Programs</h2>
                   {programs.length > 0 ? (
-                    <div className="space-y-2">
-                      {programs.map((prog) => (
-                        <div key={`${prog.category_key}-${prog.program_key}`} className="flex items-center justify-between bg-[#ecf0f3] rounded-xl px-5 py-3">
-                          <div>
-                            <p className="text-sm font-medium text-[#1F2937]">{prog.program_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
-                            <p className="text-xs text-[#6B7280]">{prog.category_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                    <div className="space-y-3">
+                      {programs.map((prog) => {
+                        const isCustom = prog.program_key.startsWith("custom-");
+                        const customProg = isCustom ? customPrograms.find(cp => `custom-${cp.id}` === prog.program_key) : null;
+                        const displayName = customProg ? customProg.name : prog.program_key.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                        const isChanging = changingProgram === prog.category_key;
+                        const categoryProgs = availablePrograms.filter(ap => ap.category_key === prog.category_key);
+                        return (
+                          <div key={`${prog.category_key}-${prog.program_key}`} className="bg-[#ecf0f3] rounded-xl px-5 py-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-[#1F2937]">{displayName}</p>
+                                <p className="text-xs text-[#6B7280]">
+                                  {prog.category_key.charAt(0).toUpperCase() + prog.category_key.slice(1)}
+                                  {isCustom && <span className="ml-1 text-[#20c858] font-medium">· Custom</span>}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {prog.started_at && (
+                                  <span className="text-xs text-[#9CA3AF] hidden sm:inline">
+                                    {new Date(prog.started_at).toLocaleDateString("en-GB", { month: "short", day: "numeric" })}
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => setChangingProgram(isChanging ? null : prog.category_key)}
+                                  className="text-xs font-medium text-[#3B82F6] hover:text-[#2563EB] transition-colors"
+                                >
+                                  {isChanging ? "Cancel" : "Change"}
+                                </button>
+                              </div>
+                            </div>
+                            {isChanging && categoryProgs.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                                <p className="text-xs font-medium text-[#6B7280] mb-2">Select a different program:</p>
+                                {categoryProgs.filter(ap => ap.key !== prog.program_key).map(ap => (
+                                  <button
+                                    key={ap.key}
+                                    onClick={() => switchProgram(prog.category_key, ap.key)}
+                                    className="w-full text-left bg-white rounded-lg px-4 py-3 hover:bg-[#20c858]/5 border border-gray-200 hover:border-[#20c858] transition-all"
+                                  >
+                                    <p className="text-sm font-medium text-[#1F2937]">{ap.name}</p>
+                                    {ap.description && <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-1">{ap.description}</p>}
+                                    {ap.level && <span className="text-[10px] font-medium text-[#9CA3AF] uppercase">{ap.level}</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          {prog.started_at && (
-                            <span className="text-xs text-[#6B7280]">
-                              Started {new Date(prog.started_at).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
-                      <p className="text-sm text-[#6B7280]">Programs will appear once assigned by your coach</p>
+                      <p className="text-sm text-[#6B7280]">No programs assigned yet. Create a custom program below!</p>
                     </div>
                   )}
                 </div>
@@ -1662,6 +1745,13 @@ function AccountPageInner() {
                               <p className="text-xs text-[#9CA3AF] mt-0.5">Created {new Date(cp.created_at).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}</p>
                             </div>
                             <div className="flex items-center gap-2">
+                              {programs.some(p => p.program_key === `custom-${cp.id}`) ? (
+                                <span className="text-xs font-medium text-[#20c858] bg-[#20c858]/10 px-3 py-1 rounded-full">Active</span>
+                              ) : (
+                                <button onClick={() => activateCustomProgram(cp)} className="text-xs font-medium text-[#3B82F6] hover:text-white hover:bg-[#3B82F6] border border-[#3B82F6] px-3 py-1 rounded-full transition-colors" title="Make active">
+                                  Activate
+                                </button>
+                              )}
                               <button onClick={() => openBuilder(cp)} className="p-2 text-[#6B7280] hover:text-[#20c858] transition-colors" title="Edit">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                               </button>
