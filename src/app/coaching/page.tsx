@@ -35,10 +35,10 @@ const pillars = [
       "Supplement recommendations",
       "Meal timing optimisation",
     ],
-    color: "#20c858",
-    textColor: "text-[#20c858]",
+    color: "#0D9488",
+    textColor: "text-[#0D9488]",
     bgColor: "bg-green-50",
-    borderColor: "border-[#20c858]",
+    borderColor: "border-[#0D9488]",
     icon: <NutritionIcon className="w-8 h-8" />,
   },
   {
@@ -141,7 +141,7 @@ const howItWorks = [
     title: "Daily action plans",
     description: "Each day you receive a personalised set of actions across exercise, nutrition, sleep, and mental wellness.",
     icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
-    color: "#20c858",
+    color: "#0D9488",
   },
   {
     title: "Track and adapt",
@@ -160,7 +160,7 @@ const howItWorks = [
 const typicalDay = [
   { time: "07:00", title: "Morning routine", description: "Vitamins, hydration, and movement", color: "#3B82F6", category: "Exercise" },
   { time: "09:00", title: "Educational snippet", description: "A short health insight pops up", color: "#06B6D4", category: "Mental" },
-  { time: "12:00", title: "Lunch suggestion", description: "Meal idea with macro guidance", color: "#20c858", category: "Nutrition" },
+  { time: "12:00", title: "Lunch suggestion", description: "Meal idea with macro guidance", color: "#0D9488", category: "Nutrition" },
   { time: "15:00", title: "Breathing exercise", description: "Afternoon reset reminder", color: "#06B6D4", category: "Mental" },
   { time: "18:00", title: "Workout plan", description: "Today's exercise session", color: "#3B82F6", category: "Exercise" },
   { time: "21:00", title: "Sleep wind-down", description: "Evening routine for better rest", color: "#8B5CF6", category: "Sleep" },
@@ -183,7 +183,7 @@ const comparisonFeatures = [
 function FeatureCell({ value }: { value: boolean | string }) {
   if (value === true) {
     return (
-      <svg className="w-5 h-5 text-[#20c858] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-[#0D9488] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
       </svg>
     );
@@ -206,7 +206,7 @@ export default function CoachingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
-              Your daily <span className="text-[#20c858]">health coach</span>
+              Your daily <span className="text-[#0D9488]">health coach</span>
             </h1>
             <p className="mt-6 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
               The Lifeline app delivers personalised daily coaching across four
@@ -222,7 +222,7 @@ export default function CoachingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Why health coaching <span className="text-[#20c858]">works</span>
+              Why health coaching <span className="text-[#0D9488]">works</span>
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
               Knowledge alone doesn&apos;t create change. Coaching bridges the gap between knowing and doing.
@@ -249,7 +249,7 @@ export default function CoachingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                 ),
-                color: "text-[#20c858]",
+                color: "text-[#0D9488]",
                 bg: "bg-green-50",
               },
               {
@@ -384,7 +384,7 @@ export default function CoachingPage() {
           </div>
           <div className="relative">
             {/* Vertical line — centered on dots */}
-            <div className="absolute left-[1.125rem] top-3 bottom-3 w-px bg-gradient-to-b from-[#3B82F6] via-[#20c858] to-[#8B5CF6]" />
+            <div className="absolute left-[1.125rem] top-3 bottom-3 w-px bg-gradient-to-b from-[#3B82F6] via-[#0D9488] to-[#8B5CF6]" />
             <div className="space-y-6">
               {typicalDay.map((item) => (
                 <div key={item.time} className="relative pl-14 flex items-center">
@@ -518,12 +518,12 @@ export default function CoachingPage() {
                 key={plan.name}
                 className={`relative rounded-2xl p-8 transition-all duration-200 flex flex-col ${
                   plan.popular
-                    ? "bg-[#1F2937] text-white ring-2 ring-[#20c858] md:scale-105 shadow-2xl md:-my-4"
+                    ? "bg-[#1F2937] text-white ring-2 ring-[#0D9488] md:scale-105 shadow-2xl md:-my-4"
                     : "bg-white shadow-sm hover:shadow-lg hover:-translate-y-1"
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#20c858] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-green-500/30">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0D9488] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-green-500/30">
                     Most popular
                   </div>
                 )}
@@ -563,7 +563,7 @@ export default function CoachingPage() {
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
                       <svg
-                        className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#20c858]"
+                        className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#0D9488]"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -589,7 +589,7 @@ export default function CoachingPage() {
                   href="/account/login"
                   className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                     plan.popular
-                      ? "bg-[#20c858] text-white shadow-lg shadow-green-500/30 hover:bg-[#1ab34d]"
+                      ? "bg-[#0D9488] text-white shadow-lg shadow-green-500/30 hover:bg-[#0B7B73]"
                       : "bg-[#1F2937] text-white hover:bg-[#374151]"
                   }`}
                 >
@@ -623,19 +623,19 @@ export default function CoachingPage() {
                   <th className="text-left px-6 py-5 font-semibold text-white">Feature</th>
                   <th className="text-center px-4 py-5 font-semibold text-gray-300">Free</th>
                   <th className="text-center px-4 py-5 font-semibold text-blue-300">Self-maintained</th>
-                  <th className="text-center px-4 py-5 font-semibold text-[#20c858] relative">
+                  <th className="text-center px-4 py-5 font-semibold text-[#0D9488] relative">
                     Full Access
-                    <div className="absolute -top-0 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-[#20c858] text-white text-[9px] font-bold rounded-b-md uppercase tracking-wider">Best</div>
+                    <div className="absolute -top-0 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-[#0D9488] text-white text-[9px] font-bold rounded-b-md uppercase tracking-wider">Best</div>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonFeatures.map((row, i) => (
-                  <tr key={row.feature} className={`border-b border-gray-50 transition-colors hover:bg-[#20c858]/5 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
+                  <tr key={row.feature} className={`border-b border-gray-50 transition-colors hover:bg-[#0D9488]/5 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                     <td className="px-6 py-3.5 text-[#1F2937] font-medium">{row.feature}</td>
                     <td className="px-4 py-3.5 text-center"><FeatureCell value={row.free} /></td>
                     <td className="px-4 py-3.5 text-center"><FeatureCell value={row.self} /></td>
-                    <td className="px-4 py-3.5 text-center bg-[#20c858]/5"><FeatureCell value={row.full} /></td>
+                    <td className="px-4 py-3.5 text-center bg-[#0D9488]/5"><FeatureCell value={row.full} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -650,9 +650,9 @@ export default function CoachingPage() {
                   {[
                     { label: "Free", value: row.free, color: "text-gray-500" },
                     { label: "Self", value: row.self, color: "text-blue-600" },
-                    { label: "Full", value: row.full, color: "text-[#20c858]" },
+                    { label: "Full", value: row.full, color: "text-[#0D9488]" },
                   ].map((col) => (
-                    <div key={col.label} className={`text-center py-2 rounded-lg ${col.label === "Full" ? "bg-[#20c858]/8" : "bg-gray-50"}`}>
+                    <div key={col.label} className={`text-center py-2 rounded-lg ${col.label === "Full" ? "bg-[#0D9488]/8" : "bg-gray-50"}`}>
                       <p className={`text-[10px] font-semibold uppercase tracking-wider ${col.color} mb-1`}>{col.label}</p>
                       <FeatureCell value={col.value} />
                     </div>
@@ -722,7 +722,7 @@ export default function CoachingPage() {
           </p>
           <Link
             href="/assessment"
-            className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#20c858] rounded-full hover:bg-[#1ab34d] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+            className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#0D9488] rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
           >
             View Assessment Packages
           </Link>

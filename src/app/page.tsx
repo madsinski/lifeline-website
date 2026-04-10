@@ -28,7 +28,7 @@ const steps = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
       </svg>
     ),
-    color: "#20c858",
+    color: "#0D9488",
   },
   {
     step: "3",
@@ -59,9 +59,9 @@ const pillars = [
     title: "Nutrition",
     description:
       "Personalised meal guidance based on your blood work and body composition results.",
-    color: "#20c858",
+    color: "#0D9488",
     lightBg: "bg-green-50",
-    textColor: "text-[#20c858]",
+    textColor: "text-[#0D9488]",
     glowColor: "text-green-400",
     icon: <NutritionIcon />,
   },
@@ -157,7 +157,7 @@ const approach = [
 
 const appFeatures = [
   { title: "Personalised action plans", description: "Daily tasks across exercise, nutrition, sleep and mental wellness — built on your results.", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>, color: "#3B82F6" },
-  { title: "Health coaching and education", description: "Structured programs, educational courses, and a personal coach to guide your journey from day one.", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" /></svg>, color: "#20c858" },
+  { title: "Health coaching and education", description: "Structured programs, educational courses, and a personal coach to guide your journey from day one.", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" /></svg>, color: "#0D9488" },
   { title: "Track your progress", description: "See your health scores improve over time with every check-in and completed action.", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>, color: "#8B5CF6" },
   { title: "Community", description: "Join challenges, earn streaks, and connect with others on the same health journey.", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>, color: "#F59E0B" },
 ];
@@ -165,8 +165,8 @@ const appFeatures = [
 function AppTextContent() {
   return (
     <div>
-      <p className="text-sm font-semibold tracking-[0.15em] uppercase text-[#20c858] mb-4">The Lifeline App</p>
-      <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Your health change <span className="text-[#20c858]">partner</span></h2>
+      <p className="text-sm font-semibold tracking-[0.15em] uppercase text-[#0D9488] mb-4">The Lifeline App</p>
+      <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Your health change <span className="text-[#0D9488]">partner</span></h2>
       <p className="text-lg text-[#6B7280] mb-8 leading-relaxed">The Lifeline app brings your assessment data, coaching programs, and daily actions into one place — making real health change simple and sustainable.</p>
       <div className="space-y-4">
         {appFeatures.map((item) => (
@@ -180,8 +180,8 @@ function AppTextContent() {
         ))}
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/coaching#download" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#20c858] rounded-full hover:bg-[#1ab34d] transition-all duration-200 shadow-lg shadow-green-500/25">Download the App</Link>
-        <Link href="/pricing" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200">View Subscriptions</Link>
+        <Link href="/coaching#download" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#0D9488] rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-green-500/25">Download the App</Link>
+        <Link href="/pricing" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200">View Subscriptions</Link>
       </div>
     </div>
   );
@@ -207,7 +207,7 @@ export default function Home() {
               <MedaliaButton label="Book Health Assessment" size="lg" />
               <Link
                 href="/coaching#download"
-                className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+                className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200"
               >
                 Download the App
               </Link>
@@ -227,7 +227,7 @@ export default function Home() {
               { label: "Founded in Reykjav\u00edk" },
             ].map((stat) => (
               <div key={stat.label} className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-[#20c858] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#0D9488] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <span className="text-sm font-semibold text-[#1F2937]">{stat.label}</span>
@@ -251,8 +251,8 @@ export default function Home() {
 
           <div className="space-y-8 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-12 relative">
             {/* Connecting arrows (desktop only) */}
-            <div className="hidden sm:block absolute top-12 left-[30%] w-[12%] h-0.5 bg-gradient-to-r from-[#3B82F6]/40 to-[#20c858]/40" />
-            <div className="hidden sm:block absolute top-12 left-[58%] w-[12%] h-0.5 bg-gradient-to-r from-[#20c858]/40 to-[#8B5CF6]/40" />
+            <div className="hidden sm:block absolute top-12 left-[30%] w-[12%] h-0.5 bg-gradient-to-r from-[#3B82F6]/40 to-[#0D9488]/40" />
+            <div className="hidden sm:block absolute top-12 left-[58%] w-[12%] h-0.5 bg-gradient-to-r from-[#0D9488]/40 to-[#8B5CF6]/40" />
 
             {steps.map((s) => (
               <div key={s.step} className="flex flex-col items-center text-center relative">
@@ -308,7 +308,7 @@ export default function Home() {
               {
                 title: "Targeted blood panel",
                 description: "We test the markers that matter for metabolic health — no unnecessary tests. Maximum insight, best value.",
-                color: "#20c858",
+                color: "#0D9488",
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M5 14.5l-1.43 1.43a2.25 2.25 0 00-.659 1.591v2.228c0 1.243 1.007 2.25 2.25 2.25h13.676a2.25 2.25 0 002.25-2.25v-2.228c0-.597-.237-1.17-.659-1.591L19 14.5" />
@@ -361,7 +361,7 @@ export default function Home() {
             {/* Secure records card */}
             <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
               <div className="flex items-start gap-5">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#20c858]/10 border-2 border-[#20c858]/25 text-[#20c858]">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#0D9488]/10 border-2 border-[#0D9488]/25 text-[#0D9488]">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                   </svg>
@@ -376,7 +376,7 @@ export default function Home() {
                   <div className="flex flex-wrap gap-3">
                     <Link
                       href="/assessment"
-                      className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#20c858] rounded-full hover:bg-[#1ab34d] transition-all duration-200 shadow-md shadow-green-500/25"
+                      className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#0D9488] rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-md shadow-green-500/25"
                     >
                       View Packages
                     </Link>
@@ -438,7 +438,7 @@ export default function Home() {
                 key={a.title}
                 className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
               >
-                <div className="w-12 h-12 rounded-xl bg-[#20c858]/10 text-[#20c858] flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 rounded-xl bg-[#0D9488]/10 text-[#0D9488] flex items-center justify-center mx-auto mb-4">
                   {a.icon}
                 </div>
                 <h3 className="text-sm font-semibold text-[#1F2937] mb-2">
@@ -473,12 +473,12 @@ export default function Home() {
                 key={t.name + i}
                 className="bg-[#e6ecf4] rounded-2xl p-5 flex items-start gap-5 shadow-sm hover:shadow-md transition-all duration-200"
               >
-                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#20c858]/20 to-[#3B82F6]/10 flex items-center justify-center text-[#20c858] font-bold text-xl shadow-sm flex-shrink-0">
+                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#0D9488]/20 to-[#3B82F6]/10 flex items-center justify-center text-[#0D9488] font-bold text-xl shadow-sm flex-shrink-0">
                   {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-[#1F2937]">{t.name}</h3>
-                  <p className="text-xs text-[#20c858] font-medium mb-2">{t.role}</p>
+                  <p className="text-xs text-[#0D9488] font-medium mb-2">{t.role}</p>
                   <p className="text-sm text-[#6B7280] leading-relaxed">{t.bio}</p>
                 </div>
               </div>
@@ -513,9 +513,9 @@ export default function Home() {
                 <div className="w-full h-20 flex items-center justify-center mb-4 px-4">
                   <img src={p.logo} alt={p.name} className="max-h-16 max-w-full object-contain" />
                 </div>
-                <h3 className="font-semibold text-[#1F2937] mb-1 group-hover:text-[#20c858] transition-colors">{p.name}</h3>
+                <h3 className="font-semibold text-[#1F2937] mb-1 group-hover:text-[#0D9488] transition-colors">{p.name}</h3>
                 <p className="text-xs text-[#6B7280] mb-2">{p.role}</p>
-                <p className="text-xs text-[#20c858] font-medium">{p.url.replace('https://', '')}</p>
+                <p className="text-xs text-[#0D9488] font-medium">{p.url.replace('https://', '')}</p>
               </a>
             ))}
           </div>
@@ -538,7 +538,7 @@ export default function Home() {
             <MedaliaButton label="Book Assessment" size="lg" />
             <Link
               href="/coaching#download"
-              className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#20c858] text-[#20c858] rounded-full hover:bg-[#20c858] hover:text-white transition-all duration-200"
+              className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200"
             >
               Download App
             </Link>

@@ -493,7 +493,7 @@ export default function TeamPage() {
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -603,7 +603,7 @@ export default function TeamPage() {
                             type="text"
                             value={editValues.name ?? ""}
                             onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 w-40"
+                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 w-40"
                           />
                         ) : (
                           <span className="text-sm font-medium text-[#1F2937]">{member.name}</span>
@@ -616,7 +616,7 @@ export default function TeamPage() {
                           type="email"
                           value={editValues.email ?? ""}
                           onChange={(e) => setEditValues({ ...editValues, email: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 w-48"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 w-48"
                         />
                       ) : (
                         <span className="text-sm text-gray-600">{member.email}</span>
@@ -628,7 +628,7 @@ export default function TeamPage() {
                           type="tel"
                           value={editValues.phone ?? ""}
                           onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 w-36"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 w-36"
                         />
                       ) : (
                         <span className="text-sm text-gray-600">{member.phone || "Not set"}</span>
@@ -639,7 +639,7 @@ export default function TeamPage() {
                         <select
                           value={editValues.role ?? member.role}
                           onChange={(e) => setEditValues({ ...editValues, role: e.target.value as StaffRole })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                         >
                           {roleOptions.map((r) => (
                             <option key={r} value={r}>{roleLabels[r]}</option>
@@ -656,7 +656,7 @@ export default function TeamPage() {
                         onClick={() => toggleActive(member.id)}
                         className="flex items-center gap-2 group"
                       >
-                        <div className={`relative w-9 h-5 rounded-full transition-colors ${member.active ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                        <div className={`relative w-9 h-5 rounded-full transition-colors ${member.active ? "bg-[#0D9488]" : "bg-gray-300"}`}>
                           <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${member.active ? "translate-x-4" : "translate-x-0.5"}`} />
                         </div>
                         <span className={`text-xs ${member.active ? "text-green-600" : "text-gray-400"}`}>
@@ -670,7 +670,7 @@ export default function TeamPage() {
                           <>
                             <button
                               onClick={() => saveEdit(member.id)}
-                              className="px-3 py-1 text-xs font-medium text-white bg-[#20c858] rounded hover:bg-[#1bb34d] transition-colors"
+                              className="px-3 py-1 text-xs font-medium text-white bg-[#0D9488] rounded hover:bg-[#1bb34d] transition-colors"
                             >
                               Save
                             </button>
@@ -745,7 +745,7 @@ export default function TeamPage() {
                                     : [...current, perm.key];
                                   setEditValues({ ...editValues, permissions: updated });
                                 }}
-                                className="w-3.5 h-3.5 text-[#20c858] border-gray-300 rounded focus:ring-[#20c858]"
+                                className="w-3.5 h-3.5 text-[#0D9488] border-gray-300 rounded focus:ring-[#0D9488]"
                               />
                               <span className="text-xs font-medium text-gray-700">{perm.label}</span>
                             </label>
@@ -860,7 +860,7 @@ export default function TeamPage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Full name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -870,7 +870,7 @@ export default function TeamPage() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="email@lifeline.is"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -880,7 +880,7 @@ export default function TeamPage() {
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="+354 555 0000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -888,7 +888,7 @@ export default function TeamPage() {
                 <select
                   value={newRole}
                   onChange={(e) => handleRoleChange(e.target.value as StaffRole)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                 >
                   {roleOptions.map((r) => (
                     <option key={r} value={r}>{roleLabels[r]}</option>
@@ -904,7 +904,7 @@ export default function TeamPage() {
                         type="checkbox"
                         checked={newPermissions.includes(perm.key)}
                         onChange={() => togglePermission(perm.key)}
-                        className="mt-0.5 w-4 h-4 text-[#20c858] border-gray-300 rounded focus:ring-[#20c858]"
+                        className="mt-0.5 w-4 h-4 text-[#0D9488] border-gray-300 rounded focus:ring-[#0D9488]"
                       />
                       <div>
                         <span className="text-sm font-medium text-gray-700">{perm.label}</span>
@@ -920,7 +920,7 @@ export default function TeamPage() {
                     type="checkbox"
                     checked={sendInvite}
                     onChange={(e) => setSendInvite(e.target.checked)}
-                    className="w-4 h-4 text-[#20c858] border-gray-300 rounded focus:ring-[#20c858]"
+                    className="w-4 h-4 text-[#0D9488] border-gray-300 rounded focus:ring-[#0D9488]"
                   />
                   <span className="text-sm font-medium text-gray-700">Send invite email</span>
                 </label>
@@ -937,7 +937,7 @@ export default function TeamPage() {
               <button
                 onClick={handleAdd}
                 disabled={!newName.trim() || !newEmail.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sendInvite ? "Add & Send Invite" : "Add Member"}
               </button>

@@ -605,7 +605,7 @@ export default function ClientsPage() {
       <div className="flex items-center gap-1">
         {label}
         {sortKey === field && (
-          <span className="text-[#20c858]">{sortAsc ? "\u2191" : "\u2193"}</span>
+          <span className="text-[#0D9488]">{sortAsc ? "\u2191" : "\u2193"}</span>
         )}
       </div>
     </th>
@@ -684,12 +684,12 @@ export default function ClientsPage() {
           placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-72 focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm w-72 focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
         />
         <select
           value={filterTier}
           onChange={(e) => setFilterTier(e.target.value as "All" | Tier | "none")}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
         >
           <option value="All">All Tiers</option>
           {tierOptions.map((t) => (
@@ -702,7 +702,7 @@ export default function ClientsPage() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as "All" | Status)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
         >
           <option value="All">All Statuses</option>
           <option value="active">Active</option>
@@ -720,7 +720,7 @@ export default function ClientsPage() {
         <button
           onClick={syncClients}
           disabled={syncing || loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50"
         >
           {syncing ? "Syncing..." : "Sync"}
         </button>
@@ -834,7 +834,7 @@ export default function ClientsPage() {
                 alert(`Sync failed: ${err instanceof Error ? err.message : "Unknown error"}. Note: this requires a Supabase service role key configured on the server.`);
               }
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1bb34d] transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors"
           >
             Sync from Auth Users
           </button>
@@ -912,7 +912,7 @@ export default function ClientsPage() {
 // ─── Client Programs Panel ──────────────────────────────────
 const categoryDefs = [
   { key: "exercise", label: "Exercise", color: "#3B82F6", icon: "barbell" },
-  { key: "nutrition", label: "Nutrition", color: "#20c858", icon: "nutrition" },
+  { key: "nutrition", label: "Nutrition", color: "#0D9488", icon: "nutrition" },
   { key: "sleep", label: "Sleep", color: "#8B5CF6", icon: "moon" },
   { key: "mental", label: "Mental", color: "#06B6D4", icon: "happy" },
 ];
@@ -1300,7 +1300,7 @@ function ClientRowComponent({
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-500">Coach</span>
                 <select value={assignedCoachId} onChange={(e) => { e.stopPropagation(); onAssignCoach(client.id, e.target.value); }} onClick={(e) => e.stopPropagation()}
-                  className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900">
+                  className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900">
                   {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name} ({staffRoleLabels[s.role]})</option>)}
                 </select>
               </div>
@@ -1322,13 +1322,13 @@ function ClientRowComponent({
               {/* Subscription */}
               {client.tier === "none" ? (
                 <button onClick={(e) => { e.stopPropagation(); onCreateSubscription(client.id); }} disabled={isCreating}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-[#20c858] rounded-full hover:bg-[#1bb34d] disabled:opacity-50">
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-[#0D9488] rounded-full hover:bg-[#1bb34d] disabled:opacity-50">
                   {isCreating ? "Creating..." : "+ Create plan"}
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
                   <select value={client.tier} onChange={(e) => { e.stopPropagation(); onChangeTier(client.id, client.subscriptionId, e.target.value as Tier); }} onClick={(e) => e.stopPropagation()} disabled={isSaving}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900 disabled:opacity-50">
+                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 disabled:opacity-50">
                     {tierOptions.map((t) => <option key={t} value={t}>{tierLabels[t]}</option>)}
                   </select>
                   {isSaving && <span className="text-xs text-gray-400">Saving...</span>}

@@ -36,7 +36,7 @@ export default function Footer() {
               </p>
             </div>
             {subscribed ? (
-              <div className="flex items-center gap-2 text-[#20c858] font-medium">
+              <div className="flex items-center gap-2 text-[#0D9488] font-medium">
                 <svg className="w-5 h-5 success-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -54,7 +54,7 @@ export default function Footer() {
                 />
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-all duration-200 whitespace-nowrap"
+                  className="px-6 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-all duration-200 whitespace-nowrap"
                 >
                   Subscribe
                 </button>

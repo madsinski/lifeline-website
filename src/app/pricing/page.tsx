@@ -6,7 +6,7 @@ import MedaliaButton from "../components/MedaliaButton";
 
 const assessmentColors = [
   { accent: "border-t-4 border-t-[#3B82F6]", iconBg: "bg-blue-50 border border-blue-100", iconText: "text-[#3B82F6]", checkColor: "text-[#3B82F6]" },
-  { accent: "border-t-4 border-t-[#20c858]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#20c858]", checkColor: "text-[#20c858]" },
+  { accent: "border-t-4 border-t-[#0D9488]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#0D9488]", checkColor: "text-[#0D9488]" },
   { accent: "border-t-4 border-t-[#8B5CF6]", iconBg: "bg-purple-50 border border-purple-100", iconText: "text-[#8B5CF6]", checkColor: "text-[#8B5CF6]" },
 ];
 
@@ -168,7 +168,7 @@ export default function PricingPage() {
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
               Simple, transparent{" "}
-              <span className="text-[#20c858]">pricing</span>
+              <span className="text-[#0D9488]">pricing</span>
             </h1>
             <p className="mt-6 text-lg text-[#6B7280]">
               Health assessments are one-time bookings. Coaching is a monthly app
@@ -204,7 +204,7 @@ export default function PricingPage() {
                     <h3 className="text-lg font-semibold text-[#1F2937]">
                       {pkg.name}
                     </h3>
-                    <span className="text-xs font-medium text-[#20c858] bg-[#20c858]/10 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium text-[#0D9488] bg-[#0D9488]/10 px-2 py-1 rounded-full">
                       {pkg.type}
                     </span>
                   </div>
@@ -273,7 +273,7 @@ export default function PricingPage() {
                 onClick={() => setIsAnnual(false)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   !isAnnual
-                    ? "bg-[#20c858] text-white shadow-md"
+                    ? "bg-[#0D9488] text-white shadow-md"
                     : "text-[#6B7280] hover:text-[#1F2937]"
                 }`}
               >
@@ -283,12 +283,12 @@ export default function PricingPage() {
                 onClick={() => setIsAnnual(true)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   isAnnual
-                    ? "bg-[#20c858] text-white shadow-md"
+                    ? "bg-[#0D9488] text-white shadow-md"
                     : "text-[#6B7280] hover:text-[#1F2937]"
                 }`}
               >
                 Annual
-                <span className="ml-1.5 text-xs font-bold text-[#20c858] bg-[#20c858]/10 px-1.5 py-0.5 rounded-full">
+                <span className="ml-1.5 text-xs font-bold text-[#0D9488] bg-[#0D9488]/10 px-1.5 py-0.5 rounded-full">
                   -20%
                 </span>
               </button>
@@ -302,12 +302,12 @@ export default function PricingPage() {
                   key={plan.name}
                   className={`relative rounded-2xl p-8 transition-all duration-200 flex flex-col ${
                     plan.popular
-                      ? "bg-[#1F2937] text-white ring-2 ring-[#20c858] md:scale-105 shadow-2xl md:-my-4"
+                      ? "bg-[#1F2937] text-white ring-2 ring-[#0D9488] md:scale-105 shadow-2xl md:-my-4"
                       : "bg-white shadow-sm hover:shadow-xl hover:-translate-y-1"
                   }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#20c858] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-green-500/30">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0D9488] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-green-500/30">
                       Most popular
                     </div>
                   )}
@@ -345,7 +345,7 @@ export default function PricingPage() {
                     {isAnnual && plan.monthlyPrice !== "0" && (
                       <div className={`text-xs mt-1 ${plan.popular ? "text-gray-400" : "text-[#6B7280]"}`}>
                         <span className="line-through">{plan.monthlyPrice}</span>
-                        <span className="ml-1.5 text-[#20c858] font-medium">Save 20%</span>
+                        <span className="ml-1.5 text-[#0D9488] font-medium">Save 20%</span>
                       </div>
                     )}
                   </div>
@@ -353,7 +353,7 @@ export default function PricingPage() {
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <svg
-                          className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#20c858]"
+                          className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#0D9488]"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -380,7 +380,7 @@ export default function PricingPage() {
                       href="/account/login"
                       className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                         plan.popular
-                          ? "bg-[#20c858] text-white shadow-lg shadow-green-500/30 hover:bg-[#1ab34d]"
+                          ? "bg-[#0D9488] text-white shadow-lg shadow-green-500/30 hover:bg-[#0B7B73]"
                           : "bg-[#1F2937] text-white hover:bg-[#374151]"
                       }`}
                     >
@@ -391,7 +391,7 @@ export default function PricingPage() {
                       href={`/account?upgrade=${plan.name === "Self-maintained" ? "self-maintained" : "full-access"}`}
                       className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                         plan.popular
-                          ? "bg-[#20c858] text-white shadow-lg shadow-green-500/30 hover:bg-[#1ab34d]"
+                          ? "bg-[#0D9488] text-white shadow-lg shadow-green-500/30 hover:bg-[#0B7B73]"
                           : "bg-[#1F2937] text-white hover:bg-[#374151]"
                       }`}
                     >
@@ -427,7 +427,7 @@ export default function PricingPage() {
                     {faq.question}
                   </span>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-                    openFaq === i ? "bg-[#20c858] text-white rotate-180" : "bg-white text-[#6B7280]"
+                    openFaq === i ? "bg-[#0D9488] text-white rotate-180" : "bg-white text-[#6B7280]"
                   }`}>
                     <svg
                       className="w-4 h-4"

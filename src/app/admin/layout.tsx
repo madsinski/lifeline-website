@@ -239,7 +239,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (session === null || !session) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20c858]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D9488]" />
       </div>
     );
   }
@@ -266,7 +266,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
           {!sidebarCollapsed && (
             <span className="text-lg font-bold tracking-tight">
-              Lifeline <span className="text-[#20c858]">{coachingView ? "Coach" : "Admin"}</span>
+              Lifeline <span className="text-[#0D9488]">{coachingView ? "Coach" : "Admin"}</span>
             </span>
           )}
           <button
@@ -286,7 +286,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* User info */}
         <div className={`px-4 py-3 border-b border-gray-700 flex items-center gap-3 ${sidebarCollapsed ? "justify-center" : ""}`}>
-          <div className="w-8 h-8 rounded-full bg-[#20c858] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#0D9488] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
             {initials}
           </div>
           {!sidebarCollapsed && (
@@ -324,7 +324,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={link.href}
                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[#20c858]/15 text-[#20c858]"
+                    ? "bg-[#0D9488]/15 text-[#0D9488]"
                     : "text-gray-300 hover:bg-gray-700 hover:text-white"
                 }`}
                 title={sidebarCollapsed ? link.label : undefined}
@@ -334,14 +334,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <span className="flex items-center gap-2">
                     {link.label}
                     {hasBadge && (
-                      <span className="bg-[#20c858] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                      <span className="bg-[#0D9488] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                         {badgeCount}
                       </span>
                     )}
                   </span>
                 )}
                 {sidebarCollapsed && hasBadge && (
-                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#20c858] rounded-full" />
+                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#0D9488] rounded-full" />
                 )}
               </Link>
             );
@@ -364,7 +364,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               }}
               className={`flex items-center w-full px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
                 sidebarCollapsed ? "justify-center" : "justify-between"
-              } ${coachingView ? "bg-[#20c858]/15 text-[#20c858]" : "text-gray-400 hover:bg-gray-700 hover:text-white"}`}
+              } ${coachingView ? "bg-[#0D9488]/15 text-[#0D9488]" : "text-gray-400 hover:bg-gray-700 hover:text-white"}`}
               title={sidebarCollapsed ? (coachingView ? "Switch to Admin view" : "Switch to Coaching view") : undefined}
             >
               {!sidebarCollapsed ? (
@@ -375,7 +375,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </svg>
               )}
               {!sidebarCollapsed && (
-                <span className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#20c858]" : "bg-gray-600"}`}>
+                <span className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#0D9488]" : "bg-gray-600"}`}>
                   <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-5" : "translate-x-0"}`} />
                 </span>
               )}
@@ -419,7 +419,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     {i === breadcrumbs.length - 1 ? (
                       <span className="text-gray-600 font-medium">{crumb.label}</span>
                     ) : (
-                      <Link href={crumb.href} className="hover:text-[#20c858] transition-colors">
+                      <Link href={crumb.href} className="hover:text-[#0D9488] transition-colors">
                         {crumb.label}
                       </Link>
                     )}

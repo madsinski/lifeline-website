@@ -221,7 +221,7 @@ function PhonePreview({ day, categoryId }: { day: DayContent; categoryId: string
                 {actions.map((a) => (
                   <div key={a.id} className={`p-2 mb-1 rounded-lg border text-xs ${colors.bg} ${colors.border}`}>
                     <div className="flex items-center gap-1">
-                      {a.priority && <span className="w-1.5 h-1.5 bg-[#20c858] rounded-full flex-shrink-0" />}
+                      {a.priority && <span className="w-1.5 h-1.5 bg-[#0D9488] rounded-full flex-shrink-0" />}
                       <span className={`font-medium ${colors.text}`}>{a.label || "Untitled"}</span>
                     </div>
                     {a.details.length > 0 && (
@@ -381,11 +381,11 @@ export default function ProgramsCMSPage() {
     try {
       await supabase.from("client_programs").upsert({
         client_id: clientId,
-        category: categoryKey,
+        category_key: categoryKey,
         program_key: programKey,
+        week_number: 1,
         started_at: new Date().toISOString(),
-        current_week: 1,
-      }, { onConflict: "client_id,category" });
+      }, { onConflict: "client_id,category_key" });
 
       setShareAssigned(prev => new Set(prev).add(clientId));
       setShareClients(prev => prev.map(c => c.id === clientId ? { ...c, current_program_key: programKey } : c));
@@ -405,12 +405,12 @@ export default function ProgramsCMSPage() {
     try {
       const rows = unassigned.map(c => ({
         client_id: c.id,
-        category: categoryKey,
+        category_key: categoryKey,
         program_key: programKey,
         started_at: new Date().toISOString(),
-        current_week: 1,
+        week_number: 1,
       }));
-      await supabase.from("client_programs").upsert(rows, { onConflict: "client_id,category" });
+      await supabase.from("client_programs").upsert(rows, { onConflict: "client_id,category_key" });
       setShareAssigned(prev => {
         const next = new Set(prev);
         unassigned.forEach(c => next.add(c.id));
@@ -427,7 +427,7 @@ export default function ProgramsCMSPage() {
 
   const exerciseCategoryColors: Record<string, string> = {
     chest: "#EF4444", back: "#3B82F6", shoulders: "#F59E0B", arms: "#8B5CF6",
-    legs: "#20c858", core: "#06B6D4", cardio: "#EC4899", flexibility: "#14B8A6", "full-body": "#6366F1",
+    legs: "#0D9488", core: "#06B6D4", cardio: "#EC4899", flexibility: "#14B8A6", "full-body": "#6366F1",
   };
 
   const loadExerciseLibrary = useCallback(async () => {
@@ -937,7 +937,7 @@ export default function ProgramsCMSPage() {
   // Map category ids to icons and colors matching the app
   const categoryMeta: Record<string, { icon: string; color: string; label: string }> = {
     exercise: { icon: "barbell", color: "#3B82F6", label: "Exercise" },
-    nutrition: { icon: "nutrition", color: "#20c858", label: "Nutrition" },
+    nutrition: { icon: "nutrition", color: "#0D9488", label: "Nutrition" },
     sleep: { icon: "moon", color: "#8B5CF6", label: "Sleep" },
     mental: { icon: "happy", color: "#06B6D4", label: "Mental wellness" },
   };
@@ -1138,7 +1138,7 @@ export default function ProgramsCMSPage() {
               }}
               className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                 activeTab === cat.id && !isClientsTab
-                  ? "bg-[#20c858] text-white"
+                  ? "bg-[#0D9488] text-white"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -1164,7 +1164,7 @@ export default function ProgramsCMSPage() {
           }}
           className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
             isClientsTab
-              ? "bg-[#20c858] text-white"
+              ? "bg-[#0D9488] text-white"
               : "text-gray-600 hover:bg-gray-100"
           }`}
         >
@@ -1240,13 +1240,13 @@ export default function ProgramsCMSPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={addProgram}
-              className="px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors"
+              className="px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors"
             >
               + Add Program
             </button>
             <button
               onClick={() => setShowDuplicateModal(true)}
-              className="px-4 py-2 bg-white border border-[#20c858] text-[#20c858] text-sm font-medium rounded-lg hover:bg-[#20c858]/5 transition-colors"
+              className="px-4 py-2 bg-white border border-[#0D9488] text-[#0D9488] text-sm font-medium rounded-lg hover:bg-[#0D9488]/5 transition-colors"
             >
               Duplicate Existing
             </button>
@@ -1306,7 +1306,7 @@ export default function ProgramsCMSPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
@@ -1357,7 +1357,7 @@ export default function ProgramsCMSPage() {
                           type="text"
                           value={program.name}
                           onChange={(e) => updateProgram(program.id, "name", e.target.value)}
-                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                           placeholder="Program name"
                         />
                       </div>
@@ -1366,12 +1366,12 @@ export default function ProgramsCMSPage() {
                         value={program.tagline}
                         onChange={(e) => updateProgram(program.id, "tagline", e.target.value)}
                         placeholder="Tagline (one-liner for card)"
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#20c858] outline-none"
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#0D9488] outline-none"
                       />
                       <select
                         value={program.duration}
                         onChange={(e) => updateProgram(program.id, "duration", Number(e.target.value))}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#20c858] outline-none"
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#0D9488] outline-none"
                       >
                         <option value={4}>4 weeks</option>
                         <option value={8}>8 weeks</option>
@@ -1383,7 +1383,7 @@ export default function ProgramsCMSPage() {
                       <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
-                            completeness.pct === 100 ? "bg-[#20c858]" : completeness.pct > 50 ? "bg-amber-400" : "bg-red-400"
+                            completeness.pct === 100 ? "bg-[#0D9488]" : completeness.pct > 50 ? "bg-amber-400" : "bg-red-400"
                           }`}
                           style={{ width: `${completeness.pct}%` }}
                         />
@@ -1440,7 +1440,7 @@ export default function ProgramsCMSPage() {
                         setShareAssigned(new Set());
                         loadShareClients(program.id, activeTab, "");
                       }}
-                      className="p-2 text-gray-400 hover:text-[#20c858] rounded-lg hover:bg-[#20c858]/5 transition-colors"
+                      className="p-2 text-gray-400 hover:text-[#0D9488] rounded-lg hover:bg-[#0D9488]/5 transition-colors"
                       title="Share with client"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1488,7 +1488,7 @@ export default function ProgramsCMSPage() {
                           <select
                             value={program.level}
                             onChange={(e) => updateProgram(program.id, "level", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                           >
                             <option value="">Not set</option>
                             <option value="beginner">Beginner</option>
@@ -1502,7 +1502,7 @@ export default function ProgramsCMSPage() {
                             <select
                               value={program.exerciseType}
                               onChange={(e) => updateProgram(program.id, "exerciseType", e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                             >
                               <option value="">Not set</option>
                               <option value="gym">Gym</option>
@@ -1517,7 +1517,7 @@ export default function ProgramsCMSPage() {
                             value={program.targetAudience}
                             onChange={(e) => updateProgram(program.id, "targetAudience", e.target.value)}
                             placeholder="e.g. People new to strength training looking to build a solid foundation"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                           />
                         </div>
                       </div>
@@ -1529,7 +1529,7 @@ export default function ProgramsCMSPage() {
                           onChange={(e) => updateProgram(program.id, "description", e.target.value)}
                           placeholder="Detailed description of the program, what to expect, and how it works..."
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none resize-y text-gray-900 leading-relaxed"
                         />
                       </div>
                       {/* Row 3: Structured phases */}
@@ -1541,7 +1541,7 @@ export default function ProgramsCMSPage() {
                               const updated = [...program.structuredPhases, { weeks: "", name: "", description: "" }];
                               updateProgram(program.id, "structuredPhases", updated);
                             }}
-                            className="text-xs font-medium text-[#20c858] hover:underline"
+                            className="text-xs font-medium text-[#0D9488] hover:underline"
                           >
                             + Add phase
                           </button>
@@ -1563,7 +1563,7 @@ export default function ProgramsCMSPage() {
                                   updateProgram(program.id, "structuredPhases", updated);
                                 }}
                                 placeholder="e.g. 1–4"
-                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                               />
                               <input
                                 type="text"
@@ -1573,7 +1573,7 @@ export default function ProgramsCMSPage() {
                                   updateProgram(program.id, "structuredPhases", updated);
                                 }}
                                 placeholder="Phase name"
-                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                               />
                               <input
                                 type="text"
@@ -1583,7 +1583,7 @@ export default function ProgramsCMSPage() {
                                   updateProgram(program.id, "structuredPhases", updated);
                                 }}
                                 placeholder="Description"
-                                className="md:col-span-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                className="md:col-span-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                               />
                             </div>
                             <button
@@ -1632,7 +1632,7 @@ export default function ProgramsCMSPage() {
                           <span className="text-blue-700 font-medium">Copy {weekRanges[copySource]} to:</span>
                           <button
                             onClick={() => fillWeeksFromSource(program.id, copySource)}
-                            className="px-3 py-1 bg-[#20c858] text-white rounded-lg hover:bg-[#1ab34d] text-xs font-bold"
+                            className="px-3 py-1 bg-[#0D9488] text-white rounded-lg hover:bg-[#0B7B73] text-xs font-bold"
                           >
                             All weeks
                           </button>
@@ -1692,7 +1692,7 @@ export default function ProgramsCMSPage() {
                                         onClick={() => setSelectedCell(isSelected ? null : { weekIdx, dayIdx })}
                                         className={`w-full p-2 rounded-lg text-xs transition-all border ${
                                           isSelected
-                                            ? `${colors.bg} ${colors.border} ring-2 ring-[#20c858]/30`
+                                            ? `${colors.bg} ${colors.border} ring-2 ring-[#0D9488]/30`
                                             : actionCount > 0
                                             ? `bg-white border-gray-200 hover:${colors.bg} hover:${colors.border}`
                                             : "bg-gray-50 border-gray-100 hover:bg-gray-100"
@@ -1734,14 +1734,14 @@ export default function ProgramsCMSPage() {
                               <button
                                 onClick={() => setShowPreview(!showPreview)}
                                 className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                                  showPreview ? "bg-[#20c858] text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                                  showPreview ? "bg-[#0D9488] text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                                 }`}
                               >
                                 {showPreview ? "Hide Preview" : "Preview"}
                               </button>
                               <button
                                 onClick={() => addAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx)}
-                                className="px-3 py-1 text-xs bg-[#20c858] text-white rounded-lg hover:bg-[#1ab34d] font-medium"
+                                className="px-3 py-1 text-xs bg-[#0D9488] text-white rounded-lg hover:bg-[#0B7B73] font-medium"
                               >
                                 + Add Action
                               </button>
@@ -1797,14 +1797,14 @@ export default function ProgramsCMSPage() {
                                                 updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "label", e.target.value)
                                               }
                                               placeholder="Action label (e.g. Barbell Bench Press)"
-                                              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                                             />
                                             <select
                                               value={action.timeGroup}
                                               onChange={(e) =>
                                                 updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "timeGroup", e.target.value)
                                               }
-                                              className="w-32 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] outline-none text-gray-900"
+                                              className="w-32 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
                                             >
                                               {timeGroups.map((tg) => (
                                                 <option key={tg} value={tg}>
@@ -1821,7 +1821,7 @@ export default function ProgramsCMSPage() {
                                             }
                                             placeholder="Details — one item per line&#10;&#10;e.g.&#10;4 sets x 8 reps&#10;60s rest between sets&#10;RPE 7&#10;Focus on controlled tempo"
                                             rows={12}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed min-h-[200px]"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none resize-y text-gray-900 leading-relaxed min-h-[200px]"
                                           />
                                           {/* Row 2b: Exercise library */}
                                           {activeTab === "exercise" && (() => {
@@ -1840,7 +1840,7 @@ export default function ProgramsCMSPage() {
                                                       setExerciseCategoryFilter(null);
                                                       setSelectedExercise(null);
                                                     }}
-                                                    className="px-3 py-1.5 bg-[#20c858] text-white rounded-lg text-xs font-medium hover:bg-[#1ab34d] transition-colors"
+                                                    className="px-3 py-1.5 bg-[#0D9488] text-white rounded-lg text-xs font-medium hover:bg-[#0B7B73] transition-colors"
                                                   >
                                                     + Add exercise
                                                   </button>
@@ -1894,7 +1894,7 @@ export default function ProgramsCMSPage() {
                                                     updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "imageUrl" as keyof ProgramAction, e.target.value)
                                                   }
                                                   placeholder="https://... (exercise photo, meal image)"
-                                                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-700"
+                                                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-700"
                                                 />
                                                 {action.imageUrl && (
                                                   <div className="w-10 h-10 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0 bg-gray-50">
@@ -1912,7 +1912,7 @@ export default function ProgramsCMSPage() {
                                                   updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "videoUrl" as keyof ProgramAction, e.target.value)
                                                 }
                                                 placeholder="https://youtube.com/... or vimeo link"
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#20c858] outline-none text-gray-700"
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-700"
                                               />
                                             </div>
                                           </div>
@@ -1920,7 +1920,7 @@ export default function ProgramsCMSPage() {
                                           <div className="flex items-center justify-between pt-1">
                                             <label className="flex items-center gap-2 cursor-pointer">
                                               <div className={`relative w-9 h-5 rounded-full transition-colors ${
-                                                action.priority ? "bg-[#20c858]" : "bg-gray-300"
+                                                action.priority ? "bg-[#0D9488]" : "bg-gray-300"
                                               }`}>
                                                 <input
                                                   type="checkbox"
@@ -2189,7 +2189,7 @@ export default function ProgramsCMSPage() {
                       min={1}
                       value={exerciseForm.sets}
                       onChange={(e) => setExerciseForm({ ...exerciseForm, sets: parseInt(e.target.value) || 1 })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
                     />
                   </div>
                   <div>
@@ -2199,7 +2199,7 @@ export default function ProgramsCMSPage() {
                       value={exerciseForm.reps}
                       onChange={(e) => setExerciseForm({ ...exerciseForm, reps: e.target.value })}
                       placeholder="e.g. 8-12"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
                     />
                   </div>
                   <div>
@@ -2209,7 +2209,7 @@ export default function ProgramsCMSPage() {
                       value={exerciseForm.rest}
                       onChange={(e) => setExerciseForm({ ...exerciseForm, rest: e.target.value })}
                       placeholder="e.g. 60s"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
                     />
                   </div>
                   <div>
@@ -2219,7 +2219,7 @@ export default function ProgramsCMSPage() {
                       value={exerciseForm.notes}
                       onChange={(e) => setExerciseForm({ ...exerciseForm, notes: e.target.value })}
                       placeholder="e.g. Slow eccentric"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
                     />
                   </div>
                 </div>
@@ -2266,7 +2266,7 @@ export default function ProgramsCMSPage() {
                       setExerciseForm({ sets: 3, reps: "8-12", rest: "60s", notes: "" });
                       setToast({ message: `Added ${selectedExercise.name}`, type: "success" });
                     }}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#20c858] hover:bg-[#1ab34d] rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] hover:bg-[#0B7B73] rounded-lg transition-colors"
                   >
                     Add to action
                   </button>
@@ -2282,7 +2282,7 @@ export default function ProgramsCMSPage() {
                     value={exerciseSearch}
                     onChange={(e) => setExerciseSearch(e.target.value)}
                     placeholder="Search exercises..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
                     autoFocus
                   />
                 </div>
@@ -2398,7 +2398,7 @@ export default function ProgramsCMSPage() {
                   loadShareClients(showShareModal.id, activeTab, e.target.value);
                 }}
                 placeholder="Search clients by name or email..."
-                className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
               />
             </div>
 
@@ -2406,7 +2406,7 @@ export default function ProgramsCMSPage() {
             <div className="overflow-y-auto flex-1">
               {shareLoading && shareClients.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-5 h-5 border-2 border-gray-300 border-t-[#20c858] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-[#0D9488] rounded-full animate-spin" />
                 </div>
               ) : shareClients.length === 0 ? (
                 <div className="text-center py-12 px-4">
@@ -2444,7 +2444,7 @@ export default function ProgramsCMSPage() {
                         <button
                           onClick={() => assignProgramToClient(client.id, client.full_name, showShareModal.id, activeTab)}
                           disabled={isAssigning}
-                          className="px-3 py-1 bg-[#20c858] text-white text-xs font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 transition-colors"
+                          className="px-3 py-1 bg-[#0D9488] text-white text-xs font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 transition-colors"
                         >
                           {isAssigning ? "..." : "Assign"}
                         </button>
@@ -2461,7 +2461,7 @@ export default function ProgramsCMSPage() {
                 <button
                   onClick={() => assignProgramToAll(showShareModal.id, activeTab)}
                   disabled={shareLoading || shareClients.every(c => shareAssigned.has(c.id))}
-                  className="w-full px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {shareClients.every(c => shareAssigned.has(c.id))
                     ? "All clients assigned"

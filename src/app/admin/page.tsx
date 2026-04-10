@@ -276,7 +276,7 @@ export default function AdminDashboardPage() {
   }, [fetchStats]);
 
   const statCards = [
-    { label: "Total Clients", value: stats.totalClients, prev: stats.prevTotalClients, color: "border-l-4 border-l-[#20c858]" },
+    { label: "Total Clients", value: stats.totalClients, prev: stats.prevTotalClients, color: "border-l-4 border-l-[#0D9488]" },
     { label: "Free Plan", value: stats.freeTrialCount, prev: stats.prevFreeTrialCount, color: "border-l-4 border-l-gray-400" },
     { label: "Self-Maintained", value: stats.selfMaintainedCount, prev: stats.prevSelfMaintainedCount, color: "border-l-4 border-l-blue-500" },
     { label: "Full Access", value: stats.fullAccessCount, prev: stats.prevFullAccessCount, color: "border-l-4 border-l-emerald-500" },
@@ -329,7 +329,7 @@ export default function AdminDashboardPage() {
 
       {/* Revenue Card */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#20c858]">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#0D9488]">
           <div className="flex items-center justify-between mb-1">
             <p className="text-sm text-gray-500">Estimated MRR</p>
             <TrendArrow current={stats.estimatedMRR} previous={stats.prevMRR} />
@@ -408,7 +408,7 @@ export default function AdminDashboardPage() {
             <Link
               key={action.href}
               href={action.href}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-[#20c858]/30 hover:shadow-md transition-all group flex items-start gap-3"
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-[#0D9488]/30 hover:shadow-md transition-all group flex items-start gap-3"
             >
               <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center flex-shrink-0`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -416,7 +416,7 @@ export default function AdminDashboardPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-[#1F2937] group-hover:text-[#20c858] transition-colors">{action.label}</p>
+                <p className="text-sm font-medium text-[#1F2937] group-hover:text-[#0D9488] transition-colors">{action.label}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{action.desc}</p>
               </div>
             </Link>
@@ -429,7 +429,7 @@ export default function AdminDashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[#1F2937]">Recent Activity</h2>
-            <Link href="/admin/clients" className="text-xs text-[#20c858] hover:underline font-medium">View all</Link>
+            <Link href="/admin/clients" className="text-xs text-[#0D9488] hover:underline font-medium">View all</Link>
           </div>
           {loading ? (
             <div className="space-y-3">

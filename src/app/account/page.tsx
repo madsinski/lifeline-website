@@ -397,7 +397,7 @@ function AccountPageInner() {
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const categoryColors: Record<string, string> = {
     chest: "#EF4444", back: "#3B82F6", shoulders: "#F59E0B", arms: "#8B5CF6",
-    legs: "#20c858", core: "#06B6D4", cardio: "#EC4899", flexibility: "#14B8A6", "full-body": "#6366F1",
+    legs: "#0D9488", core: "#06B6D4", cardio: "#EC4899", flexibility: "#14B8A6", "full-body": "#6366F1",
   };
   const goalOptions = ["strength", "endurance", "weight loss", "flexibility", "general fitness"];
 
@@ -716,7 +716,7 @@ function AccountPageInner() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#ecf0f3]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#20c858] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-[#0D9488] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -735,7 +735,7 @@ function AccountPageInner() {
       <section className="bg-gradient-to-b from-white via-[#f0f3f6] to-[#ecf0f3] py-12 sm:py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#20c858] text-white text-lg font-bold flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-full bg-[#0D9488] text-white text-lg font-bold flex items-center justify-center shrink-0">
               {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
             </div>
             <div>
@@ -762,21 +762,21 @@ function AccountPageInner() {
         <div className="lg:hidden sticky top-16 z-20 -mx-4 px-4 py-3 bg-[#ecf0f3]/95 backdrop-blur-sm">
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={navItems.find(n => n.id === activeSection)?.icon || navItems[0].icon} />
               </svg>
             </div>
             <select
               value={activeSection}
               onChange={(e) => setActiveSection(e.target.value as Section)}
-              className="w-full bg-white rounded-2xl shadow-md pl-12 pr-12 py-4 text-sm font-semibold border-2 border-[#20c858]/30 text-[#1F2937] appearance-none focus:border-[#20c858] focus:ring-2 focus:ring-[#20c858]/20 outline-none transition-all"
+              className="w-full bg-white rounded-2xl shadow-md pl-12 pr-12 py-4 text-sm font-semibold border-2 border-[#0D9488]/30 text-[#1F2937] appearance-none focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 outline-none transition-all"
             >
               {navItems.map((item) => (
                 <option key={item.id} value={item.id}>{item.label}</option>
               ))}
             </select>
             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -793,7 +793,7 @@ function AccountPageInner() {
                   onClick={() => setActiveSection(item.id)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                     activeSection === item.id
-                      ? "bg-[#20c858]/10 text-[#20c858]"
+                      ? "bg-[#0D9488]/10 text-[#0D9488]"
                       : "text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50"
                   }`}
                 >
@@ -814,7 +814,7 @@ function AccountPageInner() {
                 {/* Welcome card */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-[#20c858] text-white text-xl font-bold flex items-center justify-center shrink-0">
+                    <div className="w-14 h-14 rounded-full bg-[#0D9488] text-white text-xl font-bold flex items-center justify-center shrink-0">
                       {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -832,8 +832,8 @@ function AccountPageInner() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link href="/assessment"
                       className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
-                      <div className="w-10 h-10 rounded-xl bg-[#20c858]/10 flex items-center justify-center mb-3 group-hover:bg-[#20c858]/20 transition-colors">
-                        <svg className="w-5 h-5 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-10 h-10 rounded-xl bg-[#0D9488]/10 flex items-center justify-center mb-3 group-hover:bg-[#0D9488]/20 transition-colors">
+                        <svg className="w-5 h-5 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                         </svg>
                       </div>
@@ -897,7 +897,7 @@ function AccountPageInner() {
                       <div>
                         <p className="text-sm text-[#6B7280]">No active plan</p>
                         <button onClick={() => setActiveSection("billing")}
-                          className="mt-2 text-sm font-medium text-[#20c858] hover:underline">
+                          className="mt-2 text-sm font-medium text-[#0D9488] hover:underline">
                           Choose a plan
                         </button>
                       </div>
@@ -914,7 +914,7 @@ function AccountPageInner() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-[#1F2937]">No assessments yet</p>
-                        <Link href="/assessment" className="text-xs text-[#20c858] hover:underline">Book your first</Link>
+                        <Link href="/assessment" className="text-xs text-[#0D9488] hover:underline">Book your first</Link>
                       </div>
                     </div>
                   </section>
@@ -928,7 +928,7 @@ function AccountPageInner() {
                 <div className="flex items-start justify-between mb-6">
                   <h2 className="text-lg font-semibold text-[#1F2937]">Personal Information</h2>
                   {!editingProfile && (
-                    <button onClick={() => setEditingProfile(true)} className="text-sm font-medium text-[#20c858] hover:underline">
+                    <button onClick={() => setEditingProfile(true)} className="text-sm font-medium text-[#0D9488] hover:underline">
                       Edit
                     </button>
                   )}
@@ -940,12 +940,12 @@ function AccountPageInner() {
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
                         <input value={profileFirstName} onChange={(e) => setProfileFirstName(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900" />
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900" />
                       </div>
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
                         <input value={profileLastName} onChange={(e) => setProfileLastName(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900" />
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900" />
                       </div>
                     </div>
                     <div>
@@ -956,33 +956,33 @@ function AccountPageInner() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                       <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                         placeholder="Phone number" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                       <input value={address} onChange={(e) => setAddress(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                         placeholder="Your address" />
                     </div>
                     <div className="flex gap-3">
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Emergency contact</label>
                         <input value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                           placeholder="Contact name" />
                       </div>
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Emergency phone</label>
                         <input value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} type="tel"
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
                           placeholder="Contact phone" />
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Date of birth</label>
                       <input value={dob} onChange={(e) => setDob(e.target.value)} type="date"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900" />
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Sex</label>
@@ -996,7 +996,7 @@ function AccountPageInner() {
                           <button key={opt.key} type="button" onClick={() => setSex(opt.key)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
                               sex === opt.key
-                                ? "border-[#20c858] bg-[#20c858]/10 text-[#20c858]"
+                                ? "border-[#0D9488] bg-[#0D9488]/10 text-[#0D9488]"
                                 : "border-gray-300 text-gray-600 hover:border-gray-400"
                             }`}>
                             {opt.label}
@@ -1011,7 +1011,7 @@ function AccountPageInner() {
                     )}
                     <div className="flex gap-3 pt-2">
                       <button onClick={handleSaveProfile} disabled={profileSaving}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50">
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50">
                         {profileSaving && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
                         {profileSaving ? "Saving..." : "Save changes"}
                       </button>
@@ -1086,7 +1086,7 @@ function AccountPageInner() {
                       Open the Lifeline app to view and reply to your messages.
                     </p>
                     <Link href="/coaching#download"
-                      className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors">
+                      className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
@@ -1103,7 +1103,7 @@ function AccountPageInner() {
                       Direct messaging with your coach is available on the Full Access plan.
                     </p>
                     <button onClick={() => setActiveSection("billing")}
-                      className="text-sm font-medium text-[#20c858] hover:underline">
+                      className="text-sm font-medium text-[#0D9488] hover:underline">
                       View billing & plans
                     </button>
                   </div>
@@ -1131,7 +1131,7 @@ function AccountPageInner() {
                         </div>
                         <div className="flex items-center gap-4">
                           <button onClick={() => setShowChangePlan(!showChangePlan)}
-                            className="text-sm font-medium text-[#20c858] hover:underline">
+                            className="text-sm font-medium text-[#0D9488] hover:underline">
                             {showChangePlan ? "Hide plans" : "Change plan"}
                           </button>
                           {currentTier !== "free-trial" && (
@@ -1157,7 +1157,7 @@ function AccountPageInner() {
                     <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
                       <p className="text-sm text-[#6B7280] mb-3">You don&apos;t have an active subscription.</p>
                       <button onClick={() => setShowChangePlan(true)}
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors">
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors">
                         Choose a plan
                       </button>
                     </div>
@@ -1207,9 +1207,9 @@ function AccountPageInner() {
                               }
                             }}
                             className={`rounded-xl border-2 p-5 text-left transition-all ${
-                              isCurrent ? "border-[#20c858] bg-[#20c858]/5" :
+                              isCurrent ? "border-[#0D9488] bg-[#0D9488]/5" :
                               isSelected ? "border-blue-400 bg-blue-50" :
-                              "border-gray-200 hover:border-[#20c858]/50"
+                              "border-gray-200 hover:border-[#0D9488]/50"
                             }`}>
                             <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold mb-2 ${tier.badgeColor}`}>
                               {tier.name}
@@ -1221,7 +1221,7 @@ function AccountPageInner() {
                             <ul className="space-y-1">
                               {tier.features.map((f) => (
                                 <li key={f} className="text-xs text-[#6B7280] flex items-start gap-1.5">
-                                  <svg className="w-3.5 h-3.5 text-[#20c858] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3.5 h-3.5 text-[#0D9488] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                   </svg>
                                   {f}
@@ -1229,7 +1229,7 @@ function AccountPageInner() {
                               ))}
                             </ul>
                             {isCurrent && (
-                              <p className="text-xs font-medium text-[#20c858] mt-3">Current plan</p>
+                              <p className="text-xs font-medium text-[#0D9488] mt-3">Current plan</p>
                             )}
                           </button>
                         );
@@ -1267,7 +1267,7 @@ function AccountPageInner() {
                             )}
                             <div className="flex gap-3">
                               <button onClick={handleConfirmPlanChange} disabled={upgradeProcessing || isPaid}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 {upgradeProcessing && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
                                 {upgradeProcessing ? "Processing..." : isPaid ? "Confirm & Pay" : "Confirm change"}
                               </button>
@@ -1289,7 +1289,7 @@ function AccountPageInner() {
                     <h2 className="text-lg font-semibold text-[#1F2937]">Payment History</h2>
                     {!showAllPayments && payments.length > 5 && (
                       <button onClick={() => setShowAllPayments(true)}
-                        className="text-sm font-medium text-[#20c858] hover:underline">
+                        className="text-sm font-medium text-[#0D9488] hover:underline">
                         View all
                       </button>
                     )}
@@ -1351,7 +1351,7 @@ function AccountPageInner() {
                           // TODO: Integrate Rapyd payment method collection
                           alert("Payment method setup will be available soon via our secure payment provider.");
                         }}
-                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors shrink-0">
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-lg hover:bg-[#0B7B73] transition-colors shrink-0">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
@@ -1368,7 +1368,7 @@ function AccountPageInner() {
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                 <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Health Assessment</h2>
 
-                <div className="bg-gradient-to-r from-[#20c858]/10 to-[#20c858]/5 rounded-xl p-6 mb-6">
+                <div className="bg-gradient-to-r from-[#0D9488]/10 to-[#0D9488]/5 rounded-xl p-6 mb-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h3 className="text-sm font-semibold text-[#1F2937] mb-1">Book your assessment</h3>
@@ -1377,7 +1377,7 @@ function AccountPageInner() {
                       </p>
                     </div>
                     <Link href="/assessment"
-                      className="inline-flex items-center justify-center px-6 py-3 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors shrink-0">
+                      className="inline-flex items-center justify-center px-6 py-3 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors shrink-0">
                       Book Assessment
                     </Link>
                   </div>
@@ -1416,7 +1416,7 @@ function AccountPageInner() {
                         Complete your first assessment to see results here
                       </p>
                       <Link href="/assessment"
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#20c858] text-white text-sm font-semibold rounded-full hover:bg-[#1ab34d] transition-colors">
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors">
                         Book Assessment
                       </Link>
                     </div>
@@ -1449,7 +1449,7 @@ function AccountPageInner() {
                       {eduSnippets.map((sw, wi) => (
                         <button key={wi} onClick={() => setEduSnippetWeek(wi)}
                           className={`px-3 py-1.5 text-xs rounded-lg font-medium whitespace-nowrap transition-colors ${
-                            eduSnippetWeek === wi ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"
+                            eduSnippetWeek === wi ? "bg-[#0D9488] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"
                           }`}>
                           {sw.week_range}
                         </button>
@@ -1459,7 +1459,7 @@ function AccountPageInner() {
                     {/* Snippet cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                       {eduSnippets[eduSnippetWeek]?.days.map((day, di) => (
-                        <div key={di} className="border border-gray-100 rounded-xl p-4 hover:border-[#20c858]/30 transition-colors">
+                        <div key={di} className="border border-gray-100 rounded-xl p-4 hover:border-[#0D9488]/30 transition-colors">
                           <div className="flex items-center gap-2 mb-2.5">
                             <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">
                               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][di]}
@@ -1469,7 +1469,7 @@ function AccountPageInner() {
                           <ul className="space-y-1.5">
                             {day.bullets.filter(Boolean).map((b, bi) => (
                               <li key={bi} className="flex items-start gap-2 text-xs text-[#6B7280] leading-relaxed">
-                                <span className="w-1.5 h-1.5 bg-[#20c858] rounded-full mt-1.5 flex-shrink-0" />
+                                <span className="w-1.5 h-1.5 bg-[#0D9488] rounded-full mt-1.5 flex-shrink-0" />
                                 <span>{b}</span>
                               </li>
                             ))}
@@ -1521,7 +1521,7 @@ function AccountPageInner() {
                                 <img src={course.cover_image_url} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
                               ) : (
                                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center flex-shrink-0">
-                                  <svg className="w-6 h-6 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-6 h-6 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                   </svg>
                                 </div>
@@ -1682,7 +1682,7 @@ function AccountPageInner() {
                                 <p className="text-sm font-medium text-[#1F2937]">{displayName}</p>
                                 <p className="text-xs text-[#6B7280]">
                                   {prog.category_key.charAt(0).toUpperCase() + prog.category_key.slice(1)}
-                                  {isCustom && <span className="ml-1 text-[#20c858] font-medium">· Custom</span>}
+                                  {isCustom && <span className="ml-1 text-[#0D9488] font-medium">· Custom</span>}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -1706,7 +1706,7 @@ function AccountPageInner() {
                                   <button
                                     key={ap.key}
                                     onClick={() => switchProgram(prog.category_key, ap.key)}
-                                    className="w-full text-left bg-white rounded-lg px-4 py-3 hover:bg-[#20c858]/5 border border-gray-200 hover:border-[#20c858] transition-all"
+                                    className="w-full text-left bg-white rounded-lg px-4 py-3 hover:bg-[#0D9488]/5 border border-gray-200 hover:border-[#0D9488] transition-all"
                                   >
                                     <p className="text-sm font-medium text-[#1F2937]">{ap.name}</p>
                                     {ap.description && <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-1">{ap.description}</p>}
@@ -1731,7 +1731,7 @@ function AccountPageInner() {
                   <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-lg font-semibold text-[#1F2937]">My Custom Programs</h2>
-                      <button onClick={() => openBuilder()} className="inline-flex items-center gap-2 px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors">
+                      <button onClick={() => openBuilder()} className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         Create Program
                       </button>
@@ -1747,13 +1747,13 @@ function AccountPageInner() {
                             </div>
                             <div className="flex items-center gap-2">
                               {programs.some(p => p.program_key === `custom-${cp.id}`) ? (
-                                <span className="text-xs font-medium text-[#20c858] bg-[#20c858]/10 px-3 py-1 rounded-full">Active</span>
+                                <span className="text-xs font-medium text-[#0D9488] bg-[#0D9488]/10 px-3 py-1 rounded-full">Active</span>
                               ) : (
                                 <button onClick={() => activateCustomProgram(cp)} className="text-xs font-medium text-[#3B82F6] hover:text-white hover:bg-[#3B82F6] border border-[#3B82F6] px-3 py-1 rounded-full transition-colors" title="Make active">
                                   Activate
                                 </button>
                               )}
-                              <button onClick={() => openBuilder(cp)} className="p-2 text-[#6B7280] hover:text-[#20c858] transition-colors" title="Edit">
+                              <button onClick={() => openBuilder(cp)} className="p-2 text-[#6B7280] hover:text-[#0D9488] transition-colors" title="Edit">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                               </button>
                               <button onClick={() => { if (confirm("Delete this program?")) deleteCustomProgram(cp.id); }} className="p-2 text-[#6B7280] hover:text-red-500 transition-colors" title="Delete">
@@ -1786,9 +1786,9 @@ function AccountPageInner() {
                     <div className="flex items-center gap-2 mb-8">
                       {[1, 2, 3].map(s => (
                         <div key={s} className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${builderStep === s ? "bg-[#20c858] text-white" : builderStep > s ? "bg-[#20c858]/20 text-[#20c858]" : "bg-[#ecf0f3] text-[#9CA3AF]"}`}>{s}</div>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${builderStep === s ? "bg-[#0D9488] text-white" : builderStep > s ? "bg-[#0D9488]/20 text-[#0D9488]" : "bg-[#ecf0f3] text-[#9CA3AF]"}`}>{s}</div>
                           <span className={`text-sm hidden sm:inline ${builderStep === s ? "text-[#1F2937] font-medium" : "text-[#9CA3AF]"}`}>{s === 1 ? "Basics" : s === 2 ? "Workouts" : "Review"}</span>
-                          {s < 3 && <div className={`w-8 h-0.5 ${builderStep > s ? "bg-[#20c858]" : "bg-[#ecf0f3]"}`} />}
+                          {s < 3 && <div className={`w-8 h-0.5 ${builderStep > s ? "bg-[#0D9488]" : "bg-[#ecf0f3]"}`} />}
                         </div>
                       ))}
                     </div>
@@ -1799,12 +1799,12 @@ function AccountPageInner() {
                         <div>
                           <label className="block text-sm font-medium text-[#374151] mb-1.5">Program Name</label>
                           <input type="text" value={builderName} onChange={e => setBuilderName(e.target.value)} placeholder="e.g., Morning Strength Routine"
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" />
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none" />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-[#374151] mb-1.5">Goal</label>
                           <select value={builderGoal} onChange={e => setBuilderGoal(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none bg-white">
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none bg-white">
                             {goalOptions.map(g => <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>)}
                           </select>
                         </div>
@@ -1813,7 +1813,7 @@ function AccountPageInner() {
                           <div className="flex gap-2">
                             {[4, 8, 12].map(w => (
                               <button key={w} onClick={() => setBuilderDuration(w)}
-                                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${builderDuration === w ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
+                                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${builderDuration === w ? "bg-[#0D9488] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
                                 {w} weeks
                               </button>
                             ))}
@@ -1824,7 +1824,7 @@ function AccountPageInner() {
                           <div className="flex gap-2">
                             {[3, 4, 5, 6].map(d => (
                               <button key={d} onClick={() => setBuilderDaysPerWeek(d)}
-                                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${builderDaysPerWeek === d ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
+                                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${builderDaysPerWeek === d ? "bg-[#0D9488] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
                                 {d} days
                               </button>
                             ))}
@@ -1832,7 +1832,7 @@ function AccountPageInner() {
                         </div>
                         <div className="flex justify-end pt-2">
                           <button onClick={() => { if (builderName.trim()) setBuilderStep(2); }} disabled={!builderName.trim()}
-                            className="px-6 py-2.5 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                            className="px-6 py-2.5 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                             Next
                           </button>
                         </div>
@@ -1846,7 +1846,7 @@ function AccountPageInner() {
                         <div className="flex gap-2 mb-5 flex-wrap">
                           {getSelectedDayIndices(builderDaysPerWeek).map((dayIdx) => (
                             <button key={dayIdx} onClick={() => { setBuilderActiveDay(dayIdx); setShowExercisePicker(false); }}
-                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${builderActiveDay === dayIdx ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${builderActiveDay === dayIdx ? "bg-[#0D9488] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
                               {dayLabels[dayIdx]}
                             </button>
                           ))}
@@ -1863,7 +1863,7 @@ function AccountPageInner() {
                                     const img = match?.illustration_url;
                                     return img ? (
                                       <button onClick={() => match && setViewingExercise(match)} className="flex-shrink-0">
-                                        <img src={img} alt="" className="w-16 h-16 rounded-xl object-cover border border-gray-200 hover:border-[#20c858] transition-colors" />
+                                        <img src={img} alt="" className="w-16 h-16 rounded-xl object-cover border border-gray-200 hover:border-[#0D9488] transition-colors" />
                                       </button>
                                     ) : (
                                       <span className="w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl bg-gray-100">🏋️</span>
@@ -1887,17 +1887,17 @@ function AccountPageInner() {
                                 <div>
                                   <label className="block text-xs text-[#9CA3AF] mb-0.5">Sets</label>
                                   <input type="number" min={1} max={20} value={ex.sets} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "sets", parseInt(e.target.value) || 1)}
-                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" />
+                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none" />
                                 </div>
                                 <div>
                                   <label className="block text-xs text-[#9CA3AF] mb-0.5">Reps</label>
                                   <input type="text" value={ex.reps} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "reps", e.target.value)}
-                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" placeholder="8-12" />
+                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none" placeholder="8-12" />
                                 </div>
                                 <div>
                                   <label className="block text-xs text-[#9CA3AF] mb-0.5">Rest</label>
                                   <input type="text" value={ex.rest} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "rest", e.target.value)}
-                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" placeholder="60s" />
+                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none" placeholder="60s" />
                                 </div>
                               </div>
                             </div>
@@ -1912,14 +1912,14 @@ function AccountPageInner() {
                         {/* Add exercise button / picker */}
                         {!showExercisePicker ? (
                           <button onClick={() => setShowExercisePicker(true)}
-                            className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-[#6B7280] hover:border-[#20c858] hover:text-[#20c858] transition-colors">
+                            className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-[#6B7280] hover:border-[#0D9488] hover:text-[#0D9488] transition-colors">
                             + Add Exercise
                           </button>
                         ) : (
                           <div className="border border-gray-200 rounded-xl overflow-hidden">
                             <div className="p-3 bg-gray-50 border-b border-gray-200">
                               <input type="text" value={exerciseSearch} onChange={e => setExerciseSearch(e.target.value)} placeholder="Search exercises..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" autoFocus />
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none" autoFocus />
                               <div className="flex gap-1.5 mt-2 flex-wrap">
                                 <button onClick={() => setExerciseCategoryFilter("")}
                                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!exerciseCategoryFilter ? "bg-[#1F2937] text-white" : "bg-[#ecf0f3] text-[#6B7280]"}`}>All</button>
@@ -1938,7 +1938,7 @@ function AccountPageInner() {
                                   <div className="flex items-start gap-3">
                                     {ex.illustration_url ? (
                                       <button onClick={() => setViewingExercise(ex)} className="flex-shrink-0">
-                                        <img src={ex.illustration_url} alt="" className="w-20 h-20 rounded-xl object-cover border border-gray-200 hover:border-[#20c858] transition-colors" />
+                                        <img src={ex.illustration_url} alt="" className="w-20 h-20 rounded-xl object-cover border border-gray-200 hover:border-[#0D9488] transition-colors" />
                                       </button>
                                     ) : (
                                       <span className="w-20 h-20 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl border border-gray-200" style={{ backgroundColor: (categoryColors[ex.category] || "#6B7280") + "10" }}>🏋️</span>
@@ -1954,7 +1954,7 @@ function AccountPageInner() {
                                         </div>
                                       )}
                                       <button onClick={() => addExerciseToDay(builderActiveDay, ex)}
-                                        className="mt-2 px-3 py-1 text-xs font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34d] transition-colors">
+                                        className="mt-2 px-3 py-1 text-xs font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors">
                                         + Add to workout
                                       </button>
                                     </div>
@@ -1974,7 +1974,7 @@ function AccountPageInner() {
                         {/* Navigation */}
                         <div className="flex justify-between mt-6 pt-4 border-t border-gray-100">
                           <button onClick={() => setBuilderStep(1)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">Back</button>
-                          <button onClick={() => setBuilderStep(3)} className="px-6 py-2.5 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors">Review</button>
+                          <button onClick={() => setBuilderStep(3)} className="px-6 py-2.5 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors">Review</button>
                         </div>
                       </div>
                     )}
@@ -2010,7 +2010,7 @@ function AccountPageInner() {
                         <div className="flex justify-between pt-4 border-t border-gray-100">
                           <button onClick={() => setBuilderStep(2)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">Back</button>
                           <button onClick={saveCustomProgram} disabled={programSaving}
-                            className="px-6 py-2.5 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50 flex items-center gap-2">
+                            className="px-6 py-2.5 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50 flex items-center gap-2">
                             {programSaving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                             {programSaving ? "Saving..." : "Save Program"}
                           </button>
@@ -2049,7 +2049,7 @@ function AccountPageInner() {
                             <div className="space-y-2">
                               {viewingExercise.instructions.map((step, i) => (
                                 <div key={i} className="flex gap-3">
-                                  <span className="w-5 h-5 rounded-full bg-[#20c858] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                                  <span className="w-5 h-5 rounded-full bg-[#0D9488] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
                                   <p className="text-sm text-[#374151] leading-relaxed">{step}</p>
                                 </div>
                               ))}
@@ -2058,7 +2058,7 @@ function AccountPageInner() {
                         )}
                         <div className="flex gap-3 pt-3 border-t border-gray-100">
                           <button onClick={() => { addExerciseToDay(builderActiveDay, viewingExercise); setViewingExercise(null); }}
-                            className="flex-1 py-2.5 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34d] transition-colors">+ Add to workout</button>
+                            className="flex-1 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors">+ Add to workout</button>
                           <button onClick={() => setViewingExercise(null)}
                             className="px-4 py-2.5 text-sm font-medium text-[#6B7280] bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Close</button>
                         </div>
@@ -2142,7 +2142,7 @@ function AccountPageInner() {
                       <p className="text-xs text-[#6B7280]">Update your account password</p>
                     </div>
                     <button onClick={() => setShowPasswordForm(!showPasswordForm)}
-                      className="text-sm font-medium text-[#20c858] hover:underline">
+                      className="text-sm font-medium text-[#0D9488] hover:underline">
                       {showPasswordForm ? "Cancel" : "Change"}
                     </button>
                   </div>
@@ -2150,12 +2150,12 @@ function AccountPageInner() {
                     <div className="mt-4 max-w-sm space-y-3">
                       <input type="password" placeholder="New password (min 6 characters)" value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none text-gray-900" />
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900" />
                       {passwordMsg && (
                         <p className={`text-xs ${passwordMsg.includes("success") ? "text-green-600" : "text-red-600"}`}>{passwordMsg}</p>
                       )}
                       <button onClick={handleChangePassword} disabled={newPassword.length < 6}
-                        className="px-5 py-2 bg-[#20c858] text-white text-sm font-semibold rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        className="px-5 py-2 bg-[#0D9488] text-white text-sm font-semibold rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Update Password
                       </button>
                     </div>
@@ -2172,21 +2172,21 @@ function AccountPageInner() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-[#1F2937]">Email notifications</span>
                       <button onClick={() => setEmailNotifications(!emailNotifications)}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${emailNotifications ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                        className={`relative w-11 h-6 rounded-full transition-colors ${emailNotifications ? "bg-[#0D9488]" : "bg-gray-300"}`}>
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${emailNotifications ? "translate-x-5" : ""}`} />
                       </button>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-[#1F2937]">Push notifications</span>
                       <button onClick={() => setPushNotifications(!pushNotifications)}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${pushNotifications ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                        className={`relative w-11 h-6 rounded-full transition-colors ${pushNotifications ? "bg-[#0D9488]" : "bg-gray-300"}`}>
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushNotifications ? "translate-x-5" : ""}`} />
                       </button>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-[#1F2937]">Marketing emails</span>
                       <button onClick={() => setMarketingEmails(!marketingEmails)}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${marketingEmails ? "bg-[#20c858]" : "bg-gray-300"}`}>
+                        className={`relative w-11 h-6 rounded-full transition-colors ${marketingEmails ? "bg-[#0D9488]" : "bg-gray-300"}`}>
                         <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${marketingEmails ? "translate-x-5" : ""}`} />
                       </button>
                     </div>
@@ -2201,14 +2201,14 @@ function AccountPageInner() {
                   </div>
                   {hasClientData ? (
                     <div className="flex items-center gap-3 bg-[#ecf0f3] rounded-xl px-4 py-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#20c858]/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-[#20c858]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-8 h-8 rounded-lg bg-[#0D9488]/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-[#1F2937]">Lifeline Health App</p>
-                        <p className="text-xs text-[#20c858]">Connected</p>
+                        <p className="text-xs text-[#0D9488]">Connected</p>
                       </div>
                     </div>
                   ) : (
@@ -2267,7 +2267,7 @@ export default function AccountPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-[#ecf0f3]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#20c858] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-[#0D9488] border-t-transparent rounded-full" />
       </div>
     }>
       <AccountPageInner />

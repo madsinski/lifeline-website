@@ -21,8 +21,8 @@ export default function MedaliaButton({
 
   const variantClasses =
     variant === "filled"
-      ? "bg-[#20c858] text-white hover:bg-[#1ab34d] shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
-      : "border-2 border-[#20c858] text-[#20c858] hover:bg-[#20c858] hover:text-white";
+      ? "bg-[#0D9488] text-white hover:bg-[#0B7B73] shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+      : "border-2 border-[#0D9488] text-[#0D9488] hover:bg-[#0D9488] hover:text-white";
 
   return (
     <button

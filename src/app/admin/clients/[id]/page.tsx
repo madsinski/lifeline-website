@@ -124,7 +124,7 @@ export default function ClientDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20c858]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D9488]" />
       </div>
     );
   }
@@ -161,7 +161,7 @@ export default function ClientDetailPage() {
       {/* Client header */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-full bg-[#20c858]/10 flex items-center justify-center text-xl font-bold text-[#20c858]">
+          <div className="w-16 h-16 rounded-full bg-[#0D9488]/10 flex items-center justify-center text-xl font-bold text-[#0D9488]">
             {initials}
           </div>
           <div className="flex-1">
@@ -219,7 +219,7 @@ export default function ClientDetailPage() {
                     <p className="text-xs text-gray-500">{p.program_key}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-[#20c858]">Week {p.week_number}</p>
+                    <p className="text-sm font-semibold text-[#0D9488]">Week {p.week_number}</p>
                     <p className="text-xs text-gray-400">Started {formatDate(p.started_at)}</p>
                   </div>
                 </div>

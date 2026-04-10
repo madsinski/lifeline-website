@@ -293,7 +293,7 @@ export default function CalendarPage() {
         <div className="flex items-center gap-2">
         <button
           onClick={openCreateForm}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#20c858] text-white rounded-lg text-sm font-medium hover:bg-[#1bb34e] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D9488] text-white rounded-lg text-sm font-medium hover:bg-[#0B7B73] transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -346,9 +346,9 @@ export default function CalendarPage() {
                   value={clientSearch}
                   onChange={(e) => { setClientSearch(e.target.value); setClientDropdownOpen(true); if (!e.target.value.trim()) setNewApt((p) => ({ ...p, clientId: "" })); }}
                   onFocus={() => setClientDropdownOpen(true)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 focus:border-[#20c858] ${newApt.clientId ? "border-[#20c858] bg-[#20c858]/5" : "border-gray-200"}`}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 focus:border-[#0D9488] ${newApt.clientId ? "border-[#0D9488] bg-[#0D9488]/5" : "border-gray-200"}`}
                 />
-                {newApt.clientId && <span className="absolute right-3 top-[34px] text-[#20c858]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span>}
+                {newApt.clientId && <span className="absolute right-3 top-[34px] text-[#0D9488]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span>}
                 {clientDropdownOpen && clientSearch.trim().length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
                     {filteredClients.length === 0 ? (
@@ -358,7 +358,7 @@ export default function CalendarPage() {
                         <button
                           key={c.id}
                           onClick={() => { setNewApt((p) => ({ ...p, clientId: c.id })); setClientSearch(c.name); setClientDropdownOpen(false); }}
-                          className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0 ${newApt.clientId === c.id ? "bg-[#20c858]/5 font-medium" : ""}`}
+                          className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0 ${newApt.clientId === c.id ? "bg-[#0D9488]/5 font-medium" : ""}`}
                         >
                           <span className="font-medium text-[#1F2937]">{c.name}</span>
                           <span className="text-gray-400 text-xs ml-2">{c.email}</span>
@@ -395,7 +395,7 @@ export default function CalendarPage() {
                     type="date"
                     value={newApt.date}
                     onChange={(e) => setNewApt((p) => ({ ...p, date: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30"
                   />
                 </div>
                 <div>
@@ -404,7 +404,7 @@ export default function CalendarPage() {
                     type="time"
                     value={newApt.time}
                     onChange={(e) => setNewApt((p) => ({ ...p, time: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30"
                   />
                 </div>
               </div>
@@ -415,7 +415,7 @@ export default function CalendarPage() {
                 <select
                   value={newApt.stationName}
                   onChange={(e) => setNewApt((p) => ({ ...p, stationName: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 text-gray-900 bg-white"
                 >
                   <option value="">Select station...</option>
                   {stations.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -426,7 +426,7 @@ export default function CalendarPage() {
                     type="text"
                     placeholder="Enter new station name"
                     onChange={(e) => setNewApt((p) => ({ ...p, stationName: e.target.value }))}
-                    className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30"
+                    className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30"
                     autoFocus
                   />
                 )}
@@ -438,7 +438,7 @@ export default function CalendarPage() {
                 <select
                   value={newApt.coachName}
                   onChange={(e) => setNewApt((p) => ({ ...p, coachName: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20c858]/30 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 text-gray-900 bg-white"
                 >
                   <option value="">Select coach...</option>
                   {coaches.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -448,7 +448,7 @@ export default function CalendarPage() {
               <button
                 onClick={handleCreateAppointment}
                 disabled={!newApt.clientId || !newApt.date || creating}
-                className="w-full py-2.5 bg-[#20c858] text-white rounded-lg font-medium text-sm hover:bg-[#1bb34e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 bg-[#0D9488] text-white rounded-lg font-medium text-sm hover:bg-[#0B7B73] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creating ? "Booking..." : "Book Appointment"}
               </button>
@@ -497,7 +497,7 @@ export default function CalendarPage() {
           onClick={() => setHideCancel(!hideCancel)}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             hideCancel
-              ? "bg-[#20c858] text-white"
+              ? "bg-[#0D9488] text-white"
               : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
           }`}
         >
@@ -515,7 +515,7 @@ export default function CalendarPage() {
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#20c858]" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D9488]" />
         </div>
       )}
 
@@ -670,7 +670,7 @@ export default function CalendarPage() {
                             href={apt.video_room_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1bb34e] transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors"
                           >
                             <svg
                               className="w-4 h-4"
