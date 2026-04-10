@@ -523,7 +523,7 @@ export default function CoachingPage() {
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0D9488] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-green-500/30">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0D9488] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-teal-500/30">
                     Most popular
                   </div>
                 )}
@@ -587,9 +587,9 @@ export default function CoachingPage() {
                 </ul>
                 <Link
                   href="/account/login"
-                  className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                  className={`block w-full text-center py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                     plan.popular
-                      ? "bg-[#0D9488] text-white shadow-lg shadow-green-500/30 hover:bg-[#0B7B73]"
+                      ? "bg-[#0D9488] text-white shadow-lg shadow-teal-500/30 hover:bg-[#0B7B73]"
                       : "bg-[#1F2937] text-white hover:bg-[#374151]"
                   }`}
                 >
@@ -722,7 +722,7 @@ export default function CoachingPage() {
           </p>
           <Link
             href="/assessment"
-            className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#0D9488] rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+            className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#0D9488] rounded-xl hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40"
           >
             View Assessment Packages
           </Link>

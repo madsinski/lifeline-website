@@ -720,7 +720,7 @@ export default function ClientsPage() {
         <button
           onClick={syncClients}
           disabled={syncing || loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50"
         >
           {syncing ? "Syncing..." : "Sync"}
         </button>
@@ -834,7 +834,7 @@ export default function ClientsPage() {
                 alert(`Sync failed: ${err instanceof Error ? err.message : "Unknown error"}. Note: this requires a Supabase service role key configured on the server.`);
               }
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors"
           >
             Sync from Auth Users
           </button>
@@ -1307,14 +1307,14 @@ function ClientRowComponent({
 
               {/* View profile */}
               <a href={`/admin/clients/${client.id}`} onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 Profile
               </a>
 
               {/* Message pill */}
               <button onClick={(e) => { e.stopPropagation(); onSendMessage(client.id, client.name); }} disabled={isSendingMessage}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-full hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50">
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-xl hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                 Messages
               </button>
@@ -1322,7 +1322,7 @@ function ClientRowComponent({
               {/* Subscription */}
               {client.tier === "none" ? (
                 <button onClick={(e) => { e.stopPropagation(); onCreateSubscription(client.id); }} disabled={isCreating}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-[#0D9488] rounded-full hover:bg-[#1bb34d] disabled:opacity-50">
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-[#0D9488] rounded-xl hover:bg-[#0B7B73] disabled:opacity-50">
                   {isCreating ? "Creating..." : "+ Create plan"}
                 </button>
               ) : (

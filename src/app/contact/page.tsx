@@ -145,7 +145,7 @@ export default function ContactPage() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-8 py-3.5 bg-[#0D9488] text-white font-semibold rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-[#0D9488] text-white font-semibold rounded-xl hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40"
                   >
                     Send Message
                   </button>
@@ -286,7 +286,7 @@ export default function ContactPage() {
                 <div className="text-center relative z-10">
                   <div className="w-12 h-12 rounded-full bg-[#0D9488]/20 flex items-center justify-center mx-auto mb-3">
                     <div className="w-8 h-8 rounded-full bg-[#0D9488]/40 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-[#0D9488] shadow-lg shadow-green-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-[#0D9488] shadow-lg shadow-teal-500/50" />
                     </div>
                   </div>
                   <p className="text-sm font-medium text-[#1F2937]">Lagmula 5, 108 Reykjavik</p>

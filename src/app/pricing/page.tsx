@@ -307,7 +307,7 @@ export default function PricingPage() {
                   }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0D9488] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-green-500/30">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#0D9488] text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg shadow-teal-500/30">
                       Most popular
                     </div>
                   )}
@@ -378,9 +378,9 @@ export default function PricingPage() {
                   {plan.monthlyPrice === "0" ? (
                     <Link
                       href="/account/login"
-                      className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                      className={`block w-full text-center py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                         plan.popular
-                          ? "bg-[#0D9488] text-white shadow-lg shadow-green-500/30 hover:bg-[#0B7B73]"
+                          ? "bg-[#0D9488] text-white shadow-lg shadow-teal-500/30 hover:bg-[#0B7B73]"
                           : "bg-[#1F2937] text-white hover:bg-[#374151]"
                       }`}
                     >
@@ -389,9 +389,9 @@ export default function PricingPage() {
                   ) : (
                     <Link
                       href={`/account?upgrade=${plan.name === "Self-maintained" ? "self-maintained" : "full-access"}`}
-                      className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                      className={`block w-full text-center py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                         plan.popular
-                          ? "bg-[#0D9488] text-white shadow-lg shadow-green-500/30 hover:bg-[#0B7B73]"
+                          ? "bg-[#0D9488] text-white shadow-lg shadow-teal-500/30 hover:bg-[#0B7B73]"
                           : "bg-[#1F2937] text-white hover:bg-[#374151]"
                       }`}
                     >
@@ -471,7 +471,7 @@ export default function PricingPage() {
             <MedaliaButton label="Book Assessment" size="lg" />
             <Link
               href="/account/login"
-              className="px-8 py-3.5 rounded-full text-sm font-semibold bg-white text-[#1F2937] hover:bg-gray-100 transition-all duration-200 shadow-lg"
+              className="px-8 py-3.5 rounded-xl text-sm font-semibold bg-white text-[#1F2937] hover:bg-gray-100 transition-all duration-200 shadow-lg"
             >
               Create Account
             </Link>

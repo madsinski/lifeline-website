@@ -58,7 +58,7 @@ export default function BetaFeedback() {
       {/* Floating button */}
       <button
         onClick={() => { setOpen(!open); if (submitted) reset(); }}
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all duration-200 ${
+        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg transition-all duration-200 ${
           open
             ? "bg-gray-700 text-white hover:bg-gray-800"
             : "bg-[#0D9488] text-white hover:bg-[#0B7B73] hover:shadow-xl"

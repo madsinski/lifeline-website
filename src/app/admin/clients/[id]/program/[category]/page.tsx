@@ -271,7 +271,7 @@ export default function ClientProgramEditorPage() {
           <button onClick={handleShare} className={`px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${shared ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>
             {shared ? "Shared with client" : "Share with client"}
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] disabled:opacity-50">
             {saving ? "Saving..." : "Save"}
           </button>
           {saveMsg && <span className="text-xs font-medium text-green-600">{saveMsg}</span>}

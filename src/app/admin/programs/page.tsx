@@ -2444,7 +2444,7 @@ export default function ProgramsCMSPage() {
                         <button
                           onClick={() => assignProgramToClient(client.id, client.full_name, showShareModal.id, activeTab)}
                           disabled={isAssigning}
-                          className="px-3 py-1 bg-[#0D9488] text-white text-xs font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 transition-colors"
+                          className="px-3 py-1 bg-[#0D9488] text-white text-xs font-medium rounded-lg hover:bg-[#0B7B73] disabled:opacity-50 transition-colors"
                         >
                           {isAssigning ? "..." : "Assign"}
                         </button>
@@ -2461,7 +2461,7 @@ export default function ProgramsCMSPage() {
                 <button
                   onClick={() => assignProgramToAll(showShareModal.id, activeTab)}
                   disabled={shareLoading || shareClients.every(c => shareAssigned.has(c.id))}
-                  className="w-full px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {shareClients.every(c => shareAssigned.has(c.id))
                     ? "All clients assigned"

@@ -493,7 +493,7 @@ export default function TeamPage() {
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -670,7 +670,7 @@ export default function TeamPage() {
                           <>
                             <button
                               onClick={() => saveEdit(member.id)}
-                              className="px-3 py-1 text-xs font-medium text-white bg-[#0D9488] rounded hover:bg-[#1bb34d] transition-colors"
+                              className="px-3 py-1 text-xs font-medium text-white bg-[#0D9488] rounded hover:bg-[#0B7B73] transition-colors"
                             >
                               Save
                             </button>
@@ -937,7 +937,7 @@ export default function TeamPage() {
               <button
                 onClick={handleAdd}
                 disabled={!newName.trim() || !newEmail.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sendInvite ? "Add & Send Invite" : "Add Member"}
               </button>

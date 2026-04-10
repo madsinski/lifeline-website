@@ -180,8 +180,8 @@ function AppTextContent() {
         ))}
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/coaching#download" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#0D9488] rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-green-500/25">Download the App</Link>
-        <Link href="/pricing" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200">View Subscriptions</Link>
+        <Link href="/coaching#download" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#0D9488] rounded-xl hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-teal-500/25">Download the App</Link>
+        <Link href="/pricing" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-xl hover:bg-[#0D9488] hover:text-white transition-all duration-200">View Subscriptions</Link>
       </div>
     </div>
   );
@@ -207,7 +207,7 @@ export default function Home() {
               <MedaliaButton label="Book Health Assessment" size="lg" />
               <Link
                 href="/coaching#download"
-                className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200"
+                className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-xl hover:bg-[#0D9488] hover:text-white transition-all duration-200"
               >
                 Download the App
               </Link>
@@ -376,7 +376,7 @@ export default function Home() {
                   <div className="flex flex-wrap gap-3">
                     <Link
                       href="/assessment"
-                      className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#0D9488] rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-md shadow-green-500/25"
+                      className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#0D9488] rounded-xl hover:bg-[#0B7B73] transition-all duration-200 shadow-md shadow-teal-500/25"
                     >
                       View Packages
                     </Link>
@@ -538,7 +538,7 @@ export default function Home() {
             <MedaliaButton label="Book Assessment" size="lg" />
             <Link
               href="/coaching#download"
-              className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200"
+              className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-xl hover:bg-[#0D9488] hover:text-white transition-all duration-200"
             >
               Download App
             </Link>
