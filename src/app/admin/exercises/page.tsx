@@ -965,6 +965,19 @@ export default function ExercisesPage() {
               </div>
             </div>
 
+            {/* Illustration */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Exercise Image</label>
+              {editingExercise.illustration_url && (
+                <div className="mb-2 relative inline-block">
+                  <img src={editingExercise.illustration_url} alt="" className="w-full max-w-xs h-40 object-cover rounded-lg border border-gray-200" />
+                  <button onClick={() => setEditingExercise({ ...editingExercise, illustration_url: "" })} className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600">✕</button>
+                </div>
+              )}
+              <input type="url" value={editingExercise.illustration_url || ""} onChange={(e) => setEditingExercise({ ...editingExercise, illustration_url: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent" placeholder="Image URL (https://...)" />
+              <p className="text-xs text-gray-400 mt-1">Paste an image URL or upload to Supabase Storage</p>
+            </div>
+
             {/* Video URL */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Video URL (optional)</label>
