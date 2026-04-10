@@ -5,6 +5,33 @@ import { supabase } from "@/lib/supabase";
 
 type TimeGroup = "morning" | "midday" | "evening";
 
+interface Exercise {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  equipment: string;
+  difficulty: string;
+  illustration_url: string | null;
+  muscles_targeted: string[] | null;
+}
+
+interface ActionExercise {
+  id?: string;
+  action_key: string;
+  program_key: string;
+  week_range: number;
+  day_of_week: number;
+  exercise_id: string;
+  exercise_name: string;
+  sets: number | null;
+  reps: string;
+  duration: string;
+  rest: string;
+  notes: string;
+  sort_order: number;
+}
+
 interface ProgramAction {
   id: string;
   label: string;
@@ -232,6 +259,16 @@ export default function ProgramsCMSPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [programTemplates, setProgramTemplates] = useState<Array<{ id: string; name: string; category_key: string; description: string; actions: unknown[]; duration: number; level: string; exercise_type: string; target_audience: string; structured_phases: unknown; tagline: string }>>([]);
 
+  // Exercise library state
+  const [exerciseLibrary, setExerciseLibrary] = useState<Exercise[]>([]);
+  const [exerciseLibraryLoaded, setExerciseLibraryLoaded] = useState(false);
+  const [actionExercises, setActionExercises] = useState<Record<string, ActionExercise[]>>({});
+  const [showExercisePicker, setShowExercisePicker] = useState<{ programId: string; weekIdx: number; dayIdx: number; actionId: string; actionIndex: number } | null>(null);
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [exerciseCategoryFilter, setExerciseCategoryFilter] = useState<string | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [exerciseForm, setExerciseForm] = useState({ sets: 3, reps: "8-12", rest: "60s", notes: "" });
+
   // Clients tab state
   const [showClientsTab, setShowClientsTab] = useState(false);
   const [clientPrograms, setClientPrograms] = useState<ClientProgram[]>([]);
@@ -287,6 +324,89 @@ export default function ProgramsCMSPage() {
       // ignore
     }
   }, []);
+
+  const exerciseCategoryColors: Record<string, string> = {
+    chest: "#EF4444", back: "#3B82F6", shoulders: "#F59E0B", arms: "#8B5CF6",
+    legs: "#20c858", core: "#06B6D4", cardio: "#EC4899", flexibility: "#14B8A6", "full-body": "#6366F1",
+  };
+
+  const loadExerciseLibrary = useCallback(async () => {
+    if (exerciseLibraryLoaded) return;
+    try {
+      const { data } = await supabase.from("exercises").select("*").order("name", { ascending: true });
+      if (data) {
+        setExerciseLibrary(data as Exercise[]);
+        setExerciseLibraryLoaded(true);
+      }
+    } catch { /* table may not exist */ }
+  }, [exerciseLibraryLoaded]);
+
+  const loadActionExercises = useCallback(async (programKey: string, weekRange: number, dayOfWeek: number) => {
+    try {
+      const { data } = await supabase
+        .from("action_exercises")
+        .select("*")
+        .eq("program_key", programKey)
+        .eq("week_range", weekRange)
+        .eq("day_of_week", dayOfWeek)
+        .order("sort_order", { ascending: true });
+      if (data) {
+        const grouped: Record<string, ActionExercise[]> = {};
+        for (const row of data) {
+          const key = row.action_key as string;
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(row as ActionExercise);
+        }
+        setActionExercises((prev) => {
+          const next = { ...prev };
+          // Clear previous entries for this day's actions
+          for (const k of Object.keys(next)) {
+            if (k.includes(`-${programKey}-w${weekRange}d${dayOfWeek}-`)) {
+              delete next[k];
+            }
+          }
+          return { ...next, ...grouped };
+        });
+      }
+    } catch { /* table may not exist */ }
+  }, []);
+
+  const buildActionKey = (categoryId: string, programKey: string, weekIdx: number, dayIdx: number, timeGroup: string, actionIndex: number) => {
+    return `${categoryId}-${programKey}-w${weekIdx}d${dayIdx}-${timeGroup}-${actionIndex}`;
+  };
+
+  const saveActionExercises = useCallback(async (actionKey: string, programKey: string, weekRange: number, dayOfWeek: number, exercises: ActionExercise[]) => {
+    try {
+      await supabase.from("action_exercises").delete().eq("action_key", actionKey).eq("program_key", programKey);
+      if (exercises.length > 0) {
+        const rows = exercises.map((ex, i) => ({
+          action_key: actionKey,
+          program_key: programKey,
+          week_range: weekRange,
+          day_of_week: dayOfWeek,
+          exercise_id: ex.exercise_id,
+          exercise_name: ex.exercise_name,
+          sets: ex.sets,
+          reps: ex.reps,
+          duration: ex.duration || null,
+          rest: ex.rest,
+          notes: ex.notes || null,
+          sort_order: i,
+        }));
+        await supabase.from("action_exercises").insert(rows);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const generateDetailsFromExercises = (exercises: ActionExercise[]): string[] => {
+    return exercises.map((ex) => {
+      const parts = [ex.exercise_name];
+      if (ex.sets && ex.reps) parts.push(`${ex.sets}\u00d7${ex.reps}`);
+      else if (ex.duration) parts.push(ex.duration);
+      if (ex.rest) parts.push(`${ex.rest} rest`);
+      return parts.join(" \u2014 ");
+    });
+  };
 
   const loadFromSupabase = useCallback(async () => {
     try {
@@ -374,6 +494,13 @@ export default function ProgramsCMSPage() {
       if (data) setProgramTemplates(data as typeof programTemplates);
     });
   }, [loadFromSupabase, loadProgramClientCounts]);
+
+  // Load action exercises when a cell is selected
+  useEffect(() => {
+    if (selectedCell && expandedProgram) {
+      loadActionExercises(expandedProgram, selectedCell.weekIdx, selectedCell.dayIdx);
+    }
+  }, [selectedCell, expandedProgram, loadActionExercises]);
 
   const isClientsTab = showClientsTab;
   const activeCategory = categories.find((c) => c.id === activeTab)!;
@@ -1581,6 +1708,64 @@ export default function ProgramsCMSPage() {
                                             rows={12}
                                             className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#20c858] outline-none resize-y text-gray-900 leading-relaxed min-h-[200px]"
                                           />
+                                          {/* Row 2b: Exercise library */}
+                                          {activeTab === "exercise" && (() => {
+                                            const actionIndex = currentDay.actions.indexOf(action);
+                                            const actionKey = buildActionKey(activeTab, program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.timeGroup, actionIndex);
+                                            const exercises = actionExercises[actionKey] || [];
+                                            return (
+                                              <div className="border border-gray-200 rounded-xl p-3 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Exercises from library</label>
+                                                  <button
+                                                    onClick={() => {
+                                                      loadExerciseLibrary();
+                                                      setShowExercisePicker({ programId: program.id, weekIdx: selectedCell.weekIdx, dayIdx: selectedCell.dayIdx, actionId: action.id, actionIndex });
+                                                      setExerciseSearch("");
+                                                      setExerciseCategoryFilter(null);
+                                                      setSelectedExercise(null);
+                                                    }}
+                                                    className="px-3 py-1.5 bg-[#20c858] text-white rounded-lg text-xs font-medium hover:bg-[#1ab34d] transition-colors"
+                                                  >
+                                                    + Add exercise
+                                                  </button>
+                                                </div>
+                                                {exercises.length > 0 ? (
+                                                  <div className="space-y-1.5">
+                                                    {exercises.map((ex, ei) => (
+                                                      <div key={ex.exercise_id + "-" + ei} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                                                        <span className="text-xs text-gray-400 font-medium w-4">{ei + 1}</span>
+                                                        <div className="flex-1 min-w-0">
+                                                          <span className="text-sm font-medium text-gray-800">{ex.exercise_name}</span>
+                                                          <span className="text-xs text-gray-400 ml-2">
+                                                            {ex.sets && ex.reps ? `${ex.sets}\u00d7${ex.reps}` : ex.duration || ""}
+                                                            {ex.rest ? ` \u2022 ${ex.rest} rest` : ""}
+                                                          </span>
+                                                        </div>
+                                                        <button
+                                                          onClick={() => {
+                                                            const updated = exercises.filter((_, i) => i !== ei);
+                                                            const newActionExercises = { ...actionExercises, [actionKey]: updated };
+                                                            setActionExercises(newActionExercises);
+                                                            saveActionExercises(actionKey, program.id, selectedCell.weekIdx, selectedCell.dayIdx, updated);
+                                                            const details = generateDetailsFromExercises(updated);
+                                                            updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "details", details);
+                                                          }}
+                                                          className="p-1 text-red-400 hover:text-red-600 rounded transition-colors flex-shrink-0"
+                                                        >
+                                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                          </svg>
+                                                        </button>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                ) : (
+                                                  <p className="text-xs text-gray-300 py-2">No exercises linked. Use the button above to add from the library.</p>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
                                           {/* Row 3: Media URLs */}
                                           <div className="flex gap-3">
                                             <div className="flex-1">
@@ -1842,6 +2027,230 @@ export default function ProgramsCMSPage() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exercise picker modal */}
+      {showExercisePicker && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setShowExercisePicker(null); setSelectedExercise(null); }}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{selectedExercise ? "Configure Exercise" : "Add Exercise"}</h3>
+                <p className="text-sm text-gray-500">{selectedExercise ? `Set parameters for ${selectedExercise.name}` : "Search and select an exercise from the library"}</p>
+              </div>
+              <button onClick={() => { setShowExercisePicker(null); setSelectedExercise(null); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {selectedExercise ? (
+              /* Exercise configuration form */
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4">
+                  {selectedExercise.illustration_url && (
+                    <img src={selectedExercise.illustration_url} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0 border border-gray-200" />
+                  )}
+                  <div>
+                    <p className="font-semibold text-gray-900">{selectedExercise.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: exerciseCategoryColors[selectedExercise.category] || "#6B7280" }}>
+                        {selectedExercise.category}
+                      </span>
+                      {selectedExercise.equipment && <span className="text-xs text-gray-400">{selectedExercise.equipment}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Sets</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={exerciseForm.sets}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, sets: parseInt(e.target.value) || 1 })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Reps</label>
+                    <input
+                      type="text"
+                      value={exerciseForm.reps}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, reps: e.target.value })}
+                      placeholder="e.g. 8-12"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Rest</label>
+                    <input
+                      type="text"
+                      value={exerciseForm.rest}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, rest: e.target.value })}
+                      placeholder="e.g. 60s"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Notes (optional)</label>
+                    <input
+                      type="text"
+                      value={exerciseForm.notes}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, notes: e.target.value })}
+                      placeholder="e.g. Slow eccentric"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setSelectedExercise(null)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!showExercisePicker || !selectedExercise) return;
+                      const { programId, weekIdx, dayIdx, actionId, actionIndex } = showExercisePicker;
+                      const prog = categories.flatMap(c => c.programs).find(p => p.id === programId);
+                      if (!prog) return;
+                      const action = prog.weeks[weekIdx]?.days[dayIdx]?.actions.find(a => a.id === actionId);
+                      if (!action) return;
+                      const actionKey = buildActionKey(activeTab, programId, weekIdx, dayIdx, action.timeGroup, actionIndex);
+                      const existing = actionExercises[actionKey] || [];
+                      const newExercise: ActionExercise = {
+                        action_key: actionKey,
+                        program_key: programId,
+                        week_range: weekIdx,
+                        day_of_week: dayIdx,
+                        exercise_id: selectedExercise.id,
+                        exercise_name: selectedExercise.name,
+                        sets: exerciseForm.sets,
+                        reps: exerciseForm.reps,
+                        duration: "",
+                        rest: exerciseForm.rest,
+                        notes: exerciseForm.notes,
+                        sort_order: existing.length,
+                      };
+                      const updated = [...existing, newExercise];
+                      setActionExercises({ ...actionExercises, [actionKey]: updated });
+                      saveActionExercises(actionKey, programId, weekIdx, dayIdx, updated);
+                      // Auto-populate details
+                      const details = generateDetailsFromExercises(updated);
+                      updateAction(programId, weekIdx, dayIdx, actionId, "details", details);
+                      setDirty(true);
+                      setSelectedExercise(null);
+                      setShowExercisePicker(null);
+                      setExerciseForm({ sets: 3, reps: "8-12", rest: "60s", notes: "" });
+                      setToast({ message: `Added ${selectedExercise.name}`, type: "success" });
+                    }}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#20c858] hover:bg-[#1ab34d] rounded-lg transition-colors"
+                  >
+                    Add to action
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Exercise browser */
+              <div className="flex flex-col flex-1 overflow-hidden">
+                {/* Search */}
+                <div className="px-6 pt-4 pb-2">
+                  <input
+                    type="text"
+                    value={exerciseSearch}
+                    onChange={(e) => setExerciseSearch(e.target.value)}
+                    placeholder="Search exercises..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+                    autoFocus
+                  />
+                </div>
+                {/* Category filter pills */}
+                <div className="px-6 pb-3 flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setExerciseCategoryFilter(null)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      !exerciseCategoryFilter ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    All
+                  </button>
+                  {Object.entries(exerciseCategoryColors).map(([cat, color]) => (
+                    <button
+                      key={cat}
+                      onClick={() => setExerciseCategoryFilter(exerciseCategoryFilter === cat ? null : cat)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors`}
+                      style={{
+                        backgroundColor: exerciseCategoryFilter === cat ? color : `${color}18`,
+                        color: exerciseCategoryFilter === cat ? "#fff" : color,
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                {/* Exercise grid */}
+                <div className="flex-1 overflow-y-auto px-6 pb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {exerciseLibrary
+                      .filter((ex) => {
+                        if (exerciseCategoryFilter && ex.category !== exerciseCategoryFilter) return false;
+                        if (exerciseSearch) {
+                          const q = exerciseSearch.toLowerCase();
+                          return ex.name.toLowerCase().includes(q) || ex.category.toLowerCase().includes(q) || (ex.equipment || "").toLowerCase().includes(q);
+                        }
+                        return true;
+                      })
+                      .map((ex) => (
+                        <button
+                          key={ex.id}
+                          onClick={() => {
+                            setSelectedExercise(ex);
+                            setExerciseForm({ sets: 3, reps: "8-12", rest: "60s", notes: "" });
+                          }}
+                          className="text-left p-3 rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-sm transition-all bg-white"
+                        >
+                          <div className="flex items-start gap-2">
+                            {ex.illustration_url ? (
+                              <img src={ex.illustration_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-100" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h2m4 0h10M5 12a2 2 0 11-4 0 2 2 0 014 0zm16 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-900 truncate">{ex.name}</p>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span
+                                  className="text-[10px] px-1.5 py-0.5 rounded-full text-white font-medium"
+                                  style={{ backgroundColor: exerciseCategoryColors[ex.category] || "#6B7280" }}
+                                >
+                                  {ex.category}
+                                </span>
+                                {ex.equipment && (
+                                  <span className="text-[10px] text-gray-400 truncate">{ex.equipment}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    {exerciseLibrary.length === 0 && (
+                      <div className="col-span-3 text-center py-12 text-gray-400 text-sm">
+                        No exercises in library. Add exercises in the Exercise Library page first.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
