@@ -277,6 +277,14 @@ export default function ProgramsCMSPage() {
   // Program analytics: active client counts keyed by program_key
   const [programClientCounts, setProgramClientCounts] = useState<Record<string, number>>({});
 
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState<Program | null>(null);
+  const [shareSearch, setShareSearch] = useState("");
+  const [shareClients, setShareClients] = useState<Array<{ id: string; full_name: string; email: string; current_program_key: string | null }>>([]);
+  const [shareAssigned, setShareAssigned] = useState<Set<string>>(new Set());
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareAssigning, setShareAssigning] = useState<Set<string>>(new Set());
+
   const loadClientPrograms = useCallback(async () => {
     setLoadingClients(true);
     try {
@@ -324,6 +332,98 @@ export default function ProgramsCMSPage() {
       // ignore
     }
   }, []);
+
+  const loadShareClients = useCallback(async (programKey: string, categoryKey: string, search: string) => {
+    setShareLoading(true);
+    try {
+      let query = supabase.from("clients").select("id, full_name, email").order("full_name", { ascending: true }).limit(50);
+      if (search.trim()) {
+        query = query.or(`full_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%`);
+      }
+      const { data: clients } = await query;
+      if (clients) {
+        // Load client_programs for this category to see current assignments
+        const clientIds = clients.map((c: Record<string, string>) => c.id);
+        const { data: assignments } = await supabase
+          .from("client_programs")
+          .select("client_id, program_key")
+          .eq("category", categoryKey)
+          .in("client_id", clientIds);
+
+        const assignmentMap: Record<string, string> = {};
+        const assignedSet = new Set<string>();
+        if (assignments) {
+          for (const a of assignments) {
+            const row = a as Record<string, string>;
+            assignmentMap[row.client_id] = row.program_key;
+            if (row.program_key === programKey) {
+              assignedSet.add(row.client_id);
+            }
+          }
+        }
+
+        setShareClients(clients.map((c: Record<string, string>) => ({
+          id: c.id,
+          full_name: c.full_name || "Unknown",
+          email: c.email || "",
+          current_program_key: assignmentMap[c.id] || null,
+        })));
+        setShareAssigned(assignedSet);
+      }
+    } catch {
+      // Table may not exist
+    }
+    setShareLoading(false);
+  }, []);
+
+  const assignProgramToClient = useCallback(async (clientId: string, clientName: string, programKey: string, categoryKey: string) => {
+    setShareAssigning(prev => new Set(prev).add(clientId));
+    try {
+      await supabase.from("client_programs").upsert({
+        client_id: clientId,
+        category: categoryKey,
+        program_key: programKey,
+        started_at: new Date().toISOString(),
+        current_week: 1,
+      }, { onConflict: "client_id,category" });
+
+      setShareAssigned(prev => new Set(prev).add(clientId));
+      setShareClients(prev => prev.map(c => c.id === clientId ? { ...c, current_program_key: programKey } : c));
+      setToast({ message: `Program assigned to ${clientName}`, type: "success" });
+      // Update counts
+      loadProgramClientCounts();
+    } catch {
+      setToast({ message: "Failed to assign program", type: "error" });
+    }
+    setShareAssigning(prev => { const next = new Set(prev); next.delete(clientId); return next; });
+  }, [loadProgramClientCounts]);
+
+  const assignProgramToAll = useCallback(async (programKey: string, categoryKey: string) => {
+    const unassigned = shareClients.filter(c => !shareAssigned.has(c.id));
+    if (unassigned.length === 0) return;
+    setShareLoading(true);
+    try {
+      const rows = unassigned.map(c => ({
+        client_id: c.id,
+        category: categoryKey,
+        program_key: programKey,
+        started_at: new Date().toISOString(),
+        current_week: 1,
+      }));
+      await supabase.from("client_programs").upsert(rows, { onConflict: "client_id,category" });
+      setShareAssigned(prev => {
+        const next = new Set(prev);
+        unassigned.forEach(c => next.add(c.id));
+        return next;
+      });
+      setShareClients(prev => prev.map(c => ({ ...c, current_program_key: programKey })));
+      setToast({ message: `Program assigned to ${unassigned.length} client${unassigned.length > 1 ? "s" : ""}`, type: "success" });
+      loadProgramClientCounts();
+    } catch {
+      setToast({ message: "Failed to assign to all clients", type: "error" });
+    }
+    setShareLoading(false);
+  }, [shareClients, shareAssigned, loadProgramClientCounts]);
 
   const exerciseCategoryColors: Record<string, string> = {
     chest: "#EF4444", back: "#3B82F6", shoulders: "#F59E0B", arms: "#8B5CF6",
@@ -1333,6 +1433,21 @@ export default function ProgramsCMSPage() {
                       </svg>
                     </button>
                     <button
+                      onClick={() => {
+                        setShowShareModal(program);
+                        setShareSearch("");
+                        setShareClients([]);
+                        setShareAssigned(new Set());
+                        loadShareClients(program.id, activeTab, "");
+                      }}
+                      className="p-2 text-gray-400 hover:text-[#20c858] rounded-lg hover:bg-[#20c858]/5 transition-colors"
+                      title="Share with client"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                    </button>
+                    <button
                       onClick={() => setPendingDelete({ programId: program.id, programName: program.name })}
                       className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     >
@@ -2257,6 +2372,107 @@ export default function ProgramsCMSPage() {
       )}
 
       {/* Delete confirmation dialog */}
+      {/* Share with client modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowShareModal(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-5 pt-5 pb-3 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Share program</h3>
+                  <p className="text-sm text-gray-500 mt-0.5">{showShareModal.name}</p>
+                </div>
+                <button onClick={() => setShowShareModal(null)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              {/* Search */}
+              <input
+                type="text"
+                value={shareSearch}
+                onChange={(e) => {
+                  setShareSearch(e.target.value);
+                  loadShareClients(showShareModal.id, activeTab, e.target.value);
+                }}
+                placeholder="Search clients by name or email..."
+                className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:ring-2 focus:ring-[#20c858] outline-none"
+              />
+            </div>
+
+            {/* Client list */}
+            <div className="overflow-y-auto flex-1">
+              {shareLoading && shareClients.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-[#20c858] rounded-full animate-spin" />
+                </div>
+              ) : shareClients.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <p className="text-sm text-gray-400">No clients found</p>
+                  <p className="text-xs text-gray-300 mt-1">{shareSearch ? "Try a different search" : "No clients in your database yet"}</p>
+                </div>
+              ) : (
+                shareClients.map((client) => {
+                  const isAssigned = shareAssigned.has(client.id);
+                  const isAssigning = shareAssigning.has(client.id);
+                  const hasOtherProgram = client.current_program_key && client.current_program_key !== showShareModal.id;
+                  return (
+                    <div key={client.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-semibold text-gray-500">
+                          {(client.full_name || "?")[0].toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{client.full_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-gray-400 truncate">{client.email}</p>
+                          {hasOtherProgram && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-medium rounded">
+                              {client.current_program_key}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isAssigned ? (
+                        <span className="px-3 py-1 bg-gray-100 text-gray-400 text-xs font-medium rounded-lg">
+                          Assigned
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => assignProgramToClient(client.id, client.full_name, showShareModal.id, activeTab)}
+                          disabled={isAssigning}
+                          className="px-3 py-1 bg-[#20c858] text-white text-xs font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 transition-colors"
+                        >
+                          {isAssigning ? "..." : "Assign"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer: bulk assign */}
+            {shareClients.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <button
+                  onClick={() => assignProgramToAll(showShareModal.id, activeTab)}
+                  disabled={shareLoading || shareClients.every(c => shareAssigned.has(c.id))}
+                  className="w-full px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1bb34d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {shareClients.every(c => shareAssigned.has(c.id))
+                    ? "All clients assigned"
+                    : `Assign to all ${shareClients.filter(c => !shareAssigned.has(c.id)).length} client${shareClients.filter(c => !shareAssigned.has(c.id)).length !== 1 ? "s" : ""}`}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {pendingDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setPendingDelete(null)}>
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>

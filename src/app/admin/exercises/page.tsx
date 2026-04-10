@@ -292,6 +292,10 @@ export default function ExercisesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [viewingExercise, setViewingExercise] = useState<Exercise | null>(null);
+  const [showCreateProgram, setShowCreateProgram] = useState(false);
+  const [programForm, setProgramForm] = useState({ name: "", description: "", level: "beginner" as "beginner" | "intermediate" | "advanced", duration: 8, category: "exercise" });
+  const [creatingProgram, setCreatingProgram] = useState(false);
 
   // ── Load exercises ─────────────────────────────────────────────────────────
 
@@ -374,6 +378,48 @@ export default function ExercisesPage() {
     loadExercises();
   };
 
+  // ── Create Program from selected exercises ─────────────────────────────────
+
+  const createProgram = async () => {
+    if (!programForm.name.trim()) { setToast({ message: "Program name is required", type: "error" }); return; }
+    setCreatingProgram(true);
+    try {
+      const key = programForm.name.toLowerCase().replace(/\s+/g, "-");
+      // Get category_id from program_categories
+      const { data: catData } = await supabase.from("program_categories").select("id").eq("key", programForm.category).single();
+      const categoryId = catData?.id;
+      if (!categoryId) { setToast({ message: "Could not find program category", type: "error" }); setCreatingProgram(false); return; }
+
+      const { error: progError } = await supabase.from("programs").insert([{
+        key,
+        name: programForm.name,
+        description: programForm.description,
+        level: programForm.level,
+        duration: programForm.duration,
+        category_id: categoryId,
+      }]);
+      if (progError) { setToast({ message: "Failed to create program: " + progError.message, type: "error" }); setCreatingProgram(false); return; }
+
+      // Insert action_exercises for each selected exercise
+      const actionExercises = Array.from(selectedIds).map((exerciseId) => ({
+        program_key: key,
+        exercise_id: exerciseId,
+        sets: 3,
+        reps: 10,
+      }));
+      const { error: aeError } = await supabase.from("action_exercises").insert(actionExercises);
+      if (aeError) { setToast({ message: "Program created but failed to link exercises: " + aeError.message, type: "error" }); }
+      else { setToast({ message: `Created program "${programForm.name}" with ${selectedIds.size} exercises`, type: "success" }); }
+
+      setSelectedIds(new Set());
+      setShowCreateProgram(false);
+      setProgramForm({ name: "", description: "", level: "beginner", duration: 8, category: "exercise" });
+    } catch (err) {
+      setToast({ message: "Unexpected error creating program", type: "error" });
+    }
+    setCreatingProgram(false);
+  };
+
   // ── Selection helpers ──────────────────────────────────────────────────────
 
   const toggleSelect = (id: string) => {
@@ -422,10 +468,16 @@ export default function ExercisesPage() {
             )}
           </button>
           {selectedIds.size > 0 && (
-            <button onClick={() => setBulkDeleteConfirm(true)} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              Delete {selectedIds.size} Selected
-            </button>
+            <>
+              <button onClick={() => { setShowCreateProgram(true); setProgramForm({ name: "", description: "", level: "beginner", duration: 8, category: "exercise" }); }} className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                Create Program ({selectedIds.size})
+              </button>
+              <button onClick={() => setBulkDeleteConfirm(true)} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Delete {selectedIds.size} Selected
+              </button>
+            </>
           )}
           <button onClick={openCreate} className="px-4 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -500,14 +552,19 @@ export default function ExercisesPage() {
                   {ex.illustration_url && (
                     <img src={ex.illustration_url} alt={ex.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                   )}
-                  <div className="min-w-0 flex-1" onClick={() => { setEditingExercise({ ...ex }); setIsCreating(false); }}>
+                  <div className="min-w-0 flex-1" onClick={() => setViewingExercise(ex)}>
                     <h3 className="font-semibold text-gray-900 truncate">{ex.name}</h3>
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{ex.description}</p>
                   </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: ex.id, name: ex.name }); }} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingExercise({ ...ex }); setIsCreating(false); }} className="p-1.5 text-gray-400 hover:text-[#20c858] rounded-lg hover:bg-green-50 transition-colors" title="Edit">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: ex.id, name: ex.name }); }} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Delete">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
               </div>
               {/* Badges */}
               <div className="flex flex-wrap gap-1.5 mt-3">
@@ -539,6 +596,177 @@ export default function ExercisesPage() {
         <div className="text-center py-16">
           <p className="text-gray-400 text-sm">No exercises match your filters</p>
           <button onClick={() => { setCategoryFilter("all"); setEquipmentFilter("all"); setDifficultyFilter("all"); setSearch(""); }} className="mt-2 text-sm text-[#20c858] hover:underline">Clear filters</button>
+        </div>
+      )}
+
+      {/* ── Exercise Detail View Modal ──────────────────────────────────────── */}
+      {viewingExercise && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingExercise(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Image */}
+            {viewingExercise.illustration_url ? (
+              <img src={viewingExercise.illustration_url} alt={viewingExercise.name} className="w-full h-[300px] object-cover rounded-t-2xl" />
+            ) : (
+              <div className="w-full h-[300px] rounded-t-2xl flex items-center justify-center" style={{ backgroundColor: `${CATEGORY_COLORS[viewingExercise.category]}20` }}>
+                <svg className="w-20 h-20" style={{ color: CATEGORY_COLORS[viewingExercise.category] }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+              </div>
+            )}
+            <div className="p-6 space-y-4">
+              {/* Name */}
+              <h2 className="text-2xl font-bold text-gray-900">{viewingExercise.name}</h2>
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 text-xs font-semibold rounded-full text-white" style={{ backgroundColor: CATEGORY_COLORS[viewingExercise.category] }}>
+                  {viewingExercise.category.charAt(0).toUpperCase() + viewingExercise.category.slice(1)}
+                </span>
+                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                  {viewingExercise.equipment.charAt(0).toUpperCase() + viewingExercise.equipment.slice(1)}
+                </span>
+                <span className="px-3 py-1 text-xs font-semibold rounded-full text-white" style={{ backgroundColor: DIFFICULTY_COLORS[viewingExercise.difficulty] }}>
+                  {viewingExercise.difficulty.charAt(0).toUpperCase() + viewingExercise.difficulty.slice(1)}
+                </span>
+              </div>
+
+              {/* Description */}
+              {viewingExercise.description && (
+                <p className="text-sm text-gray-600 leading-relaxed">{viewingExercise.description}</p>
+              )}
+
+              {/* Muscles targeted */}
+              {viewingExercise.muscles_targeted && viewingExercise.muscles_targeted.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Muscles Targeted</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingExercise.muscles_targeted.map((m) => (
+                      <span key={m} className="px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">{m}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Instructions */}
+              {viewingExercise.instructions && viewingExercise.instructions.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Instructions</h4>
+                  <ol className="space-y-2">
+                    {viewingExercise.instructions.map((inst, i) => (
+                      <li key={i} className="flex gap-3 text-sm text-gray-600">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#20c858]/10 text-[#20c858] flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                        <span className="leading-relaxed">{inst}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* Video URL */}
+              {viewingExercise.video_url && (
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Video</h4>
+                  <a href={viewingExercise.video_url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#20c858] hover:underline flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Watch video
+                  </a>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-3 border-t border-gray-100">
+                <button onClick={() => { setEditingExercise({ ...viewingExercise }); setIsCreating(false); setViewingExercise(null); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Edit
+                </button>
+                <button onClick={() => { setConfirmDelete({ id: viewingExercise.id, name: viewingExercise.name }); setViewingExercise(null); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create Program Modal ─────────────────────────────────────────────── */}
+      {showCreateProgram && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateProgram(false)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Create Program</h2>
+              <button onClick={() => setShowCreateProgram(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Program name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Program Name *</label>
+              <input type="text" value={programForm.name} onChange={(e) => setProgramForm({ ...programForm, name: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent" placeholder="e.g. Upper Body Strength" />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select value={programForm.category} onChange={(e) => setProgramForm({ ...programForm, category: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent bg-white">
+                <option value="exercise">Exercise</option>
+                <option value="nutrition">Nutrition</option>
+                <option value="sleep">Sleep</option>
+                <option value="mental">Mental</option>
+              </select>
+            </div>
+
+            {/* Duration pills */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Duration (weeks)</label>
+              <div className="flex gap-2">
+                {[4, 8, 12].map((w) => (
+                  <button key={w} onClick={() => setProgramForm({ ...programForm, duration: w })} className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors border ${programForm.duration === w ? "bg-[#20c858] text-white border-transparent" : "text-gray-600 border-gray-300 hover:border-gray-400"}`}>
+                    {w} weeks
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Level pills */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
+              <div className="flex gap-2">
+                {(["beginner", "intermediate", "advanced"] as const).map((lvl) => (
+                  <button key={lvl} onClick={() => setProgramForm({ ...programForm, level: lvl })} className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors border ${programForm.level === lvl ? "text-white border-transparent" : "text-gray-600 border-gray-300 hover:border-gray-400"}`} style={programForm.level === lvl ? { backgroundColor: DIFFICULTY_COLORS[lvl] } : {}}>
+                    {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea value={programForm.description} onChange={(e) => setProgramForm({ ...programForm, description: e.target.value })} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent resize-none" placeholder="Describe this program..." />
+            </div>
+
+            {/* Selected exercises preview */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Exercises ({selectedIds.size})</label>
+              <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto space-y-1">
+                {exercises.filter((ex) => selectedIds.has(ex.id)).map((ex) => (
+                  <div key={ex.id} className="flex items-center gap-2 text-sm text-gray-700">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[ex.category] }} />
+                    {ex.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+              <button onClick={() => setShowCreateProgram(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+              <button onClick={createProgram} disabled={creatingProgram} className="px-5 py-2 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34e] transition-colors disabled:opacity-50 flex items-center gap-2">
+                {creatingProgram && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {creatingProgram ? "Creating..." : "Create Program"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
