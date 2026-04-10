@@ -1857,7 +1857,7 @@ function AccountPageInner() {
                             <div key={exIdx} className="bg-[#ecf0f3] rounded-xl px-4 py-3">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  {(() => { const img = exerciseLibrary.find(e => e.name === ex.exercise_name)?.illustration_url; return img ? <img src={img} alt="" className="w-8 h-8 rounded object-cover" /> : null; })()}
+                                  {(() => { const img = exerciseLibrary.find(e => e.name === ex.exercise_name)?.illustration_url; return img ? <img src={img} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" /> : null; })()}
                                   <p className="text-sm font-medium text-[#1F2937]">{ex.exercise_name}</p>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -1926,9 +1926,9 @@ function AccountPageInner() {
                                 <button key={ex.id} onClick={() => addExerciseToDay(builderActiveDay, ex)}
                                   className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3">
                                   {ex.illustration_url ? (
-                                    <img src={ex.illustration_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                    <img src={ex.illustration_url} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
                                   ) : (
-                                    <span className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-lg" style={{ backgroundColor: (categoryColors[ex.category] || "#6B7280") + "15" }}>🏋️</span>
+                                    <span className="w-14 h-14 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl" style={{ backgroundColor: (categoryColors[ex.category] || "#6B7280") + "15" }}>🏋️</span>
                                   )}
                                   <div className="min-w-0">
                                     <p className="text-sm font-medium text-[#1F2937] truncate">{ex.name}</p>
