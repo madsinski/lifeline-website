@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@expo/config-plugins": "^55.0.8",
     "@supabase/supabase-js": "^2.101.0",
     "next": "16.2.1",
     "react": "19.2.4",

@@ -45,6 +45,79 @@ const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   advanced: "#EF4444",
 };
 
+// ── Exercise Image URLs ─────────────────────────────────────────────────────────
+const IMG_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+const EXERCISE_IMAGES: Record<string, string> = {
+  "Flat Barbell Bench Press": `${IMG_BASE}Barbell_Bench_Press/0.jpg`,
+  "Decline Barbell Bench Press": `${IMG_BASE}Decline_Barbell_Bench_Press/0.jpg`,
+  "Flat Dumbbell Bench Press": `${IMG_BASE}Dumbbell_Bench_Press/0.jpg`,
+  "Incline Dumbbell Press": `${IMG_BASE}Incline_Dumbbell_Press/0.jpg`,
+  "Standard Push-Up": `${IMG_BASE}Push-Up/0.jpg`,
+  "Wide Push-Up": `${IMG_BASE}Wide_Push-Up/0.jpg`,
+  "Diamond Push-Up": `${IMG_BASE}Diamond_Push-Up/0.jpg`,
+  "Dumbbell Fly": `${IMG_BASE}Dumbbell_Fly/0.jpg`,
+  "Chest Dip": `${IMG_BASE}Chest_Dip/0.jpg`,
+  "Cable Crossover": `${IMG_BASE}Cable_Crossover/0.jpg`,
+  "Pull-Up": `${IMG_BASE}Pull-Up/0.jpg`,
+  "Chin-Up": `${IMG_BASE}Chin-Up/0.jpg`,
+  "Lat Pulldown": `${IMG_BASE}Lat_Pulldown/0.jpg`,
+  "Barbell Bent-Over Row": `${IMG_BASE}Bent_Over_Barbell_Row/0.jpg`,
+  "Seated Cable Row": `${IMG_BASE}Seated_Cable_Row/0.jpg`,
+  "T-Bar Row": `${IMG_BASE}T-Bar_Row/0.jpg`,
+  "Face Pull": `${IMG_BASE}Face_Pull/0.jpg`,
+  "Barbell Deadlift": `${IMG_BASE}Barbell_Deadlift/0.jpg`,
+  "Barbell Overhead Press": `${IMG_BASE}Barbell_Shoulder_Press/0.jpg`,
+  "Dumbbell Shoulder Press": `${IMG_BASE}Dumbbell_Shoulder_Press/0.jpg`,
+  "Arnold Press": `${IMG_BASE}Arnold_Dumbbell_Press/0.jpg`,
+  "Dumbbell Lateral Raise": `${IMG_BASE}Lateral_Raise/0.jpg`,
+  "Dumbbell Front Raise": `${IMG_BASE}Front_Raise/0.jpg`,
+  "Upright Row": `${IMG_BASE}Upright_Barbell_Row/0.jpg`,
+  "Barbell Shrug": `${IMG_BASE}Barbell_Shrug/0.jpg`,
+  "Barbell Curl": `${IMG_BASE}Barbell_Curl/0.jpg`,
+  "Dumbbell Bicep Curl": `${IMG_BASE}Dumbbell_Curl/0.jpg`,
+  "Hammer Curl": `${IMG_BASE}Hammer_Curl/0.jpg`,
+  "Preacher Curl": `${IMG_BASE}Preacher_Curl/0.jpg`,
+  "Tricep Dip": `${IMG_BASE}Tricep_Dip/0.jpg`,
+  "Tricep Pushdown": `${IMG_BASE}Tricep_Pushdown/0.jpg`,
+  "Skull Crusher": `${IMG_BASE}Skull_Crusher/0.jpg`,
+  "Overhead Tricep Extension": `${IMG_BASE}Overhead_Tricep_Extension/0.jpg`,
+  "Barbell Back Squat": `${IMG_BASE}Barbell_Squat/0.jpg`,
+  "Front Squat": `${IMG_BASE}Front_Squat/0.jpg`,
+  "Goblet Squat": `${IMG_BASE}Goblet_Squat/0.jpg`,
+  "Leg Press": `${IMG_BASE}Leg_Press/0.jpg`,
+  "Walking Lunge": `${IMG_BASE}Walking_Lunge/0.jpg`,
+  "Reverse Lunge": `${IMG_BASE}Reverse_Lunge/0.jpg`,
+  "Leg Extension": `${IMG_BASE}Leg_Extension/0.jpg`,
+  "Leg Curl": `${IMG_BASE}Leg_Curl/0.jpg`,
+  "Standing Calf Raise": `${IMG_BASE}Calf_Raise/0.jpg`,
+  "Barbell Hip Thrust": `${IMG_BASE}Hip_Thrust/0.jpg`,
+  "Romanian Deadlift": `${IMG_BASE}Romanian_Deadlift/0.jpg`,
+  "Step-Up": `${IMG_BASE}Step-Up/0.jpg`,
+  "Front Plank": `${IMG_BASE}Plank/0.jpg`,
+  "Side Plank": `${IMG_BASE}Side_Plank/0.jpg`,
+  "Crunch": `${IMG_BASE}Crunch/0.jpg`,
+  "Russian Twist": `${IMG_BASE}Russian_Twist/0.jpg`,
+  "Hanging Leg Raise": `${IMG_BASE}Leg_Raise/0.jpg`,
+  "Mountain Climber": `${IMG_BASE}Mountain_Climber/0.jpg`,
+  "Dead Bug": `${IMG_BASE}Dead_Bug/0.jpg`,
+  "Bird Dog": `${IMG_BASE}Bird_Dog/0.jpg`,
+  "Ab Wheel Rollout": `${IMG_BASE}Ab_Roller/0.jpg`,
+  "Jump Rope": `${IMG_BASE}Jump_Rope/0.jpg`,
+  "Burpee": `${IMG_BASE}Burpee/0.jpg`,
+  "Jumping Jack": `${IMG_BASE}Jumping_Jack/0.jpg`,
+  "High Knees": `${IMG_BASE}High_Knees/0.jpg`,
+  "Barbell Bench Press": `${IMG_BASE}Barbell_Bench_Press/0.jpg`,
+  "Dumbbell Bench Press": `${IMG_BASE}Dumbbell_Bench_Press/0.jpg`,
+  "Push-Up": `${IMG_BASE}Push-Up/0.jpg`,
+  "Lateral Raise": `${IMG_BASE}Lateral_Raise/0.jpg`,
+  "Squat": `${IMG_BASE}Barbell_Squat/0.jpg`,
+  "Deadlift": `${IMG_BASE}Barbell_Deadlift/0.jpg`,
+  "Calf Raise": `${IMG_BASE}Calf_Raise/0.jpg`,
+  "Plank": `${IMG_BASE}Plank/0.jpg`,
+  "Leg Raise": `${IMG_BASE}Leg_Raise/0.jpg`,
+  "Hip Thrust": `${IMG_BASE}Hip_Thrust/0.jpg`,
+};
+
 // ── Seed Data ──────────────────────────────────────────────────────────────────
 
 const SEED_EXERCISES: Omit<Exercise, "id" | "created_at" | "illustration_url">[] = [
@@ -223,7 +296,8 @@ export default function ExercisesPage() {
     setSeeding(true);
     let inserted = 0;
     for (const ex of SEED_EXERCISES) {
-      const { error } = await supabase.from("exercises").upsert(ex as Record<string, unknown>, { onConflict: "name" });
+      const withImage = { ...ex, illustration_url: EXERCISE_IMAGES[ex.name] || null };
+      const { error } = await supabase.from("exercises").upsert(withImage as Record<string, unknown>, { onConflict: "name" });
       if (!error) inserted++;
     }
     setToast({ message: `Seeded ${inserted} exercises`, type: "success" });
