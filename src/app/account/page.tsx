@@ -96,6 +96,7 @@ interface ExerciseRow {
   equipment: string;
   difficulty: string;
   illustration_url: string;
+  instructions: string[];
   muscles_targeted: string[];
 }
 
@@ -411,7 +412,7 @@ function AccountPageInner() {
 
   const loadExerciseLibrary = async () => {
     if (exerciseLibrary.length > 0) return;
-    const { data } = await supabase.from("exercises").select("id, name, description, category, equipment, difficulty, illustration_url, muscles_targeted").order("category").order("name");
+    const { data } = await supabase.from("exercises").select("id, name, description, category, equipment, difficulty, illustration_url, instructions, muscles_targeted").order("category").order("name");
     if (data) setExerciseLibrary(data);
   };
 
