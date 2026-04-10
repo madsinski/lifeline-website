@@ -1857,7 +1857,7 @@ function AccountPageInner() {
                             <div key={exIdx} className="bg-[#ecf0f3] rounded-xl px-4 py-3">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  {(() => { const img = exerciseLib.find(e => e.name === ex.exercise_name)?.illustration_url; return img ? <img src={img} alt="" className="w-8 h-8 rounded object-cover" /> : null; })()}
+                                  {(() => { const img = exerciseLibrary.find(e => e.name === ex.exercise_name)?.illustration_url; return img ? <img src={img} alt="" className="w-8 h-8 rounded object-cover" /> : null; })()}
                                   <p className="text-sm font-medium text-[#1F2937]">{ex.exercise_name}</p>
                                 </div>
                                 <div className="flex items-center gap-1">
