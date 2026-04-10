@@ -55,7 +55,7 @@ interface PaymentRow {
 }
 
 /* ---------- nav sections ---------- */
-type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "app" | "settings";
+type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "programs" | "app" | "settings";
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Health Overview", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
   { id: "profile", label: "Profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
@@ -63,9 +63,41 @@ const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "billing", label: "Billing & Plans", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "assessment", label: "Assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
   { id: "education", label: "Education", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
+  { id: "programs", label: "My Programs", icon: "M3 6.5A1.5 1.5 0 014.5 5h15A1.5 1.5 0 0121 6.5v1A1.5 1.5 0 0119.5 9h-15A1.5 1.5 0 013 7.5v-1zM3 11.5h4v5H3v-5zm7 0h4v7h-4v-7zm7 0h4v3h-4v-3z" },
   { id: "app", label: "App & Devices", icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
+
+/* ---------- custom program types ---------- */
+interface CustomProgramExercise {
+  exercise_id: string;
+  exercise_name: string;
+  sets: number;
+  reps: string;
+  rest: string;
+}
+interface CustomProgramDay {
+  exercises: CustomProgramExercise[];
+}
+interface CustomProgram {
+  id: string;
+  name: string;
+  goal: string;
+  duration: number;
+  days_per_week: number;
+  days: Record<number, CustomProgramDay>;
+  created_at: string;
+}
+interface ExerciseRow {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  equipment: string;
+  difficulty: string;
+  illustration_url: string;
+  muscles_targeted: string[];
+}
 
 /* ============================================================
    ACCOUNT PAGE (inner component that uses useSearchParams)
@@ -152,6 +184,24 @@ function AccountPageInner() {
   const [eduSnippetWeek, setEduSnippetWeek] = useState(0);
   const [eduQuizAnswers, setEduQuizAnswers] = useState<Record<string, number>>({});
   const [eduQuizSubmitted, setEduQuizSubmitted] = useState<Record<string, boolean>>({});
+
+  /* program builder */
+  const [customPrograms, setCustomPrograms] = useState<CustomProgram[]>([]);
+  const [showProgramBuilder, setShowProgramBuilder] = useState(false);
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
+  const [builderStep, setBuilderStep] = useState(1);
+  const [builderName, setBuilderName] = useState("");
+  const [builderGoal, setBuilderGoal] = useState("general fitness");
+  const [builderDuration, setBuilderDuration] = useState(8);
+  const [builderDaysPerWeek, setBuilderDaysPerWeek] = useState(3);
+  const [builderDays, setBuilderDays] = useState<Record<number, CustomProgramDay>>({});
+  const [builderActiveDay, setBuilderActiveDay] = useState(0);
+  const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseRow[]>([]);
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [exerciseCategoryFilter, setExerciseCategoryFilter] = useState("");
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [programSaving, setProgramSaving] = useState(false);
+  const [programSaveMsg, setProgramSaveMsg] = useState("");
 
   /* ---------- auth check + load data ---------- */
   useEffect(() => {
@@ -297,6 +347,18 @@ function AccountPageInner() {
         }
       } catch {}
 
+      // Load custom programs
+      try {
+        const { data: cpData } = await supabase
+          .from("clients")
+          .select("custom_programs")
+          .eq("id", currentUser.id)
+          .single();
+        if (cpData?.custom_programs && Array.isArray(cpData.custom_programs)) {
+          setCustomPrograms(cpData.custom_programs);
+        }
+      } catch {}
+
       setLoading(false);
     });
 
@@ -316,6 +378,131 @@ function AccountPageInner() {
 
     return () => authSub.unsubscribe();
   }, [router, upgradeParam]);
+
+  /* ---------- program builder helpers ---------- */
+  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const categoryColors: Record<string, string> = {
+    chest: "#EF4444", back: "#3B82F6", shoulders: "#F59E0B", arms: "#8B5CF6",
+    legs: "#20c858", core: "#06B6D4", cardio: "#EC4899", flexibility: "#14B8A6", "full-body": "#6366F1",
+  };
+  const goalOptions = ["strength", "endurance", "weight loss", "flexibility", "general fitness"];
+
+  const getSelectedDayIndices = (count: number): number[] => {
+    if (count === 3) return [0, 2, 4];
+    if (count === 4) return [0, 1, 3, 4];
+    if (count === 5) return [0, 1, 2, 3, 4];
+    if (count === 6) return [0, 1, 2, 3, 4, 5];
+    return [0, 2, 4];
+  };
+
+  const loadExerciseLibrary = async () => {
+    if (exerciseLibrary.length > 0) return;
+    const { data } = await supabase.from("exercises").select("id, name, description, category, equipment, difficulty, illustration_url, muscles_targeted").order("category").order("name");
+    if (data) setExerciseLibrary(data);
+  };
+
+  const resetBuilder = () => {
+    setBuilderStep(1);
+    setBuilderName("");
+    setBuilderGoal("general fitness");
+    setBuilderDuration(8);
+    setBuilderDaysPerWeek(3);
+    setBuilderDays({});
+    setBuilderActiveDay(0);
+    setEditingProgramId(null);
+    setShowExercisePicker(false);
+    setExerciseSearch("");
+    setExerciseCategoryFilter("");
+  };
+
+  const openBuilder = (program?: CustomProgram) => {
+    resetBuilder();
+    if (program) {
+      setEditingProgramId(program.id);
+      setBuilderName(program.name);
+      setBuilderGoal(program.goal);
+      setBuilderDuration(program.duration);
+      setBuilderDaysPerWeek(program.days_per_week);
+      setBuilderDays(program.days);
+    }
+    setShowProgramBuilder(true);
+    loadExerciseLibrary();
+  };
+
+  const addExerciseToDay = (dayIndex: number, exercise: ExerciseRow) => {
+    setBuilderDays(prev => {
+      const day = prev[dayIndex] || { exercises: [] };
+      return { ...prev, [dayIndex]: { exercises: [...day.exercises, { exercise_id: exercise.id, exercise_name: exercise.name, sets: 3, reps: "10", rest: "60s" }] } };
+    });
+    setShowExercisePicker(false);
+    setExerciseSearch("");
+    setExerciseCategoryFilter("");
+  };
+
+  const updateExerciseInDay = (dayIndex: number, exIdx: number, field: string, value: string | number) => {
+    setBuilderDays(prev => {
+      const day = { ...prev[dayIndex] };
+      const exercises = [...day.exercises];
+      exercises[exIdx] = { ...exercises[exIdx], [field]: value };
+      return { ...prev, [dayIndex]: { exercises } };
+    });
+  };
+
+  const removeExerciseFromDay = (dayIndex: number, exIdx: number) => {
+    setBuilderDays(prev => {
+      const day = { ...prev[dayIndex] };
+      const exercises = day.exercises.filter((_, i) => i !== exIdx);
+      return { ...prev, [dayIndex]: { exercises } };
+    });
+  };
+
+  const moveExercise = (dayIndex: number, exIdx: number, direction: -1 | 1) => {
+    setBuilderDays(prev => {
+      const day = { ...prev[dayIndex] };
+      const exercises = [...day.exercises];
+      const newIdx = exIdx + direction;
+      if (newIdx < 0 || newIdx >= exercises.length) return prev;
+      [exercises[exIdx], exercises[newIdx]] = [exercises[newIdx], exercises[exIdx]];
+      return { ...prev, [dayIndex]: { exercises } };
+    });
+  };
+
+  const saveCustomProgram = async () => {
+    if (!user || !builderName.trim()) return;
+    setProgramSaving(true);
+    const program: CustomProgram = {
+      id: editingProgramId || crypto.randomUUID(),
+      name: builderName.trim(),
+      goal: builderGoal,
+      duration: builderDuration,
+      days_per_week: builderDaysPerWeek,
+      days: builderDays,
+      created_at: editingProgramId ? (customPrograms.find(p => p.id === editingProgramId)?.created_at || new Date().toISOString()) : new Date().toISOString(),
+    };
+    const updated = editingProgramId ? customPrograms.map(p => p.id === editingProgramId ? program : p) : [...customPrograms, program];
+    const { error } = await supabase.from("clients").update({ custom_programs: updated }).eq("id", user.id);
+    if (!error) {
+      setCustomPrograms(updated);
+      setShowProgramBuilder(false);
+      resetBuilder();
+      setProgramSaveMsg("Program saved successfully");
+      setTimeout(() => setProgramSaveMsg(""), 5000);
+    }
+    setProgramSaving(false);
+  };
+
+  const deleteCustomProgram = async (id: string) => {
+    if (!user) return;
+    const updated = customPrograms.filter(p => p.id !== id);
+    await supabase.from("clients").update({ custom_programs: updated }).eq("id", user.id);
+    setCustomPrograms(updated);
+  };
+
+  const filteredExercises = exerciseLibrary.filter(ex => {
+    if (exerciseCategoryFilter && ex.category !== exerciseCategoryFilter) return false;
+    if (exerciseSearch && !ex.name.toLowerCase().includes(exerciseSearch.toLowerCase())) return false;
+    return true;
+  });
 
   /* ---------- actions ---------- */
   const handleSaveProfile = async () => {
@@ -1417,6 +1604,297 @@ function AccountPageInner() {
                     </svg>
                     <h3 className="text-base font-semibold text-[#1F2937] mb-1">Education content coming soon</h3>
                     <p className="text-sm text-[#6B7280]">Your coach is preparing courses and daily snippets for you.</p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ============ MY PROGRAMS ============ */}
+            {activeSection === "programs" && (
+              <section className="space-y-6">
+                {programSaveMsg && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-5 py-3">{programSaveMsg}</div>
+                )}
+
+                {/* Coach-assigned programs */}
+                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Coach-assigned Programs</h2>
+                  {programs.length > 0 ? (
+                    <div className="space-y-2">
+                      {programs.map((prog) => (
+                        <div key={`${prog.category_key}-${prog.program_key}`} className="flex items-center justify-between bg-[#ecf0f3] rounded-xl px-5 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-[#1F2937]">{prog.program_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                            <p className="text-xs text-[#6B7280]">{prog.category_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                          </div>
+                          {prog.started_at && (
+                            <span className="text-xs text-[#6B7280]">
+                              Started {new Date(prog.started_at).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
+                      <p className="text-sm text-[#6B7280]">Programs will appear once assigned by your coach</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Custom programs */}
+                {!showProgramBuilder && (
+                  <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-[#1F2937]">My Custom Programs</h2>
+                      <button onClick={() => openBuilder()} className="inline-flex items-center gap-2 px-4 py-2 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                        Create Program
+                      </button>
+                    </div>
+                    {customPrograms.length > 0 ? (
+                      <div className="space-y-3">
+                        {customPrograms.map((cp) => (
+                          <div key={cp.id} className="bg-[#ecf0f3] rounded-xl px-5 py-4 flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-[#1F2937]">{cp.name}</p>
+                              <p className="text-xs text-[#6B7280]">{cp.goal.charAt(0).toUpperCase() + cp.goal.slice(1)} &middot; {cp.duration} weeks &middot; {cp.days_per_week} days/week</p>
+                              <p className="text-xs text-[#9CA3AF] mt-0.5">Created {new Date(cp.created_at).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => openBuilder(cp)} className="p-2 text-[#6B7280] hover:text-[#20c858] transition-colors" title="Edit">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </button>
+                              <button onClick={() => { if (confirm("Delete this program?")) deleteCustomProgram(cp.id); }} className="p-2 text-[#6B7280] hover:text-red-500 transition-colors" title="Delete">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
+                        <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <p className="text-sm text-[#6B7280]">Build your own custom workout program</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Program Builder */}
+                {showProgramBuilder && (
+                  <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-semibold text-[#1F2937]">{editingProgramId ? "Edit Program" : "Create Program"}</h2>
+                      <button onClick={() => { setShowProgramBuilder(false); resetBuilder(); }} className="text-sm text-[#6B7280] hover:text-[#1F2937] transition-colors">Cancel</button>
+                    </div>
+
+                    {/* Step indicators */}
+                    <div className="flex items-center gap-2 mb-8">
+                      {[1, 2, 3].map(s => (
+                        <div key={s} className="flex items-center gap-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${builderStep === s ? "bg-[#20c858] text-white" : builderStep > s ? "bg-[#20c858]/20 text-[#20c858]" : "bg-[#ecf0f3] text-[#9CA3AF]"}`}>{s}</div>
+                          <span className={`text-sm hidden sm:inline ${builderStep === s ? "text-[#1F2937] font-medium" : "text-[#9CA3AF]"}`}>{s === 1 ? "Basics" : s === 2 ? "Workouts" : "Review"}</span>
+                          {s < 3 && <div className={`w-8 h-0.5 ${builderStep > s ? "bg-[#20c858]" : "bg-[#ecf0f3]"}`} />}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Step 1: Basics */}
+                    {builderStep === 1 && (
+                      <div className="space-y-5">
+                        <div>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Program Name</label>
+                          <input type="text" value={builderName} onChange={e => setBuilderName(e.target.value)} placeholder="e.g., Morning Strength Routine"
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Goal</label>
+                          <select value={builderGoal} onChange={e => setBuilderGoal(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none bg-white">
+                            {goalOptions.map(g => <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Duration</label>
+                          <div className="flex gap-2">
+                            {[4, 8, 12].map(w => (
+                              <button key={w} onClick={() => setBuilderDuration(w)}
+                                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${builderDuration === w ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
+                                {w} weeks
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Days per Week</label>
+                          <div className="flex gap-2">
+                            {[3, 4, 5, 6].map(d => (
+                              <button key={d} onClick={() => setBuilderDaysPerWeek(d)}
+                                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${builderDaysPerWeek === d ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
+                                {d} days
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex justify-end pt-2">
+                          <button onClick={() => { if (builderName.trim()) setBuilderStep(2); }} disabled={!builderName.trim()}
+                            className="px-6 py-2.5 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 2: Build Workouts */}
+                    {builderStep === 2 && (
+                      <div>
+                        {/* Day tabs */}
+                        <div className="flex gap-2 mb-5 flex-wrap">
+                          {getSelectedDayIndices(builderDaysPerWeek).map((dayIdx) => (
+                            <button key={dayIdx} onClick={() => { setBuilderActiveDay(dayIdx); setShowExercisePicker(false); }}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${builderActiveDay === dayIdx ? "bg-[#20c858] text-white" : "bg-[#ecf0f3] text-[#6B7280] hover:bg-gray-200"}`}>
+                              {dayLabels[dayIdx]}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Current day exercises */}
+                        <div className="space-y-3 mb-4">
+                          {(builderDays[builderActiveDay]?.exercises || []).map((ex, exIdx) => (
+                            <div key={exIdx} className="bg-[#ecf0f3] rounded-xl px-4 py-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-sm font-medium text-[#1F2937]">{ex.exercise_name}</p>
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => moveExercise(builderActiveDay, exIdx, -1)} disabled={exIdx === 0} className="p-1 text-[#9CA3AF] hover:text-[#1F2937] disabled:opacity-30">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                                  </button>
+                                  <button onClick={() => moveExercise(builderActiveDay, exIdx, 1)} disabled={exIdx === (builderDays[builderActiveDay]?.exercises.length || 0) - 1} className="p-1 text-[#9CA3AF] hover:text-[#1F2937] disabled:opacity-30">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                  </button>
+                                  <button onClick={() => removeExerciseFromDay(builderActiveDay, exIdx)} className="p-1 text-[#9CA3AF] hover:text-red-500">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">Sets</label>
+                                  <input type="number" min={1} max={20} value={ex.sets} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "sets", parseInt(e.target.value) || 1)}
+                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">Reps</label>
+                                  <input type="text" value={ex.reps} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "reps", e.target.value)}
+                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" placeholder="8-12" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">Rest</label>
+                                  <input type="text" value={ex.rest} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "rest", e.target.value)}
+                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" placeholder="60s" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {(!builderDays[builderActiveDay] || builderDays[builderActiveDay].exercises.length === 0) && (
+                            <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
+                              <p className="text-sm text-[#9CA3AF]">No exercises added for {dayLabels[builderActiveDay]}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Add exercise button / picker */}
+                        {!showExercisePicker ? (
+                          <button onClick={() => setShowExercisePicker(true)}
+                            className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-[#6B7280] hover:border-[#20c858] hover:text-[#20c858] transition-colors">
+                            + Add Exercise
+                          </button>
+                        ) : (
+                          <div className="border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="p-3 bg-gray-50 border-b border-gray-200">
+                              <input type="text" value={exerciseSearch} onChange={e => setExerciseSearch(e.target.value)} placeholder="Search exercises..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#20c858] focus:border-transparent outline-none" autoFocus />
+                              <div className="flex gap-1.5 mt-2 flex-wrap">
+                                <button onClick={() => setExerciseCategoryFilter("")}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!exerciseCategoryFilter ? "bg-[#1F2937] text-white" : "bg-[#ecf0f3] text-[#6B7280]"}`}>All</button>
+                                {Object.keys(categoryColors).map(cat => (
+                                  <button key={cat} onClick={() => setExerciseCategoryFilter(cat)}
+                                    className="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+                                    style={{ backgroundColor: exerciseCategoryFilter === cat ? categoryColors[cat] : "#ecf0f3", color: exerciseCategoryFilter === cat ? "white" : categoryColors[cat] }}>
+                                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                              {filteredExercises.length > 0 ? filteredExercises.map(ex => (
+                                <button key={ex.id} onClick={() => addExerciseToDay(builderActiveDay, ex)}
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: categoryColors[ex.category] || "#6B7280" }} />
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium text-[#1F2937] truncate">{ex.name}</p>
+                                    <p className="text-xs text-[#9CA3AF]">{ex.category.charAt(0).toUpperCase() + ex.category.slice(1)}{ex.equipment ? ` \u00b7 ${ex.equipment}` : ""}</p>
+                                  </div>
+                                </button>
+                              )) : (
+                                <p className="px-4 py-6 text-sm text-[#9CA3AF] text-center">No exercises found</p>
+                              )}
+                            </div>
+                            <div className="p-2 border-t border-gray-200 bg-gray-50">
+                              <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(""); setExerciseCategoryFilter(""); }}
+                                className="w-full py-1.5 text-sm text-[#6B7280] hover:text-[#1F2937] transition-colors">Close</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Navigation */}
+                        <div className="flex justify-between mt-6 pt-4 border-t border-gray-100">
+                          <button onClick={() => setBuilderStep(1)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">Back</button>
+                          <button onClick={() => setBuilderStep(3)} className="px-6 py-2.5 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors">Review</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Review & Save */}
+                    {builderStep === 3 && (
+                      <div>
+                        <div className="bg-[#ecf0f3] rounded-xl p-5 mb-5">
+                          <h3 className="text-base font-semibold text-[#1F2937] mb-1">{builderName}</h3>
+                          <p className="text-sm text-[#6B7280]">{builderGoal.charAt(0).toUpperCase() + builderGoal.slice(1)} &middot; {builderDuration} weeks &middot; {builderDaysPerWeek} days/week</p>
+                        </div>
+
+                        <div className="space-y-4 mb-6">
+                          {getSelectedDayIndices(builderDaysPerWeek).map(dayIdx => (
+                            <div key={dayIdx}>
+                              <h4 className="text-sm font-semibold text-[#374151] mb-2">{dayLabels[dayIdx]}</h4>
+                              {(builderDays[dayIdx]?.exercises || []).length > 0 ? (
+                                <div className="space-y-1.5">
+                                  {builderDays[dayIdx].exercises.map((ex, i) => (
+                                    <div key={i} className="flex items-center justify-between bg-[#ecf0f3] rounded-lg px-4 py-2">
+                                      <span className="text-sm text-[#1F2937]">{ex.exercise_name}</span>
+                                      <span className="text-xs text-[#6B7280]">{ex.sets} x {ex.reps} &middot; {ex.rest} rest</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-[#9CA3AF] italic">No exercises</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex justify-between pt-4 border-t border-gray-100">
+                          <button onClick={() => setBuilderStep(2)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">Back</button>
+                          <button onClick={saveCustomProgram} disabled={programSaving}
+                            className="px-6 py-2.5 bg-[#20c858] text-white text-sm font-medium rounded-lg hover:bg-[#1ab34d] transition-colors disabled:opacity-50 flex items-center gap-2">
+                            {programSaving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                            {programSaving ? "Saving..." : "Save Program"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </section>
