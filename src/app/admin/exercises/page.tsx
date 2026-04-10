@@ -106,6 +106,79 @@ const EXERCISE_IMAGES: Record<string, string> = {
   "Burpees": `${IMG_BASE}Burpee/0.jpg`,
   "Jumping Jacks": `${IMG_BASE}Jumping_Jack/0.jpg`,
   "High Knees": `${IMG_BASE}High_Knees/0.jpg`,
+  // Chest
+  "Incline Barbell Bench Press": `${IMG_BASE}Incline_Barbell_Bench_Press/0.jpg`,
+  "Decline Push-Up": `${IMG_BASE}Decline_Push-Up/0.jpg`,
+  "Cable Chest Fly": `${IMG_BASE}Butterfly/0.jpg`,
+  "Machine Chest Press": `${IMG_BASE}Machine_Bench_Press/0.jpg`,
+  "Svend Press": `${IMG_BASE}Svend_Press/0.jpg`,
+  "Landmine Press": `${IMG_BASE}Landmine_Press/0.jpg`,
+  // Back
+  "Hyperextension": `${IMG_BASE}Hyperextensions_(Back_Extensions)/0.jpg`,
+  "Inverted Row": `${IMG_BASE}Inverted_Row/0.jpg`,
+  "Dumbbell Single-Arm Row": `${IMG_BASE}One-Arm_Dumbbell_Row/0.jpg`,
+  "Straight-Arm Pulldown": `${IMG_BASE}Straight-Arm_Pulldown/0.jpg`,
+  "Pendlay Row": `${IMG_BASE}Pendlay_Row/0.jpg`,
+  "Meadows Row": `${IMG_BASE}One-Arm_Dumbbell_Row/0.jpg`,
+  "Rack Pull": `${IMG_BASE}Rack_Pulls/0.jpg`,
+  "Dumbbell Pullover": `${IMG_BASE}Dumbbell_Pullover/0.jpg`,
+  // Shoulders
+  "Cable Lateral Raise": `${IMG_BASE}Cable_Lateral_Raise/0.jpg`,
+  "Rear Delt Fly": `${IMG_BASE}Seated_Bent-Over_Rear_Delt_Raise/0.jpg`,
+  "Dumbbell Shrugs": `${IMG_BASE}Dumbbell_Shrug/0.jpg`,
+  "Machine Shoulder Press": `${IMG_BASE}Machine_Shoulder_(Military)_Press/0.jpg`,
+  "Reverse Pec Deck": `${IMG_BASE}Rear_Delt_Machine_Flyes/0.jpg`,
+  "Handstand Push-Up": `${IMG_BASE}Handstand_Push-Ups/0.jpg`,
+  // Arms
+  "Concentration Curl": `${IMG_BASE}Concentration_Curls/0.jpg`,
+  "Cable Overhead Tricep Extension": `${IMG_BASE}Cable_Overhead_Tricep_Extension/0.jpg`,
+  "Close-Grip Bench Press": `${IMG_BASE}Close-Grip_Barbell_Bench_Press/0.jpg`,
+  "Wrist Curl": `${IMG_BASE}Palms-Down_Wrist_Curl_Over_A_Bench/0.jpg`,
+  "Reverse Curl": `${IMG_BASE}Reverse_Barbell_Curl/0.jpg`,
+  // Legs
+  "Lateral Lunge": `${IMG_BASE}Side_Lunge/0.jpg`,
+  "Seated Calf Raise": `${IMG_BASE}Seated_Calf_Raise/0.jpg`,
+  "Bulgarian Split Squat": `${IMG_BASE}Bulgarian_Split_Squat/0.jpg`,
+  "Hack Squat": `${IMG_BASE}Hack_Squat/0.jpg`,
+  // Core
+  "Lying Leg Raise": `${IMG_BASE}Flat_Bench_Lying_Leg_Raise/0.jpg`,
+  "Cable Woodchop": `${IMG_BASE}Cable_Woodchop/0.jpg`,
+  "Hollow Hold": `${IMG_BASE}Hollow_Hold/0.jpg`,
+  "Pallof Press": `${IMG_BASE}Pallof_Press/0.jpg`,
+  // Cardio
+  "Running": `${IMG_BASE}Jogging-Treadmill/0.jpg`,
+  "Cycling": `${IMG_BASE}Stationary_Bike/0.jpg`,
+  "Rowing Machine": `${IMG_BASE}Rowing,_Stationary/0.jpg`,
+  "Stair Climbing": `${IMG_BASE}Stairmaster/0.jpg`,
+  "Swimming": `${IMG_BASE}Swimming/0.jpg`,
+  "HIIT Intervals": `${IMG_BASE}Burpee/0.jpg`,
+  "Elliptical Trainer": `${IMG_BASE}Elliptical_Trainer/0.jpg`,
+  // Flexibility
+  "Standing Hamstring Stretch": `${IMG_BASE}Standing_Hamstrings/0.jpg`,
+  "Standing Quad Stretch": `${IMG_BASE}Quad_Stretch/0.jpg`,
+  "Hip Flexor Stretch (Kneeling Lunge)": `${IMG_BASE}Kneeling_Hip_Flexor/0.jpg`,
+  "Cat-Cow Stretch": `${IMG_BASE}Cat_Stretch/0.jpg`,
+  "Child's Pose": `${IMG_BASE}Child's_Pose/0.jpg`,
+  "Pigeon Pose": `${IMG_BASE}Pigeon_Stretch/0.jpg`,
+  "Downward Dog": `${IMG_BASE}Downward_Facing_Dog/0.jpg`,
+  "Cobra Stretch": `${IMG_BASE}Cobra/0.jpg`,
+  "Cross-Body Shoulder Stretch": `${IMG_BASE}Cross-Body_Crunch/0.jpg`,
+  "Foam Rolling (Full Body)": `${IMG_BASE}Foam_Rolling/0.jpg`,
+  "Seated Forward Fold": `${IMG_BASE}Seated_Floor_Hamstring_Stretch/0.jpg`,
+  "Thoracic Spine Rotation": `${IMG_BASE}Thoracic_Rotation/0.jpg`,
+  // Full-Body
+  "Clean and Press": `${IMG_BASE}Clean_and_Press/0.jpg`,
+  "Thrusters": `${IMG_BASE}Thrusters/0.jpg`,
+  "Turkish Get-Up": `${IMG_BASE}Kettlebell_Turkish_Get-Up_(Squat_style)/0.jpg`,
+  "Man Maker": `${IMG_BASE}Renegade_Row/0.jpg`,
+  "Bear Crawl": `${IMG_BASE}Bear_Crawl/0.jpg`,
+  "Kettlebell Swing": `${IMG_BASE}Kettlebell_Sumo_Deadlift_High_Pull/0.jpg`,
+  "Battle Ropes": `${IMG_BASE}Battling_Ropes/0.jpg`,
+  "Box Jump": `${IMG_BASE}Box_Jump_(Multiple_Response)/0.jpg`,
+  "Wall Ball": `${IMG_BASE}Wall_Ball/0.jpg`,
+  "Sled Push": `${IMG_BASE}Sled_Push/0.jpg`,
+  "Farmers Walk": `${IMG_BASE}Farmer's_Walk/0.jpg`,
+  "Snatch (Barbell)": `${IMG_BASE}Snatch/0.jpg`,
 };
 
 // ── Seed Data ──────────────────────────────────────────────────────────────────
@@ -401,11 +474,18 @@ export default function ExercisesPage() {
       if (progError) { setToast({ message: "Failed to create program: " + progError.message, type: "error" }); setCreatingProgram(false); return; }
 
       // Insert action_exercises for each selected exercise
-      const actionExercises = Array.from(selectedIds).map((exerciseId) => ({
+      const selectedExercises = exercises.filter(e => selectedIds.has(e.id));
+      const actionExercises = selectedExercises.map((ex, idx) => ({
+        action_key: `${key}-workout`,
         program_key: key,
-        exercise_id: exerciseId,
+        week_range: 0,
+        day_of_week: 0,
+        exercise_id: ex.id,
+        exercise_name: ex.name,
         sets: 3,
-        reps: 10,
+        reps: "10",
+        rest: "60s",
+        sort_order: idx,
       }));
       const { error: aeError } = await supabase.from("action_exercises").insert(actionExercises);
       if (aeError) { setToast({ message: "Program created but failed to link exercises: " + aeError.message, type: "error" }); }
