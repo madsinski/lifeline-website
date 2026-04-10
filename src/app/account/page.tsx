@@ -204,6 +204,7 @@ function AccountPageInner() {
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [programSaving, setProgramSaving] = useState(false);
   const [programSaveMsg, setProgramSaveMsg] = useState("");
+  const [viewingExercise, setViewingExercise] = useState<ExerciseRow | null>(null);
 
   /* ---------- auth check + load data ---------- */
   useEffect(() => {
@@ -1856,8 +1857,18 @@ function AccountPageInner() {
                           {(builderDays[builderActiveDay]?.exercises || []).map((ex, exIdx) => (
                             <div key={exIdx} className="bg-[#ecf0f3] rounded-xl px-4 py-3">
                               <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  {(() => { const img = exerciseLibrary.find(e => e.name === ex.exercise_name)?.illustration_url; return img ? <img src={img} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" /> : null; })()}
+                                <div className="flex items-center gap-3">
+                                  {(() => {
+                                    const match = exerciseLibrary.find(e => e.name === ex.exercise_name);
+                                    const img = match?.illustration_url;
+                                    return img ? (
+                                      <button onClick={() => match && setViewingExercise(match)} className="flex-shrink-0">
+                                        <img src={img} alt="" className="w-16 h-16 rounded-xl object-cover border border-gray-200 hover:border-[#20c858] transition-colors" />
+                                      </button>
+                                    ) : (
+                                      <span className="w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl bg-gray-100">🏋️</span>
+                                    );
+                                  })()}
                                   <p className="text-sm font-medium text-[#1F2937]">{ex.exercise_name}</p>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -1923,18 +1934,32 @@ function AccountPageInner() {
                             </div>
                             <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
                               {filteredExercises.length > 0 ? filteredExercises.map(ex => (
-                                <button key={ex.id} onClick={() => addExerciseToDay(builderActiveDay, ex)}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3">
-                                  {ex.illustration_url ? (
-                                    <img src={ex.illustration_url} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
-                                  ) : (
-                                    <span className="w-14 h-14 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl" style={{ backgroundColor: (categoryColors[ex.category] || "#6B7280") + "15" }}>🏋️</span>
-                                  )}
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-medium text-[#1F2937] truncate">{ex.name}</p>
-                                    <p className="text-xs text-[#9CA3AF]">{ex.category.charAt(0).toUpperCase() + ex.category.slice(1)}{ex.equipment ? ` \u00b7 ${ex.equipment}` : ""}</p>
+                                <div key={ex.id} className="px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100">
+                                  <div className="flex items-start gap-3">
+                                    {ex.illustration_url ? (
+                                      <button onClick={() => setViewingExercise(ex)} className="flex-shrink-0">
+                                        <img src={ex.illustration_url} alt="" className="w-20 h-20 rounded-xl object-cover border border-gray-200 hover:border-[#20c858] transition-colors" />
+                                      </button>
+                                    ) : (
+                                      <span className="w-20 h-20 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl border border-gray-200" style={{ backgroundColor: (categoryColors[ex.category] || "#6B7280") + "10" }}>🏋️</span>
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-semibold text-[#1F2937]">{ex.name}</p>
+                                      <p className="text-xs text-[#9CA3AF] mt-0.5">{ex.category.charAt(0).toUpperCase() + ex.category.slice(1)} · {ex.equipment || "bodyweight"} · {ex.difficulty || "beginner"}</p>
+                                      {ex.muscles_targeted && ex.muscles_targeted.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {ex.muscles_targeted.slice(0, 3).map(m => (
+                                            <span key={m} className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">{m}</span>
+                                          ))}
+                                        </div>
+                                      )}
+                                      <button onClick={() => addExerciseToDay(builderActiveDay, ex)}
+                                        className="mt-2 px-3 py-1 text-xs font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34d] transition-colors">
+                                        + Add to workout
+                                      </button>
+                                    </div>
                                   </div>
-                                </button>
+                                </div>
                               )) : (
                                 <p className="px-4 py-6 text-sm text-[#9CA3AF] text-center">No exercises found</p>
                               )}
@@ -1992,6 +2017,53 @@ function AccountPageInner() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Exercise detail modal */}
+                {viewingExercise && (
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingExercise(null)}>
+                    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                      {viewingExercise.illustration_url && (
+                        <img src={viewingExercise.illustration_url} alt="" className="w-full h-64 object-cover rounded-t-2xl" />
+                      )}
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-[#1F2937] mb-2">{viewingExercise.name}</h3>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <span className="px-3 py-1 text-xs font-medium rounded-full text-white" style={{ backgroundColor: categoryColors[viewingExercise.category] || "#6B7280" }}>{viewingExercise.category}</span>
+                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">{viewingExercise.equipment}</span>
+                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700">{viewingExercise.difficulty}</span>
+                        </div>
+                        {viewingExercise.description && <p className="text-sm text-[#4B5563] mb-4 leading-relaxed">{viewingExercise.description}</p>}
+                        {viewingExercise.muscles_targeted && viewingExercise.muscles_targeted.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-[#6B7280] mb-2">Muscles targeted</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {viewingExercise.muscles_targeted.map(m => <span key={m} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">{m}</span>)}
+                            </div>
+                          </div>
+                        )}
+                        {viewingExercise.instructions && viewingExercise.instructions.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-[#6B7280] mb-2">How to perform</p>
+                            <div className="space-y-2">
+                              {viewingExercise.instructions.map((step, i) => (
+                                <div key={i} className="flex gap-3">
+                                  <span className="w-5 h-5 rounded-full bg-[#20c858] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                                  <p className="text-sm text-[#374151] leading-relaxed">{step}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex gap-3 pt-3 border-t border-gray-100">
+                          <button onClick={() => { addExerciseToDay(builderActiveDay, viewingExercise); setViewingExercise(null); }}
+                            className="flex-1 py-2.5 text-sm font-medium text-white bg-[#20c858] rounded-lg hover:bg-[#1ab34d] transition-colors">+ Add to workout</button>
+                          <button onClick={() => setViewingExercise(null)}
+                            className="px-4 py-2.5 text-sm font-medium text-[#6B7280] bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Close</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </section>
