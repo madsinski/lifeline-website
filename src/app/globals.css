@@ -188,7 +188,7 @@ select:focus-visible {
 /* Newsletter input */
 .newsletter-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(32, 200, 88, 0.15);
 }
 
 /* Back to top button */

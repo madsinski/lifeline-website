@@ -247,7 +247,7 @@ export default function Navbar() {
               <Link
                 href="/coaching#download"
                 onClick={() => setMobileOpen(false)}
-                className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-xl hover:bg-[#0D9488] hover:text-white transition-all duration-200"
+                className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200"
               >
                 Download App
               </Link>

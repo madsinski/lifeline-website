@@ -748,7 +748,7 @@ function AccountPageInner() {
           </div>
           <button
             onClick={handleSignOut}
-            className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-xl hover:bg-red-50 hover:border-red-300 transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-full hover:bg-red-50 hover:border-red-300 transition-all"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -1087,7 +1087,7 @@ function AccountPageInner() {
                       Open the Lifeline app to view and reply to your messages.
                     </p>
                     <Link href="/coaching#download"
-                      className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-xl hover:bg-[#0B7B73] transition-colors">
+                      className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
@@ -1158,7 +1158,7 @@ function AccountPageInner() {
                     <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
                       <p className="text-sm text-[#6B7280] mb-3">You don&apos;t have an active subscription.</p>
                       <button onClick={() => setShowChangePlan(true)}
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-xl hover:bg-[#0B7B73] transition-colors">
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors">
                         Choose a plan
                       </button>
                     </div>
@@ -1378,7 +1378,7 @@ function AccountPageInner() {
                       </p>
                     </div>
                     <Link href="/assessment"
-                      className="inline-flex items-center justify-center px-6 py-3 bg-[#0D9488] text-white text-sm font-semibold rounded-xl hover:bg-[#0B7B73] transition-colors shrink-0">
+                      className="inline-flex items-center justify-center px-6 py-3 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors shrink-0">
                       Book Assessment
                     </Link>
                   </div>
@@ -1417,7 +1417,7 @@ function AccountPageInner() {
                         Complete your first assessment to see results here
                       </p>
                       <Link href="/assessment"
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-xl hover:bg-[#0B7B73] transition-colors">
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-colors">
                         Book Assessment
                       </Link>
                     </div>

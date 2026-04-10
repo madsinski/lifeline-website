@@ -549,7 +549,7 @@ export default function ExercisesPage() {
           </button>
           {selectedIds.size > 0 && (
             <>
-              <button onClick={() => { setShowCreateProgram(true); setProgramForm({ name: "", description: "", level: "beginner", duration: 8, category: "exercise" }); }} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors flex items-center gap-2">
+              <button onClick={() => { setShowCreateProgram(true); setProgramForm({ name: "", description: "", level: "beginner", duration: 8, category: "exercise" }); }} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                 Create Program ({selectedIds.size})
               </button>
@@ -559,7 +559,7 @@ export default function ExercisesPage() {
               </button>
             </>
           )}
-          <button onClick={openCreate} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors flex items-center gap-2">
+          <button onClick={openCreate} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Add Exercise
           </button>
@@ -753,7 +753,7 @@ export default function ExercisesPage() {
 
               {/* Action buttons */}
               <div className="flex gap-3 pt-3 border-t border-gray-100">
-                <button onClick={() => { setEditingExercise({ ...viewingExercise }); setIsCreating(false); setViewingExercise(null); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors flex items-center justify-center gap-2">
+                <button onClick={() => { setEditingExercise({ ...viewingExercise }); setIsCreating(false); setViewingExercise(null); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center justify-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   Edit
                 </button>
@@ -841,7 +841,7 @@ export default function ExercisesPage() {
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
               <button onClick={() => setShowCreateProgram(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
-              <button onClick={createProgram} disabled={creatingProgram} className="px-5 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50 flex items-center gap-2">
+              <button onClick={createProgram} disabled={creatingProgram} className="px-5 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors disabled:opacity-50 flex items-center gap-2">
                 {creatingProgram && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 {creatingProgram ? "Creating..." : "Create Program"}
               </button>
@@ -987,7 +987,7 @@ export default function ExercisesPage() {
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
               <button onClick={() => { setEditingExercise(null); setIsCreating(false); }} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
-              <button onClick={saveExercise} className="px-5 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0B7B73] transition-colors">
+              <button onClick={saveExercise} className="px-5 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors">
                 {isCreating ? "Create Exercise" : "Save Changes"}
               </button>
             </div>

@@ -78,7 +78,7 @@ export default function ConfirmPage() {
             </p>
             <a
               href="lifelinehealth://auth?confirmed=true"
-              className="inline-block bg-[#0D9488] hover:bg-[#0B7B73] text-white font-semibold rounded-xl px-8 py-3 transition-colors text-sm"
+              className="inline-block bg-[#0D9488] hover:bg-[#1ab34e] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
             >
               Open Lifeline Health
             </a>
@@ -115,7 +115,7 @@ export default function ConfirmPage() {
             </p>
             <a
               href="lifelinehealth://auth"
-              className="inline-block bg-[#0D9488] hover:bg-[#0B7B73] text-white font-semibold rounded-xl px-8 py-3 transition-colors text-sm"
+              className="inline-block bg-[#0D9488] hover:bg-[#1ab34e] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
             >
               Open Lifeline Health
             </a>
