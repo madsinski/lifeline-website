@@ -1029,6 +1029,15 @@ export default function ProgramsCMSPage() {
             >
               Templates {programTemplates.length > 0 ? `(${programTemplates.length})` : ""}
             </button>
+            <a
+              href="/admin/exercises"
+              className="px-4 py-2 bg-white border border-blue-400 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors inline-flex items-center gap-1.5"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h2m4 0h10M5 12a2 2 0 11-4 0 2 2 0 014 0zm16 0a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Exercise Library
+            </a>
             <button
               onClick={handleExport}
               className="px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
