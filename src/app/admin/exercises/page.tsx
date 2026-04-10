@@ -356,6 +356,9 @@ export default function ExercisesPage() {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <input type="checkbox" checked={selectedIds.has(ex.id)} onChange={() => toggleSelect(ex.id)} className="mt-1 w-4 h-4 rounded border-gray-300 text-[#20c858] focus:ring-[#20c858] cursor-pointer" onClick={(e) => e.stopPropagation()} />
+                  {ex.illustration_url && (
+                    <img src={ex.illustration_url} alt={ex.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                  )}
                   <div className="min-w-0 flex-1" onClick={() => { setEditingExercise({ ...ex }); setIsCreating(false); }}>
                     <h3 className="font-semibold text-gray-900 truncate">{ex.name}</h3>
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{ex.description}</p>

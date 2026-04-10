@@ -1766,7 +1766,10 @@ function AccountPageInner() {
                           {(builderDays[builderActiveDay]?.exercises || []).map((ex, exIdx) => (
                             <div key={exIdx} className="bg-[#ecf0f3] rounded-xl px-4 py-3">
                               <div className="flex items-center justify-between mb-2">
-                                <p className="text-sm font-medium text-[#1F2937]">{ex.exercise_name}</p>
+                                <div className="flex items-center gap-2">
+                                  {(() => { const img = exerciseLib.find(e => e.name === ex.exercise_name)?.illustration_url; return img ? <img src={img} alt="" className="w-8 h-8 rounded object-cover" /> : null; })()}
+                                  <p className="text-sm font-medium text-[#1F2937]">{ex.exercise_name}</p>
+                                </div>
                                 <div className="flex items-center gap-1">
                                   <button onClick={() => moveExercise(builderActiveDay, exIdx, -1)} disabled={exIdx === 0} className="p-1 text-[#9CA3AF] hover:text-[#1F2937] disabled:opacity-30">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
@@ -1832,7 +1835,11 @@ function AccountPageInner() {
                               {filteredExercises.length > 0 ? filteredExercises.map(ex => (
                                 <button key={ex.id} onClick={() => addExerciseToDay(builderActiveDay, ex)}
                                   className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3">
-                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: categoryColors[ex.category] || "#6B7280" }} />
+                                  {ex.illustration_url ? (
+                                    <img src={ex.illustration_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                  ) : (
+                                    <span className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-lg" style={{ backgroundColor: (categoryColors[ex.category] || "#6B7280") + "15" }}>🏋️</span>
+                                  )}
                                   <div className="min-w-0">
                                     <p className="text-sm font-medium text-[#1F2937] truncate">{ex.name}</p>
                                     <p className="text-xs text-[#9CA3AF]">{ex.category.charAt(0).toUpperCase() + ex.category.slice(1)}{ex.equipment ? ` \u00b7 ${ex.equipment}` : ""}</p>

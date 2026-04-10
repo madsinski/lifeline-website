@@ -1735,6 +1735,7 @@ export default function ProgramsCMSPage() {
                                                     {exercises.map((ex, ei) => (
                                                       <div key={ex.exercise_id + "-" + ei} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                                                         <span className="text-xs text-gray-400 font-medium w-4">{ei + 1}</span>
+                                                        {(() => { const img = exerciseLibrary.find(e => e.name === ex.exercise_name)?.illustration_url; return img ? <img src={img} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : null; })()}
                                                         <div className="flex-1 min-w-0">
                                                           <span className="text-sm font-medium text-gray-800">{ex.exercise_name}</span>
                                                           <span className="text-xs text-gray-400 ml-2">
