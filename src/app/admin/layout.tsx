@@ -44,6 +44,15 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/exercises",
+    label: "Exercises",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h2m4 0h10M5 12a2 2 0 11-4 0 2 2 0 014 0zm16 0a2 2 0 11-4 0 2 2 0 014 0zM9 12a1 1 0 11-2 0 1 1 0 012 0zm8 0a1 1 0 11-2 0 1 1 0 012 0z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/education",
     label: "Education",
     icon: (
@@ -300,7 +309,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Nav Links */}
         <nav className="flex-1 py-4 space-y-1 px-2">
           {(coachingView
-            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/education", "/admin/messages", "/admin/calendar", "/admin/feedback"].includes(l.href))
+            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/exercises", "/admin/education", "/admin/messages", "/admin/calendar", "/admin/feedback"].includes(l.href))
             : sidebarLinks
           ).filter((link) => {
             // Permission-based filtering
@@ -308,6 +317,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !isAdmin) return false;
             if (link.href === "/admin/messages" && !userPermissions.includes("send_messages") && !isAdmin) return false;
             if (link.href === "/admin/programs" && !userPermissions.includes("manage_programs") && !isAdmin) return false;
+            if (link.href === "/admin/exercises" && !userPermissions.includes("manage_programs") && !isAdmin) return false;
             return true;
           }).map((link) => {
             const isActive =
