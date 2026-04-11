@@ -1597,6 +1597,15 @@ export default function ProgramsCMSPage() {
               </svg>
               Exercise Library
             </a>
+            <a
+              href="/admin/meals"
+              className="px-4 py-2 bg-white border border-emerald-400 text-emerald-600 text-sm font-medium rounded-lg hover:bg-emerald-50 transition-colors inline-flex items-center gap-1.5"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h18M5 3v18m14-18v18M9 7h6M9 11h6M9 15h6" />
+              </svg>
+              Meals Library
+            </a>
             <button
               onClick={handleExport}
               className="px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
