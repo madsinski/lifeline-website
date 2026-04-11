@@ -234,9 +234,18 @@ export default function ProgramsCMSPage() {
   // Program analytics: active client counts keyed by program_key
   const [programClientCounts, setProgramClientCounts] = useState<Record<string, number>>({});
 
-  // Share modal state
+  // Share modal state (assigns global program directly)
   const [showShareModal, setShowShareModal] = useState<Program | null>(null);
   const [shareSearch, setShareSearch] = useState("");
+
+  // Customize modal state (clones program into client_custom_programs)
+  const [showCustomizeModal, setShowCustomizeModal] = useState<Program | null>(null);
+  const [customizeSearch, setCustomizeSearch] = useState("");
+  const [customizeClients, setCustomizeClients] = useState<Array<{ id: string; full_name: string; email: string }>>([]);
+  const [customizeSelected, setCustomizeSelected] = useState<Set<string>>(new Set());
+  const [customizeLoading, setCustomizeLoading] = useState(false);
+  const [customizeSaving, setCustomizeSaving] = useState(false);
+  const [customizeName, setCustomizeName] = useState("");
   const [shareClients, setShareClients] = useState<Array<{ id: string; full_name: string; email: string; current_program_key: string | null }>>([]);
   const [shareAssigned, setShareAssigned] = useState<Set<string>>(new Set());
   const [shareLoading, setShareLoading] = useState(false);
@@ -381,6 +390,108 @@ export default function ProgramsCMSPage() {
     }
     setShareLoading(false);
   }, [shareClients, shareAssigned, loadProgramClientCounts]);
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Customize for clients: clone a program into client_custom_programs (one
+  // row per selected client). The clone is a per-client copy that the coach
+  // can later edit without touching the global program.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Convert the program's weeks/days/actions matrix into the flat array
+  // format used by client_custom_programs.actions (jsonb).
+  const flattenWeeksToActions = useCallback((weeks: WeekContent[]): Array<Record<string, unknown>> => {
+    const out: Array<Record<string, unknown>> = [];
+    weeks.forEach((week, wi) => {
+      week.days.forEach((day) => {
+        day.actions.forEach((action, ai) => {
+          out.push({
+            id: action.id,
+            week_range: wi,
+            day_of_week: day.day,
+            time_group: action.timeGroup,
+            sort_order: ai,
+            label: action.label,
+            details: action.details,
+            priority: action.priority,
+            image_url: action.imageUrl || null,
+            video_url: action.videoUrl || null,
+          });
+        });
+      });
+    });
+    return out;
+  }, []);
+
+  const loadCustomizeClients = useCallback(async (search: string) => {
+    setCustomizeLoading(true);
+    try {
+      let query = supabase
+        .from("clients")
+        .select("id, full_name, email")
+        .order("full_name", { ascending: true })
+        .limit(50);
+      if (search.trim()) {
+        query = query.or(`full_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%`);
+      }
+      const { data } = await query;
+      if (data) {
+        setCustomizeClients(data.map((c: Record<string, string>) => ({
+          id: c.id,
+          full_name: c.full_name || "Unknown",
+          email: c.email || "",
+        })));
+      }
+    } catch {
+      // ignore
+    }
+    setCustomizeLoading(false);
+  }, []);
+
+  const openCustomizeModal = useCallback((program: Program) => {
+    setShowCustomizeModal(program);
+    setCustomizeSearch("");
+    setCustomizeClients([]);
+    setCustomizeSelected(new Set());
+    setCustomizeName(`${program.name} (custom)`);
+    loadCustomizeClients("");
+  }, [loadCustomizeClients]);
+
+  const customizeProgramForClients = useCallback(async () => {
+    if (!showCustomizeModal || customizeSelected.size === 0) return;
+    setCustomizeSaving(true);
+    try {
+      const program = showCustomizeModal;
+      const flatActions = flattenWeeksToActions(program.weeks);
+      const rows = Array.from(customizeSelected).map((clientId) => ({
+        client_id: clientId,
+        category_key: activeTab,
+        program_name: customizeName.trim() || `${program.name} (custom)`,
+        description: program.description || "",
+        tagline: program.tagline || null,
+        target_audience: program.targetAudience || null,
+        level: program.level || null,
+        exercise_type: program.exerciseType || null,
+        structured_phases: program.structuredPhases.length > 0 ? JSON.stringify(program.structuredPhases) : null,
+        duration: program.duration,
+        actions: flatActions,
+        shared: true,
+        created_from_program: program.id,
+      }));
+      const { error } = await supabase.from("client_custom_programs").insert(rows);
+      if (error) {
+        setToast({ message: `Failed to clone: ${error.message}`, type: "error" });
+      } else {
+        setToast({
+          message: `Customized for ${customizeSelected.size} client${customizeSelected.size > 1 ? "s" : ""}`,
+          type: "success",
+        });
+        setShowCustomizeModal(null);
+      }
+    } catch (e) {
+      setToast({ message: `Error: ${(e as Error).message}`, type: "error" });
+    }
+    setCustomizeSaving(false);
+  }, [showCustomizeModal, customizeSelected, customizeName, activeTab, flattenWeeksToActions]);
 
   const exerciseCategoryColors: Record<string, string> = {
     chest: "#EF4444", back: "#3B82F6", shoulders: "#F59E0B", arms: "#8B5CF6",
@@ -1429,6 +1540,15 @@ export default function ProgramsCMSPage() {
                       </svg>
                     </button>
                     <button
+                      onClick={() => openCustomizeModal(program)}
+                      className="p-2 text-gray-400 hover:text-[#0D9488] rounded-lg hover:bg-[#0D9488]/5 transition-colors"
+                      title="Customize for clients (clone & edit per client)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
                       onClick={() => {
                         setShowShareModal(program);
                         setShareSearch("");
@@ -1437,7 +1557,7 @@ export default function ProgramsCMSPage() {
                         loadShareClients(program.id, activeTab, "");
                       }}
                       className="p-2 text-gray-400 hover:text-[#0D9488] rounded-lg hover:bg-[#0D9488]/5 transition-colors"
-                      title="Share with client"
+                      title="Assign global program to clients (no customization)"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -2474,6 +2594,116 @@ export default function ProgramsCMSPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Customize for clients modal — clones the program into client_custom_programs */}
+      {showCustomizeModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !customizeSaving && setShowCustomizeModal(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-5 pt-5 pb-3 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Customize for clients</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Clone <strong>{showCustomizeModal.name}</strong> for one or more clients. You&apos;ll be able to edit each clone separately.</p>
+                </div>
+                <button onClick={() => !customizeSaving && setShowCustomizeModal(null)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              {/* Custom name */}
+              <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Program name</label>
+              <input
+                type="text"
+                value={customizeName}
+                onChange={(e) => setCustomizeName(e.target.value)}
+                placeholder={`${showCustomizeModal.name} (custom)`}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] outline-none mb-3"
+              />
+              {/* Search */}
+              <input
+                type="text"
+                value={customizeSearch}
+                onChange={(e) => {
+                  setCustomizeSearch(e.target.value);
+                  loadCustomizeClients(e.target.value);
+                }}
+                placeholder="Search clients by name or email..."
+                className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
+              />
+            </div>
+
+            {/* Client list with checkboxes */}
+            <div className="overflow-y-auto flex-1">
+              {customizeLoading && customizeClients.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-[#0D9488] rounded-full animate-spin" />
+                </div>
+              ) : customizeClients.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <p className="text-sm text-gray-400">No clients found</p>
+                </div>
+              ) : (
+                customizeClients.map((client) => {
+                  const checked = customizeSelected.has(client.id);
+                  return (
+                    <label
+                      key={client.id}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setCustomizeSelected((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(client.id)) next.delete(client.id);
+                            else next.add(client.id);
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 accent-[#0D9488] flex-shrink-0"
+                      />
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-semibold text-gray-500">
+                          {(client.full_name || "?")[0].toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{client.full_name}</p>
+                        <p className="text-xs text-gray-400 truncate">{client.email}</p>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center gap-2">
+              <button
+                onClick={() => !customizeSaving && setShowCustomizeModal(null)}
+                disabled={customizeSaving}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={customizeProgramForClients}
+                disabled={customizeSelected.size === 0 || customizeSaving || !customizeName.trim()}
+                className="flex-1 px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {customizeSaving
+                  ? "Cloning..."
+                  : customizeSelected.size === 0
+                    ? "Select clients"
+                    : `Customize for ${customizeSelected.size} client${customizeSelected.size !== 1 ? "s" : ""}`}
+              </button>
+            </div>
           </div>
         </div>
       )}
