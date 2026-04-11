@@ -908,7 +908,8 @@ export default function ProgramsCMSPage() {
     if (!program.level) missing.push("level");
     if (categoryKey === "exercise" && !program.exerciseType) missing.push("exerciseType");
     if (program.structuredPhases.length === 0) missing.push("structuredPhases");
-    if (!program.weeklyFocus.some(f => f && f.trim())) missing.push("weeklyFocus");
+    // weekly focus: any empty day counts as incomplete (all 7 must be filled)
+    if (program.weeklyFocus.some(f => !f || !f.trim())) missing.push("weeklyFocus");
     const totalActions = program.weeks.reduce((sum, w) => sum + w.days.reduce((s, d) => s + d.actions.length, 0), 0);
     if (totalActions === 0) missing.push("actions");
     return missing;
@@ -2021,29 +2022,34 @@ export default function ProgramsCMSPage() {
                       {/* Weekly focus — one short label per day, shown in the app's program detail view */}
                       <div>
                         <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                          Weekly focus (Mon–Sun)
+                          Weekly focus (Mon–Sun) <span className="text-amber-600">*</span>
                         </label>
                         <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">
                           Short focus name for each day (e.g. &quot;Push — Chest, shoulders&quot;, &quot;Wind-down routine&quot;, &quot;Rest&quot;).
                           Shown to users in the program detail sheet. Keep to 2–5 words.
                         </p>
                         <div className="grid grid-cols-7 gap-1.5">
-                          {dayLabels.map((day, di) => (
-                            <div key={di} className="flex flex-col">
-                              <p className="text-[10px] font-bold text-gray-500 text-center mb-1">{day}</p>
-                              <input
-                                type="text"
-                                value={program.weeklyFocus[di] || ""}
-                                onChange={(e) => {
-                                  const updated = [...program.weeklyFocus] as Program["weeklyFocus"];
-                                  updated[di] = e.target.value;
-                                  updateProgram(program.id, "weeklyFocus", updated);
-                                }}
-                                placeholder={di === 6 ? "Rest" : "Focus"}
-                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-[11px] focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 text-center"
-                              />
-                            </div>
-                          ))}
+                          {dayLabels.map((day, di) => {
+                            const empty = !program.weeklyFocus[di]?.trim();
+                            return (
+                              <div key={di} className="flex flex-col">
+                                <p className="text-[10px] font-bold text-gray-500 text-center mb-1">{day}</p>
+                                <input
+                                  type="text"
+                                  value={program.weeklyFocus[di] || ""}
+                                  onChange={(e) => {
+                                    const updated = [...program.weeklyFocus] as Program["weeklyFocus"];
+                                    updated[di] = e.target.value;
+                                    updateProgram(program.id, "weeklyFocus", updated);
+                                  }}
+                                  placeholder={di === 6 ? "Rest" : "Focus"}
+                                  className={`w-full px-2 py-1.5 border rounded-lg text-[11px] focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 text-center ${
+                                    empty ? "border-amber-400 bg-amber-50/40" : "border-gray-200"
+                                  }`}
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
