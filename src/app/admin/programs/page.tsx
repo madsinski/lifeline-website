@@ -573,10 +573,60 @@ export default function ProgramsCMSPage() {
         shared: true,
         created_from_program: program.id,
       }));
-      const { error } = await supabase.from("client_custom_programs").insert(rows);
+      const { data: insertedRows, error } = await supabase
+        .from("client_custom_programs")
+        .insert(rows)
+        .select("id");
       if (error) {
         setToast({ message: `Failed to clone: ${error.message}`, type: "error" });
       } else {
+        // Also clone the source program's action_exercises rows so the new
+        // custom programs are pre-populated with library links. Without this,
+        // the exercise library section in the editor would be empty.
+        if (insertedRows && insertedRows.length > 0 && activeTab === "exercise") {
+          try {
+            // Fetch the source program's action_exercises (matched by program_key)
+            const { data: sourceExercises } = await supabase
+              .from("action_exercises")
+              .select("*")
+              .eq("program_key", program.id);
+            if (sourceExercises && sourceExercises.length > 0) {
+              // For each new custom program, clone the rows with rewritten keys
+              const allClones: Array<Record<string, unknown>> = [];
+              for (const newRow of insertedRows) {
+                const newCustomKey = `custom-${newRow.id}`;
+                for (const ex of sourceExercises as Array<Record<string, unknown>>) {
+                  // Replace the source program key with the new custom key
+                  // (handles both `${cat}-${prog}-w...-...` and bare `${prog}-w...-...` formats)
+                  const oldKey = ex.action_key as string;
+                  const newKey = oldKey
+                    .replace(`exercise-${program.id}-`, `exercise-${newCustomKey}-`)
+                    .replace(`${program.id}-`, `${newCustomKey}-`);
+                  allClones.push({
+                    action_key: newKey,
+                    program_key: newCustomKey,
+                    week_range: ex.week_range,
+                    day_of_week: ex.day_of_week,
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name,
+                    sets: ex.sets,
+                    reps: ex.reps,
+                    duration: ex.duration,
+                    rest: ex.rest,
+                    notes: ex.notes,
+                    sort_order: ex.sort_order,
+                  });
+                }
+              }
+              if (allClones.length > 0) {
+                await supabase.from("action_exercises").insert(allClones);
+              }
+            }
+          } catch {
+            // Best-effort — if exercise cloning fails, the custom program still exists
+          }
+        }
+
         // Send a push notification to each client (best-effort, non-blocking)
         const programName = customizeName.trim() || `${program.name} (custom)`;
         for (const clientId of customizeSelected) {
