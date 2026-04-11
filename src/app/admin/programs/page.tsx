@@ -542,6 +542,13 @@ export default function ProgramsCMSPage() {
     }
   }, []);
 
+  // Auto-select first available category once loaded from Supabase
+  useEffect(() => {
+    if (categories.length > 0 && !categories.find((c) => c.id === activeTab)) {
+      setActiveTab(categories[0].id);
+    }
+  }, [categories, activeTab]);
+
   useEffect(() => {
     loadFromSupabase();
     loadProgramClientCounts();
@@ -559,7 +566,7 @@ export default function ProgramsCMSPage() {
   }, [selectedCell, expandedProgram, loadActionExercises]);
 
   const isClientsTab = showClientsTab;
-  const activeCategory = categories.find((c) => c.id === activeTab)!;
+  const activeCategory = categories.find((c) => c.id === activeTab);
   const colors = categoryColors[activeTab] || categoryColors.exercise;
 
   // Summary stats for tabs
@@ -1070,6 +1077,27 @@ export default function ProgramsCMSPage() {
     ? expandedProg.weeks[selectedCell.weekIdx]?.days[selectedCell.dayIdx]
     : null;
 
+  // Loading state — categories not yet fetched from Supabase
+  if (categories.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="text-center">
+          <div className="inline-block w-8 h-8 border-4 border-gray-200 border-t-[#0D9488] rounded-full animate-spin mb-4"></div>
+          <p className="text-sm text-gray-500">Loading programs…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Briefly transitioning between categories
+  if (!activeCategory && !isClientsTab) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <p className="text-sm text-gray-500">Loading…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -1267,7 +1295,7 @@ export default function ProgramsCMSPage() {
 
           {/* Programs */}
           <div className="space-y-3">
-            {activeCategory.programs.map((program) => {
+            {activeCategory!.programs.map((program) => {
               const completeness = getProgramCompleteness(program);
               const stats = getProgramStats(program);
               return (
@@ -1937,7 +1965,7 @@ export default function ProgramsCMSPage() {
               );
             })}
 
-            {activeCategory.programs.length === 0 && (
+            {activeCategory!.programs.length === 0 && (
               <div className="bg-white rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm border border-gray-100">
                 No programs yet. Click &quot;+ Add Program&quot; to create one.
               </div>
