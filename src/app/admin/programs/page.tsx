@@ -232,6 +232,40 @@ export default function ProgramsCMSPage() {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [exerciseForm, setExerciseForm] = useState({ sets: 3, reps: "8-12", rest: "60s", notes: "" });
 
+  // Meals library state (parallel to exercises, used in nutrition category)
+  type MealLibItem = {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    illustration_url: string;
+    calories: number | null;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
+    prep_time_min: number;
+    cook_time_min: number;
+    dietary_tags: string[];
+  };
+  type ActionMealItem = {
+    id?: string;
+    action_key: string;
+    program_key: string;
+    week_range: number;
+    day_of_week: number;
+    meal_id: string;
+    meal_name: string;
+    notes: string | null;
+    sort_order: number;
+  };
+  const [mealsLibrary, setMealsLibrary] = useState<MealLibItem[]>([]);
+  const [mealsLibraryLoaded, setMealsLibraryLoaded] = useState(false);
+  const [actionMeals, setActionMeals] = useState<Record<string, ActionMealItem[]>>({});
+  const [showMealPicker, setShowMealPicker] = useState<{ programId: string; weekIdx: number; dayIdx: number; actionId: string; actionIndex: number } | null>(null);
+  const [mealSearch, setMealSearch] = useState("");
+  const [mealCategoryFilter, setMealCategoryFilter] = useState<string | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<MealLibItem | null>(null);
+
   // Clients tab state
   const [showClientsTab, setShowClientsTab] = useState(false);
   // Toggle between public and custom programs view inside each category tab
@@ -729,6 +763,72 @@ export default function ProgramsCMSPage() {
     } catch { /* silent */ }
   }, []);
 
+  // ── Meals library functions (parallel to exercises) ────────────────────────
+
+  const loadMealsLibrary = useCallback(async () => {
+    if (mealsLibraryLoaded) return;
+    try {
+      const { data } = await supabase.from("meals").select("*").order("name", { ascending: true });
+      if (data) {
+        setMealsLibrary(data as MealLibItem[]);
+        setMealsLibraryLoaded(true);
+      }
+    } catch { /* table may not exist */ }
+  }, [mealsLibraryLoaded]);
+
+  const loadActionMeals = useCallback(async (programKey: string, weekRange: number, dayOfWeek: number) => {
+    try {
+      const { data } = await supabase
+        .from("action_meals")
+        .select("*")
+        .eq("program_key", programKey)
+        .eq("week_range", weekRange)
+        .eq("day_of_week", dayOfWeek)
+        .order("sort_order", { ascending: true });
+      if (data) {
+        const grouped: Record<string, ActionMealItem[]> = {};
+        for (const row of data) {
+          const key = (row as Record<string, string>).action_key;
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(row as ActionMealItem);
+        }
+        setActionMeals((prev) => {
+          const next = { ...prev };
+          for (const k of Object.keys(next)) {
+            if (k.includes(`-${programKey}-w${weekRange}d${dayOfWeek}-`)) {
+              delete next[k];
+            }
+          }
+          return { ...next, ...grouped };
+        });
+      }
+    } catch { /* table may not exist */ }
+  }, []);
+
+  const saveActionMeals = useCallback(async (actionKey: string, programKey: string, weekRange: number, dayOfWeek: number, meals: ActionMealItem[]) => {
+    try {
+      await supabase.from("action_meals").delete().eq("action_key", actionKey).eq("program_key", programKey);
+      if (meals.length > 0) {
+        const rows = meals.map((m, i) => ({
+          action_key: actionKey,
+          program_key: programKey,
+          week_range: weekRange,
+          day_of_week: dayOfWeek,
+          meal_id: m.meal_id,
+          meal_name: m.meal_name,
+          notes: m.notes || null,
+          sort_order: i,
+        }));
+        await supabase.from("action_meals").insert(rows);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const generateDetailsFromMeals = (meals: ActionMealItem[]): string[] => {
+    // Each meal becomes a line. Coach can pick one of these in the app.
+    return meals.map((m) => m.meal_name);
+  };
+
   const generateDetailsFromExercises = (exercises: ActionExercise[]): string[] => {
     return exercises.map((ex) => {
       const parts = [ex.exercise_name];
@@ -846,12 +946,13 @@ export default function ProgramsCMSPage() {
     })();
   }, [loadFromSupabase, loadProgramClientCounts, loadCustomProgramsIntoCategories]);
 
-  // Load action exercises when a cell is selected
+  // Load action exercises / action meals when a cell is selected
   useEffect(() => {
     if (selectedCell && expandedProgram) {
       loadActionExercises(expandedProgram, selectedCell.weekIdx, selectedCell.dayIdx);
+      loadActionMeals(expandedProgram, selectedCell.weekIdx, selectedCell.dayIdx);
     }
-  }, [selectedCell, expandedProgram, loadActionExercises]);
+  }, [selectedCell, expandedProgram, loadActionExercises, loadActionMeals]);
 
   const isClientsTab = showClientsTab;
   const activeCategory = categories.find((c) => c.id === activeTab);
@@ -2323,6 +2424,75 @@ export default function ProgramsCMSPage() {
                                               </div>
                                             );
                                           })()}
+                                          {activeTab === "nutrition" && (() => {
+                                            const actionIndex = currentDay.actions.indexOf(action);
+                                            const actionKey = buildActionKey(activeTab, program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.timeGroup, actionIndex);
+                                            const meals = actionMeals[actionKey] || [];
+                                            return (
+                                              <div className="border border-gray-200 rounded-xl p-3 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Meals from library</label>
+                                                  <button
+                                                    onClick={() => {
+                                                      loadMealsLibrary();
+                                                      setShowMealPicker({ programId: program.id, weekIdx: selectedCell.weekIdx, dayIdx: selectedCell.dayIdx, actionId: action.id, actionIndex });
+                                                      setMealSearch("");
+                                                      setMealCategoryFilter(null);
+                                                      setSelectedMeal(null);
+                                                    }}
+                                                    className="px-3 py-1.5 bg-[#0D9488] text-white rounded-lg text-xs font-medium hover:bg-[#0B7B73] transition-colors"
+                                                  >
+                                                    + Add meal
+                                                  </button>
+                                                </div>
+                                                {meals.length > 0 ? (
+                                                  <div className="space-y-1.5">
+                                                    {meals.map((m, mi) => {
+                                                      const lib = mealsLibrary.find(x => x.id === m.meal_id);
+                                                      return (
+                                                        <div key={m.meal_id + "-" + mi} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                                                          <span className="text-xs text-gray-400 font-medium w-4">{mi + 1}</span>
+                                                          {lib?.illustration_url && (
+                                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                                            <img src={lib.illustration_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                                                          )}
+                                                          <div className="flex-1 min-w-0">
+                                                            <span className="text-sm font-medium text-gray-800">{m.meal_name}</span>
+                                                            {lib && (
+                                                              <span className="text-xs text-gray-400 ml-2">
+                                                                {(lib.prep_time_min || 0) + (lib.cook_time_min || 0)} min
+                                                                {lib.protein != null ? ` · ${lib.protein}g protein` : ""}
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                          <button
+                                                            onClick={() => {
+                                                              const updated = meals.filter((_, i) => i !== mi);
+                                                              const newMap = { ...actionMeals, [actionKey]: updated };
+                                                              setActionMeals(newMap);
+                                                              saveActionMeals(actionKey, program.id, selectedCell.weekIdx, selectedCell.dayIdx, updated);
+                                                              const details = generateDetailsFromMeals(updated);
+                                                              updateAction(program.id, selectedCell.weekIdx, selectedCell.dayIdx, action.id, "details", details);
+                                                            }}
+                                                            className="p-1 text-red-400 hover:text-red-600 rounded transition-colors flex-shrink-0"
+                                                          >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                          </button>
+                                                        </div>
+                                                      );
+                                                    })}
+                                                    {meals.length < 3 && (
+                                                      <p className="text-[10px] text-gray-400 italic">Tip: add up to 3 meal options. The client picks one and can swap to another.</p>
+                                                    )}
+                                                  </div>
+                                                ) : (
+                                                  <p className="text-xs text-gray-300 py-2">No meals linked. Add 1-3 options from the library.</p>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
                                           {/* Row 3: Media URLs */}
                                           <div className="flex gap-3">
                                             <div className="flex-1">
@@ -2798,6 +2968,164 @@ export default function ProgramsCMSPage() {
                     {exerciseLibrary.length === 0 && (
                       <div className="col-span-3 text-center py-12 text-gray-400 text-sm">
                         No exercises in library. Add exercises in the Exercise Library page first.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Meal picker modal */}
+      {showMealPicker && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setShowMealPicker(null); setSelectedMeal(null); }}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{selectedMeal ? "Confirm Meal" : "Add Meal"}</h3>
+                <p className="text-sm text-gray-500">{selectedMeal ? `Add "${selectedMeal.name}" to this slot` : "Pick a meal from the library — add up to 3 options per slot"}</p>
+              </div>
+              <button onClick={() => { setShowMealPicker(null); setSelectedMeal(null); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {selectedMeal ? (
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4">
+                  {selectedMeal.illustration_url && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={selectedMeal.illustration_url} alt="" className="w-20 h-20 rounded-lg object-cover flex-shrink-0 border border-gray-200" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900">{selectedMeal.name}</p>
+                    <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{selectedMeal.description}</p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: "#0D9488" }}>
+                        {selectedMeal.category}
+                      </span>
+                      <span className="text-xs text-gray-400">⏱ {(selectedMeal.prep_time_min || 0) + (selectedMeal.cook_time_min || 0)} min</span>
+                      {selectedMeal.protein != null && <span className="text-xs text-gray-400">· 💪 {selectedMeal.protein}g</span>}
+                      {selectedMeal.calories != null && <span className="text-xs text-gray-400">· 🔥 {selectedMeal.calories}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setSelectedMeal(null)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Back</button>
+                  <button
+                    onClick={() => {
+                      if (!showMealPicker || !selectedMeal) return;
+                      const { programId, weekIdx, dayIdx, actionId, actionIndex } = showMealPicker;
+                      const prog = categories.flatMap(c => c.programs).find(p => p.id === programId);
+                      if (!prog) return;
+                      const action = prog.weeks[weekIdx]?.days[dayIdx]?.actions.find(a => a.id === actionId);
+                      if (!action) return;
+                      const actionKey = buildActionKey(activeTab, programId, weekIdx, dayIdx, action.timeGroup, actionIndex);
+                      const existing = actionMeals[actionKey] || [];
+                      const newMeal: ActionMealItem = {
+                        action_key: actionKey,
+                        program_key: programId,
+                        week_range: weekIdx,
+                        day_of_week: dayIdx,
+                        meal_id: selectedMeal.id,
+                        meal_name: selectedMeal.name,
+                        notes: null,
+                        sort_order: existing.length,
+                      };
+                      const updated = [...existing, newMeal];
+                      setActionMeals({ ...actionMeals, [actionKey]: updated });
+                      saveActionMeals(actionKey, programId, weekIdx, dayIdx, updated);
+                      const details = generateDetailsFromMeals(updated);
+                      updateAction(programId, weekIdx, dayIdx, actionId, "details", details);
+                      setDirty(true);
+                      setSelectedMeal(null);
+                      setShowMealPicker(null);
+                      setToast({ message: `Added ${selectedMeal.name}`, type: "success" });
+                    }}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] hover:bg-[#0B7B73] rounded-lg"
+                  >
+                    Add to slot
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="px-6 pt-4 pb-2">
+                  <input
+                    type="text"
+                    value={mealSearch}
+                    onChange={(e) => setMealSearch(e.target.value)}
+                    placeholder="Search meals..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
+                    autoFocus
+                  />
+                </div>
+                <div className="px-6 pb-3 flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setMealCategoryFilter(null)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      !mealCategoryFilter ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >All</button>
+                  {(["breakfast", "lunch", "dinner", "snack"] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setMealCategoryFilter(mealCategoryFilter === cat ? null : cat)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors`}
+                      style={{
+                        backgroundColor: mealCategoryFilter === cat ? "#0D9488" : "#0D948818",
+                        color: mealCategoryFilter === cat ? "#fff" : "#0D9488",
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex-1 overflow-y-auto px-6 pb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {mealsLibrary
+                      .filter((m) => {
+                        if (mealCategoryFilter && m.category !== mealCategoryFilter) return false;
+                        if (mealSearch) {
+                          const q = mealSearch.toLowerCase();
+                          return m.name.toLowerCase().includes(q) || m.description?.toLowerCase().includes(q);
+                        }
+                        return true;
+                      })
+                      .map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => setSelectedMeal(m)}
+                          className="text-left p-3 rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-sm transition-all bg-white"
+                        >
+                          <div className="flex items-start gap-2">
+                            {m.illustration_url ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={m.illustration_url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-gray-100" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h18M5 3v18m14-18v18M9 7h6M9 11h6M9 15h6" /></svg>
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-900 truncate">{m.name}</p>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: "#0D9488" }}>
+                                  {m.category}
+                                </span>
+                                {m.protein != null && <span className="text-[10px] text-gray-400">{m.protein}g protein</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    {mealsLibrary.length === 0 && (
+                      <div className="col-span-3 text-center py-12 text-gray-400 text-sm">
+                        No meals in library. Add meals in the Meals Library page first.
                       </div>
                     )}
                   </div>
