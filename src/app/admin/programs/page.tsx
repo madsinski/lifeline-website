@@ -234,6 +234,8 @@ export default function ProgramsCMSPage() {
 
   // Clients tab state
   const [showClientsTab, setShowClientsTab] = useState(false);
+  // Toggle between public and custom programs view inside each category tab
+  const [programView, setProgramView] = useState<"public" | "custom">("public");
   const [clientPrograms, setClientPrograms] = useState<ClientProgram[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
 
@@ -894,6 +896,22 @@ export default function ProgramsCMSPage() {
     const completeness = Math.round((daysWithActions / totalDays) * 100);
     const activeClients = programClientCounts[program.id] || 0;
     return { totalActions, completeness, activeClients };
+  }
+
+  // Required-field check: returns the list of empty required fields (slugs)
+  function getMissingFields(program: Program, categoryKey: string): string[] {
+    const missing: string[] = [];
+    if (!program.name?.trim()) missing.push("name");
+    if (!program.description?.trim()) missing.push("description");
+    if (!program.tagline?.trim()) missing.push("tagline");
+    if (!program.targetAudience?.trim()) missing.push("targetAudience");
+    if (!program.level) missing.push("level");
+    if (categoryKey === "exercise" && !program.exerciseType) missing.push("exerciseType");
+    if (program.structuredPhases.length === 0) missing.push("structuredPhases");
+    if (!program.weeklyFocus.some(f => f && f.trim())) missing.push("weeklyFocus");
+    const totalActions = program.weeks.reduce((sum, w) => sum + w.days.reduce((s, d) => s + d.actions.length, 0), 0);
+    if (totalActions === 0) missing.push("actions");
+    return missing;
   }
 
   const updateCategories = (updated: Category[]) => {
@@ -1626,11 +1644,60 @@ export default function ProgramsCMSPage() {
             </div>
           </div>
 
+          {/* Public / Custom toggle */}
+          <div className="flex items-center gap-2">
+            <div className="inline-flex bg-gray-100 rounded-xl p-1">
+              <button
+                onClick={() => setProgramView("public")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  programView === "public"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Public programs
+                <span className="ml-2 text-xs text-gray-400">
+                  {activeCategory!.programs.filter((p) => !p.isCustom).length}
+                </span>
+              </button>
+              <button
+                onClick={() => setProgramView("custom")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  programView === "custom"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Client programs
+                <span className="text-xs text-gray-400">
+                  {activeCategory!.programs.filter((p) => p.isCustom).length}
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Programs */}
           <div className="space-y-3">
-            {activeCategory!.programs.map((program) => {
+            {(() => {
+              const filtered = activeCategory!.programs.filter((p) =>
+                programView === "custom" ? p.isCustom : !p.isCustom
+              );
+              if (filtered.length === 0) {
+                return (
+                  <div className="bg-white rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm border border-gray-100">
+                    {programView === "custom"
+                      ? "No client-specific programs in this category yet. Use the ✏️ button on a public program to customize one for clients."
+                      : 'No public programs yet. Click "+ Add Program" to create one.'}
+                  </div>
+                );
+              }
+              return filtered.map((program) => {
               const completeness = getProgramCompleteness(program);
               const stats = getProgramStats(program);
+              const missingFields = getMissingFields(program, activeCategory!.id);
               return (
                 <div
                   key={program.id}
@@ -1672,11 +1739,24 @@ export default function ProgramsCMSPage() {
                             {program.customClientName}
                           </span>
                         )}
+                        {missingFields.length > 0 && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full whitespace-nowrap"
+                            title={`Empty fields: ${missingFields.join(", ")}`}
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            {missingFields.length} field{missingFields.length > 1 ? "s" : ""} needed
+                          </span>
+                        )}
                         <input
                           type="text"
                           value={program.name}
                           onChange={(e) => updateProgram(program.id, "name", e.target.value)}
-                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                          className={`flex-1 px-3 py-1.5 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 ${
+                            !program.name?.trim() ? "border-amber-400 bg-amber-50/40" : "border-gray-300"
+                          }`}
                           placeholder="Program name"
                         />
                       </div>
@@ -1685,7 +1765,9 @@ export default function ProgramsCMSPage() {
                         value={program.tagline}
                         onChange={(e) => updateProgram(program.id, "tagline", e.target.value)}
                         placeholder="Tagline (one-liner for card)"
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#0D9488] outline-none"
+                        className={`px-3 py-1.5 border rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#0D9488] outline-none ${
+                          !program.tagline?.trim() ? "border-amber-400 bg-amber-50/40" : "border-gray-300"
+                        }`}
                       />
                       <select
                         value={program.duration}
@@ -1812,11 +1894,13 @@ export default function ProgramsCMSPage() {
                       {/* Row 1: Level, Exercise type, Duration info */}
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
-                          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Level</label>
+                          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Level <span className="text-amber-600">*</span></label>
                           <select
                             value={program.level}
                             onChange={(e) => updateProgram(program.id, "level", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 ${
+                              !program.level ? "border-amber-400 bg-amber-50/40" : "border-gray-200"
+                            }`}
                           >
                             <option value="">Not set</option>
                             <option value="beginner">Beginner</option>
@@ -1826,11 +1910,13 @@ export default function ProgramsCMSPage() {
                         </div>
                         {activeTab === "exercise" && (
                           <div>
-                            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Exercise type</label>
+                            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Exercise type <span className="text-amber-600">*</span></label>
                             <select
                               value={program.exerciseType}
                               onChange={(e) => updateProgram(program.id, "exerciseType", e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 ${
+                                !program.exerciseType ? "border-amber-400 bg-amber-50/40" : "border-gray-200"
+                              }`}
                             >
                               <option value="">Not set</option>
                               <option value="gym">Gym</option>
@@ -1839,25 +1925,29 @@ export default function ProgramsCMSPage() {
                           </div>
                         )}
                         <div className={activeTab === "exercise" ? "md:col-span-2" : "md:col-span-3"}>
-                          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Who is it for</label>
+                          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Who is it for <span className="text-amber-600">*</span></label>
                           <input
                             type="text"
                             value={program.targetAudience}
                             onChange={(e) => updateProgram(program.id, "targetAudience", e.target.value)}
                             placeholder="e.g. People new to strength training looking to build a solid foundation"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 ${
+                              !program.targetAudience?.trim() ? "border-amber-400 bg-amber-50/40" : "border-gray-200"
+                            }`}
                           />
                         </div>
                       </div>
                       {/* Row 2: Description */}
                       <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Description (shown under &quot;Who is it for&quot; in the app)</label>
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Description <span className="text-amber-600">*</span> <span className="text-gray-300 normal-case">(shown under &quot;Who is it for&quot; in the app)</span></label>
                         <textarea
                           value={program.description}
                           onChange={(e) => updateProgram(program.id, "description", e.target.value)}
                           placeholder="Detailed description of the program, what to expect, and how it works..."
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none resize-y text-gray-900 leading-relaxed"
+                          className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none resize-y text-gray-900 leading-relaxed ${
+                            !program.description?.trim() ? "border-amber-400 bg-amber-50/40" : "border-gray-200"
+                          }`}
                         />
                       </div>
                       {/* Row 3: Structured phases */}
@@ -2319,13 +2409,8 @@ export default function ProgramsCMSPage() {
                   )}
                 </div>
               );
-            })}
-
-            {activeCategory!.programs.length === 0 && (
-              <div className="bg-white rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm border border-gray-100">
-                No programs yet. Click &quot;+ Add Program&quot; to create one.
-              </div>
-            )}
+            });
+            })()}
           </div>
         </>
       )}
