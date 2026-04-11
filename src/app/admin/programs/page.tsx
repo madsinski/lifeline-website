@@ -118,51 +118,7 @@ function createEmptyWeeks(): WeekContent[] {
   }));
 }
 
-const sampleCategories: Category[] = [
-  {
-    id: "exercise",
-    name: "Exercise",
-    programs: [
-      { id: "gym-beginner", name: "Gym — Foundation", description: "Build a solid base with fundamental movements", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "gym-intermediate", name: "Gym — Progression", description: "Progressive overload with compound lifts", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "gym-advanced", name: "Gym — Performance", description: "Advanced training with periodisation", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "home-beginner", name: "Home — Foundation", description: "Bodyweight fundamentals, no equipment needed", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "home-intermediate", name: "Home — Progression", description: "Resistance bands and bodyweight progressions", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "home-advanced", name: "Home — Performance", description: "Advanced calisthenics and unilateral work", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "exercise-daily-insights", name: "Daily Insights", description: "Daily exercise tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-    ],
-  },
-  {
-    id: "nutrition",
-    name: "Nutrition",
-    programs: [
-      { id: "balanced", name: "Balanced eating", description: "Whole foods focus, flexible macros", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "weight-loss", name: "Weight management", description: "Calorie deficit with high protein", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "performance-fuel", name: "Performance fuel", description: "High carb for athletes", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "nutrition-daily-insights", name: "Daily Insights", description: "Daily nutrition tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-    ],
-  },
-  {
-    id: "sleep",
-    name: "Sleep",
-    programs: [
-      { id: "sleep-foundations", name: "Sleep foundations", description: "Build a consistent sleep routine", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "sleep-optimise", name: "Sleep optimisation", description: "Advanced techniques for deep sleep", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "sleep-advanced", name: "Advanced sleep", description: "Chronotype optimisation, tracking analysis, protocols", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "sleep-daily-insights", name: "Daily Insights", description: "Daily sleep tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-    ],
-  },
-  {
-    id: "mental",
-    name: "Mental wellness",
-    programs: [
-      { id: "stress-management", name: "Stress management", description: "Breathing, journalling, mindfulness", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "resilience", name: "Resilience building", description: "Cold exposure, gratitude, social connection", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "mental-advanced", name: "Advanced mental", description: "Flow state, CBT techniques, emotional regulation", duration: 8, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-      { id: "mental-daily-insights", name: "Daily Insights", description: "Daily mental wellness tips shown in the app", duration: 12, level: "" as ProgramLevel, exerciseType: "" as ExerciseType, tagline: "", targetAudience: "", structuredPhases: [], phases: "", weeks: createEmptyWeeks() },
-    ],
-  },
-];
+// Categories and programs are loaded from Supabase on mount — no hardcoded fallback
 
 // Toast component
 function Toast({ message, type, onClose }: { message: string; type: "success" | "error" | "info"; onClose: () => void }) {
@@ -242,7 +198,7 @@ function PhonePreview({ day, categoryId }: { day: DayContent; categoryId: string
 }
 
 export default function ProgramsCMSPage() {
-  const [categories, setCategories] = useState<Category[]>(sampleCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [activeTab, setActiveTab] = useState<string>("exercise");
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ weekIdx: number; dayIdx: number } | null>(null);
@@ -1062,11 +1018,7 @@ export default function ProgramsCMSPage() {
   };
 
   const handleDiscard = () => {
-    if (loadedFromDb) {
-      loadFromSupabase();
-    } else {
-      setCategories(sampleCategories);
-    }
+    loadFromSupabase();
     setDirty(false);
     setSelectedCell(null);
   };
