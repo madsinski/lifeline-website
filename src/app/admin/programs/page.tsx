@@ -73,6 +73,7 @@ interface Program {
   targetAudience: string;
   structuredPhases: ProgramPhase[];
   phases: string; // legacy
+  weeklyFocus: [string, string, string, string, string, string, string]; // Mon..Sun
   weeks: WeekContent[];
 }
 
@@ -528,6 +529,17 @@ export default function ProgramsCMSPage() {
                   return [];
                 })(),
                 phases: ((p as Record<string, unknown>).phases as string) || "",
+                weeklyFocus: (() => {
+                  try {
+                    const raw = (p as Record<string, unknown>).weekly_focus;
+                    if (Array.isArray(raw) && raw.length === 7) return raw as Program["weeklyFocus"];
+                    if (typeof raw === "string") {
+                      const parsed = JSON.parse(raw);
+                      if (Array.isArray(parsed) && parsed.length === 7) return parsed as Program["weeklyFocus"];
+                    }
+                  } catch {}
+                  return ["", "", "", "", "", "", ""] as Program["weeklyFocus"];
+                })(),
                 weeks,
               };
             }),
@@ -616,7 +628,7 @@ export default function ProgramsCMSPage() {
   };
 
   const programSyncTimeout = useRef<Record<string, NodeJS.Timeout>>({});
-  const updateProgram = (programId: string, field: keyof Program, value: string | number | ProgramPhase[]) => {
+  const updateProgram = (programId: string, field: keyof Program, value: string | number | ProgramPhase[] | string[]) => {
     updateCategories(
       categories.map((cat) => ({
         ...cat,
@@ -629,9 +641,9 @@ export default function ProgramsCMSPage() {
     if (programSyncTimeout.current[programId]) clearTimeout(programSyncTimeout.current[programId]);
     programSyncTimeout.current[programId] = setTimeout(async () => {
       try {
-        const fieldMap: Record<string, string> = { targetAudience: "target_audience", exerciseType: "exercise_type", structuredPhases: "structured_phases" };
+        const fieldMap: Record<string, string> = { targetAudience: "target_audience", exerciseType: "exercise_type", structuredPhases: "structured_phases", weeklyFocus: "weekly_focus" };
         const dbField = fieldMap[field] || field;
-        const dbValue = field === "structuredPhases" ? JSON.stringify(value) : value;
+        const dbValue = (field === "structuredPhases" || field === "weeklyFocus") ? JSON.stringify(value) : value;
         await supabase.from("programs").update({ [dbField]: dbValue }).eq("key", programId);
       } catch {
         // silent — will sync on full save
@@ -659,6 +671,7 @@ export default function ProgramsCMSPage() {
                   targetAudience: "",
                   structuredPhases: [],
                   phases: "",
+                  weeklyFocus: ["", "", "", "", "", "", ""],
                   weeks: createEmptyWeeks(),
                 },
               ],
@@ -719,6 +732,7 @@ export default function ProgramsCMSPage() {
                   targetAudience: sourceProgram.targetAudience,
                   structuredPhases: sourceProgram.structuredPhases.map(p => ({ ...p })),
                   phases: sourceProgram.phases,
+                  weeklyFocus: [...sourceProgram.weeklyFocus] as Program["weeklyFocus"],
                   weeks: clonedWeeks,
                 },
               ],
@@ -937,6 +951,7 @@ export default function ProgramsCMSPage() {
             exercise_type: prog.exerciseType || null,
             target_audience: prog.targetAudience || null,
             structured_phases: prog.structuredPhases.length > 0 ? JSON.stringify(prog.structuredPhases) : null,
+            weekly_focus: prog.weeklyFocus.some(f => f) ? JSON.stringify(prog.weeklyFocus) : null,
             phases: prog.phases || null,
             sort_order: pi,
           }, { onConflict: "key" }).select("id").single();
@@ -1011,6 +1026,7 @@ export default function ProgramsCMSPage() {
             exercise_type: prog.exerciseType || null,
             target_audience: prog.targetAudience || null,
             structured_phases: prog.structuredPhases.length > 0 ? JSON.stringify(prog.structuredPhases) : null,
+            weekly_focus: prog.weeklyFocus.some(f => f) ? JSON.stringify(prog.weeklyFocus) : null,
             phases: prog.phases || null,
             sort_order: pi,
           }, { onConflict: "key" });
@@ -1580,24 +1596,32 @@ export default function ProgramsCMSPage() {
                           </div>
                         ))}
                       </div>
-                      {/* Auto-populated weekly schedule from actions */}
+                      {/* Weekly focus — one short label per day, shown in the app's program detail view */}
                       <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Weekly schedule (auto-generated from Week 1)</label>
-                        <div className="grid grid-cols-7 gap-1">
-                          {dayLabels.map((day, di) => {
-                            const dayActions = program.weeks[0]?.days[di]?.actions || [];
-                            const summary = dayActions.length > 0
-                              ? dayActions.map((a) => a.label).filter(Boolean).join(", ") || "Actions set"
-                              : "Rest day";
-                            return (
-                              <div key={di} className={`rounded-lg p-2 text-center ${dayActions.length > 0 ? "bg-gray-50 border border-gray-200" : "bg-gray-50/50"}`}>
-                                <p className="text-[10px] font-bold text-gray-500 mb-0.5">{day}</p>
-                                <p className={`text-[9px] leading-tight ${dayActions.length > 0 ? "text-gray-700 font-medium" : "text-gray-300"}`}>
-                                  {summary.length > 30 ? summary.slice(0, 30) + "..." : summary}
-                                </p>
-                              </div>
-                            );
-                          })}
+                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                          Weekly focus (Mon–Sun)
+                        </label>
+                        <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">
+                          Short focus name for each day (e.g. &quot;Push — Chest, shoulders&quot;, &quot;Wind-down routine&quot;, &quot;Rest&quot;).
+                          Shown to users in the program detail sheet. Keep to 2–5 words.
+                        </p>
+                        <div className="grid grid-cols-7 gap-1.5">
+                          {dayLabels.map((day, di) => (
+                            <div key={di} className="flex flex-col">
+                              <p className="text-[10px] font-bold text-gray-500 text-center mb-1">{day}</p>
+                              <input
+                                type="text"
+                                value={program.weeklyFocus[di] || ""}
+                                onChange={(e) => {
+                                  const updated = [...program.weeklyFocus] as Program["weeklyFocus"];
+                                  updated[di] = e.target.value;
+                                  updateProgram(program.id, "weeklyFocus", updated);
+                                }}
+                                placeholder={di === 6 ? "Rest" : "Focus"}
+                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-[11px] focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 text-center"
+                              />
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -2088,6 +2112,7 @@ export default function ProgramsCMSPage() {
                                     targetAudience: tmpl.target_audience || "",
                                     structuredPhases: Array.isArray(tmpl.structured_phases) ? tmpl.structured_phases as ProgramPhase[] : [],
                                     phases: "",
+                                    weeklyFocus: ["", "", "", "", "", "", ""],
                                     weeks,
                                   }],
                                 } : cat
