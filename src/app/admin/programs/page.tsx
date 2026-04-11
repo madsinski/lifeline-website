@@ -75,6 +75,12 @@ interface Program {
   phases: string; // legacy
   weeklyFocus: [string, string, string, string, string, string, string]; // Mon..Sun
   weeks: WeekContent[];
+  // Custom program fields (for client_custom_programs rows)
+  isCustom?: boolean;
+  customDbId?: string; // UUID of the client_custom_programs row
+  customClientId?: string;
+  customClientName?: string;
+  customShared?: boolean;
 }
 
 interface Category {
@@ -422,6 +428,96 @@ export default function ProgramsCMSPage() {
     return out;
   }, []);
 
+  // Inverse: convert client_custom_programs.actions jsonb back into the
+  // weeks/days/actions matrix used by the editor.
+  const unflattenActionsToWeeks = useCallback((actions: Array<Record<string, unknown>>): WeekContent[] => {
+    const weeks: WeekContent[] = createEmptyWeeks();
+    if (!Array.isArray(actions)) return weeks;
+    for (const a of actions) {
+      const wi = (a.week_range as number) ?? 0;
+      const di = (a.day_of_week as number) ?? 0;
+      if (wi < 0 || wi > 11 || di < 0 || di > 6) continue;
+      const action: ProgramAction = {
+        id: (a.id as string) || makeId(),
+        timeGroup: ((a.time_group as TimeGroup) || "morning") as TimeGroup,
+        label: (a.label as string) || "",
+        details: Array.isArray(a.details) ? (a.details as string[]) : [],
+        priority: !!a.priority,
+        imageUrl: (a.image_url as string) || undefined,
+        videoUrl: (a.video_url as string) || undefined,
+      };
+      weeks[wi].days[di].actions.push(action);
+    }
+    // Sort actions in each day by sort_order if present
+    for (const w of weeks) {
+      for (const d of w.days) {
+        d.actions.sort((a, b) => {
+          const ai = actions.find(x => x.id === a.id)?.sort_order as number ?? 0;
+          const bi = actions.find(x => x.id === b.id)?.sort_order as number ?? 0;
+          return ai - bi;
+        });
+      }
+    }
+    return weeks;
+  }, []);
+
+  // Load custom programs (client_custom_programs) and append them to the
+  // matching category in the categories array. Each becomes an editable
+  // Program with isCustom=true.
+  const loadCustomProgramsIntoCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("client_custom_programs")
+        .select("*, clients(id, full_name, email)")
+        .order("updated_at", { ascending: false });
+      if (error || !data) return;
+      setCategories((prev) => {
+        // Strip any existing custom programs (we're refreshing them)
+        const withoutCustom = prev.map((cat) => ({
+          ...cat,
+          programs: cat.programs.filter((p) => !p.isCustom),
+        }));
+        // Build custom Program objects from each row
+        for (const row of data as Array<Record<string, unknown>>) {
+          const catKey = row.category_key as string;
+          const cat = withoutCustom.find((c) => c.id === catKey);
+          if (!cat) continue;
+          const client = row.clients as Record<string, string> | null;
+          const customProg: Program = {
+            id: `custom-${row.id}`,
+            name: (row.program_name as string) || "Custom program",
+            tagline: (row.tagline as string) || "",
+            description: (row.description as string) || "",
+            duration: ((row.duration as number) || 8) as 4 | 8 | 12,
+            level: ((row.level as ProgramLevel) || "") as ProgramLevel,
+            exerciseType: ((row.exercise_type as ExerciseType) || "") as ExerciseType,
+            targetAudience: (row.target_audience as string) || "",
+            structuredPhases: (() => {
+              try {
+                const raw = row.structured_phases;
+                if (Array.isArray(raw)) return raw as ProgramPhase[];
+                if (typeof raw === "string") return JSON.parse(raw) as ProgramPhase[];
+              } catch {}
+              return [];
+            })(),
+            phases: "",
+            weeklyFocus: ["", "", "", "", "", "", ""] as Program["weeklyFocus"],
+            weeks: unflattenActionsToWeeks((row.actions as Array<Record<string, unknown>>) || []),
+            isCustom: true,
+            customDbId: row.id as string,
+            customClientId: client?.id || "",
+            customClientName: client?.full_name || "Unknown client",
+            customShared: !!row.shared,
+          };
+          cat.programs.push(customProg);
+        }
+        return withoutCustom;
+      });
+    } catch {
+      // ignore
+    }
+  }, [unflattenActionsToWeeks]);
+
   const loadCustomizeClients = useCallback(async (search: string) => {
     setCustomizeLoading(true);
     try {
@@ -486,6 +582,8 @@ export default function ProgramsCMSPage() {
           type: "success",
         });
         setShowCustomizeModal(null);
+        // Refresh so the new custom programs appear in the list
+        await loadCustomProgramsIntoCategories();
       }
     } catch (e) {
       setToast({ message: `Error: ${(e as Error).message}`, type: "error" });
@@ -673,13 +771,15 @@ export default function ProgramsCMSPage() {
   }, [categories, activeTab]);
 
   useEffect(() => {
-    loadFromSupabase();
-    loadProgramClientCounts();
-    // Load templates
-    supabase.from("program_templates").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+    (async () => {
+      await loadFromSupabase();
+      await loadCustomProgramsIntoCategories();
+      loadProgramClientCounts();
+      // Load templates
+      const { data } = await supabase.from("program_templates").select("*").order("created_at", { ascending: false });
       if (data) setProgramTemplates(data as typeof programTemplates);
-    });
-  }, [loadFromSupabase, loadProgramClientCounts]);
+    })();
+  }, [loadFromSupabase, loadProgramClientCounts, loadCustomProgramsIntoCategories]);
 
   // Load action exercises when a cell is selected
   useEffect(() => {
@@ -748,14 +848,32 @@ export default function ProgramsCMSPage() {
         ),
       }))
     );
+    // Find the program to determine if it's a custom one
+    const target = categories.flatMap(c => c.programs).find(p => p.id === programId);
     // Debounced sync to Supabase (300ms after last keystroke)
     if (programSyncTimeout.current[programId]) clearTimeout(programSyncTimeout.current[programId]);
     programSyncTimeout.current[programId] = setTimeout(async () => {
       try {
-        const fieldMap: Record<string, string> = { targetAudience: "target_audience", exerciseType: "exercise_type", structuredPhases: "structured_phases", weeklyFocus: "weekly_focus" };
-        const dbField = fieldMap[field] || field;
-        const dbValue = (field === "structuredPhases" || field === "weeklyFocus") ? JSON.stringify(value) : value;
-        await supabase.from("programs").update({ [dbField]: dbValue }).eq("key", programId);
+        if (target?.isCustom && target.customDbId) {
+          // Route to client_custom_programs
+          const customFieldMap: Record<string, string> = {
+            name: "program_name",
+            targetAudience: "target_audience",
+            exerciseType: "exercise_type",
+            structuredPhases: "structured_phases",
+          };
+          const dbField = customFieldMap[field] || field;
+          // weeklyFocus is not in client_custom_programs schema — skip
+          if (field === "weeklyFocus") return;
+          const dbValue = field === "structuredPhases" ? JSON.stringify(value) : value;
+          await supabase.from("client_custom_programs").update({ [dbField]: dbValue }).eq("id", target.customDbId);
+        } else {
+          // Route to global programs table
+          const fieldMap: Record<string, string> = { targetAudience: "target_audience", exerciseType: "exercise_type", structuredPhases: "structured_phases", weeklyFocus: "weekly_focus" };
+          const dbField = fieldMap[field] || field;
+          const dbValue = (field === "structuredPhases" || field === "weeklyFocus") ? JSON.stringify(value) : value;
+          await supabase.from("programs").update({ [dbField]: dbValue }).eq("key", programId);
+        }
       } catch {
         // silent — will sync on full save
       }
@@ -898,6 +1016,7 @@ export default function ProgramsCMSPage() {
   };
 
   const deleteProgram = async (programId: string) => {
+    const target = categories.flatMap(c => c.programs).find(p => p.id === programId);
     // Remove from local state
     updateCategories(
       categories.map((cat) => ({
@@ -905,12 +1024,17 @@ export default function ProgramsCMSPage() {
         programs: cat.programs.filter((p) => p.id !== programId),
       }))
     );
-    // Sync to Supabase — delete program actions first, then the program
     try {
-      const { data: prog } = await supabase.from("programs").select("id").eq("key", programId).maybeSingle();
-      if (prog) {
-        await supabase.from("program_actions").delete().eq("program_id", prog.id);
-        await supabase.from("programs").delete().eq("id", prog.id);
+      if (target?.isCustom && target.customDbId) {
+        // Custom program: delete from client_custom_programs
+        await supabase.from("client_custom_programs").delete().eq("id", target.customDbId);
+      } else {
+        // Global program: delete actions first, then program
+        const { data: prog } = await supabase.from("programs").select("id").eq("key", programId).maybeSingle();
+        if (prog) {
+          await supabase.from("program_actions").delete().eq("program_id", prog.id);
+          await supabase.from("programs").delete().eq("id", prog.id);
+        }
       }
       setToast({ message: "Program deleted", type: "success" });
     } catch {
@@ -1050,7 +1174,26 @@ export default function ProgramsCMSPage() {
 
         for (let pi = 0; pi < cat.programs.length; pi++) {
           const prog = cat.programs[pi];
-          // Upsert program by key
+
+          // Custom programs save to client_custom_programs (single jsonb actions blob)
+          if (prog.isCustom && prog.customDbId) {
+            const flatActions = flattenWeeksToActions(prog.weeks);
+            await supabase.from("client_custom_programs").update({
+              program_name: prog.name,
+              description: prog.description || null,
+              tagline: prog.tagline || null,
+              target_audience: prog.targetAudience || null,
+              level: prog.level || null,
+              exercise_type: prog.exerciseType || null,
+              structured_phases: prog.structuredPhases.length > 0 ? JSON.stringify(prog.structuredPhases) : null,
+              actions: flatActions,
+              shared: prog.customShared !== false,
+              updated_at: new Date().toISOString(),
+            }).eq("id", prog.customDbId);
+            continue;
+          }
+
+          // Global program — upsert into programs + program_actions
           const { data: progRow } = await supabase.from("programs").upsert({
             category_id: categoryDbId,
             key: prog.id,
@@ -1458,6 +1601,12 @@ export default function ProgramsCMSPage() {
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full whitespace-nowrap">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                             Insight
+                          </span>
+                        )}
+                        {program.isCustom && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full whitespace-nowrap" title={`Custom program for ${program.customClientName}`}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            {program.customClientName}
                           </span>
                         )}
                         <input
