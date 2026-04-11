@@ -577,6 +577,19 @@ export default function ProgramsCMSPage() {
       if (error) {
         setToast({ message: `Failed to clone: ${error.message}`, type: "error" });
       } else {
+        // Send a push notification to each client (best-effort, non-blocking)
+        const programName = customizeName.trim() || `${program.name} (custom)`;
+        for (const clientId of customizeSelected) {
+          supabase.functions.invoke("send-push-notification", {
+            body: {
+              clientId,
+              title: "New custom program from your coach",
+              body: `${programName} has been created just for you. Open the app to start.`,
+              data: { type: "custom_program", programName },
+            },
+          }).catch(() => { /* silent — push is best-effort */ });
+        }
+
         setToast({
           message: `Customized for ${customizeSelected.size} client${customizeSelected.size > 1 ? "s" : ""}`,
           type: "success",
