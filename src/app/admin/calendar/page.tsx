@@ -160,6 +160,11 @@ export default function CalendarPage() {
   const [stations, setStations] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
+  // Community event state
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [creatingEvent, setCreatingEvent] = useState(false);
+  const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "" });
+
   const loadAppointments = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -271,6 +276,33 @@ export default function CalendarPage() {
     : typeFiltered;
 
   const grouped = groupByDate(filtered);
+  const EVENT_TYPES = ["Outdoor run", "Gym", "Yoga", "Swimming", "Hiking", "Cycling", "CrossFit", "Pilates", "Meditation", "Workshop", "Seminar", "Social", "Nutrition", "Recovery", "Competition", "Special", "Other"];
+
+  const createCommunityEvent = async () => {
+    if (!newEvent.name.trim() || !newEvent.date.trim()) return;
+    setCreatingEvent(true);
+    try {
+      const { error } = await supabase.from("community_events").insert({
+        name: newEvent.name,
+        type: newEvent.type,
+        date: newEvent.date,
+        time: newEvent.time || "09:00",
+        location: newEvent.location || null,
+        description: newEvent.description || null,
+        cost: newEvent.cost || "Free",
+        reward: newEvent.reward || null,
+        max_participants: newEvent.max_participants ? parseInt(newEvent.max_participants) : null,
+        staff_created: true,
+        creator_id: null,
+      });
+      if (error) { alert(`Failed: ${error.message}`); return; }
+      alert(`Event "${newEvent.name}" created!`);
+      setNewEvent({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "" });
+      setShowEventForm(false);
+    } catch { alert("Failed to create event"); }
+    setCreatingEvent(false);
+  };
+
   const totalCount = filtered.length;
 
   const filterTabs: { key: FilterTab; label: string; color: string }[] = [
@@ -291,6 +323,15 @@ export default function CalendarPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+        <button
+          onClick={() => setShowEventForm(!showEventForm)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Create Event
+        </button>
         <button
           onClick={openCreateForm}
           className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D9488] text-white rounded-lg text-sm font-medium hover:bg-[#0B7B73] transition-colors"
@@ -453,6 +494,67 @@ export default function CalendarPage() {
                 {creating ? "Booking..." : "Book Appointment"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create community event form */}
+      {showEventForm && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              Create Community Event
+            </h3>
+            <button onClick={() => setShowEventForm(false)} className="text-gray-400 hover:text-gray-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Event name *</label>
+              <input type="text" value={newEvent.name} onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })} placeholder="e.g. Morning yoga session" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+              <select value={newEvent.type} onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none">
+                {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+              <input type="date" value={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Time</label>
+              <input type="time" value={newEvent.time} onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+              <input type="text" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })} placeholder="Meeting point" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Cost</label>
+              <input type="text" value={newEvent.cost} onChange={(e) => setNewEvent({ ...newEvent, cost: e.target.value })} placeholder="Free" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Reward</label>
+              <input type="text" value={newEvent.reward} onChange={(e) => setNewEvent({ ...newEvent, reward: e.target.value })} placeholder="e.g. +10 pts" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Max participants</label>
+              <input type="number" value={newEvent.max_participants} onChange={(e) => setNewEvent({ ...newEvent, max_participants: e.target.value })} placeholder="Unlimited" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+              <textarea value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} placeholder="Event description..." rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <button onClick={() => setShowEventForm(false)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+            <button onClick={createCommunityEvent} disabled={creatingEvent || !newEvent.name.trim() || !newEvent.date.trim()} className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50">
+              {creatingEvent ? "Creating..." : "Create Event"}
+            </button>
           </div>
         </div>
       )}
