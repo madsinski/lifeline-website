@@ -138,14 +138,94 @@ export default function CheckinsAdminPage() {
     setShowForm(true);
   };
 
+  // Shared: draw a branded QR page onto a jsPDF doc
+  const drawBrandedPage = async (doc: any, QRCode: any, loc: CheckinLocation) => {
+    const W = 210, H = 297;
+    // Emerald header bar
+    doc.setFillColor(16, 185, 129); // #10B981
+    doc.rect(0, 0, W, 72, "F");
+    // Dark charcoal accent strip
+    doc.setFillColor(31, 41, 55); // #1F2937
+    doc.rect(0, 68, W, 4, "F");
+
+    // Logo wordmark (white on emerald)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255);
+    doc.text("LIFELINE", W / 2 - 28, 32, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255, 180);
+    doc.text("HEALTH", W / 2 + 38, 32, { align: "center" });
+
+    // Tagline
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255, 200);
+    doc.text("Scan to check in and earn points", W / 2, 48, { align: "center" });
+
+    // QR code — large, centered
+    const qrDataUrl = await QRCode.toDataURL(`lifeline://checkin/${loc.key}`, { width: 600, margin: 2, color: { dark: "#1F2937", light: "#FFFFFF" } });
+    const qrSize = 100;
+    const qrX = (W - qrSize) / 2;
+    const qrY = 90;
+
+    // White card behind QR
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(qrX - 12, qrY - 10, qrSize + 24, qrSize + 24, 8, 8, "F");
+    // Subtle border
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(qrX - 12, qrY - 10, qrSize + 24, qrSize + 24, 8, 8, "S");
+
+    doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+
+    // Location name — large, bold
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(31, 41, 55);
+    const nameLines = doc.splitTextToSize(loc.name, 160);
+    doc.text(nameLines, W / 2, qrY + qrSize + 30, { align: "center" });
+
+    const nameHeight = nameLines.length * 9;
+
+    // Address
+    if (loc.address) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(107, 114, 128);
+      doc.text(loc.address, W / 2, qrY + qrSize + 32 + nameHeight, { align: "center" });
+    }
+
+    // Points badge
+    const badgeY = qrY + qrSize + 40 + nameHeight + (loc.address ? 10 : 0);
+    const badgeW = 50, badgeH = 12;
+    doc.setFillColor(16, 185, 129);
+    doc.roundedRect(W / 2 - badgeW / 2, badgeY, badgeW, badgeH, 4, 4, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`+${loc.points} points`, W / 2, badgeY + 8.5, { align: "center" });
+
+    // Footer
+    doc.setFillColor(31, 41, 55);
+    doc.rect(0, H - 20, W, 20, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(156, 163, 175);
+    doc.text("lifelinehealth.is", W / 2, H - 8, { align: "center" });
+
+    // Decorative corner accent (emerald triangle, bottom-right)
+    doc.setFillColor(16, 185, 129);
+    doc.triangle(W, H - 20, W - 30, H - 20, W, H - 50, "F");
+  };
+
   const downloadSingleQR = async (loc: CheckinLocation) => {
     try {
+      const { default: jsPDF } = await import("jspdf");
       const QRCode = (await import("qrcode")).default;
-      const dataUrl = await QRCode.toDataURL(`lifeline://checkin/${loc.key}`, { width: 400, margin: 2 });
-      const link = document.createElement("a");
-      link.download = `qr-${loc.key}.png`;
-      link.href = dataUrl;
-      link.click();
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      await drawBrandedPage(doc, QRCode, loc);
+      doc.save(`lifeline-checkin-${loc.key}.pdf`);
     } catch (e) {
       console.error("QR download error:", e);
     }
@@ -174,50 +254,10 @@ export default function CheckinsAdminPage() {
       const QRCode = (await import("qrcode")).default;
 
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageW = 210, pageH = 297;
-      const cols = 2, rows = 3;
-      const cardW = 80, cardH = 80;
-      const gapX = (pageW - cols * cardW) / (cols + 1);
-      const gapY = (pageH - rows * cardH) / (rows + 1);
-
       for (let i = 0; i < toExport.length; i++) {
-        if (i > 0 && i % (cols * rows) === 0) doc.addPage();
-        const loc = toExport[i];
-        const idx = i % (cols * rows);
-        const col = idx % cols;
-        const row = Math.floor(idx / cols);
-        const x = gapX + col * (cardW + gapX);
-        const y = gapY + row * (cardH + gapY);
-
-        // Card border
-        doc.setDrawColor(200);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(x, y, cardW, cardH, 4, 4);
-
-        // QR code
-        const qrDataUrl = await QRCode.toDataURL(`lifeline://checkin/${loc.key}`, { width: 200, margin: 1 });
-        doc.addImage(qrDataUrl, "PNG", x + 15, y + 5, 50, 50);
-
-        // Location name
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        const nameLines = doc.splitTextToSize(loc.name, cardW - 8);
-        doc.text(nameLines, x + cardW / 2, y + 60, { align: "center" });
-
-        // Points
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100);
-        doc.text(`+${loc.points} pts · Scan to check in`, x + cardW / 2, y + 68, { align: "center" });
-        doc.setTextColor(0);
-
-        // Lifeline branding
-        doc.setFontSize(6);
-        doc.setTextColor(150);
-        doc.text("Lifeline Health", x + cardW / 2, y + 75, { align: "center" });
-        doc.setTextColor(0);
+        if (i > 0) doc.addPage();
+        await drawBrandedPage(doc, QRCode, toExport[i]);
       }
-
       doc.save("lifeline-checkin-qrcodes.pdf");
     } catch (e) {
       console.error("PDF export error:", e);
