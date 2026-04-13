@@ -138,6 +138,19 @@ export default function CheckinsAdminPage() {
     setShowForm(true);
   };
 
+  const downloadSingleQR = async (loc: CheckinLocation) => {
+    try {
+      const QRCode = (await import("qrcode")).default;
+      const dataUrl = await QRCode.toDataURL(`lifeline://checkin/${loc.key}`, { width: 400, margin: 2 });
+      const link = document.createElement("a");
+      link.download = `qr-${loc.key}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      console.error("QR download error:", e);
+    }
+  };
+
   const togglePrintSelect = (key: string) => {
     setSelectedForPrint(prev => {
       const next = new Set(prev);
@@ -391,6 +404,9 @@ export default function CheckinsAdminPage() {
                 </td>
                 <td className="text-right px-4 py-3">
                   <div className="flex gap-1 justify-end">
+                    <button onClick={() => downloadSingleQR(loc)} className="p-1.5 text-gray-400 hover:text-emerald-600 rounded" title="Download QR">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    </button>
                     <button onClick={() => startEdit(loc)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded" title="Edit">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
