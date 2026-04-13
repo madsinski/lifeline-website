@@ -138,85 +138,130 @@ export default function CheckinsAdminPage() {
     setShowForm(true);
   };
 
+  // Render the Lifeline logo SVG as a canvas image for PDF embedding
+  const renderLogoImage = async (markColor: string, textColor: string, width: number): Promise<string> => {
+    const h = (85 / 374) * width;
+    const WORDMARK = "M9.64 71.17C7.11 71.17 5.25 70.51 4.08 69.21C2.91 67.87 2.32 65.9 2.32 63.29V42.53H8.36V63.05C8.36 63.71 8.47 64.3 8.68 64.81C8.89 65.29 9.2 65.65 9.6 65.89C10.03 66.13 10.56 66.25 11.2 66.25C11.47 66.25 11.75 66.23 12.04 66.21C12.33 66.18 12.61 66.13 12.88 66.05L12.8 70.73C12.29 70.86 11.77 70.97 11.24 71.05C10.73 71.13 10.2 71.17 9.64 71.17ZM19.4 47.29V41.65H25.92V47.29H19.4ZM19.64 70.73V51.09H25.68V70.73H19.64ZM35.86 70.73V55.61H32.14V51.09H37.62L35.86 52.69V51.45C35.86 48.54 36.64 46.37 38.18 44.93C39.73 43.46 42.14 42.63 45.42 42.45L47.62 42.29L47.98 46.69L46.1 46.81C45.06 46.86 44.24 47.03 43.62 47.33C43.01 47.59 42.57 47.98 42.3 48.49C42.04 48.97 41.9 49.61 41.9 50.41V51.77L41.14 51.09H47.02V55.61H41.9V70.73H35.86ZM63.35 71.17C61.03 71.17 59.03 70.75 57.35 69.93C55.69 69.07 54.41 67.89 53.51 66.37C52.63 64.82 52.19 63.01 52.19 60.93C52.19 58.9 52.61 57.13 53.47 55.61C54.32 54.06 55.51 52.86 57.03 52.01C58.57 51.13 60.32 50.69 62.27 50.69C64.19 50.69 65.84 51.1 67.23 51.93C68.61 52.73 69.68 53.87 70.43 55.37C71.2 56.86 71.59 58.63 71.59 60.69V62.21H57.15V59.09H67.23L66.59 59.65C66.59 58.02 66.23 56.79 65.51 55.97C64.81 55.11 63.81 54.69 62.51 54.69C61.52 54.69 60.68 54.91 59.99 55.37C59.29 55.82 58.76 56.47 58.39 57.33C58.01 58.18 57.83 59.21 57.83 60.41V60.73C57.83 62.09 58.03 63.21 58.43 64.09C58.85 64.94 59.48 65.58 60.31 66.01C61.16 66.43 62.21 66.65 63.47 66.65C64.53 66.65 65.61 66.49 66.71 66.17C67.8 65.85 68.79 65.35 69.67 64.69L71.27 68.73C70.28 69.47 69.07 70.07 67.63 70.53C66.21 70.95 64.79 71.17 63.35 71.17ZM86.42 71.17C83.89 71.17 82.03 70.51 80.86 69.21C79.69 67.87 79.1 65.9 79.1 63.29V42.53H85.14V63.05C85.14 63.71 85.25 64.3 85.46 64.81C85.67 65.29 85.98 65.65 86.38 65.89C86.81 66.13 87.34 66.25 87.98 66.25C88.25 66.25 88.53 66.23 88.82 66.21C89.11 66.18 89.39 66.13 89.66 66.05L89.58 70.73C89.07 70.86 88.55 70.97 88.02 71.05C87.51 71.13 86.98 71.17 86.42 71.17ZM96.18 47.29V41.65H102.7V47.29H96.18ZM96.42 70.73V51.09H102.46V70.73H96.42ZM111.13 70.73V51.09H117.05V54.77H116.61C117.22 53.46 118.13 52.46 119.33 51.77C120.55 51.05 121.94 50.69 123.49 50.69C125.06 50.69 126.35 50.99 127.37 51.61C128.38 52.19 129.14 53.1 129.65 54.33C130.15 55.53 130.41 57.06 130.41 58.93V70.73H124.37V59.21C124.37 58.3 124.25 57.57 124.01 57.01C123.79 56.42 123.46 56.01 123.01 55.77C122.58 55.5 122.03 55.37 121.37 55.37C120.51 55.37 119.77 55.55 119.13 55.93C118.51 56.27 118.03 56.78 117.69 57.45C117.34 58.11 117.17 58.89 117.17 59.77V70.73H111.13ZM149.11 71.17C146.79 71.17 144.79 70.75 143.11 69.93C141.46 69.07 140.18 67.89 139.27 66.37C138.39 64.82 137.95 63.01 137.95 60.93C137.95 58.9 138.38 57.13 139.23 55.61C140.09 54.06 141.27 52.86 142.79 52.01C144.34 51.13 146.09 50.69 148.03 50.69C149.95 50.69 151.61 51.1 152.99 51.93C154.38 52.73 155.45 53.87 156.19 55.37C156.97 56.86 157.35 58.63 157.35 60.69V62.21H142.91V59.09H152.99L152.35 59.65C152.35 58.02 151.99 56.79 151.27 55.97C150.58 55.11 149.58 54.69 148.27 54.69C147.29 54.69 146.45 54.91 145.75 55.37C145.06 55.82 144.53 56.47 144.15 57.33C143.78 58.18 143.59 59.21 143.59 60.41V60.73C143.59 62.09 143.79 63.21 144.19 64.09C144.62 64.94 145.25 65.58 146.07 66.01C146.93 66.43 147.98 66.65 149.23 66.65C150.3 66.65 151.38 66.49 152.47 66.17C153.57 65.85 154.55 65.35 155.43 64.69L157.03 68.73C156.05 69.47 154.83 70.07 153.39 70.53C151.98 70.95 150.55 71.17 149.11 71.17Z";
+    const MARK = "M355.728 12.9986L298 70.7263V49.406L334.407 12.9986H355.728Z";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 374 85"><path d="${WORDMARK}" fill="${textColor}"/><path d="${MARK}" fill="${markColor}"/></svg>`;
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width * 2; canvas.height = h * 2;
+        const ctx = canvas.getContext("2d")!;
+        ctx.scale(2, 2);
+        ctx.drawImage(img, 0, 0, width, h);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.src = "data:image/svg+xml;base64," + btoa(svg);
+    });
+  };
+
   // Shared: draw a branded QR page onto a jsPDF doc
   const drawBrandedPage = async (doc: any, QRCode: any, loc: CheckinLocation) => {
     const W = 210, H = 297;
-    // Emerald header bar
-    doc.setFillColor(16, 185, 129); // #10B981
-    doc.rect(0, 0, W, 72, "F");
-    // Dark charcoal accent strip
-    doc.setFillColor(31, 41, 55); // #1F2937
-    doc.rect(0, 68, W, 4, "F");
 
-    // Logo wordmark (white on emerald)
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
-    doc.setTextColor(255, 255, 255);
-    doc.text("LIFELINE", W / 2 - 28, 32, { align: "center" });
+    // ── Hero gradient background (emerald → charcoal, 135deg) ──
+    // Simulate gradient with horizontal strips
+    const gradH = 90;
+    const steps = 60;
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const r = Math.round(16 + (31 - 16) * t);
+      const g = Math.round(185 + (41 - 185) * t);
+      const b = Math.round(129 + (55 - 129) * t);
+      doc.setFillColor(r, g, b);
+      doc.rect(0, (gradH / steps) * i, W, gradH / steps + 0.5, "F");
+    }
+
+    // Logo (white text on gradient)
+    try {
+      const logoImg = await renderLogoImage("#ffffff", "#ffffff", 500);
+      const logoW = 80, logoH = (85 / 374) * logoW;
+      doc.addImage(logoImg, "PNG", (W - logoW) / 2, 20, logoW, logoH);
+    } catch {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(24);
+      doc.setTextColor(255, 255, 255);
+      doc.text("lifeline health", W / 2, 38, { align: "center" });
+    }
+
+    // Tagline on gradient
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(28);
-    doc.setTextColor(255, 255, 255, 180);
-    doc.text("HEALTH", W / 2 + 38, 32, { align: "center" });
-
-    // Tagline
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setTextColor(255, 255, 255, 200);
-    doc.text("Scan to check in and earn points", W / 2, 48, { align: "center" });
+    doc.text("Scan to check in and earn your points", W / 2, 58, { align: "center" });
 
-    // QR code — large, centered
-    const qrDataUrl = await QRCode.toDataURL(`lifeline://checkin/${loc.key}`, { width: 600, margin: 2, color: { dark: "#1F2937", light: "#FFFFFF" } });
-    const qrSize = 100;
+    // ── Main content area — cream/warm background ──
+    doc.setFillColor(245, 241, 232); // #F5F1E8 cream sand
+    doc.rect(0, gradH, W, H - gradH, "F");
+
+    // QR code — large, centered in white card
+    const qrDataUrl = await QRCode.toDataURL(`lifeline://checkin/${loc.key}`, {
+      width: 600, margin: 2, color: { dark: "#1F2937", light: "#FFFFFF" },
+    });
+    const qrSize = 90;
     const qrX = (W - qrSize) / 2;
-    const qrY = 90;
+    const qrY = 102;
+    const cardPad = 14;
 
-    // White card behind QR
+    // White card with shadow effect
+    doc.setFillColor(220, 218, 212);
+    doc.roundedRect(qrX - cardPad + 1, qrY - cardPad + 2, qrSize + cardPad * 2, qrSize + cardPad * 2, 8, 8, "F");
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(qrX - 12, qrY - 10, qrSize + 24, qrSize + 24, 8, 8, "F");
-    // Subtle border
-    doc.setDrawColor(229, 231, 235);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(qrX - 12, qrY - 10, qrSize + 24, qrSize + 24, 8, 8, "S");
+    doc.roundedRect(qrX - cardPad, qrY - cardPad, qrSize + cardPad * 2, qrSize + cardPad * 2, 8, 8, "F");
 
     doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
 
-    // Location name — large, bold
+    // Location name
+    const infoY = qrY + qrSize + cardPad + 18;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(31, 41, 55);
     const nameLines = doc.splitTextToSize(loc.name, 160);
-    doc.text(nameLines, W / 2, qrY + qrSize + 30, { align: "center" });
-
-    const nameHeight = nameLines.length * 9;
+    doc.text(nameLines, W / 2, infoY, { align: "center" });
+    const nameH = nameLines.length * 9;
 
     // Address
+    let addrH = 0;
     if (loc.address) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.setTextColor(107, 114, 128);
-      doc.text(loc.address, W / 2, qrY + qrSize + 32 + nameHeight, { align: "center" });
+      doc.text(loc.address, W / 2, infoY + nameH + 4, { align: "center" });
+      addrH = 12;
     }
 
-    // Points badge
-    const badgeY = qrY + qrSize + 40 + nameHeight + (loc.address ? 10 : 0);
-    const badgeW = 50, badgeH = 12;
+    // Points badge (emerald pill)
+    const badgeY = infoY + nameH + addrH + 10;
+    const badgeW = 54, badgeH = 14;
     doc.setFillColor(16, 185, 129);
-    doc.roundedRect(W / 2 - badgeW / 2, badgeY, badgeW, badgeH, 4, 4, "F");
+    doc.roundedRect(W / 2 - badgeW / 2, badgeY, badgeW, badgeH, 5, 5, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
-    doc.text(`+${loc.points} points`, W / 2, badgeY + 8.5, { align: "center" });
+    doc.text(`+${loc.points} points`, W / 2, badgeY + 10, { align: "center" });
 
-    // Footer
+    // ── Footer bar (charcoal) ──
     doc.setFillColor(31, 41, 55);
-    doc.rect(0, H - 20, W, 20, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(156, 163, 175);
-    doc.text("lifelinehealth.is", W / 2, H - 8, { align: "center" });
+    doc.rect(0, H - 22, W, 22, "F");
 
-    // Decorative corner accent (emerald triangle, bottom-right)
+    // Emerald accent line above footer
     doc.setFillColor(16, 185, 129);
-    doc.triangle(W, H - 20, W - 30, H - 20, W, H - 50, "F");
+    doc.rect(0, H - 22, W, 2, "F");
+
+    // Footer logo (small, emerald mark + white text)
+    try {
+      const footerLogo = await renderLogoImage("#10B981", "#ffffff", 300);
+      const flW = 40, flH = (85 / 374) * flW;
+      doc.addImage(footerLogo, "PNG", (W - flW) / 2, H - 16, flW, flH);
+    } catch {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text("lifelinehealth.is", W / 2, H - 8, { align: "center" });
+    }
   };
 
   const downloadSingleQR = async (loc: CheckinLocation) => {
