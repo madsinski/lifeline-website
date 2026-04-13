@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { supabase } from "@/lib/supabase";
+import Cropper from "react-easy-crop";
+import type { Area } from "react-easy-crop";
 
 /*
   SQL to create the staff table (also in /supabase/staff.sql):
@@ -20,6 +22,20 @@ import { supabase } from "@/lib/supabase";
   ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
   CREATE POLICY "Allow all staff operations" ON staff USING (true) WITH CHECK (true);
 */
+
+// ─── Crop helper ────────────────────────────────────────────
+
+async function getCroppedImg(imageSrc: string, crop: Area): Promise<Blob> {
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  await new Promise<void>((resolve) => { image.onload = () => resolve(); image.src = imageSrc; });
+  const canvas = document.createElement("canvas");
+  canvas.width = crop.width;
+  canvas.height = crop.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.9));
+}
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -119,6 +135,13 @@ export default function TeamPage() {
   // Delete confirmation modal state
   const [deleteTarget, setDeleteTarget] = useState<TeamMember | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
+
+  // Crop state
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropMemberId, setCropMemberId] = useState<string | null>(null);
+  const [cropPos, setCropPos] = useState({ x: 0, y: 0 });
+  const [cropZoom, setCropZoom] = useState(1);
+  const [croppedArea, setCroppedArea] = useState<Area | null>(null);
 
   // Add member form state
   const [newName, setNewName] = useState("");
@@ -794,22 +817,18 @@ export default function TeamPage() {
                                       type="file"
                                       accept="image/*"
                                       className="hidden"
-                                      onChange={async (e) => {
+                                      onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
-                                        const ext = file.name.split(".").pop() || "jpg";
-                                        const path = `${member.id}.${ext}`;
-                                        // Delete old file if exists
-                                        await supabase.storage.from("staff-avatars").remove([path]);
-                                        // Upload new file
-                                        const { error: uploadErr } = await supabase.storage.from("staff-avatars").upload(path, file, { upsert: true, contentType: file.type });
-                                        if (uploadErr) {
-                                          alert(`Upload failed: ${uploadErr.message}`);
-                                          return;
-                                        }
-                                        const { data: urlData } = supabase.storage.from("staff-avatars").getPublicUrl(path);
-                                        const publicUrl = urlData.publicUrl + "?t=" + Date.now();
-                                        setEditValues({ ...editValues, avatar_url: publicUrl });
+                                        const reader = new FileReader();
+                                        reader.onload = () => {
+                                          setCropImage(reader.result as string);
+                                          setCropMemberId(member.id);
+                                          setCropPos({ x: 0, y: 0 });
+                                          setCropZoom(1);
+                                        };
+                                        reader.readAsDataURL(file);
+                                        e.target.value = "";
                                       }}
                                     />
                                   </label>
@@ -951,6 +970,74 @@ export default function TeamPage() {
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Crop modal */}
+      {cropImage && (
+        <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-900">Crop profile photo</h3>
+              <button onClick={() => setCropImage(null)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="relative w-full" style={{ height: 350 }}>
+              <Cropper
+                image={cropImage}
+                crop={cropPos}
+                zoom={cropZoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCropPos}
+                onZoomChange={setCropZoom}
+                onCropComplete={(_, area) => setCroppedArea(area)}
+              />
+            </div>
+            <div className="px-5 py-2">
+              <label className="text-[10px] text-gray-400 uppercase tracking-wider">Zoom</label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.05}
+                value={cropZoom}
+                onChange={(e) => setCropZoom(Number(e.target.value))}
+                className="w-full accent-[#0D9488]"
+              />
+            </div>
+            <div className="flex gap-3 px-5 pb-5">
+              <button
+                onClick={() => setCropImage(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!croppedArea || !cropMemberId) return;
+                  try {
+                    const blob = await getCroppedImg(cropImage, croppedArea);
+                    const path = `${cropMemberId}.jpg`;
+                    await supabase.storage.from("staff-avatars").remove([path]);
+                    const { error: uploadErr } = await supabase.storage.from("staff-avatars").upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+                    if (uploadErr) { alert(`Upload failed: ${uploadErr.message}`); return; }
+                    const { data: urlData } = supabase.storage.from("staff-avatars").getPublicUrl(path);
+                    const publicUrl = urlData.publicUrl + "?t=" + Date.now();
+                    setEditValues((prev) => ({ ...prev, avatar_url: publicUrl }));
+                    setCropImage(null);
+                  } catch (err) {
+                    alert("Crop failed. Try again.");
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0b7e73] transition-colors"
+              >
+                Save photo
               </button>
             </div>
           </div>
