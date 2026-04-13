@@ -164,6 +164,7 @@ export default function CalendarPage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "" });
+  const [communityEvents, setCommunityEvents] = useState<{ id: string; name: string; type: string; date: string; time: string; location: string | null; description: string | null; cost: string; reward: string | null; max_participants: number | null; cancelled: boolean; staff_created: boolean; created_at: string }[]>([]);
 
   const loadAppointments = useCallback(async () => {
     setLoading(true);
@@ -188,9 +189,17 @@ export default function CalendarPage() {
     }
   }, []);
 
+  const loadCommunityEvents = useCallback(async () => {
+    try {
+      const { data } = await supabase.from("community_events").select("*").eq("staff_created", true).order("date", { ascending: false });
+      if (data) setCommunityEvents(data as typeof communityEvents);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     loadAppointments();
-  }, [loadAppointments]);
+    loadCommunityEvents();
+  }, [loadAppointments, loadCommunityEvents]);
 
   const loadClients = useCallback(async () => {
     const { data } = await supabase
@@ -299,6 +308,7 @@ export default function CalendarPage() {
       alert(`Event "${newEvent.name}" created!`);
       setNewEvent({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "" });
       setShowEventForm(false);
+      loadCommunityEvents();
     } catch { alert("Failed to create event"); }
     setCreatingEvent(false);
   };
@@ -805,6 +815,68 @@ export default function CalendarPage() {
             </div>
           </div>
         ))}
+      {/* Community Events created by team */}
+      {communityEvents.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <h3 className="text-lg font-bold text-gray-900">Community Events</h3>
+            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{communityEvents.length}</span>
+          </div>
+          <div className="space-y-2">
+            {communityEvents.map((evt) => {
+              const isPast = new Date(evt.date) < new Date(new Date().toDateString());
+              return (
+                <div key={evt.id} className={`bg-white rounded-xl border border-gray-200 shadow-sm p-4 ${isPast ? "opacity-50" : ""} ${evt.cancelled ? "border-red-200 bg-red-50/30" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">{evt.name}</span>
+                        <span className="text-[10px] font-medium text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded">{evt.type}</span>
+                        {evt.cancelled && <span className="text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">Cancelled</span>}
+                        {isPast && !evt.cancelled && <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Past</span>}
+                      </div>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-xs text-gray-500">
+                          {new Date(evt.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} at {evt.time}
+                        </span>
+                        {evt.location && <span className="text-xs text-gray-400">{evt.location}</span>}
+                        {evt.reward && <span className="text-xs text-emerald-600 font-medium">{evt.reward}</span>}
+                        {evt.max_participants && <span className="text-xs text-gray-400">Max {evt.max_participants}</span>}
+                      </div>
+                      {evt.description && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{evt.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Cancel event "${evt.name}"?`)) return;
+                          await supabase.from("community_events").update({ cancelled: true, cancel_reason: "Cancelled by admin" }).eq("id", evt.id);
+                          loadCommunityEvents();
+                        }}
+                        className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Cancel event"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete event "${evt.name}" permanently?`)) return;
+                          await supabase.from("community_events").delete().eq("id", evt.id);
+                          loadCommunityEvents();
+                        }}
+                        className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Delete event"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
