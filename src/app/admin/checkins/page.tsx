@@ -65,7 +65,8 @@ export default function CheckinsAdminPage() {
   const [stats, setStats] = useState<Record<string, number>>({});
 
   const loadLocations = useCallback(async () => {
-    const { data } = await supabase.from("checkin_locations").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("checkin_locations").select("*").order("created_at", { ascending: false });
+    console.log("[checkins] load locations:", { data, error });
     if (data) setLocations(data);
   }, []);
 
@@ -107,9 +108,11 @@ export default function CheckinsAdminPage() {
     };
 
     if (editingId) {
-      await supabase.from("checkin_locations").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editingId);
+      const { error } = await supabase.from("checkin_locations").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editingId);
+      if (error) console.error("[checkins] update error:", error);
     } else {
-      await supabase.from("checkin_locations").insert(payload);
+      const { error } = await supabase.from("checkin_locations").insert(payload);
+      if (error) { console.error("[checkins] insert error:", error); alert("Insert failed: " + error.message); }
     }
     setSaving(false);
     setShowForm(false);
