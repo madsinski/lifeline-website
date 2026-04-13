@@ -66,20 +66,14 @@ export async function generateBrandedPDF(locs: CheckinLoc[], filename: string) {
       doc.rect(0, (H / 40) * s, W, H / 40 + 0.5, "F");
     }
 
-    // ── Logo centered at top ──
+    // ── Logo centered at top (exact SVG, no extra text) ──
     doc.addImage(logoPng, "PNG", CX - logoMmW / 2, 30, logoMmW, logoMmH);
-
-    // "HEALTH" spaced text below logo
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(107, 114, 128); // #6B7280
-    doc.text("H  E  A  L  T  H", CX, 30 + logoMmH + 5, { align: "center" });
 
     // ── Tagline ──
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(156, 163, 175); // #9CA3AF
-    doc.text("Scan to check in & earn your points", CX, 68, { align: "center" });
+    doc.text("Scan to check in & earn your points", CX, 30 + logoMmH + 10, { align: "center" });
 
     // ── QR code ──
     const qrUrl = await QRCode.toDataURL(`lifeline://checkin/${loc.key}`, {
