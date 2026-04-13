@@ -183,7 +183,7 @@ export default function CheckinsAdminPage() {
         <div style="position:absolute;inset:0;background:linear-gradient(180deg, #FFFFFF 0%, #F0FBF6 50%, #F8F6F1 100%);"></div>
 
         <!-- ═══ LOGO: big, centered, no header bar ═══ -->
-        <div style="position:relative;z-index:1;padding-top:56px;">
+        <div style="position:relative;z-index:1;padding-top:56px;display:flex;justify-content:center;">
           ${logoHTML("#000000", "#10B981", 340, "#6B7280")}
         </div>
 
@@ -200,11 +200,9 @@ export default function CheckinsAdminPage() {
           ${loc.address ? `<p style="font-family:Inter,system-ui,sans-serif;font-size:15px;color:#9CA3AF;margin:8px 0 0;font-weight:400;text-align:center;">${loc.address}</p>` : ""}
 
           <!-- Points pill -->
-          <table style="margin-top:24px;border-collapse:collapse;"><tr>
-            <td style="background:rgba(16,185,129,0.08);border:2px solid #10B981;border-radius:100px;padding:12px 32px;text-align:center;vertical-align:middle;">
-              <span style="font-family:'Nunito Sans',system-ui,sans-serif;font-size:18px;font-weight:800;color:#10B981;">+${loc.points} points</span>
-            </td>
-          </tr></table>
+          <div style="margin-top:24px;background:rgba(16,185,129,0.08);border:2px solid #10B981;border-radius:100px;padding:13px 32px 11px 32px;">
+            <span style="font-family:'Nunito Sans',system-ui,sans-serif;font-size:18px;font-weight:800;color:#10B981;display:block;text-align:center;">+${loc.points} points</span>
+          </div>
         </div>
 
         <!-- ═══ FOOTER ═══ -->
