@@ -13,8 +13,8 @@ export default function LifelineLogo({
   showHealth = false,
   variant = "default",
 }: LifelineLogoProps) {
-  const width = size === "lg" ? 520 : 300;
-  const height = size === "lg" ? 60 : 34;
+  const width = size === "lg" ? 700 : 440;
+  const height = size === "lg" ? 80 : 50;
   const src = variant === "white" ? "/lifeline-logo-rebrand-white.svg" : "/lifeline-logo-rebrand.svg";
 
   if (showHealth) {
