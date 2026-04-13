@@ -149,10 +149,13 @@ export default function CheckinsAdminPage() {
   // Exact SVG from logo rebrand file (viewBox 0 0 374 85, black wordmark + #10B981 mark)
   const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 374 85" fill="none"><path d="M9.64 71.1661C7.10667 71.1661 5.25333 70.5128 4.08 69.2061C2.90667 67.8728 2.32 65.8995 2.32 63.2861V42.5261H8.36V63.0461C8.36 63.7128 8.46667 64.2995 8.68 64.8061C8.89333 65.2861 9.2 65.6461 9.6 65.8861C10.0267 66.1261 10.56 66.2461 11.2 66.2461C11.4667 66.2461 11.7467 66.2328 12.04 66.2061C12.3333 66.1795 12.6133 66.1261 12.88 66.0461L12.8 70.7261C12.2933 70.8595 11.7733 70.9661 11.24 71.0461C10.7333 71.1261 10.2 71.1661 9.64 71.1661ZM19.4003 47.2861V41.6461H25.9203V47.2861H19.4003ZM19.6403 70.7261V51.0861H25.6803V70.7261H19.6403ZM35.8634 70.7261V55.6061H32.1434V51.0861H37.6234L35.8634 52.6861V51.4461C35.8634 48.5395 36.6368 46.3661 38.1834 44.9261C39.7301 43.4595 42.1434 42.6328 45.4234 42.4461L47.6234 42.2861L47.9834 46.6861L46.1034 46.8061C45.0634 46.8595 44.2368 47.0328 43.6234 47.3261C43.0101 47.5928 42.5701 47.9795 42.3034 48.4861C42.0368 48.9661 41.9034 49.6061 41.9034 50.4061V51.7661L41.1434 51.0861H47.0234V55.6061H41.9034V70.7261H35.8634ZM63.3481 71.1661C61.0281 71.1661 59.0281 70.7528 57.3481 69.9261C55.6948 69.0728 54.4148 67.8861 53.5081 66.3661C52.6281 64.8195 52.1881 63.0061 52.1881 60.9261C52.1881 58.8995 52.6148 57.1261 53.4681 55.6061C54.3215 54.0595 55.5081 52.8595 57.0281 52.0061C58.5748 51.1261 60.3215 50.6861 62.2681 50.6861C64.1881 50.6861 65.8415 51.0995 67.2281 51.9261C68.6148 52.7261 69.6815 53.8728 70.4281 55.3661C71.2015 56.8595 71.5881 58.6328 71.5881 60.6861V62.2061H57.1481V59.0861H67.2281L66.5881 59.6461C66.5881 58.0195 66.2281 56.7928 65.5081 55.9661C64.8148 55.1128 63.8148 54.6861 62.5081 54.6861C61.5215 54.6861 60.6815 54.9128 59.9881 55.3661C59.2948 55.8195 58.7615 56.4728 58.3881 57.3261C58.0148 58.1795 57.8281 59.2061 57.8281 60.4061V60.7261C57.8281 62.0861 58.0281 63.2061 58.4281 64.0861C58.8548 64.9395 59.4815 65.5795 60.3081 66.0061C61.1615 66.4328 62.2148 66.6461 63.4681 66.6461C64.5348 66.6461 65.6148 66.4861 66.7081 66.1661C67.8015 65.8461 68.7881 65.3528 69.6681 64.6861L71.2681 68.7261C70.2815 69.4728 69.0681 70.0728 67.6281 70.5261C66.2148 70.9528 64.7881 71.1661 63.3481 71.1661ZM86.4213 71.1661C83.8879 71.1661 82.0346 70.5128 80.8613 69.2061C79.6879 67.8728 79.1013 65.8995 79.1013 63.2861V42.5261H85.1413V63.0461C85.1413 63.7128 85.2479 64.2995 85.4613 64.8061C85.6746 65.2861 85.9813 65.6461 86.3813 65.8861C86.8079 66.1261 87.3413 66.2461 87.9813 66.2461C88.2479 66.2461 88.5279 66.2328 88.8213 66.2061C89.1146 66.1795 89.3946 66.1261 89.6613 66.0461L89.5813 70.7261C89.0746 70.8595 88.5546 70.9661 88.0213 71.0461C87.5146 71.1261 86.9813 71.1661 86.4213 71.1661ZM96.1816 47.2861V41.6461H102.702V47.2861H96.1816ZM96.4216 70.7261V51.0861H102.462V70.7261H96.4216ZM111.125 70.7261V51.0861H117.045V54.7661H116.605C117.218 53.4595 118.125 52.4595 119.325 51.7661C120.551 51.0461 121.938 50.6861 123.485 50.6861C125.058 50.6861 126.351 50.9928 127.365 51.6061C128.378 52.1928 129.138 53.0995 129.645 54.3261C130.151 55.5261 130.405 57.0595 130.405 58.9261V70.7261H124.365V59.2061C124.365 58.2995 124.245 57.5661 124.005 57.0061C123.791 56.4195 123.458 56.0061 123.005 55.7661C122.578 55.4995 122.031 55.3661 121.365 55.3661C120.511 55.3661 119.765 55.5528 119.125 55.9261C118.511 56.2728 118.031 56.7795 117.685 57.4461C117.338 58.1128 117.165 58.8861 117.165 59.7661V70.7261H111.125ZM149.114 71.1661C146.794 71.1661 144.794 70.7528 143.114 69.9261C141.46 69.0728 140.18 67.8861 139.274 66.3661C138.394 64.8195 137.954 63.0061 137.954 60.9261C137.954 58.8995 138.38 57.1261 139.234 55.6061C140.087 54.0595 141.274 52.8595 142.794 52.0061C144.34 51.1261 146.087 50.6861 148.034 50.6861C149.954 50.6861 151.607 51.0995 152.994 51.9261C154.38 52.7261 155.447 53.8728 156.194 55.3661C156.967 56.8595 157.354 58.6328 157.354 60.6861V62.2061H142.914V59.0861H152.994L152.354 59.6461C152.354 58.0195 151.994 56.7928 151.274 55.9661C150.58 55.1128 149.58 54.6861 148.274 54.6861C147.287 54.6861 146.447 54.9128 145.754 55.3661C145.06 55.8195 144.527 56.4728 144.154 57.3261C143.78 58.1795 143.594 59.2061 143.594 60.4061V60.7261C143.594 62.0861 143.794 63.2061 144.194 64.0861C144.62 64.9395 145.247 65.5795 146.074 66.0061C146.927 66.4328 147.98 66.6461 149.234 66.6461C150.3 66.6461 151.38 66.4861 152.474 66.1661C153.567 65.8461 154.554 65.3528 155.434 64.6861L157.034 68.7261C156.047 69.4728 154.834 70.0728 153.394 70.5261C151.98 70.9528 150.554 71.1661 149.114 71.1661Z" fill="WMFILL"/><path d="M355.728 12.9986L298 70.7263V49.406L334.407 12.9986H355.728Z" fill="MKFILL"/></svg>`;
 
-  const logoHTML = (wmColor: string, mkColor: string, w: number) => {
+  const logoHTML = (wmColor: string, mkColor: string, w: number, healthColor?: string) => {
     const h = Math.round((85 / 374) * w);
     const svg = LOGO_SVG.replace('WMFILL', wmColor).replace('MKFILL', mkColor);
-    return `<div style="width:${w}px;height:${h}px;">${svg.replace('viewBox=', `width="${w}" height="${h}" viewBox=`)}</div>`;
+    const healthEl = healthColor
+      ? `<div style="font-family:'Nunito Sans',Inter,system-ui,sans-serif;font-size:${Math.round(w * 0.042)}px;font-weight:300;color:${healthColor};letter-spacing:0.35em;text-transform:uppercase;margin-top:${Math.round(w * 0.01)}px;text-align:center;">health</div>`
+      : "";
+    return `<div style="width:${w}px;margin:0 auto;">${svg.replace('viewBox=', `width="${w}" height="${h}" viewBox=`)}${healthEl}</div>`;
   };
 
   const generateBrandedPDF = async (locs: CheckinLocation[], filename: string) => {
@@ -179,9 +182,9 @@ export default function CheckinsAdminPage() {
         <!-- Background: subtle accent gradient -->
         <div style="position:absolute;inset:0;background:linear-gradient(180deg, #FFFFFF 0%, #F0FBF6 50%, #F8F6F1 100%);"></div>
 
-        <!-- ═══ LOGO: big, top area, no header bar ═══ -->
-        <div style="position:relative;z-index:1;text-align:center;padding-top:56px;">
-          ${logoHTML("#000000", "#10B981", 340)}
+        <!-- ═══ LOGO: big, centered, no header bar ═══ -->
+        <div style="position:relative;z-index:1;padding-top:56px;">
+          ${logoHTML("#000000", "#10B981", 340, "#6B7280")}
         </div>
 
         <!-- ═══ MIDDLE: vertically centered content ═══ -->
@@ -196,10 +199,12 @@ export default function CheckinsAdminPage() {
           <h2 style="font-family:'Nunito Sans',system-ui,sans-serif;font-size:34px;font-weight:800;color:#1F2937;margin:28px 0 0;letter-spacing:-0.02em;line-height:1.15;text-align:center;">${loc.name}</h2>
           ${loc.address ? `<p style="font-family:Inter,system-ui,sans-serif;font-size:15px;color:#9CA3AF;margin:8px 0 0;font-weight:400;text-align:center;">${loc.address}</p>` : ""}
 
-          <!-- Points pill: vertically centered text -->
-          <div style="display:inline-flex;align-items:center;justify-content:center;background:rgba(16,185,129,0.08);border:2px solid #10B981;border-radius:100px;padding:0 32px;margin-top:24px;height:44px;">
-            <span style="font-family:'Nunito Sans',system-ui,sans-serif;font-size:18px;font-weight:800;color:#10B981;line-height:44px;">+${loc.points} points</span>
-          </div>
+          <!-- Points pill -->
+          <table style="margin-top:24px;border-collapse:collapse;"><tr>
+            <td style="background:rgba(16,185,129,0.08);border:2px solid #10B981;border-radius:100px;padding:12px 32px;text-align:center;vertical-align:middle;">
+              <span style="font-family:'Nunito Sans',system-ui,sans-serif;font-size:18px;font-weight:800;color:#10B981;">+${loc.points} points</span>
+            </td>
+          </tr></table>
         </div>
 
         <!-- ═══ FOOTER ═══ -->
