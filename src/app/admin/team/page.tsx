@@ -52,6 +52,11 @@ interface TeamMember {
   active: boolean;
   permissions: Permission[];
   invited: boolean;
+  avatar_url?: string | null;
+  specialty?: string | null;
+  bio?: string | null;
+  years_experience?: number | null;
+  qualifications?: string[] | null;
 }
 
 const roleLabels: Record<StaffRole, string> = {
@@ -386,7 +391,7 @@ export default function TeamPage() {
 
   const startEdit = (member: TeamMember) => {
     setEditingId(member.id);
-    setEditValues({ name: member.name, email: member.email, phone: member.phone, role: member.role, permissions: member.permissions });
+    setEditValues({ name: member.name, email: member.email, phone: member.phone, role: member.role, permissions: member.permissions, avatar_url: member.avatar_url, specialty: member.specialty, bio: member.bio, years_experience: member.years_experience, qualifications: member.qualifications });
   };
 
   const saveEdit = async (id: string) => {
@@ -401,6 +406,11 @@ export default function TeamPage() {
           phone: editValues.phone,
           role: editValues.role,
           permissions: editValues.permissions,
+          avatar_url: editValues.avatar_url || null,
+          specialty: editValues.specialty || null,
+          bio: editValues.bio || null,
+          years_experience: editValues.years_experience || null,
+          qualifications: editValues.qualifications || null,
         })
         .eq("id", id);
       if (error) {
@@ -595,9 +605,13 @@ export default function TeamPage() {
                   <tr className={idx % 2 === 1 ? "bg-gray-50/50" : ""}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${roleColors[member.role]}`}>
-                          {getInitials(member.name)}
-                        </div>
+                        {member.avatar_url ? (
+                          <img src={member.avatar_url} alt={member.name} className="w-9 h-9 rounded-full object-cover" />
+                        ) : (
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${roleColors[member.role]}`}>
+                            {getInitials(member.name)}
+                          </div>
+                        )}
                         {isEditing ? (
                           <input
                             type="text"
@@ -646,9 +660,14 @@ export default function TeamPage() {
                           ))}
                         </select>
                       ) : (
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColors[member.role]}`}>
-                          {roleLabels[member.role]}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColors[member.role]}`}>
+                            {roleLabels[member.role]}
+                          </span>
+                          {member.specialty && (
+                            <span className="text-[10px] text-gray-400">{member.specialty}</span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -750,6 +769,74 @@ export default function TeamPage() {
                               <span className="text-xs font-medium text-gray-700">{perm.label}</span>
                             </label>
                           ))}
+                        </div>
+
+                        {/* ─── Profile fields ─── */}
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Coach Profile (shown in app)</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Avatar URL */}
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Profile Photo URL</label>
+                              <div className="flex items-center gap-3">
+                                {editValues.avatar_url && (
+                                  <img src={editValues.avatar_url} alt="Avatar" className="w-10 h-10 rounded-full object-cover border-2 border-gray-200" />
+                                )}
+                                <input
+                                  type="text"
+                                  value={editValues.avatar_url ?? ""}
+                                  onChange={(e) => setEditValues({ ...editValues, avatar_url: e.target.value })}
+                                  placeholder="https://... or upload to Supabase Storage"
+                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                                />
+                              </div>
+                              <p className="text-[10px] text-gray-400 mt-1">Upload image to Supabase Storage &gt; staff-avatars bucket, then paste the public URL here</p>
+                            </div>
+                            {/* Specialty */}
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Specialty</label>
+                              <input
+                                type="text"
+                                value={editValues.specialty ?? ""}
+                                onChange={(e) => setEditValues({ ...editValues, specialty: e.target.value })}
+                                placeholder="e.g. Nutrition, Exercise Science, Mental Health"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                              />
+                            </div>
+                            {/* Bio */}
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Bio</label>
+                              <textarea
+                                value={editValues.bio ?? ""}
+                                onChange={(e) => setEditValues({ ...editValues, bio: e.target.value })}
+                                placeholder="Short bio about the coach..."
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 resize-none"
+                              />
+                            </div>
+                            {/* Years Experience */}
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Years of Experience</label>
+                              <input
+                                type="number"
+                                value={editValues.years_experience ?? ""}
+                                onChange={(e) => setEditValues({ ...editValues, years_experience: e.target.value ? parseInt(e.target.value) : null })}
+                                placeholder="e.g. 5"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                              />
+                            </div>
+                            {/* Qualifications */}
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Qualifications (comma-separated)</label>
+                              <input
+                                type="text"
+                                value={(editValues.qualifications || []).join(", ")}
+                                onChange={(e) => setEditValues({ ...editValues, qualifications: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+                                placeholder="e.g. MSc Exercise Science, Certified PT"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </td>
                     </tr>
