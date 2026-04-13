@@ -132,7 +132,7 @@ function AccountLoginContent() {
         {/* Brand */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <LifelineLogo size="sm" showHealth />
+            <LifelineLogo size="lg" />
           </Link>
           <p className="mt-2 text-[#6B7280] text-sm">
             {mode === "login"
