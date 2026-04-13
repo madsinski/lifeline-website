@@ -163,8 +163,11 @@ export default function CalendarPage() {
   // Community event state
   const [showEventForm, setShowEventForm] = useState(false);
   const [creatingEvent, setCreatingEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "" });
-  const [communityEvents, setCommunityEvents] = useState<{ id: string; name: string; type: string; date: string; time: string; location: string | null; description: string | null; cost: string; reward: string | null; max_participants: number | null; cancelled: boolean; staff_created: boolean; created_at: string }[]>([]);
+  const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "", image_url: "" });
+  const [communityEvents, setCommunityEvents] = useState<{ id: string; name: string; type: string; date: string; time: string; location: string | null; description: string | null; image_url: string | null; cost: string; reward: string | null; max_participants: number | null; cancelled: boolean; staff_created: boolean; created_at: string }[]>([]);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editEvent, setEditEvent] = useState({ name: "", date: "", time: "", location: "", description: "", type: "", cost: "", reward: "", max_participants: "", image_url: "" });
+  const [uploadingEventImg, setUploadingEventImg] = useState(false);
 
   const loadAppointments = useCallback(async () => {
     setLoading(true);
@@ -298,6 +301,7 @@ export default function CalendarPage() {
         time: newEvent.time || "09:00",
         location: newEvent.location || null,
         description: newEvent.description || null,
+        image_url: newEvent.image_url || null,
         cost: newEvent.cost || "Free",
         reward: newEvent.reward || null,
         max_participants: newEvent.max_participants ? parseInt(newEvent.max_participants) : null,
@@ -306,11 +310,46 @@ export default function CalendarPage() {
       });
       if (error) { alert(`Failed: ${error.message}`); return; }
       alert(`Event "${newEvent.name}" created!`);
-      setNewEvent({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "" });
+      setNewEvent({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "", image_url: "" });
       setShowEventForm(false);
       loadCommunityEvents();
     } catch { alert("Failed to create event"); }
     setCreatingEvent(false);
+  };
+
+  const saveEventEdit = async () => {
+    if (!editingEventId) return;
+    try {
+      const { error } = await supabase.from("community_events").update({
+        name: editEvent.name,
+        type: editEvent.type,
+        date: editEvent.date,
+        time: editEvent.time,
+        location: editEvent.location || null,
+        description: editEvent.description || null,
+        image_url: editEvent.image_url || null,
+        cost: editEvent.cost || "Free",
+        reward: editEvent.reward || null,
+        max_participants: editEvent.max_participants ? parseInt(editEvent.max_participants) : null,
+      }).eq("id", editingEventId);
+      if (error) { alert(`Failed: ${error.message}`); return; }
+      setEditingEventId(null);
+      loadCommunityEvents();
+    } catch { alert("Failed to save"); }
+  };
+
+  const uploadEventImage = async (file: File, eventId: string): Promise<string | null> => {
+    setUploadingEventImg(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `event-${eventId}.${ext}`;
+      await supabase.storage.from("event-images").remove([path]);
+      const { error } = await supabase.storage.from("event-images").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) { alert(`Upload failed: ${error.message}`); return null; }
+      const { data } = supabase.storage.from("event-images").getPublicUrl(path);
+      return data.publicUrl + "?t=" + Date.now();
+    } catch { return null; }
+    finally { setUploadingEventImg(false); }
   };
 
   const totalCount = filtered.length;
@@ -560,6 +599,22 @@ export default function CalendarPage() {
               <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
               <textarea value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} placeholder="Event description..." rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none" />
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Event Image</label>
+              <div className="flex items-center gap-3">
+                {newEvent.image_url && <img src={newEvent.image_url} alt="" className="w-16 h-10 rounded object-cover border" />}
+                <input type="text" value={newEvent.image_url} onChange={(e) => setNewEvent({ ...newEvent, image_url: e.target.value })} placeholder="Paste image URL or upload..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                <label className="cursor-pointer px-3 py-2 text-xs font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition-colors whitespace-nowrap">
+                  Upload
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    const url = await uploadEventImage(file, "new-" + Date.now());
+                    if (url) setNewEvent({ ...newEvent, image_url: url });
+                    e.target.value = "";
+                  }} />
+                </label>
+              </div>
+            </div>
           </div>
           <div className="flex justify-end gap-3 mt-4">
             <button onClick={() => setShowEventForm(false)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
@@ -641,10 +696,12 @@ export default function CalendarPage() {
           <div className="space-y-2">
             {communityEvents.map((evt) => {
               const isPast = new Date(evt.date) < new Date(new Date().toDateString());
+              const isEditing = editingEventId === evt.id;
               return (
-                <div key={evt.id} className={`bg-white rounded-xl border shadow-sm p-4 ${isPast ? "opacity-50 border-gray-200" : "border-cyan-200"} ${evt.cancelled ? "border-red-200 bg-red-50/30" : ""}`}>
-                  <div className="flex items-center gap-3">
+                <div key={evt.id} className={`bg-white rounded-xl border shadow-sm ${isPast ? "opacity-50 border-gray-200" : "border-cyan-200"} ${evt.cancelled ? "border-red-200 bg-red-50/30" : ""}`}>
+                  <div className="flex items-center gap-3 p-4">
                     <div className="w-1 self-stretch rounded-full bg-cyan-500" />
+                    {evt.image_url && <img src={evt.image_url} alt="" className="w-14 h-14 rounded-lg object-cover" />}
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-900">{evt.name}</span>
@@ -653,9 +710,7 @@ export default function CalendarPage() {
                         {isPast && !evt.cancelled && <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Past</span>}
                       </div>
                       <div className="flex items-center gap-4 mt-1">
-                        <span className="text-xs text-gray-500">
-                          {new Date(evt.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} at {evt.time}
-                        </span>
+                        <span className="text-xs text-gray-500">{new Date(evt.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} at {evt.time}</span>
                         {evt.location && <span className="text-xs text-gray-400">{evt.location}</span>}
                         {evt.reward && <span className="text-xs text-emerald-600 font-medium">{evt.reward}</span>}
                         {evt.max_participants && <span className="text-xs text-gray-400">Max {evt.max_participants}</span>}
@@ -663,6 +718,9 @@ export default function CalendarPage() {
                       {evt.description && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{evt.description}</p>}
                     </div>
                     <div className="flex items-center gap-1">
+                      <button onClick={() => { setEditingEventId(isEditing ? null : evt.id); setEditEvent({ name: evt.name, date: evt.date, time: evt.time, location: evt.location || "", description: evt.description || "", type: evt.type, cost: evt.cost || "Free", reward: evt.reward || "", max_participants: evt.max_participants ? String(evt.max_participants) : "", image_url: evt.image_url || "" }); }} className="p-1.5 rounded hover:bg-cyan-50 text-gray-300 hover:text-cyan-600 transition-colors" title="Edit">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
                       <button onClick={async () => { if (!confirm(`Cancel "${evt.name}"?`)) return; await supabase.from("community_events").update({ cancelled: true, cancel_reason: "Cancelled by admin" }).eq("id", evt.id); loadCommunityEvents(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
@@ -671,6 +729,72 @@ export default function CalendarPage() {
                       </button>
                     </div>
                   </div>
+                  {/* Edit form */}
+                  {isEditing && (
+                    <div className="border-t border-gray-100 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Name</label>
+                          <input type="text" value={editEvent.name} onChange={(e) => setEditEvent({ ...editEvent, name: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Type</label>
+                          <select value={editEvent.type} onChange={(e) => setEditEvent({ ...editEvent, type: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none">
+                            {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Date</label>
+                          <input type="date" value={editEvent.date} onChange={(e) => setEditEvent({ ...editEvent, date: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Time</label>
+                          <input type="time" value={editEvent.time} onChange={(e) => setEditEvent({ ...editEvent, time: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Location</label>
+                          <input type="text" value={editEvent.location} onChange={(e) => setEditEvent({ ...editEvent, location: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Cost</label>
+                          <input type="text" value={editEvent.cost} onChange={(e) => setEditEvent({ ...editEvent, cost: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Reward</label>
+                          <input type="text" value={editEvent.reward} onChange={(e) => setEditEvent({ ...editEvent, reward: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Max participants</label>
+                          <input type="number" value={editEvent.max_participants} onChange={(e) => setEditEvent({ ...editEvent, max_participants: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Description</label>
+                          <textarea value={editEvent.description} onChange={(e) => setEditEvent({ ...editEvent, description: e.target.value })} rows={2} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none resize-none" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-[10px] font-medium text-gray-500 mb-1">Event Image</label>
+                          <div className="flex items-center gap-3">
+                            {editEvent.image_url && <img src={editEvent.image_url} alt="" className="w-16 h-10 rounded object-cover border" />}
+                            <input type="text" value={editEvent.image_url} onChange={(e) => setEditEvent({ ...editEvent, image_url: e.target.value })} placeholder="Paste URL or upload..." className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                            <label className={`cursor-pointer px-3 py-1.5 text-xs font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition-colors whitespace-nowrap ${uploadingEventImg ? "opacity-50" : ""}`}>
+                              {uploadingEventImg ? "..." : "Upload"}
+                              <input type="file" accept="image/*" className="hidden" disabled={uploadingEventImg} onChange={async (e) => {
+                                const file = e.target.files?.[0]; if (!file) return;
+                                const url = await uploadEventImage(file, evt.id);
+                                if (url) setEditEvent({ ...editEvent, image_url: url });
+                                e.target.value = "";
+                              }} />
+                            </label>
+                            {editEvent.image_url && <button onClick={() => setEditEvent({ ...editEvent, image_url: "" })} className="text-[10px] text-red-400 hover:text-red-600">Remove</button>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-3">
+                        <button onClick={() => setEditingEventId(null)} className="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                        <button onClick={saveEventEdit} className="px-3 py-1.5 text-xs font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700">Save</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
