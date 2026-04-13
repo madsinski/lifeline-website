@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminLocationPicker from "@/components/AdminLocationPicker";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -163,10 +164,10 @@ export default function CalendarPage() {
   // Community event state
   const [showEventForm, setShowEventForm] = useState(false);
   const [creatingEvent, setCreatingEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "", image_url: "" });
+  const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "09:00", location: "", location_lat: null as number | null, location_lng: null as number | null, description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "", image_url: "" });
   const [communityEvents, setCommunityEvents] = useState<{ id: string; name: string; type: string; date: string; time: string; location: string | null; description: string | null; image_url: string | null; cost: string; reward: string | null; max_participants: number | null; cancelled: boolean; staff_created: boolean; created_at: string }[]>([]);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [editEvent, setEditEvent] = useState({ name: "", date: "", time: "", location: "", description: "", type: "", cost: "", reward: "", max_participants: "", image_url: "" });
+  const [editEvent, setEditEvent] = useState({ name: "", date: "", time: "", location: "", location_lat: null as number | null, location_lng: null as number | null, description: "", type: "", cost: "", reward: "", max_participants: "", image_url: "" });
   const [uploadingEventImg, setUploadingEventImg] = useState(false);
 
   const loadAppointments = useCallback(async () => {
@@ -300,6 +301,8 @@ export default function CalendarPage() {
         date: newEvent.date,
         time: newEvent.time || "09:00",
         location: newEvent.location || null,
+        location_lat: newEvent.location_lat,
+        location_lng: newEvent.location_lng,
         description: newEvent.description || null,
         image_url: newEvent.image_url || null,
         cost: newEvent.cost || "Free",
@@ -310,7 +313,7 @@ export default function CalendarPage() {
       });
       if (error) { alert(`Failed: ${error.message}`); return; }
       alert(`Event "${newEvent.name}" created!`);
-      setNewEvent({ name: "", date: "", time: "09:00", location: "", description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "", image_url: "" });
+      setNewEvent({ name: "", date: "", time: "09:00", location: "", location_lat: null, location_lng: null, description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "", image_url: "" });
       setShowEventForm(false);
       loadCommunityEvents();
     } catch { alert("Failed to create event"); }
@@ -326,6 +329,8 @@ export default function CalendarPage() {
         date: editEvent.date,
         time: editEvent.time,
         location: editEvent.location || null,
+        location_lat: editEvent.location_lat,
+        location_lng: editEvent.location_lng,
         description: editEvent.description || null,
         image_url: editEvent.image_url || null,
         cost: editEvent.cost || "Free",
@@ -581,7 +586,7 @@ export default function CalendarPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
-              <input type="text" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })} placeholder="Meeting point" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+              <AdminLocationPicker value={newEvent.location} onChange={(loc, lat, lng) => setNewEvent({ ...newEvent, location: loc, location_lat: lat ?? null, location_lng: lng ?? null })} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Cost</label>
@@ -718,7 +723,7 @@ export default function CalendarPage() {
                       {evt.description && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{evt.description}</p>}
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => { setEditingEventId(isEditing ? null : evt.id); setEditEvent({ name: evt.name, date: evt.date, time: evt.time, location: evt.location || "", description: evt.description || "", type: evt.type, cost: evt.cost || "Free", reward: evt.reward || "", max_participants: evt.max_participants ? String(evt.max_participants) : "", image_url: evt.image_url || "" }); }} className="p-1.5 rounded hover:bg-cyan-50 text-gray-300 hover:text-cyan-600 transition-colors" title="Edit">
+                      <button onClick={() => { setEditingEventId(isEditing ? null : evt.id); setEditEvent({ name: evt.name, date: evt.date, time: evt.time, location: evt.location || "", location_lat: (evt as any).location_lat ?? null, location_lng: (evt as any).location_lng ?? null, description: evt.description || "", type: evt.type, cost: evt.cost || "Free", reward: evt.reward || "", max_participants: evt.max_participants ? String(evt.max_participants) : "", image_url: evt.image_url || "" }); }} className="p-1.5 rounded hover:bg-cyan-50 text-gray-300 hover:text-cyan-600 transition-colors" title="Edit">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
                       <button onClick={async () => { if (!confirm(`Cancel "${evt.name}"?`)) return; await supabase.from("community_events").update({ cancelled: true, cancel_reason: "Cancelled by admin" }).eq("id", evt.id); loadCommunityEvents(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
@@ -753,7 +758,7 @@ export default function CalendarPage() {
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-gray-500 mb-1">Location</label>
-                          <input type="text" value={editEvent.location} onChange={(e) => setEditEvent({ ...editEvent, location: e.target.value })} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
+                          <AdminLocationPicker value={editEvent.location} onChange={(loc, lat, lng) => setEditEvent({ ...editEvent, location: loc, location_lat: lat ?? null, location_lng: lng ?? null })} />
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-gray-500 mb-1">Cost</label>
