@@ -3,6 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 
+// Load Nunito Sans for PDF generation (brand book heading font)
+if (typeof window !== "undefined") {
+  const link = document.createElement("link");
+  link.href = "https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap";
+  link.rel = "stylesheet";
+  if (!document.querySelector('link[href*="Nunito"]')) document.head.appendChild(link);
+}
+
 interface CheckinLocation {
   id: string;
   name: string;
@@ -138,16 +146,26 @@ export default function CheckinsAdminPage() {
     setShowForm(true);
   };
 
-  // Brand book SVG logo paths
-  const WORDMARK_D = "M9.64 71.17C7.11 71.17 5.25 70.51 4.08 69.21C2.91 67.87 2.32 65.9 2.32 63.29V42.53H8.36V63.05C8.36 63.71 8.47 64.3 8.68 64.81C8.89 65.29 9.2 65.65 9.6 65.89C10.03 66.13 10.56 66.25 11.2 66.25C11.47 66.25 11.75 66.23 12.04 66.21C12.33 66.18 12.61 66.13 12.88 66.05L12.8 70.73C12.29 70.86 11.77 70.97 11.24 71.05C10.73 71.13 10.2 71.17 9.64 71.17ZM19.4 47.29V41.65H25.92V47.29H19.4ZM19.64 70.73V51.09H25.68V70.73H19.64ZM35.86 70.73V55.61H32.14V51.09H37.62L35.86 52.69V51.45C35.86 48.54 36.64 46.37 38.18 44.93C39.73 43.46 42.14 42.63 45.42 42.45L47.62 42.29L47.98 46.69L46.1 46.81C45.06 46.86 44.24 47.03 43.62 47.33C43.01 47.59 42.57 47.98 42.3 48.49C42.04 48.97 41.9 49.61 41.9 50.41V51.77L41.14 51.09H47.02V55.61H41.9V70.73H35.86ZM63.35 71.17C61.03 71.17 59.03 70.75 57.35 69.93C55.69 69.07 54.41 67.89 53.51 66.37C52.63 64.82 52.19 63.01 52.19 60.93C52.19 58.9 52.61 57.13 53.47 55.61C54.32 54.06 55.51 52.86 57.03 52.01C58.57 51.13 60.32 50.69 62.27 50.69C64.19 50.69 65.84 51.1 67.23 51.93C68.61 52.73 69.68 53.87 70.43 55.37C71.2 56.86 71.59 58.63 71.59 60.69V62.21H57.15V59.09H67.23L66.59 59.65C66.59 58.02 66.23 56.79 65.51 55.97C64.81 55.11 63.81 54.69 62.51 54.69C61.52 54.69 60.68 54.91 59.99 55.37C59.29 55.82 58.76 56.47 58.39 57.33C58.01 58.18 57.83 59.21 57.83 60.41V60.73C57.83 62.09 58.03 63.21 58.43 64.09C58.85 64.94 59.48 65.58 60.31 66.01C61.16 66.43 62.21 66.65 63.47 66.65C64.53 66.65 65.61 66.49 66.71 66.17C67.8 65.85 68.79 65.35 69.67 64.69L71.27 68.73C70.28 69.47 69.07 70.07 67.63 70.53C66.21 70.95 64.79 71.17 63.35 71.17ZM86.42 71.17C83.89 71.17 82.03 70.51 80.86 69.21C79.69 67.87 79.1 65.9 79.1 63.29V42.53H85.14V63.05C85.14 63.71 85.25 64.3 85.46 64.81C85.67 65.29 85.98 65.65 86.38 65.89C86.81 66.13 87.34 66.25 87.98 66.25C88.25 66.25 88.53 66.23 88.82 66.21C89.11 66.18 89.39 66.13 89.66 66.05L89.58 70.73C89.07 70.86 88.55 70.97 88.02 71.05C87.51 71.13 86.98 71.17 86.42 71.17ZM96.18 47.29V41.65H102.7V47.29H96.18ZM96.42 70.73V51.09H102.46V70.73H96.42ZM111.13 70.73V51.09H117.05V54.77H116.61C117.22 53.46 118.13 52.46 119.33 51.77C120.55 51.05 121.94 50.69 123.49 50.69C125.06 50.69 126.35 50.99 127.37 51.61C128.38 52.19 129.14 53.1 129.65 54.33C130.15 55.53 130.41 57.06 130.41 58.93V70.73H124.37V59.21C124.37 58.3 124.25 57.57 124.01 57.01C123.79 56.42 123.46 56.01 123.01 55.77C122.58 55.5 122.03 55.37 121.37 55.37C120.51 55.37 119.77 55.55 119.13 55.93C118.51 56.27 118.03 56.78 117.69 57.45C117.34 58.11 117.17 58.89 117.17 59.77V70.73H111.13ZM149.11 71.17C146.79 71.17 144.79 70.75 143.11 69.93C141.46 69.07 140.18 67.89 139.27 66.37C138.39 64.82 137.95 63.01 137.95 60.93C137.95 58.9 138.38 57.13 139.23 55.61C140.09 54.06 141.27 52.86 142.79 52.01C144.34 51.13 146.09 50.69 148.03 50.69C149.95 50.69 151.61 51.1 152.99 51.93C154.38 52.73 155.45 53.87 156.19 55.37C156.97 56.86 157.35 58.63 157.35 60.69V62.21H142.91V59.09H152.99L152.35 59.65C152.35 58.02 151.99 56.79 151.27 55.97C150.58 55.11 149.58 54.69 148.27 54.69C147.29 54.69 146.45 54.91 145.75 55.37C145.06 55.82 144.53 56.47 144.15 57.33C143.78 58.18 143.59 59.21 143.59 60.41V60.73C143.59 62.09 143.79 63.21 144.19 64.09C144.62 64.94 145.25 65.58 146.07 66.01C146.93 66.43 147.98 66.65 149.23 66.65C150.3 66.65 151.38 66.49 152.47 66.17C153.57 65.85 154.55 65.35 155.43 64.69L157.03 68.73C156.05 69.47 154.83 70.07 153.39 70.53C151.98 70.95 150.55 71.17 149.11 71.17Z";
-  const MARK_D = "M355.728 12.9986L298 70.7263V49.406L334.407 12.9986H355.728Z";
+  // Brand book SVG paths (viewBox 0 0 374 85 = "lifeline" wordmark + angular mark)
+  const WM = "M9.64 71.17C7.11 71.17 5.25 70.51 4.08 69.21C2.91 67.87 2.32 65.9 2.32 63.29V42.53H8.36V63.05C8.36 63.71 8.47 64.3 8.68 64.81C8.89 65.29 9.2 65.65 9.6 65.89C10.03 66.13 10.56 66.25 11.2 66.25C11.47 66.25 11.75 66.23 12.04 66.21C12.33 66.18 12.61 66.13 12.88 66.05L12.8 70.73C12.29 70.86 11.77 70.97 11.24 71.05C10.73 71.13 10.2 71.17 9.64 71.17ZM19.4 47.29V41.65H25.92V47.29H19.4ZM19.64 70.73V51.09H25.68V70.73H19.64ZM35.86 70.73V55.61H32.14V51.09H37.62L35.86 52.69V51.45C35.86 48.54 36.64 46.37 38.18 44.93C39.73 43.46 42.14 42.63 45.42 42.45L47.62 42.29L47.98 46.69L46.1 46.81C45.06 46.86 44.24 47.03 43.62 47.33C43.01 47.59 42.57 47.98 42.3 48.49C42.04 48.97 41.9 49.61 41.9 50.41V51.77L41.14 51.09H47.02V55.61H41.9V70.73H35.86ZM63.35 71.17C61.03 71.17 59.03 70.75 57.35 69.93C55.69 69.07 54.41 67.89 53.51 66.37C52.63 64.82 52.19 63.01 52.19 60.93C52.19 58.9 52.61 57.13 53.47 55.61C54.32 54.06 55.51 52.86 57.03 52.01C58.57 51.13 60.32 50.69 62.27 50.69C64.19 50.69 65.84 51.1 67.23 51.93C68.61 52.73 69.68 53.87 70.43 55.37C71.2 56.86 71.59 58.63 71.59 60.69V62.21H57.15V59.09H67.23L66.59 59.65C66.59 58.02 66.23 56.79 65.51 55.97C64.81 55.11 63.81 54.69 62.51 54.69C61.52 54.69 60.68 54.91 59.99 55.37C59.29 55.82 58.76 56.47 58.39 57.33C58.01 58.18 57.83 59.21 57.83 60.41V60.73C57.83 62.09 58.03 63.21 58.43 64.09C58.85 64.94 59.48 65.58 60.31 66.01C61.16 66.43 62.21 66.65 63.47 66.65C64.53 66.65 65.61 66.49 66.71 66.17C67.8 65.85 68.79 65.35 69.67 64.69L71.27 68.73C70.28 69.47 69.07 70.07 67.63 70.53C66.21 70.95 64.79 71.17 63.35 71.17ZM86.42 71.17C83.89 71.17 82.03 70.51 80.86 69.21C79.69 67.87 79.1 65.9 79.1 63.29V42.53H85.14V63.05C85.14 63.71 85.25 64.3 85.46 64.81C85.67 65.29 85.98 65.65 86.38 65.89C86.81 66.13 87.34 66.25 87.98 66.25C88.25 66.25 88.53 66.23 88.82 66.21C89.11 66.18 89.39 66.13 89.66 66.05L89.58 70.73C89.07 70.86 88.55 70.97 88.02 71.05C87.51 71.13 86.98 71.17 86.42 71.17ZM96.18 47.29V41.65H102.7V47.29H96.18ZM96.42 70.73V51.09H102.46V70.73H96.42ZM111.13 70.73V51.09H117.05V54.77H116.61C117.22 53.46 118.13 52.46 119.33 51.77C120.55 51.05 121.94 50.69 123.49 50.69C125.06 50.69 126.35 50.99 127.37 51.61C128.38 52.19 129.14 53.1 129.65 54.33C130.15 55.53 130.41 57.06 130.41 58.93V70.73H124.37V59.21C124.37 58.3 124.25 57.57 124.01 57.01C123.79 56.42 123.46 56.01 123.01 55.77C122.58 55.5 122.03 55.37 121.37 55.37C120.51 55.37 119.77 55.55 119.13 55.93C118.51 56.27 118.03 56.78 117.69 57.45C117.34 58.11 117.17 58.89 117.17 59.77V70.73H111.13ZM149.11 71.17C146.79 71.17 144.79 70.75 143.11 69.93C141.46 69.07 140.18 67.89 139.27 66.37C138.39 64.82 137.95 63.01 137.95 60.93C137.95 58.9 138.38 57.13 139.23 55.61C140.09 54.06 141.27 52.86 142.79 52.01C144.34 51.13 146.09 50.69 148.03 50.69C149.95 50.69 151.61 51.1 152.99 51.93C154.38 52.73 155.45 53.87 156.19 55.37C156.97 56.86 157.35 58.63 157.35 60.69V62.21H142.91V59.09H152.99L152.35 59.65C152.35 58.02 151.99 56.79 151.27 55.97C150.58 55.11 149.58 54.69 148.27 54.69C147.29 54.69 146.45 54.91 145.75 55.37C145.06 55.82 144.53 56.47 144.15 57.33C143.78 58.18 143.59 59.21 143.59 60.41V60.73C143.59 62.09 143.79 63.21 144.19 64.09C144.62 64.94 145.25 65.58 146.07 66.01C146.93 66.43 147.98 66.65 149.23 66.65C150.3 66.65 151.38 66.49 152.47 66.17C153.57 65.85 154.55 65.35 155.43 64.69L157.03 68.73C156.05 69.47 154.83 70.07 153.39 70.53C151.98 70.95 150.55 71.17 149.11 71.17Z";
+  const MK = "M355.728 12.9986L298 70.7263V49.406L334.407 12.9986H355.728Z";
 
-  const lifelineSVG = (markFill: string, wordFill: string, w: number) => {
+  const logoSVG = (wmColor: string, mkColor: string, w: number) => {
     const h = Math.round((85 / 374) * w);
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 374 85"><path d="${WORDMARK_D}" fill="${wordFill}"/><path d="${MARK_D}" fill="${markFill}"/></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 374 85"><path d="${WM}" fill="${wmColor}"/><path d="${MK}" fill="${mkColor}"/></svg>`;
   };
 
-  // Render a branded poster HTML, capture with html2canvas, add to PDF
+  // Full logo block: SVG wordmark + "HEALTH" text underneath
+  const logoBlock = (wmColor: string, mkColor: string, healthColor: string, w: number) => {
+    const healthSize = Math.round(w * 0.058);
+    const spacing = Math.round(w * 0.6);
+    return `<div style="display:flex;flex-direction:column;align-items:center;">
+      ${logoSVG(wmColor, mkColor, w)}
+      <div style="font-family:'Nunito Sans',Inter,system-ui,sans-serif;font-size:${healthSize}px;font-weight:300;color:${healthColor};letter-spacing:${spacing / 100}em;text-transform:uppercase;margin-top:${Math.round(w * 0.01)}px;">HEALTH</div>
+    </div>`;
+  };
+
+  // Render branded poster HTML → capture to canvas → add to PDF
   const generateBrandedPDF = async (locs: CheckinLocation[], filename: string) => {
     const { default: jsPDF } = await import("jspdf");
     const html2canvas = (await import("html2canvas")).default;
@@ -155,9 +173,7 @@ export default function CheckinsAdminPage() {
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.left = "-9999px";
-    container.style.top = "0";
+    container.style.cssText = "position:fixed;left:-9999px;top:0;";
     document.body.appendChild(container);
 
     for (let i = 0; i < locs.length; i++) {
@@ -166,46 +182,53 @@ export default function CheckinsAdminPage() {
         width: 800, margin: 2, color: { dark: "#1F2937", light: "#FFFFFF" },
       });
 
-      const page = document.createElement("div");
-      page.style.cssText = "width:794px;height:1123px;position:relative;overflow:hidden;font-family:'Nunito Sans',Inter,system-ui,sans-serif;";
-      page.innerHTML = `
-        <div style="position:absolute;top:0;left:0;right:0;height:340px;background:linear-gradient(135deg,#10B981 0%,#047857 40%,#1F2937 100%);"></div>
-        <div style="position:absolute;top:0;left:0;right:0;height:340px;overflow:hidden;">
-          <div style="position:absolute;top:-80px;right:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,0.04);"></div>
-          <div style="position:absolute;bottom:-40px;left:-30px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.03);"></div>
-        </div>
-        <div style="position:relative;z-index:1;padding:60px 80px 0;">
-          <div style="text-align:center;margin-bottom:20px;">
-            ${lifelineSVG("#ffffff", "#ffffff", 320)}
-          </div>
-          <p style="text-align:center;font-size:18px;color:rgba(255,255,255,0.85);font-weight:400;margin:0;letter-spacing:0.02em;">Scan to check in & earn your points</p>
-        </div>
-        <div style="position:relative;z-index:1;display:flex;justify-content:center;margin-top:40px;">
-          <div style="background:#FFFFFF;border-radius:24px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
-            <img src="${qrDataUrl}" width="280" height="280" style="display:block;border-radius:12px;" />
-          </div>
-        </div>
-        <div style="position:relative;z-index:1;text-align:center;padding:40px 60px 0;">
-          <h2 style="font-size:36px;font-weight:800;color:#1F2937;margin:0 0 8px;letter-spacing:-0.02em;line-height:1.15;">${loc.name}</h2>
-          ${loc.address ? `<p style="font-size:16px;color:#6B7280;margin:0 0 20px;">${loc.address}</p>` : '<div style="height:20px;"></div>'}
-          <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,0.1);border:2px solid #10B981;border-radius:100px;padding:10px 28px;">
-            <span style="font-size:20px;font-weight:800;color:#10B981;letter-spacing:-0.01em;">+${loc.points} points</span>
-          </div>
-        </div>
-        <div style="position:absolute;bottom:0;left:0;right:0;height:64px;background:#1F2937;display:flex;align-items:center;justify-content:center;">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#10B981;"></div>
-          ${lifelineSVG("#10B981", "rgba(255,255,255,0.7)", 140)}
-        </div>
-        <div style="position:absolute;bottom:64px;left:0;right:0;background:#F8F6F1;height:0;"></div>
-      `;
+      // Load fonts before rendering
+      await document.fonts.load('800 48px "Nunito Sans"').catch(() => {});
+      await document.fonts.load('300 16px "Nunito Sans"').catch(() => {});
 
-      // Set background for the content area
-      const bgDiv = document.createElement("div");
-      bgDiv.style.cssText = "position:absolute;top:340px;left:0;right:0;bottom:64px;background:#F8F6F1;";
-      page.insertBefore(bgDiv, page.children[2]);
+      const page = document.createElement("div");
+      page.style.cssText = "width:794px;height:1123px;position:relative;overflow:hidden;background:#F8F6F1;";
+      page.innerHTML = `
+        <!-- Gradient header -->
+        <div style="position:absolute;top:0;left:0;right:0;height:300px;background:linear-gradient(135deg,#10B981 0%,#047857 50%,#1F2937 100%);"></div>
+        <!-- Decorative circles -->
+        <div style="position:absolute;top:-60px;right:-40px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,0.05);"></div>
+        <div style="position:absolute;top:180px;left:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.03);"></div>
+
+        <!-- Header content -->
+        <div style="position:relative;z-index:1;padding-top:56px;text-align:center;">
+          ${logoBlock("#ffffff", "#ffffff", "rgba(255,255,255,0.6)", 280)}
+          <p style="font-family:Inter,system-ui,sans-serif;font-size:16px;color:rgba(255,255,255,0.75);margin:16px 0 0;font-weight:400;">Scan to check in & earn your points</p>
+        </div>
+
+        <!-- QR card -->
+        <div style="position:relative;z-index:1;display:flex;justify-content:center;margin-top:36px;">
+          <div style="background:#FFFFFF;border-radius:20px;padding:28px;box-shadow:0 16px 48px rgba(0,0,0,0.12);">
+            <img src="${qrDataUrl}" width="260" height="260" style="display:block;border-radius:8px;" />
+          </div>
+        </div>
+
+        <!-- Location info -->
+        <div style="position:relative;z-index:1;text-align:center;padding:36px 80px 0;">
+          <h2 style="font-family:'Nunito Sans',system-ui,sans-serif;font-size:32px;font-weight:800;color:#1F2937;margin:0 0 8px;letter-spacing:-0.02em;line-height:1.2;">${loc.name}</h2>
+          ${loc.address ? `<p style="font-family:Inter,system-ui,sans-serif;font-size:15px;color:#6B7280;margin:0 0 24px;font-weight:400;">${loc.address}</p>` : '<div style="height:24px;"></div>'}
+          <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,0.08);border:2px solid #10B981;border-radius:100px;padding:10px 32px;">
+            <span style="font-family:'Nunito Sans',system-ui,sans-serif;font-size:20px;font-weight:800;color:#10B981;">+${loc.points} points</span>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="position:absolute;bottom:0;left:0;right:0;height:56px;background:#1F2937;display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#10B981;"></div>
+          ${logoBlock("rgba(255,255,255,0.5)", "#10B981", "rgba(255,255,255,0.35)", 120)}
+        </div>
+      `;
 
       container.innerHTML = "";
       container.appendChild(page);
+
+      // Small delay for font rendering
+      await new Promise(r => setTimeout(r, 200));
 
       const canvas = await html2canvas(page, { scale: 2, useCORS: true, backgroundColor: "#F8F6F1" });
       const imgData = canvas.toDataURL("image/png");
