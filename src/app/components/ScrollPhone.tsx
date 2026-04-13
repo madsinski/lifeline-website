@@ -98,9 +98,9 @@ export default function ScrollPhone({
         }}
       />
       {/* Frame */}
-      <div className="absolute inset-0 bg-[#1a1a1a] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#2a2a2a] shadow-2xl" />
+      <div className="absolute inset-0 bg-[#1F2937] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#374151] shadow-2xl" />
       {/* Inner bezel */}
-      <div className="absolute inset-[4px] bg-[#111] rounded-[2.6rem] sm:rounded-[3rem]" />
+      <div className="absolute inset-[4px] bg-[#1F2937] rounded-[2.6rem] sm:rounded-[3rem]" />
       {/* Screen */}
       <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
         <img

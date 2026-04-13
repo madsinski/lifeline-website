@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -145,6 +145,33 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [supabaseStatus, setSupabaseStatus] = useState<"connected" | "error" | "checking">("checking");
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [brandTheme, setBrandTheme] = useState<"rebrand" | "classic">("rebrand");
+
+  // Load and apply brand theme on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("ll-brand-theme");
+    if (saved === "classic") {
+      setBrandTheme("classic");
+      document.documentElement.dataset.theme = "classic";
+    } else {
+      setBrandTheme("rebrand");
+      delete document.documentElement.dataset.theme;
+    }
+  }, []);
+
+  const toggleBrandTheme = useMemo(() => () => {
+    setBrandTheme((prev) => {
+      const next = prev === "rebrand" ? "classic" : "rebrand";
+      if (next === "classic") {
+        document.documentElement.dataset.theme = "classic";
+        localStorage.setItem("ll-brand-theme", "classic");
+      } else {
+        delete document.documentElement.dataset.theme;
+        localStorage.setItem("ll-brand-theme", "rebrand");
+      }
+      return next;
+    });
+  }, []);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -276,7 +303,7 @@ export default function AdminDashboardPage() {
   }, [fetchStats]);
 
   const statCards = [
-    { label: "Total Clients", value: stats.totalClients, prev: stats.prevTotalClients, color: "border-l-4 border-l-[#0D9488]" },
+    { label: "Total Clients", value: stats.totalClients, prev: stats.prevTotalClients, color: "border-l-4 border-l-[#10B981]" },
     { label: "Free Plan", value: stats.freeTrialCount, prev: stats.prevFreeTrialCount, color: "border-l-4 border-l-gray-400" },
     { label: "Self-Maintained", value: stats.selfMaintainedCount, prev: stats.prevSelfMaintainedCount, color: "border-l-4 border-l-blue-500" },
     { label: "Full Access", value: stats.fullAccessCount, prev: stats.prevFullAccessCount, color: "border-l-4 border-l-emerald-500" },
@@ -329,7 +356,7 @@ export default function AdminDashboardPage() {
 
       {/* Revenue Card */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#0D9488]">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#10B981]">
           <div className="flex items-center justify-between mb-1">
             <p className="text-sm text-gray-500">Estimated MRR</p>
             <TrendArrow current={stats.estimatedMRR} previous={stats.prevMRR} />
@@ -408,7 +435,7 @@ export default function AdminDashboardPage() {
             <Link
               key={action.href}
               href={action.href}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-[#0D9488]/30 hover:shadow-md transition-all group flex items-start gap-3"
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-[#10B981]/30 hover:shadow-md transition-all group flex items-start gap-3"
             >
               <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center flex-shrink-0`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -416,7 +443,7 @@ export default function AdminDashboardPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-[#1F2937] group-hover:text-[#0D9488] transition-colors">{action.label}</p>
+                <p className="text-sm font-medium text-[#1F2937] group-hover:text-[#10B981] transition-colors">{action.label}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{action.desc}</p>
               </div>
             </Link>
@@ -429,7 +456,7 @@ export default function AdminDashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[#1F2937]">Recent Activity</h2>
-            <Link href="/admin/clients" className="text-xs text-[#0D9488] hover:underline font-medium">View all</Link>
+            <Link href="/admin/clients" className="text-xs text-[#10B981] hover:underline font-medium">View all</Link>
           </div>
           {loading ? (
             <div className="space-y-3">
@@ -509,6 +536,23 @@ export default function AdminDashboardPage() {
                 <span className="text-xs font-medium text-gray-500">{lastSync ?? "--"}</span>
               </div>
               <p className="text-xs text-gray-400">Auto-refresh on page load</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600">Brand Theme</span>
+                <span className={`text-xs font-medium ${brandTheme === "rebrand" ? "text-emerald-600" : "text-teal-600"}`}>
+                  {brandTheme === "rebrand" ? "Rebrand" : "Classic"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-400">Switch between classic and rebrand colours</p>
+                <button
+                  onClick={toggleBrandTheme}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${brandTheme === "rebrand" ? "bg-[#10B981]" : "bg-[#0D9488]"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${brandTheme === "rebrand" ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

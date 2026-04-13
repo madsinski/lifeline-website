@@ -38,7 +38,7 @@ const DIETARY_TAGS = [
 
 const CATEGORY_COLORS: Record<MealCategory, string> = {
   breakfast: "#F59E0B",
-  lunch: "#0D9488",
+  lunch: "#10B981",
   dinner: "#8B5CF6",
   snack: "#EC4899",
 };
@@ -179,7 +179,7 @@ export default function MealsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Meals Library</h1>
           <p className="text-sm text-gray-500 mt-1">{meals.length} meals total · {filtered.length} matching filters</p>
         </div>
-        <button onClick={startCreate} className="px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors">
+        <button onClick={startCreate} className="px-4 py-2 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors">
           + Add Meal
         </button>
       </div>
@@ -191,7 +191,7 @@ export default function MealsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or description..."
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none"
         />
         <div className="flex flex-wrap gap-2">
           <select
@@ -224,7 +224,7 @@ export default function MealsPage() {
       {/* Meal grid */}
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <div className="w-8 h-8 border-4 border-gray-200 border-t-[#0D9488] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-[#10B981] rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center text-gray-400 text-sm shadow-sm border border-gray-100">
@@ -272,7 +272,7 @@ export default function MealsPage() {
                   </div>
                   <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
                     <button onClick={() => setViewingMeal(meal)} className="flex-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded">View</button>
-                    <button onClick={() => startEdit(meal)} className="flex-1 px-2 py-1 text-xs text-[#0D9488] hover:bg-[#0D9488]/5 rounded">Edit</button>
+                    <button onClick={() => startEdit(meal)} className="flex-1 px-2 py-1 text-xs text-[#10B981] hover:bg-[#10B981]/5 rounded">Edit</button>
                     <button onClick={() => setConfirmDelete({ id: meal.id, name: meal.name })} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded">×</button>
                   </div>
                 </div>
@@ -317,7 +317,7 @@ export default function MealsPage() {
                 <ul className="space-y-1">
                   {(viewingMeal.ingredients || []).map((ing, i) => (
                     <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                      <span className="text-[#0D9488]">•</span>
+                      <span className="text-[#10B981]">•</span>
                       <span>{ing}</span>
                     </li>
                   ))}
@@ -328,7 +328,7 @@ export default function MealsPage() {
                 <ol className="space-y-2">
                   {(viewingMeal.instructions || []).map((step, i) => (
                     <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                      <span className="font-bold text-[#0D9488] flex-shrink-0">{i + 1}.</span>
+                      <span className="font-bold text-[#10B981] flex-shrink-0">{i + 1}.</span>
                       <span>{step}</span>
                     </li>
                   ))}
@@ -337,7 +337,7 @@ export default function MealsPage() {
               {viewingMeal.dietary_tags && viewingMeal.dietary_tags.length > 0 && (
                 <div className="flex gap-1 mt-4 flex-wrap">
                   {viewingMeal.dietary_tags.map(t => (
-                    <span key={t} className="px-2 py-1 bg-[#0D9488]/10 text-[#0D9488] text-xs rounded font-medium">{t}</span>
+                    <span key={t} className="px-2 py-1 bg-[#10B981]/10 text-[#10B981] text-xs rounded font-medium">{t}</span>
                   ))}
                 </div>
               )}
@@ -363,7 +363,7 @@ export default function MealsPage() {
                   value={editingMeal.name || ""}
                   onChange={(e) => setEditingMeal({ ...editingMeal, name: e.target.value })}
                   placeholder="Greek Yogurt Power Bowl"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none"
                 />
               </div>
               {/* Description */}
@@ -374,7 +374,7 @@ export default function MealsPage() {
                   value={editingMeal.description || ""}
                   onChange={(e) => setEditingMeal({ ...editingMeal, description: e.target.value })}
                   placeholder="One-line summary"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none"
                 />
               </div>
               {/* Category, Difficulty, Servings */}
@@ -473,7 +473,7 @@ export default function MealsPage() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Ingredients</label>
                   <button
                     onClick={() => setEditingMeal({ ...editingMeal, ingredients: [...(editingMeal.ingredients || []), ""] })}
-                    className="text-xs text-[#0D9488] hover:underline"
+                    className="text-xs text-[#10B981] hover:underline"
                   >+ Add</button>
                 </div>
                 {(editingMeal.ingredients || [""]).map((ing, i) => (
@@ -505,7 +505,7 @@ export default function MealsPage() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Instructions</label>
                   <button
                     onClick={() => setEditingMeal({ ...editingMeal, instructions: [...(editingMeal.instructions || []), ""] })}
-                    className="text-xs text-[#0D9488] hover:underline"
+                    className="text-xs text-[#10B981] hover:underline"
                   >+ Add step</button>
                 </div>
                 {(editingMeal.instructions || [""]).map((step, i) => (
@@ -543,7 +543,7 @@ export default function MealsPage() {
                         key={t}
                         onClick={() => toggleTag(t)}
                         className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                          isOn ? "bg-[#0D9488] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          isOn ? "bg-[#10B981] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {t}
@@ -555,7 +555,7 @@ export default function MealsPage() {
             </div>
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex gap-3">
               <button onClick={() => { setEditingMeal(null); setIsCreating(false); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg">Cancel</button>
-              <button onClick={saveMeal} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] hover:bg-[#0B7B73] rounded-lg">{isCreating ? "Create" : "Save"}</button>
+              <button onClick={saveMeal} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#10B981] hover:bg-[#047857] rounded-lg">{isCreating ? "Create" : "Save"}</button>
             </div>
           </div>
         </div>

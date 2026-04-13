@@ -25,7 +25,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
-              Get in <span className="text-[#0D9488]">touch</span>
+              Get in <span className="text-[#10B981]">touch</span>
             </h1>
             <p className="mt-6 text-lg text-[#6B7280]">
               Have a question or want to learn more? We would love to hear from
@@ -46,9 +46,9 @@ export default function ContactPage() {
               </h2>
 
               {submitted ? (
-                <div className="bg-[#0D9488]/5 border border-[#0D9488]/20 rounded-2xl p-8 text-center">
-                  <div className="w-16 h-16 rounded-full bg-[#0D9488]/10 flex items-center justify-center mx-auto mb-4 success-checkmark">
-                    <svg className="w-8 h-8 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-[#10B981]/5 border border-[#10B981]/20 rounded-2xl p-8 text-center">
+                  <div className="w-16 h-16 rounded-full bg-[#10B981]/10 flex items-center justify-center mx-auto mb-4 success-checkmark">
+                    <svg className="w-8 h-8 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -60,7 +60,7 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setSubmitted(false)}
-                    className="text-sm font-medium text-[#0D9488] hover:text-[#0B7B73] transition-colors duration-200"
+                    className="text-sm font-medium text-[#10B981] hover:text-[#047857] transition-colors duration-200"
                   >
                     Send another message
                   </button>
@@ -81,7 +81,7 @@ export default function ContactPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
                       placeholder="Your name"
                       required
                     />
@@ -100,7 +100,7 @@ export default function ContactPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, email: e.target.value })
                       }
-                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
                       placeholder="your@email.com"
                       required
                     />
@@ -119,7 +119,7 @@ export default function ContactPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, subject: e.target.value })
                       }
-                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60"
                       placeholder="How can we help?"
                       required
                     />
@@ -138,14 +138,14 @@ export default function ContactPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, message: e.target.value })
                       }
-                      className="w-full px-4 py-3 rounded-xl bg-[#e6ecf4] border-2 border-transparent focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60 resize-none"
+                      className="w-full px-4 py-3 rounded-xl bg-[#e6ecf4] border-2 border-transparent focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all duration-200 text-[#1F2937] placeholder:text-[#6B7280]/60 resize-none"
                       placeholder="Tell us more..."
                       required
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-8 py-3.5 bg-[#0D9488] text-white font-semibold rounded-full hover:bg-[#0B7B73] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-[#10B981] text-white font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
                   >
                     Send Message
                   </button>
@@ -223,7 +223,7 @@ export default function ContactPage() {
                 <div className="bg-[#f5f7fa] rounded-xl p-5 flex items-start gap-4 shadow-sm">
                   <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center flex-shrink-0" style={{ border: "2px solid rgba(32,200,88,0.15)" }}>
                     <svg
-                      className="w-6 h-6 text-[#0D9488]"
+                      className="w-6 h-6 text-[#10B981]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -248,10 +248,10 @@ export default function ContactPage() {
               </div>
 
               {/* Patient portal */}
-              <div className="mt-8 bg-[#f5f7fa] rounded-xl p-6 shadow-sm border border-[#0D9488]/15">
+              <div className="mt-8 bg-[#f5f7fa] rounded-xl p-6 shadow-sm border border-[#10B981]/15">
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center flex-shrink-0" style={{ border: "2px solid rgba(32,200,88,0.15)" }}>
-                    <svg className="w-6 h-6 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -284,9 +284,9 @@ export default function ContactPage() {
                 </div>
                 {/* Location pin */}
                 <div className="text-center relative z-10">
-                  <div className="w-12 h-12 rounded-full bg-[#0D9488]/20 flex items-center justify-center mx-auto mb-3">
-                    <div className="w-8 h-8 rounded-full bg-[#0D9488]/40 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-[#0D9488] shadow-lg shadow-green-500/50" />
+                  <div className="w-12 h-12 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-3">
+                    <div className="w-8 h-8 rounded-full bg-[#10B981]/40 flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-[#10B981] shadow-lg shadow-green-500/50" />
                     </div>
                   </div>
                   <p className="text-sm font-medium text-[#1F2937]">Lagmula 5, 108 Reykjavik</p>

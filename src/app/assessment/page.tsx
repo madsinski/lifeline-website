@@ -7,7 +7,7 @@ import ScrollPhone from "../components/ScrollPhone";
 import WaveSeparator from "../components/WaveSeparator";
 
 const packageColors = [
-  { accent: "border-t-4 border-t-[#0D9488]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#0D9488]" },
+  { accent: "border-t-4 border-t-[#10B981]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#10B981]" },
   { accent: "border-t-4 border-t-[#3B82F6]", iconBg: "bg-blue-50 border border-blue-100", iconText: "text-[#3B82F6]" },
   { accent: "border-t-4 border-t-[#8B5CF6]", iconBg: "bg-purple-50 border border-purple-100", iconText: "text-[#8B5CF6]" },
 ];
@@ -77,7 +77,7 @@ const packages = [
 
 const stepColors = [
   { bg: "bg-blue-50", border: "border-blue-100", text: "text-[#3B82F6]", badge: "bg-[#3B82F6]" },
-  { bg: "bg-green-50", border: "border-green-100", text: "text-[#0D9488]", badge: "bg-[#0D9488]" },
+  { bg: "bg-green-50", border: "border-green-100", text: "text-[#10B981]", badge: "bg-[#10B981]" },
   { bg: "bg-purple-50", border: "border-purple-100", text: "text-[#8B5CF6]", badge: "bg-[#8B5CF6]" },
   { bg: "bg-amber-50", border: "border-amber-100", text: "text-[#F59E0B]", badge: "bg-[#F59E0B]" },
   { bg: "bg-cyan-50", border: "border-cyan-100", text: "text-[#06B6D4]", badge: "bg-[#06B6D4]" },
@@ -194,7 +194,7 @@ export default function AssessmentPage() {
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
               Health{" "}
-              <span className="text-[#0D9488]">Assessment</span>
+              <span className="text-[#10B981]">Assessment</span>
             </h1>
             <p className="mt-6 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
               Get the health data that matters most. Our targeted screening
@@ -262,19 +262,19 @@ export default function AssessmentPage() {
           <div className="grid grid-cols-2 gap-16 h-full">
             <div className="sticky top-0 h-screen flex items-center">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Your results, <span className="text-[#0D9488]">explained</span></h2>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Your results, <span className="text-[#10B981]">explained</span></h2>
                 <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.</p>
                 <ul className="space-y-3 mb-6">
                   {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
                     <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                      <svg className="w-5 h-5 text-[#0D9488] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      <svg className="w-5 h-5 text-[#10B981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       {item}
                     </li>
                   ))}
                 </ul>
                 <div className="flex items-start gap-3 bg-[#ecf0f3] rounded-xl p-4">
-                  <svg className="w-5 h-5 text-[#0D9488] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">All results are stored securely in your <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#0D9488] hover:underline font-medium">Medalia</a> patient portal.</p>
+                  <svg className="w-5 h-5 text-[#10B981] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                  <p className="text-xs text-[#6B7280] leading-relaxed">All results are stored securely in your <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#10B981] hover:underline font-medium">Medalia</a> patient portal.</p>
                 </div>
               </div>
             </div>
@@ -287,12 +287,12 @@ export default function AssessmentPage() {
       {/* Results preview — Mobile: text then standalone phone */}
       <section className="bg-white lg:hidden py-24 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="text-3xl font-bold text-[#1F2937] mb-6">Your results, <span className="text-[#0D9488]">explained</span></h2>
+          <h2 className="text-3xl font-bold text-[#1F2937] mb-6">Your results, <span className="text-[#10B981]">explained</span></h2>
           <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.</p>
           <ul className="space-y-3 mb-6">
             {["Health score across 6 categories", "Blood test results with clinical context", "Body composition breakdown", "Personalised recommendations", "Direct access in the Lifeline app"].map((item) => (
               <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                <svg className="w-5 h-5 text-[#0D9488] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <svg className="w-5 h-5 text-[#10B981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                 {item}
               </li>
             ))}
@@ -314,19 +314,19 @@ export default function AssessmentPage() {
             </div>
             <div className="sticky top-0 h-screen flex items-center">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Track your <span className="text-[#0D9488]">progress</span></h2>
+                <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Track your <span className="text-[#10B981]">progress</span></h2>
                 <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">Your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your metabolic health.</p>
                 <ul className="space-y-3 mb-6">
                   {["Body composition: weight, fat mass, muscle mass, BMI", "Blood pressure", "Targeted blood test markers with clinical context", "Health scores across all categories", "Progress charts comparing previous check-ups"].map((item) => (
                     <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                      <svg className="w-5 h-5 text-[#0D9488] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      <svg className="w-5 h-5 text-[#10B981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       {item}
                     </li>
                   ))}
                 </ul>
                 <div className="flex items-start gap-3 bg-white/80 rounded-xl p-4">
-                  <svg className="w-5 h-5 text-[#0D9488] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">Your health data is stored securely in <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#0D9488] hover:underline font-medium">Medalia</a>. The Lifeline app is a secure window into your records.</p>
+                  <svg className="w-5 h-5 text-[#10B981] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                  <p className="text-xs text-[#6B7280] leading-relaxed">Your health data is stored securely in <a href="https://medalia.is" target="_blank" rel="noopener noreferrer" className="text-[#10B981] hover:underline font-medium">Medalia</a>. The Lifeline app is a secure window into your records.</p>
                 </div>
               </div>
             </div>
@@ -336,12 +336,12 @@ export default function AssessmentPage() {
       {/* Track progress — Mobile: text then standalone phone */}
       <section className="bg-[#ecf0f3] lg:hidden py-24 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="text-3xl font-bold text-[#1F2937] mb-6">Track your <span className="text-[#0D9488]">progress</span></h2>
+          <h2 className="text-3xl font-bold text-[#1F2937] mb-6">Track your <span className="text-[#10B981]">progress</span></h2>
           <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">Your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your metabolic health.</p>
           <ul className="space-y-3">
             {["Body composition: weight, fat mass, muscle mass, BMI", "Blood pressure", "Targeted blood test markers with clinical context", "Health scores across all categories", "Progress charts comparing previous check-ups"].map((item) => (
               <li key={item} className="flex items-center gap-3 text-sm text-[#6B7280]">
-                <svg className="w-5 h-5 text-[#0D9488] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <svg className="w-5 h-5 text-[#10B981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                 {item}
               </li>
             ))}
@@ -362,7 +362,7 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Assessment <span className="text-[#0D9488]">Packages</span>
+              Assessment <span className="text-[#10B981]">Packages</span>
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
               Choose the assessment that fits your needs
@@ -399,7 +399,7 @@ export default function AssessmentPage() {
                       {pkg.includes.map((item) => (
                         <li key={item} className="flex items-start gap-3">
                           <svg
-                            className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#0D9488]"
+                            className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#10B981]"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -443,7 +443,7 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Test <span className="text-[#0D9488]">locations</span>
+              Test <span className="text-[#10B981]">locations</span>
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
               Where to complete your assessment
@@ -466,8 +466,8 @@ export default function AssessmentPage() {
                 ].map((station) => (
                   <div key={station.name} className="bg-[#e6ecf4] rounded-2xl p-5 shadow-sm">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#0D9488]/10 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                         </svg>
@@ -497,8 +497,8 @@ export default function AssessmentPage() {
                     className="bg-[#e6ecf4] rounded-xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-all duration-200"
                   >
                     {loc.type === "main" ? (
-                      <div className="w-8 h-8 rounded-lg bg-[#0D9488]/10 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
                         </svg>
                       </div>
@@ -550,7 +550,7 @@ export default function AssessmentPage() {
                     {faq.question}
                   </span>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-                    openFaq === i ? "bg-[#0D9488] text-white rotate-180" : "bg-[#e6ecf4] text-[#6B7280]"
+                    openFaq === i ? "bg-[#10B981] text-white rotate-180" : "bg-[#e6ecf4] text-[#6B7280]"
                   }`}>
                     <svg
                       className="w-4 h-4"

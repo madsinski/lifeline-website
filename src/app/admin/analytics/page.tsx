@@ -129,7 +129,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D9488]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10B981]" />
       </div>
     );
   }
@@ -186,7 +186,7 @@ export default function AnalyticsPage() {
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">New (7 days)</p>
-            <p className="text-2xl font-bold text-[#0D9488] mt-1">{stats.recentSignups}</p>
+            <p className="text-2xl font-bold text-[#10B981] mt-1">{stats.recentSignups}</p>
           </div>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function AnalyticsPage() {
               const colors: Record<string, string> = {
                 "free-trial": "bg-gray-400",
                 "self-maintained": "bg-blue-500",
-                "full-access": "bg-[#0D9488]",
+                "full-access": "bg-[#10B981]",
               };
               return (
                 <div key={key}>
@@ -308,7 +308,7 @@ export default function AnalyticsPage() {
                   {tierEntries.reduce((s, r) => s + r.clients, 0)}
                 </td>
                 <td className="py-2.5 px-3" />
-                <td className="py-2.5 px-3 text-sm font-bold text-[#0D9488]">{formatISK(stats.mrr)}</td>
+                <td className="py-2.5 px-3 text-sm font-bold text-[#10B981]">{formatISK(stats.mrr)}</td>
               </tr>
             </tfoot>
           </table>

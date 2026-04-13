@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
         {/* Brand */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">
-            Lifeline <span className="text-[#0D9488]">Admin</span>
+            Lifeline <span className="text-[#10B981]">Admin</span>
           </h1>
           <p className="mt-2 text-gray-400 text-sm">
             Sign in to manage your platform
@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder="admin@lifeline.is"
               />
             </div>
@@ -76,7 +76,7 @@ export default function AdminLoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder="Enter your password"
               />
             </div>
@@ -90,7 +90,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#0D9488] hover:bg-[#0B7B73] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>

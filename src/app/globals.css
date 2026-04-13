@@ -3,8 +3,8 @@
 :root {
   --background: #ecf0f3;
   --foreground: #1F2937;
-  --primary: #0D9488;
-  --primary-dark: #0B7B73;
+  --primary: #10B981;
+  --primary-dark: #047857;
   --card-bg: #e6ecf4;
   --blue: #3B82F6;
   --purple: #8B5CF6;
@@ -12,6 +12,22 @@
   --red: #EF4444;
   --teal: #06B6D4;
   --grey: #6B7280;
+  --exercise: #EA580C;
+  --nutrition: #84CC16;
+  --sleep: #767194;
+  --mental: #0EA5E9;
+  --accent: #FB923C;
+}
+
+/* Classic (pre-rebrand) theme override */
+[data-theme="classic"] {
+  --primary: #0D9488;
+  --primary-dark: #0B7B73;
+  --exercise: #3B82F6;
+  --nutrition: #0D9488;
+  --sleep: #8B5CF6;
+  --mental: #06B6D4;
+  --accent: #F59E0B;
 }
 
 @theme inline {
@@ -26,6 +42,11 @@
   --color-red: var(--red);
   --color-teal: var(--teal);
   --color-grey: var(--grey);
+  --color-exercise: var(--exercise);
+  --color-nutrition: var(--nutrition);
+  --color-sleep: var(--sleep);
+  --color-mental: var(--mental);
+  --color-accent: var(--accent);
   --font-sans: var(--font-inter);
 }
 
@@ -112,7 +133,7 @@ select:focus-visible {
   right: -1rem;
   width: 2rem;
   height: 2px;
-  background: linear-gradient(90deg, #0D9488, #0D9488/40);
+  background: linear-gradient(90deg, var(--primary), var(--primary)/40);
   display: none;
 }
 
@@ -134,7 +155,7 @@ select:focus-visible {
   top: 2.5rem;
   bottom: -1.5rem;
   width: 2px;
-  background: linear-gradient(180deg, #0D9488, #0D9488/20);
+  background: linear-gradient(180deg, var(--primary), var(--primary)/20);
 }
 
 .timeline-line:last-child::before {

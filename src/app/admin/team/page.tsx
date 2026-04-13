@@ -526,7 +526,7 @@ export default function TeamPage() {
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -640,7 +640,7 @@ export default function TeamPage() {
                             type="text"
                             value={editValues.name ?? ""}
                             onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 w-40"
+                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 w-40"
                           />
                         ) : (
                           <span className="text-sm font-medium text-[#1F2937]">{member.name}</span>
@@ -653,7 +653,7 @@ export default function TeamPage() {
                           type="email"
                           value={editValues.email ?? ""}
                           onChange={(e) => setEditValues({ ...editValues, email: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 w-48"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 w-48"
                         />
                       ) : (
                         <span className="text-sm text-gray-600">{member.email}</span>
@@ -665,7 +665,7 @@ export default function TeamPage() {
                           type="tel"
                           value={editValues.phone ?? ""}
                           onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 w-36"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 w-36"
                         />
                       ) : (
                         <span className="text-sm text-gray-600">{member.phone || "Not set"}</span>
@@ -676,7 +676,7 @@ export default function TeamPage() {
                         <select
                           value={editValues.role ?? member.role}
                           onChange={(e) => setEditValues({ ...editValues, role: e.target.value as StaffRole })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                         >
                           {roleOptions.map((r) => (
                             <option key={r} value={r}>{roleLabels[r]}</option>
@@ -698,7 +698,7 @@ export default function TeamPage() {
                         onClick={() => toggleActive(member.id)}
                         className="flex items-center gap-2 group"
                       >
-                        <div className={`relative w-9 h-5 rounded-full transition-colors ${member.active ? "bg-[#0D9488]" : "bg-gray-300"}`}>
+                        <div className={`relative w-9 h-5 rounded-full transition-colors ${member.active ? "bg-[#10B981]" : "bg-gray-300"}`}>
                           <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${member.active ? "translate-x-4" : "translate-x-0.5"}`} />
                         </div>
                         <span className={`text-xs ${member.active ? "text-green-600" : "text-gray-400"}`}>
@@ -712,7 +712,7 @@ export default function TeamPage() {
                           <>
                             <button
                               onClick={() => saveEdit(member.id)}
-                              className="px-3 py-1 text-xs font-medium text-white bg-[#0D9488] rounded hover:bg-[#1bb34d] transition-colors"
+                              className="px-3 py-1 text-xs font-medium text-white bg-[#10B981] rounded hover:bg-[#10B981] transition-colors"
                             >
                               Save
                             </button>
@@ -787,7 +787,7 @@ export default function TeamPage() {
                                     : [...current, perm.key];
                                   setEditValues({ ...editValues, permissions: updated });
                                 }}
-                                className="w-3.5 h-3.5 text-[#0D9488] border-gray-300 rounded focus:ring-[#0D9488]"
+                                className="w-3.5 h-3.5 text-[#10B981] border-gray-300 rounded focus:ring-[#10B981]"
                               />
                               <span className="text-xs font-medium text-gray-700">{perm.label}</span>
                             </label>
@@ -810,7 +810,7 @@ export default function TeamPage() {
                                   </div>
                                 )}
                                 <div className="flex flex-col gap-1">
-                                  <label className="cursor-pointer px-3 py-1.5 text-xs font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0b7e73] transition-colors inline-flex items-center gap-1.5">
+                                  <label className="cursor-pointer px-3 py-1.5 text-xs font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#0b7e73] transition-colors inline-flex items-center gap-1.5">
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                     Upload photo
                                     <input
@@ -852,7 +852,7 @@ export default function TeamPage() {
                                 value={editValues.specialty ?? ""}
                                 onChange={(e) => setEditValues({ ...editValues, specialty: e.target.value })}
                                 placeholder="e.g. Nutrition, Exercise Science, Mental Health"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                               />
                             </div>
                             {/* Bio */}
@@ -863,7 +863,7 @@ export default function TeamPage() {
                                 onChange={(e) => setEditValues({ ...editValues, bio: e.target.value })}
                                 placeholder="Short bio about the coach..."
                                 rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 resize-none"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 resize-none"
                               />
                             </div>
                             {/* Years Experience */}
@@ -874,7 +874,7 @@ export default function TeamPage() {
                                 value={editValues.years_experience ?? ""}
                                 onChange={(e) => setEditValues({ ...editValues, years_experience: e.target.value ? parseInt(e.target.value) : null })}
                                 placeholder="e.g. 5"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                               />
                             </div>
                             {/* Qualifications */}
@@ -885,7 +885,7 @@ export default function TeamPage() {
                                 onChange={(e) => setEditValues({ ...editValues, qualifications: e.target.value.split("\n").filter(s => s.trim()) })}
                                 placeholder={"e.g.\nMSc Exercise Science\nCertified Personal Trainer\nNutrition Coach Level 3"}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 resize-none"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 resize-none"
                               />
                             </div>
                           </div>
@@ -1008,7 +1008,7 @@ export default function TeamPage() {
                 step={0.05}
                 value={cropZoom}
                 onChange={(e) => setCropZoom(Number(e.target.value))}
-                className="w-full accent-[#0D9488]"
+                className="w-full accent-[#10B981]"
               />
             </div>
             <div className="flex gap-3 px-5 pb-5">
@@ -1035,7 +1035,7 @@ export default function TeamPage() {
                     alert("Crop failed. Try again.");
                   }
                 }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#0b7e73] transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#0b7e73] transition-colors"
               >
                 Save photo
               </button>
@@ -1067,7 +1067,7 @@ export default function TeamPage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Full name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -1077,7 +1077,7 @@ export default function TeamPage() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="email@lifeline.is"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -1087,7 +1087,7 @@ export default function TeamPage() {
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="+354 555 0000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -1095,7 +1095,7 @@ export default function TeamPage() {
                 <select
                   value={newRole}
                   onChange={(e) => handleRoleChange(e.target.value as StaffRole)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
                 >
                   {roleOptions.map((r) => (
                     <option key={r} value={r}>{roleLabels[r]}</option>
@@ -1111,7 +1111,7 @@ export default function TeamPage() {
                         type="checkbox"
                         checked={newPermissions.includes(perm.key)}
                         onChange={() => togglePermission(perm.key)}
-                        className="mt-0.5 w-4 h-4 text-[#0D9488] border-gray-300 rounded focus:ring-[#0D9488]"
+                        className="mt-0.5 w-4 h-4 text-[#10B981] border-gray-300 rounded focus:ring-[#10B981]"
                       />
                       <div>
                         <span className="text-sm font-medium text-gray-700">{perm.label}</span>
@@ -1127,7 +1127,7 @@ export default function TeamPage() {
                     type="checkbox"
                     checked={sendInvite}
                     onChange={(e) => setSendInvite(e.target.checked)}
-                    className="w-4 h-4 text-[#0D9488] border-gray-300 rounded focus:ring-[#0D9488]"
+                    className="w-4 h-4 text-[#10B981] border-gray-300 rounded focus:ring-[#10B981]"
                   />
                   <span className="text-sm font-medium text-gray-700">Send invite email</span>
                 </label>
@@ -1144,7 +1144,7 @@ export default function TeamPage() {
               <button
                 onClick={handleAdd}
                 disabled={!newName.trim() || !newEmail.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sendInvite ? "Add & Send Invite" : "Add Member"}
               </button>

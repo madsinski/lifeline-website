@@ -192,7 +192,7 @@ function AccountLoginContent() {
                       required
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none transition-all text-gray-900"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                       placeholder="First name"
                     />
                   </div>
@@ -209,7 +209,7 @@ function AccountLoginContent() {
                       required
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none transition-all text-gray-900"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                       placeholder="Last name"
                     />
                   </div>
@@ -230,7 +230,7 @@ function AccountLoginContent() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder="you@example.com"
               />
             </div>
@@ -248,7 +248,7 @@ function AccountLoginContent() {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none transition-all text-gray-900"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                   placeholder="Phone number"
                 />
               </div>
@@ -267,7 +267,7 @@ function AccountLoginContent() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder={
                   mode === "signup"
                     ? "Choose a password (min 6 characters)"
@@ -291,7 +291,7 @@ function AccountLoginContent() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#0D9488] hover:bg-[#0B7B73] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading
                 ? mode === "login"
@@ -306,7 +306,7 @@ function AccountLoginContent() {
           {mode === "login" && (
             <button
               onClick={handleForgotPassword}
-              className="block w-full text-center text-sm text-[#6B7280] hover:text-[#0D9488] mt-4 transition-colors"
+              className="block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981] mt-4 transition-colors"
             >
               Forgot your password?
             </button>
@@ -314,7 +314,7 @@ function AccountLoginContent() {
         </div>
 
         <p className="text-center text-[#6B7280] text-xs mt-6">
-          <Link href="/" className="hover:text-[#0D9488] transition-colors">
+          <Link href="/" className="hover:text-[#10B981] transition-colors">
             Back to Lifeline Health
           </Link>
         </p>

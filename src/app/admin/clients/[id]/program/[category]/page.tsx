@@ -32,7 +32,7 @@ interface Phase {
 function makeId() { return Math.random().toString(36).slice(2, 10); }
 
 const categoryLabels: Record<string, string> = { exercise: "Exercise", nutrition: "Nutrition", sleep: "Sleep", mental: "Mental" };
-const categoryColors: Record<string, string> = { exercise: "#3B82F6", nutrition: "#0D9488", sleep: "#8B5CF6", mental: "#06B6D4" };
+const categoryColors: Record<string, string> = { exercise: "#EA580C", nutrition: "#84CC16", sleep: "#767194", mental: "#0EA5E9" };
 
 export default function ClientProgramEditorPage() {
   const params = useParams();
@@ -245,7 +245,7 @@ export default function ClientProgramEditorPage() {
     : [];
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-[#0D9488] rounded-full" /></div>;
+    return <div className="flex items-center justify-center py-20"><div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-[#10B981] rounded-full" /></div>;
   }
 
   return (
@@ -271,7 +271,7 @@ export default function ClientProgramEditorPage() {
           <button onClick={handleShare} className={`px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${shared ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>
             {shared ? "Shared with client" : "Share with client"}
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1bb34d] disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] disabled:opacity-50">
             {saving ? "Saving..." : "Save"}
           </button>
           {saveMsg && <span className="text-xs font-medium text-green-600">{saveMsg}</span>}
@@ -284,17 +284,17 @@ export default function ClientProgramEditorPage() {
           <div className="md:col-span-2">
             <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Program name</label>
             <input value={programName} onChange={(e) => { setProgramName(e.target.value); setDirty(true); }}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900" />
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900" />
           </div>
           <div>
             <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Tagline</label>
             <input value={tagline} onChange={(e) => { setTagline(e.target.value); setDirty(true); }} placeholder="One-liner for card"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900" />
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900" />
           </div>
           <div>
             <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Duration</label>
             <select value={duration} onChange={(e) => { setDuration(Number(e.target.value)); setDirty(true); }}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900">
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900">
               <option value={4}>4 weeks</option><option value={8}>8 weeks</option><option value={12}>12 weeks</option>
             </select>
           </div>
@@ -304,7 +304,7 @@ export default function ClientProgramEditorPage() {
           <div>
             <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Level</label>
             <select value={level} onChange={(e) => { setLevel(e.target.value as ProgramLevel); setDirty(true); }}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900">
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900">
               <option value="">Not set</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
             </select>
           </div>
@@ -312,7 +312,7 @@ export default function ClientProgramEditorPage() {
             <div>
               <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Exercise type</label>
               <select value={exerciseType} onChange={(e) => { setExerciseType(e.target.value as ExerciseType); setDirty(true); }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900">
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900">
                 <option value="">Not set</option><option value="gym">Gym</option><option value="home">Home</option>
               </select>
             </div>
@@ -320,14 +320,14 @@ export default function ClientProgramEditorPage() {
           <div className={categoryKey === "exercise" ? "md:col-span-2" : "md:col-span-3"}>
             <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Who is it for</label>
             <input value={targetAudience} onChange={(e) => { setTargetAudience(e.target.value); setDirty(true); }} placeholder="Target audience"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900" />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900" />
           </div>
         </div>
 
         <div>
           <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Description</label>
           <textarea value={description} onChange={(e) => { setDescription(e.target.value); setDirty(true); }} rows={3} placeholder="Program description..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none resize-y text-gray-900 leading-relaxed" />
+            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#10B981] outline-none resize-y text-gray-900 leading-relaxed" />
         </div>
 
         {/* Structured phases */}
@@ -335,7 +335,7 @@ export default function ClientProgramEditorPage() {
           <div className="flex items-center justify-between mb-2">
             <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Program phases</label>
             <button onClick={() => { setPhases(prev => [...prev, { weeks: "", name: "", description: "" }]); setDirty(true); }}
-              className="text-xs font-medium text-[#0D9488] hover:underline">+ Add phase</button>
+              className="text-xs font-medium text-[#10B981] hover:underline">+ Add phase</button>
           </div>
           {phases.length === 0 && <p className="text-xs text-gray-300 py-1">No phases defined.</p>}
           {phases.map((phase, pi) => (
@@ -343,11 +343,11 @@ export default function ClientProgramEditorPage() {
               <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 mt-1">{pi + 1}</div>
               <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                 <input value={phase.weeks} onChange={(e) => { setPhases(prev => prev.map((p, i) => i === pi ? { ...p, weeks: e.target.value } : p)); setDirty(true); }}
-                  placeholder="e.g. 1–4" className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900" />
+                  placeholder="e.g. 1–4" className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900" />
                 <input value={phase.name} onChange={(e) => { setPhases(prev => prev.map((p, i) => i === pi ? { ...p, name: e.target.value } : p)); setDirty(true); }}
-                  placeholder="Phase name" className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900" />
+                  placeholder="Phase name" className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900" />
                 <input value={phase.description} onChange={(e) => { setPhases(prev => prev.map((p, i) => i === pi ? { ...p, description: e.target.value } : p)); setDirty(true); }}
-                  placeholder="Description" className="md:col-span-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900" />
+                  placeholder="Description" className="md:col-span-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900" />
               </div>
               <button onClick={() => { setPhases(prev => prev.filter((_, i) => i !== pi)); setDirty(true); }} className="p-1 text-red-400 hover:text-red-600 mt-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -361,7 +361,7 @@ export default function ClientProgramEditorPage() {
       {copySource !== null && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3 text-sm flex-wrap">
           <span className="text-blue-700 font-medium">Copy {weekRanges[copySource]} to:</span>
-          <button onClick={() => fillAllWeeks(copySource)} className="px-3 py-1 bg-[#0D9488] text-white rounded-lg text-xs font-bold">All weeks</button>
+          <button onClick={() => fillAllWeeks(copySource)} className="px-3 py-1 bg-[#10B981] text-white rounded-lg text-xs font-bold">All weeks</button>
           <span className="text-blue-400">|</span>
           {weekRanges.slice(0, duration).map((wr, wi) => wi !== copySource && (
             <button key={wi} onClick={() => copyWeek(copySource, wi)} className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium">{wr}</button>
@@ -448,31 +448,31 @@ export default function ClientProgramEditorPage() {
               <div key={action._idx} className="p-4 rounded-xl border border-gray-200 space-y-3">
                 <div className="flex gap-3">
                   <input value={action.label} onChange={(e) => updateAction(action._idx, "label", e.target.value)} placeholder="Action label (e.g. Barbell Bench Press)"
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900" />
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-base font-semibold focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900" />
                   <select value={action.time_group} onChange={(e) => updateAction(action._idx, "time_group", e.target.value)}
-                    className="w-32 px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900">
+                    className="w-32 px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900">
                     {timeGroups.map(tg => <option key={tg} value={tg}>{tg.charAt(0).toUpperCase() + tg.slice(1)}</option>)}
                   </select>
                 </div>
                 <textarea value={Array.isArray(action.details) ? action.details.join("\n") : ""} onChange={(e) => updateAction(action._idx, "details", e.target.value.split("\n"))}
                   placeholder={"Details — one item per line\n\ne.g.\n4 sets x 8 reps\n60s rest between sets\nRPE 7"}
-                  rows={8} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0D9488] outline-none resize-y text-gray-900 leading-relaxed min-h-[150px]" />
+                  rows={8} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#10B981] outline-none resize-y text-gray-900 leading-relaxed min-h-[150px]" />
                 {/* Media URLs */}
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Image URL</label>
                     <input value={action.image_url || ""} onChange={(e) => updateAction(action._idx, "image_url", e.target.value)} placeholder="https://..."
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-700" />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-700" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Video URL</label>
                     <input value={action.video_url || ""} onChange={(e) => updateAction(action._idx, "video_url", e.target.value)} placeholder="https://youtube.com/..."
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-700" />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-700" />
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-1">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <div className={`relative w-9 h-5 rounded-full transition-colors ${action.priority ? "bg-[#0D9488]" : "bg-gray-300"}`}>
+                    <div className={`relative w-9 h-5 rounded-full transition-colors ${action.priority ? "bg-[#10B981]" : "bg-gray-300"}`}>
                       <input type="checkbox" checked={action.priority} onChange={(e) => updateAction(action._idx, "priority", e.target.checked)} className="sr-only" />
                       <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${action.priority ? "translate-x-4" : "translate-x-0.5"}`} />
                     </div>

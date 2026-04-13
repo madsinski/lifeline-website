@@ -32,7 +32,7 @@ const CATEGORY_COLORS: Record<Category, string> = {
   back: "#3B82F6",
   shoulders: "#F59E0B",
   arms: "#8B5CF6",
-  legs: "#0D9488",
+  legs: "#10B981",
   core: "#06B6D4",
   cardio: "#EC4899",
   flexibility: "#14B8A6",
@@ -549,7 +549,7 @@ export default function ExercisesPage() {
           </button>
           {selectedIds.size > 0 && (
             <>
-              <button onClick={() => { setShowCreateProgram(true); setProgramForm({ name: "", description: "", level: "beginner", duration: 8, category: "exercise" }); }} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center gap-2">
+              <button onClick={() => { setShowCreateProgram(true); setProgramForm({ name: "", description: "", level: "beginner", duration: 8, category: "exercise" }); }} className="px-4 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                 Create Program ({selectedIds.size})
               </button>
@@ -559,7 +559,7 @@ export default function ExercisesPage() {
               </button>
             </>
           )}
-          <button onClick={openCreate} className="px-4 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center gap-2">
+          <button onClick={openCreate} className="px-4 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Add Exercise
           </button>
@@ -582,17 +582,17 @@ export default function ExercisesPage() {
 
         {/* Second filter row */}
         <div className="flex flex-wrap items-center gap-3">
-          <select value={equipmentFilter} onChange={(e) => setEquipmentFilter(e.target.value as Equipment | "all")} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent bg-white">
+          <select value={equipmentFilter} onChange={(e) => setEquipmentFilter(e.target.value as Equipment | "all")} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent bg-white">
             <option value="all">All Equipment</option>
             {EQUIPMENT.map((eq) => <option key={eq} value={eq}>{eq.charAt(0).toUpperCase() + eq.slice(1)}</option>)}
           </select>
-          <select value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value as Difficulty | "all")} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent bg-white">
+          <select value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value as Difficulty | "all")} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent bg-white">
             <option value="all">All Difficulties</option>
             {DIFFICULTIES.map((d) => <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
           </select>
           <div className="relative flex-1 min-w-[200px] max-w-md">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search exercises..." className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent" />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search exercises..." className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent" />
           </div>
           {filtered.length > 0 && (
             <button onClick={toggleSelectAll} className="text-xs text-gray-500 hover:text-gray-700 underline whitespace-nowrap">
@@ -605,7 +605,7 @@ export default function ExercisesPage() {
       {/* ── Loading ────────────────────────────────────────────────────────────── */}
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D9488]" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10B981]" />
         </div>
       )}
 
@@ -625,10 +625,10 @@ export default function ExercisesPage() {
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((ex) => (
-            <div key={ex.id} className={`bg-white rounded-xl p-5 shadow-sm border transition-all cursor-pointer hover:shadow-md ${selectedIds.has(ex.id) ? "border-[#0D9488] ring-2 ring-[#0D9488]/20" : "border-gray-100"}`}>
+            <div key={ex.id} className={`bg-white rounded-xl p-5 shadow-sm border transition-all cursor-pointer hover:shadow-md ${selectedIds.has(ex.id) ? "border-[#10B981] ring-2 ring-[#10B981]/20" : "border-gray-100"}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <input type="checkbox" checked={selectedIds.has(ex.id)} onChange={() => toggleSelect(ex.id)} className="mt-1 w-4 h-4 rounded border-gray-300 text-[#0D9488] focus:ring-[#0D9488] cursor-pointer" onClick={(e) => e.stopPropagation()} />
+                  <input type="checkbox" checked={selectedIds.has(ex.id)} onChange={() => toggleSelect(ex.id)} className="mt-1 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981] cursor-pointer" onClick={(e) => e.stopPropagation()} />
                   {ex.illustration_url && (
                     <img src={ex.illustration_url} alt={ex.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                   )}
@@ -638,7 +638,7 @@ export default function ExercisesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingExercise({ ...ex }); setIsCreating(false); }} className="p-1.5 text-gray-400 hover:text-[#0D9488] rounded-lg hover:bg-green-50 transition-colors" title="Edit">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingExercise({ ...ex }); setIsCreating(false); }} className="p-1.5 text-gray-400 hover:text-[#10B981] rounded-lg hover:bg-green-50 transition-colors" title="Edit">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: ex.id, name: ex.name }); }} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Delete">
@@ -675,7 +675,7 @@ export default function ExercisesPage() {
       {!loading && exercises.length > 0 && filtered.length === 0 && (
         <div className="text-center py-16">
           <p className="text-gray-400 text-sm">No exercises match your filters</p>
-          <button onClick={() => { setCategoryFilter("all"); setEquipmentFilter("all"); setDifficultyFilter("all"); setSearch(""); }} className="mt-2 text-sm text-[#0D9488] hover:underline">Clear filters</button>
+          <button onClick={() => { setCategoryFilter("all"); setEquipmentFilter("all"); setDifficultyFilter("all"); setSearch(""); }} className="mt-2 text-sm text-[#10B981] hover:underline">Clear filters</button>
         </div>
       )}
 
@@ -732,7 +732,7 @@ export default function ExercisesPage() {
                   <ol className="space-y-2">
                     {viewingExercise.instructions.map((inst, i) => (
                       <li key={i} className="flex gap-3 text-sm text-gray-600">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#0D9488]/10 text-[#0D9488] flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center text-xs font-bold">{i + 1}</span>
                         <span className="leading-relaxed">{inst}</span>
                       </li>
                     ))}
@@ -744,7 +744,7 @@ export default function ExercisesPage() {
               {viewingExercise.video_url && (
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Video</h4>
-                  <a href={viewingExercise.video_url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#0D9488] hover:underline flex items-center gap-1">
+                  <a href={viewingExercise.video_url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#10B981] hover:underline flex items-center gap-1">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     Watch video
                   </a>
@@ -753,7 +753,7 @@ export default function ExercisesPage() {
 
               {/* Action buttons */}
               <div className="flex gap-3 pt-3 border-t border-gray-100">
-                <button onClick={() => { setEditingExercise({ ...viewingExercise }); setIsCreating(false); setViewingExercise(null); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors flex items-center justify-center gap-2">
+                <button onClick={() => { setEditingExercise({ ...viewingExercise }); setIsCreating(false); setViewingExercise(null); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors flex items-center justify-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   Edit
                 </button>
@@ -781,13 +781,13 @@ export default function ExercisesPage() {
             {/* Program name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Program Name *</label>
-              <input type="text" value={programForm.name} onChange={(e) => setProgramForm({ ...programForm, name: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent" placeholder="e.g. Upper Body Strength" />
+              <input type="text" value={programForm.name} onChange={(e) => setProgramForm({ ...programForm, name: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent" placeholder="e.g. Upper Body Strength" />
             </div>
 
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <select value={programForm.category} onChange={(e) => setProgramForm({ ...programForm, category: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent bg-white">
+              <select value={programForm.category} onChange={(e) => setProgramForm({ ...programForm, category: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent bg-white">
                 <option value="exercise">Exercise</option>
                 <option value="nutrition">Nutrition</option>
                 <option value="sleep">Sleep</option>
@@ -800,7 +800,7 @@ export default function ExercisesPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Duration (weeks)</label>
               <div className="flex gap-2">
                 {[4, 8, 12].map((w) => (
-                  <button key={w} onClick={() => setProgramForm({ ...programForm, duration: w })} className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors border ${programForm.duration === w ? "bg-[#0D9488] text-white border-transparent" : "text-gray-600 border-gray-300 hover:border-gray-400"}`}>
+                  <button key={w} onClick={() => setProgramForm({ ...programForm, duration: w })} className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors border ${programForm.duration === w ? "bg-[#10B981] text-white border-transparent" : "text-gray-600 border-gray-300 hover:border-gray-400"}`}>
                     {w} weeks
                   </button>
                 ))}
@@ -822,7 +822,7 @@ export default function ExercisesPage() {
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea value={programForm.description} onChange={(e) => setProgramForm({ ...programForm, description: e.target.value })} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent resize-none" placeholder="Describe this program..." />
+              <textarea value={programForm.description} onChange={(e) => setProgramForm({ ...programForm, description: e.target.value })} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent resize-none" placeholder="Describe this program..." />
             </div>
 
             {/* Selected exercises preview */}
@@ -841,7 +841,7 @@ export default function ExercisesPage() {
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
               <button onClick={() => setShowCreateProgram(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
-              <button onClick={createProgram} disabled={creatingProgram} className="px-5 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors disabled:opacity-50 flex items-center gap-2">
+              <button onClick={createProgram} disabled={creatingProgram} className="px-5 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors disabled:opacity-50 flex items-center gap-2">
                 {creatingProgram && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 {creatingProgram ? "Creating..." : "Create Program"}
               </button>
@@ -864,13 +864,13 @@ export default function ExercisesPage() {
             {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-              <input type="text" value={editingExercise.name || ""} onChange={(e) => setEditingExercise({ ...editingExercise, name: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent" placeholder="e.g. Barbell Bench Press" />
+              <input type="text" value={editingExercise.name || ""} onChange={(e) => setEditingExercise({ ...editingExercise, name: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent" placeholder="e.g. Barbell Bench Press" />
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea value={editingExercise.description || ""} onChange={(e) => setEditingExercise({ ...editingExercise, description: e.target.value })} rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent resize-none" placeholder="Brief description of the exercise..." />
+              <textarea value={editingExercise.description || ""} onChange={(e) => setEditingExercise({ ...editingExercise, description: e.target.value })} rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent resize-none" placeholder="Brief description of the exercise..." />
             </div>
 
             {/* Category pills */}
@@ -888,7 +888,7 @@ export default function ExercisesPage() {
             {/* Equipment dropdown */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Equipment</label>
-              <select value={editingExercise.equipment || "none"} onChange={(e) => setEditingExercise({ ...editingExercise, equipment: e.target.value as Equipment })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent bg-white">
+              <select value={editingExercise.equipment || "none"} onChange={(e) => setEditingExercise({ ...editingExercise, equipment: e.target.value as Equipment })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent bg-white">
                 {EQUIPMENT.map((eq) => <option key={eq} value={eq}>{eq.charAt(0).toUpperCase() + eq.slice(1)}</option>)}
               </select>
             </div>
@@ -916,7 +916,7 @@ export default function ExercisesPage() {
                       const updated = [...(editingExercise.instructions || [""])];
                       updated[i] = e.target.value;
                       setEditingExercise({ ...editingExercise, instructions: updated });
-                    }} className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent" placeholder={`Step ${i + 1}`} />
+                    }} className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent" placeholder={`Step ${i + 1}`} />
                     {(editingExercise.instructions || []).length > 1 && (
                       <button onClick={() => {
                         const updated = (editingExercise.instructions || []).filter((_, j) => j !== i);
@@ -925,7 +925,7 @@ export default function ExercisesPage() {
                     )}
                   </div>
                 ))}
-                <button onClick={() => setEditingExercise({ ...editingExercise, instructions: [...(editingExercise.instructions || []), ""] })} className="text-xs text-[#0D9488] hover:underline font-medium">+ Add step</button>
+                <button onClick={() => setEditingExercise({ ...editingExercise, instructions: [...(editingExercise.instructions || []), ""] })} className="text-xs text-[#10B981] hover:underline font-medium">+ Add step</button>
               </div>
             </div>
 
@@ -944,7 +944,7 @@ export default function ExercisesPage() {
                 ))}
               </div>
               <div className="flex gap-2">
-                <input type="text" id="muscle-input" placeholder="e.g. chest, triceps" className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent" onKeyDown={(e) => {
+                <input type="text" id="muscle-input" placeholder="e.g. chest, triceps" className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent" onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
                     const val = (e.target as HTMLInputElement).value.trim();
@@ -961,7 +961,7 @@ export default function ExercisesPage() {
                     setEditingExercise({ ...editingExercise, muscles_targeted: [...(editingExercise.muscles_targeted || []), val] });
                     input.value = "";
                   }
-                }} className="px-3 py-1.5 text-xs font-medium text-[#0D9488] border border-[#0D9488] rounded-lg hover:bg-[#0D9488]/5">Add</button>
+                }} className="px-3 py-1.5 text-xs font-medium text-[#10B981] border border-[#10B981] rounded-lg hover:bg-[#10B981]/5">Add</button>
               </div>
             </div>
 
@@ -974,20 +974,20 @@ export default function ExercisesPage() {
                   <button onClick={() => setEditingExercise({ ...editingExercise, illustration_url: "" })} className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600">✕</button>
                 </div>
               )}
-              <input type="url" value={editingExercise.illustration_url || ""} onChange={(e) => setEditingExercise({ ...editingExercise, illustration_url: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent" placeholder="Image URL (https://...)" />
+              <input type="url" value={editingExercise.illustration_url || ""} onChange={(e) => setEditingExercise({ ...editingExercise, illustration_url: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent" placeholder="Image URL (https://...)" />
               <p className="text-xs text-gray-400 mt-1">Paste an image URL or upload to Supabase Storage</p>
             </div>
 
             {/* Video URL */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Video URL (optional)</label>
-              <input type="url" value={editingExercise.video_url || ""} onChange={(e) => setEditingExercise({ ...editingExercise, video_url: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-transparent" placeholder="https://..." />
+              <input type="url" value={editingExercise.video_url || ""} onChange={(e) => setEditingExercise({ ...editingExercise, video_url: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent" placeholder="https://..." />
             </div>
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
               <button onClick={() => { setEditingExercise(null); setIsCreating(false); }} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
-              <button onClick={saveExercise} className="px-5 py-2 text-sm font-medium text-white bg-[#0D9488] rounded-lg hover:bg-[#1ab34e] transition-colors">
+              <button onClick={saveExercise} className="px-5 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors">
                 {isCreating ? "Create Exercise" : "Save Changes"}
               </button>
             </div>

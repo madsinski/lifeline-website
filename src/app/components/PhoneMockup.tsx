@@ -14,9 +14,9 @@ export function PhoneMockup({
   return (
     <div className="relative w-[280px] h-[580px]">
       {/* Phone frame */}
-      <div className="absolute inset-0 bg-[#1a1a1a] rounded-[3rem] shadow-2xl border border-[#333]" />
+      <div className="absolute inset-0 bg-[#1F2937] rounded-[3rem] shadow-2xl border border-[#333]" />
       {/* Inner bezel */}
-      <div className="absolute inset-[3px] bg-[#111] rounded-[2.85rem]" />
+      <div className="absolute inset-[3px] bg-[#1F2937] rounded-[2.85rem]" />
       {/* Screen with real screenshot */}
       <div className="absolute inset-[4px] rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
         {/* Screenshot */}

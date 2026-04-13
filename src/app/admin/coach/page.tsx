@@ -391,7 +391,7 @@ export default function CoachDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[#1F2937]">Upcoming Appointments</h2>
-              <Link href="/admin/calendar" className="text-xs font-medium text-[#0D9488] hover:underline">View all</Link>
+              <Link href="/admin/calendar" className="text-xs font-medium text-[#10B981] hover:underline">View all</Link>
             </div>
             {upcomingAppointments.length === 0 ? (
               <div className="px-5 py-8 text-center">
@@ -422,7 +422,7 @@ export default function CoachDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[#1F2937]">Program Enrollment</h2>
-              <Link href="/admin/programs" className="text-xs font-medium text-[#0D9488] hover:underline">Edit programs</Link>
+              <Link href="/admin/programs" className="text-xs font-medium text-[#10B981] hover:underline">Edit programs</Link>
             </div>
             {programStats.length === 0 ? (
               <div className="px-5 py-8 text-center">
@@ -460,7 +460,7 @@ export default function CoachDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[#1F2937]">Recent Messages</h2>
-              <Link href="/admin/messages" className="text-xs font-medium text-[#0D9488] hover:underline">Open</Link>
+              <Link href="/admin/messages" className="text-xs font-medium text-[#10B981] hover:underline">Open</Link>
             </div>
             {recentConversations.length === 0 ? (
               <div className="px-4 py-8 text-center">
@@ -492,7 +492,7 @@ export default function CoachDashboardPage() {
                         </p>
                       </div>
                       {unread > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-[#0D9488] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="w-4 h-4 rounded-full bg-[#10B981] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0 mt-1">
                           {unread}
                         </span>
                       )}
@@ -507,7 +507,7 @@ export default function CoachDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[#1F2937]">Clients</h2>
-              <Link href="/admin/clients" className="text-xs font-medium text-[#0D9488] hover:underline">View all</Link>
+              <Link href="/admin/clients" className="text-xs font-medium text-[#10B981] hover:underline">View all</Link>
             </div>
             <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
               {clients.slice(0, 12).map((client) => (
@@ -522,7 +522,7 @@ export default function CoachDashboardPage() {
                     {tierLabels[client.tier]}
                   </span>
                   {client.programsActivated && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488] flex-shrink-0" title="Program active"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] flex-shrink-0" title="Program active"></span>
                   )}
                 </div>
               ))}

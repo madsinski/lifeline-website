@@ -61,7 +61,7 @@ export default function BetaFeedback() {
         className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all duration-200 ${
           open
             ? "bg-gray-700 text-white hover:bg-gray-800"
-            : "bg-[#0D9488] text-white hover:bg-[#0B7B73] hover:shadow-xl"
+            : "bg-[#10B981] text-white hover:bg-[#047857] hover:shadow-xl"
         }`}
       >
         {open ? (
@@ -83,7 +83,7 @@ export default function BetaFeedback() {
             /* Success state */
             <div className="p-8 text-center">
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-[#0D9488]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -123,7 +123,7 @@ export default function BetaFeedback() {
                   : "Any thoughts or suggestions..."
                 }
                 rows={4}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-[#1F2937] placeholder-gray-400 focus:ring-2 focus:ring-[#0D9488] outline-none resize-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-[#1F2937] placeholder-gray-400 focus:ring-2 focus:ring-[#10B981] outline-none resize-none"
                 autoFocus
               />
 
@@ -136,7 +136,7 @@ export default function BetaFeedback() {
               <button
                 onClick={handleSubmit}
                 disabled={!message.trim() || submitting}
-                className="w-full py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-xl hover:bg-[#0B7B73] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-xl hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Sending..." : "Submit Feedback"}
               </button>

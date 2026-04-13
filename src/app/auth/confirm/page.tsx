@@ -38,7 +38,7 @@ export default function ConfirmPage() {
       <div className="max-w-md w-full text-center">
         {status === "verifying" && (
           <div className="bg-white rounded-2xl shadow-sm p-10">
-            <div className="animate-spin w-10 h-10 border-4 border-[#0D9488] border-t-transparent rounded-full mx-auto mb-5" />
+            <div className="animate-spin w-10 h-10 border-4 border-[#10B981] border-t-transparent rounded-full mx-auto mb-5" />
             <h1 className="text-xl font-bold text-gray-900 mb-2">
               Verifying your email...
             </h1>
@@ -50,7 +50,7 @@ export default function ConfirmPage() {
 
         {status === "success" && (
           <div className="bg-white rounded-2xl shadow-sm p-10">
-            <div className="w-16 h-16 bg-[#0D9488] rounded-full flex items-center justify-center mx-auto mb-5">
+            <div className="w-16 h-16 bg-[#10B981] rounded-full flex items-center justify-center mx-auto mb-5">
               <svg
                 className="w-8 h-8 text-white"
                 fill="none"
@@ -78,7 +78,7 @@ export default function ConfirmPage() {
             </p>
             <a
               href="lifelinehealth://auth?confirmed=true"
-              className="inline-block bg-[#0D9488] hover:bg-[#1ab34e] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
+              className="inline-block bg-[#10B981] hover:bg-[#10B981] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
             >
               Open Lifeline Health
             </a>
@@ -115,7 +115,7 @@ export default function ConfirmPage() {
             </p>
             <a
               href="lifelinehealth://auth"
-              className="inline-block bg-[#0D9488] hover:bg-[#1ab34e] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
+              className="inline-block bg-[#10B981] hover:bg-[#10B981] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
             >
               Open Lifeline Health
             </a>

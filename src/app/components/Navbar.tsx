@@ -96,9 +96,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.5rem]">
           {/* Logo */}
-          <Link href="/" className="flex items-start mr-8">
+          <Link href="/" className="flex items-center mr-8">
             <LifelineLogo size="sm" />
-            <span className="ml-2 pl-2 border-l border-gray-300 text-[13px] tracking-[1px] text-gray-500 font-light leading-none mt-[0.5px] h-[18px]">Health</span>
           </Link>
 
           {/* Desktop nav */}
@@ -114,13 +113,13 @@ export default function Navbar() {
                   href={link.href}
                   className={`text-sm font-medium transition-colors relative ${
                     isActive
-                      ? "text-[#0D9488]"
+                      ? "text-[#10B981]"
                       : "text-[#6B7280] hover:text-[#1F2937]"
                   }`}
                 >
                   {link.label}
                   {isActive && (
-                    <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#0D9488] rounded-full" />
+                    <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#10B981] rounded-full" />
                   )}
                 </Link>
               );
@@ -132,7 +131,7 @@ export default function Navbar() {
             >
               {userName ? (
                 <>
-                  <span className="w-7 h-7 rounded-full bg-[#0D9488] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                  <span className="w-7 h-7 rounded-full bg-[#10B981] text-white text-xs font-bold flex items-center justify-center shrink-0">
                     {userName.charAt(0).toUpperCase()}
                   </span>
                   <span className="font-semibold text-[#1F2937]">{userName.split(' ')[0]}</span>
@@ -213,7 +212,7 @@ export default function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                     isActive
-                      ? "text-[#0D9488] bg-[#0D9488]/5"
+                      ? "text-[#10B981] bg-[#10B981]/5"
                       : "text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50"
                   }`}
                 >
@@ -229,7 +228,7 @@ export default function Navbar() {
               >
                 {userName ? (
                   <>
-                    <span className="w-6 h-6 rounded-full bg-[#0D9488] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-[#10B981] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                       {userName.charAt(0).toUpperCase()}
                     </span>
                     <span className="truncate">{userName}</span>
@@ -247,7 +246,7 @@ export default function Navbar() {
               <Link
                 href="/coaching#download"
                 onClick={() => setMobileOpen(false)}
-                className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#0D9488] text-[#0D9488] rounded-full hover:bg-[#0D9488] hover:text-white transition-all duration-200"
+                className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
               >
                 Download App
               </Link>

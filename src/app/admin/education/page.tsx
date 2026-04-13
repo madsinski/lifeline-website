@@ -82,7 +82,7 @@ function SnippetPreview({ snippet }: { snippet: DailySnippet }) {
         <ul className="space-y-1">
           {snippet.bullets.filter(Boolean).map((b, i) => (
             <li key={i} className="text-[10px] text-gray-600 flex items-start gap-1.5">
-              <span className="w-1 h-1 bg-[#0D9488] rounded-full mt-1 flex-shrink-0" />
+              <span className="w-1 h-1 bg-[#10B981] rounded-full mt-1 flex-shrink-0" />
               <span>{b}</span>
             </li>
           ))}
@@ -524,7 +524,7 @@ export default function EducationPage() {
         <button
           onClick={() => setActiveSection("courses")}
           className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            activeSection === "courses" ? "bg-[#0D9488] text-white" : "text-gray-600 hover:bg-gray-100"
+            activeSection === "courses" ? "bg-[#10B981] text-white" : "text-gray-600 hover:bg-gray-100"
           }`}
         >
           Courses ({courses.length})
@@ -532,7 +532,7 @@ export default function EducationPage() {
         <button
           onClick={() => setActiveSection("snippets")}
           className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            activeSection === "snippets" ? "bg-[#0D9488] text-white" : "text-gray-600 hover:bg-gray-100"
+            activeSection === "snippets" ? "bg-[#10B981] text-white" : "text-gray-600 hover:bg-gray-100"
           }`}
         >
           Daily Snippets
@@ -544,7 +544,7 @@ export default function EducationPage() {
         {activeSection === "courses" && (
           <button
             onClick={addCourse}
-            className="px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors"
+            className="px-4 py-2 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors"
           >
             + Add Course
           </button>
@@ -576,7 +576,7 @@ export default function EducationPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Changes"}
           </button>
@@ -618,7 +618,7 @@ export default function EducationPage() {
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={addCourse}
-                  className="px-4 py-2 bg-[#0D9488] text-white text-sm font-medium rounded-lg hover:bg-[#0B7B73] transition-colors"
+                  className="px-4 py-2 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors"
                 >
                   + Add Course
                 </button>
@@ -666,7 +666,7 @@ export default function EducationPage() {
                         type="text"
                         value={course.name}
                         onChange={(e) => updateCourse(course.id, "name", e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 flex-1 min-w-[200px]"
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 flex-1 min-w-[200px]"
                       />
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${({exercise:"bg-blue-100 text-blue-700",nutrition:"bg-emerald-100 text-emerald-700",sleep:"bg-purple-100 text-purple-700",mental:"bg-cyan-100 text-cyan-700"})[course.category] || "bg-gray-100 text-gray-600"}`}>
                         {course.category}
@@ -701,7 +701,7 @@ export default function EducationPage() {
                           onChange={(e) => updateCourse(course.id, "description", e.target.value)}
                           placeholder="Course description..."
                           rows={3}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#0D9488] outline-none resize-none"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#10B981] outline-none resize-none"
                         />
                       </div>
                       <div>
@@ -719,7 +719,7 @@ export default function EducationPage() {
                           </div>
                         ) : (
                           <div className="space-y-1.5">
-                            <label className="flex items-center justify-center gap-2 w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0D9488] hover:bg-[#0D9488]/5 transition-colors">
+                            <label className="flex items-center justify-center gap-2 w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#10B981] hover:bg-[#10B981]/5 transition-colors">
                               <input
                                 type="file"
                                 accept="image/*"
@@ -744,7 +744,7 @@ export default function EducationPage() {
                               value={course.coverImageUrl}
                               onChange={(e) => updateCourse(course.id, "coverImageUrl", e.target.value)}
                               placeholder="or paste image URL"
-                              className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#0D9488] outline-none text-gray-600"
+                              className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#10B981] outline-none text-gray-600"
                             />
                           </div>
                         )}
@@ -754,7 +754,7 @@ export default function EducationPage() {
                         <select
                           value={course.category}
                           onChange={(e) => updateCourse(course.id, "category", e.target.value)}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                         >
                           <option value="exercise">Exercise</option>
                           <option value="nutrition">Nutrition</option>
@@ -767,7 +767,7 @@ export default function EducationPage() {
                         <select
                           value={course.difficulty}
                           onChange={(e) => updateCourse(course.id, "difficulty", e.target.value)}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                         >
                           <option value="Beginner">Beginner</option>
                           <option value="Intermediate">Intermediate</option>
@@ -781,7 +781,7 @@ export default function EducationPage() {
                           value={course.estimatedDuration}
                           onChange={(e) => updateCourse(course.id, "estimatedDuration", e.target.value)}
                           placeholder="e.g. 2 hours"
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                         />
                       </div>
                     </div>
@@ -792,7 +792,7 @@ export default function EducationPage() {
                         <h3 className="text-sm font-semibold text-gray-700">Modules</h3>
                         <button
                           onClick={() => addModule(course.id)}
-                          className="px-3 py-1.5 text-sm text-[#0D9488] hover:bg-green-50 rounded-lg transition-colors font-medium"
+                          className="px-3 py-1.5 text-sm text-[#10B981] hover:bg-green-50 rounded-lg transition-colors font-medium"
                         >
                           + Add Module
                         </button>
@@ -802,7 +802,7 @@ export default function EducationPage() {
                           <div
                             key={mod.id}
                             className={`rounded-lg border overflow-hidden transition-colors ${
-                              expandedModule === mod.id ? "border-[#0D9488]/30 bg-green-50/20" : "border-gray-200 bg-gray-50"
+                              expandedModule === mod.id ? "border-[#10B981]/30 bg-green-50/20" : "border-gray-200 bg-gray-50"
                             }`}
                           >
                             {/* Module header */}
@@ -832,7 +832,7 @@ export default function EducationPage() {
                               <button
                                 onClick={() => setPreviewModule(previewModule === mod.id ? null : mod.id)}
                                 className={`p-1 rounded transition-colors text-xs ${
-                                  previewModule === mod.id ? "bg-[#0D9488] text-white" : "text-gray-400 hover:text-gray-600"
+                                  previewModule === mod.id ? "bg-[#10B981] text-white" : "text-gray-400 hover:text-gray-600"
                                 }`}
                                 title="Preview"
                               >
@@ -861,7 +861,7 @@ export default function EducationPage() {
                                       type="text"
                                       value={mod.title}
                                       onChange={(e) => updateModule(course.id, mod.id, "title", e.target.value)}
-                                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                                       placeholder="Module title"
                                     />
                                   </div>
@@ -871,7 +871,7 @@ export default function EducationPage() {
                                       type="number"
                                       value={mod.readingTime}
                                       onChange={(e) => updateModule(course.id, mod.id, "readingTime", parseInt(e.target.value) || 0)}
-                                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
                                       min={1}
                                     />
                                   </div>
@@ -885,7 +885,7 @@ export default function EducationPage() {
                                       onChange={(e) => updateModule(course.id, mod.id, "content", e.target.value)}
                                       placeholder="Write module content in markdown..."
                                       rows={8}
-                                      className={`px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#0D9488] outline-none resize-y font-mono ${
+                                      className={`px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-[#10B981] outline-none resize-y font-mono ${
                                         previewModule === mod.id ? "w-1/2" : "w-full"
                                       }`}
                                     />
@@ -917,7 +917,7 @@ export default function EducationPage() {
                                       </div>
                                     ) : (
                                       <div className="space-y-1.5">
-                                        <label className="flex items-center justify-center gap-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0D9488] hover:bg-[#0D9488]/5 transition-colors">
+                                        <label className="flex items-center justify-center gap-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#10B981] hover:bg-[#10B981]/5 transition-colors">
                                           <input
                                             type="file"
                                             accept="image/*"
@@ -942,7 +942,7 @@ export default function EducationPage() {
                                           value={mod.imageUrl}
                                           onChange={(e) => updateModule(course.id, mod.id, "imageUrl", e.target.value)}
                                           placeholder="or paste image URL"
-                                          className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#0D9488] outline-none text-gray-600"
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#10B981] outline-none text-gray-600"
                                         />
                                       </div>
                                     )}
@@ -990,7 +990,7 @@ export default function EducationPage() {
                                           value={mod.videoUrl}
                                           onChange={(e) => updateModule(course.id, mod.id, "videoUrl", e.target.value)}
                                           placeholder="YouTube or Vimeo URL"
-                                          className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#0D9488] outline-none text-gray-600"
+                                          className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#10B981] outline-none text-gray-600"
                                         />
                                         <p className="text-[10px] text-gray-400">Videos are linked by URL to save storage space</p>
                                       </div>
@@ -1048,7 +1048,7 @@ export default function EducationPage() {
                                                   name={`quiz-${q.id}`}
                                                   checked={q.correctIndex === oi}
                                                   onChange={() => updateQuiz(course.id, mod.id, q.id, "correctIndex", oi)}
-                                                  className="accent-[#0D9488]"
+                                                  className="accent-[#10B981]"
                                                 />
                                                 <input
                                                   type="text"
@@ -1131,13 +1131,13 @@ export default function EducationPage() {
           {/* Snippets grid */}
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
             {snippetWeeks[snippetWeekIdx].days.map((snippet, dayIdx) => (
-              <div key={dayIdx} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-white hover:border-[#0D9488]/30 transition-colors">
+              <div key={dayIdx} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-white hover:border-[#10B981]/30 transition-colors">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-gray-500 uppercase">{dayLabels[dayIdx]}</span>
                   <button
                     onClick={() => setSnippetPreviewDay(snippetPreviewDay === dayIdx ? null : dayIdx)}
                     className={`p-0.5 rounded text-xs ${
-                      snippetPreviewDay === dayIdx ? "bg-[#0D9488] text-white" : "text-gray-300 hover:text-gray-500"
+                      snippetPreviewDay === dayIdx ? "bg-[#10B981] text-white" : "text-gray-300 hover:text-gray-500"
                     }`}
                     title="Preview"
                   >
@@ -1152,7 +1152,7 @@ export default function EducationPage() {
                   value={snippet.title}
                   onChange={(e) => updateSnippetField(snippetWeekIdx, dayIdx, "title", e.target.value)}
                   placeholder="Snippet title"
-                  className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#0D9488] outline-none text-gray-900"
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#10B981] outline-none text-gray-900"
                 />
                 <div className="space-y-1">
                   {snippet.bullets.map((bullet, bi) => (
@@ -1163,7 +1163,7 @@ export default function EducationPage() {
                         value={bullet}
                         onChange={(e) => updateSnippetBullet(snippetWeekIdx, dayIdx, bi, e.target.value)}
                         placeholder={`Bullet ${bi + 1}`}
-                        className="flex-1 px-1.5 py-0.5 border border-gray-200 rounded text-[11px] focus:ring-1 focus:ring-[#0D9488] outline-none text-gray-900"
+                        className="flex-1 px-1.5 py-0.5 border border-gray-200 rounded text-[11px] focus:ring-1 focus:ring-[#10B981] outline-none text-gray-900"
                       />
                       {snippet.bullets.length > 1 && (
                         <button
@@ -1178,7 +1178,7 @@ export default function EducationPage() {
                   {snippet.bullets.length < 5 && (
                     <button
                       onClick={() => addSnippetBullet(snippetWeekIdx, dayIdx)}
-                      className="text-[10px] text-[#0D9488] hover:underline font-medium"
+                      className="text-[10px] text-[#10B981] hover:underline font-medium"
                     >
                       + bullet
                     </button>

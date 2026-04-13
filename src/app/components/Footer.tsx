@@ -36,7 +36,7 @@ export default function Footer() {
               </p>
             </div>
             {subscribed ? (
-              <div className="flex items-center gap-2 text-[#0D9488] font-medium">
+              <div className="flex items-center gap-2 text-[#10B981] font-medium">
                 <svg className="w-5 h-5 success-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -54,7 +54,7 @@ export default function Footer() {
                 />
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-full hover:bg-[#0B7B73] transition-all duration-200 whitespace-nowrap"
+                  className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 whitespace-nowrap"
                 >
                   Subscribe
                 </button>
@@ -68,9 +68,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="mb-4 flex items-start">
+            <div className="mb-4 flex items-center">
               <LifelineLogo size="sm" variant="white" />
-              <span className="ml-2 pl-2 text-[13px] tracking-[1px] font-light leading-none mt-[0.5px] h-[18px]" style={{ borderLeft: '1px solid #ffffff', color: '#ffffff' }}>Health</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Lifeline Health ehf.

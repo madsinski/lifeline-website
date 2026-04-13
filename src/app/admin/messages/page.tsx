@@ -588,11 +588,11 @@ export default function AdminMessagesPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-[#1F2937]">Messages</h2>
-              <span className={`w-2 h-2 rounded-full ${dbConnected ? 'bg-[#0D9488]' : 'bg-gray-300'}`} title={dbConnected ? 'Connected to Supabase' : 'Using mock data'} />
+              <span className={`w-2 h-2 rounded-full ${dbConnected ? 'bg-[#10B981]' : 'bg-gray-300'}`} title={dbConnected ? 'Connected to Supabase' : 'Using mock data'} />
             </div>
             <div className="flex items-center gap-1.5">
               {totalUnread > 0 && (
-                <span className="bg-[#0D9488] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-[#10B981] text-white text-xs font-bold px-2 py-0.5 rounded-full">
                   {totalUnread}
                 </span>
               )}
@@ -624,7 +624,7 @@ export default function AdminMessagesPage() {
             <input
               type="text"
               placeholder="Search conversations..."
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 focus:border-[#0D9488]"
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
             />
           </div>
         </div>
@@ -651,7 +651,7 @@ export default function AdminMessagesPage() {
                 key={conv.id}
                 onClick={() => handleSelectConversation(conv.id)}
                 className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                  isSelected ? "bg-[#0D9488]/5 border-l-2 border-l-[#0D9488]" : ""
+                  isSelected ? "bg-[#10B981]/5 border-l-2 border-l-[#10B981]" : ""
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -677,7 +677,7 @@ export default function AdminMessagesPage() {
                         {conv.lastMessage}
                       </p>
                       {conv.unreadCount > 0 && (
-                        <span className="bg-[#0D9488] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                        <span className="bg-[#10B981] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
                           {conv.unreadCount}
                         </span>
                       )}
@@ -746,7 +746,7 @@ export default function AdminMessagesPage() {
                     <div
                       className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
                         isStaff
-                          ? "bg-[#0D9488] text-white rounded-br-md"
+                          ? "bg-[#10B981] text-white rounded-br-md"
                           : "bg-white text-[#1F2937] border border-gray-200 rounded-bl-md shadow-sm"
                       }`}
                     >
@@ -787,13 +787,13 @@ export default function AdminMessagesPage() {
               onKeyDown={handleKeyDown}
               placeholder={`Reply to ${selected.clientName}${replyAsStaff ? ` as ${replyAsStaff.name}` : ""}...`}
               rows={1}
-              className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 focus:border-[#0D9488] max-h-32"
+              className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] max-h-32"
               style={{ minHeight: "40px" }}
             />
             <button
               onClick={handleSendMessage}
               disabled={!newMessage.trim()}
-              className="bg-[#0D9488] hover:bg-[#0B7B73] disabled:bg-gray-200 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 flex-shrink-0"
+              className="bg-[#10B981] hover:bg-[#047857] disabled:bg-gray-200 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 flex-shrink-0"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -833,7 +833,7 @@ export default function AdminMessagesPage() {
                   placeholder="Search clients..."
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 focus:border-[#0D9488] text-gray-900"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] text-gray-900"
                 />
               </div>
             </div>
@@ -851,7 +851,7 @@ export default function AdminMessagesPage() {
                     disabled={creatingConv}
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3 disabled:opacity-50"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#0D9488]/10 flex items-center justify-center text-xs font-bold text-[#0D9488] flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center text-xs font-bold text-[#10B981] flex-shrink-0">
                       {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0">

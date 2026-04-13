@@ -91,7 +91,7 @@ export default function FeedbackPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                filter === f ? "bg-[#0D9488] text-white" : "text-gray-500 hover:bg-gray-100"
+                filter === f ? "bg-[#10B981] text-white" : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)} ({count})
