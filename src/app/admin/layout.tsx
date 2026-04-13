@@ -90,6 +90,15 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/checkins",
+    label: "QR Check-ins",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/feedback",
     label: "Beta Feedback",
     badgeType: "feedback" as const,
@@ -300,7 +309,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Nav Links */}
         <nav className="flex-1 py-4 space-y-1 px-2">
           {(coachingView
-            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/education", "/admin/messages", "/admin/calendar", "/admin/feedback"].includes(l.href))
+            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/programs", "/admin/education", "/admin/messages", "/admin/calendar", "/admin/checkins", "/admin/feedback"].includes(l.href))
             : sidebarLinks
           ).filter((link) => {
             // Permission-based filtering

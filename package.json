@@ -11,7 +11,9 @@
   "dependencies": {
     "@expo/config-plugins": "^55.0.8",
     "@supabase/supabase-js": "^2.101.0",
+    "jspdf": "^4.2.1",
     "next": "16.2.1",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-easy-crop": "^5.5.7"
@@ -20,6 +22,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/google.maps": "^3.58.1",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
