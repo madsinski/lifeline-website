@@ -879,13 +879,13 @@ export default function TeamPage() {
                             </div>
                             {/* Qualifications */}
                             <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Qualifications (comma-separated)</label>
-                              <input
-                                type="text"
-                                value={(editValues.qualifications || []).join(", ")}
-                                onChange={(e) => setEditValues({ ...editValues, qualifications: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-                                placeholder="e.g. MSc Exercise Science, Certified PT"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900"
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Qualifications (one per line)</label>
+                              <textarea
+                                value={(editValues.qualifications || []).join("\n")}
+                                onChange={(e) => setEditValues({ ...editValues, qualifications: e.target.value.split("\n").filter(s => s.trim()) })}
+                                placeholder={"e.g.\nMSc Exercise Science\nCertified Personal Trainer\nNutrition Coach Level 3"}
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D9488] outline-none text-gray-900 resize-none"
                               />
                             </div>
                           </div>
