@@ -21,7 +21,7 @@ interface Appointment {
   } | null;
 }
 
-type FilterTab = "all" | "measurement" | "blood-test" | "consultation";
+type FilterTab = "all" | "measurement" | "blood-test" | "consultation" | "events";
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -317,6 +317,7 @@ export default function CalendarPage() {
 
   const filterTabs: { key: FilterTab; label: string; color: string }[] = [
     { key: "all", label: "All", color: "bg-gray-600" },
+    { key: "events", label: "Events", color: "bg-cyan-500" },
     { key: "measurement", label: "Measurements", color: "bg-emerald-500" },
     { key: "blood-test", label: "Blood Tests", color: "bg-blue-500" },
     { key: "consultation", label: "Consultations", color: "bg-purple-500" },
@@ -575,7 +576,9 @@ export default function CalendarPage() {
           const isActive = activeFilter === tab.key;
           const count =
             tab.key === "all"
-              ? appointments.length
+              ? appointments.length + communityEvents.length
+              : tab.key === "events"
+              ? communityEvents.length
               : appointments.filter((a) => a.type === tab.key).length;
           return (
             <button
@@ -631,8 +634,58 @@ export default function CalendarPage() {
         </div>
       )}
 
+      {/* Community Events */}
+      {(activeFilter === "all" || activeFilter === "events") && communityEvents.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Community Events</h3>
+          <div className="space-y-2">
+            {communityEvents.map((evt) => {
+              const isPast = new Date(evt.date) < new Date(new Date().toDateString());
+              return (
+                <div key={evt.id} className={`bg-white rounded-xl border shadow-sm p-4 ${isPast ? "opacity-50 border-gray-200" : "border-cyan-200"} ${evt.cancelled ? "border-red-200 bg-red-50/30" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 self-stretch rounded-full bg-cyan-500" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">{evt.name}</span>
+                        <span className="text-[10px] font-medium text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded">{evt.type}</span>
+                        {evt.cancelled && <span className="text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">Cancelled</span>}
+                        {isPast && !evt.cancelled && <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Past</span>}
+                      </div>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-xs text-gray-500">
+                          {new Date(evt.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} at {evt.time}
+                        </span>
+                        {evt.location && <span className="text-xs text-gray-400">{evt.location}</span>}
+                        {evt.reward && <span className="text-xs text-emerald-600 font-medium">{evt.reward}</span>}
+                        {evt.max_participants && <span className="text-xs text-gray-400">Max {evt.max_participants}</span>}
+                      </div>
+                      {evt.description && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{evt.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={async () => { if (!confirm(`Cancel "${evt.name}"?`)) return; await supabase.from("community_events").update({ cancelled: true, cancel_reason: "Cancelled by admin" }).eq("id", evt.id); loadCommunityEvents(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                      <button onClick={async () => { if (!confirm(`Delete "${evt.name}" permanently?`)) return; await supabase.from("community_events").delete().eq("id", evt.id); loadCommunityEvents(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Delete">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Empty state */}
-      {!loading && !error && totalCount === 0 && (
+      {!loading && !error && activeFilter === "events" && communityEvents.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <p className="text-gray-500 font-medium">No community events</p>
+          <p className="text-gray-400 text-sm mt-1">Create an event using the button above.</p>
+        </div>
+      )}
+      {!loading && !error && activeFilter !== "events" && totalCount === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <svg
             className="w-12 h-12 text-gray-300 mx-auto mb-4"
@@ -657,7 +710,7 @@ export default function CalendarPage() {
       )}
 
       {/* Grouped appointments */}
-      {!loading &&
+      {!loading && activeFilter !== "events" &&
         Object.entries(grouped).map(([group, apts]) => (
           <div key={group}>
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -815,68 +868,6 @@ export default function CalendarPage() {
             </div>
           </div>
         ))}
-      {/* Community Events created by team */}
-      {communityEvents.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
-            <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            <h3 className="text-lg font-bold text-gray-900">Community Events</h3>
-            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{communityEvents.length}</span>
-          </div>
-          <div className="space-y-2">
-            {communityEvents.map((evt) => {
-              const isPast = new Date(evt.date) < new Date(new Date().toDateString());
-              return (
-                <div key={evt.id} className={`bg-white rounded-xl border border-gray-200 shadow-sm p-4 ${isPast ? "opacity-50" : ""} ${evt.cancelled ? "border-red-200 bg-red-50/30" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">{evt.name}</span>
-                        <span className="text-[10px] font-medium text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded">{evt.type}</span>
-                        {evt.cancelled && <span className="text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">Cancelled</span>}
-                        {isPast && !evt.cancelled && <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Past</span>}
-                      </div>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="text-xs text-gray-500">
-                          {new Date(evt.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} at {evt.time}
-                        </span>
-                        {evt.location && <span className="text-xs text-gray-400">{evt.location}</span>}
-                        {evt.reward && <span className="text-xs text-emerald-600 font-medium">{evt.reward}</span>}
-                        {evt.max_participants && <span className="text-xs text-gray-400">Max {evt.max_participants}</span>}
-                      </div>
-                      {evt.description && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{evt.description}</p>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Cancel event "${evt.name}"?`)) return;
-                          await supabase.from("community_events").update({ cancelled: true, cancel_reason: "Cancelled by admin" }).eq("id", evt.id);
-                          loadCommunityEvents();
-                        }}
-                        className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Cancel event"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Delete event "${evt.name}" permanently?`)) return;
-                          await supabase.from("community_events").delete().eq("id", evt.id);
-                          loadCommunityEvents();
-                        }}
-                        className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Delete event"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
