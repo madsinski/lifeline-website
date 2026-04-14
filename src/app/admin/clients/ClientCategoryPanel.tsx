@@ -176,6 +176,17 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
         }
       }
 
+      // Update client_programs to point to the custom program key
+      // so the app picks it up (app checks for `custom-{uuid}` prefix)
+      const customProgramKey = `custom-${inserted.id}`;
+      await supabase.from("client_programs").upsert({
+        client_id: clientId,
+        category_key: categoryKey,
+        program_key: customProgramKey,
+        week_number: existing?.week || 1,
+        started_at: new Date().toISOString(),
+      }, { onConflict: "client_id,category_key" });
+
       await loadPrograms();
       // Navigate to the editor for the newly created custom program
       router.push(`/admin/clients/${clientId}/program/${categoryKey}`);
@@ -189,7 +200,20 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
     if (!confirm("Remove custom program and revert to the general program?")) return;
     setSaving(true);
     try {
+      // Get the original program key from created_from_program before deleting
+      const { data: custom } = await supabase.from("client_custom_programs")
+        .select("created_from_program")
+        .eq("client_id", clientId).eq("category_key", categoryKey).maybeSingle();
+      const originalKey = (custom as Record<string, string> | null)?.created_from_program;
+
       await supabase.from("client_custom_programs").delete().eq("client_id", clientId).eq("category_key", categoryKey);
+
+      // Revert client_programs to the original program key
+      if (originalKey) {
+        await supabase.from("client_programs").update({ program_key: originalKey })
+          .eq("client_id", clientId).eq("category_key", categoryKey);
+      }
+
       await loadPrograms();
     } catch { alert("Failed to remove custom program"); }
     setSaving(false);
