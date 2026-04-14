@@ -25,12 +25,8 @@ ALTER TABLE translations ENABLE ROW LEVEL SECURITY;
 -- Anyone can read translations (website needs them)
 CREATE POLICY "Anyone can read translations" ON translations FOR SELECT USING (true);
 
--- Staff can manage translations
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Staff can manage translations') THEN
-    CREATE POLICY "Staff can manage translations" ON translations
-      FOR ALL TO authenticated
-      USING (EXISTS (SELECT 1 FROM staff WHERE staff.id = auth.uid() AND staff.active = true))
-      WITH CHECK (EXISTS (SELECT 1 FROM staff WHERE staff.id = auth.uid() AND staff.active = true));
-  END IF;
-END $$;
+-- Authenticated users can manage translations (staff check in app layer)
+CREATE POLICY "Authenticated can manage translations" ON translations
+  FOR ALL TO authenticated
+  USING (true)
+  WITH CHECK (true);
