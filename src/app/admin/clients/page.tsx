@@ -1139,7 +1139,7 @@ function ClientRowComponent({
               {/* Right: appointments + messages stacked */}
               <div className="flex-1 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                 <AppointmentsCard clientId={client.id} />
-                <MessagesCard clientId={client.id} clientName={client.name} onSendMessage={onSendMessage} />
+                <MessagesCard clientId={client.id} clientName={client.name} staffMembers={staffMembers} />
               </div>
             </div>
           </td>
