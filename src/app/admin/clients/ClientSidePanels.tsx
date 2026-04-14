@@ -305,6 +305,21 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
     setSending(false);
   };
 
+  const [showNudges, setShowNudges] = useState(false);
+
+  const nudgeTemplates = [
+    `Hey ${clientName.split(" ")[0]}! Just checking in — how are you feeling about your program this week?`,
+    `I noticed your activity has been a bit quiet lately. Everything okay? Let me know if you need to adjust anything.`,
+    `Great work on your recent progress! Keep the momentum going this week.`,
+    `Quick reminder to log your actions today — every small step counts!`,
+    `How was your sleep this week? If you're struggling, let's look at your routine together.`,
+    `Time for a check-in! How's the nutrition plan working for you? Any meals you'd like to swap?`,
+    `You're doing really well — just a nudge to stay consistent with your evening routine.`,
+    `I've updated your program for this week. Take a look and let me know if it works for you.`,
+    `Don't forget to hit your step goal today! A quick walk after lunch makes a big difference.`,
+    `Let's book a call this week to review your progress and plan the next phase.`,
+  ];
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 flex flex-col overflow-hidden" style={{ height: "100%" }}>
       {/* Header */}
@@ -342,8 +357,29 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
         )}
       </div>
 
+      {/* Nudge templates dropdown */}
+      {showNudges && (
+        <div className="px-3 py-2 border-t border-gray-100 max-h-40 overflow-y-auto flex-shrink-0">
+          {nudgeTemplates.map((msg, i) => (
+            <button key={i} onClick={() => { setInput(msg); setShowNudges(false); }}
+              className="w-full text-left px-2.5 py-2 text-[11px] text-gray-600 hover:bg-gray-50 rounded-lg transition-colors leading-snug">
+              {msg}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={() => setShowNudges(!showNudges)}
+          className={`p-2 rounded-xl transition-colors flex-shrink-0 ${showNudges ? "bg-amber-100 text-amber-600" : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"}`}
+          title="Nudge templates"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </button>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}

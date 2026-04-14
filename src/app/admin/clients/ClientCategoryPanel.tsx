@@ -12,6 +12,7 @@ interface ProgramInfo {
   programName: string;
   week: number;
   isCustom: boolean;
+  startedAt: string | null;
 }
 
 const categoryDefs = [
@@ -42,7 +43,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
     try {
       const { data: clientProgs } = await supabase
         .from("client_programs")
-        .select("category_key, program_key, week_number")
+        .select("category_key, program_key, week_number, started_at")
         .eq("client_id", clientId);
 
       // Load all programs with their category
@@ -85,6 +86,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
           programName: isCustom ? (customMap[catKey].program_name as string) : (progNames[progKey] || progKey),
           week: (row.week_number as number) || 1,
           isCustom,
+          startedAt: (row.started_at as string) || null,
         };
       }
       setPrograms(mapped);
@@ -475,6 +477,13 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
             progress.trend > 0 ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"
           }`}>
             {progress.trend > 0 ? "+" : ""}{Math.round(progress.trend)}%
+          </span>
+        )}
+
+        {/* Start date */}
+        {program?.startedAt && (
+          <span className="text-[10px] text-gray-400 flex-shrink-0">
+            Started {new Date(program.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
           </span>
         )}
 
