@@ -373,7 +373,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
       <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2 flex-shrink-0">
         <button
           onClick={() => setShowNudges(!showNudges)}
-          className={`p-2 rounded-xl transition-colors flex-shrink-0 ${showNudges ? "bg-amber-100 text-amber-600" : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"}`}
+          className={`p-2 rounded-xl transition-colors flex-shrink-0 ${showNudges ? "bg-amber-200 text-amber-700" : "bg-amber-50 text-amber-500 hover:bg-amber-100 hover:text-amber-600"}`}
           title="Nudge templates"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

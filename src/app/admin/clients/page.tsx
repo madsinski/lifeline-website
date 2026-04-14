@@ -1093,7 +1093,11 @@ function ClientRowComponent({
               <div className="flex-1 bg-white rounded-xl p-5 shadow-sm border border-gray-200/60">
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
-                  {client.avatarUrl ? (
+                  {client.avatarUrl?.startsWith("avatar:") ? (
+                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
+                      {client.avatarUrl.replace("avatar:", "")}
+                    </div>
+                  ) : client.avatarUrl?.startsWith("http") ? (
                     <img src={client.avatarUrl} alt="" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
                   ) : (
                     <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
