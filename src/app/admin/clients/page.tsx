@@ -1009,17 +1009,10 @@ function ClientRowComponent({
         onClick={onToggle}
       >
         <td className="px-4 py-3">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <svg className={`w-3 h-3 text-[#10B981] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
-            {client.avatarUrl ? (
-              <img src={client.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-                {client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-              </div>
-            )}
             <span className="text-sm font-semibold text-gray-900">{client.name}</span>
           </div>
         </td>
