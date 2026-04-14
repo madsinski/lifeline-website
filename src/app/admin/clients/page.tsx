@@ -1070,15 +1070,15 @@ function ClientRowComponent({
         <tr>
           <td colSpan={8} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
             {/* Profile header card */}
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-3">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200/60 mb-3">
               <div className="flex items-start gap-4">
                 {/* Avatar */}
-                <div className="w-14 h-14 rounded-full bg-[#10B981]/10 flex items-center justify-center text-lg font-bold text-[#10B981] flex-shrink-0">
+                <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
                   {client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold text-[#1F2937]">{client.name}</h3>
+                  <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
                   <p className="text-xs text-gray-500">{client.email}{client.phone ? ` · ${client.phone}` : ""}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${tierColors[client.tier]}`}>
@@ -1101,7 +1101,7 @@ function ClientRowComponent({
                   </select>
                   {/* Message */}
                   <button onClick={() => onSendMessage(client.id, client.name)} disabled={isSendingMessage}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-lg hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50">
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                     Message
                   </button>
@@ -1114,7 +1114,7 @@ function ClientRowComponent({
                   {/* Subscription */}
                   {client.tier === "none" ? (
                     <button onClick={() => onCreateSubscription(client.id)} disabled={isCreating}
-                      className="px-3 py-1.5 text-xs font-medium text-white bg-[#10B981] rounded-lg hover:bg-emerald-600 disabled:opacity-50">
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50">
                       {isCreating ? "..." : "+ Plan"}
                     </button>
                   ) : (
@@ -1144,7 +1144,7 @@ function ClientRowComponent({
             {/* Two-column layout: categories (50%) + appointments/messages (50%) */}
             <div className="flex gap-3">
               {/* Left: category panel */}
-              <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200/60 p-5">
                 <ClientCategoryPanel clientId={client.id} clientName={client.name} tier={client.tier} />
               </div>
               {/* Right: appointments + messages stacked */}

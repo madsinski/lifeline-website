@@ -33,9 +33,9 @@ interface StaffMember {
 }
 
 const typeIcons: Record<string, { icon: string; color: string; bg: string; label: string }> = {
-  consultation: { icon: "💬", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", label: "Consultation" },
-  "blood-test": { icon: "🩸", color: "text-red-700", bg: "bg-red-50 border-red-200", label: "Blood test" },
-  measurement: { icon: "📏", color: "text-blue-700", bg: "bg-blue-50 border-blue-200", label: "Measurement" },
+  consultation: { icon: "💬", color: "text-emerald-800", bg: "bg-emerald-50/80 border-emerald-200/60", label: "Consultation" },
+  "blood-test": { icon: "🩸", color: "text-red-800", bg: "bg-red-50/80 border-red-200/60", label: "Blood test" },
+  measurement: { icon: "📏", color: "text-blue-800", bg: "bg-blue-50/80 border-blue-200/60", label: "Measurement" },
 };
 
 function formatTime(timeStr: string): string {
@@ -87,7 +87,7 @@ export function AppointmentsCard({ clientId }: { clientId: string }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-4">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Upcoming appointments</h4>
         {appointments.length > 0 && (
@@ -306,7 +306,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col" style={{ height: "100%" }}>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 flex flex-col overflow-hidden" style={{ height: "100%" }}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Chat with {clientName.split(" ")[0]}</h4>
@@ -326,11 +326,13 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
             const isCoach = msg.sender_role === "coach" || msg.sender_role === "system";
             return (
               <div key={msg.id} className={`flex ${isCoach ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-xl px-3 py-2 ${
-                  isCoach ? "bg-[#10B981] text-white" : "bg-gray-100 text-gray-800"
+                <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
+                  isCoach
+                    ? "bg-gray-900 text-white rounded-br-md"
+                    : "bg-gray-100 text-gray-900 rounded-bl-md"
                 }`}>
                   <p className="text-xs leading-relaxed">{msg.content}</p>
-                  <p className={`text-[9px] mt-1 ${isCoach ? "text-white/60" : "text-gray-400"}`}>
+                  <p className={`text-[9px] mt-1 ${isCoach ? "text-gray-400" : "text-gray-400"}`}>
                     {msg.sender_name} · {timeAgo(msg.created_at)}
                   </p>
                 </div>
@@ -347,13 +349,13 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           placeholder="Type a message..."
-          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
+          className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-gray-300 focus:bg-white outline-none text-gray-900 placeholder:text-gray-400"
           disabled={loading || !conversationId}
         />
         <button
           onClick={(e) => { e.stopPropagation(); sendMessage(); }}
           disabled={!input.trim() || sending || loading}
-          className="px-3 py-2 text-xs font-semibold text-white bg-[#10B981] rounded-lg hover:bg-emerald-600 disabled:opacity-40 transition-colors flex-shrink-0"
+          className="px-3 py-2 text-xs font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 disabled:opacity-40 transition-colors flex-shrink-0"
         >
           {sending ? "..." : "Send"}
         </button>

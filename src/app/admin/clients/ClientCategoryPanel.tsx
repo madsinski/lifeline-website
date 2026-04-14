@@ -15,10 +15,10 @@ interface ProgramInfo {
 }
 
 const categoryDefs = [
-  { key: "exercise", label: "Exercise", color: "#EA580C" },
-  { key: "nutrition", label: "Nutrition", color: "#84CC16" },
-  { key: "sleep", label: "Sleep", color: "#767194" },
-  { key: "mental", label: "Mental", color: "#0EA5E9" },
+  { key: "exercise", label: "Exercise", color: "#E86830", bg: "bg-orange-50", border: "border-orange-200" },
+  { key: "nutrition", label: "Nutrition", color: "#65A30D", bg: "bg-lime-50", border: "border-lime-200" },
+  { key: "sleep", label: "Sleep", color: "#7C6F9B", bg: "bg-purple-50", border: "border-purple-200" },
+  { key: "mental", label: "Mental", color: "#2593D1", bg: "bg-sky-50", border: "border-sky-200" },
 ];
 
 // ─── Unified category panel ────────────────────────────────
@@ -310,32 +310,36 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
     <div onClick={(e) => e.stopPropagation()}>
       {/* Overall summary — single progress ring */}
       {progress && progress.programs.length > 0 && (
-        <div className="flex items-center gap-5 mb-5 pb-5 border-b border-gray-100">
+        <div className="flex items-center gap-5 mb-5 pb-5 border-b border-gray-200/60">
           <div className="relative flex-shrink-0">
             <ProgressRing
               percentage={progress.totalPercentage}
               size={64}
               strokeWidth={5}
-              color={status === "on-track" ? "#10B981" : status === "needs-nudge" ? "#F59E0B" : "#EF4444"}
+              color={status === "on-track" ? "#34D399" : status === "needs-nudge" ? "#FBBF24" : "#F87171"}
             />
-            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-800">
+            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900">
               {Math.round(progress.totalPercentage)}%
             </span>
           </div>
           <div className="flex-1">
-            <p className="text-base font-semibold text-[#1F2937]">Weekly Progress</p>
+            <p className="text-sm font-semibold text-gray-900">Weekly Progress</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              {progress.programs.reduce((s, p) => s + p.totalCompleted, 0)} of{" "}
-              {progress.programs.reduce((s, p) => s + p.totalExpected, 0)} actions completed this week
+              <span className="font-medium text-gray-700">{progress.programs.reduce((s, p) => s + p.totalCompleted, 0)}</span>
+              <span className="text-gray-400"> / </span>
+              <span>{progress.programs.reduce((s, p) => s + p.totalExpected, 0)} actions this week</span>
             </p>
           </div>
           <div className="text-right space-y-1 flex-shrink-0">
             {progress.streak > 0 && (
-              <p className="text-sm font-semibold text-emerald-600">{progress.streak} day streak</p>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-full">
+                <span className="text-xs">🔥</span>
+                <span className="text-xs font-semibold text-emerald-700">{progress.streak}d streak</span>
+              </div>
             )}
             {progress.lastActiveDate && (
-              <p className="text-xs text-gray-400">
-                {progress.daysSinceActive === 0 ? "Active today" : progress.daysSinceActive === 1 ? "Active yesterday" : `Last active ${progress.daysSinceActive}d ago`}
+              <p className="text-[11px] text-gray-400">
+                {progress.daysSinceActive === 0 ? "Active today" : progress.daysSinceActive === 1 ? "Active yesterday" : `${progress.daysSinceActive}d inactive`}
               </p>
             )}
           </div>
@@ -378,7 +382,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
 // ─── Category card ─────────────────────────────────────────
 
 function CategoryCard({ category, program, isCustom, progress, templates, availablePrograms, saving, onChangeProgram, onChangeWeek, onCustomize, onRemoveCustom, onEditProgram, onSaveTemplate, onLoadTemplate }: {
-  category: { key: string; label: string; color: string };
+  category: { key: string; label: string; color: string; bg: string; border: string };
   program: ProgramInfo | null;
   isCustom: boolean;
   progress: { percentage: number; totalCompleted: number; totalExpected: number; trend: number | null } | null;
@@ -397,11 +401,11 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
   const pct = progress?.percentage ?? 0;
 
   return (
-    <div className={`rounded-xl border p-4 transition-colors ${isCustom ? "border-amber-200 bg-amber-50/30" : "border-gray-100 bg-gray-50/50"}`}>
+    <div className={`rounded-xl border p-4 transition-colors ${isCustom ? "border-amber-300/60 bg-amber-50/40" : `${category.bg} ${category.border}`}`}>
       {/* Single row: color dot + label + program name + stats + week + actions */}
       <div className="flex items-center gap-3">
         {/* Category color bar */}
-        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: category.color }} />
+        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: category.color, opacity: 0.7 }} />
 
         {/* Category label + program name */}
         <div className="min-w-0 flex-1">
@@ -431,10 +435,10 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
 
         {/* Completion counter */}
         {program && (
-          <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
-            <span className="font-semibold text-gray-700">{progress?.totalCompleted ?? 0}</span>
+          <div className="flex items-center gap-1 text-xs flex-shrink-0">
+            <span className="font-semibold text-gray-900">{progress?.totalCompleted ?? 0}</span>
             <span className="text-gray-400">/</span>
-            <span>{progress?.totalExpected ?? 0}</span>
+            <span className="text-gray-500">{progress?.totalExpected ?? 0}</span>
           </div>
         )}
 
@@ -516,9 +520,9 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
 
       {/* Linear progress bar */}
       {program && (
-        <div className="mt-3 h-1.5 bg-gray-200/60 rounded-full overflow-hidden">
+        <div className="mt-3 h-1.5 bg-white/80 rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: category.color }} />
+            style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: category.color, opacity: 0.75 }} />
         </div>
       )}
     </div>
