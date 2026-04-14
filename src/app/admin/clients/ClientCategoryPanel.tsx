@@ -101,31 +101,87 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
     try {
       const existing = programs[categoryKey];
       let baseName = `Custom ${categoryDefs.find(c => c.key === categoryKey)?.label || categoryKey} for ${clientName}`;
-      let baseActions: unknown[] = [];
+      let baseActions: Array<Record<string, unknown>> = [];
+      let sourceProgId: string | null = null;
 
       if (existing) {
         baseName = `${existing.programName} (custom)`;
-        const { data: prog } = await supabase.from("programs").select("id").eq("key", existing.programKey).maybeSingle();
+        const { data: prog } = await supabase.from("programs").select("id, description, weekly_focus")
+          .eq("key", existing.programKey).maybeSingle();
         if (prog) {
-          const { data: acts } = await supabase.from("program_actions").select("*").eq("program_id", (prog as Record<string, string>).id);
-          baseActions = (acts || []).map((a: Record<string, unknown>) => ({
-            week_range: a.week_range, day_of_week: a.day_of_week, time_group: a.time_group,
-            label: a.label, details: a.details, priority: a.priority,
-            image_url: a.image_url, video_url: a.video_url,
+          sourceProgId = (prog as Record<string, string>).id;
+          const { data: acts } = await supabase.from("program_actions")
+            .select("*").eq("program_id", sourceProgId).order("sort_order", { ascending: true });
+          baseActions = (acts || []).map((a: Record<string, unknown>, i: number) => ({
+            id: a.id || `action-${i}`,
+            week_range: a.week_range,
+            day_of_week: a.day_of_week,
+            time_group: a.time_group,
+            sort_order: a.sort_order ?? i,
+            label: a.label,
+            details: a.details,
+            priority: a.priority,
+            image_url: a.image_url || null,
+            video_url: a.video_url || null,
           }));
         }
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("client_custom_programs").upsert({
-        client_id: clientId, category_key: categoryKey, program_name: baseName,
+      const { data: inserted, error: insertError } = await supabase.from("client_custom_programs").upsert({
+        client_id: clientId,
+        category_key: categoryKey,
+        program_name: baseName,
         description: existing ? `Customized from ${existing.programName}` : "",
-        actions: baseActions, created_by: user?.id || null,
-        created_from_program: existing?.programKey || null, updated_at: new Date().toISOString(),
-      }, { onConflict: "client_id,category_key" });
+        actions: baseActions,
+        shared: false,
+        created_by: user?.id || null,
+        created_from_program: existing?.programKey || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "client_id,category_key" }).select("id").single();
+
+      if (insertError) {
+        alert(`Failed to create custom program: ${insertError.message}`);
+        setSaving(false);
+        return;
+      }
+
+      // Clone action_exercises for exercise programs
+      if (categoryKey === "exercise" && sourceProgId && inserted) {
+        try {
+          const { data: sourceExercises } = await supabase
+            .from("action_exercises")
+            .select("*")
+            .eq("program_key", sourceProgId);
+          if (sourceExercises && sourceExercises.length > 0) {
+            const newCustomKey = `custom-${inserted.id}`;
+            const clones = (sourceExercises as Array<Record<string, unknown>>).map((ex) => {
+              const oldKey = (ex.action_key as string) || "";
+              const newKey = oldKey.replace(sourceProgId!, newCustomKey);
+              return {
+                action_key: newKey,
+                program_key: newCustomKey,
+                exercise_name: ex.exercise_name,
+                sets: ex.sets,
+                reps: ex.reps,
+                rest: ex.rest,
+                notes: ex.notes,
+                sort_order: ex.sort_order,
+              };
+            });
+            await supabase.from("action_exercises").insert(clones);
+          }
+        } catch {
+          // Non-critical — exercise details can be added in editor
+        }
+      }
 
       await loadPrograms();
-    } catch { alert("Failed to create custom program"); }
+      // Navigate to the editor for the newly created custom program
+      router.push(`/admin/clients/${clientId}/program/${categoryKey}`);
+    } catch (e) {
+      alert(`Failed to create custom program: ${e instanceof Error ? e.message : "Unknown error"}`);
+    }
     setSaving(false);
   };
 
