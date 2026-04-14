@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import LifelineLogo from "./LifelineLogo";
 import MedaliaButton from "./MedaliaButton";
 import { supabase } from "@/lib/supabase";
+import { LanguagePicker } from "@/lib/i18n";
 
 const navLinks = [
   { href: "/assessment", label: "Assessment" },
@@ -125,6 +126,7 @@ export default function Navbar() {
               );
             })}
             <MedaliaButton label="Patient Portal" size="sm" />
+            <LanguagePicker />
             <Link
               href="/account"
               className="inline-flex items-center gap-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors"
@@ -250,6 +252,7 @@ export default function Navbar() {
               >
                 Download App
               </Link>
+              <LanguagePicker className="w-full justify-center" />
             </div>
           </div>
         </div>
