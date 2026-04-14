@@ -100,7 +100,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
 
   useEffect(() => { loadPrograms(); }, [loadPrograms]);
 
-  const handleChangeProgram = async (categoryKey: string, newProgramKey: string, startNextMonday?: boolean) => {
+  const handleChangeProgram = async (categoryKey: string, newProgramKey: string, startNextMonday?: boolean, duration?: 4 | 8 | 12) => {
     try {
       let startDate = new Date();
       if (startNextMonday) {
@@ -114,6 +114,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
         program_key: newProgramKey,
         week_number: 1,
         started_at: startDate.toISOString(),
+        duration: duration || 8,
       }, { onConflict: "client_id,category_key" });
       // Remove any custom program for this category since we're switching to a standard one
       await supabase.from("client_custom_programs").delete().eq("client_id", clientId).eq("category_key", categoryKey);
@@ -380,7 +381,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
               templates={catTemplates}
               availablePrograms={availablePrograms[cat.key] || []}
               saving={saving}
-              onChangeProgram={(key, startNextMonday) => handleChangeProgram(cat.key, key, startNextMonday)}
+              onChangeProgram={(key, startNextMonday, dur) => handleChangeProgram(cat.key, key, startNextMonday, dur)}
               onChangeWeek={(w) => handleChangeWeek(cat.key, w)}
               onCustomize={() => handleCustomize(cat.key)}
               onRemoveCustom={() => handleRemoveCustom(cat.key)}
@@ -405,7 +406,7 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
   templates: Array<{ id: string; name: string; description: string }>;
   availablePrograms: Array<{ key: string; name: string }>;
   saving: boolean;
-  onChangeProgram: (programKey: string, startNextMonday?: boolean) => void;
+  onChangeProgram: (programKey: string, startNextMonday?: boolean, duration?: 4 | 8 | 12) => void;
   onChangeWeek: (week: number) => void;
   onCustomize: () => void;
   onRemoveCustom: () => void;
@@ -415,12 +416,14 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
 }) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [pendingProgram, setPendingProgram] = useState<string | null>(null);
+  const [pendingDuration, setPendingDuration] = useState<4 | 8 | 12>(8);
   const pct = progress?.percentage ?? 0;
 
   const confirmProgram = (startNextMonday: boolean) => {
     if (pendingProgram) {
-      onChangeProgram(pendingProgram, startNextMonday);
+      onChangeProgram(pendingProgram, startNextMonday, pendingDuration);
       setPendingProgram(null);
+      setPendingDuration(8);
     }
   };
 
@@ -544,24 +547,41 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
 
       {/* Pending program change — start options */}
       {pendingProgram && (
-        <div className="mt-3 p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-2">
-          <span className="text-xs text-gray-600 flex-1">
-            Switch to <span className="font-semibold text-gray-900">{availablePrograms.find(p => p.key === pendingProgram)?.name}</span>?
-          </span>
-          <button onClick={() => confirmProgram(false)}
-            className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
-            Start now
-          </button>
-          <button onClick={() => confirmProgram(true)}
-            className="px-2.5 py-1.5 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-            Next Monday
-          </button>
-          <button onClick={() => setPendingProgram(null)}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        <div className="mt-3 p-2.5 bg-white rounded-lg border border-gray-200 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600 flex-1">
+              Switch to <span className="font-semibold text-gray-900">{availablePrograms.find(p => p.key === pendingProgram)?.name}</span>
+            </span>
+            <button onClick={() => { setPendingProgram(null); setPendingDuration(8); }}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Duration */}
+            <div className="flex items-center bg-gray-50 rounded-lg p-0.5">
+              {([4, 8, 12] as const).map((d) => (
+                <button key={d} onClick={() => setPendingDuration(d)}
+                  className={`px-2 py-1 text-[11px] font-medium rounded-md transition-colors ${
+                    pendingDuration === d ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  }`}>
+                  {d}wk
+                </button>
+              ))}
+            </div>
+            <div className="flex-1" />
+            {/* Start options */}
+            <button onClick={() => confirmProgram(false)}
+              className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
+              Start now
+            </button>
+            <button onClick={() => confirmProgram(true)}
+              className="px-2.5 py-1.5 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              Next Monday
+            </button>
+          </div>
         </div>
       )}
 
