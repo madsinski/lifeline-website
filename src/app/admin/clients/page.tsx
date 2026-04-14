@@ -1087,56 +1087,24 @@ function ClientRowComponent({
       {isExpanded && (
         <tr>
           <td colSpan={9} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
-            {/* Top row: profile card (50%) + messages card (50%) */}
-            <div className="flex gap-3 mb-3">
-              {/* Profile card */}
-              <div className="flex-1 bg-white rounded-xl p-5 shadow-sm border border-gray-200/60">
-                <div className="flex items-start gap-4">
-                  {/* Avatar */}
-                  {client.avatarUrl?.startsWith("avatar:") ? (
-                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">
-                      {client.avatarUrl.replace("avatar:", "")}
-                    </div>
-                  ) : client.avatarUrl?.startsWith("http") ? (
-                    <img src={client.avatarUrl} alt="" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
-                      {client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
-                    <span className="text-[10px] text-gray-400">Joined {client.joined}</span>
-                    {/* Details grid */}
-                    <div className="grid grid-cols-3 gap-x-4 gap-y-2 mt-3 pt-3 border-t border-gray-100">
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Date of birth</p>
-                        <p className="text-xs text-gray-700 mt-0.5">{client.dateOfBirth || "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Sex</p>
-                        <p className="text-xs text-gray-700 mt-0.5 capitalize">{client.sex || "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Address</p>
-                        <p className="text-xs text-gray-700 mt-0.5">{client.address || "—"}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Messages card */}
-              <div className="flex-1" onClick={(e) => e.stopPropagation()}>
-                <MessagesCard clientId={client.id} clientName={client.name} staffMembers={staffMembers} />
-              </div>
-            </div>
-
-            {/* Bottom row: categories (50%) + appointments (50%) */}
+            {/* Two-column layout */}
             <div className="flex gap-3">
+              {/* Left: categories with profile summary */}
               <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200/60 p-5">
-                <ClientCategoryPanel clientId={client.id} clientName={client.name} tier={client.tier} />
+                <ClientCategoryPanel
+                  clientId={client.id}
+                  clientName={client.name}
+                  tier={client.tier}
+                  avatarUrl={client.avatarUrl}
+                  dateOfBirth={client.dateOfBirth}
+                  sex={client.sex}
+                  address={client.address}
+                  joined={client.joined}
+                />
               </div>
-              <div className="flex-1" onClick={(e) => e.stopPropagation()}>
+              {/* Right: messages + appointments stacked */}
+              <div className="flex-1 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+                <MessagesCard clientId={client.id} clientName={client.name} staffMembers={staffMembers} />
                 <AppointmentsCard clientId={client.id} />
               </div>
             </div>
