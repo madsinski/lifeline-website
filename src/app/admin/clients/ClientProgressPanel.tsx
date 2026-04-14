@@ -145,7 +145,7 @@ export function useClientProgress(clientId: string): { progress: ClientProgressD
       const progIds = Object.values(progMap).map((p) => p.id);
       const { data: allActions } = await supabase
         .from("program_actions")
-        .select("program_id, week_range, action_key")
+        .select("program_id, week_range, day_of_week, action_key, category")
         .in("program_id", progIds);
 
       // 4. Calculate date ranges for current and previous weeks
@@ -254,7 +254,11 @@ export function useClientProgress(clientId: string): { progress: ClientProgressD
           return (a as Record<string, unknown>).day_of_week as number <= dayOfWeek;
         });
 
-        const expectedKeys = new Set(expectedUpToToday.map((a) => (a as Record<string, string>).action_key));
+        // App stores completions as `${category}-${action_key}` (e.g. "exercise-34c5f422-...")
+        const expectedKeys = new Set(expectedUpToToday.map((a) => {
+          const act = a as Record<string, string>;
+          return `${act.category}-${act.action_key}`;
+        }));
         const completed = [...expectedKeys].filter((k) => currentCompletionKeys.has(k)).length;
         const expected = expectedKeys.size;
 
@@ -264,7 +268,10 @@ export function useClientProgress(clientId: string): { progress: ClientProgressD
           const act = a as Record<string, unknown>;
           return act.program_id === progInfo.id && act.week_range === prevWeekRange;
         });
-        const prevExpectedKeys = new Set(prevExpectedActions.map((a) => (a as Record<string, string>).action_key));
+        const prevExpectedKeys = new Set(prevExpectedActions.map((a) => {
+          const act = a as Record<string, string>;
+          return `${act.category}-${act.action_key}`;
+        }));
         const prevCompleted = [...prevExpectedKeys].filter((k) => prevCompletionKeys.has(k)).length;
         const prevExpected = prevExpectedKeys.size;
 
@@ -341,7 +348,7 @@ export function useAllClientsProgress(clientIds: string[]): {
       ] = await Promise.all([
         supabase.from("client_programs").select("client_id, category_key, program_key, week_number").in("client_id", clientIds),
         supabase.from("programs").select("id, key, name"),
-        supabase.from("program_actions").select("program_id, week_range, day_of_week, action_key"),
+        supabase.from("program_actions").select("program_id, week_range, day_of_week, action_key, category"),
       ]);
 
       const progMap: Record<string, { id: string; name: string }> = {};
@@ -432,7 +439,11 @@ export function useAllClientsProgress(clientIds: string[]): {
             return act.program_id === progInfo.id && act.week_range === weekRange && (act.day_of_week as number) <= dayOfWeek;
           });
 
-          const expectedKeys = new Set(expectedActions.map((a) => (a as Record<string, string>).action_key));
+          // App stores completions as `${category}-${action_key}`
+          const expectedKeys = new Set(expectedActions.map((a) => {
+            const act = a as Record<string, string>;
+            return `${act.category}-${act.action_key}`;
+          }));
           const completed = [...expectedKeys].filter((k) => clientCompletions.has(k)).length;
           const expected = expectedKeys.size;
           const percentage = expected > 0 ? (completed / expected) * 100 : 0;
