@@ -29,6 +29,34 @@ interface Phase {
   description: string;
 }
 
+// Exercise library types
+interface Exercise {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  equipment: string;
+  difficulty: string;
+  illustration_url: string | null;
+  muscles_targeted: string[] | null;
+}
+
+interface ActionExercise {
+  id?: string;
+  action_key: string;
+  program_key: string;
+  week_range: number;
+  day_of_week: number;
+  exercise_id: string;
+  exercise_name: string;
+  sets: number | null;
+  reps: string;
+  duration: string;
+  rest: string;
+  notes: string;
+  sort_order: number;
+}
+
 function makeId() { return Math.random().toString(36).slice(2, 10); }
 
 const categoryLabels: Record<string, string> = { exercise: "Exercise", nutrition: "Nutrition", sleep: "Sleep", mental: "Mental" };
@@ -63,6 +91,19 @@ export default function ClientProgramEditorPage() {
   const [copySource, setCopySource] = useState<number | null>(null);
   const [activeTimeTab, setActiveTimeTab] = useState<TimeGroup | "all">("all");
 
+  // Exercise library state
+  const [exerciseLibrary, setExerciseLibrary] = useState<Exercise[]>([]);
+  const [exerciseLibraryLoaded, setExerciseLibraryLoaded] = useState(false);
+  const [actionExercises, setActionExercises] = useState<Record<string, ActionExercise[]>>({});
+  const [showExercisePicker, setShowExercisePicker] = useState<string | null>(null); // action_key being edited
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [exSets, setExSets] = useState<number>(3);
+  const [exReps, setExReps] = useState("10");
+  const [exRest, setExRest] = useState("60s");
+  const [exNotes, setExNotes] = useState("");
+  const [customProgramDbId, setCustomProgramDbId] = useState<string | null>(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -75,6 +116,7 @@ export default function ClientProgramEditorPage() {
 
       if (custom) {
         const c = custom as Record<string, unknown>;
+        setCustomProgramDbId(c.id as string);
         setProgramName((c.program_name as string) || "");
         setTagline((c.tagline as string) || "");
         setDescription((c.description as string) || "");
@@ -238,6 +280,83 @@ export default function ClientProgramEditorPage() {
     setActions(filled);
     setCopySource(null);
     setDirty(true);
+  };
+
+  // Exercise library functions
+  const loadExerciseLibrary = useCallback(async () => {
+    if (exerciseLibraryLoaded) return;
+    try {
+      const { data } = await supabase.from("exercises").select("*").order("name", { ascending: true });
+      if (data) { setExerciseLibrary(data as Exercise[]); setExerciseLibraryLoaded(true); }
+    } catch {}
+  }, [exerciseLibraryLoaded]);
+
+  const buildActionKey = (weekIdx: number, dayIdx: number, timeGroup: string, actionIndex: number) => {
+    const progKey = customProgramDbId ? `custom-${customProgramDbId}` : "unknown";
+    return `${categoryKey}-${progKey}-w${weekIdx}d${dayIdx}-${timeGroup}-${actionIndex}`;
+  };
+
+  const loadActionExercisesForDay = useCallback(async (weekIdx: number, dayIdx: number) => {
+    if (!customProgramDbId) return;
+    const progKey = `custom-${customProgramDbId}`;
+    try {
+      const { data } = await supabase.from("action_exercises").select("*")
+        .eq("program_key", progKey).eq("week_range", weekIdx).eq("day_of_week", dayIdx)
+        .order("sort_order", { ascending: true });
+      if (data) {
+        const grouped: Record<string, ActionExercise[]> = {};
+        for (const row of data) { const k = row.action_key as string; if (!grouped[k]) grouped[k] = []; grouped[k].push(row as ActionExercise); }
+        setActionExercises(prev => ({ ...prev, ...grouped }));
+      }
+    } catch {}
+  }, [customProgramDbId]);
+
+  // Load exercises when a cell is selected
+  useEffect(() => {
+    if (selectedCell && categoryKey === "exercise") {
+      loadExerciseLibrary();
+      loadActionExercisesForDay(selectedCell.week, selectedCell.day);
+    }
+  }, [selectedCell, categoryKey, loadExerciseLibrary, loadActionExercisesForDay]);
+
+  const saveActionExercisesForKey = async (actionKey: string, exercises: ActionExercise[]) => {
+    if (!customProgramDbId) return;
+    const progKey = `custom-${customProgramDbId}`;
+    try {
+      await supabase.from("action_exercises").delete().eq("action_key", actionKey).eq("program_key", progKey);
+      if (exercises.length > 0) {
+        const rows = exercises.map((ex, i) => ({
+          action_key: actionKey, program_key: progKey,
+          week_range: selectedCell?.week ?? 0, day_of_week: selectedCell?.day ?? 0,
+          exercise_id: ex.exercise_id, exercise_name: ex.exercise_name,
+          sets: ex.sets, reps: ex.reps, duration: ex.duration || null,
+          rest: ex.rest, notes: ex.notes || null, sort_order: i,
+        }));
+        await supabase.from("action_exercises").insert(rows);
+      }
+    } catch {}
+  };
+
+  const addExerciseToAction = async (actionKey: string) => {
+    if (!selectedExercise) return;
+    const newEx: ActionExercise = {
+      action_key: actionKey, program_key: customProgramDbId ? `custom-${customProgramDbId}` : "",
+      week_range: selectedCell?.week ?? 0, day_of_week: selectedCell?.day ?? 0,
+      exercise_id: selectedExercise.id, exercise_name: selectedExercise.name,
+      sets: exSets, reps: exReps, duration: "", rest: exRest, notes: exNotes,
+      sort_order: (actionExercises[actionKey]?.length ?? 0),
+    };
+    const updated = [...(actionExercises[actionKey] || []), newEx];
+    setActionExercises(prev => ({ ...prev, [actionKey]: updated }));
+    await saveActionExercisesForKey(actionKey, updated);
+    setSelectedExercise(null); setExerciseSearch(""); setExSets(3); setExReps("10"); setExRest("60s"); setExNotes("");
+    setShowExercisePicker(null);
+  };
+
+  const removeExerciseFromAction = async (actionKey: string, index: number) => {
+    const updated = (actionExercises[actionKey] || []).filter((_, i) => i !== index);
+    setActionExercises(prev => ({ ...prev, [actionKey]: updated }));
+    await saveActionExercisesForKey(actionKey, updated);
   };
 
   const selectedActions = selectedCell
@@ -470,6 +589,117 @@ export default function ClientProgramEditorPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-700" />
                   </div>
                 </div>
+                {/* Exercise library section (exercise category only) */}
+                {categoryKey === "exercise" && selectedCell && (() => {
+                  const actionIdx = selectedActions.filter(a => activeTimeTab === "all" || a.time_group === activeTimeTab).indexOf(action);
+                  const ak = buildActionKey(selectedCell.week, selectedCell.day, action.time_group, actionIdx);
+                  const exercises = actionExercises[ak] || [];
+                  return (
+                    <div className="border-t border-gray-100 pt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Exercises from library</span>
+                        <button onClick={() => { loadExerciseLibrary(); setShowExercisePicker(showExercisePicker === ak ? null : ak); setSelectedExercise(null); setExerciseSearch(""); }}
+                          className="text-xs font-medium text-blue-600 hover:text-blue-800">
+                          {showExercisePicker === ak ? "Close" : "+ Add exercise"}
+                        </button>
+                      </div>
+                      {/* Existing exercises */}
+                      {exercises.length > 0 ? (
+                        <div className="space-y-2 mb-2">
+                          {exercises.map((ex, ei) => {
+                            const libEx = exerciseLibrary.find(e => e.name === ex.exercise_name);
+                            return (
+                              <div key={ei} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
+                                {libEx?.illustration_url && (
+                                  <img src={libEx.illustration_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-800">{ex.exercise_name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {ex.sets && `${ex.sets} sets`}{ex.reps && ` × ${ex.reps}`}{ex.rest && ` · ${ex.rest} rest`}
+                                  </p>
+                                  {ex.notes && <p className="text-xs text-gray-400 mt-0.5">{ex.notes}</p>}
+                                </div>
+                                <button onClick={() => removeExerciseFromAction(ak, ei)}
+                                  className="p-1 text-gray-300 hover:text-red-500 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-300 mb-2">No exercises linked yet.</p>
+                      )}
+                      {/* Exercise picker */}
+                      {showExercisePicker === ak && (
+                        <div className="border border-blue-200 rounded-xl p-3 bg-blue-50/30 space-y-3">
+                          <input value={exerciseSearch} onChange={(e) => setExerciseSearch(e.target.value)}
+                            placeholder="Search exercises..."
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-300 outline-none text-gray-900" />
+                          {!selectedExercise ? (
+                            <div className="max-h-48 overflow-y-auto space-y-1">
+                              {exerciseLibrary
+                                .filter(e => !exerciseSearch || e.name.toLowerCase().includes(exerciseSearch.toLowerCase()) || e.category.toLowerCase().includes(exerciseSearch.toLowerCase()) || e.equipment?.toLowerCase().includes(exerciseSearch.toLowerCase()))
+                                .slice(0, 20)
+                                .map(e => (
+                                  <button key={e.id} onClick={() => setSelectedExercise(e)}
+                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white transition-colors text-left">
+                                    {e.illustration_url && <img src={e.illustration_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-gray-800 truncate">{e.name}</p>
+                                      <p className="text-[10px] text-gray-400">{e.category}{e.equipment ? ` · ${e.equipment}` : ""}</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              {exerciseLibrary.length === 0 && <p className="text-xs text-gray-400 py-4 text-center">Loading library...</p>}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 p-2 bg-white rounded-lg">
+                                {selectedExercise.illustration_url && <img src={selectedExercise.illustration_url} alt="" className="w-10 h-10 rounded-lg object-cover" />}
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-800">{selectedExercise.name}</p>
+                                  <p className="text-[10px] text-gray-400">{selectedExercise.category}{selectedExercise.equipment ? ` · ${selectedExercise.equipment}` : ""}</p>
+                                </div>
+                                <button onClick={() => setSelectedExercise(null)} className="ml-auto text-xs text-gray-400 hover:text-gray-600">Change</button>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Sets</label>
+                                  <input type="number" value={exSets} onChange={(e) => setExSets(Number(e.target.value))}
+                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-300 outline-none" />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Reps</label>
+                                  <input value={exReps} onChange={(e) => setExReps(e.target.value)} placeholder="8-12"
+                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-300 outline-none" />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Rest</label>
+                                  <input value={exRest} onChange={(e) => setExRest(e.target.value)} placeholder="60s"
+                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-300 outline-none" />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-0.5">Notes</label>
+                                <input value={exNotes} onChange={(e) => setExNotes(e.target.value)} placeholder="Focus on controlled eccentric..."
+                                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-300 outline-none" />
+                              </div>
+                              <button onClick={() => addExerciseToAction(ak)}
+                                className="w-full py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                Add to action
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div className="flex items-center justify-between pt-1">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <div className={`relative w-9 h-5 rounded-full transition-colors ${action.priority ? "bg-[#10B981]" : "bg-gray-300"}`}>
