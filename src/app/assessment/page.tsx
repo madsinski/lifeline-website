@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import MedaliaButton from "../components/MedaliaButton";
 import { PhoneMockup } from "../components/PhoneMockup";
 import ScrollPhone from "../components/ScrollPhone";
@@ -184,6 +185,7 @@ const faqs = [
 ];
 
 export default function AssessmentPage() {
+  const { t } = useI18n();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
@@ -193,16 +195,13 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
-              Health{" "}
-              <span className="text-[#10B981]">Assessment</span>
+              {t('assessment.hero.title', 'Health Assessment')}
             </h1>
             <p className="mt-6 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-              Get the health data that matters most. Our targeted screening
-              packages focus on metabolic health markers that drive real
-              change — no unnecessary tests, maximum value.
+              {t('assessment.hero.subtitle', 'Get the health data that matters most. Our targeted screening packages focus on metabolic health markers that drive real change — no unnecessary tests, maximum value.')}
             </p>
             <div className="mt-8">
-              <MedaliaButton label="Book Assessment" size="lg" />
+              <MedaliaButton label={t('assessment.hero.cta', 'Book Assessment')} size="lg" />
             </div>
           </div>
         </div>
@@ -216,7 +215,7 @@ export default function AssessmentPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              The assessment process
+              {t('assessment.process.title', 'The assessment process')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280]">
               From booking to personalised recommendations
@@ -362,10 +361,10 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Assessment <span className="text-[#10B981]">Packages</span>
+              {t('assessment.packages.title', 'Assessment Packages')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Choose the assessment that fits your needs
+              {t('assessment.packages.subtitle', 'Choose the assessment that fits your needs')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -443,10 +442,10 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Test <span className="text-[#10B981]">locations</span>
+              {t('assessment.locations.title', 'Test locations')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Where to complete your assessment
+              {t('assessment.locations.subtitle', 'Where to complete your assessment')}
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -533,7 +532,7 @@ export default function AssessmentPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Frequently asked questions
+              {t('assessment.faq.title', 'Frequently asked questions')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280]">
               Everything you need to know about assessments

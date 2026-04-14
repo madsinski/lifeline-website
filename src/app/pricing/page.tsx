@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 import MedaliaButton from "../components/MedaliaButton";
 
 const assessmentColors = [
@@ -157,6 +158,7 @@ const faqs = [
 ];
 
 export default function PricingPage() {
+  const { t } = useI18n();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
 
@@ -167,7 +169,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
-              Simple, transparent{" "}
+              {t('pricing.hero.title', 'Simple, transparent pricing')}{" "}
               <span className="text-[#10B981]">pricing</span>
             </h1>
             <p className="mt-6 text-lg text-[#6B7280]">
@@ -183,7 +185,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
-              Health Assessment Packages
+              {t('pricing.assessments.title', 'Health Assessment Packages')}
             </h2>
             <p className="mt-3 text-[#6B7280]">
               One-time payments &middot; Book via patient portal
@@ -261,7 +263,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
-              Coaching Subscriptions
+              {t('pricing.coaching.title', 'Coaching Subscriptions')}
             </h2>
             <p className="mt-3 text-[#6B7280] mb-8">
               Monthly subscriptions &middot; Manage on our website
@@ -410,7 +412,7 @@ export default function PricingPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Frequently asked questions
+              {t('pricing.faq.title', 'Frequently asked questions')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280]">
               Everything you need to know

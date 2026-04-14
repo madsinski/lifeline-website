@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 import { PhoneMockupCoach } from "../components/PhoneMockup";
 import ScrollPhone from "../components/ScrollPhone";
 import WaveSeparator from "../components/WaveSeparator";
@@ -199,6 +200,7 @@ function FeatureCell({ value }: { value: boolean | string }) {
 }
 
 export default function CoachingPage() {
+  const { t } = useI18n();
   return (
     <div>
       {/* Hero */}
@@ -206,12 +208,10 @@ export default function CoachingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
-              Your daily <span className="text-[#10B981]">health coach</span>
+              {t('coaching.hero.title', 'Your daily health coach')}
             </h1>
             <p className="mt-6 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-              The Lifeline app delivers personalised daily coaching across four
-              pillars of health. Built on your assessment results, it adapts as
-              you improve.
+              {t('coaching.hero.subtitle', 'The Lifeline app delivers personalised daily coaching across four pillars of health. Built on your assessment results, it adapts as you improve.')}
             </p>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function CoachingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Why health coaching <span className="text-[#10B981]">works</span>
+              {t('coaching.why.title', 'Why health coaching works')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
               Knowledge alone doesn&apos;t create change. Coaching bridges the gap between knowing and doing.
@@ -304,7 +304,7 @@ export default function CoachingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              The four pillars of health
+              {t('coaching.pillars.title', 'The four pillars of health')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
               A holistic approach to lasting well-being
@@ -376,7 +376,7 @@ export default function CoachingPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
-              What a typical day looks like
+              {t('coaching.day.title', 'What a typical day looks like')}
             </h2>
             <p className="mt-3 text-[#6B7280]">
               Your app guides you through the day with personalised nudges
@@ -432,7 +432,7 @@ export default function CoachingPage() {
             {/* Left: text + cards */}
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-3">
-                How coaching works
+                {t('coaching.how.title', 'How coaching works')}
               </h2>
               <p className="text-[#6B7280] mb-8">
                 Your assessment powers your coaching experience
@@ -506,7 +506,7 @@ export default function CoachingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Coaching subscriptions
+              {t('coaching.pricing.title', 'Coaching subscriptions')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280]">
               Choose the plan that fits your goals
@@ -609,7 +609,7 @@ export default function CoachingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
-              Compare plans
+              {t('coaching.compare.title', 'Compare plans')}
             </h2>
             <p className="mt-3 text-[#6B7280]">
               See what each tier includes
@@ -672,7 +672,7 @@ export default function CoachingPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_110%,rgba(32,200,88,0.15),transparent)]" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Download the Lifeline app
+            {t('coaching.download.title', 'Download the Lifeline app')}
           </h2>
           <p className="text-lg text-gray-300 mb-8 leading-relaxed max-w-2xl mx-auto">
             Available on iOS and Android. Start with the free plan and
@@ -714,7 +714,7 @@ export default function CoachingPage() {
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">
-            Better coaching starts with better data
+            {t('coaching.assessment_link.title', 'Better coaching starts with better data')}
           </h2>
           <p className="text-lg text-[#6B7280] max-w-2xl mx-auto mb-10 leading-relaxed">
             Your health assessment results power every recommendation in the

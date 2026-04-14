@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import MedaliaButton from "../components/MedaliaButton";
 
 export default function ContactPage() {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,7 +27,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">
-              Get in <span className="text-[#10B981]">touch</span>
+              {t('contact.hero.title', 'Get in touch')}
             </h1>
             <p className="mt-6 text-lg text-[#6B7280]">
               Have a question or want to learn more? We would love to hear from
@@ -42,7 +44,7 @@ export default function ContactPage() {
             {/* Form */}
             <div>
               <h2 className="text-2xl font-bold text-[#1F2937] mb-6">
-                Send us a message
+                {t('contact.form.title', 'Send us a message')}
               </h2>
 
               {submitted ? (
@@ -53,7 +55,7 @@ export default function ContactPage() {
                     </svg>
                   </div>
                   <h3 className="text-lg font-semibold text-[#1F2937] mb-2">
-                    Message sent!
+                    {t('contact.form.success_title', 'Message sent!')}
                   </h3>
                   <p className="text-sm text-[#6B7280] mb-6">
                     Thank you for reaching out. We will get back to you within 1-2 business days.
@@ -62,7 +64,7 @@ export default function ContactPage() {
                     onClick={() => setSubmitted(false)}
                     className="text-sm font-medium text-[#10B981] hover:text-[#047857] transition-colors duration-200"
                   >
-                    Send another message
+                    {t('contact.form.send_another', 'Send another message')}
                   </button>
                 </div>
               ) : (
@@ -156,7 +158,7 @@ export default function ContactPage() {
             {/* Info */}
             <div>
               <h2 className="text-2xl font-bold text-[#1F2937] mb-6">
-                Contact information
+                {t('contact.info.title', 'Contact information')}
               </h2>
               <div className="space-y-4">
                 <div className="bg-[#f5f7fa] rounded-xl p-5 flex items-start gap-4 shadow-sm">
@@ -238,7 +240,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-[#1F2937]">
-                      Office hours
+                      {t('contact.info.hours_label', 'Office hours')}
                     </h3>
                     <p className="text-[#6B7280]">
                       Monday - Friday: 08:00 - 17:00
@@ -257,7 +259,7 @@ export default function ContactPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-[#1F2937] mb-1">
-                      Access the Patient Portal
+                      {t('contact.portal.title', 'Access the Patient Portal')}
                     </h3>
                     <p className="text-sm text-[#6B7280] mb-4">
                       View your assessment results, book appointments, or complete

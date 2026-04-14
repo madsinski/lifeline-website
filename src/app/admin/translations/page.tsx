@@ -70,15 +70,27 @@ export default function TranslationsPage() {
 
   const handleSave = async (id: string, isText: string) => {
     setSaving(id);
+    const original = translations.find(t => t.id === id);
+    const textChanged = original?.is_text !== isText;
     const { error } = await supabase.from("translations").update({
       is_text: isText,
+      // If text changed on an approved translation, reset to pending for re-review
+      ...(textChanged && original?.approved ? { approved: false, approved_by: null } : {}),
       updated_at: new Date().toISOString(),
     }).eq("id", id);
     if (error) {
       setStatusMsg({ type: "error", text: `Save failed: ${error.message}` });
     } else {
-      setTranslations(prev => prev.map(t => t.id === id ? { ...t, is_text: isText, updated_at: new Date().toISOString() } : t));
+      setTranslations(prev => prev.map(t => t.id === id ? {
+        ...t,
+        is_text: isText,
+        ...(textChanged && t.approved ? { approved: false, approved_by: null } : {}),
+        updated_at: new Date().toISOString(),
+      } : t));
       setEditingId(null);
+      if (textChanged && original?.approved) {
+        setStatusMsg({ type: "success", text: "Saved — moved back to pending for re-review." });
+      }
     }
     setSaving(null);
   };
