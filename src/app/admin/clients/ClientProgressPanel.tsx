@@ -332,6 +332,30 @@ export function useClientProgress(clientId: string): { progress: ClientProgressD
         totalCompleted += completed;
       }
 
+      // Add "steps" — always-present daily action (key: "steps", category: exercise)
+      // The app injects this for every day regardless of program
+      const hasAnyProgram = clientProgs.length > 0;
+      if (hasAnyProgram) {
+        let stepsExpected = 0;
+        let stepsCompleted = 0;
+        for (let d = 0; d <= dayOfWeek; d++) {
+          stepsExpected++;
+          if (currentCompletionPairs.has(`steps::${dayDates[d]}`)) {
+            stepsCompleted++;
+          }
+        }
+        // Add steps to exercise program row if it exists, otherwise to totals only
+        const exerciseRow = programProgress.find((p) => p.categoryKey === "exercise");
+        if (exerciseRow) {
+          exerciseRow.totalExpected += stepsExpected;
+          exerciseRow.totalCompleted += stepsCompleted;
+          exerciseRow.percentage = exerciseRow.totalExpected > 0
+            ? (exerciseRow.totalCompleted / exerciseRow.totalExpected) * 100 : 0;
+        }
+        totalExpected += stepsExpected;
+        totalCompleted += stepsCompleted;
+      }
+
       const totalPercentage = totalExpected > 0 ? (totalCompleted / totalExpected) * 100 : 0;
 
       setProgress({
@@ -504,6 +528,27 @@ export function useAllClientsProgress(clientIds: string[]): {
 
           totalExpected += expected;
           totalCompleted += completed;
+        }
+
+        // Add "steps" — always-present daily action
+        if (clientProgs.length > 0) {
+          let stepsExpected = 0;
+          let stepsCompleted = 0;
+          for (let d = 0; d <= dayOfWeek; d++) {
+            stepsExpected++;
+            if (clientCompletions.has(`steps::${dayDates[d]}`)) {
+              stepsCompleted++;
+            }
+          }
+          const exerciseRow = programs.find((p) => p.categoryKey === "exercise");
+          if (exerciseRow) {
+            exerciseRow.totalExpected += stepsExpected;
+            exerciseRow.totalCompleted += stepsCompleted;
+            exerciseRow.percentage = exerciseRow.totalExpected > 0
+              ? (exerciseRow.totalCompleted / exerciseRow.totalExpected) * 100 : 0;
+          }
+          totalExpected += stepsExpected;
+          totalCompleted += stepsCompleted;
         }
 
         result[clientId] = {
