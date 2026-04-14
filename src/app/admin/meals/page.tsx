@@ -8,6 +8,14 @@ import { supabase } from "@/lib/supabase";
 type MealCategory = "breakfast" | "lunch" | "dinner" | "snack";
 type Difficulty = "easy" | "medium" | "hard";
 
+interface MealSwap {
+  name: string;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 interface Meal {
   id: string;
   name: string;
@@ -26,6 +34,7 @@ interface Meal {
   dietary_tags: string[];
   illustration_url: string;
   video_url: string;
+  swaps: MealSwap[];
   created_at: string;
 }
 
@@ -150,7 +159,7 @@ export default function MealsPage() {
       name: "", description: "", category: "breakfast", ingredients: [""], instructions: [""],
       prep_time_min: 5, cook_time_min: 0, servings: 1, difficulty: "easy",
       calories: null, protein: null, carbs: null, fat: null,
-      dietary_tags: [], illustration_url: "", video_url: "",
+      dietary_tags: [], illustration_url: "", video_url: "", swaps: [],
     });
     setIsCreating(true);
   };
@@ -551,6 +560,68 @@ export default function MealsPage() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Approved swaps */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Approved swaps
+                    <span className="ml-2 text-[10px] font-normal text-gray-400 normal-case tracking-normal">
+                      Alternative meals client can log instead
+                    </span>
+                  </label>
+                  <button
+                    onClick={() => setEditingMeal({
+                      ...editingMeal,
+                      swaps: [...(editingMeal.swaps || []), { name: "", kcal: 0, protein: 0, carbs: 0, fat: 0 }],
+                    })}
+                    className="text-xs text-[#10B981] hover:underline"
+                  >+ Add swap</button>
+                </div>
+                {(editingMeal.swaps || []).length === 0 && (
+                  <p className="text-xs text-gray-300 italic py-2">No swaps defined. Client will see an option to describe a custom meal.</p>
+                )}
+                {(editingMeal.swaps || []).map((swap, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 mb-2 items-center">
+                    <input
+                      type="text"
+                      value={swap.name}
+                      onChange={(e) => {
+                        const updated = [...(editingMeal.swaps || [])];
+                        updated[i] = { ...updated[i], name: e.target.value };
+                        setEditingMeal({ ...editingMeal, swaps: updated });
+                      }}
+                      placeholder="e.g. Eggs and toast"
+                      className="col-span-4 px-3 py-1.5 border border-gray-200 rounded-lg text-sm"
+                    />
+                    {(['kcal', 'protein', 'carbs', 'fat'] as const).map((field) => (
+                      <input
+                        key={field}
+                        type="number"
+                        value={swap[field] || 0}
+                        onChange={(e) => {
+                          const updated = [...(editingMeal.swaps || [])];
+                          updated[i] = { ...updated[i], [field]: Number(e.target.value) || 0 };
+                          setEditingMeal({ ...editingMeal, swaps: updated });
+                        }}
+                        placeholder={field}
+                        title={field}
+                        className="col-span-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-center"
+                      />
+                    ))}
+                    <div className="col-span-3 flex items-center gap-1.5 text-[10px] text-gray-400">
+                      <span>kcal</span><span>·</span><span>P</span><span>·</span><span>C</span><span>·</span><span>F</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const updated = (editingMeal.swaps || []).filter((_, j) => j !== i);
+                        setEditingMeal({ ...editingMeal, swaps: updated });
+                      }}
+                      className="col-span-1 text-red-400 hover:text-red-600 text-lg"
+                    >×</button>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex gap-3">
