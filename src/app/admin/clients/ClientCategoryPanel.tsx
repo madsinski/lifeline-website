@@ -33,6 +33,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
   const [programs, setPrograms] = useState<Record<string, ProgramInfo>>({});
   const [customPrograms, setCustomPrograms] = useState<Record<string, Record<string, unknown>>>({});
   const [templates, setTemplates] = useState<Array<{ id: string; name: string; category_key: string; description: string }>>([]);
+  const [availablePrograms, setAvailablePrograms] = useState<Record<string, Array<{ key: string; name: string }>>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -44,9 +45,23 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
         .select("category_key, program_key, week_number")
         .eq("client_id", clientId);
 
-      const { data: allProgs } = await supabase.from("programs").select("key, name");
+      // Load all programs with their category
+      const { data: allProgs } = await supabase
+        .from("programs")
+        .select("key, name, category_id, program_categories(key)")
+        .order("sort_order", { ascending: true });
       const progNames: Record<string, string> = {};
-      for (const p of allProgs || []) progNames[(p as Record<string, string>).key] = (p as Record<string, string>).name;
+      const byCategory: Record<string, Array<{ key: string; name: string }>> = {};
+      for (const p of allProgs || []) {
+        const pr = p as Record<string, unknown>;
+        progNames[pr.key as string] = pr.name as string;
+        const catKey = (pr.program_categories as Record<string, string>)?.key;
+        if (catKey) {
+          if (!byCategory[catKey]) byCategory[catKey] = [];
+          byCategory[catKey].push({ key: pr.key as string, name: pr.name as string });
+        }
+      }
+      setAvailablePrograms(byCategory);
 
       const { data: customs } = await supabase
         .from("client_custom_programs")
@@ -84,6 +99,21 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
   }, [clientId]);
 
   useEffect(() => { loadPrograms(); }, [loadPrograms]);
+
+  const handleChangeProgram = async (categoryKey: string, newProgramKey: string) => {
+    try {
+      await supabase.from("client_programs").upsert({
+        client_id: clientId,
+        category_key: categoryKey,
+        program_key: newProgramKey,
+        week_number: 1,
+        started_at: new Date().toISOString(),
+      }, { onConflict: "client_id,category_key" });
+      // Remove any custom program for this category since we're switching to a standard one
+      await supabase.from("client_custom_programs").delete().eq("client_id", clientId).eq("category_key", categoryKey);
+      await loadPrograms();
+    } catch {}
+  };
 
   const handleChangeWeek = async (categoryKey: string, newWeek: number) => {
     try {
@@ -328,7 +358,9 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
               isCustom={!!custom}
               progress={progressData || null}
               templates={catTemplates}
+              availablePrograms={availablePrograms[cat.key] || []}
               saving={saving}
+              onChangeProgram={(key) => handleChangeProgram(cat.key, key)}
               onChangeWeek={(w) => handleChangeWeek(cat.key, w)}
               onCustomize={() => handleCustomize(cat.key)}
               onRemoveCustom={() => handleRemoveCustom(cat.key)}
@@ -345,13 +377,15 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
 
 // ─── Category card ─────────────────────────────────────────
 
-function CategoryCard({ category, program, isCustom, progress, templates, saving, onChangeWeek, onCustomize, onRemoveCustom, onEditProgram, onSaveTemplate, onLoadTemplate }: {
+function CategoryCard({ category, program, isCustom, progress, templates, availablePrograms, saving, onChangeProgram, onChangeWeek, onCustomize, onRemoveCustom, onEditProgram, onSaveTemplate, onLoadTemplate }: {
   category: { key: string; label: string; color: string };
   program: ProgramInfo | null;
   isCustom: boolean;
   progress: { percentage: number; totalCompleted: number; totalExpected: number; trend: number | null } | null;
   templates: Array<{ id: string; name: string; description: string }>;
+  availablePrograms: Array<{ key: string; name: string }>;
   saving: boolean;
+  onChangeProgram: (programKey: string) => void;
   onChangeWeek: (week: number) => void;
   onCustomize: () => void;
   onRemoveCustom: () => void;
@@ -379,9 +413,20 @@ function CategoryCard({ category, program, isCustom, progress, templates, saving
               <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">CUSTOM</span>
             )}
           </div>
-          <p className="text-sm font-medium text-gray-800 truncate">
-            {program ? program.programName : <span className="text-gray-300 font-normal text-xs">No program selected</span>}
-          </p>
+          {isCustom ? (
+            <p className="text-sm font-medium text-gray-800 truncate">{program?.programName || "Custom program"}</p>
+          ) : (
+            <select
+              value={program?.programKey || ""}
+              onChange={(e) => { if (e.target.value) onChangeProgram(e.target.value); }}
+              className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none cursor-pointer p-0 -ml-0.5 max-w-full truncate"
+            >
+              {!program && <option value="">Select program...</option>}
+              {availablePrograms.map((p) => (
+                <option key={p.key} value={p.key}>{p.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Completion counter */}
