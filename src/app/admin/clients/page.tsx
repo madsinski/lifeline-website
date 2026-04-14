@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useAllClientsProgress, ProgressIndicator, ClientProgressPanel, getNudgeStatus, nudgeConfig, type NudgeStatus } from "./ClientProgressPanel";
 
 type Tier = "free-trial" | "self-maintained" | "full-access";
 type Status = "active" | "cancelled" | "expired" | "trial";
@@ -177,6 +178,8 @@ export default function ClientsPage() {
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [sendingMessage, setSendingMessage] = useState<string | null>(null);
+  const [expandAll, setExpandAll] = useState(false);
+  const [filterNudge, setFilterNudge] = useState<"All" | NudgeStatus>("All");
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -382,6 +385,10 @@ export default function ClientsPage() {
     }
   };
 
+  // Batch progress data for all clients
+  const clientIds = useMemo(() => clients.map((c) => c.id), [clients]);
+  const { progressMap, loading: progressLoading } = useAllClientsProgress(clientIds);
+
   const filtered = clients
     .filter((c) => {
       const matchesSearch =
@@ -389,7 +396,8 @@ export default function ClientsPage() {
         c.email.toLowerCase().includes(search.toLowerCase());
       const matchesTier = filterTier === "All" || c.tier === filterTier;
       const matchesStatus = filterStatus === "All" || c.status === filterStatus;
-      return matchesSearch && matchesTier && matchesStatus;
+      const matchesNudge = filterNudge === "All" || getNudgeStatus(progressMap[c.id] || null) === filterNudge;
+      return matchesSearch && matchesTier && matchesStatus && matchesNudge;
     })
     .sort((a, b) => {
       const valA = a[sortKey];
@@ -717,12 +725,29 @@ export default function ClientsPage() {
         >
           {loading ? "Loading..." : "Refresh"}
         </button>
+        <select
+          value={filterNudge}
+          onChange={(e) => setFilterNudge(e.target.value as "All" | NudgeStatus)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+        >
+          <option value="All">All Progress</option>
+          <option value="inactive">Inactive</option>
+          <option value="needs-nudge">Needs Nudge</option>
+          <option value="on-track">On Track</option>
+          <option value="no-program">No Program</option>
+        </select>
         <button
           onClick={syncClients}
           disabled={syncing || loading}
           className="px-4 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors disabled:opacity-50"
         >
           {syncing ? "Syncing..." : "Sync"}
+        </button>
+        <button
+          onClick={() => setExpandAll(!expandAll)}
+          className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          {expandAll ? "Collapse all" : "Expand all"}
         </button>
         <span className="text-sm text-gray-400 ml-auto">
           {filtered.length} client{filtered.length !== 1 ? "s" : ""}
@@ -861,6 +886,7 @@ export default function ClientsPage() {
                   <SortHeader label="Email" field="email" />
                   <SortHeader label="Tier" field="tier" />
                   <SortHeader label="Status" field="status" />
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Progress</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coach</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Terms</th>
                   <SortHeader label="Joined" field="joined" />
@@ -872,7 +898,7 @@ export default function ClientsPage() {
                     key={client.id}
                     client={client}
                     isEven={idx % 2 === 1}
-                    isExpanded={expandedId === client.id}
+                    isExpanded={expandAll || expandedId === client.id}
                     isSaving={savingTier === client.id}
                     isCreating={creatingSubscription === client.id}
                     isDeleting={deletingClient === client.id}
@@ -892,6 +918,8 @@ export default function ClientsPage() {
                     staffMembers={staffMembers}
                     onSendMessage={handleSendMessageToClient}
                     isSendingMessage={sendingMessage === client.id}
+                    progress={progressMap[client.id] || null}
+                    progressLoading={progressLoading}
                   />
                 ))}
               </tbody>
@@ -1204,6 +1232,8 @@ function ClientRowComponent({
   staffMembers,
   onSendMessage,
   isSendingMessage,
+  progress,
+  progressLoading,
 }: {
   client: Client;
   isEven: boolean;
@@ -1223,6 +1253,8 @@ function ClientRowComponent({
   staffMembers: StaffMember[];
   onSendMessage: (clientId: string, clientName: string) => void;
   isSendingMessage: boolean;
+  progress: import("./ClientProgressPanel").ClientProgressData | null;
+  progressLoading: boolean;
 }) {
   const assignedStaff = staffMembers.find((s) => s.id === assignedCoachId);
   const isActive = client.status === "active" || client.status === "trial";
@@ -1268,6 +1300,9 @@ function ClientRowComponent({
           </div>
         </td>
         <td className="px-4 py-3">
+          <ProgressIndicator progress={progress} loading={progressLoading} />
+        </td>
+        <td className="px-4 py-3">
           {assignedStaff ? (
             <div className="flex items-center gap-1.5">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${staffRoleColors[assignedStaff.role]}`}>{assignedStaff.avatarInitial}</div>
@@ -1293,7 +1328,7 @@ function ClientRowComponent({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={7} className="bg-gray-50/80 px-5 py-4">
+          <td colSpan={8} className="bg-gray-50/80 px-5 py-4">
             {/* Top bar: coach + message + subscription + delete */}
             <div className="flex items-center gap-3 mb-4">
               {/* Coach selector */}
@@ -1356,6 +1391,11 @@ function ClientRowComponent({
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Progress card */}
+            <div className="bg-white rounded-xl border border-gray-100 p-5 mb-3">
+              <ClientProgressPanel clientId={client.id} />
             </div>
 
             {/* Programs card — full width */}
