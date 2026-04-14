@@ -336,13 +336,13 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
       <div className="flex items-start gap-4 mb-5 pb-5 border-b border-gray-200/60">
         {/* Left: avatar + details */}
         {avatarUrl?.startsWith("avatar:") ? (
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl flex-shrink-0">
+          <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-4xl flex-shrink-0">
             {avatarUrl.replace("avatar:", "")}
           </div>
         ) : avatarUrl?.startsWith("http") ? (
-          <img src={avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+          <img src={avatarUrl} alt="" className="w-24 h-24 rounded-full object-cover flex-shrink-0" />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+          <div className="w-24 h-24 rounded-full bg-gray-900 flex items-center justify-center text-2xl font-bold text-white flex-shrink-0">
             {clientName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
           </div>
         )}
