@@ -100,14 +100,20 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
 
   useEffect(() => { loadPrograms(); }, [loadPrograms]);
 
-  const handleChangeProgram = async (categoryKey: string, newProgramKey: string) => {
+  const handleChangeProgram = async (categoryKey: string, newProgramKey: string, startNextMonday?: boolean) => {
     try {
+      let startDate = new Date();
+      if (startNextMonday) {
+        const day = startDate.getDay();
+        const daysUntilMonday = day === 0 ? 1 : 8 - day;
+        startDate = new Date(startDate.getTime() + daysUntilMonday * 86400000);
+      }
       await supabase.from("client_programs").upsert({
         client_id: clientId,
         category_key: categoryKey,
         program_key: newProgramKey,
         week_number: 1,
-        started_at: new Date().toISOString(),
+        started_at: startDate.toISOString(),
       }, { onConflict: "client_id,category_key" });
       // Remove any custom program for this category since we're switching to a standard one
       await supabase.from("client_custom_programs").delete().eq("client_id", clientId).eq("category_key", categoryKey);
@@ -116,14 +122,24 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
   };
 
   const handleChangeWeek = async (categoryKey: string, newWeek: number) => {
-    try {
-      await supabase.from("client_programs").update({ week_number: newWeek })
-        .eq("client_id", clientId).eq("category_key", categoryKey);
-      setPrograms(prev => ({
-        ...prev,
-        [categoryKey]: prev[categoryKey] ? { ...prev[categoryKey], week: newWeek } : prev[categoryKey],
-      }));
-    } catch {}
+    // Use upsert instead of update — update requires matching RLS on the existing row
+    // which may fail if the row was created by the client (client_id != auth.uid() for staff)
+    const prog = programs[categoryKey];
+    if (!prog) return;
+    const { error } = await supabase.from("client_programs").upsert({
+      client_id: clientId,
+      category_key: categoryKey,
+      program_key: prog.programKey,
+      week_number: newWeek,
+    }, { onConflict: "client_id,category_key" });
+    if (error) {
+      console.error("[WeekChange] Error:", error.message);
+      return;
+    }
+    setPrograms(prev => ({
+      ...prev,
+      [categoryKey]: prev[categoryKey] ? { ...prev[categoryKey], week: newWeek } : prev[categoryKey],
+    }));
   };
 
   const handleCustomize = async (categoryKey: string) => {
@@ -364,7 +380,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
               templates={catTemplates}
               availablePrograms={availablePrograms[cat.key] || []}
               saving={saving}
-              onChangeProgram={(key) => handleChangeProgram(cat.key, key)}
+              onChangeProgram={(key, startNextMonday) => handleChangeProgram(cat.key, key, startNextMonday)}
               onChangeWeek={(w) => handleChangeWeek(cat.key, w)}
               onCustomize={() => handleCustomize(cat.key)}
               onRemoveCustom={() => handleRemoveCustom(cat.key)}
@@ -389,7 +405,7 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
   templates: Array<{ id: string; name: string; description: string }>;
   availablePrograms: Array<{ key: string; name: string }>;
   saving: boolean;
-  onChangeProgram: (programKey: string) => void;
+  onChangeProgram: (programKey: string, startNextMonday?: boolean) => void;
   onChangeWeek: (week: number) => void;
   onCustomize: () => void;
   onRemoveCustom: () => void;
@@ -398,7 +414,15 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
   onLoadTemplate: (id: string) => void;
 }) {
   const [showTemplates, setShowTemplates] = useState(false);
+  const [pendingProgram, setPendingProgram] = useState<string | null>(null);
   const pct = progress?.percentage ?? 0;
+
+  const confirmProgram = (startNextMonday: boolean) => {
+    if (pendingProgram) {
+      onChangeProgram(pendingProgram, startNextMonday);
+      setPendingProgram(null);
+    }
+  };
 
   return (
     <div className={`rounded-xl border p-4 transition-colors ${isCustom ? "border-amber-300/60 bg-amber-50/40" : `${category.bg} ${category.border}`}`}>
@@ -422,7 +446,7 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
           ) : (
             <select
               value={program?.programKey || ""}
-              onChange={(e) => { if (e.target.value) onChangeProgram(e.target.value); }}
+              onChange={(e) => { if (e.target.value && e.target.value !== program?.programKey) setPendingProgram(e.target.value); }}
               className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none cursor-pointer p-0 -ml-0.5 max-w-full truncate"
             >
               {!program && <option value="">Select program...</option>}
@@ -518,8 +542,31 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
         </div>
       </div>
 
+      {/* Pending program change — start options */}
+      {pendingProgram && (
+        <div className="mt-3 p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-2">
+          <span className="text-xs text-gray-600 flex-1">
+            Switch to <span className="font-semibold text-gray-900">{availablePrograms.find(p => p.key === pendingProgram)?.name}</span>?
+          </span>
+          <button onClick={() => confirmProgram(false)}
+            className="px-2.5 py-1.5 text-[11px] font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
+            Start now
+          </button>
+          <button onClick={() => confirmProgram(true)}
+            className="px-2.5 py-1.5 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+            Next Monday
+          </button>
+          <button onClick={() => setPendingProgram(null)}
+            className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Linear progress bar */}
-      {program && (
+      {program && !pendingProgram && (
         <div className="mt-3 h-1.5 bg-white/80 rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all duration-500 ease-out"
             style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: category.color, opacity: 0.75 }} />
