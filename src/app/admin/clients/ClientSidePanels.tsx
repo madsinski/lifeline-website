@@ -55,14 +55,22 @@ function timeAgo(dateStr: string): string {
 
 // ─── Appointments card ─────────────────────────────────────
 
+const CONSULTATIONS_PER_TIER: Record<string, number> = {
+  "free-trial": 1,
+  "self-maintained": 0,
+  "full-access": 4,
+};
+
 export function AppointmentsCard({ clientId }: { clientId: string }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [consultationQuota, setConsultationQuota] = useState<{ used: number; total: number; tier: string } | null>(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
+        // Load booked appointments
         const { data } = await supabase
           .from("appointments")
           .select("*")
@@ -70,6 +78,32 @@ export function AppointmentsCard({ clientId }: { clientId: string }) {
           .eq("status", "booked")
           .order("date", { ascending: true });
         setAppointments((data as Appointment[]) || []);
+
+        // Load consultation quota
+        const { data: subs } = await supabase
+          .from("subscriptions")
+          .select("tier, current_period_start")
+          .eq("client_id", clientId)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (subs && subs.length > 0) {
+          const sub = subs[0] as { tier: string; current_period_start: string };
+          const total = CONSULTATIONS_PER_TIER[sub.tier] ?? 0;
+          const periodStart = sub.current_period_start || new Date(Date.now() - 30 * 86400000).toISOString();
+
+          // Count consultations (booked + completed) in current period
+          const { count } = await supabase
+            .from("appointments")
+            .select("id", { count: "exact", head: true })
+            .eq("client_id", clientId)
+            .eq("type", "consultation")
+            .in("status", ["booked", "completed"])
+            .gte("created_at", periodStart);
+
+          setConsultationQuota({ used: count ?? 0, total, tier: sub.tier });
+        }
       } catch {}
       setLoading(false);
     })();
@@ -90,9 +124,24 @@ export function AppointmentsCard({ clientId }: { clientId: string }) {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-4">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Upcoming appointments</h4>
-        {appointments.length > 0 && (
-          <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">{appointments.length} booked</span>
-        )}
+        <div className="flex items-center gap-2">
+          {consultationQuota && consultationQuota.total > 0 && (
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+              consultationQuota.total - consultationQuota.used <= 0
+                ? "text-red-600 bg-red-50"
+                : consultationQuota.total - consultationQuota.used <= 1
+                ? "text-amber-600 bg-amber-50"
+                : "text-gray-600 bg-gray-100"
+            }`}>
+              {consultationQuota.total - consultationQuota.used}/{consultationQuota.total} consultations left
+            </span>
+          )}
+          {consultationQuota && consultationQuota.total === 0 && (
+            <span className="text-[10px] font-medium text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-full">
+              No consultations incl.
+            </span>
+          )}
+        </div>
       </div>
       {loading ? (
         <p className="text-xs text-gray-300 py-4 text-center">Loading...</p>
