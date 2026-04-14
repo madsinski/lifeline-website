@@ -54,7 +54,7 @@ export const nudgeConfig: Record<NudgeStatus, { label: string; color: string; bg
 
 // ─── Progress ring ─────────────────────────────────────────
 
-function ProgressRing({ percentage, size = 48, strokeWidth = 4, color = "#10B981" }: {
+export function ProgressRing({ percentage, size = 48, strokeWidth = 4, color = "#10B981" }: {
   percentage: number;
   size?: number;
   strokeWidth?: number;
