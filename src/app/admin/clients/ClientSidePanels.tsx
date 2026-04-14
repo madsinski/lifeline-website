@@ -306,19 +306,35 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
   };
 
   const [showNudges, setShowNudges] = useState(false);
+  const [editingNudges, setEditingNudges] = useState(false);
 
-  const nudgeTemplates = [
-    `Hey ${clientName.split(" ")[0]}! Just checking in — how are you feeling about your program this week?`,
-    `I noticed your activity has been a bit quiet lately. Everything okay? Let me know if you need to adjust anything.`,
-    `Great work on your recent progress! Keep the momentum going this week.`,
-    `Quick reminder to log your actions today — every small step counts!`,
-    `How was your sleep this week? If you're struggling, let's look at your routine together.`,
-    `Time for a check-in! How's the nutrition plan working for you? Any meals you'd like to swap?`,
-    `You're doing really well — just a nudge to stay consistent with your evening routine.`,
-    `I've updated your program for this week. Take a look and let me know if it works for you.`,
-    `Don't forget to hit your step goal today! A quick walk after lunch makes a big difference.`,
-    `Let's book a call this week to review your progress and plan the next phase.`,
+  const defaultNudges = [
+    "Hey {name}! Just checking in — how are you feeling about your program this week?",
+    "I noticed your activity has been a bit quiet lately. Everything okay? Let me know if you need to adjust anything.",
+    "Great work on your recent progress! Keep the momentum going this week.",
+    "Quick reminder to log your actions today — every small step counts!",
+    "How was your sleep this week? If you're struggling, let's look at your routine together.",
+    "Time for a check-in! How's the nutrition plan working for you? Any meals you'd like to swap?",
+    "You're doing really well — just a nudge to stay consistent with your evening routine.",
+    "I've updated your program for this week. Take a look and let me know if it works for you.",
+    "Don't forget to hit your step goal today! A quick walk after lunch makes a big difference.",
+    "Let's book a call this week to review your progress and plan the next phase.",
   ];
+
+  const [nudgeTemplates, setNudgeTemplates] = useState<string[]>(() => {
+    if (typeof window === "undefined") return defaultNudges;
+    try {
+      const saved = localStorage.getItem("ll-nudge-templates");
+      return saved ? JSON.parse(saved) : defaultNudges;
+    } catch { return defaultNudges; }
+  });
+
+  const saveNudges = (templates: string[]) => {
+    setNudgeTemplates(templates);
+    try { localStorage.setItem("ll-nudge-templates", JSON.stringify(templates)); } catch {}
+  };
+
+  const personalize = (msg: string) => msg.replace(/\{name\}/g, clientName.split(" ")[0]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 flex flex-col overflow-hidden" style={{ height: "100%" }}>
@@ -359,13 +375,55 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
 
       {/* Nudge templates dropdown */}
       {showNudges && (
-        <div className="px-3 py-2 border-t border-gray-100 max-h-40 overflow-y-auto flex-shrink-0">
-          {nudgeTemplates.map((msg, i) => (
-            <button key={i} onClick={() => { setInput(msg); setShowNudges(false); }}
-              className="w-full text-left px-2.5 py-2 text-[11px] text-gray-600 hover:bg-gray-50 rounded-lg transition-colors leading-snug">
-              {msg}
-            </button>
-          ))}
+        <div className="border-t border-gray-100 flex-shrink-0">
+          <div className="px-3 pt-2 pb-1 flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Nudge templates</span>
+            <div className="flex items-center gap-2">
+              {editingNudges && (
+                <button onClick={() => { saveNudges([...nudgeTemplates, "New template — use {name} for client name"]); }}
+                  className="text-[10px] font-medium text-emerald-600 hover:text-emerald-700">+ Add</button>
+              )}
+              <button onClick={() => {
+                if (editingNudges) saveNudges(nudgeTemplates);
+                setEditingNudges(!editingNudges);
+              }} className="text-[10px] font-medium text-gray-500 hover:text-gray-700">
+                {editingNudges ? "Done" : "Edit"}
+              </button>
+            </div>
+          </div>
+          <div className="px-3 pb-2 max-h-40 overflow-y-auto space-y-1">
+            {editingNudges ? (
+              nudgeTemplates.map((msg, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <textarea
+                    value={msg}
+                    onChange={(e) => { const next = [...nudgeTemplates]; next[i] = e.target.value; setNudgeTemplates(next); }}
+                    rows={2}
+                    className="flex-1 px-2.5 py-1.5 text-[11px] text-gray-700 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 outline-none resize-none leading-snug"
+                  />
+                  <button onClick={() => { const next = nudgeTemplates.filter((_, j) => j !== i); saveNudges(next); }}
+                    className="p-1 text-gray-300 hover:text-red-500 flex-shrink-0 mt-0.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))
+            ) : (
+              nudgeTemplates.map((msg, i) => (
+                <button key={i} onClick={() => { setInput(personalize(msg)); setShowNudges(false); }}
+                  className="w-full text-left px-2.5 py-2 text-[11px] text-gray-600 hover:bg-gray-50 rounded-lg transition-colors leading-snug">
+                  {personalize(msg)}
+                </button>
+              ))
+            )}
+          </div>
+          {editingNudges && (
+            <div className="px-3 pb-2">
+              <button onClick={() => { saveNudges(defaultNudges); }}
+                className="text-[10px] text-gray-400 hover:text-gray-600">Reset to defaults</button>
+            </div>
+          )}
         </div>
       )}
 
