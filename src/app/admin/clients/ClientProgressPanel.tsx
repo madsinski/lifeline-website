@@ -219,13 +219,36 @@ export function useClientProgress(clientId: string): { progress: ClientProgressD
         }
       }
 
-      // 8. Build per-program progress
-      const currentCompletionKeys = new Set(
-        (currentCompletions || []).map((c) => (c as Record<string, string>).action_key)
+      // 8. Build per-program progress — count per day to avoid deduplication
+      // Completions keyed by "action_key::date" for exact matching
+      const currentCompletionPairs = new Set(
+        (currentCompletions || []).map((c) => {
+          const r = c as Record<string, string>;
+          return `${r.action_key}::${r.date}`;
+        })
       );
-      const prevCompletionKeys = new Set(
-        (prevCompletions || []).map((c) => (c as Record<string, string>).action_key)
+      const prevCompletionPairs = new Set(
+        (prevCompletions || []).map((c) => {
+          const r = c as Record<string, string>;
+          return `${r.action_key}::${r.date}`;
+        })
       );
+
+      // Build date strings for each day of the current week
+      const dayDates: string[] = [];
+      for (let d = 0; d <= dayOfWeek; d++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + d);
+        dayDates.push(date.toISOString().split("T")[0]);
+      }
+
+      // Previous week date strings
+      const prevDayDates: string[] = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(prevWeekStart);
+        date.setDate(prevWeekStart.getDate() + d);
+        prevDayDates.push(date.toISOString().split("T")[0]);
+      }
 
       const programProgress: ProgramProgress[] = [];
       let totalExpected = 0;
@@ -243,37 +266,42 @@ export function useClientProgress(clientId: string): { progress: ClientProgressD
 
         const catDef = categoryDefs[catKey] || { label: catKey, color: "#6B7280" };
 
-        // Current week expected actions
-        const expectedActions = (allActions || []).filter((a) => {
-          const act = a as Record<string, unknown>;
-          return act.program_id === progInfo.id && act.week_range === weekRange;
-        });
+        // Count expected and completed per day for current week
+        let expected = 0;
+        let completed = 0;
+        for (let d = 0; d <= dayOfWeek; d++) {
+          const dayActions = (allActions || []).filter((a) => {
+            const act = a as Record<string, unknown>;
+            return act.program_id === progInfo.id && act.week_range === weekRange && act.day_of_week === d;
+          });
+          for (const a of dayActions) {
+            const act = a as Record<string, string>;
+            const compositeKey = `${act.category}-${act.action_key}`;
+            expected++;
+            if (currentCompletionPairs.has(`${compositeKey}::${dayDates[d]}`)) {
+              completed++;
+            }
+          }
+        }
 
-        // Only count actions up to today's day of week
-        const expectedUpToToday = expectedActions.filter((a) => {
-          return (a as Record<string, unknown>).day_of_week as number <= dayOfWeek;
-        });
-
-        // App stores completions as `${category}-${action_key}` (e.g. "exercise-34c5f422-...")
-        const expectedKeys = new Set(expectedUpToToday.map((a) => {
-          const act = a as Record<string, string>;
-          return `${act.category}-${act.action_key}`;
-        }));
-        const completed = [...expectedKeys].filter((k) => currentCompletionKeys.has(k)).length;
-        const expected = expectedKeys.size;
-
-        // Previous week
+        // Previous week — count all 7 days
         const prevWeekRange = Math.max(0, weekRange - 1);
-        const prevExpectedActions = (allActions || []).filter((a) => {
-          const act = a as Record<string, unknown>;
-          return act.program_id === progInfo.id && act.week_range === prevWeekRange;
-        });
-        const prevExpectedKeys = new Set(prevExpectedActions.map((a) => {
-          const act = a as Record<string, string>;
-          return `${act.category}-${act.action_key}`;
-        }));
-        const prevCompleted = [...prevExpectedKeys].filter((k) => prevCompletionKeys.has(k)).length;
-        const prevExpected = prevExpectedKeys.size;
+        let prevExpected = 0;
+        let prevCompleted = 0;
+        for (let d = 0; d < 7; d++) {
+          const dayActions = (allActions || []).filter((a) => {
+            const act = a as Record<string, unknown>;
+            return act.program_id === progInfo.id && act.week_range === prevWeekRange && act.day_of_week === d;
+          });
+          for (const a of dayActions) {
+            const act = a as Record<string, string>;
+            const compositeKey = `${act.category}-${act.action_key}`;
+            prevExpected++;
+            if (prevCompletionPairs.has(`${compositeKey}::${prevDayDates[d]}`)) {
+              prevCompleted++;
+            }
+          }
+        }
 
         const percentage = expected > 0 ? (completed / expected) * 100 : 0;
         const prevPercentage = prevExpected > 0 ? (prevCompleted / prevExpected) * 100 : null;
@@ -380,12 +408,20 @@ export function useAllClientsProgress(clientIds: string[]): {
         .eq("status", "done")
         .order("date", { ascending: false });
 
-      // Group data by client
+      // Group completions by client — store "action_key::date" pairs to count per-day
       const completionsByClient: Record<string, Set<string>> = {};
       for (const c of allCompletions || []) {
         const row = c as Record<string, string>;
         if (!completionsByClient[row.client_id]) completionsByClient[row.client_id] = new Set();
-        completionsByClient[row.client_id].add(row.action_key);
+        completionsByClient[row.client_id].add(`${row.action_key}::${row.date}`);
+      }
+
+      // Build date strings for each day of the current week
+      const dayDates: string[] = [];
+      for (let d = 0; d <= dayOfWeek; d++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + d);
+        dayDates.push(date.toISOString().split("T")[0]);
       }
 
       const lastActiveByClient: Record<string, string> = {};
@@ -434,18 +470,23 @@ export function useAllClientsProgress(clientIds: string[]): {
 
           const catDef = categoryDefs[catKey] || { label: catKey, color: "#6B7280" };
 
-          const expectedActions = (allActions || []).filter((a) => {
-            const act = a as Record<string, unknown>;
-            return act.program_id === progInfo.id && act.week_range === weekRange && (act.day_of_week as number) <= dayOfWeek;
-          });
-
-          // App stores completions as `${category}-${action_key}`
-          const expectedKeys = new Set(expectedActions.map((a) => {
-            const act = a as Record<string, string>;
-            return `${act.category}-${act.action_key}`;
-          }));
-          const completed = [...expectedKeys].filter((k) => clientCompletions.has(k)).length;
-          const expected = expectedKeys.size;
+          // Count per-day to avoid deduplication across days
+          let expected = 0;
+          let completed = 0;
+          for (let d = 0; d <= dayOfWeek; d++) {
+            const dayActions = (allActions || []).filter((a) => {
+              const act = a as Record<string, unknown>;
+              return act.program_id === progInfo.id && act.week_range === weekRange && act.day_of_week === d;
+            });
+            for (const a of dayActions) {
+              const act = a as Record<string, string>;
+              const compositeKey = `${act.category}-${act.action_key}`;
+              expected++;
+              if (clientCompletions.has(`${compositeKey}::${dayDates[d]}`)) {
+                completed++;
+              }
+            }
+          }
           const percentage = expected > 0 ? (completed / expected) * 100 : 0;
 
           programs.push({
