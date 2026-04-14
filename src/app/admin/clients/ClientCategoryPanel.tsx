@@ -332,9 +332,9 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      {/* Profile row */}
-      <div className="flex items-start gap-4 mb-4">
-        {/* Avatar */}
+      {/* Profile + weekly progress side by side */}
+      <div className="flex items-start gap-4 mb-5 pb-5 border-b border-gray-200/60">
+        {/* Left: avatar + details */}
         {avatarUrl?.startsWith("avatar:") ? (
           <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl flex-shrink-0">
             {avatarUrl.replace("avatar:", "")}
@@ -355,48 +355,45 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
             {joined && <span>Joined {joined}</span>}
           </div>
         </div>
-      </div>
 
-      {/* Weekly progress — prominent section */}
-      {progress && progress.programs.length > 0 && (
-        <div className="flex items-center gap-5 mb-5 pb-5 border-b border-gray-200/60 bg-gray-50/60 -mx-5 px-5 py-4 rounded-xl">
-          <div className="relative flex-shrink-0">
-            <ProgressRing
-              percentage={progress.totalPercentage}
-              size={80}
-              strokeWidth={6}
-              color={status === "on-track" ? "#34D399" : status === "needs-nudge" ? "#FBBF24" : "#F87171"}
-            />
-            <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-              {Math.round(progress.totalPercentage)}%
-            </span>
-          </div>
-          <div className="flex-1 space-y-1.5">
-            <p className="text-sm font-bold text-gray-900">Weekly Progress</p>
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">{progress.programs.reduce((s, p) => s + p.totalCompleted, 0)}</span>
-              <span className="text-gray-400"> / </span>
-              <span>{progress.programs.reduce((s, p) => s + p.totalExpected, 0)} actions completed</span>
-            </p>
-            <div className="flex items-center gap-3">
-              {progress.streak > 0 && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 rounded-full">
-                  <span className="text-xs">🔥</span>
-                  <span className="text-xs font-bold text-emerald-700">{progress.streak} day streak</span>
-                </div>
-              )}
-              {progress.lastActiveDate && (
-                <span className="text-xs text-gray-400">
-                  {progress.daysSinceActive === 0 ? "Active today" : progress.daysSinceActive === 1 ? "Active yesterday" : `Last active ${progress.daysSinceActive}d ago`}
-                </span>
-              )}
+        {/* Right: weekly progress */}
+        {progress && progress.programs.length > 0 && (
+          <div className="flex items-center gap-4 flex-shrink-0 bg-gray-50/80 rounded-xl px-5 py-3">
+            <div className="relative flex-shrink-0">
+              <ProgressRing
+                percentage={progress.totalPercentage}
+                size={72}
+                strokeWidth={6}
+                color={status === "on-track" ? "#34D399" : status === "needs-nudge" ? "#FBBF24" : "#F87171"}
+              />
+              <span className="absolute inset-0 flex items-center justify-center text-base font-bold text-gray-900">
+                {Math.round(progress.totalPercentage)}%
+              </span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-gray-900">Weekly Progress</p>
+              <p className="text-xs text-gray-600">
+                <span className="font-semibold text-gray-900">{progress.programs.reduce((s, p) => s + p.totalCompleted, 0)}</span>
+                <span className="text-gray-400"> / </span>
+                <span>{progress.programs.reduce((s, p) => s + p.totalExpected, 0)} actions</span>
+              </p>
+              <div className="flex items-center gap-2">
+                {progress.streak > 0 && (
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 rounded-full">
+                    <span className="text-[10px]">🔥</span>
+                    <span className="text-[10px] font-bold text-emerald-700">{progress.streak}d streak</span>
+                  </div>
+                )}
+                {progress.lastActiveDate && (
+                  <span className="text-[10px] text-gray-400">
+                    {progress.daysSinceActive === 0 ? "Today" : progress.daysSinceActive === 1 ? "Yesterday" : `${progress.daysSinceActive}d ago`}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      {(!progress || progress.programs.length === 0) && (
-        <div className="mb-5 pb-5 border-b border-gray-200/60" />
-      )}
+        )}
+      </div>
 
       {/* Category rows — full width horizontal cards */}
       <div className="space-y-3">
