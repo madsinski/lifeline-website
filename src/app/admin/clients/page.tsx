@@ -997,13 +997,18 @@ function ClientRowComponent({
   return (
     <>
       <tr
-        className={`cursor-pointer hover:bg-gray-50 transition-colors ${
-          isEven ? "bg-gray-50/50" : ""
+        className={`cursor-pointer transition-all ${
+          isExpanded
+            ? "bg-emerald-50/60 shadow-[inset_3px_0_0_0_#10B981]"
+            : isEven ? "bg-gray-50/50 hover:bg-gray-50" : "hover:bg-gray-50"
         }`}
         onClick={onToggle}
       >
         <td className="px-4 py-3 text-sm font-medium text-[#1F2937]">
-          {client.name}
+          <div className="flex items-center gap-2">
+            {isExpanded && <span className="text-[10px] text-emerald-500">&#9660;</span>}
+            {client.name}
+          </div>
         </td>
         <td className="px-4 py-3 text-sm text-gray-600">{client.email}</td>
         <td className="px-4 py-3">
@@ -1061,7 +1066,7 @@ function ClientRowComponent({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={8} className="bg-gray-50/80 px-5 py-4">
+          <td colSpan={8} className="bg-gradient-to-b from-emerald-50/40 to-gray-50/60 px-5 py-4 border-b-2 border-emerald-100 shadow-[inset_3px_0_0_0_#10B981]">
             {/* Profile header card */}
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-3">
               <div className="flex items-start gap-4">
