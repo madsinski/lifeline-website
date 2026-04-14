@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAllClientsProgress, ProgressIndicator, getNudgeStatus, nudgeConfig, type NudgeStatus } from "./ClientProgressPanel";
 import ClientCategoryPanel from "./ClientCategoryPanel";
+import { AppointmentsCard, MessagesCard } from "./ClientSidePanels";
 
 type Tier = "free-trial" | "self-maintained" | "full-access";
 type Status = "active" | "cancelled" | "expired" | "trial";
@@ -1129,9 +1130,17 @@ function ClientRowComponent({
               </div>
             </div>
 
-            {/* Category panel: progress + programs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <ClientCategoryPanel clientId={client.id} clientName={client.name} tier={client.tier} />
+            {/* Two-column layout: categories (50%) + appointments/messages (50%) */}
+            <div className="flex gap-3">
+              {/* Left: category panel */}
+              <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <ClientCategoryPanel clientId={client.id} clientName={client.name} tier={client.tier} />
+              </div>
+              {/* Right: appointments + messages stacked */}
+              <div className="flex-1 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+                <AppointmentsCard clientId={client.id} />
+                <MessagesCard clientId={client.id} clientName={client.name} onSendMessage={onSendMessage} />
+              </div>
             </div>
           </td>
         </tr>
