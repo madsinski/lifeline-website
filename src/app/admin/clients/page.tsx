@@ -890,8 +890,7 @@ export default function ClientsPage() {
                 <tr>
                   <SortHeader label="Name" field="name" />
                   <SortHeader label="Email" field="email" />
-                  <SortHeader label="Tier" field="tier" />
-                  <SortHeader label="Status" field="status" />
+                  <SortHeader label="Subscription" field="tier" />
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Progress</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coach</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Terms</th>
@@ -1013,44 +1012,33 @@ function ClientRowComponent({
           </div>
         </td>
         <td className="px-4 py-3 text-sm text-gray-600">{client.email}</td>
-        <td className="px-4 py-3">
-          <span
-            className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              tierColors[client.tier]
-            }`}
-          >
-            {tierLabels[client.tier]}
-          </span>
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-block w-2 h-2 rounded-full ${
-                statusColors[client.status]
-              }`}
-            />
-            <span className="text-sm text-gray-600">
-              {statusLabels[client.status]}
-            </span>
-            {trialExpiring && (
-              <span className="text-xs text-amber-600 font-medium">
-                ({trialDays}d left)
-              </span>
-            )}
-          </div>
+        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+          {client.tier === "none" ? (
+            <button onClick={() => onCreateSubscription(client.id)} disabled={isCreating}
+              className="px-2.5 py-1 text-[11px] font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors">
+              {isCreating ? "..." : "+ Plan"}
+            </button>
+          ) : (
+            <select
+              value={client.tier}
+              onChange={(e) => onChangeTier(client.id, client.subscriptionId, e.target.value as Tier)}
+              disabled={isSaving}
+              className={`px-2 py-1 rounded-full text-xs font-medium border-none outline-none cursor-pointer disabled:opacity-50 ${tierColors[client.tier]}`}
+            >
+              {tierOptions.map((t) => (
+                <option key={t} value={t}>{tierLabels[t]}</option>
+              ))}
+            </select>
+          )}
         </td>
         <td className="px-4 py-3">
           <ProgressIndicator progress={progress} loading={progressLoading} />
         </td>
-        <td className="px-4 py-3">
-          {assignedStaff ? (
-            <div className="flex items-center gap-1.5">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${staffRoleColors[assignedStaff.role]}`}>{assignedStaff.avatarInitial}</div>
-              <span className="text-xs text-gray-600 truncate max-w-[80px]">{assignedStaff.name.split(" ")[0]}</span>
-            </div>
-          ) : (
-            <span className="text-xs text-gray-300">—</span>
-          )}
+        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+          <select value={assignedCoachId} onChange={(e) => onAssignCoach(client.id, e.target.value)}
+            className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-700 focus:ring-2 focus:ring-gray-300 outline-none cursor-pointer bg-transparent">
+            {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
         </td>
         <td className="px-4 py-3">
           {client.termsAcceptedAt ? (
@@ -1068,7 +1056,7 @@ function ClientRowComponent({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={8} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
+          <td colSpan={7} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
             {/* Profile header card */}
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200/60 mb-3">
               <div className="flex items-start gap-4">
