@@ -43,6 +43,7 @@ interface Client {
   status: Status;
   joined: string;
   phone: string;
+  avatarUrl: string | null;
   subscriptionId: string | null;
   subscriptionStart: string | null;
   subscriptionEnd: string | null;
@@ -137,6 +138,7 @@ function normalizeClient(row: ClientRow): Client {
     status: deriveStatus(sub),
     joined: row.created_at ? new Date(row.created_at).toISOString().split("T")[0] : "",
     phone: row.phone || "",
+    avatarUrl: (row as unknown as Record<string, unknown>).avatar_url as string | null ?? null,
     subscriptionId: sub?.id ?? null,
     subscriptionStart: sub?.current_period_start
       ? new Date(sub.current_period_start).toISOString().split("T")[0]
@@ -268,6 +270,7 @@ export default function ClientsPage() {
                   ? new Date(u.created_at).toISOString().split("T")[0]
                   : "",
                 phone: (u.user_metadata?.phone as string) || "",
+                avatarUrl: null,
                 subscriptionId: null,
                 subscriptionStart: null,
                 subscriptionEnd: null,
@@ -890,11 +893,13 @@ export default function ClientsPage() {
                 <tr>
                   <SortHeader label="Name" field="name" />
                   <SortHeader label="Email" field="email" />
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
                   <SortHeader label="Subscription" field="tier" />
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Progress</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coach</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Terms</th>
                   <SortHeader label="Joined" field="joined" />
+                  <th className="px-4 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -1003,15 +1008,23 @@ function ClientRowComponent({
         }`}
         onClick={onToggle}
       >
-        <td className="px-4 py-3 text-sm font-bold text-[#1F2937]">
-          <div className="flex items-center gap-2">
-            <svg className={`w-3 h-3 text-[#10B981] transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 20 20">
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <svg className={`w-3 h-3 text-[#10B981] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
-            {client.name}
+            {client.avatarUrl ? (
+              <img src={client.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+                {client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <span className="text-sm font-semibold text-gray-900">{client.name}</span>
           </div>
         </td>
         <td className="px-4 py-3 text-sm text-gray-600">{client.email}</td>
+        <td className="px-4 py-3 text-xs text-gray-500">{client.phone || <span className="text-gray-300">—</span>}</td>
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           {client.tier === "none" ? (
             <button onClick={() => onCreateSubscription(client.id)} disabled={isCreating}
@@ -1053,10 +1066,25 @@ function ClientRowComponent({
           )}
         </td>
         <td className="px-4 py-3 text-sm text-gray-600">{client.joined}</td>
+        <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+          {showDeleteConfirm ? (
+            <div className="flex items-center gap-1">
+              <button onClick={() => onDeleteConfirm()} disabled={isDeleting}
+                className="px-2 py-1 text-[10px] font-medium text-white bg-red-600 rounded-md disabled:opacity-50">{isDeleting ? "..." : "Yes"}</button>
+              <button onClick={() => onDeleteCancel()}
+                className="px-2 py-1 text-[10px] font-medium text-gray-500 bg-gray-100 rounded-md">No</button>
+            </div>
+          ) : (
+            <button onClick={() => onDeleteClick()}
+              className="p-1 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Delete client">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          )}
+        </td>
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={7} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
+          <td colSpan={9} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
             {/* Profile header card */}
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200/60 mb-3">
               <div className="flex items-start gap-4">
