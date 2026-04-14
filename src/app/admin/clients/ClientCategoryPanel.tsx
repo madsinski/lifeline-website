@@ -336,14 +336,14 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
       <div className="flex items-start gap-4 mb-5 pb-5 border-b border-gray-200/60">
         {/* Left: avatar + details */}
         {avatarUrl?.startsWith("avatar:") ? (
-          <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-4xl flex-shrink-0">
-            {avatarUrl.replace("avatar:", "")}
+          <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <span className="text-5xl leading-none">{avatarUrl.replace("avatar:", "")}</span>
           </div>
         ) : avatarUrl?.startsWith("http") ? (
-          <img src={avatarUrl} alt="" className="w-24 h-24 rounded-full object-cover flex-shrink-0" />
+          <img src={avatarUrl} alt="" className="w-24 h-24 rounded-full object-cover flex-shrink-0" style={{ minWidth: 96, minHeight: 96 }} />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-gray-900 flex items-center justify-center text-2xl font-bold text-white flex-shrink-0">
-            {clientName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+          <div className="w-24 h-24 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
+            <span className="text-3xl font-bold text-white leading-none">{clientName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}</span>
           </div>
         )}
         <div className="flex-1 min-w-0">
