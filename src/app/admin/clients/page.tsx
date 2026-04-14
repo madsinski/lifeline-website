@@ -999,14 +999,16 @@ function ClientRowComponent({
       <tr
         className={`cursor-pointer transition-all ${
           isExpanded
-            ? "bg-emerald-50/60 shadow-[inset_3px_0_0_0_#10B981]"
+            ? "bg-[#10B981]/10 shadow-[inset_4px_0_0_0_#10B981]"
             : isEven ? "bg-gray-50/50 hover:bg-gray-50" : "hover:bg-gray-50"
         }`}
         onClick={onToggle}
       >
-        <td className="px-4 py-3 text-sm font-medium text-[#1F2937]">
+        <td className="px-4 py-3 text-sm font-bold text-[#1F2937]">
           <div className="flex items-center gap-2">
-            {isExpanded && <span className="text-[10px] text-emerald-500">&#9660;</span>}
+            <svg className={`w-3 h-3 text-[#10B981] transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
             {client.name}
           </div>
         </td>
@@ -1066,7 +1068,7 @@ function ClientRowComponent({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={8} className="bg-gradient-to-b from-emerald-50/40 to-gray-50/60 px-5 py-4 border-b-2 border-emerald-100 shadow-[inset_3px_0_0_0_#10B981]">
+          <td colSpan={8} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
             {/* Profile header card */}
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-3">
               <div className="flex items-start gap-4">
