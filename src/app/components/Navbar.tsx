@@ -6,13 +6,13 @@ import { usePathname } from "next/navigation";
 import LifelineLogo from "./LifelineLogo";
 import MedaliaButton from "./MedaliaButton";
 import { supabase } from "@/lib/supabase";
-import { LanguagePicker } from "@/lib/i18n";
+import { LanguagePicker, useI18n } from "@/lib/i18n";
 
-const navLinks = [
-  { href: "/assessment", label: "Assessment" },
-  { href: "/coaching", label: "Coaching" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" },
+const navLinkDefs = [
+  { href: "/assessment", key: "nav.assessment", fallback: "Assessment" },
+  { href: "/coaching", key: "nav.coaching", fallback: "Coaching" },
+  { href: "/pricing", key: "nav.pricing", fallback: "Pricing" },
+  { href: "/contact", key: "nav.contact", fallback: "Contact" },
 ];
 
 export default function Navbar() {
@@ -20,6 +20,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const pathname = usePathname();
+  const { t } = useI18n();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,7 +104,7 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden lg:flex items-center gap-7">
-            {navLinks.map((link) => {
+            {navLinkDefs.map((link) => {
               const isActive =
                 link.href === "/"
                   ? pathname === "/"
@@ -118,7 +119,7 @@ export default function Navbar() {
                       : "text-[#6B7280] hover:text-[#1F2937]"
                   }`}
                 >
-                  {link.label}
+                  {t(link.key, link.fallback)}
                   {isActive && (
                     <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#10B981] rounded-full" />
                   )}
@@ -153,7 +154,7 @@ export default function Navbar() {
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                  <span>Account</span>
+                  <span>{t('nav.my_account', 'Account')}</span>
                 </>
               )}
             </Link>
@@ -202,7 +203,7 @@ export default function Navbar() {
         />
         <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '320px', maxWidth: '85vw', backgroundColor: '#ffffff', zIndex: 10, boxShadow: '-4px 0 24px rgba(0,0,0,0.15)', borderLeft: '1px solid #e5e7eb' }}>
           <div className="px-6 py-6 space-y-2">
-            {navLinks.map((link) => {
+            {navLinkDefs.map((link) => {
               const isActive =
                 link.href === "/"
                   ? pathname === "/"
@@ -218,7 +219,7 @@ export default function Navbar() {
                       : "text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50"
                   }`}
                 >
-                  {link.label}
+                  {t(link.key, link.fallback)}
                 </Link>
               );
             })}
@@ -240,7 +241,7 @@ export default function Navbar() {
                     <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    My Account
+                    {t('nav.my_account', 'My Account')}
                   </>
                 )}
               </Link>
@@ -250,7 +251,7 @@ export default function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
               >
-                Download App
+                {t('nav.download_app', 'Download App')}
               </Link>
               <LanguagePicker className="w-full justify-center" />
             </div>

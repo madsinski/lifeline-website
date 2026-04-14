@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import LifelineLogo from "./LifelineLogo";
+import { useI18n } from "@/lib/i18n";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const { t } = useI18n();
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +31,10 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <h3 className="text-lg font-semibold text-white mb-1">
-                Stay up to date
+                {t('footer.newsletter.title', 'Stay up to date')}
               </h3>
               <p className="text-sm text-gray-400">
-                Get health tips and Lifeline news delivered to your inbox.
+                {t('footer.newsletter.desc', 'Get health tips and Lifeline news delivered to your inbox.')}
               </p>
             </div>
             {subscribed ? (
@@ -40,13 +42,13 @@ export default function Footer() {
                 <svg className="w-5 h-5 success-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Thanks for subscribing!
+                {t('footer.newsletter.success', 'Thanks for subscribing!')}
               </div>
             ) : (
               <form onSubmit={handleNewsletterSubmit} className="flex w-full md:w-auto gap-2">
                 <input
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder={t('footer.newsletter.placeholder', 'your@email.com')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -56,7 +58,7 @@ export default function Footer() {
                   type="submit"
                   className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 whitespace-nowrap"
                 >
-                  Subscribe
+                  {t('footer.newsletter.submit', 'Subscribe')}
                 </button>
               </form>
             )}
@@ -74,83 +76,50 @@ export default function Footer() {
             <p className="text-gray-400 text-sm leading-relaxed">
               Lifeline Health ehf.
               <br />
-              Comprehensive health assessments and personalised daily coaching.
+              {t('footer.tagline', 'Comprehensive health assessments and personalised daily coaching.')}
             </p>
           </div>
 
           {/* Pages */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-              Pages
+              {t('footer.pages', 'PAGES')}
             </h3>
             <ul className="space-y-3">
-              <li>
-                <Link
-                  href="/"
-                  className="text-sm text-gray-300 hover:text-white transition-colors duration-200"
-                >
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/assessment"
-                  className="text-sm text-gray-300 hover:text-white transition-colors duration-200"
-                >
-                  Health Assessment
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/coaching"
-                  className="text-sm text-gray-300 hover:text-white transition-colors duration-200"
-                >
-                  Coaching
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/pricing"
-                  className="text-sm text-gray-300 hover:text-white transition-colors duration-200"
-                >
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/contact"
-                  className="text-sm text-gray-300 hover:text-white transition-colors duration-200"
-                >
-                  Contact
-                </Link>
-              </li>
+              {[
+                { href: "/", key: "footer.home", fallback: "Home" },
+                { href: "/assessment", key: "footer.health_assessment", fallback: "Health Assessment" },
+                { href: "/coaching", key: "footer.coaching", fallback: "Coaching" },
+                { href: "/pricing", key: "footer.pricing", fallback: "Pricing" },
+                { href: "/contact", key: "footer.contact_link", fallback: "Contact" },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-sm text-gray-300 hover:text-white transition-colors duration-200">
+                    {t(link.key, link.fallback)}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Services */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-              Services
+              {t('footer.services', 'SERVICES')}
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link
-                  href="/assessment"
-                  className="text-sm text-gray-300 hover:text-white transition-colors duration-200"
-                >
-                  Health Assessments
+                <Link href="/assessment" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">
+                  {t('footer.health_assessment', 'Health Assessments')}
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/coaching"
-                  className="text-sm text-gray-300 hover:text-white transition-colors duration-200"
-                >
-                  Health Coaching App
+                <Link href="/coaching" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">
+                  {t('footer.health_coaching_app', 'Health Coaching App')}
                 </Link>
               </li>
               <li>
-                <span className="text-sm text-gray-300">Patient Portal</span>
+                <span className="text-sm text-gray-300">{t('nav.patient_portal', 'Patient Portal')}</span>
               </li>
             </ul>
           </div>
@@ -158,7 +127,7 @@ export default function Footer() {
           {/* Contact */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-              Contact
+              {t('footer.contact', 'CONTACT')}
             </h3>
             <ul className="space-y-3 text-sm text-gray-300">
               <li>Lifeline Health ehf.</li>
@@ -213,7 +182,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-700 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-400">
-            &copy; 2026 Lifeline Health ehf. All rights reserved.
+            {t('footer.copyright', '© 2026 Lifeline Health ehf. All rights reserved.')}
           </p>
           <div className="flex items-center gap-4">
             <a href="/admin" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-300 border border-gray-600 rounded-full hover:bg-gray-700 hover:text-white transition-all duration-200">
@@ -231,7 +200,7 @@ export default function Footer() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
               </svg>
-              Back to top
+              {t('footer.back_to_top', 'Back to top')}
             </button>
           </div>
         </div>

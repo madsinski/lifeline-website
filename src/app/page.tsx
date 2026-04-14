@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 import MedaliaButton from "./components/MedaliaButton";
 import PhoneMockup from "./components/PhoneMockup";
 import ScrollPhone from "./components/ScrollPhone";
@@ -163,9 +166,10 @@ const appFeatures = [
 ];
 
 function AppTextContent() {
+  const { t } = useI18n();
   return (
     <div>
-      <p className="text-sm font-semibold tracking-[0.15em] uppercase text-[#10B981] mb-4">The Lifeline App</p>
+      <p className="text-sm font-semibold tracking-[0.15em] uppercase text-[#10B981] mb-4">{t('home.app.label', 'The Lifeline App')}</p>
       <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Your health change <span className="text-[#10B981]">partner</span></h2>
       <p className="text-lg text-[#6B7280] mb-8 leading-relaxed">The Lifeline app brings your assessment data, coaching programs, and daily actions into one place — making real health change simple and sustainable.</p>
       <div className="space-y-4">
@@ -188,6 +192,7 @@ function AppTextContent() {
 }
 
 export default function Home() {
+  const { t } = useI18n();
   return (
     <div>
       {/* Hero */}
@@ -196,20 +201,18 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 sm:py-36 lg:py-44">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#1F2937] leading-[1.1]">
-              Take control of your health
+              {t('home.hero.title', 'Take control of your health')}
             </h1>
             <p className="mt-8 text-lg sm:text-xl text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-              Lifeline Health combines targeted health assessments
-              with personalised daily coaching. Know your numbers, build better
-              habits, track your progress.
+              {t('home.hero.subtitle', 'Lifeline Health combines targeted health assessments with personalised daily coaching. Know your numbers, build better habits, track your progress.')}
             </p>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <MedaliaButton label="Book Health Assessment" size="lg" />
+              <MedaliaButton label={t('home.hero.cta_assessment', 'Book Health Assessment')} size="lg" />
               <Link
                 href="/coaching#download"
                 className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
               >
-                Download the App
+                {t('home.hero.cta_app', 'Download the App')}
               </Link>
             </div>
           </div>
@@ -221,10 +224,10 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-center">
             {[
-              { label: "Doctor-reviewed programs" },
-              { label: "Evidence-based coaching" },
-              { label: "4 pillars of health" },
-              { label: "Founded in Reykjav\u00edk" },
+              { label: t('home.stats.programs', 'Doctor-reviewed programs') },
+              { label: t('home.stats.coaching', 'Evidence-based coaching') },
+              { label: t('home.stats.pillars', '4 pillars of health') },
+              { label: t('home.stats.founded', 'Founded in Reykjavík') },
             ].map((stat) => (
               <div key={stat.label} className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#10B981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,10 +245,10 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              How Lifeline works
+              {t('home.how.title', 'How Lifeline works')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Three steps to transform your health
+              {t('home.how.subtitle', 'Three steps to transform your health')}
             </p>
           </div>
 
@@ -268,10 +271,10 @@ export default function Home() {
                   </div>
                 </div>
                 <h3 className="text-xl font-semibold text-[#1F2937] mb-3">
-                  {s.title}
+                  {t(`home.how.step${s.step}.title`, s.title)}
                 </h3>
                 <p className="text-sm text-[#6B7280] leading-relaxed max-w-[280px]">
-                  {s.description}
+                  {t(`home.how.step${s.step}.desc`, s.description)}
                 </p>
               </div>
             ))}
@@ -287,10 +290,10 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Your health assessment
+              {t('home.assessment.title', 'Your health assessment')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              Targeted screening focused on what matters most
+              {t('home.assessment.subtitle', 'Targeted screening focused on what matters most')}
             </p>
           </div>
           <div className="max-w-3xl mx-auto space-y-4">
@@ -426,10 +429,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Our approach
+              {t('home.approach.title', 'Our approach')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              What makes Lifeline Health different
+              {t('home.approach.subtitle', 'What makes Lifeline Health different')}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 max-w-6xl mx-auto">
@@ -461,10 +464,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Our team
+              {t('home.team.title', 'Our team')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              The professionals behind your health journey
+              {t('home.team.subtitle', 'The professionals behind your health journey')}
             </p>
           </div>
           <div className="space-y-4 max-w-3xl mx-auto">
@@ -495,10 +498,10 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              Our partners
+              {t('home.partners.title', 'Our partners')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              The people and organisations behind Lifeline Health
+              {t('home.partners.subtitle', 'The people and organisations behind Lifeline Health')}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -528,19 +531,18 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_110%,rgba(32,200,88,0.15),transparent)]" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Ready to start?
+            {t('home.cta.title', 'Ready to start?')}
           </h2>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Choose your path to better health. Get a comprehensive assessment or
-            start coaching right away with the app.
+            {t('home.cta.desc', 'Choose your path to better health. Get a comprehensive assessment or start coaching right away with the app.')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <MedaliaButton label="Book Assessment" size="lg" />
+            <MedaliaButton label={t('home.cta.assessment', 'Book Assessment')} size="lg" />
             <Link
               href="/coaching#download"
               className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
             >
-              Download App
+              {t('home.cta.app', 'Download App')}
             </Link>
           </div>
         </div>
