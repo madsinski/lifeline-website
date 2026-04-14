@@ -341,21 +341,25 @@ export default function ClientsPage() {
     })();
   }, []);
 
-  const handleSendMessageToClient = async (clientId: string, clientName: string) => {
+  const handleSendMessageToClient = async (clientId: string, _clientName: string) => {
     setSendingMessage(clientId);
     try {
-      // Check if conversation already exists for this client
+      // Always find existing conversation first (including archived)
       const { data: existingConvs } = await supabase
         .from("conversations")
-        .select("id")
+        .select("id, archived")
         .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (existingConvs && existingConvs.length > 0) {
-        // Conversation exists, navigate to messages
+        // Unarchive if needed, then navigate
+        if (existingConvs[0].archived) {
+          await supabase.from("conversations").update({ archived: false }).eq("id", existingConvs[0].id);
+        }
         router.push("/admin/messages");
       } else {
-        // Create new conversation
+        // No conversation exists at all — create one
         const defaultStaff = staffMembers[0];
         const isRealUUID = defaultStaff?.id && !defaultStaff.id.startsWith("staff-");
         const { error: convError } = await supabase

@@ -172,50 +172,39 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load or create conversation
+  // Load or create the single conversation for this client
   const loadConversation = useCallback(async () => {
     setLoading(true);
     try {
-      // Find existing conversation
+      // Find ANY existing conversation (including archived) — one per client
       const { data: convs } = await supabase
         .from("conversations")
-        .select("id")
+        .select("id, archived")
         .eq("client_id", clientId)
-        .eq("archived", false)
         .order("created_at", { ascending: false })
         .limit(1);
 
       let convId: string;
       if (convs && convs.length > 0) {
         convId = convs[0].id as string;
-      } else {
-        // Check archived
-        const { data: archived } = await supabase
-          .from("conversations")
-          .select("id")
-          .eq("client_id", clientId)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (archived && archived.length > 0) {
-          convId = archived[0].id as string;
-          // Unarchive it
+        // Unarchive if needed
+        if (convs[0].archived) {
           await supabase.from("conversations").update({ archived: false }).eq("id", convId);
-        } else {
-          // Create new conversation
-          const defaultStaff = staffMembers[0];
-          const isRealUUID = defaultStaff?.id && /^[0-9a-f]{8}-/i.test(defaultStaff.id);
-          const { data: newConv } = await supabase
-            .from("conversations")
-            .insert({
-              client_id: clientId,
-              coach_id: isRealUUID ? defaultStaff.id : null,
-              coach_name: defaultStaff?.name || "Coach",
-            })
-            .select("id")
-            .single();
-          convId = (newConv as Record<string, string>)?.id;
         }
+      } else {
+        // No conversation at all — create one
+        const defaultStaff = staffMembers[0];
+        const isRealUUID = defaultStaff?.id && /^[0-9a-f]{8}-/i.test(defaultStaff.id);
+        const { data: newConv } = await supabase
+          .from("conversations")
+          .insert({
+            client_id: clientId,
+            coach_id: isRealUUID ? defaultStaff.id : null,
+            coach_name: defaultStaff?.name || "Coach",
+          })
+          .select("id")
+          .single();
+        convId = (newConv as Record<string, string>)?.id;
       }
 
       setConversationId(convId);
