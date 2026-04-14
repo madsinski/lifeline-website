@@ -198,42 +198,42 @@ export default function ClientCategoryPanel({ clientId, clientName, tier }: {
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      {/* Overall summary bar */}
+      {/* Overall summary — single progress ring */}
       {progress && progress.programs.length > 0 && (
-        <div className="flex items-center gap-5 mb-4 p-3 bg-gray-50/80 rounded-xl">
-          <div className="relative">
+        <div className="flex items-center gap-5 mb-5 pb-5 border-b border-gray-100">
+          <div className="relative flex-shrink-0">
             <ProgressRing
               percentage={progress.totalPercentage}
-              size={52}
+              size={64}
               strokeWidth={5}
               color={status === "on-track" ? "#10B981" : status === "needs-nudge" ? "#F59E0B" : "#EF4444"}
             />
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-800">
+            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-800">
               {Math.round(progress.totalPercentage)}%
             </span>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-800">Overall completion this week</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-base font-semibold text-[#1F2937]">Weekly Progress</p>
+            <p className="text-xs text-gray-500 mt-0.5">
               {progress.programs.reduce((s, p) => s + p.totalCompleted, 0)} of{" "}
-              {progress.programs.reduce((s, p) => s + p.totalExpected, 0)} actions completed
+              {progress.programs.reduce((s, p) => s + p.totalExpected, 0)} actions completed this week
             </p>
           </div>
-          <div className="text-right space-y-1">
+          <div className="text-right space-y-1 flex-shrink-0">
             {progress.streak > 0 && (
-              <p className="text-xs font-medium text-emerald-600">{progress.streak} day streak</p>
+              <p className="text-sm font-semibold text-emerald-600">{progress.streak} day streak</p>
             )}
             {progress.lastActiveDate && (
-              <p className="text-[10px] text-gray-400">
-                Last active: {progress.daysSinceActive === 0 ? "today" : progress.daysSinceActive === 1 ? "yesterday" : `${progress.daysSinceActive}d ago`}
+              <p className="text-xs text-gray-400">
+                {progress.daysSinceActive === 0 ? "Active today" : progress.daysSinceActive === 1 ? "Active yesterday" : `Last active ${progress.daysSinceActive}d ago`}
               </p>
             )}
           </div>
         </div>
       )}
 
-      {/* Category cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Category rows — full width horizontal cards */}
+      <div className="space-y-3">
         {categoryDefs.map((cat) => {
           const prog = programs[cat.key];
           const custom = customPrograms[cat.key];
@@ -281,163 +281,121 @@ function CategoryCard({ category, program, isCustom, progress, templates, saving
 }) {
   const [showTemplates, setShowTemplates] = useState(false);
   const pct = progress?.percentage ?? 0;
-  const ringColor = pct >= 70 ? "#10B981" : pct >= 40 ? "#F59E0B" : pct > 0 ? "#EF4444" : "#E5E7EB";
 
   return (
-    <div className={`rounded-xl border p-4 transition-colors ${isCustom ? "border-amber-200 bg-amber-50/30" : "border-gray-100 bg-white"}`}>
-      {/* Header: category + progress ring */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="relative flex-shrink-0">
-          <ProgressRing percentage={pct} size={44} strokeWidth={4} color={ringColor} />
-          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-700">
-            {Math.round(pct)}%
-          </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: category.color }} />
+    <div className={`rounded-xl border p-4 transition-colors ${isCustom ? "border-amber-200 bg-amber-50/30" : "border-gray-100 bg-gray-50/50"}`}>
+      {/* Single row: color dot + label + program name + stats + week + actions */}
+      <div className="flex items-center gap-3">
+        {/* Category color bar */}
+        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: category.color }} />
+
+        {/* Category label + program name */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider" style={{ color: category.color }}>
               {category.label}
             </span>
             {isCustom && (
-              <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">CUSTOM</span>
+              <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">CUSTOM</span>
             )}
           </div>
-          <p className="text-sm font-semibold text-gray-800 truncate">
-            {program ? program.programName : <span className="text-gray-300 font-normal">No program selected</span>}
+          <p className="text-sm font-medium text-gray-800 truncate">
+            {program ? program.programName : <span className="text-gray-300 font-normal text-xs">No program selected</span>}
           </p>
         </div>
-      </div>
 
-      {/* Stats row: completion counter + trend + week */}
-      {program && (
-        <div className="flex items-center gap-3 mb-3">
-          {/* Completion counter */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="font-medium text-gray-700">{progress?.totalCompleted ?? 0}</span>
-            <span>/</span>
+        {/* Completion counter */}
+        {program && (
+          <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
+            <span className="font-semibold text-gray-700">{progress?.totalCompleted ?? 0}</span>
+            <span className="text-gray-400">/</span>
             <span>{progress?.totalExpected ?? 0}</span>
           </div>
+        )}
 
-          {/* Trend */}
-          {progress?.trend !== null && progress?.trend !== undefined && progress.trend !== 0 && (
-            <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${
-              progress.trend > 0 ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"
-            }`}>
-              {progress.trend > 0 ? "+" : ""}{Math.round(progress.trend)}%
-            </span>
-          )}
+        {/* Trend */}
+        {progress?.trend !== null && progress?.trend !== undefined && progress.trend !== 0 && (
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${
+            progress.trend > 0 ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"
+          }`}>
+            {progress.trend > 0 ? "+" : ""}{Math.round(progress.trend)}%
+          </span>
+        )}
 
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Week selector */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Week</span>
-            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => onChangeWeek(Math.max(1, program.week - 1))}
-                className="w-6 h-6 text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center text-xs font-bold transition-colors"
-              >
-                −
-              </button>
-              <span className="text-xs font-semibold text-gray-700 w-6 text-center border-x border-gray-200">
-                {program.week}
-              </span>
-              <button
-                onClick={() => onChangeWeek(program.week + 1)}
-                className="w-6 h-6 text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center text-xs font-bold transition-colors"
-              >
-                +
-              </button>
+        {/* Week selector */}
+        {program && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <span className="text-[10px] text-gray-400">Wk</span>
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <button onClick={() => onChangeWeek(Math.max(1, program.week - 1))}
+                className="w-6 h-6 text-gray-400 hover:text-gray-700 hover:bg-gray-50 flex items-center justify-center text-xs font-bold transition-colors">−</button>
+              <span className="text-xs font-semibold text-gray-700 w-6 text-center border-x border-gray-200">{program.week}</span>
+              <button onClick={() => onChangeWeek(program.week + 1)}
+                className="w-6 h-6 text-gray-400 hover:text-gray-700 hover:bg-gray-50 flex items-center justify-center text-xs font-bold transition-colors">+</button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Progress bar */}
-      {program && (
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-3">
-          <div
-            className="h-full rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: category.color }}
-          />
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-2">
-        {isCustom ? (
-          <>
-            <button
-              onClick={onEditProgram}
-              className="flex-1 px-3 py-2 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-center"
-            >
-              Edit program
-            </button>
-            <button
-              onClick={onSaveTemplate}
-              disabled={saving}
-              className="px-2.5 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-              title="Save as template"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-            </button>
-            <button
-              onClick={onRemoveCustom}
-              disabled={saving}
-              className="px-2.5 py-2 text-xs text-gray-400 hover:text-red-500 border border-gray-200 rounded-lg hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
-              title="Remove custom"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={onCustomize}
-              disabled={saving}
-              className="flex-1 px-3 py-2 text-xs font-semibold text-gray-500 border border-gray-200 rounded-lg hover:text-gray-700 hover:border-gray-300 transition-colors disabled:opacity-50 text-center"
-            >
-              Customize
-            </button>
-            {templates.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowTemplates(!showTemplates)}
-                  className="px-2.5 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  title="Load template"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                </button>
-                {showTemplates && (
-                  <div className="absolute right-0 bottom-full mb-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1">
-                    {templates.map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => { onLoadTemplate(t.id); setShowTemplates(false); }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
-                      >
-                        <p className="font-medium text-gray-700">{t.name}</p>
-                        {t.description && <p className="text-gray-400 truncate">{t.description}</p>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
         )}
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {isCustom ? (
+            <>
+              <button onClick={onEditProgram}
+                className="px-2.5 py-1.5 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                Edit
+              </button>
+              <button onClick={onSaveTemplate} disabled={saving}
+                className="p-1.5 text-gray-400 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50" title="Save as template">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+              </button>
+              <button onClick={onRemoveCustom} disabled={saving}
+                className="p-1.5 text-gray-300 hover:text-red-500 border border-gray-200 rounded-lg hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50" title="Remove custom">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={onCustomize} disabled={saving}
+                className="px-2.5 py-1.5 text-[11px] font-medium text-gray-500 border border-gray-200 rounded-lg hover:text-gray-700 hover:border-gray-300 transition-colors disabled:opacity-50">
+                Customize
+              </button>
+              {templates.length > 0 && (
+                <div className="relative">
+                  <button onClick={() => setShowTemplates(!showTemplates)}
+                    className="p-1.5 text-gray-400 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" title="Load template">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  {showTemplates && (
+                    <div className="absolute right-0 bottom-full mb-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1">
+                      {templates.map((t) => (
+                        <button key={t.id} onClick={() => { onLoadTemplate(t.id); setShowTemplates(false); }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors">
+                          <p className="font-medium text-gray-700">{t.name}</p>
+                          {t.description && <p className="text-gray-400 truncate">{t.description}</p>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Linear progress bar */}
+      {program && (
+        <div className="mt-3 h-1.5 bg-gray-200/60 rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: category.color }} />
+        </div>
+      )}
     </div>
   );
 }

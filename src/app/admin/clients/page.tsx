@@ -1057,72 +1057,80 @@ function ClientRowComponent({
       {isExpanded && (
         <tr>
           <td colSpan={8} className="bg-gray-50/80 px-5 py-4">
-            {/* Top bar: coach + message + subscription + delete */}
-            <div className="flex items-center gap-3 mb-4">
-              {/* Coach selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500">Coach</span>
-                <select value={assignedCoachId} onChange={(e) => { e.stopPropagation(); onAssignCoach(client.id, e.target.value); }} onClick={(e) => e.stopPropagation()}
-                  className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900">
-                  {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name} ({staffRoleLabels[s.role]})</option>)}
-                </select>
-              </div>
-
-              {/* View profile */}
-              <a href={`/admin/clients/${client.id}`} onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                Profile
-              </a>
-
-              {/* Message pill */}
-              <button onClick={(e) => { e.stopPropagation(); onSendMessage(client.id, client.name); }} disabled={isSendingMessage}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-full hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                Messages
-              </button>
-
-              {/* Subscription */}
-              {client.tier === "none" ? (
-                <button onClick={(e) => { e.stopPropagation(); onCreateSubscription(client.id); }} disabled={isCreating}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-[#10B981] rounded-full hover:bg-[#10B981] disabled:opacity-50">
-                  {isCreating ? "Creating..." : "+ Create plan"}
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <select value={client.tier} onChange={(e) => { e.stopPropagation(); onChangeTier(client.id, client.subscriptionId, e.target.value as Tier); }} onClick={(e) => e.stopPropagation()} disabled={isSaving}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 disabled:opacity-50">
-                    {tierOptions.map((t) => <option key={t} value={t}>{tierLabels[t]}</option>)}
-                  </select>
-                  {isSaving && <span className="text-xs text-gray-400">Saving...</span>}
-                  {client.trialEndsAt && trialDays !== null && (
-                    <span className={`text-xs ${trialDays <= 3 ? "text-red-500" : trialDays <= 7 ? "text-amber-500" : "text-gray-400"}`}>
-                      {trialDays >= 0 ? `${trialDays}d trial` : "expired"}
+            {/* Profile header card */}
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-3">
+              <div className="flex items-start gap-4">
+                {/* Avatar */}
+                <div className="w-14 h-14 rounded-full bg-[#10B981]/10 flex items-center justify-center text-lg font-bold text-[#10B981] flex-shrink-0">
+                  {client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-[#1F2937]">{client.name}</h3>
+                  <p className="text-xs text-gray-500">{client.email}{client.phone ? ` · ${client.phone}` : ""}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${tierColors[client.tier]}`}>
+                      {tierLabels[client.tier]}
                     </span>
+                    <span className="flex items-center gap-1">
+                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${statusColors[client.status]}`} />
+                      <span className="text-[10px] text-gray-500">{statusLabels[client.status]}</span>
+                    </span>
+                    {trialExpiring && <span className="text-[10px] text-amber-600 font-medium">({trialDays}d left)</span>}
+                    <span className="text-[10px] text-gray-400">Joined {client.joined}</span>
+                  </div>
+                </div>
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {/* Coach selector */}
+                  <select value={assignedCoachId} onChange={(e) => onAssignCoach(client.id, e.target.value)}
+                    className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900">
+                    {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  {/* Message */}
+                  <button onClick={() => onSendMessage(client.id, client.name)} disabled={isSendingMessage}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0EA5E9] border border-[#0EA5E9] rounded-lg hover:bg-[#0EA5E9]/5 transition-colors disabled:opacity-50">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                    Message
+                  </button>
+                  {/* Profile */}
+                  <a href={`/admin/clients/${client.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    Profile
+                  </a>
+                  {/* Subscription */}
+                  {client.tier === "none" ? (
+                    <button onClick={() => onCreateSubscription(client.id)} disabled={isCreating}
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-[#10B981] rounded-lg hover:bg-emerald-600 disabled:opacity-50">
+                      {isCreating ? "..." : "+ Plan"}
+                    </button>
+                  ) : (
+                    <select value={client.tier} onChange={(e) => onChangeTier(client.id, client.subscriptionId, e.target.value as Tier)} disabled={isSaving}
+                      className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 disabled:opacity-50">
+                      {tierOptions.map((t) => <option key={t} value={t}>{tierLabels[t]}</option>)}
+                    </select>
+                  )}
+                  {/* Delete */}
+                  {showDeleteConfirm ? (
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => onDeleteConfirm()} disabled={isDeleting}
+                        className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg disabled:opacity-50">{isDeleting ? "..." : "Delete"}</button>
+                      <button onClick={() => onDeleteCancel()}
+                        className="px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg">Cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => onDeleteClick()}
+                      className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Delete client">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
                   )}
                 </div>
-              )}
-
-              {/* Delete — far right */}
-              <div className="ml-auto">
-                {showDeleteConfirm ? (
-                  <div className="flex items-center gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteConfirm(); }} disabled={isDeleting}
-                      className="px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded-lg disabled:opacity-50">{isDeleting ? "..." : "Delete"}</button>
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteCancel(); }}
-                      className="px-2.5 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg">Cancel</button>
-                  </div>
-                ) : (
-                  <button onClick={(e) => { e.stopPropagation(); onDeleteClick(); }}
-                    className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Delete client">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
-                )}
               </div>
             </div>
 
-            {/* Unified category panel: progress + programs */}
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
+            {/* Category panel: progress + programs */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <ClientCategoryPanel clientId={client.id} clientName={client.name} tier={client.tier} />
             </div>
           </td>
