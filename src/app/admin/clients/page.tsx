@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useAllClientsProgress, ProgressIndicator, getNudgeStatus, nudgeConfig, type NudgeStatus } from "./ClientProgressPanel";
 import ClientCategoryPanel from "./ClientCategoryPanel";
 import { AppointmentsCard, MessagesCard } from "./ClientSidePanels";
+import { ClientMacroPanel } from "./ClientMacroPanel";
 
 type Tier = "free-trial" | "self-maintained" | "full-access";
 type Status = "active" | "cancelled" | "expired" | "trial";
@@ -1102,9 +1103,10 @@ function ClientRowComponent({
                   joined={client.joined}
                 />
               </div>
-              {/* Right: messages + appointments stacked */}
+              {/* Right: messages + macros + appointments stacked */}
               <div className="flex-1 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                 <MessagesCard clientId={client.id} clientName={client.name} staffMembers={staffMembers} />
+                <ClientMacroPanel clientId={client.id} />
                 <AppointmentsCard clientId={client.id} />
               </div>
             </div>
