@@ -923,11 +923,20 @@ export default function ClientsPage() {
                     isCreating={creatingSubscription === client.id}
                     isDeleting={deletingClient === client.id}
                     showDeleteConfirm={deleteConfirmId === client.id}
-                    onToggle={() =>
-                      setExpandedId(
-                        expandedId === client.id ? null : client.id
-                      )
-                    }
+                    onToggle={() => {
+                      const willExpand = expandedId !== client.id;
+                      setExpandedId(willExpand ? client.id : null);
+                      if (willExpand) {
+                        // Wait for expansion to render, then scroll the row to top
+                        setTimeout(() => {
+                          const el = document.getElementById(`client-row-${client.id}`);
+                          if (el) {
+                            const y = el.getBoundingClientRect().top + window.scrollY - 16;
+                            window.scrollTo({ top: y, behavior: 'smooth' });
+                          }
+                        }, 50);
+                      }
+                    }}
                     onChangeTier={changeTier}
                     onCreateSubscription={createSubscription}
                     onDeleteClick={() => setDeleteConfirmId(client.id)}
@@ -1011,6 +1020,7 @@ function ClientRowComponent({
   return (
     <>
       <tr
+        id={`client-row-${client.id}`}
         className={`cursor-pointer transition-all ${
           isExpanded
             ? "bg-[#10B981]/10 shadow-[inset_4px_0_0_0_#10B981]"
