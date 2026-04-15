@@ -931,7 +931,7 @@ export default function ClientsPage() {
                         setTimeout(() => {
                           const el = document.getElementById(`client-row-${client.id}`);
                           if (el) {
-                            const y = el.getBoundingClientRect().top + window.scrollY - 16;
+                            const y = el.getBoundingClientRect().top + window.scrollY;
                             window.scrollTo({ top: y, behavior: 'smooth' });
                           }
                         }, 50);
