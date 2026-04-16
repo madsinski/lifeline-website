@@ -23,18 +23,19 @@ const I18nContext = createContext<I18nContextType>({
   loading: true,
 });
 
+function getInitialLocale(): Locale {
+  if (typeof window === "undefined") return "is";
+  try {
+    const saved = localStorage.getItem("ll-locale");
+    if (saved === "en" || saved === "is") return saved;
+  } catch {}
+  return "is";
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("is");
+  const [locale, setLocaleState] = useState<Locale>(getInitialLocale);
   const [translations, setTranslations] = useState<TranslationMap>({});
   const [loading, setLoading] = useState(true);
-
-  // Load locale from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("ll-locale") as Locale | null;
-      if (saved === "en" || saved === "is") setLocaleState(saved);
-    } catch {}
-  }, []);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
