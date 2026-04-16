@@ -20,14 +20,14 @@ export default function ComingSoon() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setErrorMsg(body?.error || "Something went wrong. Please try again.");
+        setErrorMsg(body?.error || "Eitthvað fór úrskeiðis. Reyndu aftur.");
         setStatus("error");
         return;
       }
       setStatus("success");
       setEmail("");
     } catch {
-      setErrorMsg("Something went wrong. Please try again.");
+      setErrorMsg("Eitthvað fór úrskeiðis. Reyndu aftur.");
       setStatus("error");
     }
   };
@@ -38,10 +38,8 @@ export default function ComingSoon() {
         html, body { overflow: hidden; overscroll-behavior: none; height: 100%; }
       `}</style>
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-white px-6 py-10 overscroll-none">
-        {/* Top spacer */}
         <div className="flex-1" />
 
-        {/* Center block */}
         <div className="flex flex-col items-center max-w-md w-full">
           <Image
             src="/lifeline-logo-rebrand.svg"
@@ -52,10 +50,10 @@ export default function ComingSoon() {
             style={{ transform: "translateX(20px)" }}
           />
           <h1 className="mt-10 text-2xl font-semibold text-gray-900 tracking-tight">
-            Coming Soon
+            Væntanlegt
           </h1>
           <p className="mt-3 text-gray-500 text-center">
-            We&apos;re building something great. Be the first to know when we launch.
+            Við erum að byggja eitthvað frábært. Vertu fyrst/ur til að vita þegar við opnum.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 w-full flex flex-col sm:flex-row gap-2">
@@ -64,22 +62,22 @@ export default function ComingSoon() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder="netfang@dæmi.is"
               disabled={status === "submitting" || status === "success"}
-              className="flex-1 px-4 py-3 rounded-full border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition disabled:opacity-60"
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition disabled:opacity-60"
             />
             <button
               type="submit"
               disabled={status === "submitting" || status === "success"}
-              className="px-6 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-full hover:bg-emerald-700 transition-all duration-200 whitespace-nowrap disabled:opacity-60"
+              className="px-6 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-all duration-200 whitespace-nowrap disabled:opacity-60"
             >
-              {status === "submitting" ? "…" : status === "success" ? "Thanks!" : "Notify me"}
+              {status === "submitting" ? "…" : status === "success" ? "Takk!" : "Láttu mig vita"}
             </button>
           </form>
 
           {status === "success" && (
             <p className="mt-3 text-sm text-emerald-600">
-              You&apos;re on the list. We&apos;ll be in touch.
+              Þú ert komin/n á listann. Við höfum samband.
             </p>
           )}
           {status === "error" && (
@@ -87,7 +85,6 @@ export default function ComingSoon() {
           )}
         </div>
 
-        {/* Bottom: contact */}
         <div className="flex-1 flex items-end">
           <a
             href="mailto:contact@lifelinehealth.is"
