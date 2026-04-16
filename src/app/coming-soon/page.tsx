@@ -49,7 +49,7 @@ export default function ComingSoon() {
             width={220}
             height={60}
             priority
-            style={{ transform: "translateX(20px) translateY(-50px)" }}
+            style={{ transform: "translateX(20px) translateY(-100px)" }}
           />
           <h1 className="mt-10 text-2xl font-semibold text-gray-900 tracking-tight">
             {t("coming-soon.title", "Væntanlegt")}
