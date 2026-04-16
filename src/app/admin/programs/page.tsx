@@ -2431,19 +2431,21 @@ export default function ProgramsCMSPage() {
                                             return (
                                               <div className="border border-gray-200 rounded-xl p-3 space-y-2">
                                                 <div className="flex items-center justify-between">
-                                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Meals from library</label>
-                                                  <button
-                                                    onClick={() => {
-                                                      loadMealsLibrary();
-                                                      setShowMealPicker({ programId: program.id, weekIdx: selectedCell.weekIdx, dayIdx: selectedCell.dayIdx, actionId: action.id, actionIndex });
-                                                      setMealSearch("");
-                                                      setMealCategoryFilter(null);
-                                                      setSelectedMeal(null);
-                                                    }}
-                                                    className="px-3 py-1.5 bg-[#10B981] text-white rounded-lg text-xs font-medium hover:bg-[#047857] transition-colors"
-                                                  >
-                                                    + Add meal
-                                                  </button>
+                                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Meal from library</label>
+                                                  {meals.length < 1 && (
+                                                    <button
+                                                      onClick={() => {
+                                                        loadMealsLibrary();
+                                                        setShowMealPicker({ programId: program.id, weekIdx: selectedCell.weekIdx, dayIdx: selectedCell.dayIdx, actionId: action.id, actionIndex });
+                                                        setMealSearch("");
+                                                        setMealCategoryFilter(null);
+                                                        setSelectedMeal(null);
+                                                      }}
+                                                      className="px-3 py-1.5 bg-[#10B981] text-white rounded-lg text-xs font-medium hover:bg-[#047857] transition-colors"
+                                                    >
+                                                      + Add meal
+                                                    </button>
+                                                  )}
                                                 </div>
                                                 {meals.length > 0 ? (
                                                   <div className="space-y-1.5">
@@ -2483,12 +2485,12 @@ export default function ProgramsCMSPage() {
                                                         </div>
                                                       );
                                                     })}
-                                                    {meals.length < 3 && (
-                                                      <p className="text-[10px] text-gray-400 italic">Tip: add up to 3 meal options. The client picks one and can swap to another.</p>
+                                                    {meals.length < 1 && (
+                                                      <p className="text-[10px] text-gray-400 italic">Assign 1 meal per slot. The client can swap to alternatives from the library.</p>
                                                     )}
                                                   </div>
                                                 ) : (
-                                                  <p className="text-xs text-gray-300 py-2">No meals linked. Add 1-3 options from the library.</p>
+                                                  <p className="text-xs text-gray-300 py-2">No meal linked. Add one from the library.</p>
                                                 )}
                                               </div>
                                             );
@@ -2985,7 +2987,7 @@ export default function ProgramsCMSPage() {
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">{selectedMeal ? "Confirm Meal" : "Add Meal"}</h3>
-                <p className="text-sm text-gray-500">{selectedMeal ? `Add "${selectedMeal.name}" to this slot` : "Pick a meal from the library — add up to 3 options per slot"}</p>
+                <p className="text-sm text-gray-500">{selectedMeal ? `Add "${selectedMeal.name}" to this slot` : "Pick a meal from the library"}</p>
               </div>
               <button onClick={() => { setShowMealPicker(null); setSelectedMeal(null); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
