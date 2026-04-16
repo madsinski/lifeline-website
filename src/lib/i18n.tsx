@@ -24,7 +24,7 @@ const I18nContext = createContext<I18nContextType>({
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en");
+  const [locale, setLocaleState] = useState<Locale>("is");
   const [translations, setTranslations] = useState<TranslationMap>({});
   const [loading, setLoading] = useState(true);
 
@@ -56,8 +56,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
             const r = row as { key: string; en: string; is_text: string | null; approved: boolean };
             map[r.key] = {
               en: r.en,
-              // Only use approved Icelandic translations; fall back to English
-              is: (r.approved && r.is_text) ? r.is_text : r.en,
+              is: r.is_text || r.en,
             };
           }
           setTranslations(map);
