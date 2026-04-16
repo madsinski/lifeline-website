@@ -19,10 +19,15 @@ export default function BetaFeedback() {
   const [submitted, setSubmitted] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
 
+  const [hasPreview, setHasPreview] = useState(false);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null);
     });
+    if (typeof document !== "undefined") {
+      setHasPreview(document.cookie.includes("site_preview=lifelinepreview2026"));
+    }
   }, []);
 
   const reset = useCallback(() => {
@@ -52,6 +57,8 @@ export default function BetaFeedback() {
     }
     setSubmitting(false);
   };
+
+  if (!hasPreview) return null;
 
   return (
     <>
