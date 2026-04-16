@@ -25,6 +25,7 @@ const sections = [
   { key: "contact", label: "Contact" },
   { key: "footer", label: "Footer" },
   { key: "common", label: "Common" },
+  { key: "coming-soon", label: "Coming Soon" },
 ];
 
 export default function TranslationsPage() {

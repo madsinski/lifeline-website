@@ -217,7 +217,16 @@ INSERT INTO translations (key, section, context, en, is_text) VALUES
 ('common.get_started', 'common', 'Button', 'Get started', 'Byrja'),
 ('common.book_now', 'common', 'Button', 'Book now', 'Bóka núna'),
 ('common.coming_soon', 'common', 'Label', 'Coming Soon', 'Væntanlegt'),
-('common.coming_soon_desc', 'common', 'Paragraph', 'We''re building something great. Follow our journey and be the first to know when we launch.', 'Við erum að smíða eitthvað frábært. Fylgdu ferðalaginu og vertu fyrstur til að vita þegar við opnum.')
+('common.coming_soon_desc', 'common', 'Paragraph', 'We''re building something great. Follow our journey and be the first to know when we launch.', 'Við erum að smíða eitthvað frábært. Fylgdu ferðalaginu og vertu fyrstur til að vita þegar við opnum.'),
+
+-- ─── COMING SOON PAGE ────────────────────────────────────
+('coming-soon.title', 'coming-soon', 'Heading', 'Coming Soon', 'Væntanlegt'),
+('coming-soon.description', 'coming-soon', 'Paragraph', 'We''re building something great. Be the first to know when we launch.', 'Við erum að byggja eitthvað frábært. Vertu fyrst/ur til að vita þegar við opnum.'),
+('coming-soon.placeholder', 'coming-soon', 'Placeholder', 'your@email.com', 'netfang@dæmi.is'),
+('coming-soon.submit', 'coming-soon', 'Button', 'Notify me', 'Láttu mig vita'),
+('coming-soon.success_button', 'coming-soon', 'Button', 'Thanks!', 'Takk!'),
+('coming-soon.success_message', 'coming-soon', 'Success', 'You''re on the list. We''ll be in touch.', 'Þú ert komin/n á listann. Við höfum samband.'),
+('coming-soon.error', 'coming-soon', 'Error', 'Something went wrong. Please try again.', 'Eitthvað fór úrskeiðis. Reyndu aftur.')
 
 ON CONFLICT (key) DO UPDATE SET
   en = EXCLUDED.en,

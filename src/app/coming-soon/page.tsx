@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export default function ComingSoon() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,14 +22,14 @@ export default function ComingSoon() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setErrorMsg(body?.error || "Eitthvað fór úrskeiðis. Reyndu aftur.");
+        setErrorMsg(body?.error || t("coming-soon.error", "Eitthvað fór úrskeiðis. Reyndu aftur."));
         setStatus("error");
         return;
       }
       setStatus("success");
       setEmail("");
     } catch {
-      setErrorMsg("Eitthvað fór úrskeiðis. Reyndu aftur.");
+      setErrorMsg(t("coming-soon.error", "Eitthvað fór úrskeiðis. Reyndu aftur."));
       setStatus("error");
     }
   };
@@ -47,13 +49,13 @@ export default function ComingSoon() {
             width={220}
             height={60}
             priority
-            style={{ transform: "translateX(20px)" }}
+            style={{ transform: "translateX(20px) translateY(-50px)" }}
           />
           <h1 className="mt-10 text-2xl font-semibold text-gray-900 tracking-tight">
-            Væntanlegt
+            {t("coming-soon.title", "Væntanlegt")}
           </h1>
           <p className="mt-3 text-gray-500 text-center">
-            Við erum að byggja eitthvað frábært. Vertu fyrst/ur til að vita þegar við opnum.
+            {t("coming-soon.description", "Við erum að byggja eitthvað frábært. Vertu fyrst/ur til að vita þegar við opnum.")}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 w-full flex flex-col sm:flex-row gap-2">
@@ -62,7 +64,7 @@ export default function ComingSoon() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="netfang@dæmi.is"
+              placeholder={t("coming-soon.placeholder", "netfang@dæmi.is")}
               disabled={status === "submitting" || status === "success"}
               className="flex-1 px-4 py-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition disabled:opacity-60"
             />
@@ -71,13 +73,13 @@ export default function ComingSoon() {
               disabled={status === "submitting" || status === "success"}
               className="px-6 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-all duration-200 whitespace-nowrap disabled:opacity-60"
             >
-              {status === "submitting" ? "…" : status === "success" ? "Takk!" : "Láttu mig vita"}
+              {status === "submitting" ? "…" : status === "success" ? t("coming-soon.success_button", "Takk!") : t("coming-soon.submit", "Láttu mig vita")}
             </button>
           </form>
 
           {status === "success" && (
             <p className="mt-3 text-sm text-emerald-600">
-              Þú ert komin/n á listann. Við höfum samband.
+              {t("coming-soon.success_message", "Þú ert komin/n á listann. Við höfum samband.")}
             </p>
           )}
           {status === "error" && (
