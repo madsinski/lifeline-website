@@ -16,9 +16,29 @@ export async function POST(
     p_token: token,
     p_password: password,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    if (error.message?.startsWith("locked:")) {
+      return NextResponse.json(
+        { error: "Too many incorrect attempts. Try again later." },
+        { status: 429 },
+      );
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
+  const ua = req.headers.get("user-agent") || "";
+  await supabaseAdmin.rpc("log_kennitala_access", {
+    p_actor_role: "onboarding",
+    p_scope: "full",
+    p_purpose: "invite_verify",
+    p_subject_kind: "company_member",
+    p_subject_id: row.id,
+    p_ip: ip,
+    p_user_agent: ua,
+  });
 
   return NextResponse.json({
     id: row.id,

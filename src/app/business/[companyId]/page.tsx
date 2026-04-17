@@ -99,9 +99,31 @@ export default function BusinessDashboardPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
-        <section>
-          <h1 className="text-2xl font-semibold">{company.name}</h1>
-          <p className="text-sm text-gray-600">Employee onboarding dashboard</p>
+        <section className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">{company.name}</h1>
+            <p className="text-sm text-gray-600">Employee onboarding dashboard</p>
+          </div>
+          <button
+            onClick={async () => {
+              const { data: s } = await supabase.auth.getSession();
+              const t = s.session?.access_token;
+              const res = await fetch(`/api/admin/companies/${companyId}/export`, {
+                headers: t ? { Authorization: `Bearer ${t}` } : {},
+              });
+              if (!res.ok) { alert("Export failed"); return; }
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${company.name.replace(/[^a-z0-9]+/gi, "-")}-roster.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="btn-ghost"
+          >
+            Export CSV
+          </button>
         </section>
 
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">

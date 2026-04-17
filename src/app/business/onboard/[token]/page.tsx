@@ -50,6 +50,7 @@ export default function OnboardPage() {
         body: JSON.stringify({ password }),
       });
       const j = await res.json();
+      if (res.status === 429) throw new Error(j.error || "Too many attempts. Try again later.");
       if (!res.ok) throw new Error(j.error || "Invalid password");
       setMemberId(j.id);
       setFullName(j.full_name || "");

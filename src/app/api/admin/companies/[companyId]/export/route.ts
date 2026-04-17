@@ -18,25 +18,42 @@ export async function GET(
   if (!company) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const isOwner = company.contact_person_id === user.id;
-  if (!isOwner && !(await isStaff(user.id))) {
+  const staff = await isStaff(user.id);
+  if (!isOwner && !staff) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  // Contact persons get last-4 only; staff get the full value.
+  const fullAccess = staff;
+
   const { data: members } = await supabaseAdmin
     .from("company_members")
-    .select("full_name, email, phone, kennitala_encrypted, invited_at, completed_at, created_at")
+    .select("id, full_name, email, phone, kennitala_encrypted, invited_at, completed_at, created_at")
     .eq("company_id", companyId)
     .order("created_at");
 
   const rows: string[] = [
-    ["name", "email", "phone", "kennitala", "invited_at", "completed_at", "created_at"].join(","),
+    ["name", "email", "phone", fullAccess ? "kennitala" : "kennitala_last4", "invited_at", "completed_at", "created_at"].join(","),
   ];
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
+  const ua = req.headers.get("user-agent") || "";
 
   for (const m of members || []) {
     let kt = "";
     if (m.kennitala_encrypted) {
-      const { data: dec } = await supabaseAdmin.rpc("dec_kennitala", { p_enc: m.kennitala_encrypted });
+      const rpc = fullAccess ? "dec_kennitala" : "kennitala_last4";
+      const { data: dec } = await supabaseAdmin.rpc(rpc, { p_enc: m.kennitala_encrypted });
       kt = (dec as string) || "";
+      await supabaseAdmin.rpc("log_kennitala_access", {
+        p_actor_role: staff ? "staff" : "contact_person",
+        p_scope: fullAccess ? "full" : "last4",
+        p_purpose: "csv_export",
+        p_subject_kind: "company_member",
+        p_subject_id: m.id,
+        p_ip: ip,
+        p_user_agent: ua,
+      });
     }
     rows.push([
       csv(m.full_name),
