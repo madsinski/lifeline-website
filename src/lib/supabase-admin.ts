@@ -1,12 +1,28 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.SUPABASE_URL || "https://cfnibfxzltxiriqxvvru.supabase.co";
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!serviceKey) {
-  console.warn("[supabase-admin] SUPABASE_SERVICE_ROLE_KEY not set — admin operations will fail");
+let cached: SupabaseClient | null = null;
+
+function getAdminClient(): SupabaseClient {
+  if (cached) return cached;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set — set it in Vercel env vars");
+  }
+  cached = createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  return cached;
 }
 
-export const supabaseAdmin = createClient(url, serviceKey || "", {
-  auth: { autoRefreshToken: false, persistSession: false },
+// Proxy keeps the `supabaseAdmin` import site unchanged but defers client
+// construction until first use. This avoids crashing at module-load during
+// `next build` when the service role key isn't available.
+export const supabaseAdmin = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getAdminClient();
+    const value = (client as unknown as Record<string | symbol, unknown>)[prop as string];
+    return typeof value === "function" ? (value as (...a: unknown[]) => unknown).bind(client) : value;
+  },
 });
