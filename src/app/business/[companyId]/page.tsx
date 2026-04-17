@@ -514,11 +514,14 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Or type / paste text here:</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Or type / paste text here (auto-validates as you type):</label>
         <textarea
           value={raw}
-          onChange={(e) => setRaw(e.target.value)}
-          onBlur={onParse}
+          onChange={(e) => {
+            setRaw(e.target.value);
+            setRows(parseRoster(e.target.value));
+            setResult(null);
+          }}
           rows={8}
           placeholder={"name,kennitala,email,phone\nJón Jónsson,1406221680,jon@example.is,7674393"}
           className="input font-mono text-xs"
@@ -526,9 +529,12 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
       </div>
 
       <div className="flex gap-2">
-        <button onClick={onParse} className="btn-ghost" type="button">Preview</button>
         <button onClick={save} disabled={!validRows.length || saving} className="btn-primary" type="button">
-          {saving ? "Adding…" : `Add ${validRows.length} employee${validRows.length === 1 ? "" : "s"}`}
+          {saving
+            ? "Adding…"
+            : validRows.length === 0
+              ? "Paste or upload a roster first"
+              : `Add ${validRows.length} employee${validRows.length === 1 ? "" : "s"}`}
         </button>
       </div>
       {error && <div className="text-red-600 text-sm">{error}</div>}
