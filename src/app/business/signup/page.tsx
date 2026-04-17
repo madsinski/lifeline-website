@@ -53,20 +53,18 @@ export default function BusinessSignupPage() {
           setStep("agreement");
         }
       } else {
-        const { data, error: err } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: fullName } },
+        // Server-side create + auto-confirm so we can sign in immediately.
+        const res = await fetch("/api/business/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, full_name: fullName }),
         });
-        if (err) throw err;
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error || "Signup failed");
+        const { data, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInErr) throw signInErr;
         if (data.user) {
           setUserId(data.user.id);
-          await supabase.from("clients").insert({
-            id: data.user.id,
-            email,
-            full_name: fullName || email.split("@")[0],
-            created_at: new Date().toISOString(),
-          });
           setStep("agreement");
         }
       }
