@@ -22,7 +22,7 @@ interface Appointment {
   } | null;
 }
 
-type FilterTab = "all" | "measurement" | "blood-test" | "consultation" | "events";
+type FilterTab = "all" | "measurement" | "blood-test" | "consultation" | "events" | "slots";
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -170,6 +170,14 @@ export default function CalendarPage() {
   const [editEvent, setEditEvent] = useState({ name: "", date: "", time: "", location: "", location_lat: null as number | null, location_lng: null as number | null, description: "", type: "", cost: "", reward: "", max_participants: "", image_url: "" });
   const [uploadingEventImg, setUploadingEventImg] = useState(false);
 
+  // Available slots state
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [showSlotForm, setShowSlotForm] = useState(false);
+  const [newSlot, setNewSlot] = useState({ appointment_type: 'body_composition' as string, date: '', start_time: '09:00', end_time: '09:30', station: '', provider_name: '', max_bookings: '1', notes: '' });
+  const [bulkSlotDays, setBulkSlotDays] = useState<string[]>([]);
+  const [creatingSlot, setCreatingSlot] = useState(false);
+
   const loadAppointments = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -200,10 +208,20 @@ export default function CalendarPage() {
     } catch {}
   }, []);
 
+  const loadSlots = useCallback(async () => {
+    setSlotsLoading(true);
+    try {
+      const { data } = await supabase.from("available_slots").select("*").order("date").order("start_time");
+      if (data) setAvailableSlots(data);
+    } catch {}
+    setSlotsLoading(false);
+  }, []);
+
   useEffect(() => {
     loadAppointments();
     loadCommunityEvents();
-  }, [loadAppointments, loadCommunityEvents]);
+    loadSlots();
+  }, [loadAppointments, loadCommunityEvents, loadSlots]);
 
   const loadClients = useCallback(async () => {
     const { data } = await supabase
@@ -365,6 +383,7 @@ export default function CalendarPage() {
     { key: "measurement", label: "Measurements", color: "bg-emerald-500" },
     { key: "blood-test", label: "Blood Tests", color: "bg-blue-500" },
     { key: "consultation", label: "Consultations", color: "bg-purple-500" },
+    { key: "slots" as FilterTab, label: "Available Slots", color: "bg-teal-500" },
   ];
 
   return (
@@ -636,9 +655,11 @@ export default function CalendarPage() {
           const isActive = activeFilter === tab.key;
           const count =
             tab.key === "all"
-              ? appointments.length + communityEvents.length
+              ? appointments.length + communityEvents.length + availableSlots.length
               : tab.key === "events"
               ? communityEvents.length
+              : tab.key === "slots"
+              ? availableSlots.length
               : appointments.filter((a) => a.type === tab.key).length;
           return (
             <button
@@ -807,6 +828,215 @@ export default function CalendarPage() {
         </div>
       )}
 
+      {/* Available Slots Section */}
+      {(activeFilter === "all" || activeFilter === "slots") && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Available Slots</h3>
+            <button
+              onClick={() => setShowSlotForm(!showSlotForm)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              Create Slot
+            </button>
+          </div>
+
+          {/* Create slot form */}
+          {showSlotForm && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Create Available Slot
+                </h3>
+                <button onClick={() => setShowSlotForm(false)} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Appointment type *</label>
+                  <select value={newSlot.appointment_type} onChange={(e) => setNewSlot({ ...newSlot, appointment_type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+                    <option value="body_composition">Body Composition</option>
+                    <option value="health_assessment">Health Assessment</option>
+                    <option value="coach_consultation">Coach Consultation</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Single date</label>
+                  <input type="date" value={newSlot.date} onChange={(e) => setNewSlot({ ...newSlot, date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Start time *</label>
+                  <select value={newSlot.start_time} onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+                    {Array.from({ length: 19 }, (_, i) => { const h = Math.floor(i / 2) + 8; const m = i % 2 === 0 ? "00" : "30"; return `${String(h).padStart(2, "0")}:${m}`; }).map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">End time *</label>
+                  <select value={newSlot.end_time} onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+                    {Array.from({ length: 19 }, (_, i) => { const h = Math.floor(i / 2) + 8; const m = i % 2 === 0 ? "00" : "30"; return `${String(h).padStart(2, "0")}:${m}`; }).map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Station / Location</label>
+                  <input type="text" value={newSlot.station} onChange={(e) => setNewSlot({ ...newSlot, station: e.target.value })} placeholder="e.g. Room A, Clinic 2" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Provider name</label>
+                  <input type="text" value={newSlot.provider_name} onChange={(e) => setNewSlot({ ...newSlot, provider_name: e.target.value })} placeholder="e.g. Dr. Smith" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Max bookings</label>
+                  <input type="number" min="1" value={newSlot.max_bookings} onChange={(e) => setNewSlot({ ...newSlot, max_bookings: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                  <input type="text" value={newSlot.notes} onChange={(e) => setNewSlot({ ...newSlot, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+                </div>
+
+                {/* Bulk date selection */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Or select multiple dates (next 28 days)</label>
+                  <div className="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto">
+                    {Array.from({ length: 28 }, (_, i) => {
+                      const d = new Date(); d.setDate(d.getDate() + i + 1);
+                      const iso = d.toISOString().split("T")[0];
+                      const dayName = d.toLocaleDateString("en-GB", { weekday: "short" });
+                      const dayNum = d.getDate();
+                      const mon = d.toLocaleDateString("en-GB", { month: "short" });
+                      const isSelected = bulkSlotDays.includes(iso);
+                      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                      return (
+                        <button key={iso} type="button" onClick={() => setBulkSlotDays(prev => prev.includes(iso) ? prev.filter(x => x !== iso) : [...prev, iso])}
+                          className={`p-1.5 rounded-lg text-center text-[11px] leading-tight border transition-colors ${isSelected ? "bg-teal-600 text-white border-teal-600" : isWeekend ? "bg-gray-50 text-gray-400 border-gray-200 hover:bg-teal-50" : "bg-white text-gray-700 border-gray-200 hover:bg-teal-50"}`}>
+                          <div className="font-medium">{dayName}</div>
+                          <div>{dayNum} {mon}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {bulkSlotDays.length > 0 && <p className="text-xs text-teal-600 mt-1 font-medium">{bulkSlotDays.length} date{bulkSlotDays.length !== 1 ? "s" : ""} selected</p>}
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-4">
+                <button onClick={() => { setShowSlotForm(false); setBulkSlotDays([]); }} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                <button
+                  disabled={creatingSlot || (!newSlot.date && bulkSlotDays.length === 0)}
+                  onClick={async () => {
+                    setCreatingSlot(true);
+                    try {
+                      const dates = bulkSlotDays.length > 0 ? bulkSlotDays : newSlot.date ? [newSlot.date] : [];
+                      if (dates.length === 0) return;
+                      const rows = dates.map(d => ({
+                        appointment_type: newSlot.appointment_type,
+                        date: d,
+                        start_time: newSlot.start_time,
+                        end_time: newSlot.end_time,
+                        station: newSlot.station || null,
+                        provider_name: newSlot.provider_name || null,
+                        max_bookings: parseInt(newSlot.max_bookings) || 1,
+                        current_bookings: 0,
+                        status: "open",
+                        notes: newSlot.notes || null,
+                      }));
+                      const { error } = await supabase.from("available_slots").insert(rows);
+                      if (error) { alert(`Failed: ${error.message}`); return; }
+                      alert(`Created ${rows.length} slot${rows.length !== 1 ? "s" : ""}!`);
+                      setNewSlot({ appointment_type: 'body_composition', date: '', start_time: '09:00', end_time: '09:30', station: '', provider_name: '', max_bookings: '1', notes: '' });
+                      setBulkSlotDays([]);
+                      setShowSlotForm(false);
+                      loadSlots();
+                    } catch { alert("Failed to create slot"); }
+                    setCreatingSlot(false);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+                >
+                  {creatingSlot ? "Creating..." : `Create ${bulkSlotDays.length > 1 ? bulkSlotDays.length + " Slots" : "Slot"}`}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Slots list grouped by date */}
+          {slotsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
+            </div>
+          ) : availableSlots.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <p className="text-gray-500 font-medium">No available slots</p>
+              <p className="text-gray-400 text-sm mt-1">Create slots using the button above.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(
+                availableSlots.reduce<Record<string, typeof availableSlots>>((acc, slot) => {
+                  const key = slot.date;
+                  if (!acc[key]) acc[key] = [];
+                  acc[key].push(slot);
+                  return acc;
+                }, {})
+              ).map(([date, slots]) => (
+                <div key={date}>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    {new Date(date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+                  <div className="space-y-2">
+                    {slots.map((slot: any) => {
+                      const borderColor = slot.appointment_type === "body_composition" ? "bg-teal-500" : slot.appointment_type === "health_assessment" ? "bg-emerald-500" : "bg-purple-500";
+                      const typeBg = slot.appointment_type === "body_composition" ? "bg-teal-50 text-teal-700" : slot.appointment_type === "health_assessment" ? "bg-emerald-50 text-emerald-700" : "bg-purple-50 text-purple-700";
+                      const typeLabel = slot.appointment_type === "body_composition" ? "Body Composition" : slot.appointment_type === "health_assessment" ? "Health Assessment" : "Coach Consultation";
+                      const isFull = slot.current_bookings >= slot.max_bookings;
+                      const isCancelled = slot.status === "cancelled";
+                      return (
+                        <div key={slot.id} className={`bg-white rounded-xl border shadow-sm ${isCancelled ? "border-red-200 bg-red-50/30 opacity-60" : isFull ? "border-amber-200" : "border-gray-200"}`}>
+                          <div className="flex items-center gap-3 p-4">
+                            <div className={`w-1 self-stretch rounded-full ${borderColor}`} />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold text-gray-900">{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</span>
+                                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${typeBg}`}>{typeLabel}</span>
+                                {isCancelled && <span className="text-[10px] font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">Cancelled</span>}
+                                {isFull && !isCancelled && <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Full</span>}
+                                {!isFull && !isCancelled && <span className="text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">Open</span>}
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 flex-wrap">
+                                {slot.station && <span className="text-xs text-gray-500">{slot.station}</span>}
+                                {slot.provider_name && <span className="text-xs text-gray-400">{slot.provider_name}</span>}
+                                <span className="text-xs text-gray-400">
+                                  Bookings: <span className={`font-medium ${isFull ? "text-amber-600" : "text-gray-700"}`}>{slot.current_bookings || 0}</span>/{slot.max_bookings}
+                                </span>
+                                {/* Progress bar */}
+                                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full transition-all ${isFull ? "bg-amber-500" : "bg-teal-500"}`} style={{ width: `${Math.min(100, ((slot.current_bookings || 0) / slot.max_bookings) * 100)}%` }} />
+                                </div>
+                              </div>
+                              {slot.notes && <p className="text-xs text-gray-400 mt-1">{slot.notes}</p>}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {!isCancelled && (
+                                <button onClick={async () => { if (!confirm("Cancel this slot?")) return; await supabase.from("available_slots").update({ status: "cancelled" }).eq("id", slot.id); loadSlots(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                              )}
+                              <button onClick={async () => { if (!confirm("Delete this slot permanently?")) return; await supabase.from("available_slots").delete().eq("id", slot.id); loadSlots(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Delete">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Empty state */}
       {!loading && !error && activeFilter === "events" && communityEvents.length === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
@@ -814,7 +1044,13 @@ export default function CalendarPage() {
           <p className="text-gray-400 text-sm mt-1">Create an event using the button above.</p>
         </div>
       )}
-      {!loading && !error && activeFilter !== "events" && totalCount === 0 && (
+      {!loading && !error && activeFilter === "slots" && availableSlots.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <p className="text-gray-500 font-medium">No available slots</p>
+          <p className="text-gray-400 text-sm mt-1">Create slots using the button above.</p>
+        </div>
+      )}
+      {!loading && !error && activeFilter !== "events" && activeFilter !== "slots" && totalCount === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <svg
             className="w-12 h-12 text-gray-300 mx-auto mb-4"
@@ -839,7 +1075,7 @@ export default function CalendarPage() {
       )}
 
       {/* Grouped appointments */}
-      {!loading && activeFilter !== "events" &&
+      {!loading && activeFilter !== "events" && activeFilter !== "slots" &&
         Object.entries(grouped).map(([group, apts]) => (
           <div key={group}>
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
