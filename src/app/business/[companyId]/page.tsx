@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -426,20 +426,105 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const downloadTemplate = () => {
+    const csv = "name,kennitala,email,phone\nJón Jónsson,1406221680,jon@example.is,7674393\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "lifeline-roster-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input type="file" accept=".csv,.tsv,.txt" onChange={onFile} className="text-sm" />
-        <span className="text-sm text-gray-500 self-center">or paste below:</span>
+    <div className="space-y-5">
+      <div className="rounded-lg bg-blue-50 border border-blue-100 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-sm text-blue-900 mb-1">Required columns (in any order)</h3>
+            <p className="text-xs text-blue-800 mb-2">
+              <code className="bg-white px-1.5 py-0.5 rounded">name</code>,{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded">kennitala</code>,{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded">email</code>,{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded">phone</code>{" "}
+              — kennitala 10 digits, phone 7 digits.
+            </p>
+            <button type="button" onClick={downloadTemplate} className="text-xs text-blue-700 hover:underline">
+              ↓ Download example CSV
+            </button>
+          </div>
+        </div>
       </div>
-      <textarea
-        value={raw}
-        onChange={(e) => setRaw(e.target.value)}
-        onBlur={onParse}
-        rows={8}
-        placeholder={"Name,Kennitala,Email,Phone\nJón Jónsson,1234567890,jon@example.is,7674393"}
-        className="input font-mono text-xs"
-      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 hover:border-blue-400 transition-colors">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <span className="font-semibold text-sm">Option 1 — Upload file</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">CSV, TSV, or plain text export from Excel/Google Sheets.</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.tsv,.txt"
+            onChange={onFile}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="btn-ghost w-full"
+          >
+            Choose file
+          </button>
+        </div>
+
+        <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 hover:border-blue-400 transition-colors">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <span className="font-semibold text-sm">Option 2 — Paste rows</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">Select rows in Excel/Sheets and paste directly below.</p>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const t = await navigator.clipboard.readText();
+                if (t) { setRaw(t); setRows(parseRoster(t)); setResult(null); }
+              } catch {
+                alert("Could not access clipboard — paste manually in the text field below.");
+              }
+            }}
+            className="btn-ghost w-full"
+          >
+            Paste from clipboard
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Or type / paste text here:</label>
+        <textarea
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          onBlur={onParse}
+          rows={8}
+          placeholder={"name,kennitala,email,phone\nJón Jónsson,1406221680,jon@example.is,7674393"}
+          className="input font-mono text-xs"
+        />
+      </div>
+
       <div className="flex gap-2">
         <button onClick={onParse} className="btn-ghost" type="button">Preview</button>
         <button onClick={save} disabled={!validRows.length || saving} className="btn-primary" type="button">
