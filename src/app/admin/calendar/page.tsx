@@ -898,9 +898,9 @@ export default function CalendarPage() {
 
                 {/* Bulk date selection */}
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-2">Or select multiple dates (next 28 days)</label>
-                  <div className="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto">
-                    {Array.from({ length: 28 }, (_, i) => {
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Select multiple dates (next 6 months)</label>
+                  <div className="grid grid-cols-7 gap-1.5 max-h-64 overflow-y-auto">
+                    {Array.from({ length: 180 }, (_, i) => {
                       const d = new Date(); d.setDate(d.getDate() + i + 1);
                       const iso = d.toISOString().split("T")[0];
                       const dayName = d.toLocaleDateString("en-GB", { weekday: "short" });
