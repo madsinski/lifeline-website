@@ -335,10 +335,12 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
   const [rows, setRows] = useState<RosterRow[]>([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ inserted: number; failed: number; results: Array<{ email: string; error?: string }> } | null>(null);
 
   const onParse = () => {
     setRows(parseRoster(raw));
     setError("");
+    setResult(null);
   };
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -347,6 +349,7 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
     const text = await f.text();
     setRaw(text);
     setRows(parseRoster(text));
+    setResult(null);
   };
 
   const validRows = rows.filter((r) => r.errors.length === 0);
@@ -356,6 +359,7 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
     if (!validRows.length) return;
     setSaving(true);
     setError("");
+    setResult(null);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -374,7 +378,11 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Bulk insert failed");
-      onDone();
+      setResult(j);
+      if ((j.failed ?? 0) === 0) {
+        // Clean success — close the panel
+        onDone();
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -406,22 +414,31 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
 
       {rows.length > 0 && (
         <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-80 overflow-y-auto">
-          {rows.map((r, i) => (
-            <div key={i} className="px-3 py-2 text-sm flex items-center justify-between">
-              <div>
-                <span className="font-medium">{r.full_name || "(no name)"}</span>{" "}
-                <span className="text-gray-500">— {r.email || "(no email)"}</span>
-                {r.kennitala && <span className="text-gray-400 ml-2 font-mono">{formatKennitala(r.kennitala)}</span>}
+          {rows.map((r, i) => {
+            const serverResult = result?.results.find((x) => x.email.toLowerCase() === r.email.toLowerCase());
+            return (
+              <div key={i} className="px-3 py-2 text-sm flex items-center justify-between">
+                <div>
+                  <span className="font-medium">{r.full_name || "(no name)"}</span>{" "}
+                  <span className="text-gray-500">— {r.email || "(no email)"}</span>
+                  {r.kennitala && <span className="text-gray-400 ml-2 font-mono">{formatKennitala(r.kennitala)}</span>}
+                </div>
+                {serverResult?.error ? (
+                  <span className="text-red-600 text-xs">Failed: {serverResult.error}</span>
+                ) : serverResult ? (
+                  <span className="text-emerald-600 text-xs">Added ✓</span>
+                ) : r.errors.length ? (
+                  <span className="text-red-600 text-xs">{r.errors.join(", ")}</span>
+                ) : (
+                  <span className="text-emerald-600 text-xs">OK</span>
+                )}
               </div>
-              {r.errors.length ? (
-                <span className="text-red-600 text-xs">{r.errors.join(", ")}</span>
-              ) : (
-                <span className="text-emerald-600 text-xs">OK</span>
-              )}
-            </div>
-          ))}
+            );
+          })}
           <div className="px-3 py-2 bg-gray-50 text-xs text-gray-600">
-            {validRows.length} valid, {invalidRows.length} invalid
+            {result
+              ? `${result.inserted} added, ${result.failed} failed`
+              : `${validRows.length} valid, ${invalidRows.length} invalid`}
           </div>
         </div>
       )}
