@@ -4,6 +4,8 @@ import { getUserFromRequest } from "@/lib/auth-helpers";
 import { generatePassword } from "@/lib/parse-roster";
 import { sendEmail, renderInviteEmail } from "@/lib/email";
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -32,25 +34,23 @@ export async function POST(req: NextRequest) {
   const isStaffMember = !!staff;
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get("origin") || "https://lifelinehealth.is";
-  const results: Array<{ id: string; email: string; ok: boolean; error?: string }> = [];
+  type InviteResult = { id: string; email: string; ok: boolean; error?: string };
+  type Member = NonNullable<typeof members>[number];
 
-  for (const m of members) {
+  async function sendOne(m: Member): Promise<InviteResult> {
     const c = companyMap.get(m.company_id);
-    if (!c) { results.push({ id: m.id, email: m.email, ok: false, error: "company missing" }); continue; }
-    if (c.contact_person_id !== user.id && !isStaffMember) {
-      results.push({ id: m.id, email: m.email, ok: false, error: "forbidden" }); continue;
+    if (!c) return { id: m.id, email: m.email, ok: false, error: "company missing" };
+    if (c.contact_person_id !== user!.id && !isStaffMember) {
+      return { id: m.id, email: m.email, ok: false, error: "forbidden" };
     }
-    if (m.completed_at) {
-      results.push({ id: m.id, email: m.email, ok: false, error: "already completed" }); continue;
-    }
+    if (m.completed_at) return { id: m.id, email: m.email, ok: false, error: "already completed" };
 
-    // Regenerate a fresh password on every send
     const password = generatePassword();
     const { error: pwErr } = await supabaseAdmin.rpc("set_member_invite_password", {
       p_member_id: m.id,
       p_password: password,
     });
-    if (pwErr) { results.push({ id: m.id, email: m.email, ok: false, error: pwErr.message }); continue; }
+    if (pwErr) return { id: m.id, email: m.email, ok: false, error: pwErr.message };
 
     const onboardUrl = `${origin.replace(/\/$/, "")}/business/onboard/${m.invite_token}`;
     const { text, html } = renderInviteEmail({
@@ -66,9 +66,7 @@ export async function POST(req: NextRequest) {
       text,
       html,
     });
-    if (!send.ok) {
-      results.push({ id: m.id, email: m.email, ok: false, error: send.error }); continue;
-    }
+    if (!send.ok) return { id: m.id, email: m.email, ok: false, error: send.error };
 
     await supabaseAdmin
       .from("company_members")
@@ -78,7 +76,15 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", m.id);
 
-    results.push({ id: m.id, email: m.email, ok: true });
+    return { id: m.id, email: m.email, ok: true };
+  }
+
+  // Resend free tier: ~2 req/s. Keep concurrency modest.
+  const CONCURRENCY = 5;
+  const results: InviteResult[] = [];
+  for (let i = 0; i < members.length; i += CONCURRENCY) {
+    const slice = members.slice(i, i + CONCURRENCY);
+    results.push(...(await Promise.all(slice.map(sendOne))));
   }
 
   return NextResponse.json({

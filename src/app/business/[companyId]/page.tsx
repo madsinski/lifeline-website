@@ -166,7 +166,15 @@ export default function BusinessDashboardPage() {
         </section>
 
         <section className="bg-white rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Employees ({members.length})</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Employees ({members.length})</h2>
+            <SendAllInvitesButton
+              memberIds={members
+                .filter((m) => !m.completed_at && !m.invited_at)
+                .map((m) => m.id)}
+              onDone={loadData}
+            />
+          </div>
           {members.length === 0 ? (
             <p className="text-sm text-gray-500">No employees yet. Add some above.</p>
           ) : (
@@ -211,6 +219,34 @@ function Stat({ label, value }: { label: string; value: number }) {
       <div className="text-sm text-gray-500">{label}</div>
       <div className="text-3xl font-semibold mt-1">{value}</div>
     </div>
+  );
+}
+
+function SendAllInvitesButton({ memberIds, onDone }: { memberIds: string[]; onDone: () => void }) {
+  const [sending, setSending] = useState(false);
+  if (!memberIds.length) return null;
+  const onClick = async () => {
+    if (!confirm(`Send invites to ${memberIds.length} uninvited employee${memberIds.length === 1 ? "" : "s"}?`)) return;
+    setSending(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch("/api/business/members/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify({ member_ids: memberIds }),
+      });
+      const j = await res.json();
+      alert(`Sent ${j.sent ?? 0} · Failed ${j.failed ?? 0}`);
+      onDone();
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <button onClick={onClick} disabled={sending} className="btn-primary text-sm">
+      {sending ? "Sending…" : `Send all ${memberIds.length} invites`}
+    </button>
   );
 }
 

@@ -4,11 +4,20 @@ import { getUserFromRequest } from "@/lib/auth-helpers";
 import { generatePassword } from "@/lib/parse-roster";
 import { cleanKennitala, isValidKennitala } from "@/lib/kennitala";
 
+export const maxDuration = 60; // seconds — give Vercel room for bigger batches
+
 interface IncomingRow {
   full_name: string;
   email: string;
   phone?: string | null;
   kennitala: string;
+}
+
+interface RowResult {
+  email: string;
+  id?: string;
+  password?: string;
+  error?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -21,6 +30,7 @@ export async function POST(req: NextRequest) {
 
   if (!companyId) return NextResponse.json({ error: "company_id required" }, { status: 400 });
   if (!rows.length) return NextResponse.json({ error: "rows required" }, { status: 400 });
+  if (rows.length > 500) return NextResponse.json({ error: "max 500 rows per import" }, { status: 400 });
 
   // Verify caller owns the company (or is staff)
   const { data: company } = await supabaseAdmin
@@ -35,24 +45,26 @@ export async function POST(req: NextRequest) {
     if (!staff) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const results: Array<{ email: string; id?: string; password?: string; error?: string }> = [];
+  // Process rows in parallel with controlled concurrency (10 at a time).
+  const CONCURRENCY = 10;
+  const results: RowResult[] = new Array(rows.length);
 
-  for (const r of rows) {
+  async function processRow(r: IncomingRow, idx: number): Promise<void> {
+    const email = (r.email || "").trim().toLowerCase();
     const kennitala = cleanKennitala(r.kennitala);
     if (!isValidKennitala(kennitala)) {
-      results.push({ email: r.email, error: "invalid kennitala" });
-      continue;
+      results[idx] = { email, error: "invalid kennitala" };
+      return;
     }
-    if (!r.full_name?.trim() || !r.email?.trim()) {
-      results.push({ email: r.email, error: "missing name or email" });
-      continue;
+    if (!r.full_name?.trim() || !email) {
+      results[idx] = { email, error: "missing name or email" };
+      return;
     }
 
-    // Encrypt + hash
     const { data: enc, error: encErr } = await supabaseAdmin.rpc("enc_kennitala", { p_text: kennitala });
     if (encErr) {
-      results.push({ email: r.email, error: encErr.message });
-      continue;
+      results[idx] = { email, error: encErr.message };
+      return;
     }
     const password = generatePassword();
 
@@ -61,7 +73,7 @@ export async function POST(req: NextRequest) {
       .insert({
         company_id: companyId,
         full_name: r.full_name.trim(),
-        email: r.email.trim().toLowerCase(),
+        email,
         phone: r.phone || null,
         kennitala_encrypted: enc,
         invite_password_hash: "pending",
@@ -70,8 +82,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (insErr) {
-      results.push({ email: r.email, error: insErr.message });
-      continue;
+      const msg = insErr.code === "23505"
+        ? `already on roster (${email})`
+        : insErr.message;
+      results[idx] = { email, error: msg };
+      return;
     }
 
     const { error: pwErr } = await supabaseAdmin.rpc("set_member_invite_password", {
@@ -79,10 +94,15 @@ export async function POST(req: NextRequest) {
       p_password: password,
     });
     if (pwErr) {
-      results.push({ email: r.email, error: pwErr.message });
-      continue;
+      results[idx] = { email, error: pwErr.message };
+      return;
     }
-    results.push({ email: r.email, id: inserted.id, password });
+    results[idx] = { email, id: inserted.id, password };
+  }
+
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    const slice = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(slice.map((r, j) => processRow(r, i + j)));
   }
 
   return NextResponse.json({

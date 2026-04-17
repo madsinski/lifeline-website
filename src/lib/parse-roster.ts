@@ -45,7 +45,8 @@ function splitCsvLine(line: string, delim: string): string[] {
 }
 
 export function parseRoster(input: string): RosterRow[] {
-  const text = (input || "").replace(/\r\n?/g, "\n").trim();
+  // Strip UTF-8 BOM (common in CSVs saved from Excel), normalize line endings, trim
+  const text = (input || "").replace(/^\ufeff/, "").replace(/\r\n?/g, "\n").trim();
   if (!text) return [];
   const lines = text.split("\n").filter((l) => l.trim().length);
   if (!lines.length) return [];
@@ -62,8 +63,10 @@ export function parseRoster(input: string): RosterRow[] {
 
   const dataLines = isHeader ? lines.slice(1) : lines;
   const rows: RosterRow[] = [];
+  const seenEmails = new Map<string, number>();
+  const seenKennitalas = new Map<string, number>();
 
-  for (const line of dataLines) {
+  dataLines.forEach((line, idx) => {
     const cells = splitCsvLine(line, delim);
     const row: RosterRow = { full_name: "", kennitala: "", email: "", phone: "", errors: [] };
     headerMap.forEach((key, i) => {
@@ -71,6 +74,7 @@ export function parseRoster(input: string): RosterRow[] {
       row[key] = (cells[i] ?? "").trim();
     });
 
+    row.email = row.email.toLowerCase();
     row.kennitala = cleanKennitala(row.kennitala);
     row.phone = cleanIcelandicPhone(row.phone);
 
@@ -79,8 +83,20 @@ export function parseRoster(input: string): RosterRow[] {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) row.errors.push("Invalid email");
     if (row.phone && !isValidIcelandicPhone(row.phone)) row.errors.push("Invalid phone");
 
+    // Duplicate detection within the same paste
+    if (row.email) {
+      const prev = seenEmails.get(row.email);
+      if (prev !== undefined) row.errors.push(`Duplicate email (row ${prev + 1})`);
+      else seenEmails.set(row.email, idx);
+    }
+    if (row.kennitala && isValidKennitala(row.kennitala)) {
+      const prev = seenKennitalas.get(row.kennitala);
+      if (prev !== undefined) row.errors.push(`Duplicate kennitala (row ${prev + 1})`);
+      else seenKennitalas.set(row.kennitala, idx);
+    }
+
     rows.push(row);
-  }
+  });
   return rows;
 }
 
