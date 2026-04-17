@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LifelineLogo from "@/app/components/LifelineLogo";
+import TermsBackButton from "./TermsBackButton";
 
 export const metadata = {
   title: "Terms & Privacy — Lifeline Health",
@@ -12,11 +13,12 @@ const LAST_UPDATED = "17 April 2026";
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white">
-      <header className="px-6 py-4 border-b border-gray-100">
-        <Link href="/" className="flex items-center gap-2 w-fit">
+      <header className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
           <LifelineLogo className="w-8 h-8" />
           <span className="font-semibold">Lifeline Health</span>
         </Link>
+        <TermsBackButton />
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12 prose prose-sm prose-slate">
@@ -112,7 +114,7 @@ export default function TermsPage() {
         <p>
           Under the Icelandic Data Protection Act and the EU GDPR you have the right to access,
           correct, export, restrict, or delete your personal data. Email{" "}
-          <a href="mailto:privacy@lifelinehealth.is">privacy@lifelinehealth.is</a> and we will respond
+          <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a> and we will respond
           within 30 days. You also have the right to lodge a complaint with the{" "}
           <a href="https://www.personuvernd.is/">Icelandic Data Protection Authority (Persónuvernd)</a>.
         </p>
@@ -121,7 +123,7 @@ export default function TermsPage() {
         <p>
           Lifeline uses TLS for data in transit, encryption at rest for sensitive fields, role-based
           access controls, and audit logging. No system is perfect — if you believe your account has
-          been compromised, contact <a href="mailto:security@lifelinehealth.is">security@lifelinehealth.is</a>.
+          been compromised, contact <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
         </p>
 
         <h2>11. For business customers (B2B)</h2>
@@ -166,9 +168,9 @@ export default function TermsPage() {
 
         <h2>16. Contact</h2>
         <ul>
-          <li>General: <a href="mailto:hello@lifelinehealth.is">hello@lifelinehealth.is</a></li>
-          <li>Privacy: <a href="mailto:privacy@lifelinehealth.is">privacy@lifelinehealth.is</a></li>
-          <li>Security: <a href="mailto:security@lifelinehealth.is">security@lifelinehealth.is</a></li>
+          <li>General: <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a></li>
+          <li>Privacy: <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a></li>
+          <li>Security: <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a></li>
         </ul>
 
         <p className="text-xs text-gray-400 mt-12">
