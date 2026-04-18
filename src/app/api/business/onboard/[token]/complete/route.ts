@@ -15,6 +15,22 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  try {
+    return await handle(req, params);
+  } catch (e) {
+    console.error("[onboard-complete] uncaught:", e);
+    return NextResponse.json({
+      error: "onboard_complete_crashed",
+      detail: (e as Error)?.message || String(e),
+      stack: (e as Error)?.stack,
+    }, { status: 500 });
+  }
+}
+
+async function handle(
+  req: NextRequest,
+  params: Promise<{ token: string }>,
+) {
   const { token } = await params;
   const body = await req.json().catch(() => ({}));
   const {
