@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import BusinessHeader from "../BusinessHeader";
-import OnboardingChecklist from "./OnboardingChecklist";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
+import ScheduleBodyComp from "./ScheduleBodyComp";
+import ScheduleBloodTests from "./ScheduleBloodTests";
 
 interface Company {
   id: string;
@@ -29,6 +30,24 @@ interface Member {
   created_at: string;
 }
 
+interface BodyCompEvent {
+  id: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  location: string | null;
+  room_notes: string | null;
+  slot_minutes: number;
+  slot_capacity: number;
+  status: string;
+}
+
+interface BloodDay {
+  id: string;
+  day: string;
+  notes: string | null;
+}
+
 export default function BusinessDashboardPage() {
   const params = useParams<{ companyId: string }>();
   const router = useRouter();
@@ -37,16 +56,26 @@ export default function BusinessDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<Company | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [events, setEvents] = useState<BodyCompEvent[]>([]);
+  const [bloodDays, setBloodDays] = useState<BloodDay[]>([]);
   const [error, setError] = useState("");
-  const [showImport, setShowImport] = useState(false);
-  const [showSingle, setShowSingle] = useState(false);
+  const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
+  const [showSchedBC, setShowSchedBC] = useState(false);
+  const [showSchedBlood, setShowSchedBlood] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!companyId) return;
     setLoading(true);
-    const [{ data: c }, { data: m }] = await Promise.all([
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: c }, { data: m }, { data: ev }, { data: bd }] = await Promise.all([
       supabase.from("companies").select("id, name, agreement_version, created_at").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
+      supabase.from("body_comp_events")
+        .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status")
+        .eq("company_id", companyId).gte("event_date", today).order("event_date"),
+      supabase.from("blood_test_days")
+        .select("id, day, notes")
+        .eq("company_id", companyId).gte("day", today).order("day"),
     ]);
     if (!c) {
       setError("Company not found or you don't have access.");
@@ -55,6 +84,8 @@ export default function BusinessDashboardPage() {
     }
     setCompany(c as Company);
     setMembers((m || []) as Member[]);
+    setEvents((ev || []) as BodyCompEvent[]);
+    setBloodDays((bd || []) as BloodDay[]);
     setLoading(false);
   }, [companyId]);
 
@@ -68,8 +99,21 @@ export default function BusinessDashboardPage() {
     });
   }, [loadData, router]);
 
-  const totalInvited = members.filter((m) => m.invited_at).length;
-  const totalCompleted = members.filter((m) => m.completed_at).length;
+  const exportCsv = async () => {
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/admin/companies/${companyId}/export`, {
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+    });
+    if (!res.ok) { alert("Export failed"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(company?.name || "company").replace(/[^a-z0-9]+/gi, "-")}-roster.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
@@ -82,6 +126,19 @@ export default function BusinessDashboardPage() {
     );
   }
 
+  const totalInvited = members.filter((m) => m.invited_at).length;
+  const totalCompleted = members.filter((m) => m.completed_at).length;
+  const staleIds = members
+    .filter((m) => !m.completed_at && !!m.invited_at && Date.now() - new Date(m.invited_at).getTime() > 3 * 86_400_000)
+    .map((m) => m.id);
+  const uninvitedIds = members.filter((m) => !m.completed_at && !m.invited_at).map((m) => m.id);
+
+  const rosterDone = members.length > 0 && totalCompleted >= members.length;
+  const hasEvents = events.length > 0;
+  const hasBloodDays = bloodDays.length > 0;
+  const stepsDone = [rosterDone, hasEvents, hasBloodDays].filter(Boolean).length;
+  const nextStep = !rosterDone ? 1 : !hasEvents ? 2 : !hasBloodDays ? 3 : 0;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <BusinessHeader
@@ -92,399 +149,272 @@ export default function BusinessDashboardPage() {
         ]}
       />
 
-      <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
-        <section className="flex items-center justify-between">
+      <main className="max-w-5xl mx-auto px-6 py-10 space-y-6">
+        {/* Hero */}
+        <section className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-semibold">{company.name}</h1>
-            <p className="text-sm text-gray-600">Employee onboarding dashboard</p>
-          </div>
-          <button
-            onClick={async () => {
-              const { data: s } = await supabase.auth.getSession();
-              const t = s.session?.access_token;
-              const res = await fetch(`/api/admin/companies/${companyId}/export`, {
-                headers: t ? { Authorization: `Bearer ${t}` } : {},
-              });
-              if (!res.ok) { alert("Export failed"); return; }
-              const blob = await res.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `${company.name.replace(/[^a-z0-9]+/gi, "-")}-roster.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-            className="btn-ghost"
-          >
-            Export CSV
-          </button>
-        </section>
-
-        <OnboardingChecklist
-          companyId={companyId!}
-          memberCount={members.length}
-          completedCount={totalCompleted}
-        />
-
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Stat label="Roster" value={members.length} />
-          <Stat label="Invited" value={totalInvited} />
-          <Stat label="Completed" value={totalCompleted} />
-        </section>
-
-        <section id="add-employees-section" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-24">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Add employees</h2>
-            <div className="flex gap-2">
-              <button className="btn-ghost" onClick={() => { setShowSingle(true); setShowImport(false); }}>
-                + One by one
-              </button>
-              <button className="btn-ghost" onClick={() => { setShowImport(true); setShowSingle(false); }}>
-                Upload / paste CSV
-              </button>
-            </div>
-          </div>
-
-          {showSingle && (
-            <SingleRowForm
-              companyId={companyId!}
-              onDone={() => { setShowSingle(false); loadData(); }}
-            />
-          )}
-          {showImport && (
-            <ImportForm
-              companyId={companyId!}
-              onDone={() => { setShowImport(false); loadData(); }}
-            />
-          )}
-          {!showSingle && !showImport && (
-            <p className="text-sm text-gray-600">
-              Choose <strong>One by one</strong> for a single employee, or <strong>Upload / paste CSV</strong>{" "}
-              to add many at once. Columns: <code>name, kennitala, email, phone</code>.
+            <p className="text-sm text-gray-600 mt-1">
+              {stepsDone === 3
+                ? "Everything is set up. Your employees can book their scans and tests."
+                : `${stepsDone} of 3 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`}
             </p>
-          )}
+          </div>
+          <button onClick={exportCsv} className="btn-ghost">Export CSV</button>
         </section>
+
+        {/* Progress bar */}
+        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
+            style={{ width: `${(stepsDone / 3) * 100}%` }}
+          />
+        </div>
+
+        {/* STEP 1 — Register employees */}
+        <StepCard
+          n={1}
+          done={rosterDone}
+          active={nextStep === 1}
+          title="Register your employees"
+          subtitle={
+            members.length === 0
+              ? "Add every employee by name, kennitala, email and phone. They each get an email invite to set up their Lifeline account."
+              : `${members.length} on roster · ${totalInvited} invited · ${totalCompleted} completed`
+          }
+        >
+          {/* Add controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setAddMode(addMode === "single" ? "none" : "single")}
+              className={`btn-step ${addMode === "single" ? "btn-step-active" : ""}`}
+            >
+              + Add one by one
+            </button>
+            <button
+              onClick={() => setAddMode(addMode === "import" ? "none" : "import")}
+              className={`btn-step ${addMode === "import" ? "btn-step-active" : ""}`}
+            >
+              Upload / paste CSV
+            </button>
+          </div>
+
+          {addMode === "single" && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <SingleRowForm companyId={companyId!} onDone={() => { setAddMode("none"); loadData(); }} />
+            </div>
+          )}
+          {addMode === "import" && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <ImportForm companyId={companyId!} onDone={() => { setAddMode("none"); loadData(); }} />
+            </div>
+          )}
+
+          {/* Roster table */}
+          <div className="border-t border-gray-100 pt-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h3 className="font-semibold text-sm text-gray-900">
+                Roster {members.length > 0 && <span className="text-gray-500 font-normal">({members.length})</span>}
+              </h3>
+              {(uninvitedIds.length > 0 || staleIds.length > 0) && (
+                <div className="flex gap-2">
+                  {staleIds.length > 0 && <RemindStaleButton memberIds={staleIds} onDone={loadData} />}
+                  {uninvitedIds.length > 0 && <SendAllInvitesButton memberIds={uninvitedIds} onDone={loadData} />}
+                </div>
+              )}
+            </div>
+            {members.length === 0 ? (
+              <p className="text-sm text-gray-500 italic py-4">No employees yet. Add one above to get started.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-gray-500 border-b border-gray-200">
+                    <tr>
+                      <th className="py-2 pr-4">Name</th>
+                      <th className="py-2 pr-4">Email</th>
+                      <th className="py-2 pr-4">Kennitala</th>
+                      <th className="py-2 pr-4">Phone</th>
+                      <th className="py-2 pr-4">Status</th>
+                      <th className="py-2 pr-4">Data</th>
+                      <th className="py-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map((m) => (
+                      <MemberRow key={m.id} member={m} onChange={loadData} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </StepCard>
+
+        {/* STEP 2 — Body comp day */}
+        <StepCard
+          n={2}
+          done={hasEvents}
+          active={nextStep === 2}
+          locked={!rosterDone && !hasEvents}
+          title="Schedule the body-composition day"
+          subtitle={
+            hasEvents
+              ? events.map((e) =>
+                  `${new Date(e.event_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${e.start_time.slice(0,5)}–${e.end_time.slice(0,5)}`,
+                ).join(" · ")
+              : "Our Lifeline nurse travels to your office with the measurement scanner. Pick a day and time window. Each employee then books a 5-minute slot (2 people per slot)."
+          }
+        >
+          {hasEvents && (
+            <div className="mb-4 space-y-2">
+              {events.map((e) => (
+                <div key={e.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 text-sm">
+                  <div>
+                    <div className="font-semibold">
+                      {new Date(e.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {e.start_time.slice(0, 5)}–{e.end_time.slice(0, 5)}
+                      {e.location && ` · ${e.location}`}
+                    </div>
+                  </div>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Scheduled</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!hasEvents && (
+            <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-900">
+              <div className="font-semibold mb-1">You&apos;ll need to provide on the day:</div>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>A private room at your office</li>
+                <li>A computer with two screens</li>
+                <li>A quiet environment — each 5-minute measurement is private</li>
+              </ul>
+            </div>
+          )}
+
+          <button onClick={() => setShowSchedBC(true)} className="btn-step-primary">
+            {hasEvents ? "Schedule another day" : "Schedule visit"}
+          </button>
+        </StepCard>
+
+        {/* STEP 3 — Blood-test days */}
+        <StepCard
+          n={3}
+          done={hasBloodDays}
+          active={nextStep === 3}
+          locked={!hasEvents && !hasBloodDays}
+          title="Pick blood-test days"
+          subtitle={
+            hasBloodDays
+              ? bloodDays.map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(" · ")
+              : "Blood tests happen at Sameind, 08:00–12:00. Pick the days when your employees are allowed to leave work to go in."
+          }
+        >
+          {hasBloodDays && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {bloodDays.map((d) => (
+                <span key={d.id} className="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                  {new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+                </span>
+              ))}
+            </div>
+          )}
+          <button onClick={() => setShowSchedBlood(true)} className="btn-step-primary">
+            {hasBloodDays ? "Add more days" : "Pick days"}
+          </button>
+        </StepCard>
 
         <AdminsSection companyId={companyId!} />
-
-        <section className="bg-white rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Employees ({members.length})</h2>
-            <div className="flex gap-2">
-              <RemindStaleButton
-                memberIds={members
-                  .filter((m) => !m.completed_at && !!m.invited_at && Date.now() - new Date(m.invited_at).getTime() > 3 * 86_400_000)
-                  .map((m) => m.id)}
-                onDone={loadData}
-              />
-              <SendAllInvitesButton
-                memberIds={members
-                  .filter((m) => !m.completed_at && !m.invited_at)
-                  .map((m) => m.id)}
-                onDone={loadData}
-              />
-            </div>
-          </div>
-          {members.length === 0 ? (
-            <p className="text-sm text-gray-500">No employees yet. Add some above.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-gray-500 border-b border-gray-200">
-                  <tr>
-                    <th className="py-2 pr-4">Name</th>
-                    <th className="py-2 pr-4">Email</th>
-                    <th className="py-2 pr-4">Kennitala</th>
-                    <th className="py-2 pr-4">Phone</th>
-                    <th className="py-2 pr-4">Status</th>
-                    <th className="py-2 pr-4">Data</th>
-                    <th className="py-2"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((m) => (
-                    <MemberRow key={m.id} member={m} onChange={loadData} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
       </main>
+
+      {showSchedBC && (
+        <ScheduleBodyComp
+          companyId={companyId!}
+          onClose={() => setShowSchedBC(false)}
+          onCreated={() => { setShowSchedBC(false); loadData(); }}
+        />
+      )}
+      {showSchedBlood && (
+        <ScheduleBloodTests
+          companyId={companyId!}
+          existing={bloodDays}
+          onClose={() => setShowSchedBlood(false)}
+          onCreated={() => { setShowSchedBlood(false); loadData(); }}
+        />
+      )}
 
       <style jsx global>{`
         .input { width:100%; padding:0.5rem 0.75rem; border:1px solid #e5e7eb; border-radius:0.5rem; outline:none; }
         .input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
         .btn-primary { background:linear-gradient(135deg,#3b82f6,#10b981); color:white; padding:0.6rem 1rem; border-radius:0.6rem; font-weight:600; }
         .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-        .btn-ghost { padding:0.5rem 0.875rem; border:1px solid #e5e7eb; border-radius:0.5rem; font-size:0.875rem; background:white; }
+        .btn-ghost { padding:0.5rem 0.875rem; border:1px solid #e5e7eb; border-radius:0.5rem; font-size:0.875rem; background:white; color:#374151; }
         .btn-ghost:hover { background:#f9fafb; }
+        .btn-step { padding:0.5rem 0.875rem; border:1px solid #e5e7eb; border-radius:0.5rem; font-size:0.875rem; font-weight:500; background:white; color:#374151; }
+        .btn-step:hover { background:#f9fafb; border-color:#d1d5db; }
+        .btn-step-active { background:#eff6ff; border-color:#60a5fa; color:#1e40af; }
+        .btn-step-primary { padding:0.625rem 1rem; border-radius:0.625rem; font-size:0.875rem; font-weight:600; color:white; background:linear-gradient(135deg,#3b82f6,#10b981); }
+        .btn-step-primary:hover { opacity:0.92; }
       `}</style>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+// ── Step card shell ─────────────────────────────────────────────────────────
+
+function StepCard({
+  n, done, active, locked = false, title, subtitle, children,
+}: {
+  n: number;
+  done: boolean;
+  active: boolean;
+  locked?: boolean;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  const ring = done
+    ? "ring-1 ring-emerald-200"
+    : active
+      ? "ring-2 ring-blue-300"
+      : "ring-1 ring-gray-100";
+  const numBg = done
+    ? "bg-emerald-100 text-emerald-700"
+    : active
+      ? "bg-blue-600 text-white"
+      : locked
+        ? "bg-gray-100 text-gray-400"
+        : "bg-gray-100 text-gray-500";
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm">
-      <div className="text-sm text-gray-500">{label}</div>
-      <div className="text-3xl font-semibold mt-1">{value}</div>
-    </div>
-  );
-}
-
-function AdminsSection({ companyId }: { companyId: string }) {
-  interface Admin { user_id: string; email: string | null; added_at: string; is_primary: boolean }
-  const [admins, setAdmins] = useState<Admin[]>([]);
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
-    if (error) setError(error.message);
-    else setAdmins((data || []) as Admin[]);
-  }, [companyId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const addAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    const { data: s } = await supabase.auth.getSession();
-    const t = s.session?.access_token;
-    const res = await fetch(`/api/business/companies/${companyId}/admins`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-      body: JSON.stringify({ email }),
-    });
-    const j = await res.json();
-    if (!res.ok) setError(j.error || "Failed to add admin");
-    else { setEmail(""); load(); }
-    setLoading(false);
-  };
-
-  const removeAdmin = async (userId: string) => {
-    if (!confirm("Remove this co-admin?")) return;
-    const { data: s } = await supabase.auth.getSession();
-    const t = s.session?.access_token;
-    await fetch(`/api/business/companies/${companyId}/admins?user_id=${userId}`, {
-      method: "DELETE",
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
-    });
-    load();
-  };
-
-  const promote = async (userId: string, email: string | null) => {
-    if (!confirm(`Make ${email || userId} the primary contact person? You will be demoted to a co-admin.`)) return;
-    const { data: s } = await supabase.auth.getSession();
-    const t = s.session?.access_token;
-    const res = await fetch(`/api/business/companies/${companyId}/promote`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-      body: JSON.stringify({ user_id: userId }),
-    });
-    const j = await res.json();
-    if (!res.ok) alert(`Failed: ${j.error || "promote_failed"}`);
-    load();
-  };
-
-  return (
-    <section className="bg-white rounded-2xl p-6 shadow-sm">
-      <h2 className="text-lg font-semibold mb-1">Company admins</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Co-admins can manage the roster and send invites. The primary admin is the original contact person.
-      </p>
-
-      <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2 mb-4">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="co-admin@example.is"
-          required
-          className="input flex-1"
-        />
-        <button type="submit" disabled={loading} className="btn-primary text-sm">
-          {loading ? "Inviting…" : "Invite co-admin"}
-        </button>
-      </form>
-      {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
-
-      <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
-        {admins.length === 0 && <div className="p-3 text-sm text-gray-500">Loading…</div>}
-        {admins.map((a) => (
-          <div key={a.user_id} className="flex items-center justify-between px-4 py-3 text-sm">
-            <div>
-              <span className="font-medium">{a.email || "(unknown)"}</span>
-              {a.is_primary && <span className="ml-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Primary</span>}
-            </div>
-            {!a.is_primary && (
-              <div className="flex items-center gap-3">
-                <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
-                <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
-              </div>
-            )}
+    <section className={`bg-white rounded-2xl shadow-sm ${ring}`}>
+      <div className="p-6 sm:p-7">
+        <div className="flex items-start gap-4 mb-5">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${numBg}`}>
+            {done ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : n}
           </div>
-        ))}
+          <div className="flex-1 min-w-0">
+            <h2 className={`text-lg font-semibold ${locked ? "text-gray-400" : "text-gray-900"}`}>
+              {title}
+            </h2>
+            <p className="text-sm text-gray-600 mt-0.5">{subtitle}</p>
+          </div>
+        </div>
+        <div className="sm:pl-14">
+          {children}
+        </div>
       </div>
     </section>
   );
 }
 
-function SendAllInvitesButton({ memberIds, onDone }: { memberIds: string[]; onDone: () => void }) {
-  const [sending, setSending] = useState(false);
-  if (!memberIds.length) return null;
-  const onClick = async () => {
-    if (!confirm(`Send invites to ${memberIds.length} uninvited employee${memberIds.length === 1 ? "" : "s"}?`)) return;
-    setSending(true);
-    try {
-      const { data: s } = await supabase.auth.getSession();
-      const t = s.session?.access_token;
-      const res = await fetch("/api/business/members/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-        body: JSON.stringify({ member_ids: memberIds }),
-      });
-      const j = await res.json();
-      alert(`Sent ${j.sent ?? 0} · Failed ${j.failed ?? 0}`);
-      onDone();
-    } finally {
-      setSending(false);
-    }
-  };
-  return (
-    <button onClick={onClick} disabled={sending} className="btn-primary text-sm">
-      {sending ? "Sending…" : `Send all ${memberIds.length} invites`}
-    </button>
-  );
-}
-
-function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone: () => void }) {
-  const [sending, setSending] = useState(false);
-  if (!memberIds.length) return null;
-  const onClick = async () => {
-    if (!confirm(`Resend invite to ${memberIds.length} employee${memberIds.length === 1 ? "" : "s"} who haven't completed registration in 3+ days? A new password will be generated for each.`)) return;
-    setSending(true);
-    try {
-      const { data: s } = await supabase.auth.getSession();
-      const t = s.session?.access_token;
-      const res = await fetch("/api/business/members/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-        body: JSON.stringify({ member_ids: memberIds }),
-      });
-      const j = await res.json();
-      alert(`Reminded ${j.sent ?? 0} · Failed ${j.failed ?? 0}`);
-      onDone();
-    } finally {
-      setSending(false);
-    }
-  };
-  return (
-    <button onClick={onClick} disabled={sending} className="btn-ghost text-sm">
-      {sending ? "Reminding…" : `Remind ${memberIds.length} stale`}
-    </button>
-  );
-}
-
-function MemberRow({ member, onChange }: { member: Member; onChange: () => void }) {
-  const [sending, setSending] = useState(false);
-  const status = member.completed_at
-    ? { label: "Completed", color: "bg-emerald-100 text-emerald-700" }
-    : member.invited_at
-    ? { label: `Invited${member.invite_sent_count > 1 ? ` (${member.invite_sent_count}×)` : ""}`, color: "bg-blue-100 text-blue-700" }
-    : { label: "Draft", color: "bg-gray-100 text-gray-700" };
-
-  const sendInvite = async () => {
-    setSending(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      const res = await fetch("/api/business/members/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ member_id: member.id }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        alert(j.error || "Failed to send invite");
-      }
-      onChange();
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const remove = async () => {
-    if (!confirm(`Remove ${member.full_name} from the roster?`)) return;
-    const { data: s } = await supabase.auth.getSession();
-    const t = s.session?.access_token;
-    await fetch(`/api/business/members/${member.id}`, {
-      method: "DELETE",
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
-    });
-    onChange();
-  };
-
-  return (
-    <tr className="border-b border-gray-100">
-      <td className="py-3 pr-4 font-medium">{member.full_name}</td>
-      <td className="py-3 pr-4 text-gray-700">{member.email}</td>
-      <td className="py-3 pr-4 text-gray-500">•••••{member.kennitala_last4 || ""}</td>
-      <td className="py-3 pr-4 text-gray-700">{member.phone || "—"}</td>
-      <td className="py-3 pr-4">
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span>
-      </td>
-      <td className="py-3 pr-4">
-        <DataStatus
-          completed={!!member.completed_at}
-          profileComplete={member.profile_complete ?? false}
-          biodyActivated={member.biody_activated ?? false}
-        />
-      </td>
-      <td className="py-3 text-right whitespace-nowrap">
-        {!member.completed_at && (
-          <button onClick={sendInvite} disabled={sending} className="text-sm text-blue-600 hover:underline mr-3">
-            {sending ? "Sending…" : member.invited_at ? "Resend" : "Send invite"}
-          </button>
-        )}
-        <button onClick={remove} className="text-sm text-red-600 hover:underline">Remove</button>
-      </td>
-    </tr>
-  );
-}
-
-function DataStatus({
-  completed, profileComplete, biodyActivated,
-}: { completed: boolean; profileComplete: boolean; biodyActivated: boolean }) {
-  if (!completed) {
-    return <span className="inline-flex items-center gap-1 text-xs text-gray-400">—</span>;
-  }
-  if (profileComplete && biodyActivated) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-        Ready
-      </span>
-    );
-  }
-  if (profileComplete && !biodyActivated) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700" title="Profile saved but Biody patient not yet created — use Activate Biody">
-        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-        Needs activation
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700" title="Missing fields: sex, height, weight, or activity">
-      <span className="w-2 h-2 rounded-full bg-red-500"></span>
-      Incomplete
-    </span>
-  );
-}
+// ── Sub-components (unchanged from previous version) ────────────────────────
 
 function SingleRowForm({ companyId, onDone }: { companyId: string; onDone: () => void }) {
   const [row, setRow] = useState({ full_name: "", kennitala: "", email: "", phone: "" });
@@ -593,7 +523,6 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
       if (!res.ok) throw new Error(j.error || "Bulk insert failed");
       setResult(j);
       if ((j.failed ?? 0) === 0) {
-        // Clean success — close the panel
         onDone();
       }
     } catch (e) {
@@ -612,7 +541,6 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
       "Guðrún Þórðardóttir,2904913129,gudrun@example.is,8905234",
       "Einar Ægir Björnsson,0301904599,einar@example.is,7712345",
     ];
-    // Prefix the UTF-8 BOM so Excel opens Icelandic characters correctly.
     const csv = "\ufeff" + rows.join("\n") + "\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -706,7 +634,7 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
             setRows(parseRoster(e.target.value));
             setResult(null);
           }}
-          rows={8}
+          rows={6}
           placeholder={"name,kennitala,email,phone\nJón Jónsson,1406221680,jon@example.is,7674393"}
           className="input font-mono text-xs"
         />
@@ -754,5 +682,233 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
         </div>
       )}
     </div>
+  );
+}
+
+function MemberRow({ member, onChange }: { member: Member; onChange: () => void }) {
+  const [sending, setSending] = useState(false);
+  const status = member.completed_at
+    ? { label: "Completed", color: "bg-emerald-100 text-emerald-700" }
+    : member.invited_at
+    ? { label: `Invited${member.invite_sent_count > 1 ? ` (${member.invite_sent_count}×)` : ""}`, color: "bg-blue-100 text-blue-700" }
+    : { label: "Draft", color: "bg-gray-100 text-gray-700" };
+
+  const sendInvite = async () => {
+    setSending(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch("/api/business/members/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ member_id: member.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(j.error || "Failed to send invite");
+      }
+      onChange();
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Remove ${member.full_name} from the roster?`)) return;
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    await fetch(`/api/business/members/${member.id}`, {
+      method: "DELETE",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+    });
+    onChange();
+  };
+
+  const dataDot = (() => {
+    if (!member.completed_at) return <span className="text-gray-300 text-xs">—</span>;
+    if (member.profile_complete && member.biody_activated) {
+      return <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500" />Ready</span>;
+    }
+    if (member.profile_complete) {
+      return <span className="inline-flex items-center gap-1 text-xs text-amber-700"><span className="w-2 h-2 rounded-full bg-amber-500" />Needs activation</span>;
+    }
+    return <span className="inline-flex items-center gap-1 text-xs text-red-700"><span className="w-2 h-2 rounded-full bg-red-500" />Incomplete</span>;
+  })();
+
+  return (
+    <tr className="border-b border-gray-100">
+      <td className="py-3 pr-4 font-medium">{member.full_name}</td>
+      <td className="py-3 pr-4 text-gray-700">{member.email}</td>
+      <td className="py-3 pr-4 text-gray-500">•••••{member.kennitala_last4 || ""}</td>
+      <td className="py-3 pr-4 text-gray-700">{member.phone || "—"}</td>
+      <td className="py-3 pr-4">
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span>
+      </td>
+      <td className="py-3 pr-4">{dataDot}</td>
+      <td className="py-3 text-right whitespace-nowrap">
+        {!member.completed_at && (
+          <button onClick={sendInvite} disabled={sending} className="text-sm text-blue-600 hover:underline mr-3">
+            {sending ? "Sending…" : member.invited_at ? "Resend" : "Send invite"}
+          </button>
+        )}
+        <button onClick={remove} className="text-sm text-red-600 hover:underline">Remove</button>
+      </td>
+    </tr>
+  );
+}
+
+function SendAllInvitesButton({ memberIds, onDone }: { memberIds: string[]; onDone: () => void }) {
+  const [sending, setSending] = useState(false);
+  if (!memberIds.length) return null;
+  const onClick = async () => {
+    if (!confirm(`Send invites to ${memberIds.length} uninvited employee${memberIds.length === 1 ? "" : "s"}?`)) return;
+    setSending(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch("/api/business/members/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify({ member_ids: memberIds }),
+      });
+      const j = await res.json();
+      alert(`Sent ${j.sent ?? 0} · Failed ${j.failed ?? 0}`);
+      onDone();
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <button onClick={onClick} disabled={sending} className="btn-primary text-sm">
+      {sending ? "Sending…" : `Send all ${memberIds.length} invites`}
+    </button>
+  );
+}
+
+function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone: () => void }) {
+  const [sending, setSending] = useState(false);
+  if (!memberIds.length) return null;
+  const onClick = async () => {
+    if (!confirm(`Resend invite to ${memberIds.length} employee${memberIds.length === 1 ? "" : "s"} who haven't completed registration in 3+ days? A new password will be generated for each.`)) return;
+    setSending(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch("/api/business/members/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify({ member_ids: memberIds }),
+      });
+      const j = await res.json();
+      alert(`Reminded ${j.sent ?? 0} · Failed ${j.failed ?? 0}`);
+      onDone();
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <button onClick={onClick} disabled={sending} className="btn-ghost text-sm">
+      {sending ? "Reminding…" : `Remind ${memberIds.length} stale`}
+    </button>
+  );
+}
+
+function AdminsSection({ companyId }: { companyId: string }) {
+  interface Admin { user_id: string; email: string | null; added_at: string; is_primary: boolean }
+  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
+    if (error) setError(error.message);
+    else setAdmins((data || []) as Admin[]);
+  }, [companyId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const addAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/business/companies/${companyId}/admins`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ email }),
+    });
+    const j = await res.json();
+    if (!res.ok) setError(j.error || "Failed to add admin");
+    else { setEmail(""); load(); }
+    setLoading(false);
+  };
+
+  const removeAdmin = async (userId: string) => {
+    if (!confirm("Remove this co-admin?")) return;
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    await fetch(`/api/business/companies/${companyId}/admins?user_id=${userId}`, {
+      method: "DELETE",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+    });
+    load();
+  };
+
+  const promote = async (userId: string, email: string | null) => {
+    if (!confirm(`Make ${email || userId} the primary contact person? You will be demoted to a co-admin.`)) return;
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/business/companies/${companyId}/promote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    const j = await res.json();
+    if (!res.ok) alert(`Failed: ${j.error || "promote_failed"}`);
+    load();
+  };
+
+  return (
+    <section className="bg-white rounded-2xl p-6 shadow-sm">
+      <h2 className="text-lg font-semibold mb-1">Company admins</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Co-admins can manage the roster and send invites. The primary admin is the original contact person.
+      </p>
+
+      <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2 mb-4">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="co-admin@example.is"
+          required
+          className="input flex-1"
+        />
+        <button type="submit" disabled={loading} className="btn-primary text-sm">
+          {loading ? "Inviting…" : "Invite co-admin"}
+        </button>
+      </form>
+      {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
+
+      <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
+        {admins.length === 0 && <div className="p-3 text-sm text-gray-500">Loading…</div>}
+        {admins.map((a) => (
+          <div key={a.user_id} className="flex items-center justify-between px-4 py-3 text-sm">
+            <div>
+              <span className="font-medium">{a.email || "(unknown)"}</span>
+              {a.is_primary && <span className="ml-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Primary</span>}
+            </div>
+            {!a.is_primary && (
+              <div className="flex items-center gap-3">
+                <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
+                <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
