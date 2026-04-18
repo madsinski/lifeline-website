@@ -48,9 +48,13 @@ export default function BusinessIndexPage() {
         list.push({ id: c.id, name: c.name, role: "primary", created_at: c.created_at });
       }
       for (const row of coAdminRows || []) {
-        const c = (row as { companies?: { id: string; name: string; created_at: string } }).companies;
-        if (c && !list.find((x) => x.id === c.id)) {
-          list.push({ id: c.id, name: c.name, role: "co-admin", created_at: c.created_at });
+        const raw = (row as { companies?: unknown }).companies;
+        const c = Array.isArray(raw) ? raw[0] : raw;
+        if (c && typeof c === "object" && "id" in c) {
+          const company = c as { id: string; name: string; created_at: string };
+          if (!list.find((x) => x.id === company.id)) {
+            list.push({ id: company.id, name: company.name, role: "co-admin", created_at: company.created_at });
+          }
         }
       }
       list.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
