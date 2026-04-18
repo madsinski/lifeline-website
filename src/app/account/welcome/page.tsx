@@ -9,16 +9,24 @@ import BackButton from "@/app/components/BackButton";
 import MedaliaButton from "@/app/components/MedaliaButton";
 import { LanguagePicker, useI18n } from "@/lib/i18n";
 
-type BiodyState = "unknown" | "active" | "activating" | "failed";
+type BiodyState = "unknown" | "active" | "activating" | "failed" | "needs_profile";
 
 export default function AccountWelcomePage() {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [biodyState, setBiodyState] = useState<BiodyState>("unknown");
   const [activateError, setActivateError] = useState("");
+
+  // Body-comp profile form (shown when fields are missing)
+  const [sex, setSex] = useState<"male" | "female" | "">("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [activityLevel, setActivityLevel] = useState<"sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "">("");
+  const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -27,15 +35,27 @@ export default function AccountWelcomePage() {
         router.push("/account/login");
         return;
       }
+      setUserId(user.id);
       const { data: client } = await supabase
         .from("clients")
-        .select("full_name, company_id, biody_patient_id")
+        .select("full_name, company_id, biody_patient_id, sex, height_cm, weight_kg, activity_level, date_of_birth")
         .eq("id", user.id)
         .maybeSingle();
       if (client) {
         setFirstName((client.full_name || "").split(" ")[0] || "");
-        setBiodyState(client.biody_patient_id ? "active" : "unknown");
-        const cid = (client as Record<string, unknown>).company_id as string | null;
+        const cData = client as Record<string, unknown>;
+        if (cData.biody_patient_id) {
+          setBiodyState("active");
+        } else {
+          // Check if body-comp fields are present
+          const hasAll = cData.sex && cData.height_cm && cData.weight_kg && cData.activity_level && cData.date_of_birth;
+          setBiodyState(hasAll ? "unknown" : "needs_profile");
+          setSex((cData.sex as "male" | "female" | "") || "");
+          setHeightCm(cData.height_cm ? String(cData.height_cm) : "");
+          setWeightKg(cData.weight_kg ? String(cData.weight_kg) : "");
+          setActivityLevel((cData.activity_level as typeof activityLevel) || "");
+        }
+        const cid = cData.company_id as string | null;
         if (cid) {
           const { data: c } = await supabase.from("companies").select("name").eq("id", cid).maybeSingle();
           if (c?.name) setCompanyName(c.name);
@@ -43,7 +63,36 @@ export default function AccountWelcomePage() {
       }
       setLoading(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  const saveProfileAndActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    if (!sex || !heightCm || !weightKg || !activityLevel) {
+      setActivateError("Please fill in every field."); return;
+    }
+    setProfileSaving(true);
+    setActivateError("");
+    try {
+      const { error: upErr } = await supabase.from("clients").update({
+        sex,
+        height_cm: Number(heightCm),
+        weight_kg: Number(weightKg),
+        activity_level: activityLevel,
+        updated_at: new Date().toISOString(),
+      }).eq("id", userId);
+      if (upErr) throw new Error(upErr.message);
+      setBiodyState("unknown");
+      // Auto-activate now that profile is complete
+      await activateBiody();
+    } catch (e) {
+      setActivateError((e as Error).message);
+      setBiodyState("needs_profile");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const activateBiody = async () => {
     setBiodyState("activating");
@@ -61,15 +110,17 @@ export default function AccountWelcomePage() {
     const j = await res.json();
     if (res.ok && j.ok) {
       setBiodyState("active");
+    } else if (j.error === "missing_client_fields") {
+      // Server detected missing fields — switch to the inline form
+      setBiodyState("needs_profile");
+      setActivateError(t("b2b.welcome.activate.need_info",
+        "We need a few details before we can set up your body-composition profile."));
     } else {
       setBiodyState("failed");
       setActivateError(
         typeof j.detail === "string"
           ? j.detail
-          : j.error === "missing_client_fields"
-            ? t("b2b.welcome.activate.missing",
-                "Your profile is missing sex, height, weight, or activity level. Complete your profile in Settings first.")
-            : j.error || t("b2b.welcome.activate.failed", "Activation failed. Please contact support.")
+          : j.error || t("b2b.welcome.activate.failed", "Activation failed. Please contact support.")
       );
     }
   };
@@ -143,29 +194,83 @@ export default function AccountWelcomePage() {
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">{t("b2b.welcome.steps.heading", "Your next steps")}</h2>
 
-          <StepCard
-            n={1}
-            title={t("b2b.welcome.step.activate.title", "Activate your body-composition profile")}
-            body={t("b2b.welcome.step.activate.body",
-              "Register yourself with our measurement partner Biody so your scan data is linked to your Lifeline account automatically.")}
-            state={biodyState === "active" ? "done" : biodyState === "activating" ? "busy" : "pending"}
-            action={
-              biodyState === "active" ? (
-                <span className="text-emerald-700 font-medium text-sm">{t("b2b.welcome.step.activate.done", "Activated ✓")}</span>
-              ) : (
-                <button
-                  onClick={activateBiody}
-                  disabled={biodyState === "activating"}
-                  className="btn-primary-solid"
-                >
-                  {biodyState === "activating"
-                    ? t("b2b.welcome.step.activate.activating", "Activating…")
-                    : t("b2b.welcome.step.activate.cta", "Activate profile")}
-                </button>
-              )
-            }
-            error={biodyState === "failed" ? activateError : ""}
-          />
+          {biodyState === "needs_profile" ? (
+            <div className="bg-white rounded-xl p-5 shadow-sm ring-1 ring-amber-200">
+              <div className="flex items-start gap-4">
+                <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-semibold text-sm shrink-0">1</div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900">
+                    {t("b2b.welcome.step.activate.title", "Activate your body-composition profile")}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1 mb-4">
+                    {t("b2b.welcome.activate.need_info",
+                      "We need a few details before we can set up your body-composition profile.")}
+                  </p>
+                  <form onSubmit={saveProfileAndActivate} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="block">
+                        <span className="block text-xs font-medium text-gray-700 mb-1">{t("b2b.onboard.profile.sex", "Sex")}</span>
+                        <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required className="input">
+                          <option value="">{t("b2b.onboard.profile.select", "Select…")}</option>
+                          <option value="female">{t("b2b.onboard.profile.sex.female", "Female")}</option>
+                          <option value="male">{t("b2b.onboard.profile.sex.male", "Male")}</option>
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="block text-xs font-medium text-gray-700 mb-1">{t("b2b.onboard.profile.activity", "Activity level")}</span>
+                        <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "")} required className="input">
+                          <option value="">{t("b2b.onboard.profile.select", "Select…")}</option>
+                          <option value="sedentary">{t("b2b.onboard.profile.activity.sedentary", "Sedentary — little or no exercise")}</option>
+                          <option value="light">{t("b2b.onboard.profile.activity.light", "Light — exercise 1–3 days/week")}</option>
+                          <option value="moderate">{t("b2b.onboard.profile.activity.moderate", "Moderate — exercise 3–5 days/week")}</option>
+                          <option value="very_active">{t("b2b.onboard.profile.activity.very_active", "Very active — exercise 6–7 days/week")}</option>
+                          <option value="extra_active">{t("b2b.onboard.profile.activity.extra_active", "Extra active — daily intense training")}</option>
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="block text-xs font-medium text-gray-700 mb-1">{t("b2b.onboard.profile.height", "Height (cm)")}</span>
+                        <input type="number" min={100} max={230} step={1} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} required className="input" />
+                      </label>
+                      <label className="block">
+                        <span className="block text-xs font-medium text-gray-700 mb-1">{t("b2b.onboard.profile.weight", "Weight (kg)")}</span>
+                        <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className="input" />
+                      </label>
+                    </div>
+                    {activateError && <div className="text-red-600 text-xs">{activateError}</div>}
+                    <button type="submit" disabled={profileSaving} className="btn-primary-solid">
+                      {profileSaving
+                        ? t("b2b.welcome.step.activate.activating", "Activating…")
+                        : t("b2b.welcome.activate.save_and_activate", "Save & activate")}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <StepCard
+              n={1}
+              title={t("b2b.welcome.step.activate.title", "Activate your body-composition profile")}
+              body={t("b2b.welcome.step.activate.body",
+                "Register yourself with our measurement partner Biody so your scan data is linked to your Lifeline account automatically.")}
+              state={biodyState === "active" ? "done" : biodyState === "activating" ? "busy" : "pending"}
+              action={
+                biodyState === "active" ? (
+                  <span className="text-emerald-700 font-medium text-sm">{t("b2b.welcome.step.activate.done", "Activated ✓")}</span>
+                ) : (
+                  <button
+                    onClick={activateBiody}
+                    disabled={biodyState === "activating"}
+                    className="btn-primary-solid"
+                  >
+                    {biodyState === "activating"
+                      ? t("b2b.welcome.step.activate.activating", "Activating…")
+                      : t("b2b.welcome.step.activate.cta", "Activate profile")}
+                  </button>
+                )
+              }
+              error={biodyState === "failed" ? activateError : ""}
+            />
+          )}
 
           <StepCard
             n={2}
