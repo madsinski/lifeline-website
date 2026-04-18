@@ -73,7 +73,17 @@ export default function BusinessSignupPage() {
           body: JSON.stringify({ email, password, full_name: fullName }),
         });
         const j = await res.json();
-        if (!res.ok) throw new Error(j.error || "Signup failed");
+        if (res.status === 409 && j.error === "email_already_registered") {
+          // Existing account — flip to login mode and tell the user to enter
+          // their existing password. Don't reveal anything more.
+          setAuthMode("login");
+          setPassword("");
+          setError(
+            "This email already has a Lifeline account. Sign in with your existing password to continue.",
+          );
+          return;
+        }
+        if (!res.ok) throw new Error(j.detail || j.error || "Signup failed");
         const { data, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
         if (signInErr) throw signInErr;
         if (data.user) {
