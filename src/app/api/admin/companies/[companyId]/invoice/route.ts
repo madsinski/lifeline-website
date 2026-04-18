@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
-import { createPaydayInvoice } from "@/lib/payday";
+import { ensurePaydayCustomer, createPaydayInvoice, paydayPdfUrl } from "@/lib/payday";
 
 export const maxDuration = 60;
 
@@ -18,6 +18,9 @@ export async function POST(
   const overrideQuantity: number | undefined = body?.quantity;
   const overrideUnitPrice: number | undefined = body?.unit_price;
   const notes: string | undefined = body?.notes;
+  const createClaim: boolean | undefined = body?.create_claim;
+  const createElectronicInvoice: boolean | undefined = body?.create_electronic_invoice;
+  const sendEmail: boolean | undefined = body?.send_email;
 
   const { data: company } = await supabaseAdmin
     .from("companies")
@@ -26,12 +29,10 @@ export async function POST(
     .maybeSingle();
   if (!company) return NextResponse.json({ error: "company_not_found" }, { status: 404 });
 
-  // Decrypt kennitala for invoicing
   const { data: decKt } = await supabaseAdmin.rpc("dec_kennitala", { p_enc: company.kennitala_encrypted });
   const kennitala = (decKt as string | null) || "";
   if (!kennitala) return NextResponse.json({ error: "company_kennitala_missing" }, { status: 400 });
 
-  // Completed-assessment count (roster members who finished onboarding)
   const { count: completed } = await supabaseAdmin
     .from("company_members")
     .select("id", { count: "exact", head: true })
@@ -40,44 +41,67 @@ export async function POST(
 
   const quantity = overrideQuantity ?? (completed || 0);
   const unitPrice = overrideUnitPrice ?? (company.assessment_unit_price || 29900);
-  if (quantity <= 0) return NextResponse.json({ error: "nothing_to_invoice", detail: "No completed assessments yet." }, { status: 400 });
+  if (quantity <= 0) {
+    return NextResponse.json({ error: "nothing_to_invoice", detail: "No completed assessments yet." }, { status: 400 });
+  }
 
   const amountNet = unitPrice * quantity;
   const vatRate = 24;
   const amountTotal = Math.round(amountNet * (1 + vatRate / 100));
 
-  // Contact email
   const { data: contactUser } = await supabaseAdmin.auth.admin.getUserById(company.contact_person_id);
   const contactEmail = contactUser?.user?.email || null;
 
-  const lineDescription = `Lifeline Health Assessment${notes ? ` — ${notes}` : ""} (${quantity} employee${quantity === 1 ? "" : "s"})`;
+  // Step 1: ensure PayDay customer exists
+  const customerRes = await ensurePaydayCustomer({
+    companyId,
+    kennitala,
+    name: company.name,
+    email: contactEmail,
+    existingPaydayCustomerId: company.payday_customer_id,
+  });
+  if (!customerRes.ok || !customerRes.customer_id) {
+    return NextResponse.json({
+      error: "payday_customer_failed",
+      detail: customerRes.error,
+      raw: customerRes.raw,
+    }, { status: 502 });
+  }
 
-  const invoiceResult = await createPaydayInvoice({
-    customer_kennitala: kennitala,
-    customer_name: company.name,
-    customer_email: contactEmail,
-    currency: "ISK",
-    reference: `company:${companyId}`,
+  // Step 2: create invoice
+  const lineDescription = `Lifeline Health Assessment${notes ? ` — ${notes}` : ""}`;
+  const invoiceRes = await createPaydayInvoice({
+    customerId: customerRes.customer_id,
+    description: `Lifeline health assessments for ${company.name}`,
+    currencyCode: "ISK",
+    createClaim: createClaim ?? true,
+    createElectronicInvoice: createElectronicInvoice ?? true,
+    sendEmail: sendEmail ?? true,
+    reference: `lifeline:company:${companyId}`,
     lines: [
       {
         description: lineDescription,
         quantity,
-        unit_price: unitPrice,
-        vat_rate: vatRate,
+        unitPriceExcludingVat: unitPrice,
+        vatPercentage: vatRate,
       },
     ],
   });
 
-  if (!invoiceResult.ok) {
-    return NextResponse.json({ error: "payday_failed", detail: invoiceResult.error, raw: invoiceResult.raw }, { status: 502 });
+  if (!invoiceRes.ok) {
+    return NextResponse.json({
+      error: "payday_invoice_failed",
+      detail: invoiceRes.error,
+      raw: invoiceRes.raw,
+    }, { status: 502 });
   }
 
   const { data: row, error } = await supabaseAdmin
     .from("company_invoices")
     .insert({
       company_id: companyId,
-      payday_invoice_id: invoiceResult.invoice_id || null,
-      payday_invoice_number: invoiceResult.invoice_number || null,
+      payday_invoice_id: invoiceRes.invoice_id || null,
+      payday_invoice_number: invoiceRes.invoice_number || null,
       status: "sent",
       currency: "ISK",
       unit_price: unitPrice,
@@ -85,14 +109,20 @@ export async function POST(
       amount_net: amountNet,
       amount_total: amountTotal,
       vat_rate: vatRate,
-      line_items: [{ description: lineDescription, quantity, unit_price: unitPrice, vat_rate: vatRate }],
-      issued_at: invoiceResult.issued_at || new Date().toISOString(),
-      due_at: invoiceResult.due_at || new Date(Date.now() + 14 * 86_400_000).toISOString(),
-      pdf_url: invoiceResult.pdf_url || null,
+      line_items: [{
+        description: lineDescription,
+        quantity,
+        unitPriceExcludingVat: unitPrice,
+        vatPercentage: vatRate,
+      }],
+      issued_at: invoiceRes.issued_at || new Date().toISOString(),
+      due_at: invoiceRes.due_at || new Date(Date.now() + 14 * 86_400_000).toISOString(),
+      pdf_url: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
       created_by: user.id,
     })
     .select("id")
     .single();
+
   if (error) {
     console.error("[invoice] DB insert failed:", error);
     return NextResponse.json({ error: "db_insert_failed", detail: error.message }, { status: 500 });
@@ -101,11 +131,11 @@ export async function POST(
   return NextResponse.json({
     ok: true,
     invoice_id: row?.id,
-    payday_invoice_number: invoiceResult.invoice_number,
+    payday_invoice_number: invoiceRes.invoice_number,
     quantity,
     unit_price: unitPrice,
     amount_net: amountNet,
     amount_total: amountTotal,
-    pdf_url: invoiceResult.pdf_url,
+    pdf_url: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
   });
 }
