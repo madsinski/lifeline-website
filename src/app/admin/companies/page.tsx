@@ -53,10 +53,16 @@ export default function AdminCompaniesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [rpcRes, tiersRes] = await Promise.all([
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log("[admin/companies] user:", user?.id, user?.email);
+    const [rpcRes, tiersRes, staffRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
       supabase.from("companies").select("id, default_tier"),
+      supabase.from("staff").select("id, active").eq("id", user?.id ?? "").maybeSingle(),
     ]);
+    console.log("[admin/companies] rpc:", rpcRes);
+    console.log("[admin/companies] direct companies select:", tiersRes);
+    console.log("[admin/companies] staff row:", staffRes);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
       const tierMap = new Map<string, string | null>((tiersRes.data || []).map((t: { id: string; default_tier: string | null }) => [t.id, t.default_tier]));
