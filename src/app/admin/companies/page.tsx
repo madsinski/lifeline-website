@@ -61,6 +61,7 @@ export default function AdminCompaniesPage() {
       supabase.from("staff").select("id, active").eq("id", user?.id ?? "").maybeSingle(),
     ]);
     console.log("[admin/companies] rpc:", rpcRes);
+    console.log("[admin/companies] rpc error full:", JSON.stringify(rpcRes.error, null, 2));
     console.log("[admin/companies] direct companies select:", tiersRes);
     console.log("[admin/companies] staff row:", staffRes);
     if (rpcRes.error) setError(rpcRes.error.message);
