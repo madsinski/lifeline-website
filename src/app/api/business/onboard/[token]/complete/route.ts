@@ -100,6 +100,25 @@ async function handle(
     }, { status: 409 });
   }
 
+  // Defensive cleanup: if an orphan clients row exists for this email (e.g.
+  // left behind when a previous test account's auth.users row was deleted),
+  // remove it so the handle_new_user trigger doesn't collide on clients.email.
+  try {
+    const { data: staleClients } = await supabaseAdmin
+      .from("clients")
+      .select("id")
+      .ilike("email", email);
+    for (const row of staleClients || []) {
+      const { data: authCheck } = await supabaseAdmin.auth.admin.getUserById(row.id);
+      if (!authCheck?.user) {
+        console.warn("[onboard-complete] removing orphan clients row", row.id, email);
+        await supabaseAdmin.from("clients").delete().eq("id", row.id);
+      }
+    }
+  } catch (e) {
+    console.error("[onboard-complete] orphan cleanup failed:", e);
+  }
+
   const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: account_password,
