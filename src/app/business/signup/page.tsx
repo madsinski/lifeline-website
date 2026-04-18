@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
+import { LanguagePicker, useI18n } from "@/lib/i18n";
 import { cleanKennitala, isValidKennitala, formatKennitala } from "@/lib/kennitala";
 
 const AGREEMENT_VERSION = "1.0";
@@ -14,6 +15,7 @@ type Step = "auth" | "agreement" | "company" | "done";
 
 export default function BusinessSignupPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>("auth");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -133,7 +135,10 @@ export default function BusinessSignupPage() {
             <span className="font-semibold">Lifeline Health</span>
           </Link>
         </div>
-        <span className="text-sm text-gray-500">Business onboarding</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">{t("b2b.signup.header", "Business onboarding")}</span>
+          <LanguagePicker />
+        </div>
       </header>
 
       <main className="max-w-xl mx-auto px-6 py-12">
@@ -299,9 +304,14 @@ export default function BusinessSignupPage() {
 }
 
 function Stepper({ step }: { step: Step }) {
+  const { t } = useI18n();
   const order: Step[] = ["auth", "agreement", "company"];
   const idx = order.indexOf(step);
-  const labels = ["Account", "Agreement", "Company"];
+  const labels = [
+    t("b2b.signup.stepper.account", "Account"),
+    t("b2b.signup.stepper.agreement", "Agreement"),
+    t("b2b.signup.stepper.company", "Company"),
+  ];
   return (
     <div className="flex items-center justify-center gap-3 mb-8">
       {labels.map((l, i) => (

@@ -26,6 +26,11 @@ const sections = [
   { key: "footer", label: "Footer" },
   { key: "common", label: "Common" },
   { key: "coming-soon", label: "Coming Soon" },
+  { key: "b2b-signup", label: "B2B · Signup" },
+  { key: "b2b-dashboard", label: "B2B · Dashboard" },
+  { key: "b2b-onboard", label: "B2B · Employee onboarding" },
+  { key: "b2b-welcome", label: "B2B · Welcome page" },
+  { key: "b2b-admin", label: "B2B · Admin" },
 ];
 
 export default function TranslationsPage() {

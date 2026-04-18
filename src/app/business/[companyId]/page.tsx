@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
+import { LanguagePicker } from "@/lib/i18n";
 import { parseRoster, RosterRow, generatePassword } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 
@@ -93,6 +94,7 @@ export default function BusinessDashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">{company.name}</span>
+          <LanguagePicker />
           <button
             onClick={async () => { await supabase.auth.signOut(); router.push("/"); }}
             className="text-sm text-gray-500 hover:text-gray-800"

@@ -7,11 +7,13 @@ import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
 import MedaliaButton from "@/app/components/MedaliaButton";
+import { LanguagePicker, useI18n } from "@/lib/i18n";
 
 type BiodyState = "unknown" | "active" | "activating" | "failed";
 
 export default function AccountWelcomePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [companyName, setCompanyName] = useState<string | null>(null);
@@ -65,8 +67,9 @@ export default function AccountWelcomePage() {
         typeof j.detail === "string"
           ? j.detail
           : j.error === "missing_client_fields"
-            ? "Your profile is missing sex, height, weight, or activity level. Complete your profile in Settings first."
-            : j.error || "Activation failed. Please contact support."
+            ? t("b2b.welcome.activate.missing",
+                "Your profile is missing sex, height, weight, or activity level. Complete your profile in Settings first.")
+            : j.error || t("b2b.welcome.activate.failed", "Activation failed. Please contact support.")
       );
     }
   };
@@ -89,9 +92,12 @@ export default function AccountWelcomePage() {
             <span className="font-semibold">Lifeline Health</span>
           </Link>
         </div>
-        <Link href="/account" className="text-sm text-gray-600 hover:text-gray-900">
-          Skip &rarr;
-        </Link>
+        <div className="flex items-center gap-3">
+          <LanguagePicker />
+          <Link href="/account" className="text-sm text-gray-600 hover:text-gray-900">
+            {t("b2b.welcome.skip", "Skip")} &rarr;
+          </Link>
+        </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-8">
@@ -100,21 +106,23 @@ export default function AccountWelcomePage() {
           style={{ background: "linear-gradient(135deg, #3B82F6, #10B981, #3B82F6)" }}>
           {companyName && (
             <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-2">
-              Via {companyName}
+              {t("b2b.welcome.hero.via", "Via {{company}}").replace("{{company}}", companyName)}
             </p>
           )}
           <h1 className="text-3xl sm:text-4xl font-semibold leading-tight">
-            Welcome to Lifeline{firstName ? `, ${firstName}` : ""}.
+            {firstName
+              ? t("b2b.welcome.hero.title_name", "Welcome to Lifeline, {{name}}.").replace("{{name}}", firstName)
+              : t("b2b.welcome.hero.title", "Welcome to Lifeline.")}
           </h1>
           <p className="mt-3 text-base opacity-95 max-w-xl">
-            You&apos;re all set up. Three quick things and you&apos;re ready to start building healthier
-            habits with guidance from Icelandic physicians and coaches.
+            {t("b2b.welcome.hero.body",
+              "You're all set up. Three quick things and you're ready to start building healthier habits with guidance from Icelandic physicians and coaches.")}
           </p>
         </section>
 
         {/* Intro video */}
         <section className="bg-white rounded-2xl p-6 shadow-sm">
-          <h2 className="font-semibold text-lg mb-3">A 90-second intro to Lifeline</h2>
+          <h2 className="font-semibold text-lg mb-3">{t("b2b.welcome.intro.title", "A 90-second intro to Lifeline")}</h2>
           <div className="aspect-video w-full rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 via-white to-emerald-100 flex items-center justify-center border border-gray-100">
             <div className="text-center px-6">
               <div className="w-14 h-14 mx-auto rounded-full bg-white/80 flex items-center justify-center shadow-sm mb-2">
@@ -122,74 +130,74 @@ export default function AccountWelcomePage() {
                   <path d="M8 5v14l11-7z" />
                 </svg>
               </div>
-              <div className="text-sm text-gray-600">Intro video — coming soon</div>
+              <div className="text-sm text-gray-600">{t("b2b.welcome.intro.coming", "Intro video — coming soon")}</div>
             </div>
           </div>
           <p className="text-sm text-gray-600 mt-4">
-            Lifeline Health combines targeted assessments with daily coaching across four pillars —
-            exercise, nutrition, sleep, mental wellness. You&apos;ll do a body-composition scan at
-            a Lifeline station, receive a personalised report from a physician, and follow a
-            tailored daily plan in the app.
+            {t("b2b.welcome.intro.body",
+              "Lifeline Health combines targeted assessments with daily coaching across four pillars — exercise, nutrition, sleep, mental wellness. You'll do a body-composition scan at a Lifeline station, receive a personalised report from a physician, and follow a tailored daily plan in the app.")}
           </p>
         </section>
 
         {/* Step-by-step */}
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Your next steps</h2>
+          <h2 className="text-lg font-semibold">{t("b2b.welcome.steps.heading", "Your next steps")}</h2>
 
-          {/* Step 1: Activate Biody */}
           <StepCard
             n={1}
-            title="Activate your body-composition profile"
-            body="Register yourself with our measurement partner Biody so your scan data is linked to your Lifeline account automatically."
+            title={t("b2b.welcome.step.activate.title", "Activate your body-composition profile")}
+            body={t("b2b.welcome.step.activate.body",
+              "Register yourself with our measurement partner Biody so your scan data is linked to your Lifeline account automatically.")}
             state={biodyState === "active" ? "done" : biodyState === "activating" ? "busy" : "pending"}
             action={
               biodyState === "active" ? (
-                <span className="text-emerald-700 font-medium text-sm">Activated ✓</span>
+                <span className="text-emerald-700 font-medium text-sm">{t("b2b.welcome.step.activate.done", "Activated ✓")}</span>
               ) : (
                 <button
                   onClick={activateBiody}
                   disabled={biodyState === "activating"}
                   className="btn-primary-solid"
                 >
-                  {biodyState === "activating" ? "Activating…" : "Activate profile"}
+                  {biodyState === "activating"
+                    ? t("b2b.welcome.step.activate.activating", "Activating…")
+                    : t("b2b.welcome.step.activate.cta", "Activate profile")}
                 </button>
               )
             }
             error={biodyState === "failed" ? activateError : ""}
           />
 
-          {/* Step 2: Book scan */}
           <StepCard
             n={2}
-            title="Book your body-composition scan"
-            body="Come in to a Lifeline station to complete the full-body scan. The result becomes the starting point of your coaching plan."
+            title={t("b2b.welcome.step.scan.title", "Book your body-composition scan")}
+            body={t("b2b.welcome.step.scan.body",
+              "Come in to a Lifeline station to complete the full-body scan. The result becomes the starting point of your coaching plan.")}
             state="pending"
             action={
               <Link href="/assessment" className="btn-primary-solid">
-                Book scan
+                {t("b2b.welcome.step.scan.cta", "Book scan")}
               </Link>
             }
           />
 
-          {/* Step 3: Patient Portal */}
           <StepCard
             n={3}
-            title="Access your patient portal"
-            body="Your clinical records, appointments, and physician notes live in our secure patient portal (Medalia)."
+            title={t("b2b.welcome.step.portal.title", "Access your patient portal")}
+            body={t("b2b.welcome.step.portal.body",
+              "Your clinical records, appointments, and physician notes live in our secure patient portal (Medalia).")}
             state="pending"
-            action={<MedaliaButton label="Open portal" size="sm" />}
+            action={<MedaliaButton label={t("b2b.welcome.step.portal.cta", "Open portal")} size="sm" />}
           />
 
-          {/* Step 4: Download app */}
           <StepCard
             n={4}
-            title="Download the Lifeline app"
-            body="Daily actions, meal logging, weigh-ins, and your coaching dashboard live in the app."
+            title={t("b2b.welcome.step.app.title", "Download the Lifeline app")}
+            body={t("b2b.welcome.step.app.body",
+              "Daily actions, meal logging, weigh-ins, and your coaching dashboard live in the app.")}
             state="pending"
             action={
               <button disabled className="btn-ghost-solid opacity-60 cursor-not-allowed">
-                Coming soon
+                {t("b2b.welcome.step.app.cta", "Coming soon")}
               </button>
             }
           />
@@ -197,7 +205,7 @@ export default function AccountWelcomePage() {
 
         <div className="flex justify-center pt-4">
           <Link href="/account" className="btn-primary-solid">
-            Go to my dashboard
+            {t("b2b.welcome.goto_dashboard", "Go to my dashboard")}
           </Link>
         </div>
       </main>
