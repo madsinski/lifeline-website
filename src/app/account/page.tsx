@@ -2636,8 +2636,8 @@ function JourneyTimeline({
       done: false,
       active: hasBodyCompSlot && hasBloodTestBooking,
       description: hasBodyCompSlot && hasBloodTestBooking
-        ? "Watch for an SMS from the Lifeline team with a link to the questionnaire."
-        : "You'll get an SMS with the questionnaire once your measurement + blood test are booked.",
+        ? "You'll receive an SMS from the Lifeline team within the next 7 days with a link to the questionnaire."
+        : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test.",
     },
   ];
 
@@ -2711,8 +2711,11 @@ function CurrentBookings({
                 </div>
                 {companyEvent.room_notes && <div className="text-xs text-gray-500 mt-0.5">{companyEvent.room_notes}</div>}
               </div>
-              <button onClick={onChangeBcSlot} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
-                Change slot →
+              <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors shrink-0">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Change slot
               </button>
             </li>
           )}
@@ -2726,8 +2729,11 @@ function CurrentBookings({
                 </div>
                 {myBloodTestBooking.note && <div className="text-xs text-gray-500 mt-0.5">{myBloodTestBooking.note}</div>}
               </div>
-              <button onClick={onChangeBloodDay} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
-                Change day →
+              <button onClick={onChangeBloodDay} className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors shrink-0">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Change day
               </button>
             </li>
           )}
