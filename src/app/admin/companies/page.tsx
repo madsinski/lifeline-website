@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -14,6 +14,20 @@ interface CompanyRow {
   invited_count: number;
   completed_count: number;
   default_tier?: string | null;
+}
+
+interface MemberRow {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  kennitala_last4: string | null;
+  invited_at: string | null;
+  invite_sent_count: number;
+  completed_at: string | null;
+  profile_complete: boolean | null;
+  biody_activated: boolean | null;
+  created_at: string;
 }
 
 const TIERS = [
@@ -41,7 +55,7 @@ function EnsureGroupButton({ companyId }: { companyId: string }) {
   };
   return (
     <button onClick={click} disabled={busy} className="text-indigo-600 hover:underline disabled:opacity-50">
-      {busy ? "Creating…" : "Ensure Biody group"}
+      {busy ? "Creating…" : "Biody group"}
     </button>
   );
 }
@@ -71,8 +85,112 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
   };
   return (
     <button onClick={click} disabled={busy} className="text-emerald-600 hover:underline disabled:opacity-50">
-      {busy ? "Activating…" : "Activate Biody"}
+      {busy ? "Activating…" : "Activate"}
     </button>
+  );
+}
+
+function DeleteCompanyButton({ company, onDone }: { company: CompanyRow; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const click = async () => {
+    const hasEmployees = company.member_count > 0;
+    const baseMsg = `Delete company "${company.name}"?\n\nThis removes the company record and all ${company.member_count} roster entries.`;
+    if (!confirm(baseMsg)) return;
+
+    let deleteEmployees = false;
+    if (hasEmployees) {
+      deleteEmployees = confirm(
+        `Also permanently delete the ${company.completed_count} employee Lifeline accounts that were created via this company?\n\n` +
+        `OK = delete their accounts (IRREVERSIBLE).\nCancel = keep accounts (employees can still sign in; they just won't be linked to this company).`,
+      );
+    }
+
+    setBusy(true);
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const url = `/api/admin/companies/${company.id}${deleteEmployees ? "?delete_employees=true" : ""}`;
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+    });
+    const j = await res.json();
+    if (!res.ok) {
+      alert(`Delete failed: ${j.error || "unknown"}`);
+    } else {
+      alert(
+        deleteEmployees
+          ? `Deleted company "${company.name}" + ${j.employees_deleted}/${j.employees_found} employee accounts.`
+          : `Deleted company "${company.name}". Employee accounts preserved.`,
+      );
+      onDone();
+    }
+    setBusy(false);
+  };
+  return (
+    <button onClick={click} disabled={busy} className="text-red-600 hover:underline disabled:opacity-50">
+      {busy ? "Deleting…" : "Delete"}
+    </button>
+  );
+}
+
+function MemberStatus({ m }: { m: MemberRow }) {
+  if (!m.invited_at && !m.completed_at) {
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Draft</span>;
+  }
+  if (m.invited_at && !m.completed_at) {
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Invited{m.invite_sent_count > 1 ? ` (${m.invite_sent_count}×)` : ""}</span>;
+  }
+  return <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Completed</span>;
+}
+
+function DataDot({ m }: { m: MemberRow }) {
+  if (!m.completed_at) return <span className="text-gray-300">—</span>;
+  if (m.profile_complete && m.biody_activated) {
+    return <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500" />Ready</span>;
+  }
+  if (m.profile_complete) {
+    return <span className="inline-flex items-center gap-1 text-xs text-amber-700"><span className="w-2 h-2 rounded-full bg-amber-500" />Needs activation</span>;
+  }
+  return <span className="inline-flex items-center gap-1 text-xs text-red-700"><span className="w-2 h-2 rounded-full bg-red-500" />Incomplete</span>;
+}
+
+function EmployeeRows({ companyId }: { companyId: string }) {
+  const [members, setMembers] = useState<MemberRow[] | null>(null);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.rpc("list_company_members", { p_company_id: companyId });
+      if (error) setErr(error.message);
+      else setMembers((data || []) as MemberRow[]);
+    })();
+  }, [companyId]);
+
+  if (err) return <tr><td colSpan={8} className="px-4 py-3 text-red-600 text-xs">{err}</td></tr>;
+  if (!members) return <tr><td colSpan={8} className="px-4 py-3 text-gray-500 text-xs">Loading employees…</td></tr>;
+  if (members.length === 0) return <tr><td colSpan={8} className="px-4 py-3 text-gray-500 text-xs italic">No employees on roster.</td></tr>;
+
+  return (
+    <>
+      {members.map((m) => (
+        <tr key={m.id} className="border-t border-gray-50 bg-gray-50/60">
+          <td className="pl-12 pr-4 py-2 text-sm font-medium">{m.full_name}</td>
+          <td className="px-4 py-2 text-sm text-gray-700">{m.email}</td>
+          <td className="px-4 py-2 text-xs text-gray-500 font-mono">•••••{m.kennitala_last4 || ""}</td>
+          <td className="px-4 py-2 text-sm text-gray-700">{m.phone || "—"}</td>
+          <td className="px-4 py-2"><MemberStatus m={m} /></td>
+          <td className="px-4 py-2"><DataDot m={m} /></td>
+          <td className="px-4 py-2 text-xs text-gray-500">
+            {m.completed_at
+              ? `Done ${new Date(m.completed_at).toLocaleDateString()}`
+              : m.invited_at
+                ? `Invited ${new Date(m.invited_at).toLocaleDateString()}`
+                : `Added ${new Date(m.created_at).toLocaleDateString()}`}
+          </td>
+          <td className="px-4 py-2"></td>
+        </tr>
+      ))}
+    </>
   );
 }
 
@@ -80,6 +198,7 @@ export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,6 +216,15 @@ export default function AdminCompaniesPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const downloadCsv = async (companyId: string, companyName: string) => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -121,7 +249,8 @@ export default function AdminCompaniesPage() {
         <Link href="/business/signup" className="text-sm text-blue-600 hover:underline">+ Create a company</Link>
       </div>
       <p className="text-sm text-gray-500 mb-6">
-        Update default tier to auto-enrol new employees, or bulk-activate all Biody profiles for a company.
+        Click a company name to expand its employee roster. Update default tier, activate Biody profiles,
+        export, or delete from each row.
       </p>
       {loading && <div className="text-gray-500">Loading…</div>}
       {error && <div className="text-red-600">{error}</div>}
@@ -145,36 +274,55 @@ export default function AdminCompaniesPage() {
             </thead>
             <tbody>
               {companies.map((c) => (
-                <tr key={c.id} className="border-t border-gray-100">
-                  <td className="px-4 py-3 font-medium">
-                    <Link href={`/business/${c.id}`} className="hover:underline">{c.name}</Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{c.contact_email || "—"}</td>
-                  <td className="px-4 py-3">{c.member_count}</td>
-                  <td className="px-4 py-3">{c.invited_count}</td>
-                  <td className="px-4 py-3">{c.completed_count}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={c.default_tier || ""}
-                      onChange={async (e) => {
-                        const tier = e.target.value || null;
-                        await supabase.from("companies").update({ default_tier: tier }).eq("id", c.id);
-                        setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, default_tier: tier } : x));
-                      }}
-                      className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
-                    >
-                      {TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{new Date(c.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap space-x-3">
-                    <EnsureGroupButton companyId={c.id} />
-                    <BulkActivateButton companyId={c.id} />
-                    <button onClick={() => downloadCsv(c.id, c.name)} className="text-blue-600 hover:underline">
-                      Export CSV
-                    </button>
-                  </td>
-                </tr>
+                <Fragment key={c.id}>
+                  <tr className="border-t border-gray-100">
+                    <td className="px-4 py-3 font-medium">
+                      <button
+                        onClick={() => toggleExpand(c.id)}
+                        className="inline-flex items-center gap-2 hover:underline"
+                        title="Show employees"
+                      >
+                        <svg
+                          className={`w-3 h-3 transition-transform ${expanded.has(c.id) ? "rotate-90" : ""}`}
+                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        {c.name}
+                      </button>
+                      <Link href={`/business/${c.id}`} className="ml-3 text-xs text-blue-600 hover:underline">
+                        open →
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{c.contact_email || "—"}</td>
+                    <td className="px-4 py-3">{c.member_count}</td>
+                    <td className="px-4 py-3">{c.invited_count}</td>
+                    <td className="px-4 py-3">{c.completed_count}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={c.default_tier || ""}
+                        onChange={async (e) => {
+                          const tier = e.target.value || null;
+                          await supabase.from("companies").update({ default_tier: tier }).eq("id", c.id);
+                          setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, default_tier: tier } : x));
+                        }}
+                        className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
+                      >
+                        {TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{new Date(c.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap space-x-3">
+                      <EnsureGroupButton companyId={c.id} />
+                      <BulkActivateButton companyId={c.id} />
+                      <button onClick={() => downloadCsv(c.id, c.name)} className="text-blue-600 hover:underline">
+                        CSV
+                      </button>
+                      <DeleteCompanyButton company={c} onDone={load} />
+                    </td>
+                  </tr>
+                  {expanded.has(c.id) && <EmployeeRows companyId={c.id} />}
+                </Fragment>
               ))}
             </tbody>
           </table>
