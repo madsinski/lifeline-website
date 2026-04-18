@@ -908,7 +908,7 @@ function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone:
 }
 
 function AdminsSection({ companyId }: { companyId: string }) {
-  interface Admin { user_id: string; email: string | null; added_at: string; is_primary: boolean }
+  interface Admin { user_id: string; full_name: string | null; email: string | null; added_at: string; is_primary: boolean }
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -969,7 +969,14 @@ function AdminsSection({ companyId }: { companyId: string }) {
     load();
   };
 
-  const coAdminCount = admins.filter((a) => !a.is_primary).length;
+  const primary = admins.find((a) => a.is_primary);
+  const coAdmins = admins.filter((a) => !a.is_primary);
+  const initials = (name: string | null | undefined): string => {
+    const n = (name || "").trim();
+    if (!n) return "?";
+    const parts = n.split(/\s+/).slice(0, 2);
+    return parts.map((p) => p.charAt(0).toUpperCase()).join("");
+  };
 
   return (
     <section className="bg-white/60 rounded-2xl p-6 border border-dashed border-gray-300">
@@ -985,7 +992,7 @@ function AdminsSection({ companyId }: { companyId: string }) {
           </div>
           <p className="text-sm text-gray-500 mt-1">
             Only needed if you want a colleague to help you manage this company. Skip this if you&apos;ll run it on your own.
-            {coAdminCount > 0 && <span className="text-gray-700 font-medium"> · {coAdminCount} co-admin{coAdminCount === 1 ? "" : "s"}</span>}
+            {coAdmins.length > 0 && <span className="text-gray-700 font-medium"> · {coAdmins.length} co-admin{coAdmins.length === 1 ? "" : "s"}</span>}
           </p>
         </div>
         <svg
@@ -996,40 +1003,77 @@ function AdminsSection({ companyId }: { companyId: string }) {
         </svg>
       </button>
 
-      {expanded && (
-        <div className="mt-5">
-          <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2 mb-4">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="co-admin@example.is"
-              required
-              className="input flex-1"
-            />
-            <button type="submit" disabled={loading} className="btn-primary text-sm">
-              {loading ? "Inviting…" : "Invite co-admin"}
-            </button>
-          </form>
-          {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
-
-          <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
-            {admins.length === 0 && <div className="p-3 text-sm text-gray-500">Loading…</div>}
-            {admins.map((a) => (
-              <div key={a.user_id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <div>
-                  <span className="font-medium">{a.email || "(unknown)"}</span>
-                  {a.is_primary && <span className="ml-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Primary</span>}
-                </div>
-                {!a.is_primary && (
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
-                    <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
-                  </div>
-                )}
+      {/* Primary contact — always visible, not gated by expand */}
+      {primary && (
+        <div className="mt-4 rounded-xl p-4 text-white shadow-sm"
+          style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg shrink-0">
+              {initials(primary.full_name || primary.email)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold tracking-wider uppercase opacity-90">
+                Primary contact person
               </div>
-            ))}
+              <div className="font-semibold text-lg leading-tight truncate">
+                {primary.full_name || primary.email || "Primary admin"}
+              </div>
+              {primary.full_name && primary.email && (
+                <div className="text-xs opacity-90 truncate">{primary.email}</div>
+              )}
+            </div>
           </div>
+        </div>
+      )}
+
+      {expanded && (
+        <div className="mt-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+              Add a co-admin
+            </label>
+            <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="colleague@example.is"
+                required
+                className="input flex-1"
+              />
+              <button type="submit" disabled={loading} className="btn-primary text-sm">
+                {loading ? "Inviting…" : "Invite co-admin"}
+              </button>
+            </form>
+          </div>
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+
+          {coAdmins.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                Co-admins
+              </div>
+              <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
+                {coAdmins.map((a) => (
+                  <div key={a.user_id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 font-semibold flex items-center justify-center shrink-0 text-sm">
+                        {initials(a.full_name || a.email)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-900 truncate">{a.full_name || a.email || "(unknown)"}</div>
+                        {a.full_name && a.email && <div className="text-xs text-gray-500 truncate">{a.email}</div>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
+                      <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>
