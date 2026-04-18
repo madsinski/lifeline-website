@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import MedaliaButton from "../components/MedaliaButton";
+import SlotPicker from "./welcome/SlotPicker";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -115,9 +116,12 @@ function AccountPageInner() {
   const [lastBodyCompAt, setLastBodyCompAt] = useState<string | null>(null);
   const [biodyActivated, setBiodyActivated] = useState(false);
   /* upcoming-events data for the Home timeline */
-  const [companyEvent, setCompanyEvent] = useState<{ id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null>(null);
+  const [companyEvent, setCompanyEvent] = useState<{ id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null; slot_minutes: number; slot_capacity: number; company_id: string } | null>(null);
   const [mySlotAt, setMySlotAt] = useState<string | null>(null);
   const [upcomingBloodDays, setUpcomingBloodDays] = useState<Array<{ day: string; notes: string | null }>>([]);
+  const [myBloodTestBooking, setMyBloodTestBooking] = useState<{ day: string; note: string | null } | null>(null);
+  const [bcPickerOpen, setBcPickerOpen] = useState(false);
+  const [btPickerOpen, setBtPickerOpen] = useState(false);
   const [profileLastName, setProfileLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -254,7 +258,7 @@ function AccountPageInner() {
             // Upcoming B2B body-comp event + my slot
             const { data: ev } = await supabase
               .from("body_comp_events")
-              .select("id, event_date, start_time, end_time, location, room_notes")
+              .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, company_id")
               .eq("company_id", companyId)
               .eq("status", "scheduled")
               .gte("event_date", today)
@@ -277,6 +281,13 @@ function AccountPageInner() {
               .gte("day", today)
               .order("day");
             setUpcomingBloodDays((bd || []) as Array<{ day: string; notes: string | null }>);
+            // My blood-test day booking
+            const { data: mbt } = await supabase
+              .from("blood_test_bookings")
+              .select("day, note")
+              .eq("client_id", currentUser.id)
+              .maybeSingle();
+            if (mbt) setMyBloodTestBooking(mbt);
           }
           // Body comp booking status (solo / clinic booking path)
           const { data: booking } = await supabase
@@ -943,22 +954,52 @@ function AccountPageInner() {
                 <JourneyTimeline
                   hasOnboarded={true}
                   biodyActivated={biodyActivated}
-                  bodyCompStatus={bodyCompStatus}
-                  lastBodyCompAt={lastBodyCompAt}
-                  hasProgram={programs.length > 0}
-                  onGoToAssessment={() => setActiveSection("assessment")}
-                  onGoToPrograms={() => setActiveSection("programs")}
+                  hasBodyCompSlot={!!mySlotAt}
+                  hasBloodTestBooking={!!myBloodTestBooking}
+                  companyEvent={companyEvent}
+                  hasApprovedBloodDays={upcomingBloodDays.length > 0}
+                  onPickBodyCompSlot={() => setBcPickerOpen(true)}
+                  onPickBloodTestDay={() => setBtPickerOpen(true)}
+                  onGoToBiody={() => { window.location.href = "/account/welcome"; }}
                 />
 
-                {/* What's next (7 days) */}
-                <WhatsNext
+                {/* Current bookings */}
+                <CurrentBookings
                   mySlotAt={mySlotAt}
                   companyEvent={companyEvent}
-                  bloodDays={upcomingBloodDays}
-                  unreadMessages={conversationsCount}
-                  onGoToMessages={() => setActiveSection("messages")}
-                  onGoToAssessment={() => setActiveSection("assessment")}
+                  myBloodTestBooking={myBloodTestBooking}
+                  onChangeBcSlot={() => setBcPickerOpen(true)}
+                  onChangeBloodDay={() => setBtPickerOpen(true)}
                 />
+
+                {/* Body-comp slot picker modal */}
+                {bcPickerOpen && companyEvent && (
+                  <BodyCompSlotPickerModal
+                    event={companyEvent}
+                    onClose={() => setBcPickerOpen(false)}
+                    onBooked={async () => {
+                      const { data: myB } = await supabase
+                        .from("body_comp_event_bookings")
+                        .select("slot_at")
+                        .eq("client_id", user.id)
+                        .order("slot_at")
+                        .limit(1)
+                        .maybeSingle();
+                      setMySlotAt(myB?.slot_at ?? null);
+                    }}
+                  />
+                )}
+
+                {/* Blood-test day picker modal */}
+                {btPickerOpen && companyId && (
+                  <BloodTestDayPickerModal
+                    companyId={companyId}
+                    days={upcomingBloodDays}
+                    existing={myBloodTestBooking}
+                    onClose={() => setBtPickerOpen(false)}
+                    onBooked={(booking) => setMyBloodTestBooking(booking)}
+                  />
+                )}
 
                 {/* Your company (B2B only) */}
                 {companyId && companyName && (
@@ -2536,17 +2577,24 @@ export default function AccountPage() {
 // ── Home overview sub-components ──────────────────────────────────────────
 
 function JourneyTimeline({
-  hasOnboarded, biodyActivated, bodyCompStatus, lastBodyCompAt, hasProgram,
-  onGoToAssessment, onGoToPrograms,
+  hasOnboarded, biodyActivated, hasBodyCompSlot, hasBloodTestBooking,
+  companyEvent, hasApprovedBloodDays,
+  onPickBodyCompSlot, onPickBloodTestDay, onGoToBiody,
 }: {
   hasOnboarded: boolean;
   biodyActivated: boolean;
-  bodyCompStatus: "none" | "booked" | "completed";
-  lastBodyCompAt: string | null;
-  hasProgram: boolean;
-  onGoToAssessment: () => void;
-  onGoToPrograms: () => void;
+  hasBodyCompSlot: boolean;
+  hasBloodTestBooking: boolean;
+  companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null } | null;
+  hasApprovedBloodDays: boolean;
+  onPickBodyCompSlot: () => void;
+  onPickBloodTestDay: () => void;
+  onGoToBiody: () => void;
 }) {
+  const eventLabel = companyEvent
+    ? `${new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}${companyEvent.location ? ` · ${companyEvent.location}` : ""}`
+    : "";
+
   const steps = [
     {
       title: "Onboarding",
@@ -2559,26 +2607,37 @@ function JourneyTimeline({
       done: biodyActivated,
       active: hasOnboarded && !biodyActivated,
       description: biodyActivated ? "Registered with Biody." : "Activate on the welcome page.",
+      cta: !biodyActivated ? { label: "Activate", onClick: onGoToBiody } : undefined,
     },
     {
-      title: "Scan & report",
-      done: bodyCompStatus === "completed",
-      active: biodyActivated && bodyCompStatus !== "completed",
-      description: bodyCompStatus === "completed"
-        ? `Last scan ${lastBodyCompAt ? new Date(lastBodyCompAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "complete"}.`
-        : bodyCompStatus === "booked"
-          ? "Scan is booked. A Lifeline physician reviews results after."
-          : "Book at a Lifeline station or your company's on-site day.",
-      cta: bodyCompStatus === "none" ? { label: "Book scan", onClick: onGoToAssessment } : undefined,
+      title: "Measurements — book your time slot",
+      done: hasBodyCompSlot,
+      active: biodyActivated && !hasBodyCompSlot && !!companyEvent,
+      description: hasBodyCompSlot
+        ? "Your slot is booked. See 'Current bookings' below."
+        : companyEvent
+          ? `On-site at ${eventLabel}. Pick a 5-minute slot.`
+          : "Your company will schedule the measurement day. You'll be notified.",
+      cta: !hasBodyCompSlot && companyEvent ? { label: "Pick a slot", onClick: onPickBodyCompSlot } : undefined,
     },
     {
-      title: "Daily coaching plan",
-      done: hasProgram,
-      active: bodyCompStatus === "completed" && !hasProgram,
-      description: hasProgram
-        ? "Your programs are ready."
-        : "Appears after your physician reviews your results.",
-      cta: hasProgram ? { label: "Open programs", onClick: onGoToPrograms } : undefined,
+      title: "Blood test at Sameind — pick your day",
+      done: hasBloodTestBooking,
+      active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
+      description: hasBloodTestBooking
+        ? "Day chosen. Visit Sameind any time 08:00–12:00."
+        : hasApprovedBloodDays
+          ? "Your company has approved days for you. Walk-in at Sameind, 08:00–12:00."
+          : "Your company will approve blood-test days. You'll be notified.",
+      cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Pick a day", onClick: onPickBloodTestDay } : undefined,
+    },
+    {
+      title: "Health questionnaire",
+      done: false,
+      active: hasBodyCompSlot && hasBloodTestBooking,
+      description: hasBodyCompSlot && hasBloodTestBooking
+        ? "Watch for an SMS from the Lifeline team with a link to the questionnaire."
+        : "You'll get an SMS with the questionnaire once your measurement + blood test are booked.",
     },
   ];
 
@@ -2610,8 +2669,8 @@ function JourneyTimeline({
                   <div className={`text-sm ${s.active ? "text-gray-700" : "text-gray-500"} mt-0.5`}>{s.description}</div>
                 </div>
                 {s.cta && (
-                  <button onClick={s.cta.onClick} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
-                    {s.cta.label} →
+                  <button onClick={s.cta.onClick} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
+                    {s.cta.label}
                   </button>
                 )}
               </div>
@@ -2623,88 +2682,168 @@ function JourneyTimeline({
   );
 }
 
-function WhatsNext({
-  mySlotAt, companyEvent, bloodDays, unreadMessages,
-  onGoToMessages, onGoToAssessment,
+function CurrentBookings({
+  mySlotAt, companyEvent, myBloodTestBooking,
+  onChangeBcSlot, onChangeBloodDay,
 }: {
   mySlotAt: string | null;
-  companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null } | null;
-  bloodDays: Array<{ day: string; notes: string | null }>;
-  unreadMessages: number;
-  onGoToMessages: () => void;
-  onGoToAssessment: () => void;
+  companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null;
+  myBloodTestBooking: { day: string; note: string | null } | null;
+  onChangeBcSlot: () => void;
+  onChangeBloodDay: () => void;
 }) {
-  interface Item { date: Date; label: string; detail: string; action?: { label: string; onClick: () => void } }
-  const now = new Date();
-  const horizon = new Date(Date.now() + 7 * 86_400_000);
-  const items: Item[] = [];
-
-  if (mySlotAt) {
-    const d = new Date(mySlotAt);
-    if (d >= now && d <= horizon) {
-      items.push({
-        date: d,
-        label: "Your body-composition slot",
-        detail: `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })} at ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}${companyEvent?.location ? ` · ${companyEvent.location}` : ""}`,
-      });
-    }
-  } else if (companyEvent) {
-    const d = new Date(companyEvent.event_date + "T00:00:00");
-    if (d >= now && d <= horizon) {
-      items.push({
-        date: d,
-        label: "Body-composition day (slot not picked)",
-        detail: `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}`,
-        action: { label: "Pick a slot", onClick: onGoToAssessment },
-      });
-    }
-  }
-
-  for (const b of bloodDays) {
-    const d = new Date(b.day + "T08:00:00");
-    if (d >= now && d <= horizon) {
-      items.push({
-        date: d,
-        label: "Blood-test day at Sameind",
-        detail: `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })} · any time 08:00–12:00`,
-      });
-    }
-  }
-
-  if (unreadMessages > 0) {
-    items.push({
-      date: now,
-      label: `${unreadMessages} unread message${unreadMessages === 1 ? "" : "s"} from your coach`,
-      detail: "Reply in the Messages tab.",
-      action: { label: "Open messages", onClick: onGoToMessages },
-    });
-  }
-
-  items.sort((a, b) => a.date.getTime() - b.date.getTime());
-
+  const nothing = !mySlotAt && !myBloodTestBooking;
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">What&apos;s next — the next 7 days</h3>
-      {items.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-2">Nothing on the calendar this week. We&apos;ll nudge you by email when there is.</p>
+      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Current bookings</h3>
+      <p className="text-sm text-[#6B7280] mb-4">Your confirmed appointments.</p>
+      {nothing ? (
+        <p className="text-sm text-gray-500">Nothing booked yet. Use the journey steps above to book your measurement and blood test.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-gray-100">
-          {items.map((it, i) => (
-            <li key={i} className="py-3 flex items-start justify-between gap-3 flex-wrap">
+        <ul className="divide-y divide-gray-100">
+          {mySlotAt && companyEvent && (
+            <li className="py-3 flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <div className="font-medium text-gray-900">{it.label}</div>
-                <div className="text-sm text-gray-600 mt-0.5">{it.detail}</div>
+                <div className="font-medium text-gray-900">Body-composition measurement</div>
+                <div className="text-sm text-gray-600 mt-0.5">
+                  {new Date(mySlotAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })} at {new Date(mySlotAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  {companyEvent.location && <> · {companyEvent.location}</>}
+                </div>
+                {companyEvent.room_notes && <div className="text-xs text-gray-500 mt-0.5">{companyEvent.room_notes}</div>}
               </div>
-              {it.action && (
-                <button onClick={it.action.onClick} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
-                  {it.action.label} →
-                </button>
-              )}
+              <button onClick={onChangeBcSlot} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
+                Change slot →
+              </button>
             </li>
-          ))}
+          )}
+          {myBloodTestBooking && (
+            <li className="py-3 flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <div className="font-medium text-gray-900">Blood test at Sameind</div>
+                <div className="text-sm text-gray-600 mt-0.5">
+                  {new Date(myBloodTestBooking.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" })}
+                  {" · walk-in 08:00–12:00"}
+                </div>
+                {myBloodTestBooking.note && <div className="text-xs text-gray-500 mt-0.5">{myBloodTestBooking.note}</div>}
+              </div>
+              <button onClick={onChangeBloodDay} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
+                Change day →
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </section>
+  );
+}
+
+function BodyCompSlotPickerModal({
+  event, onClose, onBooked,
+}: {
+  event: { id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null; slot_minutes: number; slot_capacity: number };
+  onClose: () => void;
+  onBooked: () => void;
+}) {
+  return <SlotPicker event={event} onClose={onClose} onBooked={onBooked} />;
+}
+
+function BloodTestDayPickerModal({
+  companyId, days, existing, onClose, onBooked,
+}: {
+  companyId: string;
+  days: Array<{ day: string; notes: string | null }>;
+  existing: { day: string; note: string | null } | null;
+  onClose: () => void;
+  onBooked: (booking: { day: string; note: string | null }) => void;
+}) {
+  const [selectedDay, setSelectedDay] = useState<string>(existing?.day || "");
+  const [note, setNote] = useState<string>(existing?.note || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async () => {
+    if (!selectedDay) { setError("Pick a day."); return; }
+    setSaving(true);
+    setError("");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setError("Not signed in"); setSaving(false); return; }
+    const { error: upErr } = await supabase.from("blood_test_bookings").upsert({
+      client_id: user.id,
+      company_id: companyId,
+      day: selectedDay,
+      note: note.trim() || null,
+    }, { onConflict: "client_id" });
+    setSaving(false);
+    if (upErr) { setError(upErr.message); return; }
+    onBooked({ day: selectedDay, note: note.trim() || null });
+    onClose();
+  };
+
+  const cancel = async () => {
+    if (!confirm("Cancel your blood-test day booking?")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("blood_test_bookings").delete().eq("client_id", user.id);
+    onClose();
+    window.location.reload();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold">Pick your blood-test day</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Your company approves specific days for you to visit Sameind. Walk-in any time between 08:00 and 12:00.
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          {days.length === 0 ? (
+            <p className="text-sm text-gray-500">Your company hasn&apos;t approved any days yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {days.map((d) => {
+                const isSelected = d.day === selectedDay;
+                const label = new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+                return (
+                  <button
+                    key={d.day}
+                    onClick={() => setSelectedDay(d.day)}
+                    className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="font-medium">{label}</div>
+                    {d.notes && <div className="text-xs text-gray-500 mt-0.5">{d.notes}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Note (optional)</span>
+            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. I'll aim for 8:30" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
+          </label>
+          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-900">
+            You&apos;ll receive a booking link from our patient portal (Medalia) with your Sameind appointment.
+          </div>
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+        </div>
+        <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
+          {existing ? (
+            <button onClick={cancel} className="text-sm text-red-600 hover:underline">Cancel booking</button>
+          ) : <span />}
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
+            <button onClick={save} disabled={saving || !selectedDay} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
+              {saving ? "Saving…" : existing ? "Update" : "Confirm day"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
