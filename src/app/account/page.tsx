@@ -2693,52 +2693,126 @@ function CurrentBookings({
   onChangeBloodDay: () => void;
 }) {
   const nothing = !mySlotAt && !myBloodTestBooking;
+  const editIcon = (
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+  );
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Current bookings</h3>
-      <p className="text-sm text-[#6B7280] mb-4">Your confirmed appointments.</p>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-[#1F2937]">Current bookings</h3>
+          <p className="text-sm text-[#6B7280]">Your confirmed appointments.</p>
+        </div>
+        {!nothing && (
+          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Confirmed
+          </span>
+        )}
+      </div>
       {nothing ? (
-        <p className="text-sm text-gray-500">Nothing booked yet. Use the journey steps above to book your measurement and blood test.</p>
-      ) : (
-        <ul className="divide-y divide-gray-100">
-          {mySlotAt && companyEvent && (
-            <li className="py-3 flex items-start justify-between gap-3 flex-wrap">
-              <div>
-                <div className="font-medium text-gray-900">Body-composition measurement</div>
-                <div className="text-sm text-gray-600 mt-0.5">
-                  {new Date(mySlotAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })} at {new Date(mySlotAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
-                  {companyEvent.location && <> · {companyEvent.location}</>}
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center">
+          <p className="text-sm text-gray-600">Nothing booked yet. Use the journey steps above to book your measurement and blood test.</p>
+        </div>
+      ) : (() => {
+        const bcTime = mySlotAt ? new Date(mySlotAt).getTime() : Infinity;
+        const btTime = myBloodTestBooking ? new Date(myBloodTestBooking.day + "T00:00:00").getTime() : Infinity;
+        const bcFirst = bcTime <= btTime;
+        const bcCard = mySlotAt && companyEvent ? (
+          <div key="bc" className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-blue-500 to-emerald-500" />
+              <div className="flex items-start gap-3 mb-3">
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
                 </div>
-                {companyEvent.room_notes && <div className="text-xs text-gray-500 mt-0.5">{companyEvent.room_notes}</div>}
-              </div>
-              <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors shrink-0">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Change slot
-              </button>
-            </li>
-          )}
-          {myBloodTestBooking && (
-            <li className="py-3 flex items-start justify-between gap-3 flex-wrap">
-              <div>
-                <div className="font-medium text-gray-900">Blood test at Sameind</div>
-                <div className="text-sm text-gray-600 mt-0.5">
-                  {new Date(myBloodTestBooking.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" })}
-                  {" · walk-in 08:00–12:00"}
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">Measurement</div>
+                  <div className="font-semibold text-gray-900 leading-tight">Body-composition scan</div>
                 </div>
-                {myBloodTestBooking.note && <div className="text-xs text-gray-500 mt-0.5">{myBloodTestBooking.note}</div>}
               </div>
-              <button onClick={onChangeBloodDay} className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors shrink-0">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Change day
-              </button>
-            </li>
-          )}
-        </ul>
-      )}
+              <div className="space-y-1.5 text-sm text-gray-700">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="font-medium">{new Date(mySlotAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-medium">{new Date(mySlotAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
+                </div>
+                {companyEvent.location && (
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="truncate">{companyEvent.location}</span>
+                  </div>
+                )}
+                {companyEvent.room_notes && <div className="text-xs text-gray-500 pl-6">{companyEvent.room_notes}</div>}
+              </div>
+              <div className="mt-4 pt-4 border-t border-blue-100/70">
+                <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                  {editIcon}
+                  Change slot
+                </button>
+              </div>
+            </div>
+          ) : null;
+        const btCard = myBloodTestBooking ? (
+          <div key="bt" className="relative overflow-hidden rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-rose-500 to-amber-500" />
+              <div className="flex items-start gap-3 mb-3">
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-rose-600">Blood test</div>
+                  <div className="font-semibold text-gray-900 leading-tight">Sameind walk-in</div>
+                </div>
+              </div>
+              <div className="space-y-1.5 text-sm text-gray-700">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="font-medium">{new Date(myBloodTestBooking.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" })}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-medium">Walk-in 08:00–12:00</span>
+                </div>
+                {myBloodTestBooking.note && <div className="text-xs text-gray-500 pl-6">{myBloodTestBooking.note}</div>}
+              </div>
+              <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
+                <span className="font-semibold">Fast from midnight.</span> Water only — no food, coffee, tea, juice or alcohol.
+              </div>
+              <div className="mt-4 pt-4 border-t border-rose-100/70">
+                <button onClick={onChangeBloodDay} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
+                  {editIcon}
+                  Change day
+                </button>
+              </div>
+            </div>
+          ) : null;
+        const ordered = bcFirst ? [bcCard, btCard] : [btCard, bcCard];
+        return (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {ordered}
+          </div>
+        );
+      })()}
     </section>
   );
 }
