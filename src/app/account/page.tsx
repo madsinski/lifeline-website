@@ -2826,8 +2826,9 @@ function BloodTestDayPickerModal({
             <span className="text-sm font-medium text-gray-700">Note (optional)</span>
             <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. I'll aim for 8:30" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
           </label>
-          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-900">
-            You&apos;ll receive a booking link from our patient portal (Medalia) with your Sameind appointment.
+          <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
+            <div className="font-semibold mb-1">Important — fast before your blood test</div>
+            You must <strong>fast from midnight</strong> the night before your visit. Water is fine; no food, no coffee, no tea, no juice, no alcohol.
           </div>
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
