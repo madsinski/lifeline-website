@@ -26,6 +26,8 @@ interface Member {
   invited_at: string | null;
   invite_sent_count: number;
   completed_at: string | null;
+  profile_complete: boolean | null;
+  biody_activated: boolean | null;
   created_at: string;
 }
 
@@ -203,6 +205,7 @@ export default function BusinessDashboardPage() {
                     <th className="py-2 pr-4">Kennitala</th>
                     <th className="py-2 pr-4">Phone</th>
                     <th className="py-2 pr-4">Status</th>
+                    <th className="py-2 pr-4">Data</th>
                     <th className="py-2"></th>
                   </tr>
                 </thead>
@@ -420,6 +423,13 @@ function MemberRow({ member, onChange }: { member: Member; onChange: () => void 
       <td className="py-3 pr-4">
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span>
       </td>
+      <td className="py-3 pr-4">
+        <DataStatus
+          completed={!!member.completed_at}
+          profileComplete={member.profile_complete ?? false}
+          biodyActivated={member.biody_activated ?? false}
+        />
+      </td>
       <td className="py-3 text-right whitespace-nowrap">
         {!member.completed_at && (
           <button onClick={sendInvite} disabled={sending} className="text-sm text-blue-600 hover:underline mr-3">
@@ -429,6 +439,36 @@ function MemberRow({ member, onChange }: { member: Member; onChange: () => void 
         <button onClick={remove} className="text-sm text-red-600 hover:underline">Remove</button>
       </td>
     </tr>
+  );
+}
+
+function DataStatus({
+  completed, profileComplete, biodyActivated,
+}: { completed: boolean; profileComplete: boolean; biodyActivated: boolean }) {
+  if (!completed) {
+    return <span className="inline-flex items-center gap-1 text-xs text-gray-400">—</span>;
+  }
+  if (profileComplete && biodyActivated) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+        Ready
+      </span>
+    );
+  }
+  if (profileComplete && !biodyActivated) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700" title="Profile saved but Biody patient not yet created — use Activate Biody">
+        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+        Needs activation
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700" title="Missing fields: sex, height, weight, or activity">
+      <span className="w-2 h-2 rounded-full bg-red-500"></span>
+      Incomplete
+    </span>
   );
 }
 

@@ -33,7 +33,7 @@ export async function GET(
     .order("created_at");
 
   const rows: string[] = [
-    ["name", "email", "phone", fullAccess ? "kennitala" : "kennitala_last4", "invited_at", "completed_at", "created_at"].join(","),
+    ["name", fullAccess ? "kennitala" : "kennitala_last4", "email", "phone", "invited_at", "completed_at", "created_at"].join(","),
   ];
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
@@ -57,9 +57,9 @@ export async function GET(
     }
     rows.push([
       csv(m.full_name),
+      csv(kt),
       csv(m.email),
       csv(m.phone || ""),
-      csv(kt),
       csv(m.invited_at || ""),
       csv(m.completed_at || ""),
       csv(m.created_at || ""),
