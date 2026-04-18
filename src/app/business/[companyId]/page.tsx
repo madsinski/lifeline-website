@@ -169,15 +169,25 @@ export default function BusinessDashboardPage() {
           )}
         </section>
 
+        <AdminsSection companyId={companyId!} />
+
         <section className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Employees ({members.length})</h2>
-            <SendAllInvitesButton
-              memberIds={members
-                .filter((m) => !m.completed_at && !m.invited_at)
-                .map((m) => m.id)}
-              onDone={loadData}
-            />
+            <div className="flex gap-2">
+              <RemindStaleButton
+                memberIds={members
+                  .filter((m) => !m.completed_at && !!m.invited_at && Date.now() - new Date(m.invited_at).getTime() > 3 * 86_400_000)
+                  .map((m) => m.id)}
+                onDone={loadData}
+              />
+              <SendAllInvitesButton
+                memberIds={members
+                  .filter((m) => !m.completed_at && !m.invited_at)
+                  .map((m) => m.id)}
+                onDone={loadData}
+              />
+            </div>
           </div>
           {members.length === 0 ? (
             <p className="text-sm text-gray-500">No employees yet. Add some above.</p>
@@ -226,6 +236,89 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+function AdminsSection({ companyId }: { companyId: string }) {
+  interface Admin { user_id: string; email: string | null; added_at: string; is_primary: boolean }
+  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
+    if (error) setError(error.message);
+    else setAdmins((data || []) as Admin[]);
+  }, [companyId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const addAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/business/companies/${companyId}/admins`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ email }),
+    });
+    const j = await res.json();
+    if (!res.ok) setError(j.error || "Failed to add admin");
+    else { setEmail(""); load(); }
+    setLoading(false);
+  };
+
+  const removeAdmin = async (userId: string) => {
+    if (!confirm("Remove this co-admin?")) return;
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    await fetch(`/api/business/companies/${companyId}/admins?user_id=${userId}`, {
+      method: "DELETE",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+    });
+    load();
+  };
+
+  return (
+    <section className="bg-white rounded-2xl p-6 shadow-sm">
+      <h2 className="text-lg font-semibold mb-1">Company admins</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Co-admins can manage the roster and send invites. The primary admin is the original contact person.
+      </p>
+
+      <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2 mb-4">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="co-admin@example.is"
+          required
+          className="input flex-1"
+        />
+        <button type="submit" disabled={loading} className="btn-primary text-sm">
+          {loading ? "Inviting…" : "Invite co-admin"}
+        </button>
+      </form>
+      {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
+
+      <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
+        {admins.length === 0 && <div className="p-3 text-sm text-gray-500">Loading…</div>}
+        {admins.map((a) => (
+          <div key={a.user_id} className="flex items-center justify-between px-4 py-3 text-sm">
+            <div>
+              <span className="font-medium">{a.email || "(unknown)"}</span>
+              {a.is_primary && <span className="ml-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Primary</span>}
+            </div>
+            {!a.is_primary && (
+              <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SendAllInvitesButton({ memberIds, onDone }: { memberIds: string[]; onDone: () => void }) {
   const [sending, setSending] = useState(false);
   if (!memberIds.length) return null;
@@ -250,6 +343,34 @@ function SendAllInvitesButton({ memberIds, onDone }: { memberIds: string[]; onDo
   return (
     <button onClick={onClick} disabled={sending} className="btn-primary text-sm">
       {sending ? "Sending…" : `Send all ${memberIds.length} invites`}
+    </button>
+  );
+}
+
+function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone: () => void }) {
+  const [sending, setSending] = useState(false);
+  if (!memberIds.length) return null;
+  const onClick = async () => {
+    if (!confirm(`Resend invite to ${memberIds.length} employee${memberIds.length === 1 ? "" : "s"} who haven't completed registration in 3+ days? A new password will be generated for each.`)) return;
+    setSending(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch("/api/business/members/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify({ member_ids: memberIds }),
+      });
+      const j = await res.json();
+      alert(`Reminded ${j.sent ?? 0} · Failed ${j.failed ?? 0}`);
+      onDone();
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <button onClick={onClick} disabled={sending} className="btn-ghost text-sm">
+      {sending ? "Reminding…" : `Remind ${memberIds.length} stale`}
     </button>
   );
 }

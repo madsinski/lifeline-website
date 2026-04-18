@@ -141,6 +141,22 @@ export async function POST(
     }
   }
 
+  // Apply company default tier (if set) — create/update a subscription.
+  try {
+    const { data: companyTier } = await supabaseAdmin
+      .from("companies").select("default_tier").eq("id", memberRow.company_id).maybeSingle();
+    if (companyTier?.default_tier) {
+      await supabaseAdmin.from("subscriptions").upsert({
+        client_id: userId,
+        tier: companyTier.default_tier,
+        status: "active",
+        current_period_start: new Date().toISOString(),
+      }, { onConflict: "client_id" });
+    }
+  } catch (e) {
+    console.error("[onboard-complete] tier apply failed:", (e as Error).message);
+  }
+
   // Send a welcome email — non-blocking; failures don't break the flow.
   try {
     const origin = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get("origin") || "https://lifelinehealth.is";
