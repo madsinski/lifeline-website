@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { signBiodyHeaders } from "@/lib/biody";
 
 const BIODY_SYNC_URL = process.env.BIODY_SYNC_URL ||
   "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/biody-sync";
@@ -27,14 +28,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  const bodyText = JSON.stringify({ company_id: companyId });
   const res = await fetch(`${BIODY_SYNC_URL}/ensure-group`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      apikey: SERVICE_ROLE_KEY,
-    },
-    body: JSON.stringify({ company_id: companyId }),
+    headers: signBiodyHeaders(bodyText),
+    body: bodyText,
   });
   const j = await res.json().catch(() => ({}));
   return NextResponse.json(j, { status: res.ok ? 200 : 500 });

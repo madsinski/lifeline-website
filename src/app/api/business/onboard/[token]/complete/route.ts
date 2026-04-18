@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, renderWelcomeEmail } from "@/lib/email";
 import { findAuthUserByEmail } from "@/lib/auth-helpers";
+import { signBiodyHeaders } from "@/lib/biody";
 
 export const maxDuration = 60;
 
@@ -131,24 +132,19 @@ export async function POST(
   let biodyResult: unknown = null;
   if (SERVICE_ROLE_KEY) {
     try {
+      const bodyText = JSON.stringify({
+        client_id: userId,
+        first_name: memberRow.full_name?.split(" ")[0] || memberRow.full_name,
+        last_name: memberRow.full_name?.split(" ").slice(1).join(" ") || "-",
+        date_of_birth: dobIso,
+        sex,
+        height_cm,
+        activity_level,
+      });
       const bRes = await fetch(`${BIODY_SYNC_URL}/create-patient`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // biody-sync accepts service role JWT for staff-level calls; but it expects
-          // a normal user JWT. We'll pass the service role and let biody-sync short-circuit.
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          apikey: SERVICE_ROLE_KEY,
-        },
-        body: JSON.stringify({
-          client_id: userId,
-          first_name: memberRow.full_name?.split(" ")[0] || memberRow.full_name,
-          last_name: memberRow.full_name?.split(" ").slice(1).join(" ") || "-",
-          date_of_birth: dobIso,
-          sex,
-          height_cm,
-          activity_level,
-        }),
+        headers: signBiodyHeaders(bodyText),
+        body: bodyText,
       });
       biodyResult = await bRes.json().catch(() => null);
     } catch (e) {

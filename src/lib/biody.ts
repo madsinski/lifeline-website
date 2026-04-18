@@ -1,8 +1,35 @@
+import { createHmac } from "crypto";
 import { supabaseAdmin } from "./supabase-admin";
 
 const BIODY_SYNC_URL = process.env.BIODY_SYNC_URL ||
   "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/biody-sync";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const B2B_SIGNING_SECRET = process.env.B2B_BIODY_SIGNING_SECRET;
+
+/**
+ * Build headers for a server-to-biody-sync call. If B2B_BIODY_SIGNING_SECRET
+ * is set, use an HMAC signature bound to the request body + timestamp so a
+ * SUPABASE_SERVICE_ROLE_KEY leak alone can't be used to forge calls into
+ * biody-sync. Falls back to service-role bearer if the signing secret isn't
+ * configured yet (transitional).
+ */
+export function signBiodyHeaders(bodyText: string): Record<string, string> {
+  const h: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (B2B_SIGNING_SECRET) {
+    const ts = Math.floor(Date.now() / 1000).toString();
+    const mac = createHmac("sha256", B2B_SIGNING_SECRET)
+      .update(`${ts}.${bodyText}`)
+      .digest("hex");
+    h["X-Lifeline-Signature"] = `t=${ts},v1=${mac}`;
+  }
+  if (SERVICE_ROLE_KEY) {
+    h.Authorization = `Bearer ${SERVICE_ROLE_KEY}`;
+    h.apikey = SERVICE_ROLE_KEY;
+  }
+  return h;
+}
 
 export interface ActivateResult {
   ok: boolean;
@@ -64,22 +91,19 @@ export async function activateBiodyForClient(clientId: string): Promise<Activate
   }
 
   try {
+    const bodyText = JSON.stringify({
+      client_id: clientId,
+      first_name: firstName,
+      last_name: lastName,
+      date_of_birth: client.date_of_birth,
+      sex: client.sex,
+      height_cm: Number(client.height_cm),
+      activity_level: client.activity_level,
+    });
     const res = await fetch(`${BIODY_SYNC_URL}/create-patient`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        apikey: SERVICE_ROLE_KEY,
-      },
-      body: JSON.stringify({
-        client_id: clientId,
-        first_name: firstName,
-        last_name: lastName,
-        date_of_birth: client.date_of_birth,
-        sex: client.sex,
-        height_cm: Number(client.height_cm),
-        activity_level: client.activity_level,
-      }),
+      headers: signBiodyHeaders(bodyText),
+      body: bodyText,
     });
     const json = await res.json().catch(() => null);
     if (!res.ok) {
