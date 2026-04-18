@@ -69,7 +69,7 @@ export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal 
       <div className="flex items-center gap-3">
         <BackButton fallback="/business" />
         <span className="hidden sm:inline-block px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-blue-100 text-blue-800">
-          {t("b2b.header.label", "For business")}
+          {t("b2b.header.label", "Company account management")}
         </span>
         {crumbs.length > 0 && (
           <nav className="flex items-center gap-1.5 text-sm text-gray-500 min-w-0">
