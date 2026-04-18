@@ -55,7 +55,7 @@ export async function POST(
     if (!staff) return NextResponse.json({ error: "staff_only" }, { status: 403 });
     const { error } = await supabaseAdmin
       .from("companies")
-      .update({ registration_finalized_at: null })
+      .update({ registration_finalized_at: null, registration_finalized_by: null })
       .eq("id", companyId);
     if (error) return NextResponse.json({ error: "update_failed" }, { status: 500 });
     return NextResponse.json({ ok: true });
@@ -89,7 +89,7 @@ export async function POST(
   const finalizedAt = new Date().toISOString();
   const { error } = await supabaseAdmin
     .from("companies")
-    .update({ registration_finalized_at: finalizedAt })
+    .update({ registration_finalized_at: finalizedAt, registration_finalized_by: user.id })
     .eq("id", companyId);
   if (error) return NextResponse.json({ error: "update_failed" }, { status: 500 });
 

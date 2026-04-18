@@ -15,6 +15,9 @@ interface CompanyRow {
   completed_count: number;
   roster_confirmed_at: string | null;
   registration_finalized_at: string | null;
+  registration_finalized_by?: string | null;
+  finalized_by_name?: string | null;
+  finalized_by_email?: string | null;
   body_comp_event_count: number;
   blood_test_day_count: number;
   default_tier?: string | null;
@@ -281,29 +284,50 @@ export default function AdminCompaniesPage() {
                 <Fragment key={c.id}>
                   <tr className="border-t border-gray-100">
                     <td className="px-4 py-3 font-medium">
-                      <button
-                        onClick={() => toggleExpand(c.id)}
-                        className="inline-flex items-center gap-2 hover:underline"
-                        title="Show employees"
-                      >
-                        <svg
-                          className={`w-3 h-3 transition-transform ${expanded.has(c.id) ? "rotate-90" : ""}`}
-                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => toggleExpand(c.id)}
+                          className="inline-flex items-center gap-2 hover:underline"
+                          title="Show employees"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                        {c.name}
-                      </button>
-                      {c.registration_finalized_at ? (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Ready</span>
-                      ) : c.roster_confirmed_at && c.body_comp_event_count > 0 && c.blood_test_day_count > 0 ? (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting finalize</span>
-                      ) : (
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Setup</span>
+                          <svg
+                            className={`w-3 h-3 transition-transform ${expanded.has(c.id) ? "rotate-90" : ""}`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          {c.name}
+                        </button>
+                        {c.registration_finalized_at ? (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold cursor-help"
+                            title={`Finalized by ${c.finalized_by_name || c.finalized_by_email || "a company admin"}${c.finalized_by_email && c.finalized_by_name ? ` (${c.finalized_by_email})` : ""} on ${new Date(c.registration_finalized_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+                          >
+                            Ready ⓘ
+                          </span>
+                        ) : c.roster_confirmed_at && c.body_comp_event_count > 0 && c.blood_test_day_count > 0 ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting finalize</span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Setup</span>
+                        )}
+                      </div>
+                      {c.registration_finalized_at && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Approved by <span className="font-medium text-gray-700">{c.finalized_by_name || c.finalized_by_email || "—"}</span>
+                          {" "}on {new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        </div>
                       )}
-                      <Link href={`/business/${c.id}`} className="ml-3 text-xs text-blue-600 hover:underline">
-                        open →
-                      </Link>
+                      <div className="mt-2">
+                        <Link
+                          href={`/business/${c.id}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          Open
+                        </Link>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">{c.contact_email || "—"}</td>
                     <td className="px-4 py-3">{c.member_count}</td>
