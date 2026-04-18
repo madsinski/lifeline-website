@@ -23,6 +23,29 @@ const TIERS = [
   { value: "full-access", label: "Full Access" },
 ];
 
+function EnsureGroupButton({ companyId }: { companyId: string }) {
+  const [busy, setBusy] = useState(false);
+  const click = async () => {
+    setBusy(true);
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch("/api/admin/biody/ensure-group", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ company_id: companyId }),
+    });
+    const j = await res.json();
+    if (j.ok && j.biody_group_id) alert(`Biody group ready: id ${j.biody_group_id}`);
+    else alert(`Failed: ${j.error || JSON.stringify(j)}`);
+    setBusy(false);
+  };
+  return (
+    <button onClick={click} disabled={busy} className="text-indigo-600 hover:underline disabled:opacity-50">
+      {busy ? "Creating…" : "Ensure Biody group"}
+    </button>
+  );
+}
+
 function BulkActivateButton({ companyId }: { companyId: string }) {
   const [busy, setBusy] = useState(false);
   const click = async () => {
@@ -144,9 +167,10 @@ export default function AdminCompaniesPage() {
                     </select>
                   </td>
                   <td className="px-4 py-3 text-gray-500">{new Date(c.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap space-x-3">
+                    <EnsureGroupButton companyId={c.id} />
                     <BulkActivateButton companyId={c.id} />
-                    <button onClick={() => downloadCsv(c.id, c.name)} className="ml-3 text-blue-600 hover:underline">
+                    <button onClick={() => downloadCsv(c.id, c.name)} className="text-blue-600 hover:underline">
                       Export CSV
                     </button>
                   </td>
