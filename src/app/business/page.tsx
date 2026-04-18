@@ -30,12 +30,15 @@ export default function BusinessIndexPage() {
         return;
       }
       setUserEmail(user.email || null);
+      console.log("[business] user id:", user.id, "email:", user.email);
 
       // Primary contact
-      const { data: primary } = await supabase
+      const primaryRes = await supabase
         .from("companies")
         .select("id, name, created_at")
         .eq("contact_person_id", user.id);
+      console.log("[business] primary query:", primaryRes);
+      const primary = primaryRes.data;
 
       // Co-admin companies
       const { data: coAdminRows } = await supabase
