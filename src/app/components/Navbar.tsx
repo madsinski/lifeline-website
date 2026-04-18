@@ -12,6 +12,7 @@ const navLinkDefs = [
   { href: "/assessment", key: "nav.assessment", fallback: "Assessment" },
   { href: "/coaching", key: "nav.coaching", fallback: "Coaching" },
   { href: "/pricing", key: "nav.pricing", fallback: "Pricing" },
+  { href: "/business", key: "nav.business", fallback: "For business" },
   { href: "/contact", key: "nav.contact", fallback: "Contact" },
 ];
 

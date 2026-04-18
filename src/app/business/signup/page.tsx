@@ -33,15 +33,26 @@ export default function BusinessSignupPage() {
   const [companyKennitala, setCompanyKennitala] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
       if (data.user) {
         setUserId(data.user.id);
         setEmail(data.user.email || "");
+        // If they already manage companies, send them to the picker instead
+        const { data: ownedCompanies } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("contact_person_id", data.user.id)
+          .limit(1);
+        if (ownedCompanies && ownedCompanies.length > 0) {
+          router.replace("/business");
+          return;
+        }
         setStep("agreement");
       }
       setLoading(false);
-    });
-  }, []);
+    })();
+  }, [router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

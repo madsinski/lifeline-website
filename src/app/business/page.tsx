@@ -1,0 +1,160 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import LifelineLogo from "@/app/components/LifelineLogo";
+import BackButton from "@/app/components/BackButton";
+import { LanguagePicker, useI18n } from "@/lib/i18n";
+
+interface CompanyRow {
+  id: string;
+  name: string;
+  role: "primary" | "co-admin";
+  created_at: string;
+}
+
+export default function BusinessIndexPage() {
+  const router = useRouter();
+  const { t } = useI18n();
+  const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/business/login");
+        return;
+      }
+      setUserEmail(user.email || null);
+
+      // Primary contact
+      const { data: primary } = await supabase
+        .from("companies")
+        .select("id, name, created_at")
+        .eq("contact_person_id", user.id);
+
+      // Co-admin companies
+      const { data: coAdminRows } = await supabase
+        .from("company_admins")
+        .select("company_id, added_at, companies:company_id(id, name, created_at)")
+        .eq("user_id", user.id);
+
+      const list: CompanyRow[] = [];
+      for (const c of primary || []) {
+        list.push({ id: c.id, name: c.name, role: "primary", created_at: c.created_at });
+      }
+      for (const row of coAdminRows || []) {
+        const c = (row as { companies?: { id: string; name: string; created_at: string } }).companies;
+        if (c && !list.find((x) => x.id === c.id)) {
+          list.push({ id: c.id, name: c.name, role: "co-admin", created_at: c.created_at });
+        }
+      }
+      list.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
+      setCompanies(list);
+
+      // If exactly one company, jump straight to it
+      if (list.length === 1) {
+        router.replace(`/business/${list[0].id}`);
+        return;
+      }
+      setLoading(false);
+    })();
+  }, [router]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/business/login");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        {t("b2b.index.loading", "Loading…")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white/70 backdrop-blur">
+        <div className="flex items-center gap-4">
+          <BackButton />
+          <Link href="/" className="flex items-center gap-2">
+            <LifelineLogo className="w-8 h-8" />
+            <span className="font-semibold">Lifeline Health</span>
+          </Link>
+        </div>
+        <div className="flex items-center gap-3">
+          {userEmail && <span className="text-sm text-gray-500 hidden sm:inline">{userEmail}</span>}
+          <LanguagePicker />
+          <button onClick={signOut} className="text-sm text-gray-500 hover:text-gray-800">
+            {t("b2b.index.signout", "Sign out")}
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-6 py-12 space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">{t("b2b.index.title", "Your companies")}</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {t("b2b.index.subtitle", "Pick a company to manage its roster, or create a new one.")}
+            </p>
+          </div>
+          <Link href="/business/signup" className="btn-primary text-sm">
+            {t("b2b.index.create_new", "+ New company")}
+          </Link>
+        </div>
+
+        {companies.length === 0 ? (
+          <section className="bg-white rounded-2xl p-8 shadow-sm text-center">
+            <p className="text-gray-600 mb-5">
+              {t("b2b.index.empty", "You haven't set up a company yet.")}
+            </p>
+            <Link href="/business/signup" className="btn-primary">
+              {t("b2b.index.get_started", "Create your first company")}
+            </Link>
+          </section>
+        ) : (
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {companies.map((c) => (
+              <Link
+                key={c.id}
+                href={`/business/${c.id}`}
+                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border border-transparent hover:border-blue-100"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold tracking-wider uppercase text-gray-400">
+                    {c.role === "primary"
+                      ? t("b2b.index.role.primary", "Primary admin")
+                      : t("b2b.index.role.co_admin", "Co-admin")}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-lg text-gray-900">{c.name}</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {t("b2b.index.created", "Created")} {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+              </Link>
+            ))}
+          </section>
+        )}
+      </main>
+
+      <style jsx global>{`
+        .btn-primary {
+          display: inline-block;
+          background: linear-gradient(135deg,#3b82f6,#10b981);
+          color: white;
+          padding: 0.625rem 1.125rem;
+          border-radius: 0.625rem;
+          font-weight: 600;
+          font-size: 0.875rem;
+        }
+      `}</style>
+    </div>
+  );
+}
