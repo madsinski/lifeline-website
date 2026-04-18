@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import LifelineLogo from "@/app/components/LifelineLogo";
-import BackButton from "@/app/components/BackButton";
-import { LanguagePicker, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
+import BusinessHeader from "./BusinessHeader";
 
 interface CompanyRow {
   id: string;
@@ -19,7 +18,6 @@ export default function BusinessIndexPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
 
   useEffect(() => {
@@ -29,8 +27,6 @@ export default function BusinessIndexPage() {
         router.push("/business/login");
         return;
       }
-      setUserEmail(user.email || null);
-
       // Primary contact
       const { data: primary } = await supabase
         .from("companies")
@@ -69,11 +65,6 @@ export default function BusinessIndexPage() {
     })();
   }, [router]);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/business/login");
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
@@ -84,22 +75,9 @@ export default function BusinessIndexPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white/70 backdrop-blur">
-        <div className="flex items-center gap-4">
-          <BackButton />
-          <Link href="/" className="flex items-center gap-2">
-            <LifelineLogo className="w-8 h-8" />
-            <span className="font-semibold">Lifeline Health</span>
-          </Link>
-        </div>
-        <div className="flex items-center gap-3">
-          {userEmail && <span className="text-sm text-gray-500 hidden sm:inline">{userEmail}</span>}
-          <LanguagePicker />
-          <button onClick={signOut} className="text-sm text-gray-500 hover:text-gray-800">
-            {t("b2b.index.signout", "Sign out")}
-          </button>
-        </div>
-      </header>
+      <BusinessHeader
+        crumbs={[{ label: t("b2b.index.title", "Your companies") }]}
+      />
 
       <main className="max-w-3xl mx-auto px-6 py-12 space-y-8">
         <div className="flex items-center justify-between">

@@ -4,9 +4,8 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import LifelineLogo from "@/app/components/LifelineLogo";
-import BackButton from "@/app/components/BackButton";
-import { LanguagePicker, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
+import BusinessHeader from "../BusinessHeader";
 
 export default function BusinessLoginPage() {
   return (
@@ -42,16 +41,10 @@ function BusinessLoginInner() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white/70 backdrop-blur">
-        <div className="flex items-center gap-4">
-          <BackButton />
-          <Link href="/" className="flex items-center gap-2">
-            <LifelineLogo className="w-8 h-8" />
-            <span className="font-semibold">Lifeline Health</span>
-          </Link>
-        </div>
-        <LanguagePicker />
-      </header>
+      <BusinessHeader
+        crumbs={[{ label: t("b2b.login.crumb", "Contact person sign in") }]}
+        minimal
+      />
 
       <main className="max-w-md mx-auto px-6 py-16">
         <div className="bg-white rounded-2xl p-8 shadow-sm">

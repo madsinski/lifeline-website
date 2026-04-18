@@ -2,11 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import LifelineLogo from "@/app/components/LifelineLogo";
-import BackButton from "@/app/components/BackButton";
-import { LanguagePicker } from "@/lib/i18n";
+import BusinessHeader from "../BusinessHeader";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 
@@ -86,25 +83,13 @@ export default function BusinessDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white/70 backdrop-blur">
-        <div className="flex items-center gap-4">
-          <BackButton />
-          <Link href="/" className="flex items-center gap-2">
-            <LifelineLogo className="w-8 h-8" />
-            <span className="font-semibold">Lifeline Health</span>
-          </Link>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{company.name}</span>
-          <LanguagePicker />
-          <button
-            onClick={async () => { await supabase.auth.signOut(); router.push("/"); }}
-            className="text-sm text-gray-500 hover:text-gray-800"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+      <BusinessHeader
+        currentCompanyId={company.id}
+        crumbs={[
+          { label: "Business", href: "/business" },
+          { label: company.name },
+        ]}
+      />
 
       <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
         <section className="flex items-center justify-between">
