@@ -105,22 +105,23 @@ export default function BusinessSignupPage() {
     }
     setSubmitting(true);
     try {
-      const cleaned = cleanKennitala(companyKennitala);
-      const { data: enc, error: encErr } = await supabase.rpc("enc_kennitala", { p_text: cleaned });
-      if (encErr) throw new Error(encErr.message);
-      const { data, error: insErr } = await supabase
-        .from("companies")
-        .insert({
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch("/api/business/companies", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
           name: companyName.trim(),
-          kennitala_encrypted: enc,
-          contact_person_id: userId,
+          kennitala: cleanKennitala(companyKennitala),
           agreement_version: AGREEMENT_VERSION,
-          agreement_accepted_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (insErr) throw new Error(insErr.message);
-      router.push(`/business/${data!.id}`);
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.detail || j.error || "Failed to create company");
+      router.push(`/business/${j.id}`);
     } catch (e) {
       setError((e as Error).message);
     } finally {

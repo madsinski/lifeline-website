@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   });
   if (encErr) {
     console.error("[companies] enc_kennitala failed", encErr);
-    return NextResponse.json({ error: "kennitala encryption failed" }, { status: 500 });
+    return NextResponse.json({ error: "company_create_failed" }, { status: 500 });
   }
 
   const { data, error } = await supabaseAdmin
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error("[companies] insert failed", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "company_create_failed" }, { status: 500 });
   }
   return NextResponse.json(data);
 }

@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
 import { LanguagePicker } from "@/lib/i18n";
-import { parseRoster, RosterRow, generatePassword } from "@/lib/parse-roster";
+import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 
 interface Company {
@@ -486,30 +486,26 @@ function SingleRowForm({ companyId, onDone }: { companyId: string; onDone: () =>
         `${row.full_name},${row.kennitala},${row.email},${row.phone}`
       )[0];
       if (parsed.errors.length) throw new Error(parsed.errors.join("; "));
-      const password = generatePassword();
-      const { data: enc, error: encErr } = await supabase.rpc("enc_kennitala", { p_text: parsed.kennitala });
-      if (encErr) throw new Error(encErr.message);
-      const { data: inserted, error: insErr } = await supabase
-        .from("company_members")
-        .insert({
-          company_id: companyId,
-          full_name: parsed.full_name,
-          email: parsed.email.toLowerCase(),
-          phone: parsed.phone || null,
-          kennitala_encrypted: enc,
-          invite_password_hash: "pending", // placeholder; replaced by set_member_invite_password below
-        })
-        .select("id")
-        .single();
-      if (insErr) throw new Error(insErr.message);
-      // Hash password server-side
+
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      await fetch("/api/business/members/password", {
+      const res = await fetch("/api/business/members/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ member_id: inserted!.id, password }),
+        body: JSON.stringify({
+          company_id: companyId,
+          rows: [{
+            full_name: parsed.full_name,
+            email: parsed.email.toLowerCase(),
+            phone: parsed.phone || null,
+            kennitala: parsed.kennitala,
+          }],
+        }),
       });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.detail || j.error || "Failed to add employee");
+      const firstResult = (j.results || [])[0];
+      if (firstResult?.error) throw new Error(firstResult.error);
       onDone();
     } catch (e) {
       setError((e as Error).message);

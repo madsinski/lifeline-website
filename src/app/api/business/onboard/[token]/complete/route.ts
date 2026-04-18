@@ -37,12 +37,25 @@ export async function POST(
     p_token: token,
     p_password: password,
   });
-  if (verifyErr) return NextResponse.json({ error: verifyErr.message }, { status: 500 });
+  if (verifyErr) return NextResponse.json({ error: "verification_failed" }, { status: 500 });
   const member = Array.isArray(verifyData) ? verifyData[0] : verifyData;
   if (!member) return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   if (member.completed_at) {
     return NextResponse.json({ error: "already completed" }, { status: 409 });
   }
+
+  // M2: log the decrypt that happened inside verify_member_invite
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
+  const ua = req.headers.get("user-agent") || "";
+  await supabaseAdmin.rpc("log_kennitala_access", {
+    p_actor_role: "onboarding",
+    p_scope: "full",
+    p_purpose: "onboard_complete",
+    p_subject_kind: "company_member",
+    p_subject_id: member.id,
+    p_ip: ip,
+    p_user_agent: ua,
+  });
 
   // Load full member row (with encrypted kennitala blob) + company
   const { data: memberRow } = await supabaseAdmin
@@ -52,32 +65,41 @@ export async function POST(
     .maybeSingle();
   if (!memberRow) return NextResponse.json({ error: "member missing" }, { status: 404 });
 
-  // Create or reuse auth user
+  // Create or find auth user.
+  // SECURITY: if a user already exists with this email, we refuse to silently
+  // overwrite their password. That would let a malicious contact person hijack
+  // an existing Lifeline account by adding the email to their roster.
   let userId: string | null = null;
   const email = (memberRow.email || member.email || "").toLowerCase();
 
-  const { data: existing } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  const found = (existing?.users || []).find((u) => (u.email || "").toLowerCase() === email);
-  if (found) {
-    userId = found.id;
-    // Update password so employee can sign in with the one they just chose
-    await supabaseAdmin.auth.admin.updateUserById(found.id, {
-      password: account_password,
-      email_confirm: true,
-    });
-  } else {
-    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: account_password,
-      email_confirm: true,
-      user_metadata: { full_name: memberRow.full_name },
-    });
-    if (createErr || !created.user) {
-      return NextResponse.json({ error: createErr?.message || "auth create failed" }, { status: 500 });
-    }
-    userId = created.user.id;
+  let existing: { id: string } | null = null;
+  let page = 1;
+  while (page < 50) {
+    const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    if (!list?.users?.length) break;
+    const match = list.users.find((u) => (u.email || "").toLowerCase() === email);
+    if (match) { existing = { id: match.id }; break; }
+    if (list.users.length < 200) break;
+    page++;
   }
-  if (!userId) return NextResponse.json({ error: "no user id" }, { status: 500 });
+
+  if (existing) {
+    return NextResponse.json({
+      error: "email_already_registered",
+      detail: "This email already has a Lifeline account. Please sign in with your existing password at /account/login, then contact support to link your account to this company.",
+    }, { status: 409 });
+  }
+
+  const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password: account_password,
+    email_confirm: true,
+    user_metadata: { full_name: memberRow.full_name },
+  });
+  if (createErr || !created.user) {
+    return NextResponse.json({ error: "registration_failed" }, { status: 500 });
+  }
+  userId = created.user.id;
 
   // Upsert clients row — copy encrypted kennitala from member
   const now = new Date().toISOString();
