@@ -8,8 +8,27 @@ import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
 import MedaliaButton from "@/app/components/MedaliaButton";
 import { LanguagePicker, useI18n } from "@/lib/i18n";
+import SlotPicker from "./SlotPicker";
 
 type BiodyState = "unknown" | "active" | "activating" | "failed" | "needs_profile";
+
+interface BodyCompEvent {
+  id: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  location: string | null;
+  room_notes: string | null;
+  slot_minutes: number;
+  slot_capacity: number;
+  company_id: string;
+}
+
+interface BloodTestDay {
+  id: string;
+  day: string;
+  notes: string | null;
+}
 
 export default function AccountWelcomePage() {
   const router = useRouter();
@@ -17,9 +36,14 @@ export default function AccountWelcomePage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [biodyState, setBiodyState] = useState<BiodyState>("unknown");
   const [activateError, setActivateError] = useState("");
+  const [events, setEvents] = useState<BodyCompEvent[]>([]);
+  const [myBookingSlot, setMyBookingSlot] = useState<{ event_id: string; slot_at: string } | null>(null);
+  const [bloodDays, setBloodDays] = useState<BloodTestDay[]>([]);
+  const [pickerEvent, setPickerEvent] = useState<BodyCompEvent | null>(null);
 
   // Body-comp profile form (shown when fields are missing)
   const [sex, setSex] = useState<"male" | "female" | "">("");
@@ -57,8 +81,35 @@ export default function AccountWelcomePage() {
         }
         const cid = cData.company_id as string | null;
         if (cid) {
+          setCompanyId(cid);
           const { data: c } = await supabase.from("companies").select("name").eq("id", cid).maybeSingle();
           if (c?.name) setCompanyName(c.name);
+          // Upcoming body-comp events for this company
+          const { data: ev } = await supabase
+            .from("body_comp_events")
+            .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, company_id")
+            .eq("company_id", cid)
+            .eq("status", "scheduled")
+            .gte("event_date", new Date().toISOString().slice(0, 10))
+            .order("event_date");
+          setEvents((ev || []) as BodyCompEvent[]);
+          // My current booking (if any)
+          const { data: myB } = await supabase
+            .from("body_comp_event_bookings")
+            .select("event_id, slot_at")
+            .eq("client_id", user.id)
+            .order("slot_at")
+            .limit(1)
+            .maybeSingle();
+          if (myB) setMyBookingSlot(myB);
+          // Blood test days
+          const { data: bd } = await supabase
+            .from("blood_test_days")
+            .select("id, day, notes")
+            .eq("company_id", cid)
+            .gte("day", new Date().toISOString().slice(0, 10))
+            .order("day");
+          setBloodDays((bd || []) as BloodTestDay[]);
         }
       }
       setLoading(false);
@@ -272,21 +323,79 @@ export default function AccountWelcomePage() {
             />
           )}
 
-          <StepCard
-            n={2}
-            title={t("b2b.welcome.step.scan.title", "Book your body-composition scan")}
-            body={t("b2b.welcome.step.scan.body",
-              "Come in to a Lifeline station to complete the full-body scan. The result becomes the starting point of your coaching plan.")}
-            state="pending"
-            action={
-              <Link href="/assessment" className="btn-primary-solid">
-                {t("b2b.welcome.step.scan.cta", "Book scan")}
-              </Link>
-            }
-          />
+          {companyId && events.length > 0 ? (
+            <StepCard
+              n={2}
+              title={t("b2b.welcome.step.bc_event.title", "Book your 5-minute body-composition slot")}
+              body={(() => {
+                const e = events[0];
+                const label = new Date(e.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+                return myBookingSlot && myBookingSlot.event_id === e.id
+                  ? t("b2b.welcome.step.bc_event.booked",
+                      "You're booked for {{time}} on {{date}} at {{location}}.")
+                      .replace("{{time}}", new Date(myBookingSlot.slot_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }))
+                      .replace("{{date}}", label)
+                      .replace("{{location}}", e.location || t("b2b.welcome.step.bc_event.office", "your office"))
+                  : t("b2b.welcome.step.bc_event.body",
+                      "{{company}} scheduled a Lifeline nurse to visit on {{date}}, {{start}}–{{end}}. Pick a 5-minute slot that works for you.")
+                      .replace("{{company}}", companyName || "Your company")
+                      .replace("{{date}}", label)
+                      .replace("{{start}}", e.start_time.slice(0, 5))
+                      .replace("{{end}}", e.end_time.slice(0, 5));
+              })()}
+              state={myBookingSlot ? "done" : "pending"}
+              action={
+                <button onClick={() => setPickerEvent(events[0])} className="btn-primary-solid">
+                  {myBookingSlot
+                    ? t("b2b.welcome.step.bc_event.cta_change", "Change slot")
+                    : t("b2b.welcome.step.bc_event.cta", "Pick a slot")}
+                </button>
+              }
+            />
+          ) : companyId ? (
+            <StepCard
+              n={2}
+              title={t("b2b.welcome.step.bc_event.pending.title", "Body-composition day — not scheduled yet")}
+              body={t("b2b.welcome.step.bc_event.pending.body",
+                "Your company hasn't set a day for the on-site body-composition measurements yet. You'll get an email once it's scheduled.")}
+              state="pending"
+              action={null}
+            />
+          ) : (
+            <StepCard
+              n={2}
+              title={t("b2b.welcome.step.scan.title", "Book your body-composition scan")}
+              body={t("b2b.welcome.step.scan.body",
+                "Come in to a Lifeline station to complete the full-body scan. The result becomes the starting point of your coaching plan.")}
+              state="pending"
+              action={
+                <Link href="/assessment" className="btn-primary-solid">
+                  {t("b2b.welcome.step.scan.cta", "Book scan")}
+                </Link>
+              }
+            />
+          )}
+
+          {companyId && (
+            <StepCard
+              n={3}
+              title={t("b2b.welcome.step.blood.title", "Blood test at Sameind")}
+              body={
+                bloodDays.length > 0
+                  ? t("b2b.welcome.step.blood.body",
+                      "{{company}} allows you to take your blood test on {{days}} between 08:00–12:00. You'll receive the booking link by email via Medalia.")
+                      .replace("{{company}}", companyName || "Your company")
+                      .replace("{{days}}", bloodDays.map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(", "))
+                  : t("b2b.welcome.step.blood.pending",
+                      "Your company hasn't picked the blood-test days yet. You'll be notified by email once they do.")
+              }
+              state="pending"
+              action={null}
+            />
+          )}
 
           <StepCard
-            n={3}
+            n={companyId ? 4 : 3}
             title={t("b2b.welcome.step.portal.title", "Access your patient portal")}
             body={t("b2b.welcome.step.portal.body",
               "Your clinical records, appointments, and physician notes live in our secure patient portal (Medalia).")}
@@ -295,7 +404,7 @@ export default function AccountWelcomePage() {
           />
 
           <StepCard
-            n={4}
+            n={companyId ? 5 : 4}
             title={t("b2b.welcome.step.app.title", "Download the Lifeline app")}
             body={t("b2b.welcome.step.app.body",
               "Daily actions, meal logging, weigh-ins, and your coaching dashboard live in the app.")}
@@ -313,6 +422,24 @@ export default function AccountWelcomePage() {
             {t("b2b.welcome.goto_dashboard", "Go to my dashboard")}
           </Link>
         </div>
+
+        {pickerEvent && (
+          <SlotPicker
+            event={pickerEvent}
+            onClose={() => setPickerEvent(null)}
+            onBooked={async () => {
+              if (!userId) return;
+              const { data: myB } = await supabase
+                .from("body_comp_event_bookings")
+                .select("event_id, slot_at")
+                .eq("client_id", userId)
+                .order("slot_at")
+                .limit(1)
+                .maybeSingle();
+              setMyBookingSlot(myB || null);
+            }}
+          />
+        )}
       </main>
 
       <style jsx global>{`
@@ -350,7 +477,7 @@ function StepCard({
   title: string;
   body: string;
   state: "pending" | "busy" | "done";
-  action: React.ReactNode;
+  action: React.ReactNode | null;
   error?: string;
 }) {
   const ring = state === "done" ? "ring-emerald-200" : state === "busy" ? "ring-blue-200" : "ring-gray-100";
