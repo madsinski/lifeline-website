@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -122,6 +122,9 @@ function AccountPageInner() {
   const [myBloodTestBooking, setMyBloodTestBooking] = useState<{ day: string; note: string | null } | null>(null);
   const [bcPickerOpen, setBcPickerOpen] = useState(false);
   const [btPickerOpen, setBtPickerOpen] = useState(false);
+  const [myDoctorSlot, setMyDoctorSlot] = useState<{ id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null; booking_note: string | null } | null>(null);
+  const [upcomingDoctorSlots, setUpcomingDoctorSlots] = useState<Array<{ id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null }>>([]);
+  const [drPickerOpen, setDrPickerOpen] = useState(false);
   const [profileLastName, setProfileLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -289,6 +292,23 @@ function AccountPageInner() {
               .maybeSingle();
             if (mbt) setMyBloodTestBooking(mbt);
           }
+          // Doctor consultation — my active booking + upcoming available slots
+          const { data: myDr } = await supabase
+            .from("doctor_slots")
+            .select("id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes, booking_note")
+            .eq("client_id", currentUser.id)
+            .is("completed_at", null)
+            .maybeSingle();
+          if (myDr) setMyDoctorSlot(myDr as typeof myDr);
+          const nowIso = new Date().toISOString();
+          const { data: drSlots } = await supabase
+            .from("doctor_slots")
+            .select("id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes")
+            .is("client_id", null)
+            .gt("slot_at", nowIso)
+            .order("slot_at")
+            .limit(50);
+          setUpcomingDoctorSlots((drSlots || []) as typeof upcomingDoctorSlots);
           // Body comp booking status (solo / clinic booking path)
           const { data: booking } = await supabase
             .from("body_comp_bookings")
@@ -958,8 +978,11 @@ function AccountPageInner() {
                   hasBloodTestBooking={!!myBloodTestBooking}
                   companyEvent={companyEvent}
                   hasApprovedBloodDays={upcomingBloodDays.length > 0}
+                  hasDoctorBooking={!!myDoctorSlot}
+                  hasAvailableDoctorSlots={upcomingDoctorSlots.length > 0}
                   onPickBodyCompSlot={() => setBcPickerOpen(true)}
                   onPickBloodTestDay={() => setBtPickerOpen(true)}
+                  onPickDoctorSlot={() => setDrPickerOpen(true)}
                   onGoToBiody={() => { window.location.href = "/account/welcome"; }}
                 />
 
@@ -968,8 +991,10 @@ function AccountPageInner() {
                   mySlotAt={mySlotAt}
                   companyEvent={companyEvent}
                   myBloodTestBooking={myBloodTestBooking}
+                  myDoctorSlot={myDoctorSlot}
                   onChangeBcSlot={() => setBcPickerOpen(true)}
                   onChangeBloodDay={() => setBtPickerOpen(true)}
+                  onChangeDoctorSlot={() => setDrPickerOpen(true)}
                 />
 
                 {/* Body-comp slot picker modal */}
@@ -998,6 +1023,34 @@ function AccountPageInner() {
                     existing={myBloodTestBooking}
                     onClose={() => setBtPickerOpen(false)}
                     onBooked={(booking) => setMyBloodTestBooking(booking)}
+                  />
+                )}
+
+                {/* Doctor consultation slot picker modal */}
+                {drPickerOpen && (
+                  <DoctorSlotPickerModal
+                    slots={upcomingDoctorSlots}
+                    existing={myDoctorSlot}
+                    onClose={() => setDrPickerOpen(false)}
+                    onBooked={async () => {
+                      const { data: myDr } = await supabase
+                        .from("doctor_slots")
+                        .select("id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes, booking_note")
+                        .eq("client_id", user.id)
+                        .is("completed_at", null)
+                        .maybeSingle();
+                      setMyDoctorSlot(myDr as typeof myDoctorSlot);
+                      const nowIso = new Date().toISOString();
+                      const { data: drSlots } = await supabase
+                        .from("doctor_slots")
+                        .select("id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes")
+                        .is("client_id", null)
+                        .gt("slot_at", nowIso)
+                        .order("slot_at")
+                        .limit(50);
+                      setUpcomingDoctorSlots((drSlots || []) as typeof upcomingDoctorSlots);
+                    }}
+                    onCancelled={() => setMyDoctorSlot(null)}
                   />
                 )}
 
@@ -2578,8 +2631,8 @@ export default function AccountPage() {
 
 function JourneyTimeline({
   hasOnboarded, biodyActivated, hasBodyCompSlot, hasBloodTestBooking,
-  companyEvent, hasApprovedBloodDays,
-  onPickBodyCompSlot, onPickBloodTestDay, onGoToBiody,
+  companyEvent, hasApprovedBloodDays, hasDoctorBooking, hasAvailableDoctorSlots,
+  onPickBodyCompSlot, onPickBloodTestDay, onPickDoctorSlot, onGoToBiody,
 }: {
   hasOnboarded: boolean;
   biodyActivated: boolean;
@@ -2587,8 +2640,11 @@ function JourneyTimeline({
   hasBloodTestBooking: boolean;
   companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null } | null;
   hasApprovedBloodDays: boolean;
+  hasDoctorBooking: boolean;
+  hasAvailableDoctorSlots: boolean;
   onPickBodyCompSlot: () => void;
   onPickBloodTestDay: () => void;
+  onPickDoctorSlot: () => void;
   onGoToBiody: () => void;
 }) {
   const eventLabel = companyEvent
@@ -2641,9 +2697,14 @@ function JourneyTimeline({
     },
     {
       title: "Doctor consultation",
-      done: false,
-      active: false,
-      description: "Meet with your Lifeline doctor to review the report and build an action plan for your health change.",
+      done: hasDoctorBooking,
+      active: !hasDoctorBooking && hasAvailableDoctorSlots,
+      description: hasDoctorBooking
+        ? "Booked. See 'Current bookings' below."
+        : hasAvailableDoctorSlots
+          ? "Pick a time to meet your Lifeline doctor and build your action plan."
+          : "Once your report is ready, the Lifeline team will open consultation slots for you.",
+      cta: !hasDoctorBooking && hasAvailableDoctorSlots ? { label: "Pick a time", onClick: onPickDoctorSlot } : undefined,
     },
   ];
 
@@ -2689,16 +2750,18 @@ function JourneyTimeline({
 }
 
 function CurrentBookings({
-  mySlotAt, companyEvent, myBloodTestBooking,
-  onChangeBcSlot, onChangeBloodDay,
+  mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot,
+  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot,
 }: {
   mySlotAt: string | null;
   companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null;
   myBloodTestBooking: { day: string; note: string | null } | null;
+  myDoctorSlot: { id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null; booking_note: string | null } | null;
   onChangeBcSlot: () => void;
   onChangeBloodDay: () => void;
+  onChangeDoctorSlot: () => void;
 }) {
-  const nothing = !mySlotAt && !myBloodTestBooking;
+  const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot;
   const editIcon = (
     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -2725,7 +2788,8 @@ function CurrentBookings({
       ) : (() => {
         const bcTime = mySlotAt ? new Date(mySlotAt).getTime() : Infinity;
         const btTime = myBloodTestBooking ? new Date(myBloodTestBooking.day + "T00:00:00").getTime() : Infinity;
-        const bcFirst = bcTime <= btTime;
+        const drTime = myDoctorSlot ? new Date(myDoctorSlot.slot_at).getTime() : Infinity;
+        const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "In person";
         const bcCard = mySlotAt && companyEvent ? (
           <div key="bc" className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
               <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-blue-500 to-emerald-500" />
@@ -2812,10 +2876,69 @@ function CurrentBookings({
               </div>
             </div>
           ) : null;
-        const ordered = bcFirst ? [bcCard, btCard] : [btCard, bcCard];
+        const drCard = myDoctorSlot ? (
+          <div key="dr" className="relative overflow-hidden rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
+            <div className="flex items-start gap-3 mb-3">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m-9 1a9 9 0 1118 0 9 9 0 01-18 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor</div>
+                <div className="font-semibold text-gray-900 leading-tight">
+                  {myDoctorSlot.doctor_name ? `Consultation with ${myDoctorSlot.doctor_name}` : "Doctor consultation"}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="font-medium">{new Date(myDoctorSlot.slot_at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">
+                  {new Date(myDoctorSlot.slot_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  {" · "}{myDoctorSlot.duration_minutes} min
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="truncate">{modeLabel(myDoctorSlot.mode)}{myDoctorSlot.location ? ` · ${myDoctorSlot.location}` : ""}</span>
+              </div>
+              {myDoctorSlot.meeting_link && (
+                <a href={myDoctorSlot.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-violet-700 hover:text-violet-900 pl-6">
+                  Join link ↗
+                </a>
+              )}
+              {myDoctorSlot.notes && <div className="text-xs text-gray-500 pl-6">{myDoctorSlot.notes}</div>}
+              {myDoctorSlot.booking_note && <div className="text-xs text-gray-500 pl-6 italic">“{myDoctorSlot.booking_note}”</div>}
+            </div>
+            <div className="mt-4 pt-4 border-t border-violet-100/70">
+              <button onClick={onChangeDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 hover:border-violet-300 transition-colors">
+                {editIcon}
+                Change time
+              </button>
+            </div>
+          </div>
+        ) : null;
+        const entries = [
+          { key: "bc", card: bcCard, time: bcTime },
+          { key: "bt", card: btCard, time: btTime },
+          { key: "dr", card: drCard, time: drTime },
+        ].filter((e) => e.card).sort((a, b) => a.time - b.time);
         return (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {ordered}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {entries.map((e) => e.card)}
           </div>
         );
       })()}
@@ -2926,6 +3049,133 @@ function BloodTestDayPickerModal({
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
             <button onClick={save} disabled={saving || !selectedDay} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
               {saving ? "Saving…" : existing ? "Update" : "Confirm day"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DoctorSlotPickerModal({
+  slots, existing, onClose, onBooked, onCancelled,
+}: {
+  slots: Array<{ id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null }>;
+  existing: { id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; doctor_name: string | null; location: string | null; booking_note: string | null } | null;
+  onClose: () => void;
+  onBooked: () => Promise<void> | void;
+  onCancelled: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [note, setNote] = useState<string>(existing?.booking_note || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "In person";
+
+  type SlotRow = typeof slots[number];
+  const grouped = useMemo(() => {
+    const map = new Map<string, SlotRow[]>();
+    for (const s of slots) {
+      const day = new Date(s.slot_at).toISOString().slice(0, 10);
+      if (!map.has(day)) map.set(day, []);
+      map.get(day)!.push(s);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [slots]);
+
+  const save = async () => {
+    if (!selectedId) { setError("Pick a time."); return; }
+    setSaving(true);
+    setError("");
+    if (existing) {
+      const { error: cancelErr } = await supabase.rpc("cancel_doctor_slot");
+      if (cancelErr) { setSaving(false); setError(cancelErr.message); return; }
+    }
+    const { data, error: bookErr } = await supabase.rpc("book_doctor_slot", {
+      p_slot_id: selectedId,
+      p_note: note.trim() || null,
+    });
+    setSaving(false);
+    if (bookErr) { setError(bookErr.message); return; }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row && row.ok === false) { setError(row.error === "slot_unavailable" ? "That slot was just taken. Pick another." : row.error === "already_booked" ? "You already have a booking." : row.error || "Failed to book."); return; }
+    await onBooked();
+    onClose();
+  };
+
+  const cancel = async () => {
+    if (!confirm("Cancel your doctor consultation?")) return;
+    const { error: cancelErr } = await supabase.rpc("cancel_doctor_slot");
+    if (cancelErr) { setError(cancelErr.message); return; }
+    onCancelled();
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold">{existing ? "Change your doctor consultation" : "Book your doctor consultation"}</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Meet 1:1 with your Lifeline doctor to go through the report and agree an action plan.
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          {existing && (
+            <div className="rounded-lg bg-violet-50 border border-violet-100 px-3 py-2 text-xs text-violet-900">
+              Current booking:{" "}
+              <strong>{new Date(existing.slot_at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}</strong>
+              {existing.doctor_name && <> with {existing.doctor_name}</>}
+              {" · "}{modeLabel(existing.mode)}
+            </div>
+          )}
+          {grouped.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
+              No open slots right now. The Lifeline team will open new times soon.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {grouped.map(([day, daySlots]) => (
+                <div key={day}>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                    {new Date(day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {daySlots.map((s) => {
+                      const selected = selectedId === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setSelectedId(s.id)}
+                          className={`text-left rounded-lg border px-3 py-2 text-sm transition-colors ${selected ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200" : "border-gray-200 bg-white hover:border-violet-300 hover:bg-violet-50/50"}`}>
+                          <div className="font-semibold text-gray-900">
+                            {new Date(s.slot_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                          </div>
+                          <div className="text-xs text-gray-500">{s.duration_minutes} min · {modeLabel(s.mode)}</div>
+                          {s.doctor_name && <div className="text-xs text-gray-500 truncate">{s.doctor_name}</div>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Note (optional)</span>
+            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything the doctor should know in advance" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-400" />
+          </label>
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+        </div>
+        <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
+          {existing ? (
+            <button onClick={cancel} className="text-sm text-red-600 hover:underline">Cancel booking</button>
+          ) : <span />}
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
+            <button onClick={save} disabled={saving || !selectedId} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-violet-600 to-fuchsia-500 disabled:opacity-50">
+              {saving ? "Saving…" : existing ? "Update" : "Confirm time"}
             </button>
           </div>
         </div>

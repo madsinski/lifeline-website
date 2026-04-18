@@ -99,6 +99,15 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/doctor-slots",
+    label: "Doctor slots",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m-9 1a9 9 0 1118 0 9 9 0 01-18 0z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/analytics",
     label: "Analytics",
     icon: (
