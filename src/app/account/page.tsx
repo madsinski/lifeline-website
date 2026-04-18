@@ -55,13 +55,11 @@ interface PaymentRow {
 }
 
 /* ---------- nav sections ---------- */
-type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "programs" | "app" | "settings";
+type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "programs" | "app" | "settings" | "upgrade";
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
   { id: "assessment", label: "Assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
-  { id: "programs", label: "My programs", icon: "M3 6.5A1.5 1.5 0 014.5 5h15A1.5 1.5 0 0121 6.5v1A1.5 1.5 0 0119.5 9h-15A1.5 1.5 0 013 7.5v-1zM3 11.5h4v5H3v-5zm7 0h4v7h-4v-7zm7 0h4v3h-4v-3z" },
-  { id: "messages", label: "Messages", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
-  { id: "education", label: "Education", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
+  { id: "upgrade", label: "Upgrade to coaching", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   { id: "billing", label: "Billing", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
@@ -928,7 +926,15 @@ function AccountPageInner() {
                       <h2 className="text-xl font-bold text-[#1F2937]">
                         Welcome back, {profileFirstName || "there"}
                       </h2>
-                      <p className="text-sm text-[#6B7280]">Member since {memberSince}</p>
+                      <p className="text-sm text-[#6B7280]">
+                        {companyName ? (
+                          <>
+                            <span className="font-medium text-[#1F2937]">{companyName}</span>
+                            <span className="mx-1.5">·</span>
+                          </>
+                        ) : null}
+                        Member since {memberSince}
+                      </p>
                     </div>
                   </div>
                 </section>
@@ -964,7 +970,33 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Plan + Patient Portal shortcut */}
+                {/* Patient portal — canonical home for clinical data */}
+                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <div className="flex items-start gap-4 flex-wrap">
+                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+                      <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-[#1F2937]">Your patient portal — Medalia</h3>
+                      <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
+                        Everything clinical lives in Medalia, our secure patient portal. Sign in there to:
+                      </p>
+                      <ul className="text-sm text-[#4B5563] mt-3 space-y-1.5 list-disc list-inside">
+                        <li>View your body-composition, blood-test, and assessment results</li>
+                        <li>Read physician notes and your personalised health report</li>
+                        <li>Book follow-up appointments with your Lifeline physician</li>
+                        <li>Secure message your medical team</li>
+                      </ul>
+                      <div className="mt-5">
+                        <MedaliaButton label="Open patient portal" size="md" />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Plan + coaching upgrade */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <section className="bg-white rounded-2xl shadow-sm p-6">
                     <h3 className="text-sm font-medium text-[#6B7280] mb-3">Your plan</h3>
@@ -996,12 +1028,24 @@ function AccountPageInner() {
                     )}
                   </section>
 
-                  <section className="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 className="text-sm font-medium text-[#6B7280] mb-3">Patient portal</h3>
-                    <p className="text-xs text-[#6B7280] mb-3 leading-relaxed">
-                      Clinical records, physician notes, and appointments live in our secure portal.
-                    </p>
-                    <MedaliaButton label="Open portal" size="sm" />
+                  <section className="rounded-2xl p-6 text-white shadow-sm"
+                    style={{ background: "linear-gradient(135deg, #7C3AED, #3B82F6)" }}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold">Keep going with daily coaching</h3>
+                        <p className="text-xs opacity-90 mt-1">
+                          Turn your results into daily actions. Personalised programs, meal logs, coach messaging.
+                        </p>
+                        <button onClick={() => setActiveSection("upgrade")} className="mt-3 text-xs font-medium underline">
+                          See the app →
+                        </button>
+                      </div>
+                    </div>
                   </section>
                 </div>
               </>
@@ -2156,6 +2200,102 @@ function AccountPageInner() {
                     </div>
                   </div>
                 )}
+              </section>
+            )}
+
+            {/* ============ UPGRADE (coaching app soft-sell) ============ */}
+            {activeSection === "upgrade" && (
+              <section className="space-y-6">
+                {/* Hero */}
+                <div className="rounded-2xl p-8 text-white shadow-sm"
+                  style={{ background: "linear-gradient(135deg, #7C3AED, #3B82F6, #10B981)" }}>
+                  <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-3">
+                    Optional — Lifeline coaching app
+                  </p>
+                  <h1 className="text-3xl sm:text-4xl font-semibold leading-tight">
+                    Turn your results into daily habits.
+                  </h1>
+                  <p className="mt-3 text-base opacity-95 max-w-xl">
+                    Your Lifeline Health Assessment gives you the numbers. The coaching app helps you act on them —
+                    daily actions, meal logs, weigh-ins, a personalised programme, and your coach in your pocket.
+                  </p>
+                  <p className="mt-6 text-xs opacity-80">Coming soon on iOS and Android.</p>
+                </div>
+
+                {/* What's inside */}
+                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">What&apos;s inside the app</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { title: "Daily actions", body: "4 actionable tasks tailored to your assessment results — across exercise, nutrition, sleep, and mental wellness." },
+                      { title: "Meal logging", body: "Photograph your meals, track protein + macros, and stay on top of your goal without the maths." },
+                      { title: "Weigh-ins & trends", body: "Weekly weigh-in reminders, body-composition history, and trend lines that matter." },
+                      { title: "Personalised programs", body: "Strength, cardio, mobility, or mindfulness programs built around your level and your physician's plan." },
+                      { title: "Message your coach", body: "Quick replies from a human, not a bot. Available on the Full Access tier." },
+                      { title: "Education", body: "Short daily snippets + deep dives curated by the Lifeline medical team." },
+                    ].map((f) => (
+                      <div key={f.title} className="rounded-xl bg-[#f8fafc] p-4 border border-gray-100">
+                        <div className="font-semibold text-[#1F2937] text-sm">{f.title}</div>
+                        <div className="text-xs text-[#6B7280] mt-1 leading-relaxed">{f.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Plans */}
+                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <h2 className="text-lg font-semibold text-[#1F2937] mb-1">Plans</h2>
+                  <p className="text-sm text-[#6B7280] mb-5">Your company covered the health assessment. Coaching is optional and paid personally.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-gray-200 p-5">
+                      <div className="text-xs font-semibold tracking-wider uppercase text-gray-500">Free plan</div>
+                      <div className="text-2xl font-bold text-[#1F2937] mt-2">0 kr</div>
+                      <div className="text-xs text-[#6B7280] mt-0.5">Forever</div>
+                      <ul className="text-xs text-[#4B5563] mt-4 space-y-1.5 list-disc list-inside">
+                        <li>Body-composition history</li>
+                        <li>Daily education snippets</li>
+                        <li>Community access</li>
+                      </ul>
+                    </div>
+                    <div className="rounded-xl border-2 border-blue-500 p-5 relative shadow-sm">
+                      <span className="absolute -top-2.5 right-4 text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">Most popular</span>
+                      <div className="text-xs font-semibold tracking-wider uppercase text-blue-700">Self-maintained</div>
+                      <div className="text-2xl font-bold text-[#1F2937] mt-2">2,990 kr</div>
+                      <div className="text-xs text-[#6B7280] mt-0.5">per month</div>
+                      <ul className="text-xs text-[#4B5563] mt-4 space-y-1.5 list-disc list-inside">
+                        <li>Everything in Free</li>
+                        <li>Personalised programs</li>
+                        <li>Daily actions & weigh-ins</li>
+                        <li>Meal logging</li>
+                      </ul>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 p-5">
+                      <div className="text-xs font-semibold tracking-wider uppercase text-emerald-700">Full access</div>
+                      <div className="text-2xl font-bold text-[#1F2937] mt-2">7,990 kr</div>
+                      <div className="text-xs text-[#6B7280] mt-0.5">per month</div>
+                      <ul className="text-xs text-[#4B5563] mt-4 space-y-1.5 list-disc list-inside">
+                        <li>Everything in Self-maintained</li>
+                        <li>1-on-1 coaching</li>
+                        <li>Custom meal plans</li>
+                        <li>Priority response</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#9CA3AF] mt-5">
+                    Final pricing may vary. All app subscriptions are self-serve and can be cancelled any time.
+                  </p>
+                </div>
+
+                {/* CTA */}
+                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 text-center">
+                  <h2 className="text-lg font-semibold text-[#1F2937]">Be the first to know</h2>
+                  <p className="text-sm text-[#6B7280] mt-1">
+                    The Lifeline app is in final testing. Tell us and we&apos;ll send you the download link the day it drops.
+                  </p>
+                  <Link href="/coaching#download" className="inline-block mt-4 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-sm font-semibold shadow-sm hover:opacity-90">
+                    Notify me
+                  </Link>
+                </div>
               </section>
             )}
 
