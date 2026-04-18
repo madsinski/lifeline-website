@@ -14,6 +14,8 @@ interface Company {
   name: string;
   agreement_version: string;
   created_at: string;
+  roster_confirmed_at: string | null;
+  registration_finalized_at: string | null;
 }
 
 interface Member {
@@ -68,7 +70,7 @@ export default function BusinessDashboardPage() {
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
     const [{ data: c }, { data: m }, { data: ev }, { data: bd }] = await Promise.all([
-      supabase.from("companies").select("id, name, agreement_version, created_at").eq("id", companyId).maybeSingle(),
+      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
         .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status")
@@ -133,11 +135,45 @@ export default function BusinessDashboardPage() {
     .map((m) => m.id);
   const uninvitedIds = members.filter((m) => !m.completed_at && !m.invited_at).map((m) => m.id);
 
-  const rosterDone = members.length > 0 && totalCompleted >= members.length;
+  const rosterConfirmed = !!company.roster_confirmed_at;
+  const finalized = !!company.registration_finalized_at;
   const hasEvents = events.length > 0;
   const hasBloodDays = bloodDays.length > 0;
+  const rosterDone = rosterConfirmed;
   const stepsDone = [rosterDone, hasEvents, hasBloodDays].filter(Boolean).length;
+  const allStepsDone = rosterDone && hasEvents && hasBloodDays;
   const nextStep = !rosterDone ? 1 : !hasEvents ? 2 : !hasBloodDays ? 3 : 0;
+
+  const confirmRoster = async () => {
+    if (members.length === 0) {
+      alert("Add at least one employee before marking the roster complete.");
+      return;
+    }
+    if (!confirm(`Mark the roster as complete? You've added ${members.length} employee${members.length === 1 ? "" : "s"}. You can still add or remove employees after this.`)) return;
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/business/companies/${companyId}/finalize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ action: "confirm_roster" }),
+    });
+    if (!res.ok) { alert("Failed to confirm roster"); return; }
+    loadData();
+  };
+
+  const finalizeRegistration = async () => {
+    if (!confirm(`Finalize registration for ${company.name}? Lifeline will be notified and you'll move into normal management mode. You can still edit the roster, event, and test days afterwards.`)) return;
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/business/companies/${companyId}/finalize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ action: "finalize" }),
+    });
+    const j = await res.json();
+    if (!res.ok) { alert(`Failed: ${j.error || "finalize_failed"}`); return; }
+    loadData();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
@@ -155,21 +191,46 @@ export default function BusinessDashboardPage() {
           <div>
             <h1 className="text-2xl font-semibold">{company.name}</h1>
             <p className="text-sm text-gray-600 mt-1">
-              {stepsDone === 3
-                ? "Everything is set up. Your employees can book their scans and tests."
-                : `${stepsDone} of 3 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`}
+              {finalized
+                ? "Management mode — your registration is complete."
+                : stepsDone === 3
+                  ? "All three steps done. Finalize below to notify the Lifeline admin team."
+                  : `${stepsDone} of 3 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`}
             </p>
           </div>
           <button onClick={exportCsv} className="btn-ghost">Export CSV</button>
         </section>
 
-        {/* Progress bar */}
-        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
-            style={{ width: `${(stepsDone / 3) * 100}%` }}
-          />
-        </div>
+        {/* Finalized banner */}
+        {finalized && (
+          <section className="rounded-2xl p-6 shadow-sm text-white"
+            style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Registration complete</h2>
+                <p className="text-sm opacity-95 mt-1 max-w-xl">
+                  The Lifeline admin team has been notified — your job is done for now.
+                  You can still manage the roster, body-composition day, and blood-test days below at any time.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Progress bar (hidden after finalize) */}
+        {!finalized && (
+          <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
+              style={{ width: `${(stepsDone / 3) * 100}%` }}
+            />
+          </div>
+        )}
 
         {/* STEP 1 — Register employees */}
         <StepCard
@@ -226,26 +287,44 @@ export default function BusinessDashboardPage() {
             {members.length === 0 ? (
               <p className="text-sm text-gray-500 italic py-4">No employees yet. Add one above to get started.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-gray-500 border-b border-gray-200">
-                    <tr>
-                      <th className="py-2 pr-4">Name</th>
-                      <th className="py-2 pr-4">Email</th>
-                      <th className="py-2 pr-4">Kennitala</th>
-                      <th className="py-2 pr-4">Phone</th>
-                      <th className="py-2 pr-4">Status</th>
-                      <th className="py-2 pr-4">Data</th>
-                      <th className="py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((m) => (
-                      <MemberRow key={m.id} member={m} onChange={loadData} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {!rosterConfirmed && (
+                  <div className="mb-4 rounded-lg bg-blue-50 border border-blue-100 p-4 flex items-center justify-between gap-4 flex-wrap">
+                    <div className="text-sm text-blue-900">
+                      <div className="font-semibold">Done adding employees?</div>
+                      <div className="text-xs mt-0.5">Mark the roster complete when you&apos;re finished. You can still add or remove people afterwards.</div>
+                    </div>
+                    <button onClick={confirmRoster} className="btn-step-primary">Mark roster complete</button>
+                  </div>
+                )}
+                {rosterConfirmed && (
+                  <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3 flex items-center justify-between gap-2 flex-wrap text-sm">
+                    <div className="text-emerald-800">
+                      <strong>Roster confirmed</strong> on {new Date(company.roster_confirmed_at!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.
+                    </div>
+                  </div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-left text-gray-500 border-b border-gray-200">
+                      <tr>
+                        <th className="py-2 pr-4">Name</th>
+                        <th className="py-2 pr-4">Email</th>
+                        <th className="py-2 pr-4">Kennitala</th>
+                        <th className="py-2 pr-4">Phone</th>
+                        <th className="py-2 pr-4">Status</th>
+                        <th className="py-2 pr-4">Data</th>
+                        <th className="py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {members.map((m) => (
+                        <MemberRow key={m.id} member={m} onChange={loadData} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </StepCard>
@@ -326,6 +405,21 @@ export default function BusinessDashboardPage() {
             {hasBloodDays ? "Add more days" : "Pick days"}
           </button>
         </StepCard>
+
+        {/* Finalize CTA — shown when all 3 steps done but not yet finalized */}
+        {allStepsDone && !finalized && (
+          <section className="rounded-2xl p-6 text-white shadow-sm"
+            style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
+            <h2 className="text-xl font-semibold">Ready to finalize?</h2>
+            <p className="text-sm opacity-95 mt-1 max-w-xl">
+              All three setup steps are done. Click finalize to notify the Lifeline admin team — they&apos;ll take over from here.
+              You can still edit the roster, event, and test days afterwards.
+            </p>
+            <button onClick={finalizeRegistration} className="mt-4 inline-block px-5 py-2.5 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
+              Finalize registration
+            </button>
+          </section>
+        )}
 
         <AdminsSection companyId={companyId!} />
       </main>

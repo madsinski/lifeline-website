@@ -13,6 +13,10 @@ interface CompanyRow {
   member_count: number;
   invited_count: number;
   completed_count: number;
+  roster_confirmed_at: string | null;
+  registration_finalized_at: string | null;
+  body_comp_event_count: number;
+  blood_test_day_count: number;
   default_tier?: string | null;
 }
 
@@ -290,6 +294,13 @@ export default function AdminCompaniesPage() {
                         </svg>
                         {c.name}
                       </button>
+                      {c.registration_finalized_at ? (
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Ready</span>
+                      ) : c.roster_confirmed_at && c.body_comp_event_count > 0 && c.blood_test_day_count > 0 ? (
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting finalize</span>
+                      ) : (
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Setup</span>
+                      )}
                       <Link href={`/business/${c.id}`} className="ml-3 text-xs text-blue-600 hover:underline">
                         open →
                       </Link>

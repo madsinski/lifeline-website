@@ -208,6 +208,69 @@ See you tomorrow!
   return { text, html };
 }
 
+export function renderFinalizeStaffEmail(params: {
+  companyName: string;
+  contactEmail: string;
+  memberCount: number;
+  eventCount: number;
+  bloodDayCount: number;
+  adminUrl: string;
+}) {
+  const { companyName, contactEmail, memberCount, eventCount, bloodDayCount, adminUrl } = params;
+  const text = `${companyName} has finalized their Lifeline Health B2B registration.
+
+Contact: ${contactEmail}
+Roster: ${memberCount} employees
+Body-comp events: ${eventCount}
+Blood-test days: ${bloodDayCount}
+
+Open the company in admin: ${adminUrl}`;
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">${escapeHtml(companyName)} is ready</h1>
+    <p style="margin:0 0 16px;color:#4b5563;">Their contact person (${escapeHtml(contactEmail)}) has finalized the B2B setup.</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+      <tr><td style="padding:6px 0;color:#4b5563;">Roster</td><td style="padding:6px 0;text-align:right;font-weight:600;">${memberCount}</td></tr>
+      <tr><td style="padding:6px 0;color:#4b5563;">Body-comp events scheduled</td><td style="padding:6px 0;text-align:right;font-weight:600;">${eventCount}</td></tr>
+      <tr><td style="padding:6px 0;color:#4b5563;">Blood-test days picked</td><td style="padding:6px 0;text-align:right;font-weight:600;">${bloodDayCount}</td></tr>
+    </table>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${adminUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open in admin</a>
+    </div>
+  </div>
+</body></html>`;
+  return { text, html };
+}
+
+export function renderFinalizeContactEmail(params: {
+  recipientName: string;
+  companyName: string;
+  portalUrl: string;
+}) {
+  const { recipientName, companyName, portalUrl } = params;
+  const text = `Hi ${recipientName},
+
+Your Lifeline Health registration for ${companyName} is complete. Our admin team has been notified — your part is done for now.
+
+You can still manage the roster, body-composition day, and blood-test days from the Lifeline business dashboard: ${portalUrl}
+
+We'll take it from here. See you on measurement day.
+
+— Lifeline Health`;
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Registration complete 🎉</h1>
+    <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
+    <p style="margin:0 0 16px;color:#4b5563;">Your Lifeline Health registration for <strong>${escapeHtml(companyName)}</strong> is complete. Our admin team has been notified — your part is done for now.</p>
+    <p style="margin:0 0 16px;color:#4b5563;">You can still manage the roster, body-composition day, and blood-test days from the business dashboard whenever you need to.</p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${portalUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open dashboard</a>
+    </div>
+  </div>
+</body></html>`;
+  return { text, html };
+}
+
 export function renderInviteEmail(params: {
   companyName: string;
   recipientName: string;
