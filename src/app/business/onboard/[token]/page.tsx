@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
+import { LanguagePicker, useI18n } from "@/lib/i18n";
 
 type Stage = "password" | "welcome" | "consent" | "profile" | "account" | "done";
 
@@ -114,7 +115,9 @@ export default function OnboardPage() {
             <span className="font-semibold">Lifeline Health</span>
           </Link>
         </div>
-        <span className="text-sm text-gray-500">Employee onboarding</span>
+        <div className="flex items-center gap-3">
+          <LanguagePicker />
+        </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-12">
@@ -219,51 +222,63 @@ function PasswordStage({
 }
 
 function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue: () => void }) {
+  const { t } = useI18n();
   return (
     <section className="space-y-6">
       <div className="bg-gradient-to-br from-blue-600 via-emerald-500 to-blue-500 rounded-2xl p-8 text-white shadow-sm">
         <p className="text-sm font-semibold tracking-[0.15em] uppercase opacity-90 mb-3">
-          Welcome to Lifeline Health
+          {t("onboard.welcome.eyebrow", "Welcome to Lifeline Health")}
         </p>
         <h1 className="text-3xl sm:text-4xl font-semibold leading-tight">
-          {firstName ? `Hi ${firstName},` : "Hi,"} take control of your health.
+          {firstName
+            ? t("onboard.welcome.title_name", "Hi {{name}}, take control of your health.").replace("{{name}}", firstName)
+            : t("onboard.welcome.title", "Hi, take control of your health.")}
         </h1>
         <p className="mt-3 text-base opacity-95 max-w-lg">
-          Lifeline Health combines targeted health assessments with personalised daily
-          coaching. Know your numbers, build better habits, track your progress — with
-          guidance from Icelandic physicians and coaches.
+          {t("onboard.welcome.body",
+            "Lifeline Health combines targeted health assessments with personalised daily coaching. Know your numbers, build better habits, track your progress — with guidance from Icelandic physicians and coaches.")}
         </p>
       </div>
 
       <div className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
         <div>
-          <h2 className="text-lg font-semibold mb-1">What happens next</h2>
-          <p className="text-sm text-gray-600">A short registration so we can set up your Lifeline account and your body-composition profile.</p>
+          <h2 className="text-lg font-semibold mb-1">{t("onboard.next.heading", "What happens next")}</h2>
+          <p className="text-sm text-gray-600">
+            {t("onboard.next.subtitle",
+              "A short registration so we can set up your Lifeline account and your body-composition profile.")}
+          </p>
         </div>
 
         <ol className="space-y-4">
-          <Step n={1} title="Accept terms &amp; privacy">
-            Standard consent so we can legally look after your data.
+          <Step n={1} title={t("onboard.step1.title", "Accept terms & privacy")}>
+            {t("onboard.step1.body", "Standard consent so we can legally look after your data.")}
           </Step>
-          <Step n={2} title="Confirm your details">
-            Your contact info is already filled in — we just need your sex, height, weight and activity level for your body-composition profile.
+          <Step n={2} title={t("onboard.step2.title", "Confirm your details")}>
+            {t("onboard.step2.body",
+              "Your contact info is already filled in — we just need your sex, height, weight and activity level for your body-composition profile.")}
           </Step>
-          <Step n={3} title="Choose a password">
-            You&apos;ll sign in to the Lifeline app with your email and this password.
+          <Step n={3} title={t("onboard.step3.title", "Choose a password")}>
+            {t("onboard.step3.body", "You'll sign in to the Lifeline app with your email and this password.")}
           </Step>
         </ol>
 
         <div className="border-t border-gray-100 pt-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">After you register</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t("onboard.after.heading", "After you register")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <MiniCard color="#3B82F6" title="Get assessed" body="Body composition scan at a Lifeline station — already included in your plan." />
-            <MiniCard color="#10B981" title="Get your report" body="A Lifeline physician reviews your results and builds a personalised plan." />
-            <MiniCard color="#8B5CF6" title="Start coaching" body="Daily actions across exercise, nutrition, sleep and mental wellness in the app." />
+            <MiniCard color="#3B82F6"
+              title={t("onboard.after.assess.title", "Get assessed")}
+              body={t("onboard.after.assess.body", "Body composition scan at a Lifeline station — already included in your plan.")} />
+            <MiniCard color="#10B981"
+              title={t("onboard.after.report.title", "Get your report")}
+              body={t("onboard.after.report.body", "A Lifeline physician reviews your results and builds a personalised plan.")} />
+            <MiniCard color="#8B5CF6"
+              title={t("onboard.after.coach.title", "Start coaching")}
+              body={t("onboard.after.coach.body", "Daily actions across exercise, nutrition, sleep and mental wellness in the app.")} />
           </div>
         </div>
 
         <div className="flex justify-end">
-          <button onClick={onContinue} className="btn-primary">Let&apos;s get started</button>
+          <button onClick={onContinue} className="btn-primary">{t("onboard.welcome.cta", "Let's get started")}</button>
         </div>
       </div>
     </section>
