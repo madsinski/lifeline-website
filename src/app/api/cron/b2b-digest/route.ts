@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
 
@@ -7,13 +8,35 @@ export const maxDuration = 300;
 // Protected by CRON_SECRET (Vercel Cron adds this as Authorization: Bearer <secret>)
 function authorised(req: NextRequest): boolean {
   const expected = process.env.CRON_SECRET;
-  if (!expected) return false; // refuse to run if not configured
+  if (!expected) return false;
   const auth = req.headers.get("authorization") || "";
-  return auth === `Bearer ${expected}`;
+  const prefix = "Bearer ";
+  if (!auth.startsWith(prefix)) return false;
+  const got = auth.slice(prefix.length);
+  // Length must match before timingSafeEqual — use fixed-width compare.
+  const a = Buffer.from(got);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 export async function GET(req: NextRequest) {
   if (!authorised(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // C4: daily idempotency. If we already ran today, short-circuit.
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: existing } = await supabaseAdmin
+    .from("b2b_digest_runs")
+    .select("run_date, sent_count, failed_count")
+    .eq("run_date", today)
+    .maybeSingle();
+  if (existing) {
+    return NextResponse.json({
+      ok: true,
+      idempotent: true,
+      already_ran: existing,
+    });
+  }
 
   // For every company, compute totals + send one email to the contact person
   const { data: companies } = await supabaseAdmin
@@ -90,10 +113,20 @@ Open your dashboard: ${url}
     }
   }
 
+  const sent = results.filter((r) => r.sent).length;
+  const failed = results.filter((r) => !r.sent).length;
+
+  // Record the run for idempotency
+  await supabaseAdmin.from("b2b_digest_runs").insert({
+    run_date: today,
+    sent_count: sent,
+    failed_count: failed,
+  });
+
   return NextResponse.json({
     processed: results.length,
-    sent: results.filter((r) => r.sent).length,
-    failed: results.filter((r) => !r.sent).length,
+    sent,
+    failed,
   });
 }
 

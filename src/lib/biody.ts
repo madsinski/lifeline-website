@@ -41,6 +41,15 @@ export async function activateBiodyForClient(clientId: string): Promise<Activate
     };
   }
 
+  // M3: Atomically claim the right to activate this client. Prevents two
+  // concurrent requests from each creating a duplicate Biody patient.
+  const { data: claimed } = await supabaseAdmin.rpc("claim_biody_activation", {
+    p_client_id: clientId,
+  });
+  if (claimed !== true) {
+    return { ok: false, error: "activation_in_progress", detail: "Another request is activating this client" };
+  }
+
   const parts = (client.full_name || "").split(" ").filter(Boolean);
   const firstName = parts[0] || client.full_name || "User";
   const lastName = parts.slice(1).join(" ") || "-";
@@ -74,14 +83,19 @@ export async function activateBiodyForClient(clientId: string): Promise<Activate
     });
     const json = await res.json().catch(() => null);
     if (!res.ok) {
+      await supabaseAdmin.rpc("release_biody_activation", { p_client_id: clientId });
       return { ok: false, error: "biody_sync_error", detail: json };
     }
+    // biody-sync persists biody_patient_id itself; release the claim so the
+    // column isn't left with a stale in-progress marker.
+    await supabaseAdmin.rpc("release_biody_activation", { p_client_id: clientId });
     return {
       ok: true,
       biody_patient_id: json?.biody_patient_id,
       biody_uuid: json?.biody_uuid ?? null,
     };
   } catch (e) {
+    await supabaseAdmin.rpc("release_biody_activation", { p_client_id: clientId });
     return { ok: false, error: (e as Error).message };
   }
 }

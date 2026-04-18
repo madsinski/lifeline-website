@@ -284,6 +284,20 @@ function AdminsSection({ companyId }: { companyId: string }) {
     load();
   };
 
+  const promote = async (userId: string, email: string | null) => {
+    if (!confirm(`Make ${email || userId} the primary contact person? You will be demoted to a co-admin.`)) return;
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/business/companies/${companyId}/promote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    const j = await res.json();
+    if (!res.ok) alert(`Failed: ${j.error || "promote_failed"}`);
+    load();
+  };
+
   return (
     <section className="bg-white rounded-2xl p-6 shadow-sm">
       <h2 className="text-lg font-semibold mb-1">Company admins</h2>
@@ -315,7 +329,10 @@ function AdminsSection({ companyId }: { companyId: string }) {
               {a.is_primary && <span className="ml-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Primary</span>}
             </div>
             {!a.is_primary && (
-              <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
+                <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
+              </div>
             )}
           </div>
         ))}

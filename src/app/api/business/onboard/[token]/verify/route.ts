@@ -12,6 +12,23 @@ export async function POST(
     return NextResponse.json({ error: "token and password required" }, { status: 400 });
   }
 
+  // M5: per-IP rate limit before hitting the verify function itself.
+  // 20 verify attempts per hour per IP — complements the per-member lockout.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("x-real-ip")?.trim()
+    || "unknown";
+  const { data: allowed } = await supabaseAdmin.rpc("check_rate_limit", {
+    p_key: `invite_verify:${ip}`,
+    p_max: 20,
+    p_window: "01:00:00",
+  });
+  if (allowed === false) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again later." },
+      { status: 429 },
+    );
+  }
+
   const { data, error } = await supabaseAdmin.rpc("verify_member_invite", {
     p_token: token,
     p_password: password,
@@ -28,7 +45,6 @@ export async function POST(
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) return NextResponse.json({ error: "Invalid password" }, { status: 401 });
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
   const ua = req.headers.get("user-agent") || "";
   await supabaseAdmin.rpc("log_kennitala_access", {
     p_actor_role: "onboarding",
