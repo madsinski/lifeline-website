@@ -57,14 +57,12 @@ interface PaymentRow {
 /* ---------- nav sections ---------- */
 type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "programs" | "app" | "settings";
 const navItems: { id: Section; label: string; icon: string }[] = [
-  { id: "overview", label: "Health Overview", icon: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" },
-  { id: "profile", label: "Profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
-  { id: "messages", label: "Messages", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
-  { id: "billing", label: "Billing & Plans", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
+  { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
   { id: "assessment", label: "Assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
+  { id: "programs", label: "My programs", icon: "M3 6.5A1.5 1.5 0 014.5 5h15A1.5 1.5 0 0121 6.5v1A1.5 1.5 0 0119.5 9h-15A1.5 1.5 0 013 7.5v-1zM3 11.5h4v5H3v-5zm7 0h4v7h-4v-7zm7 0h4v3h-4v-3z" },
+  { id: "messages", label: "Messages", icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
   { id: "education", label: "Education", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
-  { id: "programs", label: "My Programs", icon: "M3 6.5A1.5 1.5 0 014.5 5h15A1.5 1.5 0 0121 6.5v1A1.5 1.5 0 0119.5 9h-15A1.5 1.5 0 013 7.5v-1zM3 11.5h4v5H3v-5zm7 0h4v7h-4v-7zm7 0h4v3h-4v-3z" },
-  { id: "app", label: "App & Devices", icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
+  { id: "billing", label: "Billing", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
@@ -112,11 +110,16 @@ function AccountPageInner() {
 
   /* profile fields */
   const [profileFirstName, setProfileFirstName] = useState("");
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompBookingAt, setBodyCompBookingAt] = useState<string | null>(null);
   const [lastBodyCompAt, setLastBodyCompAt] = useState<string | null>(null);
   const [biodyActivated, setBiodyActivated] = useState(false);
+  /* upcoming-events data for the Home timeline */
+  const [companyEvent, setCompanyEvent] = useState<{ id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null>(null);
+  const [mySlotAt, setMySlotAt] = useState<string | null>(null);
+  const [upcomingBloodDays, setUpcomingBloodDays] = useState<Array<{ day: string; notes: string | null }>>([]);
   const [profileLastName, setProfileLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -246,10 +249,38 @@ function AccountPageInner() {
           setLastBodyCompAt((cData.last_body_comp_at as string | null) || null);
           setBiodyActivated(!!cData.biody_patient_id);
           if (companyId) {
+            setCompanyId(companyId);
             const { data: c } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
             if (c?.name) setCompanyName(c.name);
+            const today = new Date().toISOString().slice(0, 10);
+            // Upcoming B2B body-comp event + my slot
+            const { data: ev } = await supabase
+              .from("body_comp_events")
+              .select("id, event_date, start_time, end_time, location, room_notes")
+              .eq("company_id", companyId)
+              .eq("status", "scheduled")
+              .gte("event_date", today)
+              .order("event_date")
+              .limit(1)
+              .maybeSingle();
+            if (ev) setCompanyEvent(ev);
+            const { data: myB } = await supabase
+              .from("body_comp_event_bookings")
+              .select("slot_at, event_id")
+              .eq("client_id", currentUser.id)
+              .order("slot_at")
+              .limit(1)
+              .maybeSingle();
+            if (myB) setMySlotAt(myB.slot_at);
+            const { data: bd } = await supabase
+              .from("blood_test_days")
+              .select("day, notes")
+              .eq("company_id", companyId)
+              .gte("day", today)
+              .order("day");
+            setUpcomingBloodDays((bd || []) as Array<{ day: string; notes: string | null }>);
           }
-          // Body comp booking status
+          // Body comp booking status (solo / clinic booking path)
           const { data: booking } = await supabase
             .from("body_comp_bookings")
             .select("scheduled_at, status")
@@ -902,53 +933,38 @@ function AccountPageInner() {
                   </div>
                 </section>
 
-                {/* Quick actions */}
-                <section>
-                  <h3 className="text-sm font-medium text-[#6B7280] mb-3 px-1">Quick actions</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Link href="/assessment"
-                      className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
-                      <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 flex items-center justify-center mb-3 group-hover:bg-[#10B981]/20 transition-colors">
-                        <svg className="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-semibold text-[#1F2937]">Book Assessment</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">Schedule a health check</p>
-                    </Link>
-                    <button onClick={() => setActiveSection("billing")}
-                      className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group text-left">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-semibold text-[#1F2937]">View Plans</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">Manage your subscription</p>
-                    </button>
-                    <Link href="/coaching#download"
-                      className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
-                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-3 group-hover:bg-purple-100 transition-colors">
-                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-semibold text-[#1F2937]">Download App</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">Get the Lifeline app</p>
-                    </Link>
-                    <div className="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
-                      <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center mb-3">
-                        <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-semibold text-[#1F2937] mb-2">Patient Portal</p>
-                      <MedaliaButton label="Open Portal" size="sm" />
-                    </div>
-                  </div>
-                </section>
+                {/* Your journey timeline */}
+                <JourneyTimeline
+                  hasOnboarded={true}
+                  biodyActivated={biodyActivated}
+                  bodyCompStatus={bodyCompStatus}
+                  lastBodyCompAt={lastBodyCompAt}
+                  hasProgram={programs.length > 0}
+                  onGoToAssessment={() => setActiveSection("assessment")}
+                  onGoToPrograms={() => setActiveSection("programs")}
+                />
 
-                {/* Your plan + Assessment status */}
+                {/* What's next (7 days) */}
+                <WhatsNext
+                  mySlotAt={mySlotAt}
+                  companyEvent={companyEvent}
+                  bloodDays={upcomingBloodDays}
+                  unreadMessages={conversationsCount}
+                  onGoToMessages={() => setActiveSection("messages")}
+                  onGoToAssessment={() => setActiveSection("assessment")}
+                />
+
+                {/* Your company (B2B only) */}
+                {companyId && companyName && (
+                  <YourCompanyCard
+                    companyName={companyName}
+                    mySlotAt={mySlotAt}
+                    companyEvent={companyEvent}
+                    bloodDays={upcomingBloodDays}
+                  />
+                )}
+
+                {/* Plan + Patient Portal shortcut */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <section className="bg-white rounded-2xl shadow-sm p-6">
                     <h3 className="text-sm font-medium text-[#6B7280] mb-3">Your plan</h3>
@@ -965,15 +981,15 @@ function AccountPageInner() {
                             </span>
                           </p>
                         )}
-                        {currentTier === "free-trial" && (
-                          <p className="text-xs text-[#6B7280] mt-2">Free forever</p>
-                        )}
+                        {currentTier === "free-trial" && <p className="text-xs text-[#6B7280] mt-2">Free forever</p>}
+                        <button onClick={() => setActiveSection("billing")} className="mt-3 text-xs text-[#10B981] hover:underline">
+                          Manage plan →
+                        </button>
                       </div>
                     ) : (
                       <div>
                         <p className="text-sm text-[#6B7280]">No active plan</p>
-                        <button onClick={() => setActiveSection("billing")}
-                          className="mt-2 text-sm font-medium text-[#10B981] hover:underline">
+                        <button onClick={() => setActiveSection("billing")} className="mt-2 text-sm font-medium text-[#10B981] hover:underline">
                           Choose a plan
                         </button>
                       </div>
@@ -981,36 +997,11 @@ function AccountPageInner() {
                   </section>
 
                   <section className="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 className="text-sm font-medium text-[#6B7280] mb-3">Assessment status</h3>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        bodyCompStatus === "completed" ? "bg-emerald-50" : bodyCompStatus === "booked" ? "bg-blue-50" : "bg-[#ecf0f3]"
-                      }`}>
-                        <svg className={`w-5 h-5 ${
-                          bodyCompStatus === "completed" ? "text-[#10B981]" : bodyCompStatus === "booked" ? "text-blue-600" : "text-[#9CA3AF]"
-                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                      </div>
-                      <div>
-                        {bodyCompStatus === "completed" ? (
-                          <>
-                            <p className="text-sm font-medium text-[#1F2937]">Scan complete</p>
-                            <p className="text-xs text-[#6B7280]">{lastBodyCompAt ? new Date(lastBodyCompAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Results available"}</p>
-                          </>
-                        ) : bodyCompStatus === "booked" ? (
-                          <>
-                            <p className="text-sm font-medium text-[#1F2937]">Scan booked</p>
-                            <p className="text-xs text-[#6B7280]">{bodyCompBookingAt ? new Date(bodyCompBookingAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Pending confirmation"}</p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-sm font-medium text-[#1F2937]">No assessments yet</p>
-                            <Link href="/assessment" className="text-xs text-[#10B981] hover:underline">Book your first</Link>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    <h3 className="text-sm font-medium text-[#6B7280] mb-3">Patient portal</h3>
+                    <p className="text-xs text-[#6B7280] mb-3 leading-relaxed">
+                      Clinical records, physician notes, and appointments live in our secure portal.
+                    </p>
+                    <MedaliaButton label="Open portal" size="sm" />
                   </section>
                 </div>
               </>
@@ -1815,7 +1806,12 @@ function AccountPageInner() {
                     </div>
                   ) : (
                     <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
-                      <p className="text-sm text-[#6B7280]">No programs assigned yet. Create a custom program below!</p>
+                      <p className="text-sm text-[#1F2937] font-medium mb-1">Your programs will appear here</p>
+                      <p className="text-xs text-[#6B7280]">
+                        {bodyCompStatus === "completed"
+                          ? "Your Lifeline physician will assign programs after reviewing your report. You can also build your own below."
+                          : "Complete your body-composition scan first — your Lifeline physician then assigns programs based on the results. You can also build your own below."}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -2228,6 +2224,34 @@ function AccountPageInner() {
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                 <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Account Settings</h2>
 
+                {/* Personal information entry (opens the Profile section) */}
+                <div className="border-b border-gray-100 pb-5 mb-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-[#1F2937]">Personal information</p>
+                      <p className="text-xs text-[#6B7280]">Name, phone, address, emergency contact</p>
+                    </div>
+                    <button onClick={() => setActiveSection("profile")}
+                      className="text-sm font-medium text-[#10B981] hover:underline">
+                      Edit
+                    </button>
+                  </div>
+                </div>
+
+                {/* App & devices (formerly its own section) */}
+                <div className="border-b border-gray-100 pb-5 mb-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-[#1F2937]">Lifeline app</p>
+                      <p className="text-xs text-[#6B7280]">Get the QR code to sign in on mobile</p>
+                    </div>
+                    <button onClick={() => setActiveSection("app")}
+                      className="text-sm font-medium text-[#10B981] hover:underline">
+                      Open
+                    </button>
+                  </div>
+                </div>
+
                 {/* Password */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="flex items-center justify-between">
@@ -2366,5 +2390,233 @@ export default function AccountPage() {
     }>
       <AccountPageInner />
     </Suspense>
+  );
+}
+
+// ── Home overview sub-components ──────────────────────────────────────────
+
+function JourneyTimeline({
+  hasOnboarded, biodyActivated, bodyCompStatus, lastBodyCompAt, hasProgram,
+  onGoToAssessment, onGoToPrograms,
+}: {
+  hasOnboarded: boolean;
+  biodyActivated: boolean;
+  bodyCompStatus: "none" | "booked" | "completed";
+  lastBodyCompAt: string | null;
+  hasProgram: boolean;
+  onGoToAssessment: () => void;
+  onGoToPrograms: () => void;
+}) {
+  const steps = [
+    {
+      title: "Onboarding",
+      done: hasOnboarded,
+      active: false,
+      description: "Profile + consent complete.",
+    },
+    {
+      title: "Body-composition profile",
+      done: biodyActivated,
+      active: hasOnboarded && !biodyActivated,
+      description: biodyActivated ? "Registered with Biody." : "Activate on the welcome page.",
+    },
+    {
+      title: "Scan & report",
+      done: bodyCompStatus === "completed",
+      active: biodyActivated && bodyCompStatus !== "completed",
+      description: bodyCompStatus === "completed"
+        ? `Last scan ${lastBodyCompAt ? new Date(lastBodyCompAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "complete"}.`
+        : bodyCompStatus === "booked"
+          ? "Scan is booked. A Lifeline physician reviews results after."
+          : "Book at a Lifeline station or your company's on-site day.",
+      cta: bodyCompStatus === "none" ? { label: "Book scan", onClick: onGoToAssessment } : undefined,
+    },
+    {
+      title: "Daily coaching plan",
+      done: hasProgram,
+      active: bodyCompStatus === "completed" && !hasProgram,
+      description: hasProgram
+        ? "Your programs are ready."
+        : "Appears after your physician reviews your results.",
+      cta: hasProgram ? { label: "Open programs", onClick: onGoToPrograms } : undefined,
+    },
+  ];
+
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Your journey</h3>
+      <p className="text-sm text-[#6B7280] mb-6">Where you are in the Lifeline programme.</p>
+      <ol className="relative border-l-2 border-gray-100 ml-4">
+        {steps.map((s, i) => {
+          const dotColor = s.done
+            ? "bg-emerald-500 text-white"
+            : s.active
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-400";
+          return (
+            <li key={i} className="relative pl-6 pb-6 last:pb-0">
+              <span className={`absolute -left-[13px] top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${dotColor}`}>
+                {s.done ? (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : i + 1}
+              </span>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <div className={`font-semibold ${s.done ? "text-gray-500" : s.active ? "text-gray-900" : "text-gray-400"}`}>
+                    {s.title}
+                  </div>
+                  <div className={`text-sm ${s.active ? "text-gray-700" : "text-gray-500"} mt-0.5`}>{s.description}</div>
+                </div>
+                {s.cta && (
+                  <button onClick={s.cta.onClick} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
+                    {s.cta.label} →
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function WhatsNext({
+  mySlotAt, companyEvent, bloodDays, unreadMessages,
+  onGoToMessages, onGoToAssessment,
+}: {
+  mySlotAt: string | null;
+  companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null } | null;
+  bloodDays: Array<{ day: string; notes: string | null }>;
+  unreadMessages: number;
+  onGoToMessages: () => void;
+  onGoToAssessment: () => void;
+}) {
+  interface Item { date: Date; label: string; detail: string; action?: { label: string; onClick: () => void } }
+  const now = new Date();
+  const horizon = new Date(Date.now() + 7 * 86_400_000);
+  const items: Item[] = [];
+
+  if (mySlotAt) {
+    const d = new Date(mySlotAt);
+    if (d >= now && d <= horizon) {
+      items.push({
+        date: d,
+        label: "Your body-composition slot",
+        detail: `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })} at ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}${companyEvent?.location ? ` · ${companyEvent.location}` : ""}`,
+      });
+    }
+  } else if (companyEvent) {
+    const d = new Date(companyEvent.event_date + "T00:00:00");
+    if (d >= now && d <= horizon) {
+      items.push({
+        date: d,
+        label: "Body-composition day (slot not picked)",
+        detail: `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}`,
+        action: { label: "Pick a slot", onClick: onGoToAssessment },
+      });
+    }
+  }
+
+  for (const b of bloodDays) {
+    const d = new Date(b.day + "T08:00:00");
+    if (d >= now && d <= horizon) {
+      items.push({
+        date: d,
+        label: "Blood-test day at Sameind",
+        detail: `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })} · any time 08:00–12:00`,
+      });
+    }
+  }
+
+  if (unreadMessages > 0) {
+    items.push({
+      date: now,
+      label: `${unreadMessages} unread message${unreadMessages === 1 ? "" : "s"} from your coach`,
+      detail: "Reply in the Messages tab.",
+      action: { label: "Open messages", onClick: onGoToMessages },
+    });
+  }
+
+  items.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">What&apos;s next — the next 7 days</h3>
+      {items.length === 0 ? (
+        <p className="text-sm text-gray-500 mt-2">Nothing on the calendar this week. We&apos;ll nudge you by email when there is.</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-gray-100">
+          {items.map((it, i) => (
+            <li key={i} className="py-3 flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <div className="font-medium text-gray-900">{it.label}</div>
+                <div className="text-sm text-gray-600 mt-0.5">{it.detail}</div>
+              </div>
+              {it.action && (
+                <button onClick={it.action.onClick} className="text-xs font-medium text-blue-600 hover:underline shrink-0">
+                  {it.action.label} →
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function YourCompanyCard({
+  companyName, mySlotAt, companyEvent, bloodDays,
+}: {
+  companyName: string;
+  mySlotAt: string | null;
+  companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null;
+  bloodDays: Array<{ day: string; notes: string | null }>;
+}) {
+  return (
+    <section className="rounded-2xl p-6 sm:p-8 text-white shadow-sm"
+      style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
+      <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-2">Via your company</p>
+      <h3 className="text-xl font-semibold">{companyName}</h3>
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div className="bg-white/10 rounded-lg p-3">
+          <div className="text-xs uppercase tracking-wider opacity-80 mb-1">Body-composition day</div>
+          {companyEvent ? (
+            <>
+              <div className="font-semibold">
+                {new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+              </div>
+              {mySlotAt ? (
+                <div className="text-xs opacity-90 mt-0.5">
+                  Your slot: {new Date(mySlotAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                </div>
+              ) : (
+                <div className="text-xs opacity-90 mt-0.5">Pick a slot on your welcome page</div>
+              )}
+              {companyEvent.location && <div className="text-xs opacity-80 mt-1">{companyEvent.location}</div>}
+            </>
+          ) : (
+            <div className="text-xs opacity-80">Your company hasn&apos;t scheduled a day yet.</div>
+          )}
+        </div>
+        <div className="bg-white/10 rounded-lg p-3">
+          <div className="text-xs uppercase tracking-wider opacity-80 mb-1">Blood-test days</div>
+          {bloodDays.length > 0 ? (
+            <>
+              <div className="font-semibold">
+                {bloodDays.slice(0, 3).map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(", ")}
+                {bloodDays.length > 3 && ` + ${bloodDays.length - 3}`}
+              </div>
+              <div className="text-xs opacity-90 mt-0.5">08:00–12:00 at Sameind</div>
+            </>
+          ) : (
+            <div className="text-xs opacity-80">No days approved yet by your company.</div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
