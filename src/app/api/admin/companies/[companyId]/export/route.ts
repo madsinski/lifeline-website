@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
 
+export const maxDuration = 30;
+
+interface ExportRow {
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  kennitala?: string | null;         // staff full
+  kennitala_last4?: string | null;   // contact person
+  invited_at: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ companyId: string }> },
@@ -23,42 +36,35 @@ export async function GET(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Contact persons get last-4 only; staff get the full value.
-  const fullAccess = staff;
+  // M4: one SQL call that decrypts server-side + logs a single audit row.
+  // Route via a user-JWT supabase client so auth.uid() resolves inside the
+  // security-definer RPC and the audit log ties the export to the caller.
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "");
+  const { createClient } = await import("@supabase/supabase-js");
+  const userSupabase = createClient(
+    process.env.SUPABASE_URL || "https://cfnibfxzltxiriqxvvru.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmbmliZnh6bHR4aXJpcXh2dnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzQxMDgsImV4cCI6MjA5MDQ1MDEwOH0.LHBADsUdW7SBtrxZ9KikTmAl5brBGPb3gFTMuPYrmD8",
+    { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } },
+  );
 
-  const { data: members } = await supabaseAdmin
-    .from("company_members")
-    .select("id, full_name, email, phone, kennitala_encrypted, invited_at, completed_at, created_at")
-    .eq("company_id", companyId)
-    .order("created_at");
+  const rpc = staff ? "export_company_members_full" : "export_company_members_last4";
+  const { data, error } = await userSupabase.rpc(rpc, { p_company_id: companyId });
+  if (error) {
+    console.error("[export] rpc failed", error);
+    return NextResponse.json({ error: "export_failed" }, { status: 500 });
+  }
 
+  const members = (data || []) as ExportRow[];
   const rows: string[] = [
-    ["name", fullAccess ? "kennitala" : "kennitala_last4", "email", "phone", "invited_at", "completed_at", "created_at"].join(","),
+    ["name", staff ? "kennitala" : "kennitala_last4", "email", "phone", "invited_at", "completed_at", "created_at"].join(","),
   ];
-
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
-  const ua = req.headers.get("user-agent") || "";
-
-  for (const m of members || []) {
-    let kt = "";
-    if (m.kennitala_encrypted) {
-      const rpc = fullAccess ? "dec_kennitala" : "kennitala_last4";
-      const { data: dec } = await supabaseAdmin.rpc(rpc, { p_enc: m.kennitala_encrypted });
-      kt = (dec as string) || "";
-      await supabaseAdmin.rpc("log_kennitala_access", {
-        p_actor_role: staff ? "staff" : "contact_person",
-        p_scope: fullAccess ? "full" : "last4",
-        p_purpose: "csv_export",
-        p_subject_kind: "company_member",
-        p_subject_id: m.id,
-        p_ip: ip,
-        p_user_agent: ua,
-      });
-    }
+  for (const m of members) {
     rows.push([
-      csv(m.full_name),
-      csv(kt),
-      csv(m.email),
+      csv(m.full_name || ""),
+      csv((staff ? m.kennitala : m.kennitala_last4) || ""),
+      csv(m.email || ""),
       csv(m.phone || ""),
       csv(m.invited_at || ""),
       csv(m.completed_at || ""),
@@ -66,7 +72,6 @@ export async function GET(
     ].join(","));
   }
 
-  // Prefix UTF-8 BOM so Excel opens Icelandic characters correctly.
   return new NextResponse("\ufeff" + rows.join("\n"), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

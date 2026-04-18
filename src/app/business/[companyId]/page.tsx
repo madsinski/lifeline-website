@@ -427,7 +427,12 @@ function MemberRow({ member, onChange }: { member: Member; onChange: () => void 
 
   const remove = async () => {
     if (!confirm(`Remove ${member.full_name} from the roster?`)) return;
-    await supabase.from("company_members").delete().eq("id", member.id);
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    await fetch(`/api/business/members/${member.id}`, {
+      method: "DELETE",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+    });
     onChange();
   };
 

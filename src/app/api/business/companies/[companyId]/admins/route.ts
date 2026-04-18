@@ -26,6 +26,19 @@ export async function POST(
     return NextResponse.json({ error: "invalid email" }, { status: 400 });
   }
 
+  // M6: rate-limit co-admin invites per company (10/day)
+  const { data: allowed } = await supabaseAdmin.rpc("check_rate_limit", {
+    p_key: `coadmin_invite:${companyId}`,
+    p_max: 10,
+    p_window: "24:00:00",
+  });
+  if (allowed === false) {
+    return NextResponse.json(
+      { error: "rate_limit_exceeded", detail: "Too many co-admin invites in the past 24h." },
+      { status: 429 },
+    );
+  }
+
   // Find or create the user
   let target = await findAuthUserByEmail(email);
   if (!target) {

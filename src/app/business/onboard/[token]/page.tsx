@@ -363,7 +363,13 @@ function ProfileStage({
           </Field>
         </div>
         <Field label="Kennitala">
-          <input type="text" value={kennitala} disabled className="input font-mono tracking-wider" />
+          <input
+            type="text"
+            value={maskKennitala(kennitala)}
+            disabled
+            className="input font-mono tracking-wider"
+            title="Only the last 4 digits are shown for your protection. Lifeline holds your full kennitala encrypted."
+          />
         </Field>
       </div>
 
@@ -519,6 +525,12 @@ function MiniCard({ color, title, body }: { color: string; title: string; body: 
       <div className="text-xs text-gray-600 leading-snug">{body}</div>
     </div>
   );
+}
+
+function maskKennitala(kt: string | null | undefined): string {
+  const d = (kt || "").replace(/[^0-9]/g, "");
+  if (d.length < 4) return "";
+  return "••••••" + d.slice(-4);
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

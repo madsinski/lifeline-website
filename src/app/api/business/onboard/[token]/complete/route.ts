@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, renderWelcomeEmail } from "@/lib/email";
 import { findAuthUserByEmail } from "@/lib/auth-helpers";
 
+export const maxDuration = 60;
+
 const BIODY_SYNC_URL = process.env.BIODY_SYNC_URL ||
   "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/biody-sync";
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://cfnibfxzltxiriqxvvru.supabase.co";
