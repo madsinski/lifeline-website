@@ -556,7 +556,14 @@ function ImportForm({ companyId, onDone }: { companyId: string; onDone: () => vo
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const downloadTemplate = () => {
-    const csv = "name,kennitala,email,phone\nJón Jónsson,1406221680,jon@example.is,7674393\n";
+    const rows = [
+      "name,kennitala,email,phone",
+      "Jón Jónsson,1406221680,jon@example.is,7674393",
+      "Guðrún Þórðardóttir,2904913129,gudrun@example.is,8905234",
+      "Einar Ægir Björnsson,0301904599,einar@example.is,7712345",
+    ];
+    // Prefix the UTF-8 BOM so Excel opens Icelandic characters correctly.
+    const csv = "\ufeff" + rows.join("\n") + "\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
