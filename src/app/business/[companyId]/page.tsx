@@ -412,6 +412,9 @@ export default function BusinessDashboardPage() {
           </button>
         </StepCard>
 
+        {/* Billing card */}
+        <BillingCard companyId={companyId!} />
+
         {/* Finalize CTA — shown when all 3 steps done but not yet finalized */}
         {allStepsDone && !finalized && (
           <section className="rounded-2xl p-6 text-white shadow-sm"
@@ -1170,3 +1173,90 @@ function MessageContactModal({
   );
 }
 
+
+function BillingCard({ companyId }: { companyId: string }) {
+  interface Invoice {
+    id: string;
+    payday_invoice_number: string | null;
+    status: string;
+    currency: string;
+    amount_net: number;
+    amount_total: number;
+    vat_rate: number;
+    quantity: number;
+    issued_at: string | null;
+    due_at: string | null;
+    paid_at: string | null;
+    pdf_url: string | null;
+    created_at: string;
+  }
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.rpc("list_company_invoices", { p_company_id: companyId });
+      setInvoices((data || []) as Invoice[]);
+      setLoading(false);
+    })();
+  }, [companyId]);
+
+  const statusColor = (s: string) =>
+    s === "paid" ? "bg-emerald-100 text-emerald-700"
+    : s === "sent" ? "bg-blue-100 text-blue-700"
+    : s === "overdue" ? "bg-red-100 text-red-700"
+    : s === "cancelled" ? "bg-gray-100 text-gray-500"
+    : "bg-amber-100 text-amber-700";
+
+  return (
+    <section className="bg-white rounded-2xl p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div>
+          <h2 className="text-lg font-semibold">Billing</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Your company is invoiced once the full assessment + doctor interviews are complete. Billing is handled through PayDay.
+          </p>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-gray-500">Loading…</p>
+      ) : invoices.length === 0 ? (
+        <div className="rounded-lg bg-gray-50 border border-gray-100 p-4 text-sm text-gray-600">
+          No invoices yet. Lifeline will generate one after the body-composition day and doctor interviews are complete.
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
+          {invoices.map((inv) => (
+            <div key={inv.id} className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-gray-900">
+                    {inv.payday_invoice_number || `Invoice ${inv.id.slice(0, 8)}`}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(inv.status)}`}>
+                    {inv.status}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {inv.quantity} × {Math.round(inv.amount_net / inv.quantity).toLocaleString()} ISK ·
+                  VAT {inv.vat_rate}% ·
+                  <strong className="ml-1 text-gray-700">{inv.amount_total.toLocaleString()} ISK incl. VAT</strong>
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {inv.issued_at && <>Issued {new Date(inv.issued_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</>}
+                  {inv.due_at && <> · Due {new Date(inv.due_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</>}
+                </div>
+              </div>
+              {inv.pdf_url && (
+                <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline shrink-0">
+                  PDF ↗
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

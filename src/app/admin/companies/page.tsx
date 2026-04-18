@@ -44,6 +44,34 @@ const TIERS = [
   { value: "full-access", label: "Full Access" },
 ];
 
+function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; companyName: string }) {
+  const [busy, setBusy] = useState(false);
+  const click = async () => {
+    const override = prompt(`Unit price (ISK) per completed employee for ${companyName}? Blank = use company default.`);
+    if (override === null) return;
+    const unit = override.trim() ? Number(override) : undefined;
+    const notes = prompt("Invoice note (optional — appears in line item)") || "";
+    if (!confirm(`Generate PayDay invoice for every completed assessment at ${companyName}?`)) return;
+    setBusy(true);
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/admin/companies/${companyId}/invoice`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ unit_price: unit, notes: notes.trim() || undefined }),
+    });
+    const j = await res.json();
+    if (!res.ok) alert(`Failed: ${j.detail || j.error || "unknown"}`);
+    else alert(`Invoice created${j.payday_invoice_number ? ` · ${j.payday_invoice_number}` : ""} · ${j.quantity} × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK incl. VAT`);
+    setBusy(false);
+  };
+  return (
+    <button onClick={click} disabled={busy} className="text-purple-700 hover:underline disabled:opacity-50">
+      {busy ? "Creating…" : "Invoice"}
+    </button>
+  );
+}
+
 function EnsureGroupButton({ companyId }: { companyId: string }) {
   const [busy, setBusy] = useState(false);
   const click = async () => {
@@ -350,6 +378,7 @@ export default function AdminCompaniesPage() {
                     <td className="px-4 py-3 text-right whitespace-nowrap space-x-3">
                       <EnsureGroupButton companyId={c.id} />
                       <BulkActivateButton companyId={c.id} />
+                      <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
                       <button onClick={() => downloadCsv(c.id, c.name)} className="text-blue-600 hover:underline">
                         CSV
                       </button>
