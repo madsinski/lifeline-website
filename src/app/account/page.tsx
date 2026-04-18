@@ -2752,8 +2752,9 @@ function JourneyTimeline({
       done: false,
       active: hasBodyCompSlot && hasBloodTestBooking,
       description: hasBodyCompSlot && hasBloodTestBooking
-        ? "You'll receive an SMS from the Lifeline team within the next 7 days with a link to the questionnaire."
-        : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test.",
+        ? "You'll receive an SMS from the Lifeline team within the next 7 days with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
+        : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test. The questionnaire will be available in your secure patient portal.",
+      portal: true,
     },
     {
       title: "Doctor consultation",
@@ -2794,6 +2795,11 @@ function JourneyTimeline({
                     {s.title}
                   </div>
                   <div className={`text-sm ${s.active ? "text-gray-700" : "text-gray-500"} mt-0.5`}>{s.description}</div>
+                  {"portal" in s && s.portal && (
+                    <div className="mt-3">
+                      <MedaliaButton label="Open patient portal" size="sm" />
+                    </div>
+                  )}
                 </div>
                 {s.cta && (
                   <button onClick={s.cta.onClick} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
@@ -2860,8 +2866,8 @@ function CurrentBookings({
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">Measurement</div>
-                  <div className="font-semibold text-gray-900 leading-tight">Body-composition scan</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">On-site</div>
+                  <div className="font-semibold text-gray-900 leading-tight">Measurements</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-sm text-gray-700">
@@ -2887,6 +2893,16 @@ function CurrentBookings({
                   </div>
                 )}
                 {companyEvent.room_notes && <div className="text-xs text-gray-500 pl-6">{companyEvent.room_notes}</div>}
+              </div>
+              <div className="mt-3 rounded-lg bg-blue-50/70 border border-blue-100 px-3 py-2 text-xs text-blue-900">
+                <div className="font-semibold mb-1">What to expect</div>
+                <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-blue-900/90">
+                  <li>Blood pressure</li>
+                  <li>Height</li>
+                  <li>Weight</li>
+                  <li>Body composition (muscle mass %, fat %)</li>
+                </ul>
+                <div className="mt-1.5 text-[11.5px] text-blue-900/80">Takes about 5 minutes. Wear light clothing, no shoes, and avoid heavy meals just before.</div>
               </div>
               <div className="mt-4 pt-4 border-t border-blue-100/70">
                 <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors">
@@ -2982,6 +2998,16 @@ function CurrentBookings({
               )}
               {myDoctorSlot.notes && <div className="text-xs text-gray-500 pl-6">{myDoctorSlot.notes}</div>}
               {myDoctorSlot.booking_note && <div className="text-xs text-gray-500 pl-6 italic">“{myDoctorSlot.booking_note}”</div>}
+            </div>
+            <div className="mt-3 rounded-lg bg-violet-50/70 border border-violet-100 px-3 py-2 text-xs text-violet-900">
+              <div className="font-semibold mb-1">What to expect</div>
+              <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-violet-900/90">
+                <li>Walk through your body-composition + blood-test results</li>
+                <li>Discuss your health questionnaire answers</li>
+                <li>Agree on a personal action plan</li>
+                <li>Time for your questions</li>
+              </ul>
+              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Have your report open in the patient portal before the call — your doctor will reference it.</div>
             </div>
             <div className="mt-4 pt-4 border-t border-violet-100/70">
               <button onClick={onChangeDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 hover:border-violet-300 transition-colors">
