@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import BusinessHeader from "../BusinessHeader";
+import OnboardingChecklist from "./OnboardingChecklist";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 
@@ -119,13 +120,19 @@ export default function BusinessDashboardPage() {
           </button>
         </section>
 
+        <OnboardingChecklist
+          companyId={companyId!}
+          memberCount={members.length}
+          completedCount={totalCompleted}
+        />
+
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Stat label="Roster" value={members.length} />
           <Stat label="Invited" value={totalInvited} />
           <Stat label="Completed" value={totalCompleted} />
         </section>
 
-        <section className="bg-white rounded-2xl p-6 shadow-sm">
+        <section id="add-employees-section" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-24">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Add employees</h2>
             <div className="flex gap-2">
