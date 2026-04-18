@@ -60,6 +60,7 @@ export default function BusinessDashboardPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<BodyCompEvent[]>([]);
   const [bloodDays, setBloodDays] = useState<BloodDay[]>([]);
+  const [viewerIsStaff, setViewerIsStaff] = useState(false);
   const [error, setError] = useState("");
   const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
   const [showSchedBC, setShowSchedBC] = useState(false);
@@ -92,11 +93,14 @@ export default function BusinessDashboardPage() {
   }, [companyId]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         router.push("/business/signup");
         return;
       }
+      const { data: staffRow } = await supabase
+        .from("staff").select("id, active").eq("id", data.user.id).maybeSingle();
+      setViewerIsStaff(!!staffRow && staffRow.active === true);
       loadData();
     });
   }, [loadData, router]);
@@ -421,7 +425,7 @@ export default function BusinessDashboardPage() {
           </section>
         )}
 
-        <AdminsSection companyId={companyId!} />
+        <AdminsSection companyId={companyId!} companyName={company.name} viewerIsStaff={viewerIsStaff} />
       </main>
 
       {showSchedBC && (
@@ -907,13 +911,14 @@ function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone:
   );
 }
 
-function AdminsSection({ companyId }: { companyId: string }) {
+function AdminsSection({ companyId, companyName, viewerIsStaff }: { companyId: string; companyName: string; viewerIsStaff: boolean }) {
   interface Admin { user_id: string; full_name: string | null; email: string | null; added_at: string; is_primary: boolean }
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
@@ -1007,7 +1012,7 @@ function AdminsSection({ companyId }: { companyId: string }) {
       {primary && (
         <div className="mt-4 rounded-xl p-4 text-white shadow-sm"
           style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg shrink-0">
               {initials(primary.full_name || primary.email)}
             </div>
@@ -1022,8 +1027,29 @@ function AdminsSection({ companyId }: { companyId: string }) {
                 <div className="text-xs opacity-90 truncate">{primary.email}</div>
               )}
             </div>
+            {viewerIsStaff && primary.email && (
+              <button
+                onClick={() => setShowMessageModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Email contact
+              </button>
+            )}
           </div>
         </div>
+      )}
+
+      {showMessageModal && primary && (
+        <MessageContactModal
+          companyId={companyId}
+          companyName={companyName}
+          recipientName={primary.full_name || primary.email || "the contact person"}
+          recipientEmail={primary.email || ""}
+          onClose={() => setShowMessageModal(false)}
+        />
       )}
 
       {expanded && (
@@ -1079,3 +1105,66 @@ function AdminsSection({ companyId }: { companyId: string }) {
     </section>
   );
 }
+
+function MessageContactModal({
+  companyId, companyName, recipientName, recipientEmail, onClose,
+}: {
+  companyId: string;
+  companyName: string;
+  recipientName: string;
+  recipientEmail: string;
+  onClose: () => void;
+}) {
+  const [subject, setSubject] = useState(`About your company registration — ${companyName}`);
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) { setError("Write a message first."); return; }
+    setSending(true);
+    setError("");
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const res = await fetch(`/api/admin/companies/${companyId}/message-contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({ subject, message }),
+    });
+    const j = await res.json();
+    setSending(false);
+    if (!res.ok) { setError(j.detail || j.error || "Failed to send"); return; }
+    setSent(true);
+    setTimeout(() => onClose(), 1200);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold">Email the contact person</h2>
+          <p className="text-sm text-gray-600 mt-1 truncate">To: <strong>{recipientName}</strong> &lt;{recipientEmail}&gt;</p>
+        </div>
+        <form onSubmit={send} className="p-6 space-y-4">
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Subject</span>
+            <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} required className="input mt-1" />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Message</span>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} required rows={8} className="input mt-1" placeholder="Write your message here…" />
+          </label>
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {sent && <div className="text-emerald-600 text-sm">Sent ✓</div>}
+          <div className="flex items-center justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Cancel</button>
+            <button type="submit" disabled={sending || sent} className="btn-primary">{sent ? "Sent" : sending ? "Sending…" : "Send email"}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
