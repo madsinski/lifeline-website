@@ -36,7 +36,14 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
       body: JSON.stringify({ company_id: companyId }),
     });
     const j = await res.json();
-    alert(`Processed ${j.processed ?? 0} · succeeded ${j.succeeded ?? 0} · failed ${j.failed ?? 0}`);
+    const failures = (j.results || []).filter((r: { ok: boolean }) => !r.ok);
+    const summary = `Processed ${j.processed ?? 0} · succeeded ${j.succeeded ?? 0} · failed ${j.failed ?? 0}`;
+    if (failures.length) {
+      const detail = failures.map((r: { client_id: string; error?: string }) => `• ${r.client_id}: ${r.error}`).join("\n");
+      alert(`${summary}\n\nErrors:\n${detail}`);
+    } else {
+      alert(summary);
+    }
     setBusy(false);
   };
   return (
