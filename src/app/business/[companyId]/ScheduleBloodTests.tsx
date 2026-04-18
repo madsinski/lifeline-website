@@ -75,7 +75,7 @@ export default function ScheduleBloodTests({ companyId, existing, onClose, onCre
           <h2 className="text-xl font-semibold">{t("b2b.sched_bt.title", "Pick blood-test days")}</h2>
           <p className="text-sm text-gray-600 mt-1">
             {t("b2b.sched_bt.subtitle",
-              "Select the weekdays you'll let your employees visit Sameind for their blood test. The fixed window is 08:00–12:00.")}
+              "Select the weekdays you'll let your employees visit a Sameind station for their blood test. Each station has its own opening hours — they are shown in the employee's account.")}
           </p>
         </div>
 
@@ -113,7 +113,7 @@ export default function ScheduleBloodTests({ companyId, existing, onClose, onCre
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="e.g. Sameind Reykjavík, 8 am slot recommended."
+              placeholder="e.g. Closest station: Ármúli, Reykjavík."
               className="input mt-1"
             />
           </label>

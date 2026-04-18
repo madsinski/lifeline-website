@@ -17,7 +17,7 @@ type DoctorSlot = {
   booking_note: string | null;
   booked_at: string | null;
   completed_at: string | null;
-  client?: { email?: string | null; first_name?: string | null; last_name?: string | null } | null;
+  client?: { email?: string | null; full_name?: string | null } | null;
   company?: { name?: string | null } | null;
 };
 
@@ -43,7 +43,7 @@ export default function DoctorSlotsAdminPage() {
       .select(`
         id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes,
         client_id, company_id, booking_note, booked_at, completed_at,
-        client:clients(email, first_name, last_name),
+        client:clients(email, full_name),
         company:companies(name)
       `)
       .order("slot_at", { ascending: true });
@@ -171,7 +171,7 @@ export default function DoctorSlotsAdminPage() {
                 const d = new Date(s.slot_at);
                 const isPast = d.getTime() < now;
                 const isBooked = !!s.client_id;
-                const name = [s.client?.first_name, s.client?.last_name].filter(Boolean).join(" ");
+                const name = s.client?.full_name || "";
                 return (
                   <tr key={s.id} className="border-t border-gray-100 align-top">
                     <td className="px-4 py-3">

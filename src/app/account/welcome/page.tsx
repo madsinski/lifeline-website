@@ -383,7 +383,7 @@ export default function AccountWelcomePage() {
               body={
                 bloodDays.length > 0
                   ? t("b2b.welcome.step.blood.body",
-                      "{{company}} allows you to take your blood test on {{days}} between 08:00–12:00. You'll receive the booking link by email via Medalia.")
+                      "{{company}} allows you to take your blood test on {{days}}. Walk in at any Sameind station during its opening hours — the full list is on your account Home.")
                       .replace("{{company}}", companyName || "Your company")
                       .replace("{{days}}", bloodDays.map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(", "))
                   : t("b2b.welcome.step.blood.pending",

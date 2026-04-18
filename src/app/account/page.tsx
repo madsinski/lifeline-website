@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import MedaliaButton from "../components/MedaliaButton";
 import SlotPicker from "./welcome/SlotPicker";
+import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -949,24 +950,29 @@ function AccountPageInner() {
 
                 {/* Welcome card */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-[#10B981] text-white text-xl font-bold flex items-center justify-center shrink-0">
-                      {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-14 h-14 rounded-full bg-[#10B981] text-white text-xl font-bold flex items-center justify-center shrink-0">
+                        {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-xl font-bold text-[#1F2937]">
+                          Welcome back, {profileFirstName || "there"}
+                        </h2>
+                        <p className="text-sm text-[#6B7280]">
+                          Member since {memberSince}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-[#1F2937]">
-                        Welcome back, {profileFirstName || "there"}
-                      </h2>
-                      <p className="text-sm text-[#6B7280]">
-                        {companyName ? (
-                          <>
-                            <span className="font-medium text-[#1F2937]">{companyName}</span>
-                            <span className="mx-1.5">·</span>
-                          </>
-                        ) : null}
-                        Member since {memberSince}
-                      </p>
-                    </div>
+                    {companyName && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-100 bg-blue-50">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span className="text-xs text-blue-700">Company account</span>
+                        <span className="text-xs font-semibold text-blue-900">{companyName}</span>
+                      </div>
+                    )}
                   </div>
                 </section>
 
@@ -2681,9 +2687,9 @@ function JourneyTimeline({
       done: hasBloodTestBooking,
       active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
       description: hasBloodTestBooking
-        ? "Day chosen. Visit Sameind any time 08:00–12:00."
+        ? "Day chosen. Walk in at any Sameind station during its opening hours."
         : hasApprovedBloodDays
-          ? "Your company has approved days for you. Walk-in at Sameind, 08:00–12:00."
+          ? "Your company has approved days for you. Walk in at any Sameind station during its opening hours."
           : "Your company will approve blood-test days. You'll be notified.",
       cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Pick a day", onClick: onPickBloodTestDay } : undefined,
     },
@@ -2861,7 +2867,7 @@ function CurrentBookings({
                   <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="font-medium">Walk-in 08:00–12:00</span>
+                  <span className="font-medium">Walk in at any Sameind station</span>
                 </div>
                 {myBloodTestBooking.note && <div className="text-xs text-gray-500 pl-6">{myBloodTestBooking.note}</div>}
               </div>
@@ -3003,7 +3009,7 @@ function BloodTestDayPickerModal({
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold">Pick your blood-test day</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Your company approves specific days for you to visit Sameind. Walk-in any time between 08:00 and 12:00.
+            Your company approves specific days for you to visit Sameind. Walk in at any Sameind station during that station&apos;s opening hours.
           </p>
         </div>
         <div className="p-6 space-y-4">
@@ -3038,6 +3044,18 @@ function BloodTestDayPickerModal({
           <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
             <div className="font-semibold mb-1">Important — fast before your blood test</div>
             You must <strong>fast from midnight</strong> the night before your visit. Water is fine; no food, no coffee, no tea, no juice, no alcohol.
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3">
+            <div className="text-xs font-semibold text-gray-700 mb-2">Sameind stations — walk in at any of these:</div>
+            <ul className="divide-y divide-gray-100">
+              {SAMEIND_STATIONS.map((s) => (
+                <li key={s.id} className="py-2 text-xs">
+                  <div className="font-medium text-gray-900">{s.name}</div>
+                  <div className="text-gray-600">{fullAddress(s)}</div>
+                  <div className="text-gray-500">{s.hours}</div>
+                </li>
+              ))}
+            </ul>
           </div>
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
@@ -3226,7 +3244,7 @@ function YourCompanyCard({
                 {bloodDays.slice(0, 3).map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(", ")}
                 {bloodDays.length > 3 && ` + ${bloodDays.length - 3}`}
               </div>
-              <div className="text-xs opacity-90 mt-0.5">08:00–12:00 at Sameind</div>
+              <div className="text-xs opacity-90 mt-0.5">Walk in at any Sameind station</div>
             </>
           ) : (
             <div className="text-xs opacity-80">No days approved yet by your company.</div>

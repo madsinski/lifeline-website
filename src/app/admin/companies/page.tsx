@@ -47,11 +47,11 @@ const TIERS = [
 function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; companyName: string }) {
   const [busy, setBusy] = useState(false);
   const click = async () => {
-    const override = prompt(`Unit price (ISK) per completed employee for ${companyName}? Blank = use company default.`);
+    const override = prompt(`Unit price (ISK) per completed assessment for ${companyName}? Blank = use company default.`);
     if (override === null) return;
     const unit = override.trim() ? Number(override) : undefined;
-    const notes = prompt("Invoice note (optional — appears in line item)") || "";
-    if (!confirm(`Generate PayDay invoice for every completed assessment at ${companyName}?`)) return;
+    const notes = prompt("Invoice note (optional — appears in the single line item)") || "";
+    if (!confirm(`Create ONE consolidated PayDay invoice for ${companyName} covering all completed assessments? PayDay will deliver it to the company kennitala automatically, and we'll also email the contact person.`)) return;
     setBusy(true);
     const { data: s } = await supabase.auth.getSession();
     const t = s.session?.access_token;

@@ -136,11 +136,11 @@ export function renderBloodTestDaysEmail(params: {
   const days = dayLabels.join(", ");
   const text = `Hi ${recipientName},
 
-${companyName} has approved the following days for you to take your blood test at Sameind, between 08:00 and 12:00:
+${companyName} has approved the following days for you to take your blood test at any Sameind station:
 
   ${days}
 
-You can leave work during those hours to go in. You'll receive the booking link via the patient portal.
+Walk in on any of those days during the station's opening hours. The full list of stations — with addresses and hours — is on your Lifeline account Home.
 
 Open your patient portal: ${portalUrl}
 
@@ -150,9 +150,9 @@ Open your patient portal: ${portalUrl}
   <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
     <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Blood-test days are now approved</h1>
     <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
-    <p style="margin:0 0 16px;color:#4b5563;"><strong>${escapeHtml(companyName)}</strong> has authorised these days for your blood test at Sameind, between <strong>08:00 and 12:00</strong>:</p>
+    <p style="margin:0 0 16px;color:#4b5563;"><strong>${escapeHtml(companyName)}</strong> has authorised these days for your blood test at any Sameind station:</p>
     <div style="background:#f3f4f6;border-radius:10px;padding:16px;margin:20px 0;font-size:15px;color:#111827;line-height:1.7;">${escapeHtml(days)}</div>
-    <p style="margin:0 0 16px;color:#4b5563;">You can leave work during those hours to go in. You'll get the booking details via the patient portal.</p>
+    <p style="margin:0 0 16px;color:#4b5563;">Walk in on any of those days during the station's opening hours. The full list of stations — with addresses and hours — is on your Lifeline account Home.</p>
     <div style="text-align:center;margin:28px 0;">
       <a href="${portalUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open patient portal</a>
     </div>
@@ -266,6 +266,49 @@ We'll take it from here. See you on measurement day.
     <div style="text-align:center;margin:28px 0;">
       <a href="${portalUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open dashboard</a>
     </div>
+  </div>
+</body></html>`;
+  return { text, html };
+}
+
+export function renderInvoiceContactEmail(params: {
+  recipientName: string;
+  companyName: string;
+  quantity: number;
+  unitPrice: number;
+  amountTotal: number;
+  invoiceNumber?: string | null;
+  pdfUrl?: string | null;
+}) {
+  const { recipientName, companyName, quantity, unitPrice, amountTotal, invoiceNumber, pdfUrl } = params;
+  const money = (n: number) => `${n.toLocaleString("is-IS")} kr.`;
+  const lineItem = `Lifeline Health Assessment · ${quantity} × ${money(unitPrice)}`;
+  const refLine = invoiceNumber ? `Invoice no. ${invoiceNumber}` : "";
+  const text = `Hi ${recipientName},
+
+A Lifeline Health invoice has been issued to ${companyName}.
+
+${refLine}
+${lineItem}
+Total incl. VAT: ${money(amountTotal)}
+
+The invoice is delivered through PayDay's electronic invoicing system to the company's kennitala — your accounting system should receive it automatically.
+${pdfUrl ? `\nPDF copy: ${pdfUrl}\n` : ""}
+If anything looks off, reply to this email and we'll help.
+
+— Lifeline Health`;
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Your Lifeline invoice is on its way</h1>
+    <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
+    <p style="margin:0 0 16px;color:#4b5563;">We've issued an invoice to <strong>${escapeHtml(companyName)}</strong>. It's delivered through PayDay's electronic invoicing system to the company's kennitala, so your accounting software should receive it automatically.</p>
+    <div style="background:#f3f4f6;border-radius:10px;padding:16px;margin:20px 0;font-size:14px;color:#111827;line-height:1.7;">
+      ${invoiceNumber ? `<div><strong>Invoice no.</strong> ${escapeHtml(invoiceNumber)}</div>` : ""}
+      <div>${escapeHtml(lineItem)}</div>
+      <div><strong>Total incl. VAT:</strong> ${money(amountTotal)}</div>
+    </div>
+    ${pdfUrl ? `<div style="text-align:center;margin:24px 0;"><a href="${pdfUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">View PDF</a></div>` : ""}
+    <p style="margin:0;color:#6b7280;font-size:13px;">If anything looks off, reply to this email and we'll help.</p>
   </div>
 </body></html>`;
   return { text, html };

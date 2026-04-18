@@ -395,7 +395,7 @@ export default function BusinessDashboardPage() {
           subtitle={
             hasBloodDays
               ? bloodDays.map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(" · ")
-              : "Blood tests happen at Sameind, 08:00–12:00. Pick the days when your employees are allowed to leave work to go in."
+              : "Employees walk in at any Sameind station. Pick the days your employees are allowed to leave work to go in."
           }
         >
           {hasBloodDays && (

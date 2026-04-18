@@ -6,6 +6,7 @@ import MedaliaButton from "../components/MedaliaButton";
 import { PhoneMockup } from "../components/PhoneMockup";
 import ScrollPhone from "../components/ScrollPhone";
 import WaveSeparator from "../components/WaveSeparator";
+import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
 
 const packageColors = [
   { accent: "border-t-4 border-t-[#10B981]", iconBg: "bg-green-50 border border-green-100", iconText: "text-[#10B981]" },
@@ -143,14 +144,6 @@ const processSteps = [
   },
 ];
 
-const sameindLocations = [
-  { name: "Sameind - Sudurlandsbraut 34, Reykjavik", type: "main" },
-  { name: "Sameind - Akureyri Hospital", type: "hospital" },
-  { name: "Sameind - Selfoss Health Centre", type: "clinic" },
-  { name: "Sameind - Isafjordur Hospital", type: "hospital" },
-  { name: "Sameind - Husavik Health Centre", type: "clinic" },
-];
-
 const faqs = [
   {
     question: "How long does the Foundational Health assessment take?",
@@ -168,9 +161,9 @@ const faqs = [
       "Body composition results are available immediately. Blood test results typically take 3-5 business days. Once all results are in, your doctor will review them within 2 business days and schedule your consultation.",
   },
   {
-    question: "Can I do the blood test at any Sameind location?",
+    question: "Can I do the blood test at any Sameind station?",
     answer:
-      "Yes. After booking your assessment through our patient portal, you will receive a referral that is valid at all Sameind blood collection stations across Iceland.",
+      "Yes. After booking your assessment through our patient portal, your referral is valid at every Sameind station — see the list above for addresses and opening hours.",
   },
   {
     question: "What does the blood panel include?",
@@ -486,36 +479,25 @@ export default function AssessmentPage() {
                 Sameind Blood Test Stations
               </h3>
               <p className="text-[#6B7280] mb-4 leading-relaxed">
-                Get your blood drawn at any Sameind location across Iceland.
-                Your referral is valid at all stations.
+                Walk in at any Sameind station in the capital area or Reykjanesbær. Your referral is valid at all stations.
               </p>
               <div className="space-y-3">
-                {sameindLocations.map((loc) => (
+                {SAMEIND_STATIONS.map((s) => (
                   <div
-                    key={loc.name}
-                    className="bg-[#e6ecf4] rounded-xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-all duration-200"
+                    key={s.id}
+                    className="bg-[#e6ecf4] rounded-xl p-4 flex items-start gap-3 shadow-sm hover:shadow-md transition-all duration-200"
                   >
-                    {loc.type === "main" ? (
-                      <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-                        </svg>
-                      </div>
-                    ) : loc.type === "hospital" ? (
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-[#3B82F6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-                        </svg>
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                      </div>
-                    )}
-                    <span className="text-sm text-[#6B7280]">{loc.name}</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-[#1F2937]">{s.name}</div>
+                      <div className="text-xs text-[#6B7280]">{fullAddress(s)}</div>
+                      <div className="text-xs text-[#6B7280]">{s.hours}</div>
+                    </div>
                   </div>
                 ))}
               </div>

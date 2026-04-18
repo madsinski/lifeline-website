@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
 import { ensurePaydayCustomer, createPaydayInvoice, paydayPdfUrl } from "@/lib/payday";
+import { sendEmail as sendResendEmail, renderInvoiceContactEmail } from "@/lib/email";
 
 export const maxDuration = 60;
 
@@ -128,6 +129,41 @@ export async function POST(
     return NextResponse.json({ error: "db_insert_failed", detail: error.message }, { status: 500 });
   }
 
+  // Notify the company contact person with a Lifeline-branded email.
+  // PayDay also delivers the invoice itself to the company kennitala via
+  // electronic invoicing — this is purely a courtesy heads-up.
+  let notify_email: string | null = null;
+  let notify_error: string | null = null;
+  if (contactEmail) {
+    try {
+      const { data: contactClient } = await supabaseAdmin
+        .from("clients")
+        .select("full_name")
+        .eq("id", company.contact_person_id)
+        .maybeSingle();
+      const recipientName = ((contactClient as { full_name?: string } | null)?.full_name?.split(" ")[0]) || "there";
+      const email = renderInvoiceContactEmail({
+        recipientName,
+        companyName: company.name,
+        quantity,
+        unitPrice,
+        amountTotal,
+        invoiceNumber: invoiceRes.invoice_number || null,
+        pdfUrl: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
+      });
+      const sendRes = await sendResendEmail({
+        to: contactEmail,
+        subject: `Lifeline invoice for ${company.name}${invoiceRes.invoice_number ? ` · ${invoiceRes.invoice_number}` : ""}`,
+        text: email.text,
+        html: email.html,
+      });
+      if (sendRes.ok) notify_email = contactEmail;
+      else notify_error = sendRes.error || null;
+    } catch (e) {
+      notify_error = e instanceof Error ? e.message : String(e);
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     invoice_id: row?.id,
@@ -137,5 +173,7 @@ export async function POST(
     amount_net: amountNet,
     amount_total: amountTotal,
     pdf_url: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
+    notify_email,
+    notify_error,
   });
 }
