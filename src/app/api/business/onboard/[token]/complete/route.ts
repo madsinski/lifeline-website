@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, renderWelcomeEmail } from "@/lib/email";
+import { findAuthUserByEmail } from "@/lib/auth-helpers";
 
 const BIODY_SYNC_URL = process.env.BIODY_SYNC_URL ||
   "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/biody-sync";
@@ -72,17 +73,7 @@ export async function POST(
   let userId: string | null = null;
   const email = (memberRow.email || member.email || "").toLowerCase();
 
-  let existing: { id: string } | null = null;
-  let page = 1;
-  while (page < 50) {
-    const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (!list?.users?.length) break;
-    const match = list.users.find((u) => (u.email || "").toLowerCase() === email);
-    if (match) { existing = { id: match.id }; break; }
-    if (list.users.length < 200) break;
-    page++;
-  }
-
+  const existing = await findAuthUserByEmail(email);
   if (existing) {
     return NextResponse.json({
       error: "email_already_registered",

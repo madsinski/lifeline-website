@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { findAuthUserByEmail } from "@/lib/auth-helpers";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -15,20 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Security: refuse to silently overwrite an existing account's password.
-  // Paginate all users (listUsers caps at 200 per page).
-  let existing: { id: string; email: string | null } | null = null;
-  let page = 1;
-  // Cap iterations — listUsers returns {users, aud, nextPage, lastPage} shape varies
-  // by SDK version; defensive cap.
-  while (page < 50) {
-    const { data } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (!data?.users?.length) break;
-    const match = data.users.find((u) => (u.email || "").toLowerCase() === email);
-    if (match) { existing = { id: match.id, email: match.email || null }; break; }
-    if (data.users.length < 200) break;
-    page++;
-  }
-
+  const existing = await findAuthUserByEmail(email);
   if (existing) {
     return NextResponse.json({
       error: "email_already_registered",

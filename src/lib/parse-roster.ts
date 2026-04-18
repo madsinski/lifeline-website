@@ -102,5 +102,16 @@ export function parseRoster(input: string): RosterRow[] {
 
 export function generatePassword(): string {
   // 6 digits — memorable, fine for link-gated access.
+  // Uses Web Crypto for unpredictable values; falls back to Math.random only
+  // if the runtime is somehow missing it.
+  const cryptoObj =
+    typeof globalThis !== "undefined" && "crypto" in globalThis
+      ? (globalThis as { crypto: Crypto }).crypto
+      : null;
+  if (cryptoObj?.getRandomValues) {
+    const buf = new Uint32Array(1);
+    cryptoObj.getRandomValues(buf);
+    return (100000 + (buf[0] % 900000)).toString();
+  }
   return Math.floor(100000 + Math.random() * 900000).toString();
 }

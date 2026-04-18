@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { getUserFromRequest, isStaff, findAuthUserByEmail } from "@/lib/auth-helpers";
 
 async function canManageCompany(companyId: string, userId: string): Promise<boolean> {
   const { data: c } = await supabaseAdmin
@@ -27,12 +27,11 @@ export async function POST(
   }
 
   // Find or create the user
-  const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  let target = (list?.users || []).find((u) => (u.email || "").toLowerCase() === email);
+  let target = await findAuthUserByEmail(email);
   if (!target) {
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
     if (createErr || !created.user) {
-      return NextResponse.json({ error: createErr?.message || "invite failed" }, { status: 500 });
+      return NextResponse.json({ error: "co_admin_invite_failed" }, { status: 500 });
     }
     target = created.user;
   }
