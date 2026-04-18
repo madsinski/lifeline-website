@@ -112,6 +112,10 @@ function AccountPageInner() {
 
   /* profile fields */
   const [profileFirstName, setProfileFirstName] = useState("");
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
+  const [bodyCompBookingAt, setBodyCompBookingAt] = useState<string | null>(null);
+  const [lastBodyCompAt, setLastBodyCompAt] = useState<string | null>(null);
   const [profileLastName, setProfileLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -223,7 +227,7 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at")
           .eq("id", currentUser.id)
           .single();
         if (clientData) {
@@ -236,6 +240,31 @@ function AccountPageInner() {
           setEmergencyPhone(clientData.emergency_contact_phone || "");
           setDob(clientData.date_of_birth || "");
           setSex((clientData as Record<string, unknown>).sex as string || "");
+          const cData = clientData as Record<string, unknown>;
+          const companyId = cData.company_id as string | null;
+          setLastBodyCompAt((cData.last_body_comp_at as string | null) || null);
+          if (companyId) {
+            const { data: c } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
+            if (c?.name) setCompanyName(c.name);
+          }
+          // Body comp booking status
+          const { data: booking } = await supabase
+            .from("body_comp_bookings")
+            .select("scheduled_at, status")
+            .eq("client_id", currentUser.id)
+            .in("status", ["requested", "confirmed", "completed"])
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (booking) {
+            if (booking.status === "completed") setBodyCompStatus("completed");
+            else {
+              setBodyCompStatus("booked");
+              setBodyCompBookingAt(booking.scheduled_at || null);
+            }
+          } else if (cData.last_body_comp_at) {
+            setBodyCompStatus("completed");
+          }
         } else {
           const metaName = currentUser.user_metadata?.full_name || "";
           const parts = metaName.split(" ");
@@ -812,6 +841,45 @@ function AccountPageInner() {
             {/* ============ HEALTH OVERVIEW ============ */}
             {activeSection === "overview" && (
               <>
+                {/* B2B welcome banner — shown when the client joined via a company */}
+                {companyName && (
+                  <section className="rounded-2xl p-6 sm:p-8 text-white shadow-sm"
+                    style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
+                    <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-2">
+                      Via {companyName}
+                    </p>
+                    <h2 className="text-2xl sm:text-3xl font-semibold leading-tight">
+                      {bodyCompStatus === "none"
+                        ? `Welcome to Lifeline, ${profileFirstName || "there"}.`
+                        : bodyCompStatus === "booked"
+                          ? `Your scan is booked, ${profileFirstName || "there"}.`
+                          : `Your first scan is in, ${profileFirstName || "there"}.`}
+                    </h2>
+                    <p className="mt-2 text-base opacity-95 max-w-xl">
+                      {bodyCompStatus === "none"
+                        ? "Your body-composition profile is registered with our measurement partner. Book your first scan to get a full breakdown of fat, muscle, and metabolic rate."
+                        : bodyCompStatus === "booked"
+                          ? `${bodyCompBookingAt ? `Scheduled for ${new Date(bodyCompBookingAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. ` : ""}See you at the Lifeline station.`
+                          : `Last scan ${lastBodyCompAt ? new Date(lastBodyCompAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "recently"}. Check your results in the app and keep your coaching on track.`}
+                    </p>
+                    <div className="flex flex-wrap gap-3 mt-5">
+                      {bodyCompStatus === "none" && (
+                        <Link href="/assessment" className="inline-block px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
+                          Book your scan
+                        </Link>
+                      )}
+                      {bodyCompStatus === "completed" && (
+                        <Link href="/coaching#download" className="inline-block px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
+                          Open in app
+                        </Link>
+                      )}
+                      <Link href="/coaching#download" className="inline-block px-4 py-2 rounded-lg border border-white/60 text-white font-semibold text-sm hover:bg-white/10">
+                        Download the Lifeline app
+                      </Link>
+                    </div>
+                  </section>
+                )}
+
                 {/* Welcome card */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                   <div className="flex items-center gap-4">
@@ -908,14 +976,32 @@ function AccountPageInner() {
                   <section className="bg-white rounded-2xl shadow-sm p-6">
                     <h3 className="text-sm font-medium text-[#6B7280] mb-3">Assessment status</h3>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#ecf0f3] flex items-center justify-center">
-                        <svg className="w-5 h-5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        bodyCompStatus === "completed" ? "bg-emerald-50" : bodyCompStatus === "booked" ? "bg-blue-50" : "bg-[#ecf0f3]"
+                      }`}>
+                        <svg className={`w-5 h-5 ${
+                          bodyCompStatus === "completed" ? "text-[#10B981]" : bodyCompStatus === "booked" ? "text-blue-600" : "text-[#9CA3AF]"
+                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-[#1F2937]">No assessments yet</p>
-                        <Link href="/assessment" className="text-xs text-[#10B981] hover:underline">Book your first</Link>
+                        {bodyCompStatus === "completed" ? (
+                          <>
+                            <p className="text-sm font-medium text-[#1F2937]">Scan complete</p>
+                            <p className="text-xs text-[#6B7280]">{lastBodyCompAt ? new Date(lastBodyCompAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Results available"}</p>
+                          </>
+                        ) : bodyCompStatus === "booked" ? (
+                          <>
+                            <p className="text-sm font-medium text-[#1F2937]">Scan booked</p>
+                            <p className="text-xs text-[#6B7280]">{bodyCompBookingAt ? new Date(bodyCompBookingAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Pending confirmation"}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium text-[#1F2937]">No assessments yet</p>
+                            <Link href="/assessment" className="text-xs text-[#10B981] hover:underline">Book your first</Link>
+                          </>
+                        )}
                       </div>
                     </div>
                   </section>
