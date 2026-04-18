@@ -2639,6 +2639,12 @@ function JourneyTimeline({
         ? "You'll receive an SMS from the Lifeline team within the next 7 days with a link to the questionnaire."
         : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test.",
     },
+    {
+      title: "Doctor consultation",
+      done: false,
+      active: false,
+      description: "Meet with your Lifeline doctor to review the report and build an action plan for your health change.",
+    },
   ];
 
   return (
