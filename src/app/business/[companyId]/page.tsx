@@ -913,11 +913,16 @@ function AdminsSection({ companyId }: { companyId: string }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
     if (error) setError(error.message);
-    else setAdmins((data || []) as Admin[]);
+    else {
+      setAdmins((data || []) as Admin[]);
+      // Auto-expand if there's already a co-admin (so it's visible)
+      if ((data || []).some((a: Admin) => !a.is_primary)) setExpanded(true);
+    }
   }, [companyId]);
 
   useEffect(() => { load(); }, [load]);
@@ -964,45 +969,69 @@ function AdminsSection({ companyId }: { companyId: string }) {
     load();
   };
 
+  const coAdminCount = admins.filter((a) => !a.is_primary).length;
+
   return (
-    <section className="bg-white rounded-2xl p-6 shadow-sm">
-      <h2 className="text-lg font-semibold mb-1">Company admins</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Co-admins can manage the roster and send invites. The primary admin is the original contact person.
-      </p>
-
-      <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2 mb-4">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="co-admin@example.is"
-          required
-          className="input flex-1"
-        />
-        <button type="submit" disabled={loading} className="btn-primary text-sm">
-          {loading ? "Inviting…" : "Invite co-admin"}
-        </button>
-      </form>
-      {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
-
-      <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
-        {admins.length === 0 && <div className="p-3 text-sm text-gray-500">Loading…</div>}
-        {admins.map((a) => (
-          <div key={a.user_id} className="flex items-center justify-between px-4 py-3 text-sm">
-            <div>
-              <span className="font-medium">{a.email || "(unknown)"}</span>
-              {a.is_primary && <span className="ml-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Primary</span>}
-            </div>
-            {!a.is_primary && (
-              <div className="flex items-center gap-3">
-                <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
-                <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
-              </div>
-            )}
+    <section className="bg-white/60 rounded-2xl p-6 border border-dashed border-gray-300">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-start justify-between w-full text-left gap-4"
+      >
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-gray-700">Company admins</h2>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">Optional</span>
           </div>
-        ))}
-      </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Only needed if you want a colleague to help you manage this company. Skip this if you&apos;ll run it on your own.
+            {coAdminCount > 0 && <span className="text-gray-700 font-medium"> · {coAdminCount} co-admin{coAdminCount === 1 ? "" : "s"}</span>}
+          </p>
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-400 mt-1 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {expanded && (
+        <div className="mt-5">
+          <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2 mb-4">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="co-admin@example.is"
+              required
+              className="input flex-1"
+            />
+            <button type="submit" disabled={loading} className="btn-primary text-sm">
+              {loading ? "Inviting…" : "Invite co-admin"}
+            </button>
+          </form>
+          {error && <div className="text-red-600 text-sm mb-3">{error}</div>}
+
+          <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
+            {admins.length === 0 && <div className="p-3 text-sm text-gray-500">Loading…</div>}
+            {admins.map((a) => (
+              <div key={a.user_id} className="flex items-center justify-between px-4 py-3 text-sm">
+                <div>
+                  <span className="font-medium">{a.email || "(unknown)"}</span>
+                  {a.is_primary && <span className="ml-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Primary</span>}
+                </div>
+                {!a.is_primary && (
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
+                    <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
