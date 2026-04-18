@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail, renderWelcomeEmail } from "@/lib/email";
 
 const BIODY_SYNC_URL = process.env.BIODY_SYNC_URL ||
   "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/biody-sync";
@@ -138,6 +139,27 @@ export async function POST(
     } catch (e) {
       biodyResult = { error: (e as Error).message };
     }
+  }
+
+  // Send a welcome email — non-blocking; failures don't break the flow.
+  try {
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get("origin") || "https://lifelinehealth.is";
+    const { data: companyRow } = await supabaseAdmin
+      .from("companies").select("name").eq("id", memberRow.company_id).maybeSingle();
+    const { text, html } = renderWelcomeEmail({
+      companyName: companyRow?.name || null,
+      recipientName: (memberRow.full_name || "").split(" ")[0] || "there",
+      welcomeUrl: `${origin.replace(/\/$/, "")}/account/login?next=${encodeURIComponent("/account/welcome")}`,
+      loginUrl: `${origin.replace(/\/$/, "")}/account/login`,
+    });
+    await sendEmail({
+      to: email,
+      subject: `Welcome to Lifeline Health${companyRow?.name ? ` — ${companyRow.name}` : ""}`,
+      text,
+      html,
+    });
+  } catch (e) {
+    console.error("[onboard-complete] welcome email failed:", (e as Error).message);
   }
 
   return NextResponse.json({ ok: true, biody: biodyResult });

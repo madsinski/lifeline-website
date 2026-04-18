@@ -38,6 +38,52 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ ok: boolean; 
   }
 }
 
+export function renderWelcomeEmail(params: {
+  companyName: string | null;
+  recipientName: string;
+  welcomeUrl: string;
+  loginUrl: string;
+}) {
+  const { companyName, recipientName, welcomeUrl, loginUrl } = params;
+  const viaLine = companyName ? ` via ${companyName}` : "";
+  const text = `Hi ${recipientName},
+
+You're registered with Lifeline Health${viaLine}. 🎉
+
+Your next steps:
+  1. Activate your body-composition profile
+  2. Book your scan at a Lifeline station
+  3. Open your patient portal to view clinical records
+  4. Download the Lifeline app (coming soon)
+
+Start here: ${welcomeUrl}
+Or sign in: ${loginUrl}
+
+— Lifeline Health`;
+
+  const html = `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#111827;">You&apos;re in, ${escapeHtml(recipientName)} 🎉</h1>
+    <p style="margin:0 0 20px;color:#4b5563;">
+      Your Lifeline Health account is ready${companyName ? ` — welcomed aboard by <strong>${escapeHtml(companyName)}</strong>` : ""}.
+    </p>
+    <p style="margin:0 0 12px;color:#4b5563;"><strong>Your next steps</strong></p>
+    <ol style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.6;">
+      <li>Activate your body-composition profile</li>
+      <li>Book your scan at a Lifeline station</li>
+      <li>Open your patient portal</li>
+      <li>Download the Lifeline app (coming soon)</li>
+    </ol>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${welcomeUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start here</a>
+    </div>
+    <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Questions? Reply to this email or write to <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.</p>
+  </div>
+</body></html>`;
+  return { text, html };
+}
+
 export function renderInviteEmail(params: {
   companyName: string;
   recipientName: string;

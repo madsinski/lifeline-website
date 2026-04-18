@@ -452,7 +452,7 @@ function DoneStage({ firstName }: { firstName: string }) {
         get your report, and start your daily plan.
       </p>
       <div className="flex items-center justify-center gap-3">
-        <Link href="/account/login" className="btn-primary">Sign in</Link>
+        <Link href={`/account/login?next=${encodeURIComponent("/account/welcome")}`} className="btn-primary">Sign in &amp; start</Link>
         <Link href="/" className="btn-ghost">Back to home</Link>
       </div>
     </section>

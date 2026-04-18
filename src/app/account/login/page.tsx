@@ -18,6 +18,7 @@ function AccountLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref") || "";
+  const nextPath = searchParams.get("next") || "";
   const [mode, setMode] = useState<"login" | "signup">(refCode ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +45,7 @@ function AccountLoginContent() {
         setLoading(false);
         return;
       }
-      router.push("/account");
+      router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
     } else {
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({

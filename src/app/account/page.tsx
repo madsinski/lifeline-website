@@ -116,6 +116,7 @@ function AccountPageInner() {
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompBookingAt, setBodyCompBookingAt] = useState<string | null>(null);
   const [lastBodyCompAt, setLastBodyCompAt] = useState<string | null>(null);
+  const [biodyActivated, setBiodyActivated] = useState(false);
   const [profileLastName, setProfileLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -227,7 +228,7 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id")
           .eq("id", currentUser.id)
           .single();
         if (clientData) {
@@ -243,6 +244,7 @@ function AccountPageInner() {
           const cData = clientData as Record<string, unknown>;
           const companyId = cData.company_id as string | null;
           setLastBodyCompAt((cData.last_body_comp_at as string | null) || null);
+          setBiodyActivated(!!cData.biody_patient_id);
           if (companyId) {
             const { data: c } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
             if (c?.name) setCompanyName(c.name);
@@ -863,7 +865,12 @@ function AccountPageInner() {
                           : `Last scan ${lastBodyCompAt ? new Date(lastBodyCompAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "recently"}. Check your results in the app and keep your coaching on track.`}
                     </p>
                     <div className="flex flex-wrap gap-3 mt-5">
-                      {bodyCompStatus === "none" && (
+                      {!biodyActivated && (
+                        <Link href="/account/welcome" className="inline-block px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
+                          Complete setup →
+                        </Link>
+                      )}
+                      {biodyActivated && bodyCompStatus === "none" && (
                         <Link href="/assessment" className="inline-block px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
                           Book your scan
                         </Link>
