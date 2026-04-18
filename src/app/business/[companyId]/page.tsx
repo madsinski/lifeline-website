@@ -163,6 +163,7 @@ export default function BusinessDashboardPage() {
     });
     if (!res.ok) { alert("Failed to confirm roster"); return; }
     loadData();
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const finalizeRegistration = async () => {
@@ -177,6 +178,7 @@ export default function BusinessDashboardPage() {
     const j = await res.json();
     if (!res.ok) { alert(`Failed: ${j.error || "finalize_failed"}`); return; }
     loadData();
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (

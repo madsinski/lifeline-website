@@ -20,9 +20,13 @@ interface Props {
   currentCompanyId?: string | null;
   // Hide the user-related controls on unauthed pages (login, signup).
   minimal?: boolean;
+  // Override the pill label (e.g. 'Employee registration' on the onboard flow).
+  pillLabel?: string;
+  // Override the pill i18n key (so translations can target it).
+  pillI18nKey?: string;
 }
 
-export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal }: Props) {
+export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal, pillLabel, pillI18nKey }: Props) {
   const router = useRouter();
   const { t } = useI18n();
   const [email, setEmail] = useState<string | null>(null);
@@ -69,7 +73,7 @@ export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal 
       <div className="flex items-center gap-3">
         <BackButton fallback="/business" />
         <span className="hidden sm:inline-block px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-blue-100 text-blue-800">
-          {t("b2b.header.label", "Company account management")}
+          {t(pillI18nKey || "b2b.header.label", pillLabel || "Company account management")}
         </span>
         {crumbs.length > 0 && (
           <nav className="flex items-center gap-1.5 text-sm text-gray-500 min-w-0">

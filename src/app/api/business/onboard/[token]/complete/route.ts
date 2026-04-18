@@ -91,7 +91,11 @@ export async function POST(
     user_metadata: { full_name: memberRow.full_name },
   });
   if (createErr || !created.user) {
-    return NextResponse.json({ error: "registration_failed" }, { status: 500 });
+    console.error("[onboard-complete] createUser failed:", createErr);
+    return NextResponse.json({
+      error: "registration_failed",
+      detail: createErr?.message || "auth create returned no user",
+    }, { status: 500 });
   }
   userId = created.user.id;
 

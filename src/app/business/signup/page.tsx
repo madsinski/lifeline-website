@@ -16,6 +16,10 @@ export default function BusinessSignupPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [step, setStep] = useState<Step>("auth");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import LifelineLogo from "@/app/components/LifelineLogo";
-import BackButton from "@/app/components/BackButton";
-import { LanguagePicker, useI18n } from "@/lib/i18n";
+import BusinessHeader from "@/app/business/BusinessHeader";
+import { useI18n } from "@/lib/i18n";
 
 type Stage = "password" | "welcome" | "consent" | "profile" | "account" | "done";
 
@@ -18,6 +17,11 @@ export default function OnboardPage() {
   const token = params?.token || "";
 
   const [stage, setStage] = useState<Stage>("password");
+
+  // Scroll to top on every forward step
+  useEffect(() => {
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [stage]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -107,18 +111,11 @@ export default function OnboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white/80 backdrop-blur">
-        <div className="flex items-center gap-4">
-          <BackButton />
-          <Link href="/" className="flex items-center gap-2">
-            <LifelineLogo className="w-8 h-8" />
-            <span className="font-semibold">Lifeline Health</span>
-          </Link>
-        </div>
-        <div className="flex items-center gap-3">
-          <LanguagePicker />
-        </div>
-      </header>
+      <BusinessHeader
+        minimal
+        pillI18nKey="b2b.onboard.header"
+        pillLabel="Employee registration"
+      />
 
       <main className="max-w-2xl mx-auto px-6 py-12">
         {stage !== "password" && stage !== "done" && <Progress stage={stage} />}
