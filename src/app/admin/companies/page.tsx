@@ -63,7 +63,7 @@ function EnsureGroupButton({ companyId }: { companyId: string }) {
 function BulkActivateButton({ companyId }: { companyId: string }) {
   const [busy, setBusy] = useState(false);
   const click = async () => {
-    if (!confirm("Bulk-activate Biody profiles for every un-activated employee in this company?")) return;
+    if (!confirm("Create all employees of this company as patients in Biody? Skips anyone already created.")) return;
     setBusy(true);
     const { data: s } = await supabase.auth.getSession();
     const t = s.session?.access_token;
@@ -74,7 +74,7 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
     });
     const j = await res.json();
     const failures = (j.results || []).filter((r: { ok: boolean }) => !r.ok);
-    const summary = `Processed ${j.processed ?? 0} · succeeded ${j.succeeded ?? 0} · failed ${j.failed ?? 0}`;
+    const summary = `Processed ${j.processed ?? 0} · created ${j.succeeded ?? 0} · failed ${j.failed ?? 0}`;
     if (failures.length) {
       const detail = failures.map((r: { client_id: string; error?: string }) => `• ${r.client_id}: ${r.error}`).join("\n");
       alert(`${summary}\n\nErrors:\n${detail}`);
@@ -85,7 +85,7 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
   };
   return (
     <button onClick={click} disabled={busy} className="text-emerald-600 hover:underline disabled:opacity-50">
-      {busy ? "Activating…" : "Activate"}
+      {busy ? "Creating…" : "Create all users in Biody"}
     </button>
   );
 }
