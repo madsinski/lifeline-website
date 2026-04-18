@@ -917,7 +917,7 @@ function AdminsSection({ companyId, companyName, viewerIsStaff }: { companyId: s
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [showMessageModal, setShowMessageModal] = useState(false);
 
   const load = useCallback(async () => {
