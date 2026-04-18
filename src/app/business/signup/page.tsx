@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
+import BackButton from "@/app/components/BackButton";
 import { cleanKennitala, isValidKennitala, formatKennitala } from "@/lib/kennitala";
 
 const AGREEMENT_VERSION = "1.0";
@@ -125,10 +126,13 @@ export default function BusinessSignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white/70 backdrop-blur">
-        <Link href="/" className="flex items-center gap-2">
-          <LifelineLogo className="w-8 h-8" />
-          <span className="font-semibold">Lifeline Health</span>
-        </Link>
+        <div className="flex items-center gap-4">
+          <BackButton />
+          <Link href="/" className="flex items-center gap-2">
+            <LifelineLogo className="w-8 h-8" />
+            <span className="font-semibold">Lifeline Health</span>
+          </Link>
+        </div>
         <span className="text-sm text-gray-500">Business onboarding</span>
       </header>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import LifelineLogo from "@/app/components/LifelineLogo";
-import TermsBackButton from "./TermsBackButton";
+import BackButton from "@/app/components/BackButton";
 
 export const metadata = {
   title: "Terms & Privacy — Lifeline Health",
@@ -18,7 +18,7 @@ export default function TermsPage() {
           <LifelineLogo className="w-8 h-8" />
           <span className="font-semibold">Lifeline Health</span>
         </Link>
-        <TermsBackButton />
+        <BackButton />
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12 prose prose-sm prose-slate">
