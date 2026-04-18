@@ -26,7 +26,7 @@ export default function MedaliaButton({
 
   return (
     <button
-      className={`medalia-widget inline-flex items-center justify-center font-semibold rounded-full transition-all ${sizeClasses[size]} ${variantClasses} ${className}`}
+      className={`medalia-widget inline-flex items-center justify-center font-semibold rounded-full transition-all whitespace-nowrap ${sizeClasses[size]} ${variantClasses} ${className}`}
       data-src="https://app.medalia.is/7ca0ca21-8947-46cb-afbd-2e2d15efef6e"
       type="button"
     >
