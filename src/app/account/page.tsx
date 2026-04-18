@@ -9,6 +9,8 @@ import { Suspense } from "react";
 import MedaliaButton from "../components/MedaliaButton";
 import SlotPicker from "./welcome/SlotPicker";
 import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
+import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
+import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -126,6 +128,10 @@ function AccountPageInner() {
   const [myDoctorSlot, setMyDoctorSlot] = useState<{ id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null; booking_note: string | null } | null>(null);
   const [upcomingDoctorSlots, setUpcomingDoctorSlots] = useState<Array<{ id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null }>>([]);
   const [drPickerOpen, setDrPickerOpen] = useState(false);
+  const [lastWellbeingAt, setLastWellbeingAt] = useState<string | null>(null);
+  const [satisfactionDone, setSatisfactionDone] = useState<Record<"body_comp" | "doctor" | "overall", boolean>>({ body_comp: false, doctor: false, overall: false });
+  const [wellbeingOpen, setWellbeingOpen] = useState(false);
+  const [satisfactionOpen, setSatisfactionOpen] = useState<null | "body_comp" | "doctor" | "overall">(null);
   const [profileLastName, setProfileLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -310,6 +316,25 @@ function AccountPageInner() {
             .order("slot_at")
             .limit(50);
           setUpcomingDoctorSlots((drSlots || []) as typeof upcomingDoctorSlots);
+          // Latest wellbeing survey (to decide whether to nudge)
+          const { data: wb } = await supabase
+            .from("client_wellbeing_surveys")
+            .select("created_at")
+            .eq("client_id", currentUser.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          setLastWellbeingAt(wb?.created_at || null);
+          // Satisfaction surveys already filled
+          const { data: sats } = await supabase
+            .from("client_satisfaction_surveys")
+            .select("context")
+            .eq("client_id", currentUser.id);
+          if (sats && sats.length) {
+            const done = { body_comp: false, doctor: false, overall: false } as Record<"body_comp" | "doctor" | "overall", boolean>;
+            for (const r of sats as Array<{ context: "body_comp" | "doctor" | "overall" }>) done[r.context] = true;
+            setSatisfactionDone(done);
+          }
           // Body comp booking status (solo / clinic booking path)
           const { data: booking } = await supabase
             .from("body_comp_bookings")
@@ -1057,6 +1082,35 @@ function AccountPageInner() {
                       setUpcomingDoctorSlots((drSlots || []) as typeof upcomingDoctorSlots);
                     }}
                     onCancelled={() => setMyDoctorSlot(null)}
+                  />
+                )}
+
+                {/* Wellbeing check-in prompt (monthly) */}
+                <WellbeingPromptCard
+                  lastWellbeingAt={lastWellbeingAt}
+                  onStart={() => setWellbeingOpen(true)}
+                />
+                {/* Satisfaction prompts after milestones */}
+                <SatisfactionPromptCard
+                  bodyCompStatus={bodyCompStatus}
+                  myDoctorSlot={myDoctorSlot}
+                  satisfactionDone={satisfactionDone}
+                  onStart={(ctx) => setSatisfactionOpen(ctx)}
+                />
+
+                {wellbeingOpen && (
+                  <WellbeingSurveyModal
+                    companyId={companyId}
+                    onClose={() => setWellbeingOpen(false)}
+                    onSubmitted={() => setLastWellbeingAt(new Date().toISOString())}
+                  />
+                )}
+                {satisfactionOpen && (
+                  <SatisfactionSurveyModal
+                    companyId={companyId}
+                    context={satisfactionOpen}
+                    onClose={() => setSatisfactionOpen(null)}
+                    onSubmitted={() => setSatisfactionDone((d) => ({ ...d, [satisfactionOpen]: true }))}
                   />
                 )}
 
@@ -3198,6 +3252,80 @@ function DoctorSlotPickerModal({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function WellbeingPromptCard({ lastWellbeingAt, onStart }: { lastWellbeingAt: string | null; onStart: () => void }) {
+  const daysSince = lastWellbeingAt
+    ? Math.floor((Date.now() - new Date(lastWellbeingAt).getTime()) / 86_400_000)
+    : null;
+  // Show if never done OR last done >30 days ago.
+  const shouldShow = daysSince == null || daysSince >= 30;
+  if (!shouldShow) return null;
+  return (
+    <section className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-white p-6 sm:p-8 shadow-sm">
+      <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+      <div className="flex items-start gap-4 flex-wrap">
+        <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {lastWellbeingAt ? "Monthly wellbeing check-in" : "Share a quick wellbeing check-in"}
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Five questions, 30 seconds. Helps us see how you feel over time — your answers stay private, your company sees only anonymised group trends (min 5 people).
+          </p>
+          <button onClick={onStart} className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-emerald-500 to-teal-500 hover:opacity-90">
+            Start check-in
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SatisfactionPromptCard({
+  bodyCompStatus, myDoctorSlot, satisfactionDone, onStart,
+}: {
+  bodyCompStatus: "none" | "booked" | "completed";
+  myDoctorSlot: { slot_at: string } | null;
+  satisfactionDone: Record<"body_comp" | "doctor" | "overall", boolean>;
+  onStart: (ctx: "body_comp" | "doctor" | "overall") => void;
+}) {
+  const bcReady = bodyCompStatus === "completed" && !satisfactionDone.body_comp;
+  const drReady = myDoctorSlot != null && new Date(myDoctorSlot.slot_at).getTime() < Date.now() && !satisfactionDone.doctor;
+  if (!bcReady && !drReady) return null;
+  const pending: Array<{ key: "body_comp" | "doctor"; title: string; sub: string }> = [];
+  if (bcReady) pending.push({ key: "body_comp", title: "How was the body-composition scan?", sub: "30-second survey — 2 quick questions + an optional comment." });
+  if (drReady) pending.push({ key: "doctor", title: "How was your doctor consultation?", sub: "30-second survey — 2 quick questions + an optional comment." });
+  return (
+    <div className="space-y-3">
+      {pending.map((p) => (
+        <section key={p.key} className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-5 shadow-sm">
+          <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-semibold text-gray-900">{p.title}</h3>
+              <p className="text-sm text-gray-600 mt-0.5">{p.sub}</p>
+              <button onClick={() => onStart(p.key)} className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-br from-blue-600 to-cyan-500 hover:opacity-90">
+                Give feedback
+              </button>
+            </div>
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
