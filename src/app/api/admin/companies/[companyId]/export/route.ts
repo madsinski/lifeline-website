@@ -66,7 +66,8 @@ export async function GET(
     ].join(","));
   }
 
-  return new NextResponse(rows.join("\n"), {
+  // Prefix UTF-8 BOM so Excel opens Icelandic characters correctly.
+  return new NextResponse("\ufeff" + rows.join("\n"), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${slug(company.name)}-roster.csv"`,

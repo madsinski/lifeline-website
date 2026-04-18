@@ -118,7 +118,7 @@ export default function OutreachPage() {
       c.research_opt_out ? "yes" : "no",
       c.created_at,
     ].join(","));
-    const blob = new Blob([[header.join(","), ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\ufeff" + [header.join(","), ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
