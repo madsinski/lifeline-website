@@ -45,16 +45,26 @@ export default function ScheduleBloodTests({ companyId, existing, onClose, onCre
     e.preventDefault();
     if (!selected.size) { setError(t("b2b.sched_bt.need_one", "Pick at least one day.")); return; }
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const rows = Array.from(selected).map((day) => ({
-      company_id: companyId,
-      day,
-      notes: notes.trim() || null,
-      created_by: user?.id ?? null,
-    }));
-    const { error: insErr } = await supabase.from("blood_test_days").insert(rows);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const res = await fetch("/api/business/blood-test-days", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({
+        company_id: companyId,
+        days: Array.from(selected),
+        notes: notes.trim() || null,
+      }),
+    });
+    const j = await res.json();
     setSaving(false);
-    if (insErr) { setError(insErr.message); return; }
+    if (!res.ok) { setError(j.error || "Failed"); return; }
+    if (j.recipients > 0) {
+      alert(t("b2b.sched_bt.emailed",
+        "Days saved. Notification sent to {{sent}}/{{total}} employees.")
+        .replace("{{sent}}", String(j.sent))
+        .replace("{{total}}", String(j.recipients)));
+    }
     onCreated();
   };
 

@@ -33,18 +33,29 @@ export default function ScheduleBodyComp({ companyId, onClose, onCreated }: Prop
       setError(t("b2b.sched_bc.bad_window", "End time must be after the start time.")); return;
     }
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error: insErr } = await supabase.from("body_comp_events").insert({
-      company_id: companyId,
-      event_date: eventDate,
-      start_time: startTime,
-      end_time: endTime,
-      location: location.trim() || null,
-      room_notes: roomNotes.trim() || null,
-      created_by: user?.id ?? null,
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const res = await fetch("/api/business/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({
+        company_id: companyId,
+        event_date: eventDate,
+        start_time: startTime,
+        end_time: endTime,
+        location,
+        room_notes: roomNotes,
+      }),
     });
+    const j = await res.json();
     setSaving(false);
-    if (insErr) { setError(insErr.message); return; }
+    if (!res.ok) { setError(j.error || "Failed"); return; }
+    if (j.recipients > 0) {
+      alert(t("b2b.sched_bc.emailed",
+        "Scheduled. Invite emails sent to {{sent}}/{{total}} employees.")
+        .replace("{{sent}}", String(j.sent))
+        .replace("{{total}}", String(j.recipients)));
+    }
     onCreated();
   };
 

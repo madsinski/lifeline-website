@@ -84,6 +84,130 @@ Or sign in: ${loginUrl}
   return { text, html };
 }
 
+export function renderEventScheduledEmail(params: {
+  recipientName: string;
+  companyName: string;
+  eventDateLabel: string;
+  startTime: string;
+  endTime: string;
+  location?: string | null;
+  roomNotes?: string | null;
+  bookUrl: string;
+}) {
+  const { recipientName, companyName, eventDateLabel, startTime, endTime, location, roomNotes, bookUrl } = params;
+  const text = `Hi ${recipientName},
+
+${companyName} has scheduled your on-site Lifeline body-composition measurements for ${eventDateLabel}, ${startTime}–${endTime}.
+${location ? `Where: ${location}\n` : ""}${roomNotes ? `Room: ${roomNotes}\n` : ""}
+Pick your 5-minute slot here: ${bookUrl}
+
+Each slot holds 2 people. Slots fill up fast — please book as soon as you can.
+
+— Lifeline Health`;
+
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Your body-composition measurement is scheduled</h1>
+    <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
+    <p style="margin:0 0 16px;color:#4b5563;"><strong>${escapeHtml(companyName)}</strong> is hosting an on-site Lifeline body-composition day for all employees.</p>
+    <div style="background:#f3f4f6;border-radius:10px;padding:16px;margin:20px 0;">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">When</div>
+      <div style="font-size:16px;font-weight:600;color:#111827;">${escapeHtml(eventDateLabel)}</div>
+      <div style="font-size:14px;color:#4b5563;margin-top:2px;">${escapeHtml(startTime)} – ${escapeHtml(endTime)}</div>
+      ${location ? `<div style="font-size:12px;color:#6b7280;margin-top:10px;">Where</div><div style="font-size:14px;color:#111827;">${escapeHtml(location)}</div>` : ""}
+      ${roomNotes ? `<div style="font-size:12px;color:#6b7280;margin-top:8px;">${escapeHtml(roomNotes)}</div>` : ""}
+    </div>
+    <p style="margin:0 0 16px;color:#4b5563;">Each measurement takes 5 minutes. Two people can be measured per slot. <strong>Pick your slot now</strong> — they fill up quickly.</p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${bookUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Pick my slot</a>
+    </div>
+  </div>
+</body></html>`;
+  return { text, html };
+}
+
+export function renderBloodTestDaysEmail(params: {
+  recipientName: string;
+  companyName: string;
+  dayLabels: string[];
+  portalUrl: string;
+}) {
+  const { recipientName, companyName, dayLabels, portalUrl } = params;
+  const days = dayLabels.join(", ");
+  const text = `Hi ${recipientName},
+
+${companyName} has approved the following days for you to take your blood test at Sameind, between 08:00 and 12:00:
+
+  ${days}
+
+You can leave work during those hours to go in. You'll receive the booking link via the patient portal.
+
+Open your patient portal: ${portalUrl}
+
+— Lifeline Health`;
+
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Blood-test days are now approved</h1>
+    <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
+    <p style="margin:0 0 16px;color:#4b5563;"><strong>${escapeHtml(companyName)}</strong> has authorised these days for your blood test at Sameind, between <strong>08:00 and 12:00</strong>:</p>
+    <div style="background:#f3f4f6;border-radius:10px;padding:16px;margin:20px 0;font-size:15px;color:#111827;line-height:1.7;">${escapeHtml(days)}</div>
+    <p style="margin:0 0 16px;color:#4b5563;">You can leave work during those hours to go in. You'll get the booking details via the patient portal.</p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${portalUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open patient portal</a>
+    </div>
+  </div>
+</body></html>`;
+  return { text, html };
+}
+
+export function renderEventReminderEmail(params: {
+  recipientName: string;
+  companyName: string;
+  eventDateLabel: string;
+  slotTime: string;
+  location?: string | null;
+  roomNotes?: string | null;
+}) {
+  const { recipientName, companyName, eventDateLabel, slotTime, location, roomNotes } = params;
+  const text = `Hi ${recipientName},
+
+Friendly reminder — your Lifeline body-composition measurement is tomorrow (${eventDateLabel}) at ${slotTime}.
+
+${location ? `Where: ${location}\n` : ""}${roomNotes ? `Room: ${roomNotes}\n` : ""}
+What to expect:
+  - The measurement takes 5 minutes
+  - Wear light clothing (no watches or metal jewellery)
+  - Avoid heavy meals and alcohol in the 4 hours before
+
+See you tomorrow!
+
+— Lifeline Health`;
+
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Your measurement is tomorrow</h1>
+    <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
+    <div style="background:#f3f4f6;border-radius:10px;padding:16px;margin:20px 0;">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">When</div>
+      <div style="font-size:16px;font-weight:600;color:#111827;">${escapeHtml(eventDateLabel)} · ${escapeHtml(slotTime)}</div>
+      ${location ? `<div style="font-size:12px;color:#6b7280;margin-top:10px;">Where</div><div style="font-size:14px;color:#111827;">${escapeHtml(location)}</div>` : ""}
+      ${roomNotes ? `<div style="font-size:12px;color:#6b7280;margin-top:8px;">${escapeHtml(roomNotes)}</div>` : ""}
+    </div>
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:14px;margin:20px 0;font-size:13px;color:#92400e;">
+      <div style="font-weight:600;margin-bottom:4px;">A few tips</div>
+      <ul style="margin:0;padding-left:18px;line-height:1.7;">
+        <li>Wear light clothing (no watches or metal jewellery)</li>
+        <li>Avoid heavy meals and alcohol in the 4 hours before</li>
+        <li>The measurement takes 5 minutes</li>
+      </ul>
+    </div>
+    <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Can't make it? Reply to this email or cancel your slot in the Lifeline portal.</p>
+  </div>
+</body></html>`;
+  return { text, html };
+}
+
 export function renderInviteEmail(params: {
   companyName: string;
   recipientName: string;
