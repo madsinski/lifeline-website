@@ -126,7 +126,13 @@ export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal 
         )}
         <LanguagePicker />
         {!minimal && email && (
-          <button onClick={signOut} className="text-sm text-gray-500 hover:text-gray-800">
+          <button
+            onClick={signOut}
+            className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
             {t("b2b.header.signout", "Sign out")}
           </button>
         )}

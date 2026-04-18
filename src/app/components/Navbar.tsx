@@ -12,7 +12,7 @@ const navLinkDefs = [
   { href: "/assessment", key: "nav.assessment", fallback: "Assessment" },
   { href: "/coaching", key: "nav.coaching", fallback: "Coaching" },
   { href: "/pricing", key: "nav.pricing", fallback: "Pricing" },
-  { href: "/business", key: "nav.business", fallback: "For business" },
+  { href: "/business", key: "nav.companies", fallback: "Companies" },
   { href: "/contact", key: "nav.contact", fallback: "Contact" },
 ];
 
@@ -104,7 +104,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-7">
+          <div className="hidden lg:flex items-center gap-5 xl:gap-7 flex-nowrap">
             {navLinkDefs.map((link) => {
               const isActive =
                 link.href === "/"
@@ -114,7 +114,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-sm font-medium transition-colors relative ${
+                  className={`text-sm font-medium transition-colors relative whitespace-nowrap ${
                     isActive
                       ? "text-[#10B981]"
                       : "text-[#6B7280] hover:text-[#1F2937]"
