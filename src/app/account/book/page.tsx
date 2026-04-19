@@ -193,7 +193,15 @@ export default function BookAssessmentPage() {
             <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Book your assessment</div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">Foundational Health</h1>
           </div>
-          <Link href="/account" className="text-sm text-[#64748B] hover:text-[#0F172A]">← Back to dashboard</Link>
+          <Link
+            href="/account"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to dashboard
+          </Link>
         </header>
 
         <StageIndicator stage={stage} />
@@ -471,7 +479,16 @@ function ScheduleStage({
       </label>
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <button type="button" onClick={onBack} className="text-sm text-gray-600 hover:text-gray-900">← Back</button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
         <button
           type="button"
           onClick={onContinue}
@@ -547,7 +564,16 @@ function ReviewStage({
       {error && <div className="text-sm text-red-600">{error}</div>}
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <button type="button" onClick={onBack} className="text-sm text-gray-600 hover:text-gray-900">← Back</button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
         <button
           type="button"
           onClick={onContinue}
@@ -611,7 +637,17 @@ function PayStage({
       {error && <div className="text-sm text-red-600">{error}</div>}
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <button type="button" onClick={onBack} disabled={paying} className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50">← Back</button>
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={paying}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
         <button
           type="button"
           onClick={onPay}
