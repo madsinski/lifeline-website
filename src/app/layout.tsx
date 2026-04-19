@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Homemade_Apple } from "next/font/google";
+import { Inter, Caveat } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import Navbar from "./components/Navbar";
@@ -14,10 +14,10 @@ const inter = Inter({
   display: "swap",
 });
 
-const signature = Homemade_Apple({
+const signature = Caveat({
   variable: "--font-signature",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["500"],
   display: "swap",
 });
 

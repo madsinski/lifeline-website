@@ -131,10 +131,10 @@ export default function AccountWelcomePage() {
                 {t("b2b.welcome.team.with_love", "With care,")}
               </div>
               <div
-                className="text-3xl sm:text-4xl text-[#1F2937] leading-snug -rotate-2 inline-block"
+                className="text-xl sm:text-2xl text-[#334155] leading-tight -rotate-1 inline-block"
                 style={{
-                  fontFamily: "var(--font-signature), 'Homemade Apple', 'Segoe Script', 'Lucida Handwriting', cursive",
-                  letterSpacing: "0.5px",
+                  fontFamily: "var(--font-signature), 'Caveat', 'Segoe Script', 'Lucida Handwriting', cursive",
+                  letterSpacing: "0.25px",
                 }}
               >
                 {t("b2b.welcome.team.signature", "— The Lifeline team")}
