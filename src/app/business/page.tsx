@@ -429,10 +429,14 @@ function Packages() {
 
 function BangForBuck() {
   return (
-    <section className="py-20 sm:py-24 bg-[#0F172A] text-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative py-20 sm:py-24 text-white overflow-hidden" style={{ background: "linear-gradient(135deg, #0B3D91 0%, #0E7490 50%, #047857 100%)" }}>
+      {/* Soft glow accents so it doesn't read flat like the footer */}
+      <div className="absolute -top-32 -right-24 w-96 h-96 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -left-24 w-96 h-96 rounded-full bg-blue-400/20 blur-3xl pointer-events-none" />
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-white/80 mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm text-white mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.8)]" />
             <span className="text-xs font-semibold uppercase tracking-wide">The Lifeline approach</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold leading-tight">Most bang for buck — because everything we measure is built to drive change.</h2>
@@ -470,12 +474,12 @@ function BangForBuck() {
               ),
             },
           ].map((s) => (
-            <div key={s.title} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center mb-3">
+            <div key={s.title} className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-sm p-5 shadow-lg shadow-blue-900/20">
+              <div className="w-10 h-10 rounded-xl bg-white text-[#0B3D91] flex items-center justify-center mb-3 shadow-sm">
                 {s.icon}
               </div>
               <div className="text-lg font-semibold">{s.title}</div>
-              <div className="text-sm text-white/75 mt-1 leading-relaxed">{s.body}</div>
+              <div className="text-sm text-white/85 mt-1 leading-relaxed">{s.body}</div>
             </div>
           ))}
         </div>
