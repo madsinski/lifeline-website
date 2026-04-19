@@ -3348,33 +3348,43 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
  */
 function AppTeaserCard({ onGoToCoaching }: { onGoToCoaching: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onGoToCoaching}
-      className="w-full text-left relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow group"
-    >
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] to-[#8B5CF6]" />
-      <div className="flex items-start gap-4">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white flex items-center justify-center shrink-0">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">After your assessment</div>
-          <h3 className="text-lg font-semibold text-[#1F2937]">Keep building health with the Lifeline app</h3>
-          <p className="text-sm text-[#6B7280] mt-1 leading-snug">
-            Daily actions, a health coach, accountability, community, and advanced macro tracking — across sleep, exercise, nutrition, and mental wellbeing.
-          </p>
-          <div className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#10B981] group-hover:gap-2 transition-all">
-            Explore the coaching app
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
+      <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] to-[#8B5CF6]" />
+      <div className="p-6 sm:p-8">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">After your assessment</div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Keep building health with the Lifeline app</h2>
+            <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
+              Your report is the starting line. The app is how you move — every day, across all four pillars of health.
+            </p>
+            <ul className="text-sm text-[#4B5563] mt-3 space-y-1.5 list-disc list-inside">
+              <li>Daily actions personalised to your results</li>
+              <li>Your own health coach, in your pocket</li>
+              <li>Accountability partner, community &amp; events</li>
+              <li>Advanced macro tracking, made ridiculously simple</li>
+            </ul>
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={onGoToCoaching}
+                className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:opacity-95 transition-all group"
+              >
+                Explore the coaching app
+                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </button>
+    </section>
   );
 }
 
