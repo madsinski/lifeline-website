@@ -1004,10 +1004,7 @@ function AccountPageInner() {
                     if (!err) setVideoPortalConfirmedAt(null);
                     setVideoConfirmBusy(false);
                   }}
-                  onGoToBiody={() => {
-                    if (biodyActivated) setBiodyEditOpen(true);
-                    else window.location.href = "/account/welcome";
-                  }}
+                  onGoToBiody={() => setBiodyEditOpen(true)}
                 />
                 )}
 
@@ -1121,6 +1118,7 @@ function AccountPageInner() {
                   <BiodyProfileModal
                     userId={user.id}
                     onClose={() => setBiodyEditOpen(false)}
+                    onActivated={() => setBiodyActivated(true)}
                   />
                 )}
 
@@ -3069,11 +3067,13 @@ function BloodTestDayPickerModal({
 }
 
 function BiodyProfileModal({
-  userId, onClose,
+  userId, onClose, onActivated,
 }: {
   userId: string;
   onClose: () => void;
+  onActivated?: () => void;
 }) {
+  const [biodyActive, setBiodyActive] = useState(false);
   const [sex, setSex] = useState<"male" | "female" | "">("");
   const [heightCm, setHeightCm] = useState("");
   const [weightKg, setWeightKg] = useState("");
@@ -3088,7 +3088,7 @@ function BiodyProfileModal({
     (async () => {
       const { data } = await supabase
         .from("clients")
-        .select("sex, height_cm, weight_kg, activity_level, date_of_birth")
+        .select("sex, height_cm, weight_kg, activity_level, date_of_birth, biody_patient_id")
         .eq("id", userId)
         .maybeSingle();
       if (data) {
@@ -3098,6 +3098,7 @@ function BiodyProfileModal({
         setWeightKg(d.weight_kg ? String(d.weight_kg) : "");
         setActivityLevel((d.activity_level as typeof activityLevel) || "");
         setDob((d.date_of_birth as string) || "");
+        setBiodyActive(!!d.biody_patient_id);
       }
       setLoading(false);
     })();
@@ -3120,8 +3121,37 @@ function BiodyProfileModal({
       ...(dob ? { date_of_birth: dob } : {}),
       updated_at: new Date().toISOString(),
     }).eq("id", userId);
+    if (upErr) { setSaving(false); setError(upErr.message); return; }
+
+    // First-time activation: fields saved, now create the Biody patient.
+    if (!biodyActive) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const res = await fetch("/api/biody/activate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({}),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.ok) {
+          setSaving(false);
+          setError(typeof j.detail === "string" ? j.detail : j.error || "Activation failed. Please contact support.");
+          return;
+        }
+        setBiodyActive(true);
+        if (onActivated) onActivated();
+      } catch (err) {
+        setSaving(false);
+        setError((err as Error).message || "Activation failed.");
+        return;
+      }
+    }
+
     setSaving(false);
-    if (upErr) { setError(upErr.message); return; }
     setSaved(true);
     setTimeout(() => onClose(), 900);
   }
@@ -3130,9 +3160,11 @@ function BiodyProfileModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">Edit body-composition profile</h2>
+          <h2 className="text-xl font-semibold">{biodyActive ? "Edit body-composition profile" : "Activate your body-composition profile"}</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Keep your details up to date so measurements and recommendations stay accurate.
+            {biodyActive
+              ? "Keep your details up to date so measurements and recommendations stay accurate."
+              : "A few quick details so we can set up your profile with our measurement partner."}
           </p>
         </div>
         {loading ? (
@@ -3177,7 +3209,7 @@ function BiodyProfileModal({
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
               <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
               <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
-                {saving ? "Saving…" : "Save changes"}
+                {saving ? (biodyActive ? "Saving…" : "Activating…") : (biodyActive ? "Save changes" : "Save & activate")}
               </button>
             </div>
           </form>
