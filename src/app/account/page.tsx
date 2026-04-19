@@ -3303,7 +3303,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
     },
     {
       title: "Macro tracking, made simple",
-      desc: "Seriously advanced under the hood — ridiculously easy to use. Log a meal in seconds; macros, fibre and calories handled for you.",
+      desc: "Seriously advanced under the hood — ridiculously easy to use. Log a meal in seconds; protein, carbs and fat counted for you based on your meal plan.",
       color: "text-[#0D9488]",
       bg: "bg-teal-50",
       icon: (
