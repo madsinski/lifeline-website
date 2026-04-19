@@ -435,20 +435,47 @@ function BangForBuck() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-white/80 mb-4">
             <span className="text-xs font-semibold uppercase tracking-wide">The Lifeline approach</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold leading-tight">Most bang for buck — because we don&apos;t measure or charge for things that don&apos;t drive change.</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold leading-tight">Most bang for buck — because everything we measure is built to drive change.</h2>
           <p className="text-white/75 mt-5 leading-relaxed">
-            Other programmes run 80-marker blood panels that look impressive on the invoice but rarely change a plan. Ours is targeted: the markers that actually move with lifestyle, plus body-composition trends and wellbeing self-report. Nothing more, nothing less — so you get better outcomes at lower cost.
+            Lifeline is clinically focused on what actually moves with lifestyle: targeted blood markers, body-composition trends, and wellbeing self-report. Every number on the report has a purpose — and every purpose maps to a concrete action. So your team pays for insight that turns into real change, not data that sits in a drawer.
           </p>
         </div>
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { n: "5 min", label: "Per measurement — no lost workday" },
-            { n: "1 page", label: "Personal report everyone actually reads" },
-            { n: "Min N=5", label: "Privacy-safe company trends — no individual data leaks" },
+            {
+              title: "Doctor led",
+              body: "Every programme is built and reviewed by physicians — not a wellness vendor. Clinical judgement, not box-ticking.",
+              icon: (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 512 512" aria-hidden>
+                  <path d="M447.1 112c-34.2.5-62.3 28.4-63 62.6-.5 24.3 12.5 45.6 32 56.8V344c0 57.3-50.2 104-112 104-60 0-109.2-44.1-111.9-99.2C265 333.8 320 269.2 320 192V36.6c0-11.4-8.1-21.3-19.3-23.5L237.8.5c-13-2.6-25.6 5.8-28.2 18.8L206.4 35c-2.6 13 5.8 25.6 18.8 28.2l30.7 6.1v121.4c0 52.9-42.2 96.7-95.1 97.2-53.4.5-96.9-42.7-96.9-96V69.4l30.7-6.1c13-2.6 21.4-15.2 18.8-28.2l-3.1-15.7C107.7 6.4 95.1-2 82.1.6L19.3 13C8.1 15.3 0 25.1 0 36.6V192c0 77.3 55.1 142 128.1 156.8C130.7 439.2 208.6 512 304 512c97 0 176-75.4 176-168V231.4c19.1-11.1 32-31.7 32-55.4 0-35.7-29.2-64.5-64.9-64zm.9 80c-8.8 0-16-7.2-16-16s7.2-16 16-16 16 7.2 16 16-7.2 16-16 16z" />
+                </svg>
+              ),
+            },
+            {
+              title: "Only what you need",
+              body: "Targeted markers and measurements that actually respond to lifestyle. No pricey vanity tests that don't change the plan.",
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ),
+            },
+            {
+              title: "Then take action",
+              body: "Every report comes with a clear, doable plan — and the Lifeline app turns that plan into daily habits that compound.",
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              ),
+            },
           ].map((s) => (
-            <div key={s.label} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <div className="text-3xl font-bold">{s.n}</div>
-              <div className="text-sm text-white/75 mt-1">{s.label}</div>
+            <div key={s.title} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center mb-3">
+                {s.icon}
+              </div>
+              <div className="text-lg font-semibold">{s.title}</div>
+              <div className="text-sm text-white/75 mt-1 leading-relaxed">{s.body}</div>
             </div>
           ))}
         </div>
