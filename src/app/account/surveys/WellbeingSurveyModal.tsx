@@ -62,7 +62,10 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold">Wellbeing check-in</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Over the last two weeks — choose the answer that best fits. Your individual answers stay private; only aggregated trends (min 5 people) are shared with your company.
+            Over the last two weeks — choose the answer that best fits.{" "}
+            {companyId
+              ? "Your individual answers stay private; only aggregated trends (min 5 people) are shared with your company."
+              : "Your answers stay private — used to personalise your insights and track your wellbeing over time."}
           </p>
         </div>
         <div className="p-6 space-y-5">

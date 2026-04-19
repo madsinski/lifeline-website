@@ -49,7 +49,8 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold">{TITLES[context]}</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Takes 30 seconds. Individual answers stay private; your company sees only aggregated trends.
+            Takes 30 seconds. Individual answers stay private
+            {companyId ? "; your company sees only aggregated trends." : " — we use the signal to keep improving the service."}
           </p>
         </div>
         <div className="p-6 space-y-5">

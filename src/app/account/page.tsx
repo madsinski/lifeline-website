@@ -935,7 +935,7 @@ function AccountPageInner() {
               <>
                 {/* Welcome hero */}
                 <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
-                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+                  <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${companyId ? "from-[#3B82F6] to-[#10B981]" : "from-[#10B981] to-[#0D9488]"}`} />
                   <div className="p-6 sm:p-8">
                     <div className="flex items-start gap-4 min-w-0">
                       <AvatarUploader
@@ -944,6 +944,7 @@ function AccountPageInner() {
                         userId={user.id}
                         uploading={avatarUploading}
                         error={avatarError}
+                        gradient={companyId ? "from-[#3B82F6] to-[#10B981]" : "from-[#10B981] to-[#0D9488]"}
                         onStart={() => { setAvatarUploading(true); setAvatarError(null); }}
                         onDone={(url) => { setAvatarUrl(url); setAvatarUploading(false); }}
                         onError={(msg) => { setAvatarError(msg); setAvatarUploading(false); }}
@@ -965,7 +966,17 @@ function AccountPageInner() {
                             <span>Member since {memberSince}</span>
                           </p>
                         ) : (
-                          <p className="text-sm text-[#6B7280] mt-1">Member since {memberSince}</p>
+                          <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            {activeTier && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                <span className="text-xs font-medium">{activeTier.name}</span>
+                              </span>
+                            )}
+                            <span>Member since {memberSince}</span>
+                          </p>
                         )}
                       </div>
                     </div>
@@ -974,9 +985,12 @@ function AccountPageInner() {
 
                 {/* Your journey timeline */}
                 <JourneyTimeline
+                  isB2C={!companyId}
                   hasOnboarded={true}
                   biodyActivated={biodyActivated}
                   hasBodyCompSlot={!!mySlotAt}
+                  hasBodyCompBooking={bodyCompStatus === "booked" || bodyCompStatus === "completed"}
+                  hasBodyCompCompleted={bodyCompStatus === "completed"}
                   hasBloodTestBooking={!!myBloodTestBooking}
                   companyEvent={companyEvent}
                   hasApprovedBloodDays={upcomingBloodDays.length > 0}
@@ -1009,11 +1023,14 @@ function AccountPageInner() {
 
                 {/* Current bookings */}
                 <CurrentBookings
+                  isB2C={!companyId}
                   mySlotAt={mySlotAt}
                   companyEvent={companyEvent}
                   myBloodTestBooking={myBloodTestBooking}
                   myDoctorSlot={myDoctorSlot}
                   videoPortalConfirmedAt={videoPortalConfirmedAt}
+                  bodyCompBookingAt={bodyCompBookingAt}
+                  bodyCompStatus={bodyCompStatus}
                   onChangeBcSlot={() => setBcPickerOpen(true)}
                   onChangeBloodDay={() => setBtPickerOpen(true)}
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
@@ -2372,15 +2389,19 @@ export default function AccountPage() {
 // ── Home overview sub-components ──────────────────────────────────────────
 
 function JourneyTimeline({
-  hasOnboarded, biodyActivated, hasBodyCompSlot, hasBloodTestBooking,
+  isB2C,
+  hasOnboarded, biodyActivated, hasBodyCompSlot, hasBodyCompBooking, hasBodyCompCompleted, hasBloodTestBooking,
   companyEvent, hasApprovedBloodDays,
   hasInPersonDoctorBooking, hasAvailableInPersonSlots, hasVideoPortalConfirmed, videoConfirmBusy,
   onPickBodyCompSlot, onPickBloodTestDay, onPickInPersonDoctorSlot,
   onConfirmVideoPortal, onClearVideoPortal, onGoToBiody,
 }: {
+  isB2C: boolean;
   hasOnboarded: boolean;
   biodyActivated: boolean;
   hasBodyCompSlot: boolean;
+  hasBodyCompBooking: boolean;
+  hasBodyCompCompleted: boolean;
   hasBloodTestBooking: boolean;
   companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null } | null;
   hasApprovedBloodDays: boolean;
@@ -2415,28 +2436,58 @@ function JourneyTimeline({
         : "Activate your profile on the welcome page — takes about a minute.",
       cta: { label: biodyActivated ? "Edit details" : "Activate", onClick: onGoToBiody },
     },
-    {
-      title: "Measurements — book your time slot",
-      done: hasBodyCompSlot,
-      active: biodyActivated && !hasBodyCompSlot && !!companyEvent,
-      description: hasBodyCompSlot
-        ? "Your slot is booked. See 'Current bookings' below."
-        : companyEvent
-          ? `On-site at ${eventLabel}. Pick a 5-minute slot.`
-          : "Your company will schedule the measurement day. You'll be notified.",
-      cta: !hasBodyCompSlot && companyEvent ? { label: "Pick a slot", onClick: onPickBodyCompSlot } : undefined,
-    },
-    {
-      title: "Blood test at Sameind — pick your day",
-      done: hasBloodTestBooking,
-      active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
-      description: hasBloodTestBooking
-        ? "Day chosen. Walk in at any Sameind station during its opening hours."
-        : hasApprovedBloodDays
-          ? "Your company has approved days for you. Walk in at any Sameind station during its opening hours."
-          : "Your company will approve blood-test days. You'll be notified.",
-      cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Pick a day", onClick: onPickBloodTestDay } : undefined,
-    },
+    isB2C
+      ? {
+          // B2C: one step covers measurement + blood-draw referral via Medalia booking
+          title: "Book your Foundational Health assessment",
+          done: hasBodyCompBooking,
+          active: biodyActivated && !hasBodyCompBooking,
+          description: hasBodyCompCompleted
+            ? "Completed. Your results live in the patient portal."
+            : hasBodyCompBooking
+              ? "Booked. See 'Current bookings' below for the scheduled time."
+              : biodyActivated
+                ? "Book a session at a Lifeline station — one visit covers measurements and your blood-test referral."
+                : "Activate your body-composition profile first.",
+          cta: biodyActivated && !hasBodyCompBooking
+            ? { label: "Book at a station", href: "/assessment" }
+            : undefined,
+        }
+      : {
+          title: "Measurements — book your time slot",
+          done: hasBodyCompSlot,
+          active: biodyActivated && !hasBodyCompSlot && !!companyEvent,
+          description: hasBodyCompSlot
+            ? "Your slot is booked. See 'Current bookings' below."
+            : companyEvent
+              ? `On-site at ${eventLabel}. Pick a 5-minute slot.`
+              : "Your company will schedule the measurement day. You'll be notified.",
+          cta: !hasBodyCompSlot && companyEvent ? { label: "Pick a slot", onClick: onPickBodyCompSlot } : undefined,
+        },
+    isB2C
+      ? {
+          // B2C: standing Sameind referral, no company-approved days
+          title: "Blood test at Sameind",
+          done: hasBodyCompCompleted, // covered in the single booking; completes when the visit is done
+          active: hasBodyCompBooking && !hasBodyCompCompleted,
+          description: hasBodyCompCompleted
+            ? "Done — results will appear in your personal report."
+            : hasBodyCompBooking
+              ? "Included with your booking. Walk in at any Sameind station during its opening hours — remember to fast from midnight."
+              : "Your Sameind referral is issued when you book your assessment above.",
+          portal: hasBodyCompBooking,
+        }
+      : {
+          title: "Blood test at Sameind — pick your day",
+          done: hasBloodTestBooking,
+          active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
+          description: hasBloodTestBooking
+            ? "Day chosen. Walk in at any Sameind station during its opening hours."
+            : hasApprovedBloodDays
+              ? "Your company has approved days for you. Walk in at any Sameind station during its opening hours."
+              : "Your company will approve blood-test days. You'll be notified.",
+          cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Pick a day", onClick: onPickBloodTestDay } : undefined,
+        },
     {
       title: "Health questionnaire",
       done: false,
@@ -2549,9 +2600,15 @@ function JourneyTimeline({
                   {"customBody" in s && s.customBody ? s.customBody : null}
                 </div>
                 {"cta" in s && s.cta && (
-                  <button onClick={s.cta.onClick} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
-                    {s.cta.label}
-                  </button>
+                  s.cta.href ? (
+                    <Link href={s.cta.href} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
+                      {s.cta.label}
+                    </Link>
+                  ) : (
+                    <button onClick={s.cta.onClick} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
+                      {s.cta.label}
+                    </button>
+                  )
                 )}
               </div>
             </li>
@@ -2563,20 +2620,26 @@ function JourneyTimeline({
 }
 
 function CurrentBookings({
+  isB2C,
   mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot, videoPortalConfirmedAt,
+  bodyCompBookingAt, bodyCompStatus,
   onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onClearVideoPortal,
 }: {
+  isB2C: boolean;
   mySlotAt: string | null;
   companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null;
   myBloodTestBooking: { day: string; note: string | null } | null;
   myDoctorSlot: { id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null; booking_note: string | null } | null;
   videoPortalConfirmedAt: string | null;
+  bodyCompBookingAt: string | null;
+  bodyCompStatus: "none" | "booked" | "completed";
   onChangeBcSlot: () => void;
   onChangeBloodDay: () => void;
   onChangeDoctorSlot: () => void;
   onClearVideoPortal: () => void;
 }) {
-  const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot && !videoPortalConfirmedAt;
+  const hasB2CBodyComp = isB2C && bodyCompStatus === "booked" && !!bodyCompBookingAt;
+  const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot && !videoPortalConfirmedAt && !hasB2CBodyComp;
   const editIcon = (
     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -2891,8 +2954,49 @@ function CurrentBookings({
             </div>
           </div>
         ) : null;
+        const bcB2CCard = hasB2CBodyComp && bodyCompBookingAt ? (
+          <div key="bc-b2c" className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-[#10B981] to-[#0D9488]" />
+            <div className="flex items-start gap-3 mb-3">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" strokeWidth={2} />
+                  <circle cx="12" cy="12" r="3" strokeWidth={2} />
+                  <path strokeLinecap="round" strokeWidth={2} d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Measurements</div>
+                <div className="font-semibold text-gray-900 leading-tight">At a Lifeline station</div>
+              </div>
+            </div>
+            <div className="space-y-1.5 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="font-medium">{new Date(bodyCompBookingAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">{new Date(bodyCompBookingAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
+              </div>
+            </div>
+            <div className="mt-3 rounded-lg bg-emerald-50/70 border border-emerald-100 px-3 py-2 text-xs text-emerald-900">
+              <div className="font-semibold mb-1">What to expect</div>
+              <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-emerald-900/90">
+                <li>Blood pressure, height, weight, body composition</li>
+                <li>Targeted blood draw — fast from midnight</li>
+                <li>Results appear in your personal report</li>
+              </ul>
+            </div>
+          </div>
+        ) : null;
         const entries = [
           { key: "bc", card: bcCard, time: bcTime },
+          { key: "bc-b2c", card: bcB2CCard, time: bodyCompBookingAt ? new Date(bodyCompBookingAt).getTime() : Infinity },
           { key: "bt", card: btCard, time: btTime },
           { key: "dr", card: drCard, time: drTime },
           { key: "dr-video", card: drVideoCard, time: videoPortalConfirmedAt ? new Date(videoPortalConfirmedAt).getTime() : Infinity },
@@ -3515,11 +3619,13 @@ function ServicesSection({
           </svg>
           Services you can add
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-[#0F172A] leading-tight">Add to what {companyName ? "your company" : "you already have"}</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#0F172A] leading-tight">
+          {companyName ? "Add to what your company covered" : "Your Lifeline services"}
+        </h2>
         <p className="text-base text-[#475569] mt-3 leading-relaxed max-w-2xl">
           {companyName
             ? `${companyName} has already covered your Foundational Health assessment. Everything below is optional and personally billed — perfect for family members, mid-year check-ins, or ongoing coaching.`
-            : "Optional services you can add to your Lifeline programme — for yourself, your family, or an extra round of progress tracking."}
+            : "Start with a Foundational Health assessment, then layer check-ins and the coaching app as you go. All personally billed — mix and match what fits you."}
         </p>
       </div>
 
@@ -3619,13 +3725,14 @@ function ServicesSection({
 }
 
 function AvatarUploader({
-  avatarUrl, initial, userId, uploading, error, onStart, onDone, onError,
+  avatarUrl, initial, userId, uploading, error, gradient, onStart, onDone, onError,
 }: {
   avatarUrl: string | null;
   initial: string;
   userId: string;
   uploading: boolean;
   error: string | null;
+  gradient?: string;
   onStart: () => void;
   onDone: (url: string) => void;
   onError: (msg: string) => void;
@@ -3675,7 +3782,7 @@ function AvatarUploader({
         className="relative block group"
         aria-label="Change profile photo"
       >
-        <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-2xl font-bold flex items-center justify-center shadow-sm">
+        <div className={`w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br ${gradient || "from-[#3B82F6] to-[#10B981]"} text-white text-2xl font-bold flex items-center justify-center shadow-sm`}>
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
