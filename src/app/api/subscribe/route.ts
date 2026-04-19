@@ -3,7 +3,10 @@ import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    const body = await req.json();
+    const email = body?.email;
+    const rawSource = typeof body?.source === "string" ? body.source : "coming-soon";
+    const source = rawSource.slice(0, 40) || "coming-soon";
     if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
     }
@@ -13,7 +16,7 @@ export async function POST(req: NextRequest) {
       .from("email_subscribers")
       .insert({
         email: normalized,
-        source: "coming-soon",
+        source,
         user_agent: req.headers.get("user-agent") || null,
       });
 

@@ -2029,6 +2029,12 @@ function AccountPageInner() {
                   </p>
                 </div>
 
+                {/* What's inside the app — shared block (features + pillars) */}
+                <AppFeaturesBlock />
+
+                {/* Download hero */}
+                <DownloadAppHero />
+
                 {/* Your plan */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                   <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
@@ -2195,12 +2201,6 @@ function AccountPageInner() {
                   )}
                 </section>
 
-                {/* What's inside the app — shared block (features + pillars) */}
-                <AppFeaturesBlock />
-
-                {/* Download hero */}
-                <DownloadAppHero />
-
                 {/* Payment method */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                   <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Payment method</h2>
@@ -2273,15 +2273,8 @@ function AccountPageInner() {
                 </section>
 
                 {/* Be the first to know */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 text-center">
-                  <h2 className="text-lg font-semibold text-[#1F2937]">Be the first to know</h2>
-                  <p className="text-sm text-[#6B7280] mt-1 max-w-md mx-auto">
-                    The Lifeline app is in final testing. Tell us and we&apos;ll send you the download link the day it drops.
-                  </p>
-                  <Link href="/coaching#download" className="inline-block mt-4 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-sm font-semibold shadow-sm hover:opacity-90">
-                    Notify me
-                  </Link>
-                </section>
+                <NotifySubscribeCard />
+
               </section>
             )}
 
@@ -3485,6 +3478,74 @@ function DownloadAppHero() {
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function NotifySubscribeCard() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setStatus("submitting");
+    setError(null);
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "account-coaching" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error || "Could not subscribe. Try again.");
+        setStatus("error");
+        return;
+      }
+      setStatus("success");
+      setEmail("");
+    } catch {
+      setError("Could not subscribe. Try again.");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 text-center">
+      <h2 className="text-lg font-semibold text-[#1F2937]">Be the first to know</h2>
+      <p className="text-sm text-[#6B7280] mt-1 max-w-md mx-auto">
+        The Lifeline app is in final testing. Drop your email and we&apos;ll send you the download link the day it drops.
+      </p>
+      {status === "success" ? (
+        <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Thanks — you&apos;re on the list.
+        </div>
+      ) : (
+        <form onSubmit={submit} className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 max-w-md mx-auto">
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            disabled={status === "submitting"}
+            className="flex-1 px-4 py-3 rounded-full border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={status === "submitting"}
+            className="px-6 py-3 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-sm font-semibold shadow-sm hover:opacity-95 disabled:opacity-60 whitespace-nowrap"
+          >
+            {status === "submitting" ? "…" : "Notify me"}
+          </button>
+        </form>
+      )}
+      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
     </section>
   );
 }

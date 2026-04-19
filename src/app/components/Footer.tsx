@@ -8,15 +8,34 @@ import { useI18n } from "@/lib/i18n";
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { t } = useI18n();
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
+    if (!email) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "footer" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error || t("footer.newsletter.error", "Could not subscribe. Try again."));
+        setSubmitting(false);
+        return;
+      }
       setSubscribed(true);
       setEmail("");
       setTimeout(() => setSubscribed(false), 4000);
+    } catch {
+      setError(t("footer.newsletter.error", "Could not subscribe. Try again."));
     }
+    setSubmitting(false);
   };
 
   const scrollToTop = () => {
@@ -45,22 +64,27 @@ export default function Footer() {
                 {t('footer.newsletter.success', 'Thanks for subscribing!')}
               </div>
             ) : (
-              <form onSubmit={handleNewsletterSubmit} className="flex w-full md:w-auto gap-2">
-                <input
-                  type="email"
-                  placeholder={t('footer.newsletter.placeholder', 'your@email.com')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="newsletter-input flex-1 md:w-64 px-4 py-2.5 rounded-full bg-gray-800 border border-gray-600 text-white text-sm placeholder:text-gray-500 outline-none transition-all"
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 whitespace-nowrap"
-                >
-                  {t('footer.newsletter.submit', 'Subscribe')}
-                </button>
-              </form>
+              <div className="flex flex-col items-end gap-1 w-full md:w-auto">
+                <form onSubmit={handleNewsletterSubmit} className="flex w-full md:w-auto gap-2">
+                  <input
+                    type="email"
+                    placeholder={t('footer.newsletter.placeholder', 'your@email.com')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={submitting}
+                    className="newsletter-input flex-1 md:w-64 px-4 py-2.5 rounded-full bg-gray-800 border border-gray-600 text-white text-sm placeholder:text-gray-500 outline-none transition-all disabled:opacity-60"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 whitespace-nowrap disabled:opacity-60"
+                  >
+                    {submitting ? "…" : t('footer.newsletter.submit', 'Subscribe')}
+                  </button>
+                </form>
+                {error && <p className="text-xs text-red-400">{error}</p>}
+              </div>
             )}
           </div>
         </div>
