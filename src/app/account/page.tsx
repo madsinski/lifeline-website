@@ -3259,7 +3259,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
     },
     {
       title: "Your health coach",
-      desc: "A real human in your corner — plans, adjustments, and weekly reviews.",
+      desc: "A real human in your corner — plans, adjustments, regular reviews, and direct messaging whenever you need guidance.",
       color: "text-blue-600",
       bg: "bg-blue-50",
       icon: (
@@ -3311,17 +3311,6 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-6h13v6M9 17H5a2 2 0 01-2-2v-1a2 2 0 012-2h4m0 5h13M9 11V7a2 2 0 012-2h9a2 2 0 012 2v4M9 11H5M9 11h13" />
           <circle cx="7" cy="17" r="2" strokeWidth={2} />
           <circle cx="18" cy="17" r="2" strokeWidth={2} />
-        </svg>
-      ),
-    },
-    {
-      title: "Personalised programs",
-      desc: "Strength, cardio, mobility, and mindfulness programs built around your level and your physician's plan.",
-      color: "text-rose-600",
-      bg: "bg-rose-50",
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
         </svg>
       ),
     },
@@ -3424,10 +3413,14 @@ function AppFeaturesBlock() {
         ))}
       </div>
 
-      {/* Four pillars */}
+      {/* Personalised programs → four pillars */}
       <div className="mt-6">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] mb-3">Drive improvements across the four pillars</div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] mb-1">Personalised programs</div>
+        <h3 className="text-base font-semibold text-[#1F2937]">Drive improvements across the four pillars</h3>
+        <p className="text-sm text-[#6B7280] mt-1 leading-snug max-w-2xl">
+          Strength, cardio, mobility, and mindfulness programs built around your level and your physician&apos;s plan. Made for real life, for real people — home and gym versions of every program, so you can train wherever you are.
+        </p>
+        <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-3">
           {APP_PILLARS.map((p) => (
             <div key={p.title} className={`rounded-xl border ${p.border} ${p.bg} p-3`}>
               <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center mb-2 ${p.color}`}>
