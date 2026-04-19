@@ -3414,24 +3414,36 @@ function AppFeaturesBlock() {
       </div>
 
       {/* Personalised programs → four pillars */}
-      <div className="mt-6">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] mb-1">Personalised programs</div>
-        <h3 className="text-base font-semibold text-[#1F2937]">Drive improvements across the four pillars</h3>
-        <p className="text-sm text-[#6B7280] mt-1 leading-snug max-w-2xl">
-          Strength, cardio, mobility, and mindfulness programs built around your level and your physician&apos;s plan. Made for real life, for real people — home and gym versions of every program, so you can train wherever you are.
-        </p>
-        <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {APP_PILLARS.map((p) => (
-            <div key={p.title} className={`rounded-xl border ${p.border} ${p.bg} p-3`}>
-              <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center mb-2 ${p.color}`}>
-                {p.icon}
-              </div>
-              <div className={`font-semibold ${p.color}`}>{p.title}</div>
-              <p className="text-xs text-[#4B5563] mt-1 leading-snug">{p.desc}</p>
+      <section className="relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br from-[#f5f7fb] via-white to-white shadow-sm mt-6">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] via-[#8B5CF6] to-[#06B6D4]" />
+        <div className="p-6 sm:p-7">
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#3B82F6] via-[#0D9488] to-[#8B5CF6] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </div>
-          ))}
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Personalised programs</div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">Drive improvements across the four pillars</h3>
+              <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-2xl">
+                Strength, cardio, mobility, and mindfulness programs built around your level and your physician&apos;s plan. Made for real life, for real people — home and gym versions of every program, so you can train wherever you are.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {APP_PILLARS.map((p) => (
+              <div key={p.title} className={`rounded-xl border ${p.border} ${p.bg} p-3`}>
+                <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center mb-2 ${p.color}`}>
+                  {p.icon}
+                </div>
+                <div className={`font-semibold ${p.color}`}>{p.title}</div>
+                <p className="text-xs text-[#4B5563] mt-1 leading-snug">{p.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
 
     </section>
   );
