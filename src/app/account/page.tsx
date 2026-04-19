@@ -62,8 +62,8 @@ interface PaymentRow {
 type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "programs" | "app" | "settings" | "upgrade";
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
-  { id: "assessment", label: "Assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
-  { id: "upgrade", label: "Upgrade to coaching", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  { id: "assessment", label: "Health assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
+  { id: "upgrade", label: "Coaching app", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   { id: "billing", label: "Billing", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
@@ -1149,6 +1149,9 @@ function AccountPageInner() {
                     </div>
                   </div>
                 </section>
+
+                {/* After your assessment — intro to the coaching app */}
+                <AfterAssessmentCard onGoToCoaching={() => setActiveSection("upgrade")} />
 
                 {/* Plan + coaching upgrade */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2941,7 +2944,16 @@ function CurrentBookings({
                 </div>
                 {myBloodTestBooking.note && <div className="text-xs text-gray-500 pl-6">{myBloodTestBooking.note}</div>}
               </div>
-              <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
+              <div className="mt-3 rounded-lg bg-rose-50/70 border border-rose-100 px-3 py-2 text-xs text-rose-900">
+                <div className="font-semibold mb-1">What to expect</div>
+                <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-rose-900/90">
+                  <li>Walk in at any Sameind station on your chosen day</li>
+                  <li>Check in at reception — bring your kennitala</li>
+                  <li>Short blood draw (5–10 minutes)</li>
+                  <li>Results flow back to your patient portal within a few days</li>
+                </ul>
+              </div>
+              <div className="mt-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
                 <span className="font-semibold">Fast from midnight.</span> Water only — no food, coffee, tea, juice or alcohol.
               </div>
               <div className="mt-4 pt-4 border-t border-rose-100/70">
@@ -3007,7 +3019,7 @@ function CurrentBookings({
                 <li>Agree on a personal action plan</li>
                 <li>Time for your questions</li>
               </ul>
-              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Have your report open in the patient portal before the call — your doctor will reference it.</div>
+              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Please review your health report in the patient portal before your doctor meeting.</div>
             </div>
             <div className="mt-4 pt-4 border-t border-violet-100/70">
               <button onClick={onChangeDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 hover:border-violet-300 transition-colors">
@@ -3279,6 +3291,151 @@ function DoctorSlotPickerModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function AfterAssessmentCard({ onGoToCoaching }: { onGoToCoaching: () => void }) {
+  const pillars: Array<{ title: string; desc: string; color: string; bg: string; border: string; icon: React.ReactNode }> = [
+    {
+      title: "Exercise",
+      desc: "Strength, endurance, and mobility — guided programs.",
+      color: "text-[#EA580C]",
+      bg: "bg-orange-50",
+      border: "border-orange-100",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M7 8l-4 4 4 4M17 8l4 4-4 4" />
+        </svg>
+      ),
+    },
+    {
+      title: "Nutrition",
+      desc: "Meal guidance tied to your blood work and goals.",
+      color: "text-[#84CC16]",
+      bg: "bg-lime-50",
+      border: "border-lime-100",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C8 2 5 5 5 9c0 4 3 7 7 13 4-6 7-9 7-13 0-4-3-7-7-7z" />
+        </svg>
+      ),
+    },
+    {
+      title: "Sleep",
+      desc: "Better rest through schedule + environment tips.",
+      color: "text-[#767194]",
+      bg: "bg-slate-50",
+      border: "border-slate-100",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+        </svg>
+      ),
+    },
+    {
+      title: "Mental wellness",
+      desc: "Mindfulness, breathing, resilience practices.",
+      color: "text-[#0EA5E9]",
+      bg: "bg-sky-50",
+      border: "border-sky-100",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+    },
+  ];
+  return (
+    <section id="whats-next" className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-400 via-lime-400 to-sky-400" />
+      <div className="max-w-2xl">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-xs font-semibold uppercase tracking-wide">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          After your assessment
+        </div>
+        <h3 className="text-2xl font-bold text-[#1F2937] mt-3">Keep building health with the Lifeline app</h3>
+        <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">
+          The assessment tells you where you are. The app is how you change it — daily actions, coaching, and habit-building across the four pillars of health. Based on your report, your plan is built for you.
+        </p>
+      </div>
+
+      {/* Feature row */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4">
+          <div className="w-9 h-9 rounded-lg bg-[#10B981]/10 text-[#10B981] flex items-center justify-center mb-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div className="font-semibold text-gray-900">Daily actions</div>
+          <p className="text-sm text-[#6B7280] mt-1">Small, tracked steps every day — chosen to move your specific numbers.</p>
+        </div>
+        <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div className="font-semibold text-gray-900">Your health coach</div>
+          <p className="text-sm text-[#6B7280] mt-1">1:1 support in-app for accountability, planning, and adjustments.</p>
+        </div>
+        <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4">
+          <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+          </div>
+          <div className="font-semibold text-gray-900">Progress you can see</div>
+          <p className="text-sm text-[#6B7280] mt-1">Re-measure in the next assessment round — watch your numbers move.</p>
+        </div>
+      </div>
+
+      {/* Four pillars */}
+      <div className="mt-6">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] mb-3">The four pillars of health</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {pillars.map((p) => (
+            <div key={p.title} className={`rounded-xl border ${p.border} ${p.bg} p-3`}>
+              <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center mb-2 ${p.color}`}>
+                {p.icon}
+              </div>
+              <div className={`font-semibold ${p.color}`}>{p.title}</div>
+              <p className="text-xs text-[#4B5563] mt-1 leading-snug">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Download + CTA */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-[#10B981]/20 bg-gradient-to-br from-emerald-50 via-white to-white p-4">
+          <div className="font-semibold text-gray-900">Download the Lifeline app</div>
+          <p className="text-sm text-[#6B7280] mt-1">Available on iPhone and Android.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <a href="https://apps.apple.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-xs font-semibold hover:opacity-90">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+              App Store
+            </a>
+            <a href="https://play.google.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-xs font-semibold hover:opacity-90">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3.609 1.814L13.792 12 3.61 22.186a.997.997 0 01-.61-.92V2.734a1 1 0 01.609-.92zM15.2 13.41l-10.1 10.1L15.6 18l2.1-1.1-2.5-3.49zm4.03-3.5l-2.1-1.1-3 4 3 4 2.1-1.1a1 1 0 00.48-1.59l-1.33-2.21 1.33-2.21a1 1 0 00-.48-1.59zM15.6 6l-10.5-5.51L15.2 10.59l2.5-3.49L15.6 6z"/></svg>
+              Google Play
+            </a>
+          </div>
+        </div>
+        <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-4">
+          <div className="font-semibold text-gray-900">Ready for ongoing coaching?</div>
+          <p className="text-sm text-[#6B7280] mt-1">Upgrade to Full Access to unlock your coach, daily plan, and progress tracking.</p>
+          <button onClick={onGoToCoaching} className="mt-3 inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-90">
+            See coaching options
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
