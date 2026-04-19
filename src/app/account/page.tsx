@@ -975,29 +975,30 @@ function AccountPageInner() {
 
                 {/* Welcome card */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-14 h-14 rounded-full bg-[#10B981] text-white text-xl font-bold flex items-center justify-center shrink-0">
-                        {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className="text-xl font-bold text-[#1F2937]">
-                          Welcome back, {profileFirstName || "there"}
-                        </h2>
-                        <p className="text-sm text-[#6B7280]">
-                          Member since {memberSince}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-14 h-14 rounded-full bg-[#10B981] text-white text-xl font-bold flex items-center justify-center shrink-0">
+                      {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
                     </div>
-                    {companyName && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-100 bg-blue-50">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <span className="text-xs text-blue-700">Company account</span>
-                        <span className="text-xs font-semibold text-blue-900">{companyName}</span>
-                      </div>
-                    )}
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-bold text-[#1F2937]">
+                        Welcome back, {profileFirstName || "there"}
+                      </h2>
+                      {companyName ? (
+                        <p className="text-sm text-[#6B7280] mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-blue-100 bg-blue-50 text-blue-700">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span className="text-xs font-medium">Company account</span>
+                          </span>
+                          <span className="text-sm font-semibold text-[#1F2937]">{companyName}</span>
+                          <span className="text-[#9CA3AF]">·</span>
+                          <span>Member since {memberSince}</span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-[#6B7280] mt-0.5">Member since {memberSince}</p>
+                      )}
+                    </div>
                   </div>
                 </section>
 
