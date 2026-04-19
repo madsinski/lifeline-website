@@ -2869,8 +2869,8 @@ function CurrentBookings({
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">On-site</div>
-                  <div className="font-semibold text-gray-900 leading-tight">Measurements</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">Measurements</div>
+                  <div className="font-semibold text-gray-900 leading-tight">On-site</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-sm text-gray-700">
@@ -2905,7 +2905,7 @@ function CurrentBookings({
                   <li>Weight</li>
                   <li>Body composition (muscle mass %, fat %)</li>
                 </ul>
-                <div className="mt-1.5 text-[11.5px] text-blue-900/80">Takes about 5 minutes. Wear light clothing, no shoes, and avoid heavy meals just before.</div>
+                <div className="mt-1.5 text-[11.5px] text-blue-900/80">Takes about 5 minutes. Avoid heavy meals just before.</div>
               </div>
               <div className="mt-4 pt-4 border-t border-blue-100/70">
                 <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors">
