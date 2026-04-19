@@ -224,7 +224,7 @@ export default function BookAssessmentPage() {
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Book your assessment</div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">Foundational Health</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">{pkg ? pkg.name : "Choose your package"}</h1>
           </div>
           <Link
             href="/account"
@@ -712,7 +712,7 @@ function DoneStage({
           : `Your ${pkg.name} is ready. Start the questionnaire from your dashboard whenever you're ready.`}
       </p>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-        <Link
+        <a
           href="/account"
           className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
         >
@@ -720,7 +720,7 @@ function DoneStage({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
-        </Link>
+        </a>
       </div>
     </div>
   );

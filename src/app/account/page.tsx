@@ -2741,10 +2741,12 @@ function CurrentBookings({
                 <span className="font-semibold">Fast from midnight.</span> Water only — no food, coffee, tea, juice or alcohol.
               </div>
               <div className="mt-4 pt-4 border-t border-rose-100/70 flex flex-wrap gap-2">
-                <button onClick={onChangeBloodDay} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
-                  {editIcon}
-                  Change day
-                </button>
+                {!isB2C && (
+                  <button onClick={onChangeBloodDay} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
+                    {editIcon}
+                    Change day
+                  </button>
+                )}
                 {(() => {
                   const dayStart = new Date(`${myBloodTestBooking.day}T08:00:00`);
                   const dayEnd = new Date(`${myBloodTestBooking.day}T09:00:00`);

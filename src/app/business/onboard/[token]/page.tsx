@@ -465,12 +465,19 @@ function DoneStage({ firstName }: { firstName: string }) {
         </svg>
       </div>
       <h1 className="text-2xl font-semibold mb-2">You&apos;re all set{firstName ? `, ${firstName}` : ""}!</h1>
-      <p className="text-sm text-gray-600 mb-7 max-w-md mx-auto">
-        Your Lifeline account is ready. Sign in to the Lifeline app to book your body-composition scan,
-        get your report, and start your daily plan.
+      <p className="text-sm text-gray-600 mb-5 max-w-md mx-auto">
+        Your Lifeline account is ready.
       </p>
+      <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-left max-w-md mx-auto mb-7">
+        <div className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-2">What happens next</div>
+        <ul className="space-y-1.5 text-sm text-blue-900/90">
+          <li>• Your company schedules the on-site measurement day — you&apos;ll be notified.</li>
+          <li>• When it&apos;s time, pick a 5-minute slot + your Sameind blood-test day from the dashboard.</li>
+          <li>• A Lifeline doctor reviews your results and meets you 1:1.</li>
+        </ul>
+      </div>
       <div className="flex items-center justify-center gap-3">
-        <Link href={`/account/login?next=${encodeURIComponent("/account/welcome")}`} className="btn-primary">Sign in &amp; start</Link>
+        <a href="/account" className="btn-primary">Go to your dashboard</a>
         <Link href="/" className="btn-ghost">Back to home</Link>
       </div>
     </section>
