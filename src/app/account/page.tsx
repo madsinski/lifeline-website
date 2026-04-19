@@ -976,6 +976,7 @@ function AccountPageInner() {
                   onPickBloodTestDay={() => setBtPickerOpen(true)}
                   onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
                   onConfirmVideoPortal={async () => {
+                    if (!confirm("Confirm that you have booked a video consultation with your Lifeline doctor in the patient portal?")) return;
                     setVideoConfirmBusy(true);
                     const { error: err } = await supabase.rpc("confirm_video_consultation_portal");
                     if (!err) setVideoPortalConfirmedAt(new Date().toISOString());
@@ -2445,8 +2446,10 @@ function JourneyTimeline({
       title: "Body-composition profile",
       done: biodyActivated,
       active: hasOnboarded && !biodyActivated,
-      description: biodyActivated ? "Registered with Biody." : "Activate on the welcome page.",
-      cta: !biodyActivated ? { label: "Activate", onClick: onGoToBiody } : undefined,
+      description: biodyActivated
+        ? "Registered with our measurement partner. You can update your details (height, weight, activity level) any time."
+        : "Activate your profile on the welcome page — takes about a minute.",
+      cta: { label: biodyActivated ? "Edit details" : "Activate", onClick: onGoToBiody },
     },
     {
       title: "Measurements — book your time slot",
@@ -2529,7 +2532,8 @@ function JourneyTimeline({
           </div>
         </div>
       ) : hasVideoPortalConfirmed && !hasInPersonDoctorBooking ? (
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <MedaliaButton label="Open patient portal" size="sm" />
           <button onClick={onClearVideoPortal} disabled={videoConfirmBusy} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-60">
             Clear confirmation
           </button>
