@@ -2864,8 +2864,11 @@ function CurrentBookings({
               <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-blue-500 to-emerald-500" />
               <div className="flex items-start gap-3 mb-3">
                 <div className="shrink-0 w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                  {/* Measuring tape */}
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    <circle cx="12" cy="12" r="9" strokeWidth={2} />
+                    <circle cx="12" cy="12" r="3" strokeWidth={2} />
+                    <path strokeLinecap="round" strokeWidth={2} d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" />
                   </svg>
                 </div>
                 <div className="min-w-0">
@@ -2969,8 +2972,9 @@ function CurrentBookings({
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
             <div className="flex items-start gap-3 mb-3">
               <div className="shrink-0 w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-3-3v6m-9 1a9 9 0 1118 0 9 9 0 01-18 0z" />
+                {/* Stethoscope — matches app bottom-nav (FontAwesome) */}
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 512 512" aria-hidden>
+                  <path d="M447.1 112c-17.67 0-32 14.33-32 32s14.33 32 32 32c17.67 0 32-14.33 32-32s-14.33-32-32-32zm-16 95.8c-61.75-2.625-112-53.75-112-115.5l.03-60.25c0-12.5-9.75-23.13-22.38-23.88l-47.59-4.12C241.7 3.25 238.6 0 234.7 0 230.5 0 224 3.58 224 11.96v20.05c0 7.91 5.84 14.38 13.41 15.7l26.59 3.1L264 92.25c0 79.41 63.25 144.25 142 147.6 80.25 3.38 146-60.75 146-141.1l-.01-46.57c7.56-1.33 13.4-7.79 13.4-15.69V11.95C565.4 3.57 559.5 0 555.3 0c-3.87 0-7-3.25-14.37 4-3.12-.29-47.59 4.12-47.59 4.12-12.63.76-22.37 11.38-22.37 23.88l-.02 59.25c0 61.55-50.25 112.7-111.1 112.55zM301.1 288c-11.9 36.2-45.6 64-85.1 64-39.58 0-73.12-27.88-85.21-64H112.3C75.12 288 42.67 314.5 35.47 351c-17.98 91.2-28.37 160.22-35.46 161H224c17.67 0 32-14.33 32-32v-32c0-35.35 28.65-64 64-64s64 28.65 64 64v32c0 17.67 14.33 32 32 32h224.01c-7.1-.79-17.49-69.8-35.47-161-7.2-36.5-39.65-63-76.84-63h-120.6z" />
                 </svg>
               </div>
               <div className="min-w-0">
