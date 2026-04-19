@@ -7,18 +7,12 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 
-type StepStatus = "done" | "pending" | "blocked";
-
 export default function AccountWelcomePage() {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [companyName, setCompanyName] = useState<string | null>(null);
-  const [biodyActive, setBiodyActive] = useState(false);
-  const [hasBodyCompSlot, setHasBodyCompSlot] = useState(false);
-  const [hasBloodBooking, setHasBloodBooking] = useState(false);
-  const [hasAnyDoctor, setHasAnyDoctor] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -26,33 +20,16 @@ export default function AccountWelcomePage() {
       if (!user) { router.push("/account/login"); return; }
       const { data: client } = await supabase
         .from("clients")
-        .select("full_name, company_id, biody_patient_id, video_consultation_portal_confirmed_at")
+        .select("full_name, company_id")
         .eq("id", user.id)
         .maybeSingle();
       if (client) {
         setFirstName((client.full_name || "").split(" ")[0] || "");
-        setBiodyActive(!!client.biody_patient_id);
-        setHasAnyDoctor(!!client.video_consultation_portal_confirmed_at);
         const cid = client.company_id as string | null;
         if (cid) {
           const { data: c } = await supabase.from("companies").select("name").eq("id", cid).maybeSingle();
           if (c?.name) setCompanyName(c.name);
-          const [{ data: myB }, { data: myBlood }] = await Promise.all([
-            supabase.from("body_comp_event_bookings").select("slot_at").eq("client_id", user.id).limit(1).maybeSingle(),
-            supabase.from("blood_test_bookings").select("day").eq("client_id", user.id).limit(1).maybeSingle(),
-          ]);
-          setHasBodyCompSlot(!!myB);
-          setHasBloodBooking(!!myBlood);
         }
-        // Check in-person doctor slot too
-        const { data: drSlot } = await supabase
-          .from("doctor_slots")
-          .select("id")
-          .eq("client_id", user.id)
-          .is("completed_at", null)
-          .limit(1)
-          .maybeSingle();
-        if (drSlot) setHasAnyDoctor(true);
       }
       setLoading(false);
     })();
@@ -79,7 +56,7 @@ export default function AccountWelcomePage() {
               : t("b2b.welcome.hero.title", "Welcome to Lifeline.")}
           </h1>
           <p className="relative mt-3 text-base sm:text-lg opacity-95 max-w-xl leading-relaxed">
-            {t("b2b.welcome.hero.body", "We're glad you're here. Take a minute to get oriented — then head to your dashboard to take the next steps at your own pace.")}
+            {t("b2b.welcome.hero.body", "You're all set up. A few quick things and you're ready to start building healthier habits with guidance from Icelandic doctors and coaches.")}
           </p>
         </section>
 
@@ -163,27 +140,8 @@ export default function AccountWelcomePage() {
           </div>
         </section>
 
-        {/* Your next steps (status only — actions happen on the dashboard) */}
-        <NextStepsCard
-          biodyActive={biodyActive}
-          hasBodyCompSlot={hasBodyCompSlot}
-          hasBloodBooking={hasBloodBooking}
-          hasAnyDoctor={hasAnyDoctor}
-        />
-
-        {/* Dashboard CTA */}
-        <div className="flex justify-center">
-          <Link
-            href="/account"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-white text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:opacity-95 transition-all"
-            style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}
-          >
-            {t("b2b.welcome.cta.dashboard", "Go to your dashboard")}
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
+        {/* Next steps — hero CTA to the dashboard */}
+        <NextStepsHero />
 
         <style jsx global>{`
           .input { width:100%; padding:0.625rem 0.875rem; border:1px solid #e5e7eb; border-radius:0.5rem; outline:none; }
@@ -194,78 +152,39 @@ export default function AccountWelcomePage() {
   );
 }
 
-function NextStepsCard({
-  biodyActive, hasBodyCompSlot, hasBloodBooking, hasAnyDoctor,
-}: {
-  biodyActive: boolean;
-  hasBodyCompSlot: boolean;
-  hasBloodBooking: boolean;
-  hasAnyDoctor: boolean;
-}) {
+function NextStepsHero() {
   const { t } = useI18n();
-  const steps: Array<{ title: string; desc: string; status: StepStatus }> = [
-    {
-      title: t("b2b.welcome.next.bodycomp_profile", "Activate body-composition profile"),
-      desc: t("b2b.welcome.next.bodycomp_profile_desc", "Quick details — height, weight, activity level."),
-      status: biodyActive ? "done" : "pending",
-    },
-    {
-      title: t("b2b.welcome.next.measurements", "Book your on-site measurement"),
-      desc: t("b2b.welcome.next.measurements_desc", "Pick a 5-minute slot from your company's measurement day."),
-      status: hasBodyCompSlot ? "done" : biodyActive ? "pending" : "blocked",
-    },
-    {
-      title: t("b2b.welcome.next.bloodtest", "Pick your blood-test day"),
-      desc: t("b2b.welcome.next.bloodtest_desc", "Walk-in at a partner lab during your company-approved days."),
-      status: hasBloodBooking ? "done" : "pending",
-    },
-    {
-      title: t("b2b.welcome.next.doctor", "Doctor consultation"),
-      desc: t("b2b.welcome.next.doctor_desc", "In person or secure video meeting to review your results."),
-      status: hasAnyDoctor ? "done" : "pending",
-    },
-  ];
-
   return (
-    <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm">
-      <h2 className="text-lg font-semibold text-[#1F2937]">
-        {t("b2b.welcome.next.title", "Your next steps")}
-      </h2>
-      <p className="text-sm text-[#6B7280] mt-1">
-        {t("b2b.welcome.next.sub", "Here's what's coming. Complete each step at your own pace from your dashboard.")}
-      </p>
-      <ol className="mt-5 space-y-3">
-        {steps.map((s, i) => (
-          <li key={i} className="flex items-start gap-3 py-2">
-            <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              s.status === "done" ? "bg-emerald-500 text-white"
-              : s.status === "pending" ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-400"
-            }`}>
-              {s.status === "done" ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : i + 1}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className={`font-semibold text-sm ${s.status === "done" ? "text-gray-500 line-through" : "text-[#1F2937]"}`}>
-                {s.title}
-              </div>
-              <div className="text-xs text-[#6B7280] mt-0.5">{s.desc}</div>
-            </div>
-            <span className={`text-[10px] font-semibold uppercase tracking-wide shrink-0 ${
-              s.status === "done" ? "text-emerald-600"
-              : s.status === "pending" ? "text-blue-600"
-              : "text-gray-400"
-            }`}>
-              {s.status === "done" ? t("b2b.welcome.next.done", "Done")
-                : s.status === "pending" ? t("b2b.welcome.next.pending", "Pending")
-                : t("b2b.welcome.next.upcoming", "Upcoming")}
-            </span>
-          </li>
-        ))}
-      </ol>
+    <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
+      <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-12 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+      <div className="relative p-8 sm:p-10 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 backdrop-blur-sm mb-4">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span className="text-xs font-semibold uppercase tracking-wide">
+            {t("b2b.welcome.next.kicker", "Your next steps")}
+          </span>
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-bold leading-tight max-w-xl mx-auto">
+          {t("b2b.welcome.next.title2", "Ready when you are.")}
+        </h2>
+        <p className="mt-3 text-base opacity-95 leading-relaxed max-w-xl mx-auto">
+          {t("b2b.welcome.next.sub2", "Your dashboard has everything you need — take the next steps at your own pace.")}
+        </p>
+        <div className="mt-7 flex justify-center">
+          <Link
+            href="/account"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#0F172A] text-base font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 hover:opacity-95 transition-all"
+          >
+            {t("b2b.welcome.cta.dashboard", "Go to your dashboard")}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      </div>
     </section>
   );
 }
