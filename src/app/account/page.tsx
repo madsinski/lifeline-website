@@ -3337,6 +3337,18 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
         </svg>
       ),
     },
+    {
+      title: "Health scores",
+      desc: "One score per pillar, zero to one hundred. A single honest number that moves up as your habits stick — so you always know where you stand.",
+      color: "text-[#10B981]",
+      bg: "bg-[#10B981]/10",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m-8 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v13a2 2 0 002 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13l3-3 3 3 4-4 5 5" />
+        </svg>
+      ),
+    },
 ];
 
 /**
