@@ -3380,8 +3380,17 @@ function AvatarUploader({
   onError: (msg: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
+
+  function openMenu() {
+    if (uploading) return;
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) setMenuPos({ top: rect.bottom + 8, left: rect.left });
+    setMenuOpen(true);
+  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -3409,8 +3418,9 @@ function AvatarUploader({
   return (
     <div className="shrink-0 relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => { if (!uploading) setMenuOpen((o) => !o); }}
+        onClick={openMenu}
         className="relative block group"
         aria-label="Change profile photo"
       >
@@ -3457,16 +3467,19 @@ function AvatarUploader({
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; handleFile(f ?? undefined); }}
       />
 
-      {menuOpen && (
+      {menuOpen && menuPos && (
         <>
-          {/* Click-away backdrop */}
+          {/* Click-away backdrop (fixed, sits above everything except the menu) */}
           <button
             type="button"
             aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
+            className="fixed inset-0 z-40 cursor-default"
           />
-          <div className="absolute z-20 left-0 top-[72px] w-52 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+          <div
+            className="fixed z-50 w-52 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
             <button
               type="button"
               onClick={() => { setMenuOpen(false); cameraInputRef.current?.click(); }}
