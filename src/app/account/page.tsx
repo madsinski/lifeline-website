@@ -130,6 +130,9 @@ function AccountPageInner() {
   const [drPickerOpen, setDrPickerOpen] = useState(false);
   const [videoPortalConfirmedAt, setVideoPortalConfirmedAt] = useState<string | null>(null);
   const [videoConfirmBusy, setVideoConfirmBusy] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [lastWellbeingAt, setLastWellbeingAt] = useState<string | null>(null);
   const [satisfactionDone, setSatisfactionDone] = useState<Record<"body_comp" | "doctor" | "overall", boolean>>({ body_comp: false, doctor: false, overall: false });
   const [wellbeingOpen, setWellbeingOpen] = useState(false);
@@ -240,7 +243,7 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url")
           .eq("id", currentUser.id)
           .single();
         if (clientData) {
@@ -258,6 +261,7 @@ function AccountPageInner() {
           setLastBodyCompAt((cData.last_body_comp_at as string | null) || null);
           setBiodyActivated(!!cData.biody_patient_id);
           setVideoPortalConfirmedAt((cData.video_consultation_portal_confirmed_at as string | null) || null);
+          setAvatarUrl((cData.avatar_url as string | null) || null);
           if (companyId) {
             setCompanyId(companyId);
             const { data: c } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
@@ -933,9 +937,16 @@ function AccountPageInner() {
                   <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
                   <div className="p-6 sm:p-8">
                     <div className="flex items-start gap-4 min-w-0">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-2xl font-bold flex items-center justify-center shrink-0 shadow-sm">
-                        {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
-                      </div>
+                      <AvatarUploader
+                        avatarUrl={avatarUrl}
+                        initial={(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
+                        userId={user.id}
+                        uploading={avatarUploading}
+                        error={avatarError}
+                        onStart={() => { setAvatarUploading(true); setAvatarError(null); }}
+                        onDone={(url) => { setAvatarUrl(url); setAvatarUploading(false); }}
+                        onError={(msg) => { setAvatarError(msg); setAvatarUploading(false); }}
+                      />
                       <div className="min-w-0 flex-1">
                         <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
                           Welcome back, {profileFirstName || "there"}
@@ -3356,6 +3367,83 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
  * Compact teaser card on /account Home — links to the full Coaching app page
  * where all feature content lives.
  */
+function AvatarUploader({
+  avatarUrl, initial, userId, uploading, error, onStart, onDone, onError,
+}: {
+  avatarUrl: string | null;
+  initial: string;
+  userId: string;
+  uploading: boolean;
+  error: string | null;
+  onStart: () => void;
+  onDone: (url: string) => void;
+  onError: (msg: string) => void;
+}) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { onError("Please choose an image file."); return; }
+    if (file.size > 5 * 1024 * 1024) { onError("Image is larger than 5 MB."); return; }
+    onStart();
+    try {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const cleanExt = ext === "png" ? "png" : ext === "webp" ? "webp" : "jpg";
+      const contentType = cleanExt === "png" ? "image/png" : cleanExt === "webp" ? "image/webp" : "image/jpeg";
+      const filePath = `${userId}/avatar.${cleanExt}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true, contentType });
+      if (upErr) { onError(upErr.message); return; }
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?t=${Date.now()}` : "";
+      if (!publicUrl) { onError("Could not resolve the uploaded image URL."); return; }
+      const { error: dbErr } = await supabase.from("clients").update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq("id", userId);
+      if (dbErr) { onError(dbErr.message); return; }
+      onDone(publicUrl);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Upload failed.");
+    }
+  }
+
+  return (
+    <div className="shrink-0">
+      <label className="relative block group cursor-pointer">
+        <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-2xl font-bold flex items-center justify-center shadow-sm">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <span>{initial}</span>
+          )}
+        </div>
+        <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </div>
+        {uploading && (
+          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/60">
+            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+        <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center text-gray-600">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </span>
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="sr-only"
+          onChange={handleFile}
+          disabled={uploading}
+        />
+      </label>
+      {error && <div className="mt-1.5 text-[11px] text-red-600 max-w-[180px]">{error}</div>}
+    </div>
+  );
+}
+
 function AppTeaserCard({ onGoToCoaching }: { onGoToCoaching: () => void }) {
   return (
     <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
