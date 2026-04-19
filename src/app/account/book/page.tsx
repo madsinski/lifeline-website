@@ -121,7 +121,9 @@ export default function BookAssessmentPage() {
       client_id: userId,
       scheduled_at: scheduledAt,
       location: needsVisit ? "Lifeline station, Reykjavík" : null,
-      status: needsVisit ? "requested" as const : "confirmed" as const,
+      // RLS on this table only allows the client to set status to
+      // 'requested' or 'cancelled'; staff flips it to 'confirmed'.
+      status: "requested" as const,
       notes: notes.trim() || null,
       package: pkg.key,
       amount_isk: pkg.priceIsk,
@@ -166,6 +168,10 @@ export default function BookAssessmentPage() {
       setPaying(false);
       return;
     }
+    // Note: we intentionally leave `status` as 'requested' — the Lifeline
+    // staff confirms after reviewing the booking. The client's RLS update
+    // policy also restricts status to 'requested'/'cancelled', so touching
+    // it here would violate the check.
     const { error: upErr } = await supabase
       .from("body_comp_bookings")
       .update({
@@ -173,7 +179,6 @@ export default function BookAssessmentPage() {
         payment_provider: "straumur",
         payment_reference: res.providerReference,
         paid_at: new Date().toISOString(),
-        status: "confirmed",
       })
       .eq("id", bookingId);
     if (upErr) { setPaymentError(upErr.message); setPaying(false); return; }
@@ -519,9 +524,6 @@ function ReviewStage({
   onContinue: () => void;
   error: string | null;
 }) {
-  const vatRate = 24;
-  const net = pkg.priceIsk > 0 ? Math.round(pkg.priceIsk / (1 + vatRate / 100)) : 0;
-  const vat = pkg.priceIsk - net;
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <h2 className="text-lg font-semibold text-[#0F172A]">Review your booking</h2>
@@ -542,18 +544,13 @@ function ReviewStage({
 
       {pkg.priceIsk > 0 ? (
         <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[#64748B]">Net</span>
-            <span>{net.toLocaleString("is-IS")} ISK</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[#64748B]">VAT ({vatRate}%)</span>
-            <span>{vat.toLocaleString("is-IS")} ISK</span>
-          </div>
-          <div className="flex items-center justify-between font-semibold text-[#0F172A] pt-2 border-t border-blue-100 mt-2">
+          <div className="flex items-center justify-between font-semibold text-[#0F172A]">
             <span>Total</span>
             <span>{pkg.priceIsk.toLocaleString("is-IS")} ISK</span>
           </div>
+          <p className="text-xs text-[#64748B] mt-1">
+            Healthcare services are exempt from VAT in Iceland (Act 50/1988).
+          </p>
         </div>
       ) : (
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900">
