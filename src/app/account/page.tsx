@@ -1074,16 +1074,6 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Your company (B2B only) */}
-                {companyId && companyName && (
-                  <YourCompanyCard
-                    companyName={companyName}
-                    mySlotAt={mySlotAt}
-                    companyEvent={companyEvent}
-                    bloodDays={upcomingBloodDays}
-                  />
-                )}
-
                 {/* Patient portal hero — canonical home for clinical data */}
                 <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
                   <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-teal-500 to-emerald-500" />
@@ -3529,55 +3519,3 @@ function SatisfactionPromptCard({
   );
 }
 
-function YourCompanyCard({
-  companyName, mySlotAt, companyEvent, bloodDays,
-}: {
-  companyName: string;
-  mySlotAt: string | null;
-  companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null;
-  bloodDays: Array<{ day: string; notes: string | null }>;
-}) {
-  return (
-    <section className="rounded-2xl p-6 sm:p-8 text-white shadow-sm"
-      style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
-      <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-2">Via your company</p>
-      <h3 className="text-xl font-semibold">{companyName}</h3>
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div className="bg-white/10 rounded-lg p-3">
-          <div className="text-xs uppercase tracking-wider opacity-80 mb-1">Body-composition day</div>
-          {companyEvent ? (
-            <>
-              <div className="font-semibold">
-                {new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
-              </div>
-              {mySlotAt ? (
-                <div className="text-xs opacity-90 mt-0.5">
-                  Your slot: {new Date(mySlotAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
-                </div>
-              ) : (
-                <div className="text-xs opacity-90 mt-0.5">Pick a slot on your welcome page</div>
-              )}
-              {companyEvent.location && <div className="text-xs opacity-80 mt-1">{companyEvent.location}</div>}
-            </>
-          ) : (
-            <div className="text-xs opacity-80">Your company hasn&apos;t scheduled a day yet.</div>
-          )}
-        </div>
-        <div className="bg-white/10 rounded-lg p-3">
-          <div className="text-xs uppercase tracking-wider opacity-80 mb-1">Blood-test days</div>
-          {bloodDays.length > 0 ? (
-            <>
-              <div className="font-semibold">
-                {bloodDays.slice(0, 3).map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(", ")}
-                {bloodDays.length > 3 && ` + ${bloodDays.length - 3}`}
-              </div>
-              <div className="text-xs opacity-90 mt-0.5">Walk in at any Sameind station</div>
-            </>
-          ) : (
-            <div className="text-xs opacity-80">No days approved yet by your company.</div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
