@@ -2951,9 +2951,10 @@ function CurrentBookings({
                 <div className="font-semibold mb-1">What to expect</div>
                 <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-rose-900/90">
                   <li>Walk in at any Sameind station on your chosen day</li>
-                  <li>Check in at reception — bring your kennitala</li>
-                  <li>Short blood draw (5–10 minutes)</li>
-                  <li>Results flow back to your patient portal within a few days</li>
+                  <li>Go as early as possible — preferably between 08:00 and 12:00</li>
+                  <li>Check in at reception</li>
+                  <li>Short blood draw (5 minutes)</li>
+                  <li>Results will appear in your final health report</li>
                 </ul>
               </div>
               <div className="mt-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
