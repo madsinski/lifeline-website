@@ -133,6 +133,7 @@ function AccountPageInner() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [biodyEditOpen, setBiodyEditOpen] = useState(false);
   const [lastWellbeingAt, setLastWellbeingAt] = useState<string | null>(null);
   const [satisfactionDone, setSatisfactionDone] = useState<Record<"body_comp" | "doctor" | "overall", boolean>>({ body_comp: false, doctor: false, overall: false });
   const [wellbeingOpen, setWellbeingOpen] = useState(false);
@@ -1000,7 +1001,10 @@ function AccountPageInner() {
                     if (!err) setVideoPortalConfirmedAt(null);
                     setVideoConfirmBusy(false);
                   }}
-                  onGoToBiody={() => { window.location.href = "/account/welcome"; }}
+                  onGoToBiody={() => {
+                    if (biodyActivated) setBiodyEditOpen(true);
+                    else window.location.href = "/account/welcome";
+                  }}
                 />
 
                 {/* Current bookings */}
@@ -1104,6 +1108,12 @@ function AccountPageInner() {
                     context={satisfactionOpen}
                     onClose={() => setSatisfactionOpen(null)}
                     onSubmitted={() => setSatisfactionDone((d) => ({ ...d, [satisfactionOpen]: true }))}
+                  />
+                )}
+                {biodyEditOpen && (
+                  <BiodyProfileModal
+                    userId={user.id}
+                    onClose={() => setBiodyEditOpen(false)}
                   />
                 )}
 
@@ -3072,6 +3082,125 @@ function BloodTestDayPickerModal({
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function BiodyProfileModal({
+  userId, onClose,
+}: {
+  userId: string;
+  onClose: () => void;
+}) {
+  const [sex, setSex] = useState<"male" | "female" | "">("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [activityLevel, setActivityLevel] = useState<"sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "">("");
+  const [dob, setDob] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("sex, height_cm, weight_kg, activity_level, date_of_birth")
+        .eq("id", userId)
+        .maybeSingle();
+      if (data) {
+        const d = data as Record<string, unknown>;
+        setSex((d.sex as "male" | "female" | "") || "");
+        setHeightCm(d.height_cm ? String(d.height_cm) : "");
+        setWeightKg(d.weight_kg ? String(d.weight_kg) : "");
+        setActivityLevel((d.activity_level as typeof activityLevel) || "");
+        setDob((d.date_of_birth as string) || "");
+      }
+      setLoading(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!sex || !heightCm || !weightKg || !activityLevel) {
+      setError("Please fill in every field.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    const { error: upErr } = await supabase.from("clients").update({
+      sex,
+      height_cm: Number(heightCm),
+      weight_kg: Number(weightKg),
+      activity_level: activityLevel,
+      ...(dob ? { date_of_birth: dob } : {}),
+      updated_at: new Date().toISOString(),
+    }).eq("id", userId);
+    setSaving(false);
+    if (upErr) { setError(upErr.message); return; }
+    setSaved(true);
+    setTimeout(() => onClose(), 900);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold">Edit body-composition profile</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Keep your details up to date so measurements and recommendations stay accurate.
+          </p>
+        </div>
+        {loading ? (
+          <div className="p-8 text-center text-sm text-gray-500">Loading…</div>
+        ) : (
+          <form onSubmit={save} className="p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Sex</span>
+                <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                  <option value="">Select…</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Activity level</span>
+                <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as typeof activityLevel)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                  <option value="">Select…</option>
+                  <option value="sedentary">Sedentary — little or no exercise</option>
+                  <option value="light">Light — exercise 1–3 days/week</option>
+                  <option value="moderate">Moderate — exercise 3–5 days/week</option>
+                  <option value="very_active">Very active — exercise 6–7 days/week</option>
+                  <option value="extra_active">Extra active — daily intense training</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Height (cm)</span>
+                <input type="number" min={100} max={230} step={1} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</span>
+                <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Date of birth (optional)</span>
+                <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+              </label>
+            </div>
+            {error && <div className="text-red-600 text-sm">{error}</div>}
+            {saved && <div className="text-emerald-700 text-sm">Saved.</div>}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
+              <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
