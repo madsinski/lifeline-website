@@ -1154,58 +1154,6 @@ function AccountPageInner() {
                 {/* After your assessment — intro to the coaching app */}
                 <AfterAssessmentCard onGoToCoaching={() => setActiveSection("upgrade")} />
 
-                {/* Plan + coaching upgrade */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <section className="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 className="text-sm font-medium text-[#6B7280] mb-3">Your plan</h3>
-                    {activeTier ? (
-                      <div>
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>
-                          {activeTier.name}
-                        </span>
-                        {subscription?.current_period_end && currentTier !== "free-trial" && (
-                          <p className="text-xs text-[#6B7280] mt-2">
-                            Next billing:{" "}
-                            <span className="font-medium text-[#1F2937]">
-                              {new Date(subscription.current_period_end).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
-                            </span>
-                          </p>
-                        )}
-                        {currentTier === "free-trial" && <p className="text-xs text-[#6B7280] mt-2">Free forever</p>}
-                        <button onClick={() => setActiveSection("billing")} className="mt-3 text-xs text-[#10B981] hover:underline">
-                          Manage plan →
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-sm text-[#6B7280]">No active plan</p>
-                        <button onClick={() => setActiveSection("billing")} className="mt-2 text-sm font-medium text-[#10B981] hover:underline">
-                          Choose a plan
-                        </button>
-                      </div>
-                    )}
-                  </section>
-
-                  <section className="rounded-2xl p-6 text-white shadow-sm"
-                    style={{ background: "linear-gradient(135deg, #7C3AED, #3B82F6)" }}>
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold">Keep going with daily coaching</h3>
-                        <p className="text-xs opacity-90 mt-1">
-                          Turn your results into daily actions. Personalised programs, meal logs, coach messaging.
-                        </p>
-                        <button onClick={() => setActiveSection("upgrade")} className="mt-3 text-xs font-medium underline">
-                          See the app →
-                        </button>
-                      </div>
-                    </div>
-                  </section>
-                </div>
               </>
             )}
 
