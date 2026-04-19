@@ -2195,8 +2195,11 @@ function AccountPageInner() {
                   )}
                 </section>
 
-                {/* What's inside the app — shared block (features + pillars + download) */}
+                {/* What's inside the app — shared block (features + pillars) */}
                 <AppFeaturesBlock />
+
+                {/* Download hero */}
+                <DownloadAppHero />
 
                 {/* Payment method */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
@@ -3432,22 +3435,53 @@ function AppFeaturesBlock() {
         </div>
       </div>
 
-      {/* Download row */}
-      <div className="mt-6 rounded-xl border border-[#10B981]/20 bg-gradient-to-br from-emerald-50 via-white to-white p-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <div className="font-semibold text-gray-900">Download the Lifeline app</div>
-            <p className="text-sm text-[#6B7280] mt-1">Available on iPhone and Android.</p>
+    </section>
+  );
+}
+
+function DownloadAppHero() {
+  return (
+    <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
+      <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+      <div className="p-6 sm:p-8">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+            </svg>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <a href="https://apps.apple.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-xs font-semibold hover:opacity-90">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-              App Store
-            </a>
-            <a href="https://play.google.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-xs font-semibold hover:opacity-90">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3.609 1.814L13.792 12 3.61 22.186a.997.997 0 01-.61-.92V2.734a1 1 0 01.609-.92zM15.2 13.41l-10.1 10.1L15.6 18l2.1-1.1-2.5-3.49zm4.03-3.5l-2.1-1.1-3 4 3 4 2.1-1.1a1 1 0 00.48-1.59l-1.33-2.21 1.33-2.21a1 1 0 00-.48-1.59zM15.6 6l-10.5-5.51L15.2 10.59l2.5-3.49L15.6 6z"/></svg>
-              Google Play
-            </a>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Get the app</div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Download the Lifeline app</h2>
+            <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
+              Your plan, your coach, and your daily actions — all in your pocket. Available on iPhone and Android.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <a
+                href="https://apps.apple.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-black text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+                <div className="text-left leading-tight">
+                  <div className="text-[10px] font-normal opacity-80">Download on the</div>
+                  <div className="text-sm font-bold">App Store</div>
+                </div>
+              </a>
+              <a
+                href="https://play.google.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-black text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3.609 1.814L13.792 12 3.61 22.186a.997.997 0 01-.61-.92V2.734a1 1 0 01.609-.92zM15.2 13.41l-10.1 10.1L15.6 18l2.1-1.1-2.5-3.49zm4.03-3.5l-2.1-1.1-3 4 3 4 2.1-1.1a1 1 0 00.48-1.59l-1.33-2.21 1.33-2.21a1 1 0 00-.48-1.59zM15.6 6l-10.5-5.51L15.2 10.59l2.5-3.49L15.6 6z"/></svg>
+                <div className="text-left leading-tight">
+                  <div className="text-[10px] font-normal opacity-80">Get it on</div>
+                  <div className="text-sm font-bold">Google Play</div>
+                </div>
+              </a>
+            </div>
           </div>
         </div>
       </div>
