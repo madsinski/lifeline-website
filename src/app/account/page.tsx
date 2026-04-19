@@ -976,7 +976,7 @@ function AccountPageInner() {
                   onPickBloodTestDay={() => setBtPickerOpen(true)}
                   onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
                   onConfirmVideoPortal={async () => {
-                    if (!confirm("Confirm that you have booked a video consultation with your Lifeline doctor in the patient portal?")) return;
+                    if (!confirm("Have you booked a video meeting with your Lifeline doctor in the patient portal? Click OK to confirm your video booking.")) return;
                     setVideoConfirmBusy(true);
                     const { error: err } = await supabase.rpc("confirm_video_consultation_portal");
                     if (!err) setVideoPortalConfirmedAt(new Date().toISOString());
@@ -2485,11 +2485,13 @@ function JourneyTimeline({
     (() => {
       const hasAnyBooking = hasInPersonDoctorBooking || hasVideoPortalConfirmed;
       const canBook = hasAvailableInPersonSlots || hasBodyCompSlot; // video path always available
-      const description = hasAnyBooking
-        ? "Booked. See 'Current bookings' below."
-        : canBook
-          ? "Choose how you'd like to meet your Lifeline doctor to build your action plan."
-          : "Once your report is ready, the Lifeline team will open consultation options for you.";
+      const description = hasVideoPortalConfirmed && !hasInPersonDoctorBooking
+        ? "Video meeting confirmed — you've booked it in your patient portal. See 'Current bookings' below."
+        : hasInPersonDoctorBooking
+          ? "In-person consultation booked. See 'Current bookings' below."
+          : canBook
+            ? "Choose how you'd like to meet your Lifeline doctor to build your action plan."
+            : "Once your report is ready, the Lifeline team will open consultation options for you.";
       const customBody = !hasAnyBooking ? (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* In-person option */}
@@ -2895,13 +2897,18 @@ function CurrentBookings({
                 </svg>
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor</div>
-                <div className="font-semibold text-gray-900 leading-tight">Video consultation</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor · Video meeting</div>
+                <div className="font-semibold text-gray-900 leading-tight">Video meeting booked in patient portal</div>
               </div>
             </div>
             <div className="space-y-1.5 text-sm text-gray-700">
-              <div className="text-sm">Booked via your patient portal (Zoom Healthcare).</div>
-              <div className="text-xs text-gray-500">Confirmed {new Date(videoPortalConfirmedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+              <div className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Confirmed {new Date(videoPortalConfirmedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </div>
+              <div className="text-sm text-gray-600">Your video consultation is booked inside the patient portal (Zoom Healthcare). Join the meeting from the portal at your scheduled time.</div>
             </div>
             <div className="mt-3 rounded-lg bg-violet-50/70 border border-violet-100 px-3 py-2 text-xs text-violet-900">
               <div className="font-semibold mb-1">What to expect</div>
@@ -2912,8 +2919,8 @@ function CurrentBookings({
               </ul>
               <div className="mt-1.5 text-[11.5px] text-violet-900/80">Please review your health report in the patient portal before your doctor meeting.</div>
             </div>
-            <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap gap-2">
-              <MedaliaButton label="Open patient portal" size="sm" variant="outline" />
+            <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap items-center gap-2">
+              <MedaliaButton label="Go to patient portal" size="sm" />
               <button onClick={onClearVideoPortal} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
                 Clear
               </button>
