@@ -3586,7 +3586,7 @@ function GetStartedHero() {
         </ul>
         <div className="mt-7 flex flex-wrap items-center gap-3">
           <Link
-            href="/assessment"
+            href="/account/book"
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#0F172A] text-base font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 hover:opacity-95 transition-all"
           >
             Book your assessment
