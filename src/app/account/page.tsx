@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import MedaliaButton from "../components/MedaliaButton";
 import SlotPicker from "./welcome/SlotPicker";
 import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
+import { googleCalendarUrl, downloadIcs, type CalendarEvent } from "@/lib/calendar-export";
 import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 
@@ -2725,6 +2726,11 @@ function CurrentBookings({
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
     </svg>
   );
+  const calIcon = (
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  );
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-4">
@@ -2748,6 +2754,26 @@ function CurrentBookings({
         const btTime = myBloodTestBooking ? new Date(myBloodTestBooking.day + "T00:00:00").getTime() : Infinity;
         const drTime = myDoctorSlot ? new Date(myDoctorSlot.slot_at).getTime() : Infinity;
         const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "In person";
+        const calButtons = (ev: CalendarEvent, accentClasses: string) => (
+          <>
+            <a
+              href={googleCalendarUrl(ev)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-white transition-colors ${accentClasses}`}
+            >
+              {calIcon}
+              Google
+            </a>
+            <button
+              onClick={() => downloadIcs(ev, "lifeline-booking.ics")}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-white transition-colors ${accentClasses}`}
+            >
+              {calIcon}
+              .ics
+            </button>
+          </>
+        );
         const bcCard = mySlotAt && companyEvent ? (
           <div key="bc" className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
               <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-blue-500 to-emerald-500" />
@@ -2799,11 +2825,25 @@ function CurrentBookings({
                 </ul>
                 <div className="mt-1.5 text-[11.5px] text-blue-900/80">Takes about 5 minutes. Avoid heavy meals just before.</div>
               </div>
-              <div className="mt-4 pt-4 border-t border-blue-100/70">
+              <div className="mt-4 pt-4 border-t border-blue-100/70 flex flex-wrap gap-2">
                 <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors">
                   {editIcon}
                   Change slot
                 </button>
+                {calButtons(
+                  {
+                    title: "Lifeline — Body-composition measurement",
+                    start: new Date(mySlotAt),
+                    durationMinutes: 5,
+                    location: companyEvent.location || undefined,
+                    description: [
+                      "Your on-site Lifeline body-composition measurement.",
+                      companyEvent.room_notes ? `Room: ${companyEvent.room_notes}` : "",
+                      "What to expect: blood pressure, height, weight, body composition (muscle mass %, fat %).",
+                    ].filter(Boolean).join("\n"),
+                  },
+                  "border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300",
+                )}
               </div>
             </div>
           ) : null;
@@ -2849,11 +2889,28 @@ function CurrentBookings({
               <div className="mt-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
                 <span className="font-semibold">Fast from midnight.</span> Water only — no food, coffee, tea, juice or alcohol.
               </div>
-              <div className="mt-4 pt-4 border-t border-rose-100/70">
+              <div className="mt-4 pt-4 border-t border-rose-100/70 flex flex-wrap gap-2">
                 <button onClick={onChangeBloodDay} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
                   {editIcon}
                   Change day
                 </button>
+                {(() => {
+                  const dayStart = new Date(`${myBloodTestBooking.day}T08:00:00`);
+                  const dayEnd = new Date(`${myBloodTestBooking.day}T09:00:00`);
+                  return calButtons(
+                    {
+                      title: "Lifeline — Blood test at Sameind",
+                      start: dayStart,
+                      end: dayEnd,
+                      description: [
+                        "Walk in at any Sameind station. Go as early as possible — preferably between 08:00 and 12:00.",
+                        "Fast from midnight. Water only — no food, coffee, tea, juice, or alcohol.",
+                        myBloodTestBooking.note ? `Note: ${myBloodTestBooking.note}` : "",
+                      ].filter(Boolean).join("\n"),
+                    },
+                    "border-rose-200 text-rose-700 hover:bg-rose-50 hover:border-rose-300",
+                  );
+                })()}
               </div>
             </div>
           ) : null;
@@ -2915,11 +2972,26 @@ function CurrentBookings({
               </ul>
               <div className="mt-1.5 text-[11.5px] text-violet-900/80">Please review your health report in the patient portal before your doctor meeting.</div>
             </div>
-            <div className="mt-4 pt-4 border-t border-violet-100/70">
+            <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap gap-2">
               <button onClick={onChangeDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 hover:border-violet-300 transition-colors">
                 {editIcon}
                 Change time
               </button>
+              {calButtons(
+                {
+                  title: myDoctorSlot.doctor_name ? `Lifeline — Consultation with ${myDoctorSlot.doctor_name}` : "Lifeline — Doctor consultation",
+                  start: new Date(myDoctorSlot.slot_at),
+                  durationMinutes: myDoctorSlot.duration_minutes,
+                  location: myDoctorSlot.mode === "in_person" ? (myDoctorSlot.location || undefined) : (myDoctorSlot.meeting_link || undefined),
+                  description: [
+                    `${modeLabel(myDoctorSlot.mode)} with your Lifeline doctor.`,
+                    myDoctorSlot.meeting_link ? `Join link: ${myDoctorSlot.meeting_link}` : "",
+                    myDoctorSlot.notes || "",
+                    "Please review your health report in the patient portal before the meeting.",
+                  ].filter(Boolean).join("\n"),
+                },
+                "border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-300",
+              )}
             </div>
           </div>
         ) : null;

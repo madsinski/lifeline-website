@@ -311,10 +311,16 @@ function AddSlotForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 }
 
 function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [date, setDate] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("12:00");
   const [duration, setDuration] = useState(30);
+  // 0 = Sun … 6 = Sat. Default Mon–Fri.
+  const [weekdays, setWeekdays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+  // 0 = no cap, otherwise limit slots per day
+  const [maxPerDay, setMaxPerDay] = useState<number>(0);
   const [mode, setMode] = useState<"video" | "phone" | "in_person">("video");
   const [doctorName, setDoctorName] = useState("");
   const [location, setLocation] = useState("");
@@ -322,36 +328,59 @@ function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
-  const preview = useMemo(() => {
-    if (!date || !startTime || !endTime || duration <= 0) return [];
-    const start = new Date(`${date}T${startTime}:00`);
-    const end = new Date(`${date}T${endTime}:00`);
-    const out: string[] = [];
-    for (let t = start.getTime(); t + duration * 60_000 <= end.getTime(); t += duration * 60_000) {
-      out.push(new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }));
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const toggleWeekday = (d: number) => {
+    setWeekdays((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d); else next.add(d);
+      return next;
+    });
+  };
+
+  const rows = useMemo(() => {
+    if (!startDate || !endDate || !startTime || !endTime || duration <= 0) return [];
+    const sd = new Date(`${startDate}T00:00:00`);
+    const ed = new Date(`${endDate}T00:00:00`);
+    if (ed.getTime() < sd.getTime()) return [];
+    const out: Array<{ slot_at: string; day: string; time: string }> = [];
+    for (let d = new Date(sd); d.getTime() <= ed.getTime(); d.setDate(d.getDate() + 1)) {
+      if (!weekdays.has(d.getDay())) continue;
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayStart = new Date(`${dateStr}T${startTime}:00`);
+      const dayEnd = new Date(`${dateStr}T${endTime}:00`);
+      let count = 0;
+      for (let t = dayStart.getTime(); t + duration * 60_000 <= dayEnd.getTime(); t += duration * 60_000) {
+        if (maxPerDay > 0 && count >= maxPerDay) break;
+        const at = new Date(t);
+        out.push({
+          slot_at: at.toISOString(),
+          day: at.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }),
+          time: at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        });
+        count++;
+      }
     }
     return out;
-  }, [date, startTime, endTime, duration]);
+  }, [startDate, endDate, startTime, endTime, duration, weekdays, maxPerDay]);
+
+  const daysCovered = useMemo(() => new Set(rows.map((r) => r.day)).size, [rows]);
 
   async function save() {
-    if (!date || !startTime || !endTime) { setErr("Pick a date, start and end time."); return; }
-    if (preview.length === 0) { setErr("No slots in this window."); return; }
+    if (!startDate || !endDate) { setErr("Pick a start and end date."); return; }
+    if (weekdays.size === 0) { setErr("Pick at least one weekday."); return; }
+    if (rows.length === 0) { setErr("No slots match this window."); return; }
     setSaving(true);
     setErr("");
-    const start = new Date(`${date}T${startTime}:00`);
-    const rows = [] as Array<Record<string, unknown>>;
-    for (let i = 0; i < preview.length; i++) {
-      const t = new Date(start.getTime() + i * duration * 60_000);
-      rows.push({
-        slot_at: t.toISOString(),
-        duration_minutes: duration,
-        mode,
-        doctor_name: doctorName.trim() || null,
-        location: location.trim() || null,
-        meeting_link: meetingLink.trim() || null,
-      });
-    }
-    const { error } = await supabase.from("doctor_slots").insert(rows);
+    const inserts = rows.map((r) => ({
+      slot_at: r.slot_at,
+      duration_minutes: duration,
+      mode,
+      doctor_name: doctorName.trim() || null,
+      location: location.trim() || null,
+      meeting_link: meetingLink.trim() || null,
+    }));
+    const { error } = await supabase.from("doctor_slots").insert(inserts);
     setSaving(false);
     if (error) { setErr(error.message); return; }
     onSaved();
@@ -360,25 +389,49 @@ function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-blue-100">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Bulk add — a block of slots</h2>
+        <h2 className="text-lg font-semibold">Bulk add — slots across multiple days</h2>
         <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
       </div>
       <div className="grid sm:grid-cols-2 gap-3">
-        <label className="block sm:col-span-2">
-          <span className="text-xs font-medium text-gray-600">Date</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        <label className="block">
+          <span className="text-xs font-medium text-gray-600">Start date</span>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-gray-600">Start</span>
+          <span className="text-xs font-medium text-gray-600">End date</span>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        </label>
+        <div className="block sm:col-span-2">
+          <div className="text-xs font-medium text-gray-600 mb-1.5">Days of the week</div>
+          <div className="flex flex-wrap gap-1.5">
+            {dayNames.map((n, i) => {
+              const sel = weekdays.has(i);
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => toggleWeekday(i)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${sel ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}
+                >{n}</button>
+              );
+            })}
+          </div>
+        </div>
+        <label className="block">
+          <span className="text-xs font-medium text-gray-600">Start time (per day)</span>
           <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-gray-600">End</span>
+          <span className="text-xs font-medium text-gray-600">End time (per day)</span>
           <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </label>
         <label className="block">
           <span className="text-xs font-medium text-gray-600">Slot length (minutes)</span>
           <input type="number" min={5} max={240} value={duration} onChange={(e) => setDuration(parseInt(e.target.value) || 30)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        </label>
+        <label className="block">
+          <span className="text-xs font-medium text-gray-600">Max slots per day (0 = no cap)</span>
+          <input type="number" min={0} max={200} value={maxPerDay} onChange={(e) => setMaxPerDay(parseInt(e.target.value) || 0)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </label>
         <label className="block">
           <span className="text-xs font-medium text-gray-600">Mode</span>
@@ -402,14 +455,20 @@ function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         </label>
       </div>
       <div className="mt-3 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-900">
-        Will create <strong>{preview.length}</strong> slot{preview.length === 1 ? "" : "s"}:{" "}
-        {preview.slice(0, 10).join(", ")}{preview.length > 10 ? "…" : ""}
+        Will create <strong>{rows.length}</strong> slot{rows.length === 1 ? "" : "s"}
+        {daysCovered > 0 && <> across <strong>{daysCovered}</strong> day{daysCovered === 1 ? "" : "s"}</>}
+        {rows.length > 0 && (
+          <div className="mt-1.5 text-[11px] text-blue-900/80">
+            First: {rows[0].day} {rows[0].time}
+            {rows.length > 1 && <> · Last: {rows[rows.length - 1].day} {rows[rows.length - 1].time}</>}
+          </div>
+        )}
       </div>
       {err && <div className="mt-3 text-sm text-red-600">{err}</div>}
       <div className="mt-4 flex justify-end gap-2">
         <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Cancel</button>
-        <button onClick={save} disabled={saving || preview.length === 0} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
-          {saving ? "Saving…" : `Create ${preview.length} slots`}
+        <button onClick={save} disabled={saving || rows.length === 0} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
+          {saving ? "Saving…" : `Create ${rows.length} slot${rows.length === 1 ? "" : "s"}`}
         </button>
       </div>
     </div>
