@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 
 interface CompanyRow {
   id: string;
@@ -103,19 +101,15 @@ function CompanySwitcher({ companies }: { companies: CompanyRow[] }) {
 
 function PublicBusinessPage() {
   return (
-    <>
-      <Navbar />
-      <main className="bg-white">
-        <Hero />
-        <WhyLifeline />
-        <HowItWorks />
-        <Packages />
-        <BangForBuck />
-        <InquirySection />
-        <FAQ />
-      </main>
-      <Footer />
-    </>
+    <main className="bg-white">
+      <Hero />
+      <WhyLifeline />
+      <HowItWorks />
+      <Packages />
+      <BangForBuck />
+      <InquirySection />
+      <FAQ />
+    </main>
   );
 }
 
@@ -152,8 +146,11 @@ function Hero() {
             </a>
             <Link
               href="/business/login"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-gray-200 bg-white text-[#1F2937] text-sm font-semibold hover:bg-gray-50"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#3B82F6] text-[#3B82F6] bg-white text-sm font-semibold hover:bg-[#3B82F6] hover:text-white transition-colors shadow-sm"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
               Contact person sign in
             </Link>
           </div>
@@ -252,7 +249,7 @@ function HowItWorks() {
     { num: "1", title: "Kick-off call", desc: "We scope the programme with you — headcount, locations, timing, and which packages fit." },
     { num: "2", title: "Roster & onboarding", desc: "Upload your employee list. We send consent-first invitations; signup takes each employee under 2 minutes." },
     { num: "3", title: "On-site measurement day", desc: "Our nurse comes on-site — blood pressure, height, weight, and full body composition per person in about 5 minutes." },
-    { num: "4", title: "Blood test at Sameind", desc: "Employees walk in on the day that works — Sameind in the capital area, or we'll arrange a partner lab elsewhere." },
+    { num: "4", title: "Blood test", desc: "Employees walk in on a day that works — a Lifeline partner lab in the capital area, or we'll arrange one near your office elsewhere in the country." },
     { num: "5", title: "Report + doctor review", desc: "Each employee gets an intuitive personal report and a 1:1 doctor consultation to agree an action plan." },
     { num: "6", title: "Coaching in the app (optional)", desc: "Daily actions, a health coach, community and events — so change actually sticks, not just the check-up box." },
   ];
@@ -283,19 +280,31 @@ function HowItWorks() {
 
 // ──────────────────────────────────────────────────────────────────────────────
 
+type Pkg = {
+  name: string;
+  tag: string;
+  desc: string;
+  includes: string[];
+  footnote?: string;
+  accent: string;
+  tone: string;
+  dot: string;
+};
+
 function Packages() {
-  const assessments = [
+  const assessments: Pkg[] = [
     {
       name: "Foundational Health",
-      tag: "Most popular",
+      tag: "Start here",
       desc: "The full programme — the fastest way to give every employee a clear, medical-grade picture of their health.",
       includes: [
-        "On-site body-composition scan (5 min)",
-        "Targeted blood panel at Sameind",
-        "Lifestyle questionnaire",
+        "On-site measurements (5 min) — blood pressure, body composition",
+        "Targeted blood panel",
+        "Full health questionnaire",
         "Doctor-reviewed personal report",
-        "1:1 physician consultation + action plan",
+        "1:1 doctor consultation + action plan",
       ],
+      footnote: "Doctor consultation in person or as a secure video meeting.",
       accent: "from-[#3B82F6] to-[#10B981]",
       tone: "border-blue-100 bg-blue-50/40",
       dot: "text-[#3B82F6]",
@@ -305,26 +314,27 @@ function Packages() {
       tag: "Follow-up",
       desc: "3–12 months after the foundational assessment — track what changed, adjust the plan, celebrate progress.",
       includes: [
-        "On-site body-composition scan",
+        "On-site measurements — blood pressure, body composition",
         "Progress report vs baseline",
         "Updated health score",
-        "Brief physician review",
+        "Brief doctor review",
         "Refreshed action plan",
       ],
+      footnote: "Doctor review in person or as a secure video meeting.",
       accent: "from-[#10B981] to-[#14B8A6]",
       tone: "border-emerald-100 bg-emerald-50/40",
       dot: "text-[#10B981]",
     },
     {
       name: "Self Check-in",
-      tag: "Lightweight",
-      desc: "A remote questionnaire pass — for remote workers, mid-year pulse checks, or companies starting small.",
+      tag: "Free",
+      desc: "A self-guided check-in to track your own progress through the year and get updated insight — no site visit, no Lifeline team involvement unless something is flagged.",
       includes: [
-        "Online health questionnaire",
-        "Self-reported metrics",
-        "Basic health score",
-        "Flagged risks sent to the team",
-        "No site visit required",
+        "Online health questionnaire — rerun any time",
+        "Self-reported metrics you control",
+        "Updated personal health score",
+        "Instant, private insight into your trends",
+        "If something is flagged, Lifeline reaches out",
       ],
       accent: "from-[#8B5CF6] to-[#0EA5E9]",
       tone: "border-violet-100 bg-violet-50/40",
@@ -360,6 +370,14 @@ function Packages() {
                     </li>
                   ))}
                 </ul>
+                {a.footnote && (
+                  <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-gray-200 text-[11px] font-medium text-[#475569]">
+                    <svg className={`w-3.5 h-3.5 ${a.dot}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {a.footnote}
+                  </div>
+                )}
               </div>
             </div>
           ))}
