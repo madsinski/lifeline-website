@@ -1085,8 +1085,8 @@ function AccountPageInner() {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-teal-700 mb-1">Your patient portal</div>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Medalia</h2>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-teal-700 mb-1">Lifeline Health portal</div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Your report</h2>
                         <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
                           Everything clinical lives in Medalia, our secure patient portal. Sign in there to:
                         </p>
