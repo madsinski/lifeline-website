@@ -59,12 +59,11 @@ interface PaymentRow {
 }
 
 /* ---------- nav sections ---------- */
-type Section = "overview" | "profile" | "messages" | "billing" | "assessment" | "education" | "programs" | "app" | "settings" | "upgrade";
+type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "app" | "settings" | "upgrade";
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
   { id: "assessment", label: "Health assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
   { id: "upgrade", label: "Coaching app", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  { id: "billing", label: "Billing", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
@@ -494,9 +493,9 @@ function AccountPageInner() {
       setLoading(false);
     });
 
-    // If coming from pricing page with upgrade param, go to billing
+    // If coming from pricing page with upgrade param, go to Coaching app
     if (upgradeParam) {
-      setActiveSection("billing");
+      setActiveSection("upgrade");
       setPendingTier(upgradeParam);
       setShowPlanConfirm(true);
     }
@@ -1337,266 +1336,15 @@ function AccountPageInner() {
                     <p className="text-xs text-[#6B7280] mb-3">
                       Direct messaging with your coach is available on the Full Access plan.
                     </p>
-                    <button onClick={() => setActiveSection("billing")}
+                    <button onClick={() => setActiveSection("upgrade")}
                       className="text-sm font-medium text-[#10B981] hover:underline">
-                      View billing & plans
+                      View plans & billing
                     </button>
                   </div>
                 )}
               </section>
             )}
 
-            {/* ============ BILLING & PLANS ============ */}
-            {activeSection === "billing" && (
-              <>
-                {/* Current Plan */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Current Plan</h2>
-
-                  {activeTier ? (
-                    <>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>
-                            {activeTier.name}
-                          </span>
-                          <span className="text-sm text-[#6B7280]">
-                            {activeTier.price === "0" ? "Free" : `${activeTier.price} ISK / ${activeTier.period}`}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <button onClick={() => setShowChangePlan(!showChangePlan)}
-                            className="text-sm font-medium text-[#10B981] hover:underline">
-                            {showChangePlan ? "Hide plans" : "Change plan"}
-                          </button>
-                          {currentTier !== "free-trial" && (
-                            <button onClick={() => setShowCancelConfirm(true)}
-                              className="text-sm text-red-500 hover:underline">
-                              Cancel subscription
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Next billing date */}
-                      {subscription?.current_period_end && currentTier !== "free-trial" && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 mb-4">
-                          Next billing date:{" "}
-                          <span className="font-semibold">
-                            {new Date(subscription.current_period_end).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
-                      <p className="text-sm text-[#6B7280] mb-3">You don&apos;t have an active subscription.</p>
-                      <button onClick={() => setShowChangePlan(true)}
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-colors">
-                        Choose a plan
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Cancel confirmation */}
-                  {showCancelConfirm && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4">
-                      <p className="text-sm text-red-700 mb-3">
-                        Are you sure? You&apos;ll keep access until the end of your current billing period.
-                      </p>
-                      <div className="flex gap-3">
-                        <button onClick={async () => {
-                          setCancelLoading(true);
-                          if (subscription) {
-                            await supabase.from("subscriptions").update({ status: "cancelled" }).eq("id", subscription.id);
-                          }
-                          setCurrentTier(null);
-                          setSubscription(null);
-                          setShowCancelConfirm(false);
-                          setCancelLoading(false);
-                        }} disabled={cancelLoading}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
-                          {cancelLoading && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                          {cancelLoading ? "Cancelling..." : "Yes, cancel"}
-                        </button>
-                        <button onClick={() => setShowCancelConfirm(false)}
-                          className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                          Keep my plan
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Plan picker */}
-                  {showChangePlan && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                      {tiers.map((tier) => {
-                        const isCurrent = tier.id === currentTier;
-                        const isSelected = tier.id === pendingTier;
-                        return (
-                          <button key={tier.id}
-                            onClick={() => {
-                              if (!isCurrent) {
-                                setPendingTier(tier.id);
-                                setShowPlanConfirm(true);
-                              }
-                            }}
-                            className={`rounded-xl border-2 p-5 text-left transition-all ${
-                              isCurrent ? "border-[#10B981] bg-[#10B981]/5" :
-                              isSelected ? "border-blue-400 bg-blue-50" :
-                              "border-gray-200 hover:border-[#10B981]/50"
-                            }`}>
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold mb-2 ${tier.badgeColor}`}>
-                              {tier.name}
-                            </span>
-                            <p className="text-xl font-bold text-[#1F2937]">
-                              {tier.price === "0" ? "Free" : `${tier.price} ISK`}
-                            </p>
-                            <p className="text-xs text-[#6B7280] mb-3">{tier.period}</p>
-                            <ul className="space-y-1">
-                              {tier.features.map((f) => (
-                                <li key={f} className="text-xs text-[#6B7280] flex items-start gap-1.5">
-                                  <svg className="w-3.5 h-3.5 text-[#10B981] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                  {f}
-                                </li>
-                              ))}
-                            </ul>
-                            {isCurrent && (
-                              <p className="text-xs font-medium text-[#10B981] mt-3">Current plan</p>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Confirm plan change modal */}
-                  {showPlanConfirm && pendingTier && pendingTier !== currentTier && (
-                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl px-5 py-5">
-                      <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Confirm plan change</h3>
-                      {(() => {
-                        const target = tiers.find(t => t.id === pendingTier);
-                        if (!target) return null;
-                        const isPaid = target.price !== "0";
-                        return (
-                          <>
-                            <p className="text-sm text-[#6B7280] mb-1">
-                              You are switching to <span className="font-semibold text-[#1F2937]">{target.name}</span>
-                              {isPaid ? ` at ${target.price} ISK / ${target.period}.` : " (free)."}
-                            </p>
-                            {isPaid && (
-                              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 mb-3">
-                                Payment integration coming soon — contact us at{" "}
-                                <a href="mailto:hello@lifelinehealth.is" className="font-semibold underline">hello@lifelinehealth.is</a>
-                              </div>
-                            )}
-                            {!isPaid && (
-                              <p className="text-xs text-[#6B7280] mb-3">
-                                Your plan will be changed immediately.
-                              </p>
-                            )}
-                            {upgradeMsg && (
-                              <p className={`text-sm mb-3 ${upgradeMsg.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>{upgradeMsg}</p>
-                            )}
-                            <div className="flex gap-3">
-                              <button onClick={handleConfirmPlanChange} disabled={upgradeProcessing || isPaid}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                {upgradeProcessing && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                                {upgradeProcessing ? "Processing..." : isPaid ? "Confirm & Pay" : "Confirm change"}
-                              </button>
-                              <button onClick={() => { setShowPlanConfirm(false); setPendingTier(null); setUpgradeMsg(""); }}
-                                className="px-5 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                                Cancel
-                              </button>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </section>
-
-                {/* Payment History */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-[#1F2937]">Payment History</h2>
-                    {!showAllPayments && payments.length > 5 && (
-                      <button onClick={() => setShowAllPayments(true)}
-                        className="text-sm font-medium text-[#10B981] hover:underline">
-                        View all
-                      </button>
-                    )}
-                  </div>
-
-                  {payments.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-left text-[#6B7280] border-b border-gray-100">
-                            <th className="pb-3 font-medium">Date</th>
-                            <th className="pb-3 font-medium">Description</th>
-                            <th className="pb-3 font-medium text-right">Amount</th>
-                            <th className="pb-3 font-medium text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {visiblePayments.map((p) => (
-                            <tr key={p.id} className="border-b border-gray-50 last:border-0">
-                              <td className="py-3 text-[#1F2937]">{new Date(p.created_at).toLocaleDateString("en-GB")}</td>
-                              <td className="py-3 text-[#6B7280]">{p.description}</td>
-                              <td className="py-3 text-[#1F2937] font-medium text-right">{p.amount.toLocaleString()} ISK</td>
-                              <td className="py-3 text-right">
-                                <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">{p.status}</span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
-                      <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
-                      </svg>
-                      <p className="text-sm text-[#6B7280]">Your payment history will appear here after your first transaction</p>
-                    </div>
-                  )}
-                </section>
-
-                {/* Payment Method */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Payment Method</h2>
-                  <div className="bg-[#ecf0f3] rounded-xl p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-[#1F2937]">No payment method on file</p>
-                          <p className="text-xs text-[#6B7280]">Add a card or payment method to enable paid plans</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          // TODO: Integrate Rapyd payment method collection
-                          alert("Payment method setup will be available soon via our secure payment provider.");
-                        }}
-                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors shrink-0">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Add payment method
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </>
-            )}
 
             {/* ============ ASSESSMENT ============ */}
             {activeSection === "assessment" && (
@@ -2316,20 +2064,185 @@ function AccountPageInner() {
                 <div className="rounded-2xl p-8 text-white shadow-sm"
                   style={{ background: "linear-gradient(135deg, #7C3AED, #3B82F6, #10B981)" }}>
                   <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-3">
-                    Optional — Lifeline coaching app
+                    Lifeline coaching app
                   </p>
                   <h1 className="text-3xl sm:text-4xl font-semibold leading-tight">
                     Turn your results into daily habits.
                   </h1>
                   <p className="mt-3 text-base opacity-95 max-w-xl">
-                    Your Lifeline Health Assessment gives you the numbers. The coaching app helps you act on them —
-                    daily actions, meal logs, weigh-ins, a personalised programme, and your coach in your pocket.
+                    Daily actions, meal logs, weigh-ins, a personalised programme, and your coach in your pocket.
+                    Your company covered the assessment — coaching is optional and paid personally.
                   </p>
-                  <p className="mt-6 text-xs opacity-80">Coming soon on iOS and Android.</p>
                 </div>
 
-                {/* What's inside */}
-                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                {/* Your plan */}
+                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+                    <h2 className="text-lg font-semibold text-[#1F2937]">Your plan</h2>
+                    {activeTier && (
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => setShowChangePlan(!showChangePlan)} className="text-sm font-medium text-[#10B981] hover:underline">
+                          {showChangePlan ? "Hide plans" : "Change plan"}
+                        </button>
+                        {currentTier !== "free-trial" && (
+                          <button onClick={() => setShowCancelConfirm(true)} className="text-sm text-red-500 hover:underline">
+                            Cancel subscription
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {activeTier ? (
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>
+                          {activeTier.name}
+                        </span>
+                        <span className="text-sm text-[#6B7280]">
+                          {activeTier.price === "0" ? "Free" : `${activeTier.price} ISK / ${activeTier.period}`}
+                        </span>
+                      </div>
+                      {subscription?.current_period_end && currentTier !== "free-trial" && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 mb-4">
+                          Next billing date:{" "}
+                          <span className="font-semibold">
+                            {new Date(subscription.current_period_end).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
+                      <p className="text-sm text-[#6B7280] mb-3">You don&apos;t have an active subscription.</p>
+                      <button onClick={() => setShowChangePlan(true)}
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-colors">
+                        Choose a plan
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Cancel confirmation */}
+                  {showCancelConfirm && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4">
+                      <p className="text-sm text-red-700 mb-3">
+                        Are you sure? You&apos;ll keep access until the end of your current billing period.
+                      </p>
+                      <div className="flex gap-3">
+                        <button onClick={async () => {
+                          setCancelLoading(true);
+                          if (subscription) {
+                            await supabase.from("subscriptions").update({ status: "cancelled" }).eq("id", subscription.id);
+                          }
+                          setCurrentTier(null);
+                          setSubscription(null);
+                          setShowCancelConfirm(false);
+                          setCancelLoading(false);
+                        }} disabled={cancelLoading}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+                          {cancelLoading && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
+                          {cancelLoading ? "Cancelling..." : "Yes, cancel"}
+                        </button>
+                        <button onClick={() => setShowCancelConfirm(false)}
+                          className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
+                          Keep my plan
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Plan picker */}
+                  {showChangePlan && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                      {tiers.map((tier) => {
+                        const isCurrent = tier.id === currentTier;
+                        const isSelected = tier.id === pendingTier;
+                        return (
+                          <button key={tier.id}
+                            onClick={() => {
+                              if (!isCurrent) {
+                                setPendingTier(tier.id);
+                                setShowPlanConfirm(true);
+                              }
+                            }}
+                            className={`rounded-xl border-2 p-5 text-left transition-all ${
+                              isCurrent ? "border-[#10B981] bg-[#10B981]/5" :
+                              isSelected ? "border-blue-400 bg-blue-50" :
+                              "border-gray-200 hover:border-[#10B981]/50"
+                            }`}>
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold mb-2 ${tier.badgeColor}`}>
+                              {tier.name}
+                            </span>
+                            <p className="text-xl font-bold text-[#1F2937]">
+                              {tier.price === "0" ? "Free" : `${tier.price} ISK`}
+                            </p>
+                            <p className="text-xs text-[#6B7280] mb-3">{tier.period}</p>
+                            <ul className="space-y-1">
+                              {tier.features.map((f) => (
+                                <li key={f} className="text-xs text-[#6B7280] flex items-start gap-1.5">
+                                  <svg className="w-3.5 h-3.5 text-[#10B981] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  {f}
+                                </li>
+                              ))}
+                            </ul>
+                            {isCurrent && (
+                              <p className="text-xs font-medium text-[#10B981] mt-3">Current plan</p>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Confirm plan change */}
+                  {showPlanConfirm && pendingTier && pendingTier !== currentTier && (
+                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl px-5 py-5">
+                      <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Confirm plan change</h3>
+                      {(() => {
+                        const target = tiers.find(t => t.id === pendingTier);
+                        if (!target) return null;
+                        const isPaid = target.price !== "0";
+                        return (
+                          <>
+                            <p className="text-sm text-[#6B7280] mb-1">
+                              You are switching to <span className="font-semibold text-[#1F2937]">{target.name}</span>
+                              {isPaid ? ` at ${target.price} ISK / ${target.period}.` : " (free)."}
+                            </p>
+                            {isPaid && (
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 mb-3">
+                                Payment integration coming soon — contact us at{" "}
+                                <a href="mailto:hello@lifelinehealth.is" className="font-semibold underline">hello@lifelinehealth.is</a>
+                              </div>
+                            )}
+                            {!isPaid && (
+                              <p className="text-xs text-[#6B7280] mb-3">
+                                Your plan will be changed immediately.
+                              </p>
+                            )}
+                            {upgradeMsg && (
+                              <p className={`text-sm mb-3 ${upgradeMsg.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>{upgradeMsg}</p>
+                            )}
+                            <div className="flex gap-3">
+                              <button onClick={handleConfirmPlanChange} disabled={upgradeProcessing || isPaid}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {upgradeProcessing && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
+                                {upgradeProcessing ? "Processing..." : isPaid ? "Confirm & Pay" : "Confirm change"}
+                              </button>
+                              <button onClick={() => { setShowPlanConfirm(false); setPendingTier(null); setUpgradeMsg(""); }}
+                                className="px-5 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
+                                Cancel
+                              </button>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </section>
+
+                {/* What's inside the app */}
+                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                   <h2 className="text-lg font-semibold text-[#1F2937] mb-4">What&apos;s inside the app</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
@@ -2346,62 +2259,89 @@ function AccountPageInner() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
 
-                {/* Plans */}
-                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <h2 className="text-lg font-semibold text-[#1F2937] mb-1">Plans</h2>
-                  <p className="text-sm text-[#6B7280] mb-5">Your company covered the health assessment. Coaching is optional and paid personally.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="rounded-xl border border-gray-200 p-5">
-                      <div className="text-xs font-semibold tracking-wider uppercase text-gray-500">Free plan</div>
-                      <div className="text-2xl font-bold text-[#1F2937] mt-2">0 kr</div>
-                      <div className="text-xs text-[#6B7280] mt-0.5">Forever</div>
-                      <ul className="text-xs text-[#4B5563] mt-4 space-y-1.5 list-disc list-inside">
-                        <li>Body-composition history</li>
-                        <li>Daily education snippets</li>
-                        <li>Community access</li>
-                      </ul>
-                    </div>
-                    <div className="rounded-xl border-2 border-blue-500 p-5 relative shadow-sm">
-                      <span className="absolute -top-2.5 right-4 text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">Most popular</span>
-                      <div className="text-xs font-semibold tracking-wider uppercase text-blue-700">Self-maintained</div>
-                      <div className="text-2xl font-bold text-[#1F2937] mt-2">2,990 kr</div>
-                      <div className="text-xs text-[#6B7280] mt-0.5">per month</div>
-                      <ul className="text-xs text-[#4B5563] mt-4 space-y-1.5 list-disc list-inside">
-                        <li>Everything in Free</li>
-                        <li>Personalised programs</li>
-                        <li>Daily actions & weigh-ins</li>
-                        <li>Meal logging</li>
-                      </ul>
-                    </div>
-                    <div className="rounded-xl border border-gray-200 p-5">
-                      <div className="text-xs font-semibold tracking-wider uppercase text-emerald-700">Full access</div>
-                      <div className="text-2xl font-bold text-[#1F2937] mt-2">7,990 kr</div>
-                      <div className="text-xs text-[#6B7280] mt-0.5">per month</div>
-                      <ul className="text-xs text-[#4B5563] mt-4 space-y-1.5 list-disc list-inside">
-                        <li>Everything in Self-maintained</li>
-                        <li>1-on-1 coaching</li>
-                        <li>Custom meal plans</li>
-                        <li>Priority response</li>
-                      </ul>
+                {/* Payment method */}
+                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Payment method</h2>
+                  <div className="bg-[#ecf0f3] rounded-xl p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-[#1F2937]">No payment method on file</p>
+                          <p className="text-xs text-[#6B7280]">Add a card to enable paid plans</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { alert("Payment method setup will be available soon via our secure payment provider."); }}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors shrink-0">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add payment method
+                      </button>
                     </div>
                   </div>
-                  <p className="text-xs text-[#9CA3AF] mt-5">
-                    Final pricing may vary. All app subscriptions are self-serve and can be cancelled any time.
-                  </p>
-                </div>
+                </section>
 
-                {/* CTA */}
-                <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 text-center">
+                {/* Payment history */}
+                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-[#1F2937]">Payment history</h2>
+                    {!showAllPayments && payments.length > 5 && (
+                      <button onClick={() => setShowAllPayments(true)}
+                        className="text-sm font-medium text-[#10B981] hover:underline">
+                        View all
+                      </button>
+                    )}
+                  </div>
+                  {payments.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-[#6B7280] border-b border-gray-100">
+                            <th className="pb-3 font-medium">Date</th>
+                            <th className="pb-3 font-medium">Description</th>
+                            <th className="pb-3 font-medium text-right">Amount</th>
+                            <th className="pb-3 font-medium text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visiblePayments.map((p) => (
+                            <tr key={p.id} className="border-b border-gray-50 last:border-0">
+                              <td className="py-3 text-[#1F2937]">{new Date(p.created_at).toLocaleDateString("en-GB")}</td>
+                              <td className="py-3 text-[#6B7280]">{p.description}</td>
+                              <td className="py-3 text-[#1F2937] font-medium text-right">{p.amount.toLocaleString()} ISK</td>
+                              <td className="py-3 text-right">
+                                <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">{p.status}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
+                      <p className="text-sm text-[#6B7280]">Your payment history will appear here after your first transaction.</p>
+                    </div>
+                  )}
+                </section>
+
+                {/* Be the first to know */}
+                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 text-center">
                   <h2 className="text-lg font-semibold text-[#1F2937]">Be the first to know</h2>
-                  <p className="text-sm text-[#6B7280] mt-1">
+                  <p className="text-sm text-[#6B7280] mt-1 max-w-md mx-auto">
                     The Lifeline app is in final testing. Tell us and we&apos;ll send you the download link the day it drops.
                   </p>
                   <Link href="/coaching#download" className="inline-block mt-4 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-sm font-semibold shadow-sm hover:opacity-90">
                     Notify me
                   </Link>
-                </div>
+                </section>
               </section>
             )}
 
