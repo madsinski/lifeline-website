@@ -8,6 +8,7 @@ import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 import ScheduleBodyComp from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
+import BillingPanel from "@/app/components/BillingPanel";
 
 interface Company {
   id: string;
@@ -412,8 +413,11 @@ export default function BusinessDashboardPage() {
           </button>
         </StepCard>
 
-        {/* Billing card */}
+        {/* Billing card — PayDay invoices specific to this company's programme */}
         <BillingCard companyId={companyId!} />
+
+        {/* Payment methods + payment history — reusable panel (ad-hoc charges) */}
+        <BillingPanel ownerType="company" ownerId={companyId!} />
 
         {/* Insights card */}
         <InsightsCard companyId={companyId!} />

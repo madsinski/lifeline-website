@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import MedaliaButton from "../components/MedaliaButton";
+import BillingPanel from "../components/BillingPanel";
 import SlotPicker from "./welcome/SlotPicker";
 import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
 import { googleCalendarUrl, downloadIcs, type CalendarEvent } from "@/lib/calendar-export";
@@ -49,14 +50,6 @@ interface SubscriptionRow {
   trial_ends_at: string | null;
   current_period_start: string | null;
   current_period_end: string | null;
-}
-
-interface PaymentRow {
-  id: string;
-  amount: number;
-  description: string;
-  status: string;
-  created_at: string;
 }
 
 /* ---------- nav sections ---------- */
@@ -174,9 +167,6 @@ function AccountPageInner() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  /* payments */
-  const [payments, setPayments] = useState<PaymentRow[]>([]);
-  const [showAllPayments, setShowAllPayments] = useState(false);
 
   /* coaching programs */
   const [programs, setPrograms] = useState<{ category_key: string; program_key: string; started_at: string }[]>([]);
@@ -393,18 +383,6 @@ function AccountPageInner() {
       } catch {
         setCurrentTier(null);
       }
-
-      // Load payments
-      try {
-        const { data: paymentData } = await supabase
-          .from("payments")
-          .select("id, amount, description, status, created_at")
-          .eq("client_id", currentUser.id)
-          .order("created_at", { ascending: false });
-        if (paymentData && paymentData.length > 0) {
-          setPayments(paymentData);
-        }
-      } catch {}
 
       // Load coaching programs from client_programs
       try {
@@ -854,7 +832,6 @@ function AccountPageInner() {
   const memberSince = user.created_at
     ? new Date(user.created_at).toLocaleDateString("en-GB", { year: "numeric", month: "long" })
     : "N/A";
-  const visiblePayments = showAllPayments ? payments : payments.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-[#ecf0f3]">
@@ -2217,76 +2194,8 @@ function AccountPageInner() {
                   )}
                 </section>
 
-                {/* Payment method */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Payment method</h2>
-                  <div className="bg-[#ecf0f3] rounded-xl p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-[#1F2937]">No payment method on file</p>
-                          <p className="text-xs text-[#6B7280]">Add a card to enable paid plans</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => { alert("Payment method setup will be available soon via our secure payment provider."); }}
-                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors shrink-0">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Add payment method
-                      </button>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Payment history */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-[#1F2937]">Payment history</h2>
-                    {!showAllPayments && payments.length > 5 && (
-                      <button onClick={() => setShowAllPayments(true)}
-                        className="text-sm font-medium text-[#10B981] hover:underline">
-                        View all
-                      </button>
-                    )}
-                  </div>
-                  {payments.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-left text-[#6B7280] border-b border-gray-100">
-                            <th className="pb-3 font-medium">Date</th>
-                            <th className="pb-3 font-medium">Description</th>
-                            <th className="pb-3 font-medium text-right">Amount</th>
-                            <th className="pb-3 font-medium text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {visiblePayments.map((p) => (
-                            <tr key={p.id} className="border-b border-gray-50 last:border-0">
-                              <td className="py-3 text-[#1F2937]">{new Date(p.created_at).toLocaleDateString("en-GB")}</td>
-                              <td className="py-3 text-[#6B7280]">{p.description}</td>
-                              <td className="py-3 text-[#1F2937] font-medium text-right">{p.amount.toLocaleString()} ISK</td>
-                              <td className="py-3 text-right">
-                                <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">{p.status}</span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
-                      <p className="text-sm text-[#6B7280]">Your payment history will appear here after your first transaction.</p>
-                    </div>
-                  )}
-                </section>
+                {/* Payment methods + history — shared BillingPanel */}
+                <BillingPanel ownerType="client" ownerId={user.id} />
 
 
               </section>

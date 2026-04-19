@@ -183,16 +183,33 @@ export default function BookAssessmentPage() {
     // staff confirms after reviewing the booking. The client's RLS update
     // policy also restricts status to 'requested'/'cancelled', so touching
     // it here would violate the check.
+    const paidAt = new Date().toISOString();
     const { error: upErr } = await supabase
       .from("body_comp_bookings")
       .update({
         payment_status: "paid",
         payment_provider: "straumur",
         payment_reference: res.providerReference,
-        paid_at: new Date().toISOString(),
+        paid_at: paidAt,
       })
       .eq("id", bookingId);
     if (upErr) { setPaymentError(upErr.message); setPaying(false); return; }
+
+    // Mirror into the unified payments ledger so it shows in billing history.
+    await supabase.from("payments").insert({
+      owner_type: "client",
+      owner_id: userId,
+      amount_isk: pkg.priceIsk,
+      currency: "ISK",
+      description: `Lifeline Health — ${pkg.name}`,
+      provider: "straumur",
+      provider_reference: res.providerReference,
+      status: "succeeded",
+      related_type: "body_comp_booking",
+      related_id: bookingId,
+      paid_at: paidAt,
+    });
+
     setPaying(false);
     setStage("done");
   }

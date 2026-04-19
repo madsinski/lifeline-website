@@ -38,3 +38,51 @@ export const STRAUMUR_BRAND = {
   name: "Straumur",
   cardsSupported: ["Visa", "Mastercard", "AMEX"],
 };
+
+// ─── Tokenised payment methods ─────────────────────────────────────────────
+// Straumur will return a secure token for a card that can be charged again
+// without collecting card details a second time. These stubs return the
+// shape we'll persist to the payment_methods table.
+
+export type StraumurTokenisedMethod = {
+  token: string;
+  brand: string;       // "Visa", "Mastercard", "AMEX"
+  last4: string;       // "4242"
+  expMonth: number;    // 1-12
+  expYear: number;     // 4-digit
+};
+
+export type SaveStraumurMethodResult =
+  | { ok: true; method: StraumurTokenisedMethod }
+  | { ok: false; error: string };
+
+export async function saveStraumurPaymentMethod(): Promise<SaveStraumurMethodResult> {
+  await new Promise((r) => setTimeout(r, 700));
+  const brands = ["Visa", "Mastercard", "AMEX"];
+  const brand = brands[Math.floor(Math.random() * brands.length)];
+  const last4 = String(1000 + Math.floor(Math.random() * 9000));
+  const expYear = new Date().getFullYear() + 3 + Math.floor(Math.random() * 3);
+  return {
+    ok: true,
+    method: {
+      token: `stub_tok_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      brand,
+      last4,
+      expMonth: 1 + Math.floor(Math.random() * 12),
+      expYear,
+    },
+  };
+}
+
+export async function chargeSavedStraumurMethod(args: {
+  token: string;
+  amountIsk: number;
+  reference: string;
+  description: string;
+}): Promise<StraumurChargeResult> {
+  await new Promise((r) => setTimeout(r, 600));
+  return {
+    ok: true,
+    providerReference: `stub_charge_${args.reference.slice(0, 8)}_${Date.now().toString(36)}`,
+  };
+}
