@@ -160,6 +160,12 @@ export default function AccountWelcomePage() {
 
 function NextStepsHero() {
   const { t } = useI18n();
+  async function markSeen() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await supabase.from("clients").update({ welcome_seen_at: new Date().toISOString() }).eq("id", user.id);
+    } catch {}
+  }
   return (
     <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
       <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
@@ -182,6 +188,7 @@ function NextStepsHero() {
         <div className="mt-7 flex justify-center">
           <Link
             href="/account"
+            onClick={() => { markSeen(); }}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#0F172A] text-base font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 hover:opacity-95 transition-all"
           >
             {t("b2b.welcome.cta.dashboard", "Go to your dashboard")}

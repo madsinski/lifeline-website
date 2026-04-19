@@ -25,9 +25,14 @@ function AccountLoginContent() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [researchOptOut, setResearchOptOut] = useState(false);
+  const [marketingOptOut, setMarketingOptOut] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const TERMS_VERSION = "1.2";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +41,7 @@ function AccountLoginContent() {
     setLoading(true);
 
     if (mode === "login") {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -45,9 +50,37 @@ function AccountLoginContent() {
         setLoading(false);
         return;
       }
+      // First-time login — if the client has never seen the welcome page, send them there.
+      if (signInData?.user?.id) {
+        const { data: profile } = await supabase
+          .from("clients")
+          .select("welcome_seen_at")
+          .eq("id", signInData.user.id)
+          .maybeSingle();
+        if (profile && !profile.welcome_seen_at) {
+          router.push("/account/welcome");
+          return;
+        }
+      }
       router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
     } else {
+      if (!acceptTerms) {
+        setError("Please accept the Terms of Service and Privacy Policy to continue.");
+        setLoading(false);
+        return;
+      }
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      const now = new Date().toISOString();
+      const clientFields = {
+        email,
+        full_name: fullName || email.split('@')[0],
+        phone: phone.trim() || null,
+        terms_accepted_at: now,
+        terms_version: TERMS_VERSION,
+        research_opt_out: researchOptOut,
+        marketing_opt_out: marketingOptOut,
+        created_at: now,
+      };
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -68,10 +101,7 @@ function AccountLoginContent() {
         try {
           const { error: insertErr } = await supabase.from('clients').insert({
             id: signUpData.user.id,
-            email,
-            full_name: fullName || email.split('@')[0],
-            phone: phone.trim() || null,
-            created_at: new Date().toISOString(),
+            ...clientFields,
           });
           // Handle re-created account (same email, new auth ID)
           if (insertErr?.code === '23505') {
@@ -81,10 +111,7 @@ function AccountLoginContent() {
               await supabase.from('clients').delete().eq('id', old.id);
               await supabase.from('clients').insert({
                 id: signUpData.user.id,
-                email,
-                full_name: fullName || email.split('@')[0],
-                phone: phone.trim() || null,
-                created_at: new Date().toISOString(),
+                ...clientFields,
               });
             }
           }
@@ -92,7 +119,7 @@ function AccountLoginContent() {
             client_id: signUpData.user.id,
             tier: 'free-trial',
             status: 'active',
-            current_period_start: new Date().toISOString(),
+            current_period_start: now,
             current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           });
         } catch {}
@@ -278,6 +305,52 @@ function AccountLoginContent() {
               />
             </div>
 
+            {mode === "signup" && (
+              <div className="border-t border-gray-100 pt-4 space-y-3">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    required
+                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
+                  />
+                  <span className="text-xs text-gray-700 leading-snug">
+                    I accept the Lifeline Health{" "}
+                    <Link href="/terms" className="text-[#10B981] underline" target="_blank">Terms of Service</Link>
+                    {" "}and{" "}
+                    <Link href="/privacy" className="text-[#10B981] underline" target="_blank">Privacy Policy</Link>
+                    <span className="text-gray-400"> (v{TERMS_VERSION})</span>.
+                    <span className="text-red-500 ml-0.5">*</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={researchOptOut}
+                    onChange={(e) => setResearchOptOut(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
+                  />
+                  <span className="text-xs text-gray-700 leading-snug">
+                    <strong>Opt out of research use.</strong>{" "}
+                    Don&apos;t use my anonymised data to improve Lifeline or for clinical research.
+                  </span>
+                </label>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={marketingOptOut}
+                    onChange={(e) => setMarketingOptOut(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
+                  />
+                  <span className="text-xs text-gray-700 leading-snug">
+                    <strong>Opt out of marketing emails.</strong>{" "}
+                    Don&apos;t send me product news or promotions.
+                  </span>
+                </label>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -291,7 +364,7 @@ function AccountLoginContent() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (mode === "signup" && !acceptTerms)}
               className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading

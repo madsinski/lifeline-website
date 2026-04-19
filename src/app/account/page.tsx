@@ -983,7 +983,14 @@ function AccountPageInner() {
                   </div>
                 </section>
 
-                {/* Your journey timeline */}
+                {/* For B2C users who haven't booked a package yet, show a Get-started hero
+                    instead of the full journey — there's nothing yet to track. */}
+                {!companyId && bodyCompStatus === "none" && (
+                  <GetStartedHero />
+                )}
+
+                {/* Your journey timeline (hidden for B2C pre-booking) */}
+                {!(!companyId && bodyCompStatus === "none") && (
                 <JourneyTimeline
                   isB2C={!companyId}
                   hasOnboarded={true}
@@ -1020,6 +1027,7 @@ function AccountPageInner() {
                     else window.location.href = "/account/welcome";
                   }}
                 />
+                )}
 
                 {/* Current bookings */}
                 <CurrentBookings
@@ -3543,6 +3551,61 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
  * Compact teaser card on /account Home — links to the full Coaching app page
  * where all feature content lives.
  */
+function GetStartedHero() {
+  return (
+    <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #10B981, #0D9488)" }}>
+      <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-12 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+      <div className="relative p-8 sm:p-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 backdrop-blur-sm mb-4">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span className="text-xs font-semibold uppercase tracking-wide">Get started</span>
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-bold leading-tight max-w-xl">
+          Ready to take the first step?
+        </h2>
+        <p className="mt-3 text-base opacity-95 leading-relaxed max-w-xl">
+          Your Lifeline journey begins with the Foundational Health assessment — a 360° snapshot of your body-composition, blood work, and lifestyle, with a doctor-led action plan to take home.
+        </p>
+        <ul className="mt-5 space-y-2 text-sm text-white/95 max-w-xl">
+          {[
+            "On-site measurements at a Lifeline station",
+            "Targeted blood panel (fasting)",
+            "Full health questionnaire",
+            "Doctor-reviewed personal report + 1:1 consultation",
+          ].map((x) => (
+            <li key={x} className="flex items-start gap-2">
+              <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              {x}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-7 flex flex-wrap items-center gap-3">
+          <Link
+            href="/assessment"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#0F172A] text-base font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 hover:opacity-95 transition-all"
+          >
+            Book your assessment
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+          <Link
+            href="/assessment"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/40 text-white text-sm font-semibold hover:bg-white/10"
+          >
+            Compare packages
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ServicesSection({
   companyName, onGoToCoaching,
 }: {
