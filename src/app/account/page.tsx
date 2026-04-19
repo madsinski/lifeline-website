@@ -128,6 +128,8 @@ function AccountPageInner() {
   const [myDoctorSlot, setMyDoctorSlot] = useState<{ id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null; booking_note: string | null } | null>(null);
   const [upcomingDoctorSlots, setUpcomingDoctorSlots] = useState<Array<{ id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null }>>([]);
   const [drPickerOpen, setDrPickerOpen] = useState(false);
+  const [videoPortalConfirmedAt, setVideoPortalConfirmedAt] = useState<string | null>(null);
+  const [videoConfirmBusy, setVideoConfirmBusy] = useState(false);
   const [lastWellbeingAt, setLastWellbeingAt] = useState<string | null>(null);
   const [satisfactionDone, setSatisfactionDone] = useState<Record<"body_comp" | "doctor" | "overall", boolean>>({ body_comp: false, doctor: false, overall: false });
   const [wellbeingOpen, setWellbeingOpen] = useState(false);
@@ -238,7 +240,7 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at")
           .eq("id", currentUser.id)
           .single();
         if (clientData) {
@@ -255,6 +257,7 @@ function AccountPageInner() {
           const companyId = cData.company_id as string | null;
           setLastBodyCompAt((cData.last_body_comp_at as string | null) || null);
           setBiodyActivated(!!cData.biody_patient_id);
+          setVideoPortalConfirmedAt((cData.video_consultation_portal_confirmed_at as string | null) || null);
           if (companyId) {
             setCompanyId(companyId);
             const { data: c } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
@@ -307,6 +310,7 @@ function AccountPageInner() {
             .from("doctor_slots")
             .select("id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes")
             .is("client_id", null)
+            .eq("mode", "in_person")
             .gt("slot_at", nowIso)
             .order("slot_at")
             .limit(50);
@@ -964,11 +968,26 @@ function AccountPageInner() {
                   hasBloodTestBooking={!!myBloodTestBooking}
                   companyEvent={companyEvent}
                   hasApprovedBloodDays={upcomingBloodDays.length > 0}
-                  hasDoctorBooking={!!myDoctorSlot}
-                  hasAvailableDoctorSlots={upcomingDoctorSlots.length > 0}
+                  hasInPersonDoctorBooking={!!myDoctorSlot}
+                  hasAvailableInPersonSlots={upcomingDoctorSlots.length > 0}
+                  hasVideoPortalConfirmed={!!videoPortalConfirmedAt}
+                  videoConfirmBusy={videoConfirmBusy}
                   onPickBodyCompSlot={() => setBcPickerOpen(true)}
                   onPickBloodTestDay={() => setBtPickerOpen(true)}
-                  onPickDoctorSlot={() => setDrPickerOpen(true)}
+                  onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
+                  onConfirmVideoPortal={async () => {
+                    setVideoConfirmBusy(true);
+                    const { error: err } = await supabase.rpc("confirm_video_consultation_portal");
+                    if (!err) setVideoPortalConfirmedAt(new Date().toISOString());
+                    setVideoConfirmBusy(false);
+                  }}
+                  onClearVideoPortal={async () => {
+                    if (!confirm("Clear your video consultation confirmation?")) return;
+                    setVideoConfirmBusy(true);
+                    const { error: err } = await supabase.rpc("clear_video_consultation_portal");
+                    if (!err) setVideoPortalConfirmedAt(null);
+                    setVideoConfirmBusy(false);
+                  }}
                   onGoToBiody={() => { window.location.href = "/account/welcome"; }}
                 />
 
@@ -978,9 +997,15 @@ function AccountPageInner() {
                   companyEvent={companyEvent}
                   myBloodTestBooking={myBloodTestBooking}
                   myDoctorSlot={myDoctorSlot}
+                  videoPortalConfirmedAt={videoPortalConfirmedAt}
                   onChangeBcSlot={() => setBcPickerOpen(true)}
                   onChangeBloodDay={() => setBtPickerOpen(true)}
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
+                  onClearVideoPortal={async () => {
+                    if (!confirm("Clear your video consultation confirmation?")) return;
+                    await supabase.rpc("clear_video_consultation_portal");
+                    setVideoPortalConfirmedAt(null);
+                  }}
                 />
 
                 {/* Body-comp slot picker modal */}
@@ -1031,6 +1056,7 @@ function AccountPageInner() {
                         .from("doctor_slots")
                         .select("id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes")
                         .is("client_id", null)
+                        .eq("mode", "in_person")
                         .gt("slot_at", nowIso)
                         .order("slot_at")
                         .limit(50);
@@ -2382,8 +2408,10 @@ export default function AccountPage() {
 
 function JourneyTimeline({
   hasOnboarded, biodyActivated, hasBodyCompSlot, hasBloodTestBooking,
-  companyEvent, hasApprovedBloodDays, hasDoctorBooking, hasAvailableDoctorSlots,
-  onPickBodyCompSlot, onPickBloodTestDay, onPickDoctorSlot, onGoToBiody,
+  companyEvent, hasApprovedBloodDays,
+  hasInPersonDoctorBooking, hasAvailableInPersonSlots, hasVideoPortalConfirmed, videoConfirmBusy,
+  onPickBodyCompSlot, onPickBloodTestDay, onPickInPersonDoctorSlot,
+  onConfirmVideoPortal, onClearVideoPortal, onGoToBiody,
 }: {
   hasOnboarded: boolean;
   biodyActivated: boolean;
@@ -2391,11 +2419,15 @@ function JourneyTimeline({
   hasBloodTestBooking: boolean;
   companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null } | null;
   hasApprovedBloodDays: boolean;
-  hasDoctorBooking: boolean;
-  hasAvailableDoctorSlots: boolean;
+  hasInPersonDoctorBooking: boolean;
+  hasAvailableInPersonSlots: boolean;
+  hasVideoPortalConfirmed: boolean;
+  videoConfirmBusy: boolean;
   onPickBodyCompSlot: () => void;
   onPickBloodTestDay: () => void;
-  onPickDoctorSlot: () => void;
+  onPickInPersonDoctorSlot: () => void;
+  onConfirmVideoPortal: () => void;
+  onClearVideoPortal: () => void;
   onGoToBiody: () => void;
 }) {
   const eventLabel = companyEvent
@@ -2447,17 +2479,70 @@ function JourneyTimeline({
         : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test. The questionnaire will be available in your secure patient portal.",
       portal: true,
     },
-    {
-      title: "Doctor consultation",
-      done: hasDoctorBooking,
-      active: !hasDoctorBooking && hasAvailableDoctorSlots,
-      description: hasDoctorBooking
+    (() => {
+      const hasAnyBooking = hasInPersonDoctorBooking || hasVideoPortalConfirmed;
+      const canBook = hasAvailableInPersonSlots || hasBodyCompSlot; // video path always available
+      const description = hasAnyBooking
         ? "Booked. See 'Current bookings' below."
-        : hasAvailableDoctorSlots
-          ? "Pick a time to meet your Lifeline doctor and build your action plan."
-          : "Once your report is ready, the Lifeline team will open consultation slots for you.",
-      cta: !hasDoctorBooking && hasAvailableDoctorSlots ? { label: "Pick a time", onClick: onPickDoctorSlot } : undefined,
-    },
+        : canBook
+          ? "Choose how you'd like to meet your Lifeline doctor to build your action plan."
+          : "Once your report is ready, the Lifeline team will open consultation options for you.";
+      const customBody = !hasAnyBooking ? (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* In-person option */}
+          <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <svg className="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-sm font-semibold text-blue-900">In person</span>
+            </div>
+            <p className="text-xs text-blue-900/80 leading-snug mb-2">Meet the doctor at the Lifeline location, set by our team.</p>
+            {hasAvailableInPersonSlots ? (
+              <button onClick={onPickInPersonDoctorSlot} className="text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                Pick a time
+              </button>
+            ) : (
+              <div className="text-xs text-blue-900/70">No in-person slots available right now.</div>
+            )}
+          </div>
+          {/* Video option */}
+          <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <svg className="w-4 h-4 text-violet-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm font-semibold text-violet-900">Video via patient portal</span>
+            </div>
+            <p className="text-xs text-violet-900/80 leading-snug mb-2">Video meetings are booked inside the patient portal (Zoom Healthcare). Book there, then come back to confirm.</p>
+            <div className="flex flex-wrap gap-2">
+              <MedaliaButton label="Open patient portal" size="sm" variant="outline" />
+              <button
+                onClick={onConfirmVideoPortal}
+                disabled={videoConfirmBusy}
+                className="text-xs font-semibold px-3 py-1.5 rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-60"
+              >
+                {videoConfirmBusy ? "…" : "I've booked — confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : hasVideoPortalConfirmed && !hasInPersonDoctorBooking ? (
+        <div className="mt-3">
+          <button onClick={onClearVideoPortal} disabled={videoConfirmBusy} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-60">
+            Clear confirmation
+          </button>
+        </div>
+      ) : null;
+      return {
+        title: "Doctor consultation",
+        done: hasAnyBooking,
+        active: !hasAnyBooking,
+        description,
+        customBody,
+      };
+    })(),
   ];
 
   return (
@@ -2491,8 +2576,9 @@ function JourneyTimeline({
                       <MedaliaButton label="Open patient portal" size="sm" />
                     </div>
                   )}
+                  {"customBody" in s && s.customBody ? s.customBody : null}
                 </div>
-                {s.cta && (
+                {"cta" in s && s.cta && (
                   <button onClick={s.cta.onClick} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
                     {s.cta.label}
                   </button>
@@ -2507,18 +2593,20 @@ function JourneyTimeline({
 }
 
 function CurrentBookings({
-  mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot,
-  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot,
+  mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot, videoPortalConfirmedAt,
+  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onClearVideoPortal,
 }: {
   mySlotAt: string | null;
   companyEvent: { event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null } | null;
   myBloodTestBooking: { day: string; note: string | null } | null;
   myDoctorSlot: { id: string; slot_at: string; duration_minutes: number; mode: "video" | "phone" | "in_person"; location: string | null; meeting_link: string | null; doctor_name: string | null; notes: string | null; booking_note: string | null } | null;
+  videoPortalConfirmedAt: string | null;
   onChangeBcSlot: () => void;
   onChangeBloodDay: () => void;
   onChangeDoctorSlot: () => void;
+  onClearVideoPortal: () => void;
 }) {
-  const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot;
+  const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot && !videoPortalConfirmedAt;
   const editIcon = (
     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -2793,10 +2881,46 @@ function CurrentBookings({
             </div>
           </div>
         ) : null;
+        const drVideoCard = (!myDoctorSlot && videoPortalConfirmedAt) ? (
+          <div key="dr-video" className="relative overflow-hidden rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
+            <div className="flex items-start gap-3 mb-3">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor</div>
+                <div className="font-semibold text-gray-900 leading-tight">Video consultation</div>
+              </div>
+            </div>
+            <div className="space-y-1.5 text-sm text-gray-700">
+              <div className="text-sm">Booked via your patient portal (Zoom Healthcare).</div>
+              <div className="text-xs text-gray-500">Confirmed {new Date(videoPortalConfirmedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+            </div>
+            <div className="mt-3 rounded-lg bg-violet-50/70 border border-violet-100 px-3 py-2 text-xs text-violet-900">
+              <div className="font-semibold mb-1">What to expect</div>
+              <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-violet-900/90">
+                <li>Join the video meeting from the patient portal</li>
+                <li>Walk through your report with your doctor</li>
+                <li>Agree on a personal action plan</li>
+              </ul>
+              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Please review your health report in the patient portal before your doctor meeting.</div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap gap-2">
+              <MedaliaButton label="Open patient portal" size="sm" variant="outline" />
+              <button onClick={onClearVideoPortal} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
+                Clear
+              </button>
+            </div>
+          </div>
+        ) : null;
         const entries = [
           { key: "bc", card: bcCard, time: bcTime },
           { key: "bt", card: btCard, time: btTime },
           { key: "dr", card: drCard, time: drTime },
+          { key: "dr-video", card: drVideoCard, time: videoPortalConfirmedAt ? new Date(videoPortalConfirmedAt).getTime() : Infinity },
         ].filter((e) => e.card).sort((a, b) => a.time - b.time);
         return (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
