@@ -3336,6 +3336,18 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
         </svg>
       ),
     },
+    {
+      title: "Live wearable insights",
+      desc: "Connect Apple Watch, Garmin, Fitbit and more. Steps, heart rate, sleep and recovery stream into your plan in real time.",
+      color: "text-pink-600",
+      bg: "bg-pink-50",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="7" y="5" width="10" height="14" rx="2" strokeWidth={2} />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 2h6M9 22h6M10 12h1.5l1-1.5L14 13l1-2" />
+        </svg>
+      ),
+    },
 ];
 
 /**
