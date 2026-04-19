@@ -130,7 +130,13 @@ export default function AccountWelcomePage() {
               <div className="text-sm text-[#64748B] mb-1">
                 {t("b2b.welcome.team.with_love", "With care,")}
               </div>
-              <div className="font-signature text-2xl sm:text-3xl text-[#0F172A]" style={{ fontFamily: "'Brush Script MT', 'Lucida Handwriting', cursive" }}>
+              <div
+                className="text-3xl sm:text-4xl text-[#1F2937] leading-snug -rotate-2 inline-block"
+                style={{
+                  fontFamily: "var(--font-signature), 'Homemade Apple', 'Segoe Script', 'Lucida Handwriting', cursive",
+                  letterSpacing: "0.5px",
+                }}
+              >
                 {t("b2b.welcome.team.signature", "— The Lifeline team")}
               </div>
               <p className="mt-3 text-xs text-[#64748B] leading-relaxed">
