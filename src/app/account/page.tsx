@@ -60,7 +60,7 @@ interface PaymentRow {
 }
 
 /* ---------- nav sections ---------- */
-type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "app" | "settings" | "upgrade";
+type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "settings" | "upgrade";
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
   { id: "assessment", label: "Health assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
@@ -189,11 +189,6 @@ function AccountPageInner() {
 
   /* profile validation */
   const [profileError, setProfileError] = useState("");
-
-  /* notification prefs (local/visual only) */
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [marketingEmails, setMarketingEmails] = useState(false);
 
   /* has client data (for connected devices) */
   const [hasClientData, setHasClientData] = useState(false);
@@ -2276,65 +2271,6 @@ function AccountPageInner() {
               </section>
             )}
 
-            {activeSection === "app" && (
-              <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">App & Devices</h2>
-
-                <div className="mb-6">
-                  <p className="text-sm text-[#6B7280] mb-3">Download the Lifeline app</p>
-                  <div className="flex gap-3">
-                    <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1F2937] text-white text-sm font-medium rounded-lg hover:bg-[#374151] transition-colors">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.99 2.97 12.5 4.7 9.49C5.56 7.99 7.12 7.04 8.82 7.02C10.11 7 11.33 7.89 12.12 7.89C12.91 7.89 14.38 6.82 15.92 7C16.55 7.03 18.33 7.27 19.44 8.93C19.35 8.99 17.22 10.24 17.25 12.78C17.28 15.83 19.98 16.87 20 16.88C19.98 16.93 19.56 18.39 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z" />
-                      </svg>
-                      App Store
-                    </a>
-                    <a href="https://play.google.com" target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1F2937] text-white text-sm font-medium rounded-lg hover:bg-[#374151] transition-colors">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 20.5V3.5C3 2.91 3.34 2.39 3.84 2.15L13.69 12L3.84 21.85C3.34 21.61 3 21.09 3 20.5ZM16.81 15.12L6.05 21.34L14.54 12.85L16.81 15.12ZM20.16 10.81C20.5 11.08 20.75 11.5 20.75 12C20.75 12.5 20.53 12.9 20.18 13.18L17.89 14.5L15.39 12L17.89 9.5L20.16 10.81ZM6.05 2.66L16.81 8.88L14.54 11.15L6.05 2.66Z" />
-                      </svg>
-                      Google Play
-                    </a>
-                  </div>
-                </div>
-
-                {/* Patient Portal */}
-                <div className="mb-6 pb-6 border-b border-gray-100">
-                  <p className="text-sm text-[#6B7280] mb-3">Patient Portal</p>
-                  <MedaliaButton label="Open Patient Portal" size="sm" />
-                </div>
-
-                <div>
-                  <p className="text-sm text-[#6B7280] mb-2">Current coaching programs</p>
-                  {programs.length > 0 ? (
-                    <div className="space-y-2">
-                      {programs.map((prog) => (
-                        <div key={`${prog.category_key}-${prog.program_key}`} className="flex items-center justify-between bg-[#ecf0f3] rounded-xl px-5 py-3">
-                          <div>
-                            <p className="text-sm font-medium text-[#1F2937]">{prog.program_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
-                            <p className="text-xs text-[#6B7280]">{prog.category_key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
-                          </div>
-                          {prog.started_at && (
-                            <span className="text-xs text-[#6B7280]">
-                              Started {new Date(prog.started_at).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
-                      <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                      </svg>
-                      <p className="text-sm text-[#6B7280]">Programs will appear once you start coaching</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
 
             {/* ============ SETTINGS ============ */}
             {activeSection === "settings" && (
@@ -2351,20 +2287,6 @@ function AccountPageInner() {
                     <button onClick={() => setActiveSection("profile")}
                       className="text-sm font-medium text-[#10B981] hover:underline">
                       Edit
-                    </button>
-                  </div>
-                </div>
-
-                {/* App & devices (formerly its own section) */}
-                <div className="border-b border-gray-100 pb-5 mb-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Lifeline app</p>
-                      <p className="text-xs text-[#6B7280]">Get the QR code to sign in on mobile</p>
-                    </div>
-                    <button onClick={() => setActiveSection("app")}
-                      className="text-sm font-medium text-[#10B981] hover:underline">
-                      Open
                     </button>
                   </div>
                 </div>
@@ -2394,60 +2316,6 @@ function AccountPageInner() {
                         Update Password
                       </button>
                     </div>
-                  )}
-                </div>
-
-                {/* Notifications */}
-                <div className="border-b border-gray-100 pb-5 mb-5">
-                  <div className="mb-3">
-                    <p className="text-sm font-medium text-[#1F2937]">Notification Preferences</p>
-                    <p className="text-xs text-[#6B7280]">Email and push notification settings</p>
-                  </div>
-                  <div className="space-y-3 max-w-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#1F2937]">Email notifications</span>
-                      <button onClick={() => setEmailNotifications(!emailNotifications)}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${emailNotifications ? "bg-[#10B981]" : "bg-gray-300"}`}>
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${emailNotifications ? "translate-x-5" : ""}`} />
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#1F2937]">Push notifications</span>
-                      <button onClick={() => setPushNotifications(!pushNotifications)}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${pushNotifications ? "bg-[#10B981]" : "bg-gray-300"}`}>
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushNotifications ? "translate-x-5" : ""}`} />
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#1F2937]">Marketing emails</span>
-                      <button onClick={() => setMarketingEmails(!marketingEmails)}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${marketingEmails ? "bg-[#10B981]" : "bg-gray-300"}`}>
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${marketingEmails ? "translate-x-5" : ""}`} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Connected Devices */}
-                <div className="border-b border-gray-100 pb-5 mb-5">
-                  <div className="mb-3">
-                    <p className="text-sm font-medium text-[#1F2937]">Connected Devices</p>
-                    <p className="text-xs text-[#6B7280]">Devices linked to your account</p>
-                  </div>
-                  {hasClientData ? (
-                    <div className="flex items-center gap-3 bg-[#ecf0f3] rounded-xl px-4 py-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-[#1F2937]">Lifeline Health App</p>
-                        <p className="text-xs text-[#10B981]">Connected</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-[#6B7280]">No devices connected yet.</p>
                   )}
                 </div>
 
