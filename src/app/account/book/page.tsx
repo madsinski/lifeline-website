@@ -108,6 +108,17 @@ export default function BookAssessmentPage() {
         setFullName((data.full_name as string) || "");
         setPhone((data.phone as string | null) || null);
       }
+      // Clean up abandoned drafts from previous wizard runs — any
+      // paid-package booking still in 'pending' status is a user who
+      // bailed before paying. Cancel rather than delete (the client
+      // update policy allows setting status='cancelled'); cancelled
+      // rows are filtered out of the dashboard booking lookup.
+      await supabase
+        .from("body_comp_bookings")
+        .update({ status: "cancelled" })
+        .eq("client_id", user.id)
+        .eq("payment_status", "pending")
+        .eq("status", "requested");
       setAuthChecking(false);
     })();
   }, [router]);

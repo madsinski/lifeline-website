@@ -339,12 +339,17 @@ function AccountPageInner() {
             for (const r of sats as Array<{ context: "body_comp" | "doctor" | "overall" }>) done[r.context] = true;
             setSatisfactionDone(done);
           }
-          // Body comp booking status (solo / clinic booking path)
+          // Body comp booking status (solo / clinic booking path).
+          // Ignore rows that haven't been paid yet — those are abandoned
+          // wizard drafts and shouldn't make the dashboard think the user
+          // is mid-journey. Legacy rows predate the payment columns and
+          // are allowed through via the `amount_isk is null` branch.
           const { data: booking } = await supabase
             .from("body_comp_bookings")
-            .select("scheduled_at, status")
+            .select("scheduled_at, status, amount_isk, payment_status")
             .eq("client_id", currentUser.id)
             .in("status", ["requested", "confirmed", "completed"])
+            .or("amount_isk.is.null,payment_status.eq.paid")
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -2428,50 +2433,60 @@ function JourneyTimeline({
     ? `${new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}${companyEvent.location ? ` · ${companyEvent.location}` : ""}`
     : "";
 
-  const steps = [
-    {
-      title: "Onboarding",
-      done: hasOnboarded,
-      active: false,
-      description: "Profile + consent complete.",
-    },
-    {
-      title: "Body-composition profile",
-      done: biodyActivated,
-      active: hasOnboarded && !biodyActivated,
-      description: biodyActivated
-        ? "Registered with our measurement partner. You can update your details (height, weight, activity level) any time."
-        : "Activate your profile on the welcome page — takes about a minute.",
-      cta: { label: biodyActivated ? "Edit details" : "Activate", onClick: onGoToBiody },
-    },
-    isB2C
-      ? {
-          // B2C: one step covers measurement + blood-draw referral via Medalia booking
-          title: "Book your Foundational Health assessment",
-          done: hasBodyCompBooking,
-          active: biodyActivated && !hasBodyCompBooking,
-          description: hasBodyCompCompleted
-            ? "Completed. Your results live in the patient portal."
-            : hasBodyCompBooking
-              ? "Booked. See 'Current bookings' below for the scheduled time."
-              : biodyActivated
-                ? "Book a session at a Lifeline station — one visit covers measurements and your blood-test referral."
-                : "Activate your body-composition profile first.",
-          cta: biodyActivated && !hasBodyCompBooking
-            ? { label: "Book at a station", href: "/assessment" }
-            : undefined,
-        }
-      : {
-          title: "Measurements — book your time slot",
-          done: hasBodyCompSlot,
-          active: biodyActivated && !hasBodyCompSlot && !!companyEvent,
-          description: hasBodyCompSlot
-            ? "Your slot is booked. See 'Current bookings' below."
-            : companyEvent
-              ? `On-site at ${eventLabel}. Pick a 5-minute slot.`
-              : "Your company will schedule the measurement day. You'll be notified.",
-          cta: !hasBodyCompSlot && companyEvent ? { label: "Pick a slot", onClick: onPickBodyCompSlot } : undefined,
-        },
+  type JourneyCta = { label: string; onClick?: () => void; href?: string };
+  type JourneyStep = {
+    title: string;
+    done: boolean;
+    active: boolean;
+    description: string;
+    cta?: JourneyCta;
+    portal?: boolean;
+    customBody?: React.ReactNode;
+  };
+  const onboardingStep: JourneyStep = {
+    title: "Onboarding",
+    done: hasOnboarded,
+    active: false,
+    description: "Profile + consent complete.",
+  };
+  const bodyCompProfileStep: JourneyStep = {
+    title: "Body-composition profile",
+    done: biodyActivated,
+    active: hasOnboarded && !biodyActivated,
+    description: biodyActivated
+      ? "Registered with our measurement partner. You can update your details (height, weight, activity level) any time."
+      : "Activate your profile — takes about a minute.",
+    cta: { label: biodyActivated ? "Edit details" : "Activate", onClick: onGoToBiody },
+  };
+  const b2cBookStep: JourneyStep = {
+    // B2C: one step covers measurement + blood-draw referral via Medalia booking
+    title: "Book your Foundational Health assessment",
+    done: hasBodyCompBooking,
+    active: !hasBodyCompBooking,
+    description: hasBodyCompCompleted
+      ? "Completed. Your results live in the patient portal."
+      : hasBodyCompBooking
+        ? "Booked. See 'Current bookings' below for the scheduled time."
+        : "Pick a package, a time, and pay — one visit covers measurements and your blood-test referral.",
+    cta: !hasBodyCompBooking
+      ? { label: "Book at a station", href: "/account/book" }
+      : undefined,
+  };
+  const b2bMeasurementsStep: JourneyStep = {
+    title: "Measurements — book your time slot",
+    done: hasBodyCompSlot,
+    active: biodyActivated && !hasBodyCompSlot && !!companyEvent,
+    description: hasBodyCompSlot
+      ? "Your slot is booked. See 'Current bookings' below."
+      : companyEvent
+        ? `On-site at ${eventLabel}. Pick a 5-minute slot.`
+        : "Your company will schedule the measurement day. You'll be notified.",
+    cta: !hasBodyCompSlot && companyEvent ? { label: "Pick a slot", onClick: onPickBodyCompSlot } : undefined,
+  };
+  const steps: JourneyStep[] = [
+    onboardingStep,
+    // B2C flips the order: book first (pay, reserve a time), then profile
+    ...(isB2C ? [b2cBookStep, bodyCompProfileStep] : [bodyCompProfileStep, b2bMeasurementsStep]),
     isB2C
       ? {
           // B2C: standing Sameind referral, no company-approved days
