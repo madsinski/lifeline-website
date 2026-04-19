@@ -63,8 +63,8 @@ interface PaymentRow {
 type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "settings" | "upgrade";
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
-  { id: "assessment", label: "Health assessment", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
   { id: "upgrade", label: "Lifeline app", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  { id: "assessment", label: "Services", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
@@ -1345,64 +1345,7 @@ function AccountPageInner() {
 
             {/* ============ ASSESSMENT ============ */}
             {activeSection === "assessment" && (
-              <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Health Assessment</h2>
-
-                <div className="bg-gradient-to-r from-[#10B981]/10 to-[#10B981]/5 rounded-xl p-6 mb-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-sm font-semibold text-[#1F2937] mb-1">Book your assessment</h3>
-                      <p className="text-sm text-[#6B7280]">
-                        Visit a Lifeline Health station for body composition measurements and targeted blood work.
-                      </p>
-                    </div>
-                    <Link href="/assessment"
-                      className="inline-flex items-center justify-center px-6 py-3 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-colors shrink-0">
-                      Book Assessment
-                    </Link>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-[#1F2937] mb-3">Assessment History</h3>
-                  {appointments.length > 0 ? (
-                    <div className="space-y-3">
-                      {appointments.map((appt, i) => (
-                        <div key={i} className="flex items-center justify-between bg-[#ecf0f3] rounded-xl px-5 py-4">
-                          <div>
-                            <p className="text-sm font-medium text-[#1F2937]">{appt.type}</p>
-                            <p className="text-xs text-[#6B7280]">
-                              {new Date(appt.date).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
-                              {appt.time ? ` at ${appt.time}` : ""}
-                            </p>
-                          </div>
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            appt.status === "completed" ? "bg-green-100 text-green-700" :
-                            appt.status === "confirmed" ? "bg-blue-100 text-blue-700" :
-                            appt.status === "cancelled" ? "bg-red-100 text-red-700" :
-                            "bg-amber-100 text-amber-700"
-                          }`}>
-                            {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-[#ecf0f3] rounded-xl p-8 text-center">
-                      <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      <p className="text-sm text-[#6B7280] mb-3">
-                        Complete your first assessment to see results here
-                      </p>
-                      <Link href="/assessment"
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-colors">
-                        Book Assessment
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </section>
+              <ServicesSection companyName={companyName} onGoToCoaching={() => setActiveSection("upgrade")} />
             )}
 
             {/* ============ APP & DEVICES ============ */}
@@ -3496,6 +3439,185 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
  * Compact teaser card on /account Home — links to the full Coaching app page
  * where all feature content lives.
  */
+function ServicesSection({
+  companyName, onGoToCoaching,
+}: {
+  companyName: string | null;
+  onGoToCoaching: () => void;
+}) {
+  const packages: Array<{ name: string; tag: string; price: string; unit: string; desc: string; includes: string[]; accent: string; tone: string; dot: string; cta: string; href: string }> = [
+    {
+      name: "Foundational Health",
+      tag: "Full programme",
+      price: "49,900",
+      unit: "ISK",
+      desc: "The full measurement round — great for family members, or a fresh baseline outside the company programme.",
+      includes: [
+        "On-site measurements — blood pressure, body composition",
+        "Targeted blood panel",
+        "Full health questionnaire",
+        "Doctor-reviewed personal report",
+        "1:1 doctor consultation + action plan",
+      ],
+      accent: "from-[#3B82F6] to-[#10B981]",
+      tone: "border-blue-100 bg-blue-50/40",
+      dot: "text-[#3B82F6]",
+      cta: "Book assessment",
+      href: "/assessment",
+    },
+    {
+      name: "Check-in",
+      tag: "Follow-up",
+      price: "19,900",
+      unit: "ISK",
+      desc: "A lighter round 3–12 months after the foundational — see what changed and refresh your action plan.",
+      includes: [
+        "On-site measurements",
+        "Progress report vs baseline",
+        "Updated health score",
+        "Brief doctor review",
+        "Refreshed action plan",
+      ],
+      accent: "from-[#10B981] to-[#14B8A6]",
+      tone: "border-emerald-100 bg-emerald-50/40",
+      dot: "text-[#10B981]",
+      cta: "Book check-in",
+      href: "/assessment",
+    },
+    {
+      name: "Self Check-in",
+      tag: "Free",
+      price: "0",
+      unit: "ISK",
+      desc: "A self-guided online questionnaire you can rerun any time to track your own progress through the year.",
+      includes: [
+        "Online health questionnaire",
+        "Self-reported metrics you control",
+        "Updated personal health score",
+        "Instant, private insight",
+        "If something flags, Lifeline reaches out",
+      ],
+      accent: "from-[#8B5CF6] to-[#0EA5E9]",
+      tone: "border-violet-100 bg-violet-50/40",
+      dot: "text-[#8B5CF6]",
+      cta: "Start now",
+      href: "/assessment",
+    },
+  ];
+
+  return (
+    <section className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-xs font-semibold uppercase tracking-wide mb-3">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          Services you can add
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#0F172A] leading-tight">Add to what {companyName ? "your company" : "you already have"}</h2>
+        <p className="text-base text-[#475569] mt-3 leading-relaxed max-w-2xl">
+          {companyName
+            ? `${companyName} has already covered your Foundational Health assessment. Everything below is optional and personally billed — perfect for family members, mid-year check-ins, or ongoing coaching.`
+            : "Optional services you can add to your Lifeline programme — for yourself, your family, or an extra round of progress tracking."}
+        </p>
+      </div>
+
+      {/* Assessment packages */}
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B] mb-3 px-1">Assessment packages</div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {packages.map((p) => (
+            <div key={p.name} className={`relative overflow-hidden rounded-2xl border ${p.tone} bg-white shadow-sm flex flex-col`}>
+              <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${p.accent}`} />
+              <div className="p-6 flex-1 flex flex-col">
+                <div className="inline-flex items-center self-start px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 mb-3">{p.tag}</div>
+                <h3 className="text-lg font-bold text-[#0F172A]">{p.name}</h3>
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold text-[#0F172A]">{p.price === "0" ? "Free" : p.price}</span>
+                  {p.price !== "0" && <span className="text-xs font-medium text-[#64748B]">{p.unit} · one-time</span>}
+                </div>
+                <p className="text-sm text-[#475569] mt-2 leading-relaxed">{p.desc}</p>
+                <ul className="mt-4 space-y-1.5 flex-1">
+                  {p.includes.map((x) => (
+                    <li key={x} className="flex items-start gap-2 text-sm text-[#334155]">
+                      <svg className={`w-4 h-4 mt-0.5 shrink-0 ${p.dot}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {x}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={p.href}
+                  className={`mt-5 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r ${p.accent} hover:opacity-95 shadow-sm`}
+                >
+                  {p.cta}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Coaching app teaser */}
+      <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] to-[#8B5CF6]" />
+        <div className="p-6 sm:p-8">
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Also available</div>
+              <h3 className="text-xl font-bold text-[#0F172A]">The Lifeline coaching app</h3>
+              <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-2xl">
+                Daily actions, a health coach, community, education and advanced macro tracking — available on three tiers. Turns your assessment into habits that actually stick.
+              </p>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  { label: "Free", sub: "community + education" },
+                  { label: "Self-maintained", sub: "full app tools" },
+                  { label: "Full Access", sub: "personal coach" },
+                ].map((row) => (
+                  <div key={row.label} className="rounded-lg border border-gray-100 bg-[#f8fafc] px-3 py-2 text-sm">
+                    <div className="font-semibold text-[#0F172A]">{row.label}</div>
+                    <div className="text-xs text-[#64748B]">{row.sub}</div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={onGoToCoaching}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
+              >
+                See the Lifeline app
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact */}
+      <div className="rounded-2xl border border-dashed border-gray-200 bg-[#f8fafc] p-6 text-center">
+        <p className="text-sm text-[#475569]">
+          Need something custom, or have a question? Email us at{" "}
+          <a href="mailto:contact@lifelinehealth.is" className="font-semibold text-[#10B981] hover:underline">
+            contact@lifelinehealth.is
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function AvatarUploader({
   avatarUrl, initial, userId, uploading, error, onStart, onDone, onError,
 }: {
