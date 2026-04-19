@@ -929,75 +929,34 @@ function AccountPageInner() {
             {/* ============ HEALTH OVERVIEW ============ */}
             {activeSection === "overview" && (
               <>
-                {/* B2B welcome banner — shown when the client joined via a company */}
-                {companyName && (
-                  <section className="rounded-2xl p-6 sm:p-8 text-white shadow-sm"
-                    style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
-                    <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-2">
-                      Via {companyName}
-                    </p>
-                    <h2 className="text-2xl sm:text-3xl font-semibold leading-tight">
-                      {bodyCompStatus === "none"
-                        ? `Welcome to Lifeline, ${profileFirstName || "there"}.`
-                        : bodyCompStatus === "booked"
-                          ? `Your scan is booked, ${profileFirstName || "there"}.`
-                          : `Your first scan is in, ${profileFirstName || "there"}.`}
-                    </h2>
-                    <p className="mt-2 text-base opacity-95 max-w-xl">
-                      {bodyCompStatus === "none"
-                        ? "Your body-composition profile is registered with our measurement partner. Book your first scan to get a full breakdown of fat, muscle, and metabolic rate."
-                        : bodyCompStatus === "booked"
-                          ? `${bodyCompBookingAt ? `Scheduled for ${new Date(bodyCompBookingAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. ` : ""}See you at the Lifeline station.`
-                          : `Last scan ${lastBodyCompAt ? new Date(lastBodyCompAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "recently"}. Check your results in the app and keep your coaching on track.`}
-                    </p>
-                    <div className="flex flex-wrap gap-3 mt-5">
-                      {!biodyActivated && (
-                        <Link href="/account/welcome" className="inline-block px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
-                          Complete setup →
-                        </Link>
-                      )}
-                      {biodyActivated && bodyCompStatus === "none" && (
-                        <Link href="/assessment" className="inline-block px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
-                          Book your scan
-                        </Link>
-                      )}
-                      {bodyCompStatus === "completed" && (
-                        <Link href="/coaching#download" className="inline-block px-4 py-2 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
-                          Open in app
-                        </Link>
-                      )}
-                      <Link href="/coaching#download" className="inline-block px-4 py-2 rounded-lg border border-white/60 text-white font-semibold text-sm hover:bg-white/10">
-                        Download the Lifeline app
-                      </Link>
-                    </div>
-                  </section>
-                )}
-
-                {/* Welcome card */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-14 h-14 rounded-full bg-[#10B981] text-white text-xl font-bold flex items-center justify-center shrink-0">
-                      {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="text-xl font-bold text-[#1F2937]">
-                        Welcome back, {profileFirstName || "there"}
-                      </h2>
-                      {companyName ? (
-                        <p className="text-sm text-[#6B7280] mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-blue-100 bg-blue-50 text-blue-700">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            <span className="text-xs font-medium">Company account</span>
-                          </span>
-                          <span className="text-sm font-semibold text-[#1F2937]">{companyName}</span>
-                          <span className="text-[#9CA3AF]">·</span>
-                          <span>Member since {memberSince}</span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-[#6B7280] mt-0.5">Member since {memberSince}</p>
-                      )}
+                {/* Welcome hero */}
+                <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
+                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+                  <div className="p-6 sm:p-8">
+                    <div className="flex items-start gap-4 min-w-0">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-2xl font-bold flex items-center justify-center shrink-0 shadow-sm">
+                        {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
+                          Welcome back, {profileFirstName || "there"}
+                        </h1>
+                        {companyName ? (
+                          <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-blue-100 bg-blue-50 text-blue-700">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                              <span className="text-xs font-medium">Company account</span>
+                            </span>
+                            <span className="text-sm font-semibold text-[#1F2937]">{companyName}</span>
+                            <span className="text-[#9CA3AF]">·</span>
+                            <span>Member since {memberSince}</span>
+                          </p>
+                        ) : (
+                          <p className="text-sm text-[#6B7280] mt-1">Member since {memberSince}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1125,34 +1084,38 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Patient portal — canonical home for clinical data */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <div className="flex items-start gap-4 flex-wrap">
-                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
-                      <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-[#1F2937]">Your patient portal — Medalia</h3>
-                      <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
-                        Everything clinical lives in Medalia, our secure patient portal. Sign in there to:
-                      </p>
-                      <ul className="text-sm text-[#4B5563] mt-3 space-y-1.5 list-disc list-inside">
-                        <li>View your body-composition, blood-test, and assessment results</li>
-                        <li>Read physician notes and your personalised health report</li>
-                        <li>Book follow-up appointments with your Lifeline physician</li>
-                        <li>Secure message your medical team</li>
-                      </ul>
-                      <div className="mt-5">
-                        <MedaliaButton label="Open patient portal" size="md" />
+                {/* Patient portal hero — canonical home for clinical data */}
+                <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
+                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-teal-500 to-emerald-500" />
+                  <div className="p-6 sm:p-8">
+                    <div className="flex items-start gap-4 flex-wrap">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-teal-700 mb-1">Your patient portal</div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Medalia</h2>
+                        <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
+                          Everything clinical lives in Medalia, our secure patient portal. Sign in there to:
+                        </p>
+                        <ul className="text-sm text-[#4B5563] mt-3 space-y-1.5 list-disc list-inside">
+                          <li>View your body-composition, blood-test, and assessment results</li>
+                          <li>Read physician notes and your personalised health report</li>
+                          <li>Book follow-up appointments with your Lifeline physician</li>
+                          <li>Secure message your medical team</li>
+                        </ul>
+                        <div className="mt-5">
+                          <MedaliaButton label="Open patient portal" size="md" />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </section>
 
-                {/* After your assessment — intro to the coaching app */}
-                <AfterAssessmentCard onGoToCoaching={() => setActiveSection("upgrade")} />
+                {/* After your assessment — teaser for the coaching app */}
+                <AppTeaserCard onGoToCoaching={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} />
 
               </>
             )}
@@ -2242,25 +2205,8 @@ function AccountPageInner() {
                   )}
                 </section>
 
-                {/* What's inside the app */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">What&apos;s inside the app</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { title: "Daily actions", body: "4 actionable tasks tailored to your assessment results — across exercise, nutrition, sleep, and mental wellness." },
-                      { title: "Meal logging", body: "Photograph your meals, track protein + macros, and stay on top of your goal without the maths." },
-                      { title: "Weigh-ins & trends", body: "Weekly weigh-in reminders, body-composition history, and trend lines that matter." },
-                      { title: "Personalised programs", body: "Strength, cardio, mobility, or mindfulness programs built around your level and your physician's plan." },
-                      { title: "Message your coach", body: "Quick replies from a human, not a bot. Available on the Full Access tier." },
-                      { title: "Education", body: "Short daily snippets + deep dives curated by the Lifeline medical team." },
-                    ].map((f) => (
-                      <div key={f.title} className="rounded-xl bg-[#f8fafc] p-4 border border-gray-100">
-                        <div className="font-semibold text-[#1F2937] text-sm">{f.title}</div>
-                        <div className="text-xs text-[#6B7280] mt-1 leading-relaxed">{f.body}</div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+                {/* What's inside the app — shared block (features + pillars + download) */}
+                <AppFeaturesBlock />
 
                 {/* Payment method */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
@@ -3260,9 +3206,8 @@ function DoctorSlotPickerModal({
   );
 }
 
-function AfterAssessmentCard({ onGoToCoaching }: { onGoToCoaching: () => void }) {
-  // Pillar icons and colors match the Lifeline app (Ionicons + brand.ts palette)
-  const pillars: Array<{ title: string; desc: string; color: string; bg: string; border: string; icon: React.ReactNode }> = [
+// Pillar icons and colors match the Lifeline app (Ionicons + brand.ts palette)
+const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: string; border: string; icon: React.ReactNode }> = [
     {
       title: "Exercise",
       desc: "Strength, cardio and movement — programs tailored to you.",
@@ -3312,9 +3257,9 @@ function AfterAssessmentCard({ onGoToCoaching }: { onGoToCoaching: () => void })
         </svg>
       ),
     },
-  ];
+];
 
-  const features: Array<{ title: string; desc: string; color: string; bg: string; icon: React.ReactNode }> = [
+const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: string; icon: React.ReactNode }> = [
     {
       title: "Daily actions",
       desc: "Small, concrete steps every day — chosen to move your specific numbers.",
@@ -3383,28 +3328,84 @@ function AfterAssessmentCard({ onGoToCoaching }: { onGoToCoaching: () => void })
         </svg>
       ),
     },
-  ];
+    {
+      title: "Personalised programs",
+      desc: "Strength, cardio, mobility, and mindfulness programs built around your level and your physician's plan.",
+      color: "text-rose-600",
+      bg: "bg-rose-50",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        </svg>
+      ),
+    },
+    {
+      title: "Weigh-ins & trends",
+      desc: "Weekly weigh-in reminders, body-composition history, and trend lines that matter.",
+      color: "text-cyan-600",
+      bg: "bg-cyan-50",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18M7 14l4-4 4 4 6-6" />
+        </svg>
+      ),
+    },
+];
 
+/**
+ * Compact teaser card on /account Home — links to the full Coaching app page
+ * where all feature content lives.
+ */
+function AppTeaserCard({ onGoToCoaching }: { onGoToCoaching: () => void }) {
   return (
-    <section id="whats-next" className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm">
+    <button
+      type="button"
+      onClick={onGoToCoaching}
+      className="w-full text-left relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow group"
+    >
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] to-[#8B5CF6]" />
-      <div className="max-w-2xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-xs font-semibold uppercase tracking-wide">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-start gap-4">
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white flex items-center justify-center shrink-0">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          After your assessment
         </div>
-        <h3 className="text-2xl font-bold text-[#1F2937] mt-3">The Lifeline app — your tool to drive real health change</h3>
-        <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">
-          The assessment shows you where you stand. The app is how you move. Every day, Lifeline turns your report into small, doable actions across sleep, exercise &amp; movement, nutrition and mental wellbeing — with a coach, community, and education built in.
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">After your assessment</div>
+          <h3 className="text-lg font-semibold text-[#1F2937]">Keep building health with the Lifeline app</h3>
+          <p className="text-sm text-[#6B7280] mt-1 leading-snug">
+            Daily actions, a health coach, accountability, community, and advanced macro tracking — across sleep, exercise, nutrition, and mental wellbeing.
+          </p>
+          <div className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#10B981] group-hover:gap-2 transition-all">
+            Explore the coaching app
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/**
+ * Full "What's inside the app" block used on the Coaching app page.
+ * Combines the feature grid + four pillars + download row.
+ */
+function AppFeaturesBlock() {
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+      <div className="max-w-2xl">
+        <h2 className="text-lg font-semibold text-[#1F2937]">What&apos;s inside the app</h2>
+        <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
+          The app turns your report into daily actions across sleep, exercise, nutrition, and mental wellbeing — with a coach, community, and education built in.
         </p>
-        <p className="text-sm font-semibold text-[#1F2937] mt-3">The only health and lifestyle app you&apos;ll ever need.</p>
+        <p className="text-sm font-semibold text-[#1F2937] mt-2">The only health and lifestyle app you&apos;ll ever need.</p>
       </div>
 
       {/* Feature grid */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {features.map((f) => (
+        {APP_FEATURES.map((f) => (
           <div key={f.title} className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4 hover:shadow-sm transition-shadow">
             <div className={`w-9 h-9 rounded-lg ${f.bg} ${f.color} flex items-center justify-center mb-2`}>
               {f.icon}
@@ -3419,7 +3420,7 @@ function AfterAssessmentCard({ onGoToCoaching }: { onGoToCoaching: () => void })
       <div className="mt-6">
         <div className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] mb-3">Drive improvements across the four pillars</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {pillars.map((p) => (
+          {APP_PILLARS.map((p) => (
             <div key={p.title} className={`rounded-xl border ${p.border} ${p.bg} p-3`}>
               <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center mb-2 ${p.color}`}>
                 {p.icon}
@@ -3431,12 +3432,14 @@ function AfterAssessmentCard({ onGoToCoaching }: { onGoToCoaching: () => void })
         </div>
       </div>
 
-      {/* Download + CTA */}
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-[#10B981]/20 bg-gradient-to-br from-emerald-50 via-white to-white p-4">
-          <div className="font-semibold text-gray-900">Download the Lifeline app</div>
-          <p className="text-sm text-[#6B7280] mt-1">Available on iPhone and Android.</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+      {/* Download row */}
+      <div className="mt-6 rounded-xl border border-[#10B981]/20 bg-gradient-to-br from-emerald-50 via-white to-white p-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="font-semibold text-gray-900">Download the Lifeline app</div>
+            <p className="text-sm text-[#6B7280] mt-1">Available on iPhone and Android.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <a href="https://apps.apple.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-xs font-semibold hover:opacity-90">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
               App Store
@@ -3446,16 +3449,6 @@ function AfterAssessmentCard({ onGoToCoaching }: { onGoToCoaching: () => void })
               Google Play
             </a>
           </div>
-        </div>
-        <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-white p-4">
-          <div className="font-semibold text-gray-900">Ready for ongoing coaching?</div>
-          <p className="text-sm text-[#6B7280] mt-1">Upgrade to Full Access to unlock your coach, daily plan, and progress tracking.</p>
-          <button onClick={onGoToCoaching} className="mt-3 inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-90">
-            See coaching options
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
         </div>
       </div>
     </section>
