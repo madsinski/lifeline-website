@@ -131,7 +131,7 @@ export default function Navbar() {
             <LanguagePicker />
             <Link
               href="/account"
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors whitespace-nowrap"
             >
               {userName ? (
                 <>
