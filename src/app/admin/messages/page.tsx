@@ -164,14 +164,36 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
       (clientRows ?? []).map((c: Record<string, unknown>) => [c.id as string, c])
     );
 
+    // Group all conversations by client_id so every staff reply lands in
+    // the same thread in the admin UI — no matter how many DB rows were
+    // created. We keep the most-recent conversation id as the thread id
+    // (used when sending new messages).
+    type Bundle = {
+      conv: SupabaseConversation & { messages: SupabaseMessage[] };
+      allMessages: SupabaseMessage[];
+    };
+    const bundles = new Map<string, Bundle>();
+    for (const conv of convRows as (SupabaseConversation & { messages: SupabaseMessage[] })[]) {
+      const existing = bundles.get(conv.client_id);
+      if (!existing) {
+        bundles.set(conv.client_id, { conv, allMessages: [...(conv.messages ?? [])] });
+      } else {
+        existing.allMessages.push(...(conv.messages ?? []));
+        // Prefer the most-recently-created conversation as the primary
+        if (new Date(conv.created_at).getTime() > new Date(existing.conv.created_at).getTime()) {
+          existing.conv = conv;
+        }
+      }
+    }
+
     const conversations: Conversation[] = [];
 
-    for (const conv of convRows as (SupabaseConversation & { messages: SupabaseMessage[] })[]) {
-      const rawMsgs = (conv.messages ?? []).sort(
-        (a: SupabaseMessage, b: SupabaseMessage) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    for (const bundle of bundles.values()) {
+      const rawMsgs = bundle.allMessages.sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
-      const msgs: Message[] = rawMsgs.map((m: SupabaseMessage) => ({
+      const msgs: Message[] = rawMsgs.map((m) => ({
         id: m.id,
         senderName: m.sender_name,
         senderRole: m.sender_role,
@@ -183,17 +205,23 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
       const unread = msgs.filter((m) => !m.read && m.senderRole === "client").length;
       const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
 
-      const client = clientMap.get(conv.client_id) as Record<string, unknown> | undefined;
-      const clientName = (client?.full_name as string) || (client?.email as string) || "Client";
+      const client = clientMap.get(bundle.conv.client_id) as Record<string, unknown> | undefined;
+      // Fallbacks: clients row → client-sent message sender_name → email → "Client"
+      const clientMsgName = msgs.find((m) => m.senderRole === "client")?.senderName;
+      const clientName =
+        (client?.full_name as string) ||
+        clientMsgName ||
+        (client?.email as string) ||
+        "Client";
       const clientEmail = (client?.email as string) || "";
 
       conversations.push({
-        id: conv.id,
+        id: bundle.conv.id,
         clientName,
         clientEmail,
         tier: "Active",
         lastMessage: lastMsg?.content ?? "",
-        lastMessageAt: lastMsg?.createdAt ?? conv.created_at,
+        lastMessageAt: lastMsg?.createdAt ?? bundle.conv.created_at,
         unreadCount: unread,
         messages: msgs,
       });
