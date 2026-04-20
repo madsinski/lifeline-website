@@ -202,9 +202,9 @@ export default function BusinessDashboardPage() {
             <p className="text-sm text-gray-600 mt-1">
               {finalized
                 ? "Management mode — your registration is complete."
-                : stepsDone === 3
-                  ? "All three steps done. Finalize below to notify the Lifeline admin team."
-                  : `${stepsDone} of 3 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`}
+                : stepsDone === 4
+                  ? "All four steps done. Finalize below to notify the Lifeline admin team."
+                  : `${stepsDone} of 4 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`}
             </p>
           </div>
           <button onClick={exportCsv} className="btn-ghost">Export CSV</button>
