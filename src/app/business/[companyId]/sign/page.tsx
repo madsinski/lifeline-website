@@ -49,9 +49,27 @@ export default function SignAgreementPage() {
   // Purchase order state
   const [lineItems, setLineItems] = useState<PurchaseOrderLineItem[]>(DEFAULT_LINE_ITEMS);
   const [billingCadence, setBillingCadence] = useState<string>("one_time");
-  const [startsAt, setStartsAt] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [endsAt, setEndsAt] = useState<string>("");
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const oneYearFromToday = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [startsAt, setStartsAt] = useState<string>(todayIso);
+  const [endsAt, setEndsAt] = useState<string>(oneYearFromToday);
+  const didEditEndsAtRef = useRef(false);
   const [vatRate, setVatRate] = useState<number>(0); // heilbrigðisþjónusta er vsk-frjáls
+
+  // When the contact person changes the start date, roll the end date forward
+  // by 12 months — unless they've explicitly edited it themselves.
+  useEffect(() => {
+    if (didEditEndsAtRef.current) return;
+    if (!startsAt) return;
+    const d = new Date(startsAt);
+    if (isNaN(d.getTime())) return;
+    d.setFullYear(d.getFullYear() + 1);
+    setEndsAt(d.toISOString().slice(0, 10));
+  }, [startsAt]);
 
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
@@ -340,7 +358,13 @@ export default function SignAgreementPage() {
             <input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
           </label>
           <label className="text-xs text-gray-500">Gildir til
-            <input type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
+            <input
+              type="date"
+              value={endsAt}
+              onChange={(e) => { didEditEndsAtRef.current = true; setEndsAt(e.target.value); }}
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+            />
+            <span className="text-[10px] text-gray-400">Sjálfgildi: 12 mánuðir frá upphafsdegi</span>
           </label>
           <label className="text-xs text-gray-500">Vsk. %
             <input type="number" min={0} max={24} value={vatRate} onChange={(e) => setVatRate(Math.max(0, Math.min(24, parseInt(e.target.value) || 0)))} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
