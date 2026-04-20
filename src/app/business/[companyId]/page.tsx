@@ -1260,7 +1260,7 @@ function BillingCard({ companyId }: { companyId: string }) {
         <p className="text-sm text-gray-500">Loading…</p>
       ) : invoices.length === 0 ? (
         <div className="rounded-lg bg-gray-50 border border-gray-100 p-4 text-sm text-gray-600">
-          No invoices yet. Lifeline will generate one after the body-composition day and doctor interviews are complete.
+          No invoices yet. Lifeline will generate one after the doctor interviews are complete.
         </div>
       ) : (
         <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
