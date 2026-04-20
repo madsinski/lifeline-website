@@ -62,6 +62,16 @@ export default function BusinessDashboardPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<BodyCompEvent[]>([]);
   const [bloodDays, setBloodDays] = useState<BloodDay[]>([]);
+  const [signedDocs, setSignedDocs] = useState<{
+    id: string;
+    signed_at: string;
+    signatory_name: string;
+    signatory_role: string;
+    pdf_storage_path: string | null;
+    po_number: string | null;
+    total_isk: number | null;
+  }[]>([]);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewerIsStaff, setViewerIsStaff] = useState(false);
   const [error, setError] = useState("");
   const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
@@ -72,7 +82,7 @@ export default function BusinessDashboardPage() {
     if (!companyId) return;
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
-    const [{ data: c }, { data: m }, { data: ev }, { data: bd }] = await Promise.all([
+    const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: ag }, { data: po }] = await Promise.all([
       supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
@@ -81,6 +91,12 @@ export default function BusinessDashboardPage() {
       supabase.from("blood_test_days")
         .select("id, day, notes")
         .eq("company_id", companyId).gte("day", today).order("day"),
+      supabase.from("b2b_agreements")
+        .select("id, signed_at, signatory_name, signatory_role, pdf_storage_path")
+        .eq("company_id", companyId).order("signed_at", { ascending: false }),
+      supabase.from("b2b_purchase_orders")
+        .select("agreement_id, po_number, total_isk")
+        .eq("company_id", companyId),
     ]);
     if (!c) {
       setError("Company not found or you don't have access.");
@@ -91,8 +107,40 @@ export default function BusinessDashboardPage() {
     setMembers((m || []) as Member[]);
     setEvents((ev || []) as BodyCompEvent[]);
     setBloodDays((bd || []) as BloodDay[]);
+
+    const poMap = new Map<string, { po_number: string; total_isk: number }>();
+    for (const row of (po ?? []) as { agreement_id: string; po_number: string; total_isk: number }[]) {
+      poMap.set(row.agreement_id, row);
+    }
+    setSignedDocs(((ag ?? []) as { id: string; signed_at: string; signatory_name: string; signatory_role: string; pdf_storage_path: string | null }[])
+      .map((a) => ({
+        ...a,
+        po_number: poMap.get(a.id)?.po_number ?? null,
+        total_isk: poMap.get(a.id)?.total_isk ?? null,
+      })));
+
     setLoading(false);
   }, [companyId]);
+
+  const downloadSignedPdf = async (agreementId: string, storagePath: string | null) => {
+    if (!storagePath) {
+      alert("PDF fannst ekki. Hafðu samband við Lifeline teymið.");
+      return;
+    }
+    setDownloadingId(agreementId);
+    try {
+      const { data, error: sErr } = await supabase.storage
+        .from("b2b-signed-documents")
+        .createSignedUrl(storagePath, 300);
+      if (sErr || !data?.signedUrl) {
+        alert(`Gat ekki búið til niðurhalstengil: ${sErr?.message || "óþekkt villa"}`);
+        return;
+      }
+      window.open(data.signedUrl, "_blank");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -421,6 +469,44 @@ export default function BusinessDashboardPage() {
         {/* Payment methods + payment history — reusable panel (ad-hoc charges) */}
         <BillingPanel ownerType="company" ownerId={companyId!} />
 
+        {/* Signed agreements — always visible once at least one exists,
+            including after finalize. Contact person can download anytime. */}
+        {signedDocs.length > 0 && (
+          <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+              <div>
+                <h2 className="text-lg font-semibold text-[#1F2937]">Undirritaðir samningar</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Afrit af öllum rafrænt undirrituðum þjónustusamningum og innkaupapöntunum.
+                </p>
+              </div>
+            </div>
+            <ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl bg-white">
+              {signedDocs.map((d) => (
+                <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-gray-900 truncate">
+                      {d.po_number || "(pöntun)"} · {d.signatory_name}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {d.signatory_role} · {new Date(d.signed_at).toLocaleString("is-IS", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {d.total_isk != null && <> · <strong>{d.total_isk.toLocaleString("is-IS")} kr</strong></>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => downloadSignedPdf(d.id, d.pdf_storage_path)}
+                    disabled={downloadingId === d.id || !d.pdf_storage_path}
+                    title={!d.pdf_storage_path ? "PDF vantar" : "Hlaða niður PDF"}
+                    className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40 whitespace-nowrap"
+                  >
+                    {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Hlaða niður PDF" : "Vantar"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Insights card */}
         <InsightsCard companyId={companyId!} />
 
@@ -445,8 +531,35 @@ export default function BusinessDashboardPage() {
                 Halda áfram að undirritun →
               </button>
             ) : (
-              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                Samningurinn er geymdur á öruggan hátt og aðgengilegur Lifeline teyminu í stjórnendaflipanum.
+              <div className="space-y-3">
+                <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                  Samningurinn er geymdur á öruggan hátt. Þú getur hlaðið niður afriti hér að neðan.
+                </div>
+                {signedDocs.length > 0 && (
+                  <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
+                    {signedDocs.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 truncate">
+                            {d.po_number || "(pöntun)"} · {d.signatory_name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {d.signatory_role} · {new Date(d.signed_at).toLocaleString("is-IS", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            {d.total_isk != null && <> · <strong>{d.total_isk.toLocaleString("is-IS")} kr</strong></>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => downloadSignedPdf(d.id, d.pdf_storage_path)}
+                          disabled={downloadingId === d.id || !d.pdf_storage_path}
+                          title={!d.pdf_storage_path ? "PDF vantar" : "Hlaða niður PDF"}
+                          className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40 whitespace-nowrap"
+                        >
+                          {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Hlaða niður PDF" : "Vantar"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </StepCard>
