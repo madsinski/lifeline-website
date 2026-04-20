@@ -32,7 +32,13 @@ interface ClientRow {
   updated_at: string | null;
   terms_accepted_at: string | null;
   terms_version: string | null;
+  company_id: string | null;
   subscriptions: Subscription[];
+}
+
+interface CompanyOption {
+  id: string;
+  name: string;
 }
 
 // Normalized client for display
@@ -54,6 +60,8 @@ interface Client {
   trialEndsAt: string | null;
   termsAcceptedAt: string | null;
   termsVersion: string | null;
+  companyId: string | null;
+  companyName: string | null;
 }
 
 const tierColors: Record<Tier | "none", string> = {
@@ -132,8 +140,10 @@ function deriveStatus(sub: Subscription | undefined): Status {
   return "active";
 }
 
-function normalizeClient(row: ClientRow): Client {
+function normalizeClient(row: ClientRow, companyMap: Map<string, string>): Client {
   const sub = row.subscriptions?.find((s) => s.status === "active") ?? row.subscriptions?.[0];
+  const companyId = row.company_id ?? null;
+  const companyName = companyId ? (companyMap.get(companyId) ?? null) : null;
   return {
     id: row.id,
     name: row.full_name || row.email,
@@ -158,6 +168,8 @@ function normalizeClient(row: ClientRow): Client {
       : null,
     termsAcceptedAt: row.terms_accepted_at || null,
     termsVersion: row.terms_version || null,
+    companyId,
+    companyName,
   };
 }
 
@@ -191,6 +203,8 @@ export default function ClientsPage() {
   const [sendingMessage, setSendingMessage] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const [filterNudge, setFilterNudge] = useState<"All" | NudgeStatus>("All");
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
+  const [filterCompany, setFilterCompany] = useState<string>("All"); // "All" | "none" | companyId
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -213,6 +227,23 @@ export default function ClientsPage() {
         setClients([]);
         setLoading(false);
         return;
+      }
+
+      // Load companies map (used for both the column and the filter dropdown)
+      const companyMap = new Map<string, string>();
+      try {
+        const { data: companyRows } = await supabase
+          .from("companies")
+          .select("id, name")
+          .order("name", { ascending: true });
+        if (companyRows) {
+          for (const c of companyRows as { id: string; name: string }[]) {
+            companyMap.set(c.id, c.name);
+          }
+          setCompanies(companyRows as CompanyOption[]);
+        }
+      } catch {
+        // Companies may not be accessible — leave empty so filter just hides B2B options
       }
 
       if (clientsData && clientsData.length > 0) {
@@ -249,7 +280,7 @@ export default function ClientsPage() {
             ...row,
             subscriptions: subsMap[row.id] || [],
           } as ClientRow;
-          return normalizeClient(clientRow);
+          return normalizeClient(clientRow, companyMap);
         });
 
         setClients(normalized);
@@ -287,6 +318,8 @@ export default function ClientsPage() {
                 trialEndsAt: null,
                 termsAcceptedAt: null,
                 termsVersion: null,
+                companyId: null,
+                companyName: null,
               }))
             );
           } else {
@@ -416,7 +449,12 @@ export default function ClientsPage() {
       const matchesTier = filterTier === "All" || c.tier === filterTier;
       const matchesStatus = filterStatus === "All" || c.status === filterStatus;
       const matchesNudge = filterNudge === "All" || getNudgeStatus(progressMap[c.id] || null) === filterNudge;
-      return matchesSearch && matchesTier && matchesStatus && matchesNudge;
+      const matchesCompany =
+        filterCompany === "All" ||
+        (filterCompany === "any" && !!c.companyId) ||
+        (filterCompany === "none" && !c.companyId) ||
+        c.companyId === filterCompany;
+      return matchesSearch && matchesTier && matchesStatus && matchesNudge && matchesCompany;
     })
     .sort((a, b) => {
       const valA = a[sortKey];
@@ -755,6 +793,22 @@ export default function ClientsPage() {
           <option value="on-track">On Track</option>
           <option value="no-program">No Program</option>
         </select>
+        <select
+          value={filterCompany}
+          onChange={(e) => setFilterCompany(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+        >
+          <option value="All">All Accounts</option>
+          <option value="any">Business (any)</option>
+          <option value="none">Personal (B2C)</option>
+          {companies.length > 0 && (
+            <optgroup label="Companies">
+              {companies.map((co) => (
+                <option key={co.id} value={co.id}>{co.name}</option>
+              ))}
+            </optgroup>
+          )}
+        </select>
         <button
           onClick={syncClients}
           disabled={syncing || loading}
@@ -905,6 +959,7 @@ export default function ClientsPage() {
                   <SortHeader label="Email" field="email" />
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
                   <SortHeader label="Subscription" field="tier" />
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Company</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Progress</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coach</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Terms</th>
@@ -1058,6 +1113,23 @@ function ClientRowComponent({
           )}
         </td>
         <td className="px-4 py-3">
+          {client.companyName ? (
+            <span
+              title={client.companyName}
+              className="inline-flex items-center gap-1 max-w-[160px] px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-100"
+            >
+              <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-2 0v-4a1 1 0 00-1-1h-2a1 1 0 00-1 1v4M9 7h2m-2 4h2m4-4h2m-2 4h2" />
+              </svg>
+              <span className="truncate">{client.companyName}</span>
+            </span>
+          ) : client.companyId ? (
+            <span className="text-[11px] text-gray-400 font-mono" title="Linked to a company row that is not visible">B2B</span>
+          ) : (
+            <span className="text-[11px] text-gray-400">Personal</span>
+          )}
+        </td>
+        <td className="px-4 py-3">
           <ProgressIndicator progress={progress} loading={progressLoading} />
         </td>
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -1097,7 +1169,7 @@ function ClientRowComponent({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={9} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
+          <td colSpan={10} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
             {/* Two-column layout */}
             <div className="flex gap-3">
               {/* Left: categories with profile summary */}
