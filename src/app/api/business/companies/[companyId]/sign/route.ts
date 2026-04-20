@@ -9,14 +9,16 @@ import {
   THJONUSTUSAMNINGUR_VERSION,
   type PurchaseOrderLineItem,
 } from "@/lib/agreement-templates";
+import { renderAgreementPdf } from "@/lib/pdf-agreement-renderer";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
+// Force Node.js runtime — @react-pdf/renderer needs fs + Buffer for font loading.
+export const runtime = "nodejs";
 
 interface SignPayload {
   signatory_name: string;
   signatory_role: string;
   signatory_email: string;
-  terms_hash: string;              // sha256 hex computed by client; server verifies
   line_items: PurchaseOrderLineItem[];
   subtotal_isk: number;
   vat_isk: number;
@@ -24,7 +26,6 @@ interface SignPayload {
   billing_cadence: string;
   starts_at: string | null;
   ends_at: string | null;
-  pdf_base64: string;              // client-rendered PDF of the signed document
 }
 
 function sha256Hex(s: string | Buffer): string {
@@ -67,9 +68,6 @@ export async function POST(
   if (!Array.isArray(body.line_items) || body.line_items.length === 0) {
     return NextResponse.json({ error: "at_least_one_line_item_required" }, { status: 400 });
   }
-  if (!body.pdf_base64 || body.pdf_base64.length < 100) {
-    return NextResponse.json({ error: "pdf_required" }, { status: 400 });
-  }
 
   // ─── Get company kennitala (decrypted) for the doc text ─────
   const { data: knData } = await supabaseAdmin.rpc("dec_kennitala", { p_enc: company.kennitala_encrypted });
@@ -85,8 +83,8 @@ export async function POST(
   }
   const poNumber = poNumData as string;
 
-  // ─── Re-compute terms hash on server and verify it matches ──
-  const serverText = renderFullAgreementForSigning(
+  // ─── Canonical hash of the terms text ───────────────────────
+  const canonicalText = renderFullAgreementForSigning(
     { companyName: company.name, companyKennitala },
     {
       companyName: company.name,
@@ -101,11 +99,8 @@ export async function POST(
       endsAt: body.ends_at,
     },
   );
-  const serverHash = sha256Hex(serverText);
-  // Note: client computes the hash BEFORE the PO number is assigned, so the
-  // client hash will intentionally NOT match the full doc. We therefore
-  // authoritatively use the server hash — but still record the client's hash
-  // for auditing via signatory_user_agent if there's ever a dispute.
+  const termsHash = sha256Hex(canonicalText);
+  const agreementVersion = `${THJONUSTUSAMNINGUR_VERSION}+${THJONUSTUSKILMALAR_VERSION}`;
 
   const ip = getClientIp(req);
   const ua = req.headers.get("user-agent");
@@ -115,8 +110,8 @@ export async function POST(
     .from("b2b_agreements")
     .insert({
       company_id: companyId,
-      agreement_version: `${THJONUSTUSAMNINGUR_VERSION}+${THJONUSTUSKILMALAR_VERSION}`,
-      terms_hash: serverHash,
+      agreement_version: agreementVersion,
+      terms_hash: termsHash,
       signatory_name: body.signatory_name.trim(),
       signatory_role: body.signatory_role.trim(),
       signatory_email: body.signatory_email.trim().toLowerCase(),
@@ -147,14 +142,40 @@ export async function POST(
       status: "signed",
     });
   if (poErr) {
-    // Best-effort rollback of the agreement so we don't have an orphan
     await supabaseAdmin.from("b2b_agreements").delete().eq("id", agreement.id);
     return NextResponse.json({ error: "po_insert_failed", detail: poErr.message }, { status: 500 });
   }
 
-  // ─── Upload PDF to storage ──────────────────────────────────
-  const pdfBytes = Buffer.from(body.pdf_base64, "base64");
+  // ─── Render PDF server-side (real text, not image) ──────────
+  let pdfBytes: Buffer;
+  try {
+    pdfBytes = await renderAgreementPdf({
+      companyName: company.name,
+      companyKennitala,
+      poNumber,
+      lineItems: body.line_items,
+      subtotalIsk: body.subtotal_isk,
+      vatIsk: body.vat_isk,
+      totalIsk: body.total_isk,
+      billingCadence: body.billing_cadence,
+      startsAt: body.starts_at,
+      endsAt: body.ends_at,
+      signatoryName: body.signatory_name.trim(),
+      signatoryRole: body.signatory_role.trim(),
+      signatoryEmail: body.signatory_email.trim().toLowerCase(),
+      signedAt: agreement.signed_at,
+      signatoryIp: ip,
+      signatoryUserAgent: ua,
+      termsHash,
+      agreementVersion,
+    });
+  } catch (e) {
+    console.error("[b2b-sign] PDF render failed:", (e as Error).message);
+    return NextResponse.json({ error: "pdf_render_failed", detail: (e as Error).message }, { status: 500 });
+  }
   const pdfHash = sha256Hex(pdfBytes);
+
+  // ─── Upload PDF to storage ──────────────────────────────────
   const storagePath = `${companyId}/${agreement.id}.pdf`;
   const { error: upErr } = await supabaseAdmin.storage
     .from("b2b-signed-documents")
@@ -163,8 +184,6 @@ export async function POST(
       upsert: false,
     });
   if (upErr) {
-    // Don't hard-fail — the DB row is the source of truth, the PDF can be
-    // regenerated. But surface the error so the client can retry the upload.
     console.error("[b2b-sign] PDF upload failed:", upErr.message);
   }
 
@@ -212,7 +231,7 @@ export async function POST(
         text: `Takk fyrir að undirrita. Meðfylgjandi er undirritaður þjónustusamningur og innkaupapöntun fyrir ${company.name}. Pöntun ${poNumber}, samtals ${fmt(body.total_isk)}.`,
         attachments: [{
           filename: `${poNumber}-${company.name.replace(/[^a-zA-Z0-9]+/g, "-")}.pdf`,
-          content: body.pdf_base64,
+          content: pdfBytes.toString("base64"),
           contentType: "application/pdf",
         }],
       });

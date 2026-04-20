@@ -74,8 +74,6 @@ export default function SignAgreementPage() {
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
 
-  const docRef = useRef<HTMLDivElement>(null);
-
   const subtotal = useMemo(
     () => lineItems.reduce((s, li) => s + (li.qty * li.unit_price_isk), 0),
     [lineItems],
@@ -185,67 +183,6 @@ export default function SignAgreementPage() {
 
     setSigning(true);
     try {
-      // Load jspdf + html-to-image dynamically. We use html-to-image (not
-      // html2canvas) because Tailwind v4 renders colors with oklch()/color-mix()
-      // which html2canvas can't parse; html-to-image uses SVG foreignObject
-      // and supports modern CSS color functions.
-      const [{ default: jsPDF }, htmlToImage] = await Promise.all([
-        import("jspdf"),
-        import("html-to-image"),
-      ]);
-
-      if (!docRef.current) {
-        setError("Skjal ekki tilbúið.");
-        setSigning(false);
-        return;
-      }
-
-      // Temporarily remove the scroll clip so html-to-image captures the full
-      // document, not just the visible 500px window.
-      const el = docRef.current;
-      const prevMaxHeight = el.style.maxHeight;
-      const prevOverflow = el.style.overflow;
-      el.style.maxHeight = "none";
-      el.style.overflow = "visible";
-
-      let canvas: HTMLCanvasElement;
-      try {
-        // pixelRatio 1.5 + JPEG keeps the PDF well under Vercel's 4.5MB body
-        // limit while remaining crisp for print. Icelandic diacritics still
-        // render cleanly at this resolution.
-        canvas = await htmlToImage.toCanvas(el, {
-          pixelRatio: 1.5,
-          backgroundColor: "#ffffff",
-          cacheBust: true,
-          width: el.scrollWidth,
-          height: el.scrollHeight,
-        });
-      } finally {
-        el.style.maxHeight = prevMaxHeight;
-        el.style.overflow = prevOverflow;
-      }
-      const imgData = canvas.toDataURL("image/jpeg", 0.82);
-      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait", compress: true });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 36;
-      const contentWidth = pageWidth - margin * 2;
-      const imgHeight = (canvas.height * contentWidth) / canvas.width;
-
-      // Paginate — slice the tall image across A4 pages.
-      let heightLeft = imgHeight;
-      let position = margin;
-      pdf.addImage(imgData, "JPEG", margin, position, contentWidth, imgHeight);
-      heightLeft -= (pageHeight - margin * 2);
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + margin;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", margin, position, contentWidth, imgHeight);
-        heightLeft -= (pageHeight - margin * 2);
-      }
-
-      const pdfBase64 = pdf.output("datauristring").split(",")[1];
-
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const res = await fetch(`/api/business/companies/${companyId}/sign`, {
@@ -255,7 +192,6 @@ export default function SignAgreementPage() {
           signatory_name: signatoryName.trim(),
           signatory_role: signatoryRole.trim(),
           signatory_email: signatoryEmail.trim().toLowerCase(),
-          terms_hash: "", // server re-computes authoritatively
           line_items: lineItems,
           subtotal_isk: subtotal,
           vat_isk: vat,
@@ -263,12 +199,11 @@ export default function SignAgreementPage() {
           billing_cadence: billingCadence,
           starts_at: startsAt || null,
           ends_at: endsAt || null,
-          pdf_base64: pdfBase64,
         }),
       });
       let j: { ok?: boolean; error?: string; detail?: string } = {};
       const raw = await res.text();
-      try { j = raw ? JSON.parse(raw) : {}; } catch { /* non-JSON body (e.g. edge 413) */ }
+      try { j = raw ? JSON.parse(raw) : {}; } catch { /* non-JSON body */ }
       if (!res.ok) {
         const detail = j.detail || j.error || (raw.startsWith("Request ") ? raw : `HTTP ${res.status}`);
         setError(`Villa: ${detail}`);
@@ -409,7 +344,7 @@ export default function SignAgreementPage() {
           <h2 className="font-semibold text-gray-900">Samningur og skilmálar</h2>
           <span className="text-xs text-gray-400">Þetta er nákvæmlega það sem verður undirritað.</span>
         </div>
-        <div ref={docRef} className="bg-white p-6 max-h-[500px] overflow-y-auto text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md font-serif">
+        <div className="bg-white p-6 max-h-[500px] overflow-y-auto text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md font-serif">
           <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderThjonustusamningur(agreementParams)}</pre>
           <div className="my-4 text-center text-gray-400">— — —</div>
           <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderThjonustuskilmalar()}</pre>

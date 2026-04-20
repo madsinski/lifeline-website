@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@expo/config-plugins": "^55.0.8",
+    "@fontsource/noto-sans": "^5.2.10",
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/supabase-js": "^2.101.0",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
