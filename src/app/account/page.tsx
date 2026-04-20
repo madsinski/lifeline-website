@@ -57,7 +57,7 @@ type Section = "overview" | "profile" | "messages" | "assessment" | "education" 
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
   { id: "upgrade", label: "Lifeline app", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  { id: "assessment", label: "Services", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
+  { id: "assessment", label: "Book services", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
   { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
@@ -3591,7 +3591,7 @@ function ServicesSection({
       tone: "border-blue-100 bg-blue-50/40",
       dot: "text-[#3B82F6]",
       cta: "Book assessment",
-      href: "/assessment",
+      href: "/account/book",
     },
     {
       name: "Check-in",
@@ -3610,7 +3610,7 @@ function ServicesSection({
       tone: "border-emerald-100 bg-emerald-50/40",
       dot: "text-[#10B981]",
       cta: "Book check-in",
-      href: "/assessment",
+      href: "/account/book",
     },
     {
       name: "Self Check-in",
@@ -3629,7 +3629,7 @@ function ServicesSection({
       tone: "border-violet-100 bg-violet-50/40",
       dot: "text-[#8B5CF6]",
       cta: "Start now",
-      href: "/assessment",
+      href: "/account/book",
     },
   ];
 
@@ -3641,7 +3641,7 @@ function ServicesSection({
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
-          Services you can add
+          Book services
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold text-[#0F172A] leading-tight">
           {companyName ? "Add to what your company covered" : "Your Lifeline services"}
@@ -3704,7 +3704,7 @@ function ServicesSection({
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Also available</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Coming soon</div>
               <h3 className="text-xl font-bold text-[#0F172A]">The Lifeline coaching app</h3>
               <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-2xl">
                 Daily actions, a health coach, community, education and advanced macro tracking — available on three tiers. Turns your assessment into habits that actually stick.
