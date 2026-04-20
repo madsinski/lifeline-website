@@ -20,6 +20,7 @@ export default function BetaFeedback() {
   const [email, setEmail] = useState<string | null>(null);
 
   const [hasPreview, setHasPreview] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -27,6 +28,17 @@ export default function BetaFeedback() {
     });
     if (typeof document !== "undefined") {
       setHasPreview(document.cookie.includes("site_preview=lifelinepreview2026"));
+    }
+    if (typeof window !== "undefined") {
+      try {
+        setHidden(localStorage.getItem("ll-hide-feedback") === "1");
+      } catch {}
+      const onChange = (e: Event) => {
+        const detail = (e as CustomEvent<{ hidden: boolean }>).detail;
+        setHidden(!!detail?.hidden);
+      };
+      window.addEventListener("ll-feedback-visibility", onChange);
+      return () => window.removeEventListener("ll-feedback-visibility", onChange);
     }
   }, []);
 
@@ -58,7 +70,7 @@ export default function BetaFeedback() {
     setSubmitting(false);
   };
 
-  if (!hasPreview) return null;
+  if (!hasPreview || hidden) return null;
 
   return (
     <>

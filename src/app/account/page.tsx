@@ -168,6 +168,29 @@ function AccountPageInner() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
+  /* beta feedback widget toggle */
+  const [feedbackHidden, setFeedbackHidden] = useState(false);
+  const [hasPreviewCookie, setHasPreviewCookie] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      setFeedbackHidden(localStorage.getItem("ll-hide-feedback") === "1");
+    } catch {}
+    if (typeof document !== "undefined") {
+      setHasPreviewCookie(document.cookie.includes("site_preview=lifelinepreview2026"));
+    }
+  }, []);
+  const toggleFeedbackHidden = () => {
+    const next = !feedbackHidden;
+    setFeedbackHidden(next);
+    try {
+      localStorage.setItem("ll-hide-feedback", next ? "1" : "0");
+    } catch {}
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("ll-feedback-visibility", { detail: { hidden: next } }));
+    }
+  };
+
 
   /* coaching programs */
   const [programs, setPrograms] = useState<{ category_key: string; program_key: string; started_at: string }[]>([]);
@@ -2252,6 +2275,32 @@ function AccountPageInner() {
                     </div>
                   )}
                 </div>
+
+                {/* Beta feedback widget */}
+                {hasPreviewCookie && (
+                  <div className="border-b border-gray-100 pb-5 mb-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-[#1F2937]">Beta feedback button</p>
+                        <p className="text-xs text-[#6B7280]">Show or hide the floating feedback button across the site</p>
+                      </div>
+                      <button
+                        onClick={toggleFeedbackHidden}
+                        role="switch"
+                        aria-checked={!feedbackHidden}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          feedbackHidden ? "bg-gray-300" : "bg-[#10B981]"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                            feedbackHidden ? "translate-x-0.5" : "translate-x-[22px]"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Delete Account */}
                 <div>

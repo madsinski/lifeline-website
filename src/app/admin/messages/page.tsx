@@ -567,6 +567,54 @@ export default function AdminMessagesPage() {
     }
   };
 
+  const handleDeleteConversation = async (convId: string) => {
+    if (!convId) return;
+    if (!confirm("Delete this conversation? All messages with this client will be permanently removed. This cannot be undone.")) return;
+
+    // Look up client_id for this conversation (bundles group by client_id)
+    const { data: convRow } = await supabase
+      .from("conversations")
+      .select("client_id")
+      .eq("id", convId)
+      .single();
+
+    if (!convRow) {
+      alert("Could not find conversation.");
+      return;
+    }
+
+    const clientId = (convRow as { client_id: string }).client_id;
+
+    // Find all conversation rows for this client (the UI bundles them into one thread)
+    const { data: allConvs } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("client_id", clientId);
+    const convIds = (allConvs ?? []).map((c: Record<string, unknown>) => c.id as string);
+
+    if (convIds.length > 0) {
+      // Delete messages first, then conversations (in case no cascade is configured)
+      const { error: msgErr } = await supabase.from("messages").delete().in("conversation_id", convIds);
+      if (msgErr) {
+        alert(`Failed to delete messages: ${msgErr.message}`);
+        return;
+      }
+      const { error: convErr } = await supabase.from("conversations").delete().in("id", convIds);
+      if (convErr) {
+        alert(`Failed to delete conversation: ${convErr.message}`);
+        return;
+      }
+    }
+
+    // Update local state
+    setConversations((prev) => {
+      const next = prev.filter((c) => c.id !== convId);
+      // Move selection to the next available conversation
+      setSelectedId((cur) => (cur === convId ? (next[0]?.id ?? "") : cur));
+      return next;
+    });
+  };
+
   const handleOpenNewConversation = async () => {
     setShowNewConversation(true);
     setClientSearch("");
@@ -752,6 +800,15 @@ export default function AdminMessagesPage() {
               </div>
             </div>
             )}
+            <button
+              onClick={() => handleDeleteConversation(selected.id)}
+              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+              title="Delete conversation"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+              </svg>
+            </button>
           </div>
         </div>
 
