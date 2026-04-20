@@ -185,11 +185,13 @@ export default function SignAgreementPage() {
 
     setSigning(true);
     try {
-      // Load jspdf + html2canvas dynamically so this page doesn't pay their
-      // weight on first paint.
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      // Load jspdf + html-to-image dynamically. We use html-to-image (not
+      // html2canvas) because Tailwind v4 renders colors with oklch()/color-mix()
+      // which html2canvas can't parse; html-to-image uses SVG foreignObject
+      // and supports modern CSS color functions.
+      const [{ default: jsPDF }, htmlToImage] = await Promise.all([
         import("jspdf"),
-        import("html2canvas"),
+        import("html-to-image"),
       ]);
 
       if (!docRef.current) {
@@ -198,11 +200,27 @@ export default function SignAgreementPage() {
         return;
       }
 
-      const canvas = await html2canvas(docRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      });
+      // Temporarily remove the scroll clip so html-to-image captures the full
+      // document, not just the visible 500px window.
+      const el = docRef.current;
+      const prevMaxHeight = el.style.maxHeight;
+      const prevOverflow = el.style.overflow;
+      el.style.maxHeight = "none";
+      el.style.overflow = "visible";
+
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await htmlToImage.toCanvas(el, {
+          pixelRatio: 2,
+          backgroundColor: "#ffffff",
+          cacheBust: true,
+          width: el.scrollWidth,
+          height: el.scrollHeight,
+        });
+      } finally {
+        el.style.maxHeight = prevMaxHeight;
+        el.style.overflow = prevOverflow;
+      }
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
       const pageWidth = pdf.internal.pageSize.getWidth();
