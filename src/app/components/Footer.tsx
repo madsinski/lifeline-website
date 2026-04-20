@@ -94,12 +94,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="mb-4 flex items-center">
+            <div className="mb-2 flex items-start">
               <LifelineLogo size="sm" variant="white" />
             </div>
+            <p className="text-gray-400 text-sm font-semibold mb-1">Lifeline Health ehf.</p>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Lifeline Health ehf.
-              <br />
               {t('footer.tagline', 'Comprehensive health assessments and personalised daily coaching.')}
             </p>
           </div>
