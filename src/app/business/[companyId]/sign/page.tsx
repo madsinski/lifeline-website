@@ -210,8 +210,11 @@ export default function SignAgreementPage() {
 
       let canvas: HTMLCanvasElement;
       try {
+        // pixelRatio 1.5 + JPEG keeps the PDF well under Vercel's 4.5MB body
+        // limit while remaining crisp for print. Icelandic diacritics still
+        // render cleanly at this resolution.
         canvas = await htmlToImage.toCanvas(el, {
-          pixelRatio: 2,
+          pixelRatio: 1.5,
           backgroundColor: "#ffffff",
           cacheBust: true,
           width: el.scrollWidth,
@@ -221,8 +224,8 @@ export default function SignAgreementPage() {
         el.style.maxHeight = prevMaxHeight;
         el.style.overflow = prevOverflow;
       }
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+      const imgData = canvas.toDataURL("image/jpeg", 0.82);
+      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait", compress: true });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 36;
@@ -232,12 +235,12 @@ export default function SignAgreementPage() {
       // Paginate — slice the tall image across A4 pages.
       let heightLeft = imgHeight;
       let position = margin;
-      pdf.addImage(imgData, "PNG", margin, position, contentWidth, imgHeight);
+      pdf.addImage(imgData, "JPEG", margin, position, contentWidth, imgHeight);
       heightLeft -= (pageHeight - margin * 2);
       while (heightLeft > 0) {
         position = heightLeft - imgHeight + margin;
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, position, contentWidth, imgHeight);
+        pdf.addImage(imgData, "JPEG", margin, position, contentWidth, imgHeight);
         heightLeft -= (pageHeight - margin * 2);
       }
 
@@ -263,9 +266,12 @@ export default function SignAgreementPage() {
           pdf_base64: pdfBase64,
         }),
       });
-      const j = await res.json();
+      let j: { ok?: boolean; error?: string; detail?: string } = {};
+      const raw = await res.text();
+      try { j = raw ? JSON.parse(raw) : {}; } catch { /* non-JSON body (e.g. edge 413) */ }
       if (!res.ok) {
-        setError(`Villa: ${j.detail || j.error || "unknown"}`);
+        const detail = j.detail || j.error || (raw.startsWith("Request ") ? raw : `HTTP ${res.status}`);
+        setError(`Villa: ${detail}`);
         setSigning(false);
         return;
       }
