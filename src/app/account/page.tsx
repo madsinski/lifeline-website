@@ -2476,6 +2476,9 @@ function JourneyTimeline({
                 {videoConfirmBusy ? "…" : "I've booked — confirm"}
               </button>
             </div>
+            <p className="mt-2 text-[10.5px] text-violet-900/60 leading-snug">
+              Self-reported for now — we&apos;ll sync with your Medalia booking automatically once the integration is live.
+            </p>
           </div>
         </div>
       ) : hasVideoPortalConfirmed && !hasInPersonDoctorBooking ? (

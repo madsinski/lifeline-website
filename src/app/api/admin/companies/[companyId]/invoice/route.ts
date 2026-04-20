@@ -129,6 +129,27 @@ export async function POST(
     return NextResponse.json({ error: "db_insert_failed", detail: error.message }, { status: 500 });
   }
 
+  // Mirror into the unified payments ledger so the company's billing panel
+  // sees this invoice alongside any card-on-file charges. Status tracks the
+  // PayDay invoice lifecycle — issued = pending until paid.
+  try {
+    await supabaseAdmin.from("payments").insert({
+      owner_type: "company",
+      owner_id: companyId,
+      amount_isk: amountTotal,
+      currency: "ISK",
+      description: `Lifeline assessments · ${quantity} × ${unitPrice.toLocaleString("is-IS")} ISK`,
+      provider: "payday",
+      provider_reference: invoiceRes.invoice_number || invoiceRes.invoice_id || null,
+      status: "pending",
+      related_type: "company_invoice",
+      related_id: row?.id || null,
+      pdf_url: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
+    });
+  } catch (e) {
+    console.error("[invoice] payments ledger mirror failed:", e);
+  }
+
   // Notify the company contact person with a Lifeline-branded email.
   // PayDay also delivers the invoice itself to the company kennitala via
   // electronic invoicing — this is purely a courtesy heads-up.

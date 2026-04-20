@@ -139,7 +139,13 @@ export default function BillingPanel({
           <div>
             <h2 className="text-lg font-semibold text-[#1F2937]">Payment methods</h2>
             <p className="text-sm text-[#6B7280] mt-1">
-              Secured by {STRAUMUR_BRAND.name}. We store a token — never the card number.
+              {(() => {
+                const providers = Array.from(new Set(methods.map((m) => m.provider).filter(Boolean)));
+                const name = providers.length === 1
+                  ? (providers[0] === "straumur" ? STRAUMUR_BRAND.name : providers[0].replace(/^./, (c) => c.toUpperCase()))
+                  : STRAUMUR_BRAND.name;
+                return `Secured by ${name}. We store a token — never the card number.`;
+              })()}
             </p>
           </div>
           <button

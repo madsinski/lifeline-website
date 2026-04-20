@@ -86,8 +86,9 @@ export default function BookAssessmentPage() {
 
   const [stage, setStage] = useState<Stage>("package");
   const [selectedPkg, setSelectedPkg] = useState<PackageKey | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [selectedSlotAt, setSelectedSlotAt] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -125,13 +126,10 @@ export default function BookAssessmentPage() {
 
   async function createBooking(): Promise<string | null> {
     if (!userId || !pkg) return null;
-    const scheduledAt = needsVisit && selectedDate && selectedTime
-      ? new Date(`${selectedDate}T${selectedTime}:00`).toISOString()
-      : null;
     const payload = {
       client_id: userId,
-      scheduled_at: scheduledAt,
-      location: needsVisit ? "Lifeline station, Reykjavík" : null,
+      scheduled_at: needsVisit ? selectedSlotAt : null,
+      location: needsVisit ? (selectedLocation || "Lifeline station, Reykjavík") : null,
       // RLS on this table only allows the client to set status to
       // 'requested' or 'cancelled'; staff flips it to 'confirmed'.
       status: "requested" as const,
@@ -160,6 +158,31 @@ export default function BookAssessmentPage() {
     const id = bookingId ?? (await createBooking());
     if (!id) return;
     setBookingId(id);
+
+    // Atomically claim the station slot for this booking. If it was taken
+    // between "I chose it" and "I clicked Continue", the RPC fails and we
+    // send the user back to the schedule step with a clear error.
+    if (needsVisit && selectedSlotId) {
+      const { data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
+        p_slot_id: selectedSlotId,
+        p_booking_id: id,
+      });
+      const row = Array.isArray(claim) ? claim[0] : claim;
+      if (claimErr || (row && row.ok === false)) {
+        const code = row?.error;
+        setPaymentError(
+          code === "slot_unavailable" ? "That time slot was just taken. Please pick another."
+            : code === "already_booked" ? "You already have a station booking. Cancel it first."
+            : claimErr?.message || "Could not reserve your time slot. Please try again."
+        );
+        // Roll the booking back so the user can pick a different time
+        await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", id);
+        setBookingId(null);
+        setStage("schedule");
+        return;
+      }
+    }
+
     setStage("pay");
   }
 
@@ -251,11 +274,10 @@ export default function BookAssessmentPage() {
           <ScheduleStage
             pkg={pkg}
             needsVisit={needsVisit}
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
+            selectedSlotId={selectedSlotId}
+            selectedSlotAt={selectedSlotAt}
             notes={notes}
-            setSelectedDate={setSelectedDate}
-            setSelectedTime={setSelectedTime}
+            onPickSlot={(id, at, loc) => { setSelectedSlotId(id); setSelectedSlotAt(at); setSelectedLocation(loc); }}
             setNotes={setNotes}
             onBack={() => setStage("package")}
             onContinue={() => setStage("review")}
@@ -266,8 +288,8 @@ export default function BookAssessmentPage() {
           <ReviewStage
             pkg={pkg}
             needsVisit={needsVisit}
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
+            selectedSlotAt={selectedSlotAt}
+            selectedLocation={selectedLocation}
             notes={notes}
             fullName={fullName}
             email={email}
@@ -288,7 +310,7 @@ export default function BookAssessmentPage() {
         )}
 
         {stage === "done" && pkg && (
-          <DoneStage pkg={pkg} needsVisit={needsVisit} selectedDate={selectedDate} selectedTime={selectedTime} />
+          <DoneStage pkg={pkg} needsVisit={needsVisit} selectedSlotAt={selectedSlotAt} selectedLocation={selectedLocation} />
         )}
       </main>
     </div>
@@ -400,104 +422,118 @@ function PackageStage({
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-function nextBusinessDates(count: number): string[] {
-  const out: string[] = [];
-  const d = new Date();
-  d.setDate(d.getDate() + 1); // start tomorrow
-  while (out.length < count) {
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) out.push(d.toISOString().slice(0, 10));
-    d.setDate(d.getDate() + 1);
-  }
-  return out;
-}
-
-const TIME_SLOTS = ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30"];
+type StationSlotRow = {
+  id: string;
+  slot_at: string;
+  duration_minutes: number;
+  location: string | null;
+};
 
 function ScheduleStage({
-  pkg, needsVisit, selectedDate, selectedTime, notes,
-  setSelectedDate, setSelectedTime, setNotes,
+  pkg, needsVisit, selectedSlotId, selectedSlotAt, notes,
+  onPickSlot, setNotes,
   onBack, onContinue,
 }: {
   pkg: PackageDef;
   needsVisit: boolean;
-  selectedDate: string;
-  selectedTime: string;
+  selectedSlotId: string | null;
+  selectedSlotAt: string | null;
   notes: string;
-  setSelectedDate: (v: string) => void;
-  setSelectedTime: (v: string) => void;
+  onPickSlot: (id: string, at: string, location: string | null) => void;
   setNotes: (v: string) => void;
   onBack: () => void;
   onContinue: () => void;
 }) {
-  const dates = useMemo(() => nextBusinessDates(10), []);
-  const canContinue = !needsVisit || (selectedDate && selectedTime);
+  const [slots, setSlots] = useState<StationSlotRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!needsVisit) { setLoading(false); return; }
+    (async () => {
+      const nowIso = new Date().toISOString();
+      const { data } = await supabase
+        .from("station_slots")
+        .select("id, slot_at, duration_minutes, location")
+        .is("client_id", null)
+        .gt("slot_at", nowIso)
+        .order("slot_at", { ascending: true })
+        .limit(80);
+      setSlots((data || []) as StationSlotRow[]);
+      setLoading(false);
+    })();
+  }, [needsVisit]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, StationSlotRow[]>();
+    for (const s of slots) {
+      const day = new Date(s.slot_at).toISOString().slice(0, 10);
+      if (!map.has(day)) map.set(day, []);
+      map.get(day)!.push(s);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [slots]);
+
+  const canContinue = !needsVisit || !!selectedSlotId;
+
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">{pkg.name}</div>
         <h2 className="text-lg font-semibold text-[#0F172A]">
-          {needsVisit ? "Pick a time at the Lifeline station" : "When are you doing your self check-in?"}
+          {needsVisit ? "Pick an available time" : "Start your self check-in"}
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
           {needsVisit
-            ? "Lifeline station, Reykjavík. Fast from midnight the night before your visit — water only."
-            : "You can start the questionnaire now from the confirmation screen."}
+            ? "Only real open slots are shown. Remember to fast from midnight the night before your visit — water only."
+            : "Free and remote. You can start the questionnaire from the confirmation screen."}
         </p>
       </div>
 
       {needsVisit && (
-        <>
-          <div>
-            <div className="text-xs font-medium text-gray-600 mb-2">Date</div>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {dates.map((d) => {
-                const obj = new Date(d + "T00:00:00");
-                const selected = d === selectedDate;
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => { setSelectedDate(d); setSelectedTime(""); }}
-                    className={`rounded-lg border px-3 py-2 text-sm text-center transition-colors ${
-                      selected ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="text-[10px] uppercase tracking-wide text-[#64748B]">
-                      {obj.toLocaleDateString("en-GB", { weekday: "short" })}
-                    </div>
-                    <div className="font-semibold">
-                      {obj.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+        loading ? (
+          <div className="text-sm text-gray-500">Loading slots…</div>
+        ) : grouped.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
+            No open slots right now. We&apos;ll open new times shortly — please check back, or email{" "}
+            <a href="mailto:contact@lifelinehealth.is" className="text-[#10B981] font-semibold hover:underline">contact@lifelinehealth.is</a>.
           </div>
-
-          {selectedDate && (
-            <div>
-              <div className="text-xs font-medium text-gray-600 mb-2">Time</div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {TIME_SLOTS.map((t) => {
-                  const selected = t === selectedTime;
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setSelectedTime(t)}
-                      className={`rounded-lg border px-2 py-2 text-sm font-medium transition-colors ${
-                        selected ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
+        ) : (
+          <div className="space-y-4">
+            {grouped.map(([day, daySlots]) => (
+              <div key={day}>
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                  {new Date(day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {daySlots.map((s) => {
+                    const selected = s.id === selectedSlotId;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => onPickSlot(s.id, s.slot_at, s.location)}
+                        className={`rounded-lg border px-2 py-2 text-sm font-medium transition-colors text-center ${
+                          selected ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200" : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50/40"
+                        }`}
+                      >
+                        <div>{new Date(s.slot_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+                        <div className="text-[10px] text-gray-500">{s.duration_minutes} min</div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </>
+            ))}
+            {selectedSlotId && selectedSlotAt && (
+              <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-sm text-blue-900">
+                Selected:{" "}
+                <strong>
+                  {new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}
+                </strong>
+              </div>
+            )}
+          </div>
+        )
       )}
 
       <label className="block">
@@ -538,13 +574,13 @@ function ScheduleStage({
 // ──────────────────────────────────────────────────────────────────────────────
 
 function ReviewStage({
-  pkg, needsVisit, selectedDate, selectedTime, notes, fullName, email,
+  pkg, needsVisit, selectedSlotAt, selectedLocation, notes, fullName, email,
   onBack, onContinue, error,
 }: {
   pkg: PackageDef;
   needsVisit: boolean;
-  selectedDate: string;
-  selectedTime: string;
+  selectedSlotAt: string | null;
+  selectedLocation: string | null;
   notes: string;
   fullName: string;
   email: string;
@@ -558,13 +594,13 @@ function ReviewStage({
 
       <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4 space-y-2 text-sm">
         <Row label="Package" value={pkg.name} />
-        {needsVisit && selectedDate && (
+        {needsVisit && selectedSlotAt && (
           <Row
             label="When"
-            value={`${new Date(selectedDate + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · ${selectedTime}`}
+            value={new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
           />
         )}
-        {needsVisit && <Row label="Where" value="Lifeline station, Reykjavík" />}
+        {needsVisit && <Row label="Where" value={selectedLocation || "Lifeline station, Reykjavík"} />}
         <Row label="Name" value={fullName || "—"} />
         <Row label="Email" value={email} />
         {notes && <Row label="Notes" value={notes} />}
@@ -690,13 +726,16 @@ function PayStage({
 // ──────────────────────────────────────────────────────────────────────────────
 
 function DoneStage({
-  pkg, needsVisit, selectedDate, selectedTime,
+  pkg, needsVisit, selectedSlotAt, selectedLocation,
 }: {
   pkg: PackageDef;
   needsVisit: boolean;
-  selectedDate: string;
-  selectedTime: string;
+  selectedSlotAt: string | null;
+  selectedLocation: string | null;
 }) {
+  const when = selectedSlotAt
+    ? new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false })
+    : "";
   return (
     <div className="relative overflow-hidden rounded-2xl shadow-sm bg-white p-8 sm:p-10 text-center">
       <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#10B981] to-[#3B82F6]" />
@@ -708,7 +747,7 @@ function DoneStage({
       <h2 className="text-2xl font-bold text-[#0F172A]">You&apos;re booked.</h2>
       <p className="text-sm text-[#475569] mt-2 max-w-md mx-auto leading-relaxed">
         {needsVisit
-          ? `See you at the Lifeline station on ${new Date(selectedDate + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} at ${selectedTime}. We'll email you a reminder the day before.`
+          ? `See you at ${selectedLocation || "the Lifeline station"} on ${when}. We'll email you a reminder the day before.`
           : `Your ${pkg.name} is ready. Start the questionnaire from your dashboard whenever you're ready.`}
       </p>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
