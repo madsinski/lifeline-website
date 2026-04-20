@@ -2037,7 +2037,7 @@ function AccountPageInner() {
                 {/* Your plan */}
                 <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                   <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-                    <h2 className="text-lg font-semibold text-[#1F2937]">Your plan</h2>
+                    <h2 className="text-lg font-semibold text-[#1F2937]">Lifeline app subscription</h2>
                     {activeTier && (
                       <div className="flex items-center gap-3">
                         <button onClick={() => setShowChangePlan(!showChangePlan)} className="text-sm font-medium text-[#10B981] hover:underline">
@@ -2171,7 +2171,7 @@ function AccountPageInner() {
                             {isPaid && (
                               <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 mb-3">
                                 Payment integration coming soon — contact us at{" "}
-                                <a href="mailto:hello@lifelinehealth.is" className="font-semibold underline">hello@lifelinehealth.is</a>
+                                <a href="mailto:contact@lifelinehealth.is" className="font-semibold underline">contact@lifelinehealth.is</a>
                               </div>
                             )}
                             {!isPaid && (
