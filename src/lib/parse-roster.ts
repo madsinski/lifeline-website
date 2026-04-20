@@ -15,16 +15,30 @@ const HEADER_ALIASES: Record<string, keyof Omit<RosterRow, "errors">> = {
   phone: "phone", "phone number": "phone", simi: "phone", sími: "phone", mobile: "phone",
 };
 
+// Sentinel for whitespace-run fallback — multiple spaces/tabs between
+// columns (common when pasting plain-text tables from email, chat, etc.)
+const WS_DELIM = "\u0000WS\u0000";
+
 function detectDelimiter(firstLine: string): string {
   const tab = (firstLine.match(/\t/g) || []).length;
   const semi = (firstLine.match(/;/g) || []).length;
   const comma = (firstLine.match(/,/g) || []).length;
-  if (tab >= semi && tab >= comma) return "\t";
-  if (semi >= comma) return ";";
+  // Prefer explicit delimiters when any are present.
+  if (tab > 0 && tab >= semi && tab >= comma) return "\t";
+  if (semi > 0 && semi >= comma) return ";";
+  if (comma > 0) return ",";
+  // Fallback: if the line has runs of 2+ whitespace characters, treat those as
+  // column breaks. Handles pastes like "Name    1406221680    email@x.com  712345".
+  if (/\S\s{2,}\S/.test(firstLine)) return WS_DELIM;
+  // Otherwise, default to comma (single-cell parse will trigger validation
+  // errors, which is the correct outcome for malformed input).
   return ",";
 }
 
 function splitCsvLine(line: string, delim: string): string[] {
+  if (delim === WS_DELIM) {
+    return line.trim().split(/\s{2,}/).map((s) => s.trim());
+  }
   const out: string[] = [];
   let cur = "";
   let inQuotes = false;
