@@ -1,11 +1,20 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_ADDRESS = process.env.INVITE_FROM_EMAIL || "Lifeline Health <onboarding@lifelinehealth.is>";
 
+export interface EmailAttachment {
+  filename: string;
+  content: string;      // base64
+  contentType?: string; // defaults to application/octet-stream
+}
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  cc?: string | string[];
+  bcc?: string | string[];
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(opts: SendEmailOptions): Promise<{ ok: boolean; error?: string; id?: string }> {
@@ -13,22 +22,33 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ ok: boolean; 
     console.warn("[email] RESEND_API_KEY not set — logging invite instead");
     console.log("[email] TO:", opts.to, "SUBJECT:", opts.subject);
     console.log("[email] TEXT:", opts.text || opts.html);
+    if (opts.attachments?.length) console.log("[email] ATTACHMENTS:", opts.attachments.map((a) => a.filename).join(", "));
     return { ok: true, id: "dev-log" };
   }
   try {
+    const payload: Record<string, unknown> = {
+      from: FROM_ADDRESS,
+      to: [opts.to],
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text,
+    };
+    if (opts.cc) payload.cc = Array.isArray(opts.cc) ? opts.cc : [opts.cc];
+    if (opts.bcc) payload.bcc = Array.isArray(opts.bcc) ? opts.bcc : [opts.bcc];
+    if (opts.attachments?.length) {
+      payload.attachments = opts.attachments.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+        content_type: a.contentType || "application/octet-stream",
+      }));
+    }
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: FROM_ADDRESS,
-        to: [opts.to],
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text,
-      }),
+      body: JSON.stringify(payload),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: json.error?.message || JSON.stringify(json) };

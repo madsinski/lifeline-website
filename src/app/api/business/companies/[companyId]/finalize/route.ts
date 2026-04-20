@@ -22,7 +22,7 @@ export async function POST(
   // Authz: primary / co-admin / staff
   const { data: company } = await supabaseAdmin
     .from("companies")
-    .select("id, name, contact_person_id, roster_confirmed_at, registration_finalized_at")
+    .select("id, name, contact_person_id, roster_confirmed_at, registration_finalized_at, agreement_signed_at")
     .eq("id", companyId)
     .maybeSingle();
   if (!company) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -84,6 +84,9 @@ export async function POST(
   }
   if (!bloodDayCount) {
     return NextResponse.json({ error: "no_blood_test_days" }, { status: 400 });
+  }
+  if (!company.agreement_signed_at) {
+    return NextResponse.json({ error: "agreement_not_signed" }, { status: 400 });
   }
 
   const finalizedAt = new Date().toISOString();

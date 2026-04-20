@@ -17,6 +17,7 @@ interface Company {
   created_at: string;
   roster_confirmed_at: string | null;
   registration_finalized_at: string | null;
+  agreement_signed_at: string | null;
 }
 
 interface Member {
@@ -72,7 +73,7 @@ export default function BusinessDashboardPage() {
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
     const [{ data: c }, { data: m }, { data: ev }, { data: bd }] = await Promise.all([
-      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at").eq("id", companyId).maybeSingle(),
+      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
         .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status")
@@ -144,10 +145,11 @@ export default function BusinessDashboardPage() {
   const finalized = !!company.registration_finalized_at;
   const hasEvents = events.length > 0;
   const hasBloodDays = bloodDays.length > 0;
+  const agreementSigned = !!company.agreement_signed_at;
   const rosterDone = rosterConfirmed;
-  const stepsDone = [rosterDone, hasEvents, hasBloodDays].filter(Boolean).length;
-  const allStepsDone = rosterDone && hasEvents && hasBloodDays;
-  const nextStep = !rosterDone ? 1 : !hasEvents ? 2 : !hasBloodDays ? 3 : 0;
+  const stepsDone = [rosterDone, hasEvents, hasBloodDays, agreementSigned].filter(Boolean).length;
+  const allStepsDone = rosterDone && hasEvents && hasBloodDays && agreementSigned;
+  const nextStep = !rosterDone ? 1 : !hasEvents ? 2 : !hasBloodDays ? 3 : !agreementSigned ? 4 : 0;
 
   const confirmRoster = async () => {
     if (members.length === 0) {
@@ -234,7 +236,7 @@ export default function BusinessDashboardPage() {
           <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
-              style={{ width: `${(stepsDone / 3) * 100}%` }}
+              style={{ width: `${(stepsDone / 4) * 100}%` }}
             />
           </div>
         )}
@@ -422,13 +424,41 @@ export default function BusinessDashboardPage() {
         {/* Insights card */}
         <InsightsCard companyId={companyId!} />
 
-        {/* Finalize CTA — shown when all 3 steps done but not yet finalized */}
+        {/* STEP 4 — Sign service agreement + purchase order (only after steps 1–3) */}
+        {!finalized && rosterDone && hasEvents && hasBloodDays && (
+          <StepCard
+            n={4}
+            done={agreementSigned}
+            active={nextStep === 4}
+            title={agreementSigned ? "Þjónustusamningur undirritaður" : "Undirrita þjónustusamning og pöntun"}
+            subtitle={
+              agreementSigned
+                ? `Undirritað ${new Date(company.agreement_signed_at!).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" })} — afrit í fyrirtækisgátt og á tölvupósti.`
+                : "Yfirfarðu þjónustusamninginn, bættu við pöntunaratriðum og undirritaðu rafrænt."
+            }
+          >
+            {!agreementSigned ? (
+              <button
+                onClick={() => router.push(`/business/${companyId}/sign`)}
+                className="btn-step-primary"
+              >
+                Halda áfram að undirritun →
+              </button>
+            ) : (
+              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                Samningurinn er geymdur á öruggan hátt og aðgengilegur Lifeline teyminu í stjórnendaflipanum.
+              </div>
+            )}
+          </StepCard>
+        )}
+
+        {/* Finalize CTA — shown when all 4 steps done but not yet finalized */}
         {allStepsDone && !finalized && (
           <section className="rounded-2xl p-6 text-white shadow-sm"
             style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
             <h2 className="text-xl font-semibold">Ready to finalize?</h2>
             <p className="text-sm opacity-95 mt-1 max-w-xl">
-              All three setup steps are done. Click finalize to notify the Lifeline admin team — they&apos;ll take over from here.
+              All four setup steps are done. Click finalize to notify the Lifeline admin team — they&apos;ll take over from here.
               You can still edit the roster, event, and test days afterwards.
             </p>
             <button onClick={finalizeRegistration} className="mt-4 inline-block px-5 py-2.5 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
