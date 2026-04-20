@@ -110,6 +110,33 @@ export default function SignAgreementPage() {
     })();
   }, [companyId]);
 
+  // Load employee count from the roster and set the default per-employee line
+  // item quantity to match. We only auto-fill once, on first load — once the
+  // user edits the line items, we leave their numbers alone.
+  const [employeeCount, setEmployeeCount] = useState<number | null>(null);
+  const didAutoFillQtyRef = useRef(false);
+  useEffect(() => {
+    (async () => {
+      if (!companyId) return;
+      const { data, error: e } = await supabase.rpc("list_company_members", { p_company_id: companyId });
+      if (e || !Array.isArray(data)) return;
+      setEmployeeCount(data.length);
+    })();
+  }, [companyId]);
+  useEffect(() => {
+    if (didAutoFillQtyRef.current) return;
+    if (employeeCount == null || employeeCount <= 0) return;
+    setLineItems((prev) => {
+      // Only patch if the first line item still looks like the default
+      // (description unchanged, qty = 1). That avoids overwriting edits.
+      if (prev.length !== 1) return prev;
+      const first = prev[0];
+      if (first.description !== DEFAULT_LINE_ITEMS[0].description || first.qty !== 1) return prev;
+      didAutoFillQtyRef.current = true;
+      return [{ ...first, qty: employeeCount, total_isk: employeeCount * first.unit_price_isk }];
+    });
+  }, [employeeCount]);
+
   const updateLineItem = (idx: number, patch: Partial<PurchaseOrderLineItem>) => {
     setLineItems((prev) => prev.map((li, i) => {
       if (i !== idx) return li;
@@ -334,23 +361,47 @@ export default function SignAgreementPage() {
           <h2 className="font-semibold text-gray-900">Samningur og skilmálar</h2>
           <span className="text-xs text-gray-400">Þetta er nákvæmlega það sem verður undirritað.</span>
         </div>
-        <div ref={docRef} className="bg-white p-6 max-h-[500px] overflow-y-auto whitespace-pre-wrap text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md font-serif">
-{renderThjonustusamningur(agreementParams)}
+        <div ref={docRef} className="bg-white p-6 max-h-[500px] overflow-y-auto text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md font-serif">
+          <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderThjonustusamningur(agreementParams)}</pre>
+          <div className="my-4 text-center text-gray-400">— — —</div>
+          <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderThjonustuskilmalar()}</pre>
+          <div className="my-4 text-center text-gray-400">— — —</div>
+          <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderPurchaseOrder(poParams)}</pre>
 
-— — —
-
-{renderThjonustuskilmalar()}
-
-— — —
-
-{renderPurchaseOrder(poParams)}
-
-— — —
-
-Undirritun: {signatoryName || "________________"}
-Starfsheiti: {signatoryRole || "________________"}
-Netfang: {signatoryEmail || "________________"}
-Dagsetning: {new Date().toLocaleDateString("is-IS")}
+          {/* Signing block — stands out from the body with a card + dividers */}
+          <div className="mt-8 pt-5 border-t-2 border-gray-300">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-gray-500 font-semibold mb-3">Rafræn undirritun</div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[12.5px]">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Undirritun</div>
+                <div className="font-semibold text-gray-900 border-b border-gray-300 pb-1 min-h-[22px]">
+                  {signatoryName || <span className="text-gray-300">________________</span>}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Starfsheiti</div>
+                <div className="font-semibold text-gray-900 border-b border-gray-300 pb-1 min-h-[22px]">
+                  {signatoryRole || <span className="text-gray-300">________________</span>}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Netfang</div>
+                <div className="font-medium text-gray-900 border-b border-gray-300 pb-1 min-h-[22px] break-all">
+                  {signatoryEmail || <span className="text-gray-300">________________</span>}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Dagsetning</div>
+                <div className="font-medium text-gray-900 border-b border-gray-300 pb-1 min-h-[22px]">
+                  {new Date().toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}
+                </div>
+              </div>
+            </div>
+            <p className="text-[10.5px] text-gray-500 mt-3 leading-relaxed">
+              Rafræn undirritun þessi er skráð með tímastimpli, IP-tölu og vafraauðkenni undirritanda í þjónustukerfi Lifeline Health.
+              Undirritunin er bindandi og jafngild rituðu undirritun, sbr. lög nr. 28/2001 um rafrænar undirskriftir.
+            </p>
+          </div>
         </div>
       </section>
 
