@@ -593,15 +593,27 @@ export default function AdminMessagesPage() {
     const convIds = (allConvs ?? []).map((c: Record<string, unknown>) => c.id as string);
 
     if (convIds.length > 0) {
-      // Delete messages first, then conversations (in case no cascade is configured)
-      const { error: msgErr } = await supabase.from("messages").delete().in("conversation_id", convIds);
+      // Delete messages first, then conversations (in case no cascade is configured).
+      // Use .select() so we can detect silent RLS denials (0 rows affected).
+      const { error: msgErr } = await supabase.from("messages").delete().in("conversation_id", convIds).select("id");
       if (msgErr) {
         alert(`Failed to delete messages: ${msgErr.message}`);
         return;
       }
-      const { error: convErr } = await supabase.from("conversations").delete().in("id", convIds);
+      const { data: deletedConvs, error: convErr } = await supabase
+        .from("conversations")
+        .delete()
+        .in("id", convIds)
+        .select("id");
       if (convErr) {
         alert(`Failed to delete conversation: ${convErr.message}`);
+        return;
+      }
+      if (!deletedConvs || deletedConvs.length === 0) {
+        alert(
+          "No rows were deleted — your account may not have permission.\n\n" +
+          "If this persists, run migration-messaging-staff-delete.sql in Supabase to grant staff DELETE on conversations/messages."
+        );
         return;
       }
     }
