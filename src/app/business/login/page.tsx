@@ -84,7 +84,7 @@ function BusinessLoginInner() {
           <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
           <div className="p-8">
             <h1 className="text-xl font-semibold text-[#1F2937]">
-              {t("b2b.login.title", "Contact person sign in")}
+              {t("b2b.login.title", "Company account log in")}
             </h1>
             <p className="text-sm text-[#6B7280] mt-1">
               {t("b2b.login.subtitle", "Manage your company's roster and invitations.")}
