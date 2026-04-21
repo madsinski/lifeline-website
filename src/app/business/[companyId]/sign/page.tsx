@@ -344,12 +344,12 @@ export default function SignAgreementPage() {
           <h2 className="font-semibold text-gray-900">Samningur og skilmálar</h2>
           <span className="text-xs text-gray-400">Þetta er nákvæmlega það sem verður undirritað.</span>
         </div>
-        <div className="bg-white p-6 max-h-[500px] overflow-y-auto text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md font-serif">
-          <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderThjonustusamningur(agreementParams)}</pre>
+        <div className="bg-white p-6 max-h-[500px] overflow-y-auto text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md">
+          <div className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900">{renderThjonustusamningur(agreementParams)}</div>
           <div className="my-4 text-center text-gray-400">— — —</div>
-          <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderThjonustuskilmalar()}</pre>
+          <div className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900">{renderThjonustuskilmalar()}</div>
           <div className="my-4 text-center text-gray-400">— — —</div>
-          <pre className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900 m-0">{renderPurchaseOrder(poParams)}</pre>
+          <div className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900">{renderPurchaseOrder(poParams)}</div>
 
           {/* Signing block — stands out from the body with a card + dividers */}
           <div className="mt-8 pt-5 border-t-2 border-gray-300">
