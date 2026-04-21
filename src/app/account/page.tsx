@@ -398,6 +398,28 @@ function AccountPageInner() {
             setBodyCompStatus("completed");
           }
 
+          // Fallback for B2C: a station_slot claim exists but no active
+          // body_comp_booking references it (admin-set, or legacy row).
+          // Surface it on the dashboard so the user can see their upcoming
+          // measurement instead of being stuck on the Get Started hero.
+          if (!companyId && !booking) {
+            const { data: solo } = await supabase
+              .from("station_slots")
+              .select("slot_at")
+              .eq("client_id", currentUser.id)
+              .is("completed_at", null)
+              .order("slot_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (solo?.slot_at) {
+              setBodyCompStatus("booked");
+              setBodyCompBookingAt(solo.slot_at as string);
+              setMySlotAt(solo.slot_at as string);
+              // Default to Foundational Health when we don't know the package
+              setBodyCompPackage("foundational");
+            }
+          }
+
           // Also pick up any pending (unpaid) booking the user started but
           // didn't finish. Used to show a 'Resume booking' card instead of
           // the 'Ready to take the first step?' hero.

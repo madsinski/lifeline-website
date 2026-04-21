@@ -55,18 +55,24 @@ export default function BookAssessmentPage() {
         .eq("status", "requested")
         .lt("created_at", cutoff);
 
-      // Release orphaned station_slot claims — i.e. claims held by this user
-      // where there is no active body_comp_booking to back them. This clears
-      // the user's state so they never hit 'already_booked' from a prior
-      // round whose booking was cancelled but whose slot claim lingered.
-      const { data: activeBookings } = await supabase
-        .from("body_comp_bookings")
-        .select("id")
+      // Release ONLY orphaned station_slot claims — those whose referenced
+      // body_comp_booking is cancelled. Preserve admin-set claims (booking_id
+      // is null) and claims tied to still-active bookings.
+      const { data: mySlot } = await supabase
+        .from("station_slots")
+        .select("id, booking_id")
         .eq("client_id", user.id)
-        .in("status", ["requested", "confirmed"])
-        .limit(1);
-      if (!activeBookings || activeBookings.length === 0) {
-        await supabase.rpc("release_station_slot");
+        .is("completed_at", null)
+        .maybeSingle();
+      if (mySlot?.booking_id) {
+        const { data: backing } = await supabase
+          .from("body_comp_bookings")
+          .select("status")
+          .eq("id", mySlot.booking_id)
+          .maybeSingle();
+        if (!backing || backing.status === "cancelled") {
+          await supabase.rpc("release_station_slot");
+        }
       }
 
       // Resume flow: if ?resume=<id> is set and the booking belongs to the
