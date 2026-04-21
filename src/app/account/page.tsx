@@ -111,6 +111,7 @@ function AccountPageInner() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
+  const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
   const [bodyCompBookingAt, setBodyCompBookingAt] = useState<string | null>(null);
   const [lastBodyCompAt, setLastBodyCompAt] = useState<string | null>(null);
   const [biodyActivated, setBiodyActivated] = useState(false);
@@ -362,7 +363,7 @@ function AccountPageInner() {
           // are allowed through via the `amount_isk is null` branch.
           const { data: booking } = await supabase
             .from("body_comp_bookings")
-            .select("scheduled_at, status, amount_isk, payment_status")
+            .select("scheduled_at, status, amount_isk, payment_status, package, created_at")
             .eq("client_id", currentUser.id)
             .in("status", ["requested", "confirmed", "completed"])
             .or("amount_isk.is.null,payment_status.eq.paid")
@@ -374,6 +375,10 @@ function AccountPageInner() {
             else {
               setBodyCompStatus("booked");
               setBodyCompBookingAt(booking.scheduled_at || null);
+            }
+            const pkg = (booking as Record<string, unknown>).package as string | null;
+            if (pkg === "foundational" || pkg === "checkin" || pkg === "self-checkin") {
+              setBodyCompPackage(pkg);
             }
           } else if (cData.last_body_comp_at) {
             setBodyCompStatus("completed");
@@ -1020,8 +1025,15 @@ function AccountPageInner() {
                   <GetStartedHero />
                 )}
 
-                {/* Your journey timeline (hidden for B2C pre-booking) */}
-                {!(!companyId && bodyCompStatus === "none") && (
+                {/* Self Check-in has its own abbreviated journey — only the
+                    patient-portal questionnaire remains. Short-circuit before
+                    the full JourneyTimeline. */}
+                {!companyId && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none" && (
+                  <SelfCheckinJourney completed={bodyCompStatus === "completed"} />
+                )}
+
+                {/* Your journey timeline (hidden for B2C pre-booking and for Self Check-in) */}
+                {!(!companyId && bodyCompStatus === "none") && !(bodyCompPackage === "self-checkin") && (
                 <JourneyTimeline
                   isB2C={!companyId}
                   hasOnboarded={true}
@@ -1067,6 +1079,7 @@ function AccountPageInner() {
                   videoPortalConfirmedAt={videoPortalConfirmedAt}
                   bodyCompBookingAt={bodyCompBookingAt}
                   bodyCompStatus={bodyCompStatus}
+                  bodyCompPackage={bodyCompPackage}
                   onChangeBcSlot={() => setBcPickerOpen(true)}
                   onChangeBloodDay={() => setBtPickerOpen(true)}
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
@@ -2382,6 +2395,66 @@ export default function AccountPage() {
 
 // ── Home overview sub-components ──────────────────────────────────────────
 
+// Self Check-in has no on-site measurement, no blood test, no doctor visit —
+// the next step is simply answering the questionnaire in the patient portal.
+// We render an abbreviated journey and a purpose-built hero card.
+function SelfCheckinJourney({ completed }: { completed: boolean }) {
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
+        <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+          Self Check-in
+        </span>
+      </div>
+      <p className="text-sm text-[#6B7280] mb-6">
+        Self Check-in is fully remote — no visit, no blood test. Just the questionnaire in the patient portal.
+      </p>
+      <ol className="relative border-l-2 border-gray-100 ml-4 space-y-5">
+        {/* Step 1 */}
+        <li className="ml-6 relative">
+          <span className="absolute -left-9 top-0 w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-semibold">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          <div>
+            <div className="font-semibold text-[#1F2937]">Self Check-in booked</div>
+            <p className="text-sm text-[#6B7280] mt-1">Your remote check-in is registered. You can find it under Current bookings below.</p>
+          </div>
+        </li>
+
+        {/* Step 2 */}
+        <li className="ml-6 relative">
+          <span className={`absolute -left-9 top-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold ${completed ? "bg-emerald-500 text-white" : "bg-violet-500 text-white"}`}>
+            {completed ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <span>2</span>
+            )}
+          </span>
+          <div>
+            <div className="font-semibold text-[#1F2937]">Answer the questionnaire in the patient portal</div>
+            <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
+              {completed
+                ? "Done. A Lifeline clinician has reviewed your answers and will reach out if anything is flagged."
+                : "Open Medalia (the Lifeline patient portal) and complete your questionnaire. A clinician reviews it and will contact you if anything needs follow-up — otherwise you'll get an updated health score and insights directly in the portal."}
+            </p>
+            {!completed && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <MedaliaButton label="Open patient portal" size="sm" />
+              </div>
+            )}
+          </div>
+        </li>
+      </ol>
+    </section>
+  );
+}
+
 function JourneyTimeline({
   isB2C,
   hasOnboarded, biodyActivated, hasBodyCompSlot, hasBodyCompBooking, hasBodyCompCompleted, hasBloodTestBooking,
@@ -2629,7 +2702,7 @@ function JourneyTimeline({
 function CurrentBookings({
   isB2C,
   mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot, videoPortalConfirmedAt,
-  bodyCompBookingAt, bodyCompStatus,
+  bodyCompBookingAt, bodyCompStatus, bodyCompPackage,
   onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onClearVideoPortal,
 }: {
   isB2C: boolean;
@@ -2640,13 +2713,15 @@ function CurrentBookings({
   videoPortalConfirmedAt: string | null;
   bodyCompBookingAt: string | null;
   bodyCompStatus: "none" | "booked" | "completed";
+  bodyCompPackage: "foundational" | "checkin" | "self-checkin" | null;
   onChangeBcSlot: () => void;
   onChangeBloodDay: () => void;
   onChangeDoctorSlot: () => void;
   onClearVideoPortal: () => void;
 }) {
   const hasB2CBodyComp = isB2C && bodyCompStatus === "booked" && !!bodyCompBookingAt;
-  const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot && !videoPortalConfirmedAt && !hasB2CBodyComp;
+  const hasSelfCheckin = isB2C && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none";
+  const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot && !videoPortalConfirmedAt && !hasB2CBodyComp && !hasSelfCheckin;
   const editIcon = (
     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -3003,7 +3078,33 @@ function CurrentBookings({
             </div>
           </div>
         ) : null;
+        const selfCheckinCard = hasSelfCheckin ? (
+          <div key="self-checkin" className="relative overflow-hidden rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-violet-500 to-sky-500" />
+            <div className="flex items-start gap-3 mb-3">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h3m-6 4h12a2 2 0 002-2V7a2 2 0 00-2-2h-3.172a2 2 0 01-1.414-.586l-1.828-1.828A2 2 0 0011.172 2H8a2 2 0 00-2 2v1" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Self Check-in</div>
+                <div className="font-semibold text-gray-900 leading-tight">Remote questionnaire</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {bodyCompStatus === "completed"
+                ? "Completed — a clinician has reviewed your answers."
+                : "Open the patient portal and answer the questionnaire. No visit required."}
+            </p>
+            <div className="mt-4">
+              <MedaliaButton label="Open patient portal" size="sm" />
+            </div>
+          </div>
+        ) : null;
+
         const entries = [
+          { key: "self-checkin", card: selfCheckinCard, time: 0 },
           { key: "bc", card: bcCard, time: bcTime },
           { key: "bc-b2c", card: bcB2CCard, time: bodyCompBookingAt ? new Date(bodyCompBookingAt).getTime() : Infinity },
           { key: "bt", card: btCard, time: btTime },
