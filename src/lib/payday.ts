@@ -104,7 +104,7 @@ export async function ensurePaydayCustomer(args: EnsureCustomerArgs): Promise<{ 
     email: args.email || undefined,
     language: "is",
     name: args.name,
-    sendElectronicInvoices: true,
+    sendElectronicInvoices: false,
     finalDueDateDefaultDaysAfter: 14,
   };
 
