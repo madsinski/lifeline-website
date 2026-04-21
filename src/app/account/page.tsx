@@ -13,6 +13,7 @@ import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
 import { googleCalendarUrl, downloadIcs, type CalendarEvent } from "@/lib/calendar-export";
 import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
+import AvatarPicker from "../components/AvatarPicker";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -946,16 +947,37 @@ function AccountPageInner() {
                   <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${companyId ? "from-[#3B82F6] to-[#10B981]" : "from-[#10B981] to-[#0D9488]"}`} />
                   <div className="p-6 sm:p-8">
                     <div className="flex items-start gap-4 min-w-0">
-                      <AvatarUploader
-                        avatarUrl={avatarUrl}
+                      <AvatarPicker
+                        currentUrl={avatarUrl}
                         initial={(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
-                        userId={user.id}
                         uploading={avatarUploading}
                         error={avatarError}
                         gradient={companyId ? "from-[#3B82F6] to-[#10B981]" : "from-[#10B981] to-[#0D9488]"}
-                        onStart={() => { setAvatarUploading(true); setAvatarError(null); }}
-                        onDone={(url) => { setAvatarUrl(url); setAvatarUploading(false); }}
                         onError={(msg) => { setAvatarError(msg); setAvatarUploading(false); }}
+                        onPicked={async (blob) => {
+                          setAvatarUploading(true);
+                          setAvatarError(null);
+                          try {
+                            const filePath = `${user.id}/avatar.jpg`;
+                            const { error: upErr } = await supabase.storage
+                              .from("avatars")
+                              .upload(filePath, blob, { upsert: true, contentType: "image/jpeg" });
+                            if (upErr) throw upErr;
+                            const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+                            const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?t=${Date.now()}` : "";
+                            if (!publicUrl) throw new Error("Could not resolve the uploaded image URL.");
+                            const { error: dbErr } = await supabase
+                              .from("clients")
+                              .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+                              .eq("id", user.id);
+                            if (dbErr) throw dbErr;
+                            setAvatarUrl(publicUrl);
+                          } catch (e) {
+                            setAvatarError((e as Error).message || "Upload failed.");
+                          } finally {
+                            setAvatarUploading(false);
+                          }
+                        }}
                       />
                       <div className="min-w-0 flex-1">
                         <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
@@ -3799,149 +3821,6 @@ function ServicesSection({
   );
 }
 
-function AvatarUploader({
-  avatarUrl, initial, userId, uploading, error, gradient, onStart, onDone, onError,
-}: {
-  avatarUrl: string | null;
-  initial: string;
-  userId: string;
-  uploading: boolean;
-  error: string | null;
-  gradient?: string;
-  onStart: () => void;
-  onDone: (url: string) => void;
-  onError: (msg: string) => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const libraryInputRef = useRef<HTMLInputElement>(null);
-
-  function openMenu() {
-    if (uploading) return;
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (rect) setMenuPos({ top: rect.bottom + 8, left: rect.left });
-    setMenuOpen(true);
-  }
-
-  async function handleFile(file: File | undefined) {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { onError("Please choose an image file."); return; }
-    if (file.size > 5 * 1024 * 1024) { onError("Image is larger than 5 MB."); return; }
-    onStart();
-    try {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const cleanExt = ext === "png" ? "png" : ext === "webp" ? "webp" : "jpg";
-      const contentType = cleanExt === "png" ? "image/png" : cleanExt === "webp" ? "image/webp" : "image/jpeg";
-      const filePath = `${userId}/avatar.${cleanExt}`;
-      const { error: upErr } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true, contentType });
-      if (upErr) { onError(upErr.message); return; }
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
-      const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?t=${Date.now()}` : "";
-      if (!publicUrl) { onError("Could not resolve the uploaded image URL."); return; }
-      const { error: dbErr } = await supabase.from("clients").update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq("id", userId);
-      if (dbErr) { onError(dbErr.message); return; }
-      onDone(publicUrl);
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Upload failed.");
-    }
-  }
-
-  return (
-    <div className="shrink-0 relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={openMenu}
-        className="relative block group"
-        aria-label="Change profile photo"
-      >
-        <div className={`w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br ${gradient || "from-[#3B82F6] to-[#10B981]"} text-white text-2xl font-bold flex items-center justify-center shadow-sm`}>
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <span>{initial}</span>
-          )}
-        </div>
-        <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </div>
-        {uploading && (
-          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/60">
-            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-        <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center text-gray-600">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </span>
-      </button>
-
-      {/* Hidden inputs — one opens the camera (mobile) and one the file picker */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="user"
-        className="sr-only"
-        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; handleFile(f ?? undefined); }}
-      />
-      <input
-        ref={libraryInputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="sr-only"
-        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; handleFile(f ?? undefined); }}
-      />
-
-      {menuOpen && menuPos && (
-        <>
-          {/* Click-away backdrop (fixed, sits above everything except the menu) */}
-          <button
-            type="button"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-40 cursor-default"
-          />
-          <div
-            className="fixed z-50 w-52 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden"
-            style={{ top: menuPos.top, left: menuPos.left }}
-          >
-            <button
-              type="button"
-              onClick={() => { setMenuOpen(false); cameraInputRef.current?.click(); }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 text-left"
-            >
-              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Take photo
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMenuOpen(false); libraryInputRef.current?.click(); }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 text-left border-t border-gray-100"
-            >
-              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Upload from device
-            </button>
-          </div>
-        </>
-      )}
-
-      {error && <div className="mt-1.5 text-[11px] text-red-600 max-w-[180px]">{error}</div>}
-    </div>
-  );
-}
 
 function AppTeaserCard({ onGoToCoaching }: { onGoToCoaching: () => void }) {
   return (
