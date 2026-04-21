@@ -15,7 +15,7 @@ import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 import AvatarPicker from "../components/AvatarPicker";
 import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
-import { createStraumurCharge } from "@/lib/straumur";
+import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -115,6 +115,9 @@ function AccountPageInner() {
   const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
   const [currentBookingPaid, setCurrentBookingPaid] = useState(false);
+  const [currentBookingAmount, setCurrentBookingAmount] = useState<number>(0);
+  const [currentBookingScheduledAt, setCurrentBookingScheduledAt] = useState<string | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [pendingBooking, setPendingBooking] = useState<{ id: string; package: string | null; scheduled_at: string | null } | null>(null);
   const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
   const [payingCheckinDoctor, setPayingCheckinDoctor] = useState(false);
@@ -385,6 +388,8 @@ function AccountPageInner() {
             }
             setCurrentBookingId(((booking as Record<string, unknown>).id as string) || null);
             setCurrentBookingPaid(((booking as Record<string, unknown>).payment_status as string | null) === "paid");
+            setCurrentBookingAmount(((booking as Record<string, unknown>).amount_isk as number | null) ?? 0);
+            setCurrentBookingScheduledAt(((booking as Record<string, unknown>).scheduled_at as string | null) ?? null);
             const pkg = (booking as Record<string, unknown>).package as string | null;
             if (pkg === "foundational" || pkg === "checkin" || pkg === "self-checkin") {
               setBodyCompPackage(pkg);
@@ -852,6 +857,85 @@ function AccountPageInner() {
     setUpgradeProcessing(false);
   };
 
+  // Shared cancel + (optional) refund helper for body_comp_bookings.
+  // Policy:
+  //   • unpaid draft          → plain confirm + cancel + release slot
+  //   • paid,  ≥ 48h away     → confirm with refund amount, then refund
+  //                              via Straumur, mark payment refunded, cancel
+  //                              the booking, release the slot
+  //   • paid,  < 48h away     → alert contact support; no state change
+  // Returns true if the booking was cancelled, false if nothing changed.
+  async function cancelCurrentBooking(reason: "change" | "cancel"): Promise<boolean> {
+    if (!currentBookingId) return false;
+    const action = reason === "change" ? "Change package" : "Cancel booking";
+    const scheduled = currentBookingScheduledAt ? new Date(currentBookingScheduledAt) : null;
+    const hoursUntil = scheduled ? (scheduled.getTime() - Date.now()) / 3_600_000 : Infinity;
+    const amount = currentBookingAmount || 0;
+
+    if (currentBookingPaid && amount > 0) {
+      if (hoursUntil < 48) {
+        alert(
+          `${action} is not available within 48 hours of your booking. Please email contact@lifelinehealth.is and we'll sort it out manually.`,
+        );
+        return false;
+      }
+      const human = amount.toLocaleString("is-IS");
+      const msg = reason === "change"
+        ? `Cancel your current booking and choose a different package? You'll receive a full refund of ${human} ISK to your card within 3–5 business days.`
+        : `Cancel your booking and refund ${human} ISK to your card within 3–5 business days?`;
+      if (!confirm(msg)) return false;
+      setCancelBusy(true);
+      try {
+        // Look up the succeeded payment row so we can mark it refunded and
+        // pass the provider reference to Straumur.
+        const { data: pay } = await supabase
+          .from("payments")
+          .select("id, provider_reference")
+          .eq("related_type", "body_comp_booking")
+          .eq("related_id", currentBookingId)
+          .eq("status", "succeeded")
+          .order("paid_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const providerRef = (pay as { provider_reference?: string } | null)?.provider_reference || currentBookingId;
+        const refund = await refundStraumurCharge({ providerReference: providerRef, amountIsk: amount });
+        if (!refund.ok) {
+          alert(`Refund failed: ${refund.error}. Your booking was not cancelled — please email contact@lifelinehealth.is.`);
+          return false;
+        }
+        const refundedAt = new Date().toISOString();
+        if (pay?.id) {
+          await supabase
+            .from("payments")
+            .update({ status: "refunded", refunded_at: refundedAt })
+            .eq("id", pay.id);
+        }
+        await supabase
+          .from("body_comp_bookings")
+          .update({ status: "cancelled", payment_status: "refunded" })
+          .eq("id", currentBookingId);
+        await supabase.rpc("release_station_slot");
+        return true;
+      } finally {
+        setCancelBusy(false);
+      }
+    }
+
+    // Unpaid draft
+    const msg = reason === "change"
+      ? "Cancel your current booking and choose a different package?"
+      : "Cancel your booking?";
+    if (!confirm(msg)) return false;
+    setCancelBusy(true);
+    try {
+      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
+      await supabase.rpc("release_station_slot");
+      return true;
+    } finally {
+      setCancelBusy(false);
+    }
+  }
+
   const handleChangePassword = async () => {
     setPasswordMsg("");
     const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -1105,14 +1189,8 @@ function AccountPageInner() {
                     completed={bodyCompStatus === "completed"}
                     onChangePackage={async () => {
                       if (!currentBookingId) { router.push("/account/book"); return; }
-                      if (currentBookingPaid) {
-                        alert("You've already paid for this package. To change or refund it, email contact@lifelinehealth.is — we'll handle it manually.");
-                        return;
-                      }
-                      if (!confirm("Cancel your Self Check-in and choose a different package?")) return;
-                      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
-                      await supabase.rpc("release_station_slot");
-                      router.push("/account/book");
+                      const done = await cancelCurrentBooking("change");
+                      if (done) router.push("/account/book");
                     }}
                   />
                 )}
@@ -1128,14 +1206,8 @@ function AccountPageInner() {
                     onGoToBiody={() => setBiodyEditOpen(true)}
                     onChangePackage={async () => {
                       if (!currentBookingId) { router.push("/account/book"); return; }
-                      if (currentBookingPaid) {
-                        alert("You've already paid for this package. To change or refund it, email contact@lifelinehealth.is — we'll handle it manually.");
-                        return;
-                      }
-                      if (!confirm("Cancel your Check-in and choose a different package?")) return;
-                      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
-                      await supabase.rpc("release_station_slot");
-                      router.push("/account/book");
+                      const done = await cancelCurrentBooking("change");
+                      if (done) router.push("/account/book");
                     }}
                     doctorAddonPaid={!!checkinDoctorAddonPaidAt}
                     payingDoctorAddon={payingCheckinDoctor}
@@ -1194,14 +1266,8 @@ function AccountPageInner() {
                 <JourneyTimeline
                   onChangePackage={!companyId && bodyCompStatus !== "none" ? async () => {
                     if (!currentBookingId) { router.push("/account/book"); return; }
-                    if (currentBookingPaid) {
-                      alert("You've already paid for this package. To change or refund it, email contact@lifelinehealth.is — we'll handle it manually.");
-                      return;
-                    }
-                    if (!confirm("Cancel your Foundational Health booking and choose a different package?")) return;
-                    await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
-                    await supabase.rpc("release_station_slot");
-                    router.push("/account/book");
+                    const done = await cancelCurrentBooking("change");
+                    if (done) router.push("/account/book");
                   } : undefined}
                   isB2C={!companyId}
                   hasOnboarded={true}
@@ -1248,9 +1314,21 @@ function AccountPageInner() {
                   bodyCompBookingAt={bodyCompBookingAt}
                   bodyCompStatus={bodyCompStatus}
                   bodyCompPackage={bodyCompPackage}
+                  cancelBusy={cancelBusy}
                   onChangeBcSlot={() => setBcPickerOpen(true)}
                   onChangeBloodDay={() => setBtPickerOpen(true)}
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
+                  onCancelBcBooking={async () => {
+                    const done = await cancelCurrentBooking("cancel");
+                    if (done) {
+                      setBodyCompStatus("none");
+                      setBodyCompBookingAt(null);
+                      setBodyCompPackage(null);
+                      setCurrentBookingId(null);
+                      setCurrentBookingPaid(false);
+                      setMySlotAt(null);
+                    }
+                  }}
                   onClearVideoPortal={async () => {
                     if (!confirm("Clear your video consultation confirmation?")) return;
                     await supabase.rpc("clear_video_consultation_portal");
@@ -3056,7 +3134,8 @@ function CurrentBookings({
   isB2C,
   mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot, videoPortalConfirmedAt,
   bodyCompBookingAt, bodyCompStatus, bodyCompPackage,
-  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onClearVideoPortal,
+  cancelBusy,
+  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onCancelBcBooking, onClearVideoPortal,
 }: {
   isB2C: boolean;
   mySlotAt: string | null;
@@ -3067,9 +3146,11 @@ function CurrentBookings({
   bodyCompBookingAt: string | null;
   bodyCompStatus: "none" | "booked" | "completed";
   bodyCompPackage: "foundational" | "checkin" | "self-checkin" | null;
+  cancelBusy: boolean;
   onChangeBcSlot: () => void;
   onChangeBloodDay: () => void;
   onChangeDoctorSlot: () => void;
+  onCancelBcBooking: () => void;
   onClearVideoPortal: () => void;
 }) {
   const hasB2CBodyComp = isB2C && bodyCompStatus === "booked" && !!bodyCompBookingAt;
@@ -3428,6 +3509,19 @@ function CurrentBookings({
                 <li>Targeted blood draw — fast from midnight</li>
                 <li>Results appear in your personal report</li>
               </ul>
+            </div>
+            <div className="mt-4 pt-4 border-t border-emerald-100/70 flex flex-wrap gap-2">
+              <button
+                onClick={onCancelBcBooking}
+                disabled={cancelBusy}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {cancelBusy ? "Cancelling…" : "Cancel booking"}
+              </button>
+              <span className="text-[11px] text-gray-500 self-center">Free refund up to 48 hours before your slot</span>
             </div>
           </div>
         ) : null;

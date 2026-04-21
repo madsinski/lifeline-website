@@ -45,14 +45,14 @@ export default function BookAssessmentPage() {
         setPhone((data.phone as string | null) || null);
       }
       // Guard: if the user already has an active PAID booking, they can't
-      // start a new one — we won't silently cancel paid bookings. Route back
-      // to dashboard with a message. Exception: the ?resume=<id> flow, which
-      // is resuming a pending draft, and admin-support flows can still work
-      // by contacting support.
+      // silently start a new one — we won't auto-cancel paid bookings. Route
+      // them back to dashboard where the Cancel booking button enforces the
+      // 48-hour refund policy. The ?resume=<id> flow is exempt because it's
+      // picking up the user's existing draft.
       if (!resumeBookingId) {
         const { data: paidActive } = await supabase
           .from("body_comp_bookings")
-          .select("id, package")
+          .select("id, scheduled_at")
           .eq("client_id", user.id)
           .eq("payment_status", "paid")
           .in("status", ["requested", "confirmed"])
@@ -60,7 +60,12 @@ export default function BookAssessmentPage() {
           .limit(1)
           .maybeSingle();
         if (paidActive) {
-          alert("You already have a paid booking. To change or refund it, email contact@lifelinehealth.is.");
+          const sched = (paidActive as { scheduled_at?: string | null }).scheduled_at;
+          const hoursUntil = sched ? (new Date(sched).getTime() - Date.now()) / 3_600_000 : Infinity;
+          const msg = hoursUntil >= 48
+            ? "You already have a paid booking. Cancel it from your dashboard first to get a full refund, then book a new package."
+            : "You already have a paid booking less than 48 hours away. Email contact@lifelinehealth.is to change or refund it.";
+          alert(msg);
           router.push("/account");
           return;
         }

@@ -86,3 +86,23 @@ export async function chargeSavedStraumurMethod(args: {
     providerReference: `stub_charge_${args.reference.slice(0, 8)}_${Date.now().toString(36)}`,
   };
 }
+
+// ─── Refunds ───────────────────────────────────────────────────────────────
+// Stub for now. Straumur's refund endpoint takes the original charge
+// reference and an amount (full or partial). Swap the body for the real
+// API call once credentials land.
+
+export type StraumurRefundResult =
+  | { ok: true; refundReference: string }
+  | { ok: false; error: string };
+
+export async function refundStraumurCharge(args: {
+  providerReference: string;  // The original charge's providerReference
+  amountIsk: number;          // Full amount for now (Foundational = 49900, etc.)
+}): Promise<StraumurRefundResult> {
+  await new Promise((r) => setTimeout(r, 800));
+  return {
+    ok: true,
+    refundReference: `stub_refund_${args.providerReference.slice(0, 16)}_${Date.now().toString(36)}`,
+  };
+}
