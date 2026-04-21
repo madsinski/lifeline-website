@@ -1032,8 +1032,20 @@ function AccountPageInner() {
                   <SelfCheckinJourney completed={bodyCompStatus === "completed"} />
                 )}
 
-                {/* Your journey timeline (hidden for B2C pre-booking and for Self Check-in) */}
-                {!(!companyId && bodyCompStatus === "none") && !(bodyCompPackage === "self-checkin") && (
+                {/* Check-in has its own 4-step journey: booked → Biody profile
+                    → measurement → optional doctor add-on. */}
+                {!companyId && bodyCompPackage === "checkin" && bodyCompStatus !== "none" && (
+                  <CheckinJourney
+                    biodyActivated={biodyActivated}
+                    bodyCompBookingAt={bodyCompBookingAt}
+                    completed={bodyCompStatus === "completed"}
+                    hasDoctorBooking={!!myDoctorSlot || !!videoPortalConfirmedAt}
+                    onGoToBiody={() => setBiodyEditOpen(true)}
+                  />
+                )}
+
+                {/* Your journey timeline (hidden for B2C pre-booking, Self Check-in, and Check-in) */}
+                {!(!companyId && bodyCompStatus === "none") && bodyCompPackage !== "self-checkin" && bodyCompPackage !== "checkin" && (
                 <JourneyTimeline
                   isB2C={!companyId}
                   hasOnboarded={true}
@@ -2455,6 +2467,109 @@ function SelfCheckinJourney({ completed }: { completed: boolean }) {
   );
 }
 
+// Check-in package: booked → activate Biody profile → measurement on the
+// scheduled date → (optional) doctor consultation add-on at 18,500 ISK →
+// view results in the patient portal.
+function CheckinJourney({
+  biodyActivated, bodyCompBookingAt, completed, hasDoctorBooking, onGoToBiody,
+}: {
+  biodyActivated: boolean;
+  bodyCompBookingAt: string | null;
+  completed: boolean;
+  hasDoctorBooking: boolean;
+  onGoToBiody: () => void;
+}) {
+  const slotLabel = bodyCompBookingAt
+    ? new Date(bodyCompBookingAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+    : null;
+  type S = { title: string; description: string; state: "done" | "active" | "pending"; cta?: React.ReactNode };
+  const steps: S[] = [
+    {
+      title: "Check-in booked",
+      description: "Your follow-up round is registered. See Current bookings below for the date and time.",
+      state: "done",
+    },
+    {
+      title: "Update and confirm your body-composition profile",
+      description: biodyActivated
+        ? "Your profile is synced with Biody. You can update details any time."
+        : "Confirm your height, weight and activity level so we can send your profile to Biody before the measurement.",
+      state: biodyActivated ? "done" : "active",
+      cta: (
+        <button onClick={onGoToBiody} className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-[#10B981] to-[#14B8A6] text-white hover:opacity-95">
+          {biodyActivated ? "Edit details" : "Activate profile"}
+        </button>
+      ),
+    },
+    {
+      title: "Measurement appointment",
+      description: completed
+        ? "Measurement complete. Your progress report is being prepared."
+        : slotLabel
+          ? `Scheduled for ${slotLabel}. See Current bookings below for directions.`
+          : "We'll confirm the time once your station slot is finalised.",
+      state: completed ? "done" : biodyActivated ? "active" : "pending",
+    },
+    {
+      title: "Doctor consultation",
+      description: hasDoctorBooking
+        ? "Your consultation is booked. See Current bookings below."
+        : "Optional add-on — book a 1:1 doctor review of your progress and an updated action plan. Charged separately at 18,500 kr.",
+      state: hasDoctorBooking ? "done" : "pending",
+      cta: hasDoctorBooking ? undefined : (
+        <a
+          href="mailto:contact@lifelinehealth.is?subject=Check-in%20doctor%20consultation&body=Hi%20Lifeline%2C%20I%27d%20like%20to%20add%20a%20doctor%20consultation%20to%20my%20Check-in%20round%20(18%2C500%20kr).%20Please%20send%20me%20an%20invoice%20and%20available%20times."
+          className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md border border-[#3B82F6] text-[#3B82F6] bg-white hover:bg-blue-50"
+        >
+          Add for 18,500 kr
+        </a>
+      ),
+    },
+    {
+      title: "View your results in the patient portal",
+      description: completed
+        ? "Your progress report, updated health score and refreshed plan are in Medalia."
+        : "After your measurement (and optional doctor review), your progress report lands in the Lifeline patient portal.",
+      state: completed ? "active" : "pending",
+      cta: completed ? <MedaliaButton label="Open patient portal" size="sm" /> : undefined,
+    },
+  ];
+
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
+        <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Check-in
+        </span>
+      </div>
+      <p className="text-sm text-[#6B7280] mb-6">Your follow-up round — track progress and refresh your plan.</p>
+      <ol className="relative border-l-2 border-gray-100 ml-4 space-y-5">
+        {steps.map((s, i) => {
+          const color = s.state === "done" ? "bg-emerald-500 text-white" : s.state === "active" ? "bg-[#10B981] text-white" : "bg-gray-200 text-gray-500";
+          return (
+            <li key={i} className="ml-6 relative">
+              <span className={`absolute -left-9 top-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold ${color}`}>
+                {s.state === "done" ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                ) : (
+                  <span>{i + 1}</span>
+                )}
+              </span>
+              <div>
+                <div className="font-semibold text-[#1F2937]">{s.title}</div>
+                <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">{s.description}</p>
+                {s.cta && <div className="mt-3">{s.cta}</div>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
 function JourneyTimeline({
   isB2C,
   hasOnboarded, biodyActivated, hasBodyCompSlot, hasBodyCompBooking, hasBodyCompCompleted, hasBloodTestBooking,
@@ -2644,6 +2759,16 @@ function JourneyTimeline({
         customBody,
       };
     })(),
+    // Final step — every package ends in the patient portal.
+    {
+      title: "View your results in the patient portal",
+      done: false,
+      active: hasBodyCompCompleted,
+      description: hasBodyCompCompleted
+        ? "Your report, health score and action plan are ready in Medalia."
+        : "Once your measurements, blood work and doctor consultation are done, your full personal report lands in the Lifeline patient portal.",
+      portal: true,
+    },
   ];
 
   return (
