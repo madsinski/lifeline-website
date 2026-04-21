@@ -79,16 +79,49 @@ function BookAssessmentContent() {
         }
       }
 
-      // Only cancel stale drafts (older than 30 min). Recent pending
-      // bookings are kept so the user can resume via ?resume=<id>.
-      const cutoff = new Date(Date.now() - 30 * 60_000).toISOString();
+      // Cancel stale drafts that have NO station_slot claim. A draft with a
+      // slot claim has already reached the Review/Pay stage — another tab
+      // might be mid-payment, and cancelling here would race their handlePay.
+      // handlePay's own re-select already protects against that edge case,
+      // but we still keep drafts-with-slots alive for 24h instead of 30min
+      // so the user's ?resume flow works for longer.
+      const cutoffFast = new Date(Date.now() - 30 * 60_000).toISOString();
+      const cutoffSlow = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+      // 1) Fast cutoff: drafts that never claimed a slot (abandoned at
+      //    package/schedule stage).
+      const { data: candidates } = await supabase
+        .from("body_comp_bookings")
+        .select("id")
+        .eq("client_id", user.id)
+        .eq("payment_status", "pending")
+        .eq("status", "requested")
+        .lt("created_at", cutoffFast);
+      const candidateIds = (candidates || []).map((r) => (r as { id: string }).id);
+      if (candidateIds.length > 0) {
+        const { data: claimed } = await supabase
+          .from("station_slots")
+          .select("booking_id")
+          .in("booking_id", candidateIds)
+          .is("completed_at", null);
+        const claimedIds = new Set((claimed || []).map((r) => (r as { booking_id: string }).booking_id));
+        const unclaimedIds = candidateIds.filter((id) => !claimedIds.has(id));
+        if (unclaimedIds.length > 0) {
+          await supabase
+            .from("body_comp_bookings")
+            .update({ status: "cancelled" })
+            .in("id", unclaimedIds);
+        }
+      }
+      // 2) Slow cutoff: drafts with station_slot claims older than 24h.
+      //    That's long enough that the user has clearly abandoned payment,
+      //    and beyond that the slot should go back into the pool.
       await supabase
         .from("body_comp_bookings")
         .update({ status: "cancelled" })
         .eq("client_id", user.id)
         .eq("payment_status", "pending")
         .eq("status", "requested")
-        .lt("created_at", cutoff);
+        .lt("created_at", cutoffSlow);
 
       // Release ONLY orphaned station_slot claims — those whose referenced
       // body_comp_booking is cancelled. Preserve admin-set claims (booking_id
@@ -186,6 +219,12 @@ function BookAssessmentContent() {
         related_id: id,
         paid_at: paidAt,
       });
+      // Fire-and-forget booking confirmation email (Self Check-in flow).
+      fetch("/api/bookings/confirmed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: id }),
+      }).catch(() => {});
       setStage("done");
       return;
     }
@@ -348,6 +387,13 @@ function BookAssessmentContent() {
       setPaying(false);
       return;
     }
+
+    // Fire-and-forget booking confirmation email (paid flow).
+    fetch("/api/bookings/confirmed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId }),
+    }).catch(() => {});
 
     setPaying(false);
     setStage("done");

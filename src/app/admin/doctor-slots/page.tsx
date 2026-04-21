@@ -81,14 +81,25 @@ export default function DoctorSlotsAdminPage() {
 
   async function deleteSlot(id: string) {
     const slot = slots.find((s) => s.id === id);
+    let reason = "";
     if (slot?.client_id) {
-      if (!confirm("This slot is booked by a client. Deleting it will silently remove their doctor consultation — they won't be notified. Are you absolutely sure?")) return;
+      if (!confirm("This slot is booked by a client. Deleting it will cancel their doctor consultation and email them a notification. Continue?")) return;
+      reason = window.prompt("Optional: reason to include in the email (e.g. 'Doctor out sick — please rebook').") || "";
+      // Fire the notification BEFORE we delete the row, so we can still read
+      // the client_id + slot details from the DB.
+      try {
+        await fetch("/api/bookings/doctor-slot-deleted", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slotId: id, reason }),
+        });
+      } catch {}
     } else {
       if (!confirm("Delete this slot?")) return;
     }
     const { error } = await supabase.from("doctor_slots").delete().eq("id", id);
     if (error) { setMsg(`Delete failed: ${error.message}`); return; }
-    setMsg("Deleted.");
+    setMsg(slot?.client_id ? "Deleted and client notified." : "Deleted.");
     load();
   }
 
