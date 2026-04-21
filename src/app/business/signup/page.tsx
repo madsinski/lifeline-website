@@ -7,8 +7,16 @@ import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import BusinessHeader from "../BusinessHeader";
 import { cleanKennitala, isValidKennitala, formatKennitala } from "@/lib/kennitala";
+import {
+  TOS_KEY,
+  TOS_VERSION,
+  DPA_KEY,
+  DPA_VERSION,
+  renderTermsOfService,
+  renderDataProcessingAgreement,
+} from "@/lib/platform-terms-content";
 
-const AGREEMENT_VERSION = "1.0";
+const AGREEMENT_VERSION = "1.0"; // legacy column on companies — kept for backwards compat
 
 type Step = "auth" | "agreement" | "company" | "done";
 
@@ -30,7 +38,8 @@ export default function BusinessSignupPage() {
   const [fullName, setFullName] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 
-  const [agreementChecked, setAgreementChecked] = useState(false);
+  const [tosChecked, setTosChecked] = useState(false);
+  const [dpaChecked, setDpaChecked] = useState(false);
 
   const [companyName, setCompanyName] = useState("");
   const [companyKennitala, setCompanyKennitala] = useState("");
@@ -51,7 +60,16 @@ export default function BusinessSignupPage() {
           router.replace("/business");
           return;
         }
-        setStep("agreement");
+
+        // Skip the agreement step if they've already accepted both current
+        // versions (returning users creating an additional company).
+        const { data: accRows } = await supabase
+          .from("platform_agreement_acceptances")
+          .select("document_key, document_version")
+          .eq("user_id", data.user.id);
+        const accepted = new Set((accRows ?? []).map((r: { document_key: string; document_version: string }) => `${r.document_key}@${r.document_version}`));
+        const alreadyAccepted = accepted.has(`${TOS_KEY}@${TOS_VERSION}`) && accepted.has(`${DPA_KEY}@${DPA_VERSION}`);
+        setStep(alreadyAccepted ? "company" : "agreement");
       }
       setLoading(false);
     })();
@@ -102,9 +120,39 @@ export default function BusinessSignupPage() {
     }
   };
 
-  const handleAgreement = () => {
-    if (!agreementChecked) return;
-    setStep("company");
+  const handleAgreement = async () => {
+    if (!tosChecked || !dpaChecked) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) authHeaders.Authorization = `Bearer ${token}`;
+
+      const acceptOne = async (key: string, version: string) => {
+        const r = await fetch("/api/platform/accept-terms", {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({ document_key: key, document_version: version }),
+        });
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          throw new Error(j.detail || j.error || `Failed to record acceptance for ${key}`);
+        }
+      };
+
+      // Record both acceptances. Order doesn't matter — idempotent via unique index.
+      await Promise.all([
+        acceptOne(TOS_KEY, TOS_VERSION),
+        acceptOne(DPA_KEY, DPA_VERSION),
+      ]);
+      setStep("company");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCreateCompany = async (e: React.FormEvent) => {
@@ -216,44 +264,69 @@ export default function BusinessSignupPage() {
         )}
 
         {step === "agreement" && (
-          <section className="bg-white rounded-2xl p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold mb-4">Service agreement</h1>
-            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 text-sm text-gray-700 bg-gray-50 mb-4 space-y-3">
-              <p><strong>Lifeline Health Business Service Agreement v{AGREEMENT_VERSION}</strong></p>
-              <p>
-                By continuing, your organization agrees to Lifeline Health&apos;s standard business terms
-                of service, data processing agreement, and privacy policy. Lifeline acts as a data
-                processor for employee health data your employees choose to share, and as a data
-                controller for platform operations.
+          <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
+            <header>
+              <h1 className="text-2xl font-semibold">Platform terms &amp; data processing</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Two documents cover your use of the Lifeline portal and how we handle your employees&apos; data under GDPR /
+                Icelandic law nr. 90/2018. Please read and accept both. Your separate commercial service agreement is
+                signed later, once your programme is set up.
               </p>
-              <p>
-                <strong>What your employees share with Lifeline:</strong> name, kennitala, contact info,
-                sex, height, weight, activity level, and (when they visit a clinic) body composition
-                measurements.
-              </p>
-              <p>
-                <strong>What you, as the contact person, can see:</strong> whether each employee has
-                completed onboarding. You cannot see their health data.
-              </p>
-              <p>
-                Full legal text is available at{" "}
-                <Link href="/terms" className="text-blue-600 hover:underline">lifelinehealth.is/terms</Link>.
-              </p>
+            </header>
+
+            {/* Terms of Service */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">1. Notkunarskilmálar (Terms of Service) — {TOS_VERSION}</h2>
+              <p className="text-xs text-gray-500 mb-2">How you and your team use the Lifeline portal.</p>
+              <pre className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+{renderTermsOfService()}
+              </pre>
+              <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={tosChecked}
+                  onChange={(e) => setTosChecked(e.target.checked)}
+                  className="mt-1"
+                />
+                <span className="text-sm text-gray-700">
+                  Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd fyrirtækisins.
+                </span>
+              </label>
             </div>
-            <label className="flex items-start gap-2 mb-6 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={agreementChecked}
-                onChange={(e) => setAgreementChecked(e.target.checked)}
-                className="mt-1"
-              />
-              <span className="text-sm text-gray-700">
-                I confirm I have the authority to bind my organization and I accept the agreement
-                above (v{AGREEMENT_VERSION}).
-              </span>
-            </label>
-            <button onClick={handleAgreement} disabled={!agreementChecked} className="btn-primary w-full">
-              Accept &amp; continue
+
+            {/* Data Processing Agreement */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">2. Vinnslusamningur (Data Processing Agreement) — {DPA_VERSION}</h2>
+              <p className="text-xs text-gray-500 mb-2">How Lifeline processes your employees&apos; personal data.</p>
+              <pre className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+{renderDataProcessingAgreement()}
+              </pre>
+              <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={dpaChecked}
+                  onChange={(e) => setDpaChecked(e.target.checked)}
+                  className="mt-1"
+                />
+                <span className="text-sm text-gray-700">
+                  Ég staðfesti heimild mína til að binda fyrirtækið og samþykki Vinnslusamninginn ({DPA_VERSION}).
+                </span>
+              </label>
+            </div>
+
+            {error && <div className="text-sm text-red-600">{error}</div>}
+
+            <p className="text-xs text-gray-500">
+              Tímastimpill, IP-tala og vafraauðkenni verða skráð sem hluti af samþykkinu.{" "}
+              <Link href="/terms" className="text-blue-600 hover:underline">Skoða á opinberri síðu →</Link>
+            </p>
+
+            <button
+              onClick={handleAgreement}
+              disabled={!tosChecked || !dpaChecked || submitting}
+              className="btn-primary w-full"
+            >
+              {submitting ? "Saving…" : "Accept both & continue"}
             </button>
           </section>
         )}
