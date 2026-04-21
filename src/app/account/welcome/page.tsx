@@ -128,7 +128,7 @@ export default function AccountWelcomePage() {
             </div>
             <div className="sm:col-span-2">
               <div className="text-sm text-[#64748B] mb-1">
-                {t("b2b.welcome.team.with_love", "With care,")}
+                {t("b2b.welcome.team.with_love", "Welcome aboard,")}
               </div>
               <div
                 className="text-xl sm:text-2xl text-[#334155] leading-tight -rotate-1 inline-block"
@@ -140,7 +140,7 @@ export default function AccountWelcomePage() {
                 {t("b2b.welcome.team.signature", "— The Lifeline team")}
               </div>
               <p className="mt-3 text-xs text-[#64748B] leading-relaxed">
-                {t("b2b.welcome.team.note", "Physicians, coaches and engineers — all working to make your health journey genuinely easier.")}
+                {t("b2b.welcome.team.note", "Medical doctors, nurses, and health coaches — working with you to improve your health.")}
               </p>
             </div>
           </div>
