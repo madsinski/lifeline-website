@@ -127,23 +127,24 @@ export function renderB2bIntroEmail(params: {
 
 We'd like to introduce Lifeline Health — a medical-grade preventive-health programme that comes to your workplace.
 
-Most company health benefits are noise. Bulk 50-marker blood panels nobody reads. Online questionnaires no clinician ever sees. Or they're shallow perks that have nothing to do with whether your people are actually healthier a year from now.
+Most workplace health benefits are noise. Bulk 50-marker blood panels nobody reads. Online questionnaires no clinician ever sees. Or shallow perks that have nothing to do with whether your people are actually healthier a year from now.
 
-Lifeline is the opposite. An Icelandic medical team (licensed by Embætti landlæknis) builds a real clinical picture of each employee — then writes a short, plain-language plan each person can actually follow.
+Lifeline is the opposite. An Icelandic medical team, licensed by Embætti landlæknis, builds a real clinical picture of each employee — then writes a detailed, doctor-reviewed report and a personal action plan each person can actually follow.
 
 WHAT EVERY EMPLOYEE GETS
-  • On-site measurements — blood pressure and body composition, 5 min per person, our nurse visits your office
-  • Targeted blood panel — at partner lab during work hours, walk-in
-  • Doctor-reviewed report — one page, three numbers that matter, a clear plan
-  • 1-on-1 doctor consultation — personal review + evidence-based action plan
-  • Coaching app (optional) — daily actions, coach, community
+  01  Clinical questionnaire — lifestyle, family history, symptoms — reviewed by a doctor
+  02  On-site measurements — blood pressure, body composition (Biody), 5 min per person, our nurse visits your office
+  03  Targeted blood panel — at a Sameind clinic during work hours, walk-in
+  04  Detailed medical report — validated risk scoring (SCORE2) + Lifeline models, plus a personal, actionable health plan
+  05  1-on-1 doctor consultation — personal review of the report and action plan
+  06  Coaching app (optional) — daily actions, health coach, community — between assessments
 
 HOW IT WORKS
   1. Kick-off call — we scope programme, headcount, and timing (30 min)
   2. Upload roster — employees get a 2-minute consent-first signup
   3. Measurement day — our nurse visits on-site
-  4. Blood test at partner lab
-  5. Report + doctor consultation → personal action plan
+  4. Blood test at Sameind
+  5. Detailed report + doctor consultation → personal action plan
 
 From kick-off to employee action plans in weeks, not quarters.
 
@@ -171,28 +172,28 @@ Lifeline Health ehf. · kt. 590925-1440`;
 
     <!-- Hero -->
     <div style="background:linear-gradient(135deg,#0F172A,#065F46);padding:40px 32px 36px;color:white;position:relative;">
-      <p style="margin:0 0 10px;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;opacity:0.65;font-weight:600;">Lifeline Health for Business</p>
+      <p style="margin:0 0 10px;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;opacity:0.7;font-weight:600;color:#A7F3D0;">Lifeline Health for Business</p>
       <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-0.01em;">Real preventive health,<br/>delivered at the workplace.</h1>
-      <p style="margin:0;font-size:15px;opacity:0.9;line-height:1.55;max-width:520px;">Hi ${escapeHtml(firstName)} — a quick introduction to an Icelandic medical programme that measures what actually moves long-term health, then gives every employee a one-page plan a doctor wrote for them.</p>
+      <p style="margin:0;font-size:15px;opacity:0.9;line-height:1.55;max-width:520px;">Hi ${escapeHtml(firstName)} — a quick introduction to an Icelandic medical programme that builds a proper clinical picture of every employee, then delivers a detailed doctor-reviewed report and a personal action plan.</p>
     </div>
 
     <!-- Stat strip -->
     <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#F8FAFC;border-bottom:1px solid #E2E8F0;">
       <tr>
         <td style="padding:18px 8px;text-align:center;border-right:1px solid #E2E8F0;">
-          <div style="font-size:22px;font-weight:700;color:#0F172A;letter-spacing:-0.01em;">5 min</div>
+          <div style="font-size:22px;font-weight:700;color:#10B981;letter-spacing:-0.01em;">5 min</div>
           <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px;">per employee<br/>on-site</div>
         </td>
         <td style="padding:18px 8px;text-align:center;border-right:1px solid #E2E8F0;">
-          <div style="font-size:22px;font-weight:700;color:#0F172A;letter-spacing:-0.01em;">1 page</div>
-          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px;">doctor-written<br/>report</div>
+          <div style="font-size:22px;font-weight:700;color:#10B981;letter-spacing:-0.01em;">Doctor-led</div>
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px;">every report<br/>reviewed</div>
         </td>
         <td style="padding:18px 8px;text-align:center;border-right:1px solid #E2E8F0;">
-          <div style="font-size:22px;font-weight:700;color:#0F172A;letter-spacing:-0.01em;">1-on-1</div>
+          <div style="font-size:22px;font-weight:700;color:#10B981;letter-spacing:-0.01em;">1-on-1</div>
           <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px;">doctor<br/>consultation</div>
         </td>
         <td style="padding:18px 8px;text-align:center;">
-          <div style="font-size:22px;font-weight:700;color:#0F172A;letter-spacing:-0.01em;">100%</div>
+          <div style="font-size:22px;font-weight:700;color:#10B981;letter-spacing:-0.01em;">100%</div>
           <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px;">confidential<br/>records</div>
         </td>
       </tr>
@@ -208,50 +209,32 @@ Lifeline Health ehf. · kt. 590925-1440`;
         Lifeline is the opposite. A practising medical team builds a real clinical picture of each employee, then writes a short, plain-language plan each person can actually follow.
       </p>
 
-      <!-- What every employee gets -->
+      <!-- What every employee gets — monochrome brand cards with numbered badges -->
       <p style="margin:0 0 14px;color:#0F172A;font-weight:700;font-size:17px;letter-spacing:-0.01em;">What every employee gets</p>
       <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-bottom:28px;">
+        ${[
+          { n: "01", t: "Clinical questionnaire", d: "Lifestyle, family history, symptoms — structured and reviewed by a Lifeline doctor." },
+          { n: "02", t: "On-site measurements", d: "Blood pressure and body composition (Biody) — 5 minutes per person, our nurse visits your office." },
+          { n: "03", t: "Targeted blood panel", d: "At a Sameind clinic during work hours. Walk-in, no appointment required." },
+          { n: "04", t: "Detailed medical report and action plan", d: "Validated risk scoring (SCORE2) + Lifeline's own models. Findings, priorities, and a concrete personal action plan." },
+          { n: "05", t: "1-on-1 doctor consultation", d: "Personal review of the report with a Lifeline doctor. Questions answered, next steps confirmed." },
+          { n: "06", t: "Coaching app <span style=\"color:#64748B;font-weight:500;font-size:11.5px;\">(optional)</span>", d: "Daily actions, health coach, community, nutrition tracking — for employees who want to keep improving between assessments." },
+        ].map((s) => `
         <tr>
-          <td style="width:50%;padding:10px 10px 10px 0;vertical-align:top;">
-            <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:22px;margin-bottom:6px;">🩺</div>
-              <div style="font-weight:700;color:#065F46;font-size:13.5px;margin-bottom:4px;">On-site measurements</div>
-              <div style="color:#166534;font-size:12.5px;line-height:1.5;">Blood pressure + body composition in 5-min slots. Our nurse visits your office.</div>
-            </div>
+          <td style="padding:8px 0;vertical-align:top;">
+            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:white;border:1px solid #E2E8F0;border-radius:12px;">
+              <tr>
+                <td style="width:56px;padding:16px 0 16px 18px;vertical-align:top;">
+                  <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#10B981);color:white;text-align:center;font-weight:700;font-size:12.5px;letter-spacing:0.5px;line-height:36px;">${s.n}</div>
+                </td>
+                <td style="padding:16px 18px 16px 10px;vertical-align:top;">
+                  <div style="font-weight:700;color:#0F172A;font-size:14px;margin-bottom:3px;">${s.t}</div>
+                  <div style="color:#475569;font-size:12.5px;line-height:1.55;">${s.d}</div>
+                </td>
+              </tr>
+            </table>
           </td>
-          <td style="width:50%;padding:10px 0 10px 10px;vertical-align:top;">
-            <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:22px;margin-bottom:6px;">🧪</div>
-              <div style="font-weight:700;color:#1E3A8A;font-size:13.5px;margin-bottom:4px;">Targeted blood panel</div>
-              <div style="color:#1E40AF;font-size:12.5px;line-height:1.5;">At partner lab, during work hours. Walk-in — no appointment.</div>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td style="width:50%;padding:10px 10px 10px 0;vertical-align:top;">
-            <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:22px;margin-bottom:6px;">📄</div>
-              <div style="font-weight:700;color:#78350F;font-size:13.5px;margin-bottom:4px;">Doctor-reviewed report</div>
-              <div style="color:#92400E;font-size:12.5px;line-height:1.5;">One page. Three numbers that matter. A clear plan. No jargon.</div>
-            </div>
-          </td>
-          <td style="width:50%;padding:10px 0 10px 10px;vertical-align:top;">
-            <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:22px;margin-bottom:6px;">👩‍⚕️</div>
-              <div style="font-weight:700;color:#4C1D95;font-size:13.5px;margin-bottom:4px;">Doctor consultation</div>
-              <div style="color:#5B21B6;font-size:12.5px;line-height:1.5;">1-on-1 personal review. Evidence-based action plan.</div>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2" style="padding:10px 0 0 0;vertical-align:top;">
-            <div style="background:linear-gradient(135deg,#F8FAFC,#F1F5F9);border:1px solid #E2E8F0;border-radius:12px;padding:14px 18px;">
-              <div style="font-size:22px;margin-bottom:6px;">📱</div>
-              <div style="font-weight:700;color:#0F172A;font-size:13.5px;margin-bottom:4px;">Coaching app <span style="color:#64748B;font-weight:500;font-size:11.5px;">(optional)</span></div>
-              <div style="color:#334155;font-size:12.5px;line-height:1.5;">Daily actions, health coach, community, macro tracking. Employees who want to keep improving between assessments.</div>
-            </div>
-          </td>
-        </tr>
+        </tr>`).join("")}
       </table>
 
       <!-- How it works — timeline -->
@@ -279,42 +262,32 @@ Lifeline Health ehf. · kt. 590925-1440`;
         From kick-off to employee action plans in weeks, not quarters.
       </p>
 
-      <!-- Built right -->
+      <!-- Built right — monochrome brand-tinted -->
       <p style="margin:0 0 14px;color:#0F172A;font-weight:700;font-size:17px;letter-spacing:-0.01em;">Built right</p>
       <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-bottom:20px;">
+        ${[
+          { t: "Landlæknir licensed", d: "Practising under a licence from Embætti landlæknis (Directorate of Health). Medical doctors, nurses, and health coaches." },
+          { t: "FHIR-certified medical record", d: "All health data stored in Medalia, the Icelandic FHIR-certified sjúkraskrá (lög nr. 55/2009)." },
+          { t: "GDPR + Icelandic privacy law", d: "Compliant with GDPR and lög nr. 90/2018. Employers see only anonymised group trends, never individual data." },
+          { t: "Pay per employee", d: "No bulk-package upsell. Transparent pricing — only for what you use." },
+        ].map((s) => `
         <tr>
-          <td style="width:50%;padding:8px 8px 8px 0;vertical-align:top;">
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;height:100%;">
-              <div style="font-weight:700;color:#0F172A;font-size:12.5px;margin-bottom:3px;">⚕️ Landlæknir licensed</div>
-              <div style="color:#64748B;font-size:11.5px;line-height:1.5;">Practising under a licence from Embætti landlæknis (Directorate of Health).</div>
-            </div>
+          <td style="padding:6px 0;vertical-align:top;">
+            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:8px;">
+              <tr>
+                <td style="padding:12px 16px;">
+                  <div style="font-weight:700;color:#0F172A;font-size:13px;margin-bottom:3px;">${s.t}</div>
+                  <div style="color:#64748B;font-size:12px;line-height:1.55;">${s.d}</div>
+                </td>
+              </tr>
+            </table>
           </td>
-          <td style="width:50%;padding:8px 0 8px 8px;vertical-align:top;">
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;height:100%;">
-              <div style="font-weight:700;color:#0F172A;font-size:12.5px;margin-bottom:3px;">🗂️ FHIR-certified EHR</div>
-              <div style="color:#64748B;font-size:11.5px;line-height:1.5;">Records stored in Medalia, the Icelandic medical record system.</div>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td style="width:50%;padding:8px 8px 8px 0;vertical-align:top;">
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;height:100%;">
-              <div style="font-weight:700;color:#0F172A;font-size:12.5px;margin-bottom:3px;">🔒 GDPR-compliant</div>
-              <div style="color:#64748B;font-size:11.5px;line-height:1.5;">Employers see only anonymised group trends. Never individual data.</div>
-            </div>
-          </td>
-          <td style="width:50%;padding:8px 0 8px 8px;vertical-align:top;">
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;height:100%;">
-              <div style="font-weight:700;color:#0F172A;font-size:12.5px;margin-bottom:3px;">💸 Pay per employee</div>
-              <div style="color:#64748B;font-size:11.5px;line-height:1.5;">Only for what you use. No bulk-package upsell.</div>
-            </div>
-          </td>
-        </tr>
+        </tr>`).join("")}
       </table>
 
       <!-- Confidentiality callout -->
       <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:14px 18px;border-radius:12px;margin:0 0 32px;color:#065F46;font-size:13px;line-height:1.65;">
-        <strong style="font-size:13.5px;">🔒 Privacy first.</strong> Every employee owns their own health record. Employers receive only anonymised group trends (masked below 5 responses). Individual results are never shared with the company.
+        <strong style="font-size:13.5px;">Privacy first.</strong> Every employee owns their own health record. Employers receive only anonymised group trends (masked below 5 responses). Individual results are never shared with the company.
       </div>
 
       <!-- CTA -->
