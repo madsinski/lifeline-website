@@ -76,7 +76,7 @@ export async function POST(
     description: `Lifeline health assessments for ${company.name}`,
     currencyCode: "ISK",
     createClaim: createClaim ?? true,
-    createElectronicInvoice: createElectronicInvoice ?? true,
+    createElectronicInvoice: createElectronicInvoice ?? false,
     sendEmail: sendEmail ?? true,
     reference: `lifeline:company:${companyId}`,
     lines: [
