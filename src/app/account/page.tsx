@@ -1123,6 +1123,12 @@ function AccountPageInner() {
                 {/* Your journey timeline (hidden for B2C pre-booking, Self Check-in, and Check-in) */}
                 {!(!companyId && bodyCompStatus === "none") && bodyCompPackage !== "self-checkin" && bodyCompPackage !== "checkin" && (
                 <JourneyTimeline
+                  onChangePackage={!companyId && bodyCompStatus !== "none" ? async () => {
+                    if (!currentBookingId) { router.push("/account/book"); return; }
+                    if (!confirm("Cancel your Foundational Health booking and choose a different package? Refunds for paid packages are handled manually — contact contact@lifelinehealth.is if you've already paid.")) return;
+                    await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
+                    router.push("/account/book");
+                  } : undefined}
                   isB2C={!companyId}
                   hasOnboarded={true}
                   biodyActivated={biodyActivated}
@@ -2710,6 +2716,7 @@ function JourneyTimeline({
   hasInPersonDoctorBooking, hasAvailableInPersonSlots, hasVideoPortalConfirmed, videoConfirmBusy,
   onPickBodyCompSlot, onPickBloodTestDay, onPickInPersonDoctorSlot,
   onConfirmVideoPortal, onClearVideoPortal, onGoToBiody,
+  onChangePackage,
 }: {
   isB2C: boolean;
   hasOnboarded: boolean;
@@ -2730,6 +2737,7 @@ function JourneyTimeline({
   onConfirmVideoPortal: () => void;
   onClearVideoPortal: () => void;
   onGoToBiody: () => void;
+  onChangePackage?: () => void | Promise<void>;
 }) {
   const eventLabel = companyEvent
     ? `${new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}${companyEvent.location ? ` · ${companyEvent.location}` : ""}`
@@ -2906,7 +2914,20 @@ function JourneyTimeline({
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Your journey</h3>
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
+        <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
+        {isB2C && onChangePackage ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
+              Change package
+            </button>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              Foundational
+            </span>
+          </div>
+        ) : null}
+      </div>
       <p className="text-sm text-[#6B7280] mb-6">Where you are in the Lifeline programme.</p>
       <ol className="relative border-l-2 border-gray-100 ml-4">
         {steps.map((s, i) => {
