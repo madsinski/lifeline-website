@@ -114,6 +114,7 @@ function AccountPageInner() {
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
+  const [currentBookingPaid, setCurrentBookingPaid] = useState(false);
   const [pendingBooking, setPendingBooking] = useState<{ id: string; package: string | null; scheduled_at: string | null } | null>(null);
   const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
   const [payingCheckinDoctor, setPayingCheckinDoctor] = useState(false);
@@ -383,6 +384,7 @@ function AccountPageInner() {
               setBodyCompBookingAt(booking.scheduled_at || null);
             }
             setCurrentBookingId(((booking as Record<string, unknown>).id as string) || null);
+            setCurrentBookingPaid(((booking as Record<string, unknown>).payment_status as string | null) === "paid");
             const pkg = (booking as Record<string, unknown>).package as string | null;
             if (pkg === "foundational" || pkg === "checkin" || pkg === "self-checkin") {
               setBodyCompPackage(pkg);
@@ -1103,6 +1105,10 @@ function AccountPageInner() {
                     completed={bodyCompStatus === "completed"}
                     onChangePackage={async () => {
                       if (!currentBookingId) { router.push("/account/book"); return; }
+                      if (currentBookingPaid) {
+                        alert("You've already paid for this package. To change or refund it, email contact@lifelinehealth.is — we'll handle it manually.");
+                        return;
+                      }
                       if (!confirm("Cancel your Self Check-in and choose a different package?")) return;
                       await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
                       await supabase.rpc("release_station_slot");
@@ -1122,7 +1128,11 @@ function AccountPageInner() {
                     onGoToBiody={() => setBiodyEditOpen(true)}
                     onChangePackage={async () => {
                       if (!currentBookingId) { router.push("/account/book"); return; }
-                      if (!confirm("Cancel your Check-in and choose a different package? Refunds for paid packages are handled manually — contact contact@lifelinehealth.is if you've already paid.")) return;
+                      if (currentBookingPaid) {
+                        alert("You've already paid for this package. To change or refund it, email contact@lifelinehealth.is — we'll handle it manually.");
+                        return;
+                      }
+                      if (!confirm("Cancel your Check-in and choose a different package?")) return;
                       await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
                       await supabase.rpc("release_station_slot");
                       router.push("/account/book");
@@ -1184,7 +1194,11 @@ function AccountPageInner() {
                 <JourneyTimeline
                   onChangePackage={!companyId && bodyCompStatus !== "none" ? async () => {
                     if (!currentBookingId) { router.push("/account/book"); return; }
-                    if (!confirm("Cancel your Foundational Health booking and choose a different package? Refunds for paid packages are handled manually — contact contact@lifelinehealth.is if you've already paid.")) return;
+                    if (currentBookingPaid) {
+                      alert("You've already paid for this package. To change or refund it, email contact@lifelinehealth.is — we'll handle it manually.");
+                      return;
+                    }
+                    if (!confirm("Cancel your Foundational Health booking and choose a different package?")) return;
                     await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
                     await supabase.rpc("release_station_slot");
                     router.push("/account/book");

@@ -44,6 +44,28 @@ export default function BookAssessmentPage() {
         setFullName((data.full_name as string) || "");
         setPhone((data.phone as string | null) || null);
       }
+      // Guard: if the user already has an active PAID booking, they can't
+      // start a new one — we won't silently cancel paid bookings. Route back
+      // to dashboard with a message. Exception: the ?resume=<id> flow, which
+      // is resuming a pending draft, and admin-support flows can still work
+      // by contacting support.
+      if (!resumeBookingId) {
+        const { data: paidActive } = await supabase
+          .from("body_comp_bookings")
+          .select("id, package")
+          .eq("client_id", user.id)
+          .eq("payment_status", "paid")
+          .in("status", ["requested", "confirmed"])
+          .gt("amount_isk", 0)
+          .limit(1)
+          .maybeSingle();
+        if (paidActive) {
+          alert("You already have a paid booking. To change or refund it, email contact@lifelinehealth.is.");
+          router.push("/account");
+          return;
+        }
+      }
+
       // Only cancel stale drafts (older than 30 min). Recent pending
       // bookings are kept so the user can resume via ?resume=<id>.
       const cutoff = new Date(Date.now() - 30 * 60_000).toISOString();
