@@ -284,6 +284,22 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
           </div>
         </div>
 
+        {/* Team greeting */}
+        <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center gap-5">
+          <div className="sm:w-1/2 rounded-xl overflow-hidden">
+            <img src="/team-photo.png" alt="The Lifeline team" className="w-full h-auto object-cover rounded-xl" />
+          </div>
+          <div className="sm:w-1/2">
+            <p className="text-sm text-gray-500 mb-1">{t("onboard.welcome.team.care", "With care,")}</p>
+            <p className="text-xl text-gray-800 leading-tight" style={{ fontFamily: "'Caveat', 'Segoe Script', cursive" }}>
+              {t("onboard.welcome.team.signature", "— The Lifeline team")}
+            </p>
+            <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+              {t("onboard.welcome.team.note", "Physicians, coaches and engineers — all working to make your health journey genuinely easier.")}
+            </p>
+          </div>
+        </div>
+
         <div className="flex justify-end">
           <button onClick={onContinue} className="btn-primary">{t("onboard.welcome.cta", "Let's get started")}</button>
         </div>

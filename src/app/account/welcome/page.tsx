@@ -111,7 +111,7 @@ export default function AccountWelcomePage() {
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-5 gap-6 items-center">
             <div className="sm:col-span-3 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-100 via-white to-emerald-100 aspect-[16/9] relative border border-gray-100">
               <Image
-                src="/team-photo.jpg"
+                src="/team-photo.png"
                 alt={t("b2b.welcome.team.alt", "The Lifeline team")}
                 fill
                 sizes="(max-width: 640px) 100vw, 60vw"
