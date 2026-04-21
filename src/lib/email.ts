@@ -135,9 +135,9 @@ WHAT EVERY EMPLOYEE GETS
   01  Clinical questionnaire — lifestyle, family history, symptoms — reviewed by a doctor
   02  On-site measurements — blood pressure, body composition (Biody), 5 min per person, our nurse visits your office
   03  Targeted blood panel — at a Sameind clinic during work hours, walk-in
-  04  Detailed medical report — validated risk scoring (SCORE2) + Lifeline models, plus a personal, actionable health plan
+  04  Detailed medical report and action plan — we score medical and behavioural aspects of the four pillars of health (sleep, exercise, nutrition, mental wellbeing) plus metabolic blood tests and body measurements. A real, understandable picture of each person's health. The action plan translates it into concrete, achievable tasks.
   05  1-on-1 doctor consultation — personal review of the report and action plan
-  06  Coaching app (optional) — daily actions, health coach, community — between assessments
+  06  Coaching app (optional) — daily actions, dedicated health coach, personalised programs across the four pillars, macro tracking, wearable integration, weigh-ins, education, community, accountability partner
 
 HOW IT WORKS
   1. Kick-off call — we scope programme, headcount, and timing (30 min)
@@ -216,9 +216,9 @@ Lifeline Health ehf. · kt. 590925-1440`;
           { n: "01", t: "Clinical questionnaire", d: "Lifestyle, family history, symptoms — structured and reviewed by a Lifeline doctor." },
           { n: "02", t: "On-site measurements", d: "Blood pressure and body composition (Biody) — 5 minutes per person, our nurse visits your office." },
           { n: "03", t: "Targeted blood panel", d: "At a Sameind clinic during work hours. Walk-in, no appointment required." },
-          { n: "04", t: "Detailed medical report and action plan", d: "Validated risk scoring (SCORE2) + Lifeline's own models. Findings, priorities, and a concrete personal action plan." },
+          { n: "04", t: "Detailed medical report and action plan", d: "We score medical and behavioural aspects of the four pillars of health — sleep, exercise, nutrition, mental wellbeing — plus metabolic blood tests and body measurements. A real, understandable picture of where each person's health stands and which areas need attention. The action plan translates that into concrete, achievable tasks." },
           { n: "05", t: "1-on-1 doctor consultation", d: "Personal review of the report with a Lifeline doctor. Questions answered, next steps confirmed." },
-          { n: "06", t: "Coaching app <span style=\"color:#64748B;font-weight:500;font-size:11.5px;\">(optional)</span>", d: "Daily actions, health coach, community, nutrition tracking — for employees who want to keep improving between assessments." },
+          { n: "06", t: "Coaching app <span style=\"color:#64748B;font-weight:500;font-size:11.5px;\">(optional)</span>", d: "Daily actions, a dedicated health coach, personalised programs across the four pillars, macro tracking, wearable integration, weigh-ins and trends, short education courses, community and an accountability partner — the whole health and lifestyle app in one place, turning the plan into daily habits." },
         ].map((s) => `
         <tr>
           <td style="padding:8px 0;vertical-align:top;">
