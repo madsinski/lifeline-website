@@ -47,13 +47,19 @@ export default function BookAssessmentPage() {
       // Only cancel stale drafts (older than 30 min). Recent pending
       // bookings are kept so the user can resume via ?resume=<id>.
       const cutoff = new Date(Date.now() - 30 * 60_000).toISOString();
-      await supabase
+      const { data: staleDrafts } = await supabase
         .from("body_comp_bookings")
         .update({ status: "cancelled" })
         .eq("client_id", user.id)
         .eq("payment_status", "pending")
         .eq("status", "requested")
-        .lt("created_at", cutoff);
+        .lt("created_at", cutoff)
+        .select("id");
+      // If we cancelled stale drafts, free any station_slot claims they held
+      // so the user can re-book without hitting 'already_booked'.
+      if (staleDrafts && staleDrafts.length > 0) {
+        await supabase.rpc("release_station_slot");
+      }
 
       // Resume flow: if ?resume=<id> is set and the booking belongs to the
       // current user and is still pending, jump straight to the pay stage.
@@ -155,13 +161,16 @@ export default function BookAssessmentPage() {
         );
         if (ok) {
           // Cancel every active (requested/confirmed) paid booking for this
-          // user so the RPC's 'already_booked' check clears.
+          // user, then release any station_slot claim they still hold — the
+          // booking row and the slot claim are separate, and without the
+          // release the retry would hit 'already_booked' again.
           await supabase
             .from("body_comp_bookings")
             .update({ status: "cancelled" })
             .eq("client_id", userId!)
             .neq("id", id)
             .in("status", ["requested", "confirmed"]);
+          await supabase.rpc("release_station_slot");
           ({ data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
             p_slot_id: selectedSlotId,
             p_booking_id: id,
@@ -174,11 +183,13 @@ export default function BookAssessmentPage() {
         const code = row?.error;
         setPaymentError(
           code === "slot_unavailable" ? "That time slot was just taken. Please pick another."
-            : code === "already_booked" ? "You already have a station booking. Cancel it first from your dashboard."
+            : code === "already_booked" ? "You already have a measurement booking. Cancel it first from your dashboard, then try again."
             : claimErr?.message || "Could not reserve your time slot. Please try again."
         );
-        // Roll the booking back so the user can pick a different time
+        // Roll the booking back and clear any lingering slot claim so the user
+        // can pick a different time without repeatedly hitting the same error.
         await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", id);
+        await supabase.rpc("release_station_slot");
         setBookingId(null);
         setStage("schedule");
         return;
@@ -279,7 +290,11 @@ export default function BookAssessmentPage() {
             selectedSlotId={selectedSlotId}
             selectedSlotAt={selectedSlotAt}
             notes={notes}
-            onPickSlot={(id, at, loc) => { setSelectedSlotId(id); setSelectedSlotAt(at); setSelectedLocation(loc); }}
+            error={paymentError}
+            onPickSlot={(id, at, loc) => {
+              setSelectedSlotId(id); setSelectedSlotAt(at); setSelectedLocation(loc);
+              setPaymentError(null);
+            }}
             setNotes={setNotes}
             onBack={() => setStage("package")}
             onContinue={() => setStage("review")}
@@ -432,7 +447,7 @@ type StationSlotRow = {
 };
 
 function ScheduleStage({
-  pkg, needsVisit, selectedSlotId, selectedSlotAt, notes,
+  pkg, needsVisit, selectedSlotId, selectedSlotAt, notes, error,
   onPickSlot, setNotes,
   onBack, onContinue,
 }: {
@@ -441,6 +456,7 @@ function ScheduleStage({
   selectedSlotId: string | null;
   selectedSlotAt: string | null;
   notes: string;
+  error: string | null;
   onPickSlot: (id: string, at: string, location: string | null) => void;
   setNotes: (v: string) => void;
   onBack: () => void;
@@ -548,6 +564,12 @@ function ScheduleStage({
           placeholder="Anything we should know?"
         />
       </label>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
         <button
