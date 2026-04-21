@@ -101,26 +101,26 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
       {/* Invoice dialog */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">Invoice for {companyName}</h3>
+          <div className="bg-white rounded-xl shadow-2xl w-[420px] max-w-[calc(100vw-2rem)] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 truncate">Invoice for {companyName}</h3>
               <p className="text-sm text-gray-500 mt-0.5">PayDay · VAT exempt · 14-day eindagi</p>
             </div>
 
             {loading ? (
               <div className="p-8 text-center text-gray-400">Loading…</div>
             ) : (
-              <div className="p-5 space-y-4">
+              <div className="px-6 py-5 space-y-4">
                 {/* Past invoices */}
                 {pastInvoices.length > 0 && (
                   <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Previous invoices</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Previous invoices</p>
                     {pastInvoices.map((inv, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-700">
+                      <div key={i} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-gray-700 truncate">
                           {inv.number ? `#${inv.number}` : "—"} · {inv.quantity} emp · {inv.amount_total.toLocaleString()} ISK
                         </span>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${inv.status === "paid" ? "bg-emerald-50 text-emerald-700" : inv.status === "sent" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${inv.status === "paid" ? "bg-emerald-50 text-emerald-700" : inv.status === "sent" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
                           {inv.status}
                         </span>
                       </div>
@@ -130,45 +130,45 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
 
                 {/* Editable fields */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Employees</label>
+                  <div className="min-w-0">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Employees</label>
                     <input
                       type="number" min={1} value={employeeCount}
                       onChange={(e) => setEmployeeCount(Math.max(1, parseInt(e.target.value) || 0))}
-                      className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none box-border"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit price (ISK)</label>
+                  <div className="min-w-0">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Unit price (ISK)</label>
                     <input
                       type="number" min={0} value={unitPrice}
                       onChange={(e) => setUnitPrice(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none box-border"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Note (optional)</label>
+                <div className="min-w-0">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Note (optional)</label>
                   <input
                     type="text" value={notes} onChange={(e) => setNotes(e.target.value)}
                     placeholder="Appears on the invoice line item"
-                    className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none box-border"
                   />
                 </div>
 
                 {/* Total */}
-                <div className="bg-emerald-50 rounded-lg p-4 flex items-center justify-between">
-                  <div>
+                <div className="bg-emerald-50 rounded-lg p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
                     <p className="text-sm text-gray-600">{employeeCount} × {unitPrice.toLocaleString()} ISK</p>
                     <p className="text-xs text-gray-500">VAT exempt · health services</p>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{total.toLocaleString()} <span className="text-sm font-medium text-gray-500">ISK</span></p>
+                  <p className="text-2xl font-bold text-gray-900 shrink-0">{total.toLocaleString()} <span className="text-sm font-medium text-gray-500">ISK</span></p>
                 </div>
               </div>
             )}
 
-            <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
               <button onClick={() => setOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
                 Cancel
               </button>
