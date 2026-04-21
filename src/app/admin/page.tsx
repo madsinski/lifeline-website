@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import BiodySyncStatus from "./components/BiodySyncStatus";
 
 // ─── Pricing (ISK per month) ──────────────────────────────────
 const TIER_PRICES: Record<string, number> = {
@@ -556,6 +557,9 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Biody sync status */}
+        <BiodySyncStatus />
       </div>
     </div>
   );

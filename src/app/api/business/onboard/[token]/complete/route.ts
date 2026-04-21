@@ -284,8 +284,16 @@ async function handle(
         body: bodyText,
       });
       biodyResult = await bRes.json().catch(() => null);
+      // Log activation status on the member record
+      const biodyOk = bRes.ok && (biodyResult as any)?.ok;
+      try { await supabaseAdmin.from("company_members").update({
+        biody_activation_error: biodyOk ? null : JSON.stringify(biodyResult || "unknown"),
+      }).eq("id", memberRow.id); } catch {}
     } catch (e) {
       biodyResult = { error: (e as Error).message };
+      try { await supabaseAdmin.from("company_members").update({
+        biody_activation_error: (e as Error).message,
+      }).eq("id", memberRow.id); } catch {}
     }
   }
 
