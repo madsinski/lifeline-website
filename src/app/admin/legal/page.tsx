@@ -32,6 +32,7 @@ interface PlatformAcceptanceRow {
   ip: string | null;
   user_agent: string | null;
   accepted_at: string;
+  pdf_storage_path: string | null;
   user_email: string | null;
 }
 
@@ -57,7 +58,7 @@ export default function AdminLegalPage() {
       supabase.from("b2b_purchase_orders").select("agreement_id, po_number, total_isk, currency"),
       supabase
         .from("platform_agreement_acceptances")
-        .select("id, user_id, document_key, document_version, text_hash, ip, user_agent, accepted_at")
+        .select("id, user_id, document_key, document_version, text_hash, ip, user_agent, accepted_at, pdf_storage_path")
         .order("accepted_at", { ascending: false }),
     ]);
 
@@ -121,6 +122,26 @@ export default function AdminLegalPage() {
       || r.document_version.toLowerCase().includes(q),
     );
   }, [platformRows, search]);
+
+  const downloadFromBucket = async (id: string, bucket: string, storagePath: string | null) => {
+    if (!storagePath) {
+      alert("PDF is missing — the upload may have failed.");
+      return;
+    }
+    setDownloadingId(id);
+    try {
+      const { data, error: sErr } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(storagePath, 300);
+      if (sErr || !data?.signedUrl) {
+        alert(`Failed to generate download URL: ${sErr?.message || "unknown"}`);
+        return;
+      }
+      window.open(data.signedUrl, "_blank");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const download = async (row: AgreementRow) => {
     if (!row.pdf_storage_path) {
@@ -266,6 +287,7 @@ export default function AdminLegalPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Accepted</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">IP</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Text hash</th>
+                  <th className="px-4 py-3 w-28"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -282,6 +304,16 @@ export default function AdminLegalPage() {
                     </td>
                     <td className="px-4 py-3 text-[11px] font-mono text-gray-400">{r.ip || "—"}</td>
                     <td className="px-4 py-3 text-[10px] font-mono text-gray-400 truncate max-w-[180px]" title={r.text_hash}>{r.text_hash.slice(0, 16)}…</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => downloadFromBucket(r.id, "platform-acceptance-pdfs", r.pdf_storage_path)}
+                        disabled={downloadingId === r.id || !r.pdf_storage_path}
+                        title={!r.pdf_storage_path ? "PDF not available" : "Download acceptance certificate"}
+                        className="px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40"
+                      >
+                        {downloadingId === r.id ? "…" : r.pdf_storage_path ? "Download PDF" : "Missing"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

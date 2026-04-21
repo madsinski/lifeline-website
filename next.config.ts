@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
       "./public/fonts/NotoSans-Regular.ttf",
       "./public/fonts/NotoSans-Bold.ttf",
     ],
+    "/api/platform/accept-terms": [
+      "./public/fonts/NotoSans-Regular.ttf",
+      "./public/fonts/NotoSans-Bold.ttf",
+    ],
   },
 };
 
