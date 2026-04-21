@@ -129,13 +129,21 @@ We'd like to introduce Lifeline Health — a medical-grade preventive-health pro
 
 Most workplace health benefits are noise. Bulk 50-marker blood panels nobody reads. Online questionnaires no clinician ever sees. Or shallow perks that have nothing to do with whether your people are actually healthier a year from now.
 
-Lifeline is the opposite. An Icelandic medical team, licensed by Embætti landlæknis, builds a real clinical picture of each employee — then writes a detailed, doctor-reviewed report and a personal action plan each person can actually follow.
+Lifeline is the opposite. An Icelandic medical team, licensed by Embætti landlæknis, builds a real clinical picture of each employee — then writes a detailed, doctor-reviewed action plan each person can actually follow.
+
+WHAT THIS MEANS FOR YOU
+  • Low admin — Upload a roster once. We handle scheduling, comms, reminders, follow-up. Your dashboard shows participation status only.
+  • High participation — On-site, during work hours, 5 min per person. Consent-first 2-minute signup.
+  • Safe when flagged — Abnormal results trigger doctor follow-up and a clear referral pathway to heilsugæsla or sérfræðilæknar. Employees aren't left alone, and neither are you.
+  • Privacy you can prove — GDPR + lög nr. 90/2018. DPA signed digitally at setup. You see only anonymised group trends (masked below 5). Records in Medalia (FHIR-certified sjúkraskrá, lög nr. 55/2009).
+  • Medicine, not a wellness app — Landlæknir-licensed practice. Real doctors, nurses, coaches. Every report reviewed by a doctor.
+  • Transparent and flexible — Pay per employee. No bulk minimums, no hidden fees. Cancel anytime.
 
 WHAT EVERY EMPLOYEE GETS
   01  Clinical questionnaire — lifestyle, family history, symptoms — reviewed by a doctor
-  02  On-site measurements — blood pressure, body composition (Biody), 5 min per person, our nurse visits your office
+  02  On-site measurements — blood pressure, body composition (Biody), 5 min per person
   03  Targeted blood panel — at a Sameind clinic during work hours, walk-in
-  04  Detailed medical report and action plan — we score medical and behavioural aspects of the four pillars of health (sleep, exercise, nutrition, mental wellbeing) plus metabolic blood tests and body measurements. A real, understandable picture of each person's health. The action plan translates it into concrete, achievable tasks.
+  04  Detailed medical report and action plan — scoring across medical and behavioural aspects of the four pillars of health (sleep, exercise, nutrition, mental wellbeing) plus metabolic blood tests and body measurements. The action plan translates it into concrete, achievable tasks.
   05  1-on-1 doctor consultation — personal review of the report and action plan
   06  Coaching app (optional) — daily actions, dedicated health coach, personalised programs across the four pillars, macro tracking, wearable integration, weigh-ins, education, community, accountability partner
 
@@ -147,13 +155,6 @@ HOW IT WORKS
   5. Detailed report + doctor consultation → personal action plan
 
 From kick-off to employee action plans in weeks, not quarters.
-
-BUILT RIGHT
-  • Licensed by Embætti landlæknis (Directorate of Health)
-  • Records stored in Medalia — FHIR-certified sjúkraskrá (Icelandic electronic medical record)
-  • GDPR-compliant · Employers see only anonymised group trends, never individual health data
-  • Built by practising physicians — every report reviewed by a doctor
-  • Pay per employee — only for what you use
 
 Start a company workspace (2 min, no payment required):
   ${signupUrl}
@@ -206,8 +207,52 @@ Lifeline Health ehf. · kt. 590925-1440`;
         Most workplace health benefits are noise — bulk 50-marker panels no one reads, anonymous questionnaires no clinician ever sees, or perks that don't touch actual health.
       </p>
       <p style="margin:0 0 28px;color:#334155;font-size:15px;line-height:1.65;">
-        Lifeline is the opposite. A practising medical team builds a real clinical picture of each employee, then writes a short, plain-language plan each person can actually follow.
+        Lifeline is the opposite. A practising medical team builds a real clinical picture of each employee, then writes a detailed, doctor-reviewed action plan each person can actually follow.
       </p>
+
+      <!-- What this means for you — answers HR's actual concerns, upfront -->
+      <p style="margin:0 0 6px;color:#0F172A;font-weight:700;font-size:17px;letter-spacing:-0.01em;">What this means for you</p>
+      <p style="margin:0 0 14px;color:#64748B;font-size:13px;">The practical things HR decision-makers usually ask.</p>
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-bottom:28px;">
+        ${[
+          {
+            t: "Low admin for your team",
+            d: "Upload a roster once — we handle scheduling, comms, reminders, and follow-up. Your dashboard shows participation status only. No spreadsheets, no email threads.",
+          },
+          {
+            t: "Employees actually turn up",
+            d: "On-site during work hours, 5 minutes per person, no travel. Consent-first signup in 2 minutes. Designed so participation isn't a chore.",
+          },
+          {
+            t: "Safe when something's flagged",
+            d: "Abnormal results trigger doctor follow-up and a clear referral pathway to heilsugæsla or sérfræðilæknar. Employees aren't left alone with a scary number — and neither are you.",
+          },
+          {
+            t: "Privacy you can prove",
+            d: "GDPR + lög nr. 90/2018. Data-processing agreement signed digitally at setup. You see only anonymised group trends (masked below 5 responses). Records in Medalia — FHIR-certified sjúkraskrá (lög nr. 55/2009).",
+          },
+          {
+            t: "Medicine, not a wellness app",
+            d: "Practising under a Landlæknir licence. Real medical doctors, nurses and health coaches — every report reviewed by a doctor, not generated by an algorithm.",
+          },
+          {
+            t: "Transparent and flexible",
+            d: "Pay per employee, no bulk minimums, no hidden fees. Cancel anytime. You keep your aggregate insights if you leave.",
+          },
+        ].map((s) => `
+        <tr>
+          <td style="padding:6px 0;vertical-align:top;">
+            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:8px;">
+              <tr>
+                <td style="padding:14px 16px;">
+                  <div style="font-weight:700;color:#0F172A;font-size:13.5px;margin-bottom:4px;">${s.t}</div>
+                  <div style="color:#475569;font-size:12.5px;line-height:1.6;">${s.d}</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`).join("")}
+      </table>
 
       <!-- What every employee gets — monochrome brand cards with numbered badges -->
       <p style="margin:0 0 14px;color:#0F172A;font-weight:700;font-size:17px;letter-spacing:-0.01em;">What every employee gets</p>
@@ -261,34 +306,6 @@ Lifeline Health ehf. · kt. 590925-1440`;
       <p style="margin:16px 0 28px;color:#475569;font-size:13px;font-style:italic;text-align:center;background:#F8FAFC;border-radius:8px;padding:10px 16px;">
         From kick-off to employee action plans in weeks, not quarters.
       </p>
-
-      <!-- Built right — monochrome brand-tinted -->
-      <p style="margin:0 0 14px;color:#0F172A;font-weight:700;font-size:17px;letter-spacing:-0.01em;">Built right</p>
-      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-bottom:20px;">
-        ${[
-          { t: "Landlæknir licensed", d: "Practising under a licence from Embætti landlæknis (Directorate of Health). Medical doctors, nurses, and health coaches." },
-          { t: "FHIR-certified medical record", d: "All health data stored in Medalia, the Icelandic FHIR-certified sjúkraskrá (lög nr. 55/2009)." },
-          { t: "GDPR + Icelandic privacy law", d: "Compliant with GDPR and lög nr. 90/2018. Employers see only anonymised group trends, never individual data." },
-          { t: "Pay per employee", d: "No bulk-package upsell. Transparent pricing — only for what you use." },
-        ].map((s) => `
-        <tr>
-          <td style="padding:6px 0;vertical-align:top;">
-            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid #10B981;border-radius:8px;">
-              <tr>
-                <td style="padding:12px 16px;">
-                  <div style="font-weight:700;color:#0F172A;font-size:13px;margin-bottom:3px;">${s.t}</div>
-                  <div style="color:#64748B;font-size:12px;line-height:1.55;">${s.d}</div>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>`).join("")}
-      </table>
-
-      <!-- Confidentiality callout -->
-      <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:14px 18px;border-radius:12px;margin:0 0 32px;color:#065F46;font-size:13px;line-height:1.65;">
-        <strong style="font-size:13.5px;">Privacy first.</strong> Every employee owns their own health record. Employers receive only anonymised group trends (masked below 5 responses). Individual results are never shared with the company.
-      </div>
 
       <!-- CTA -->
       <div style="text-align:center;margin:0 0 16px;">
