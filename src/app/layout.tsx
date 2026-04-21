@@ -33,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${signature.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">
+    <html lang="en" className={`${inter.variable} ${signature.variable} antialiased`} style={{ overflow: "auto" }}>
+      <body className="min-h-screen flex flex-col font-sans" style={{ overflow: "auto" }}>
         <script
           dangerouslySetInnerHTML={{
             __html: `try{if(localStorage.getItem("ll-brand-theme")==="classic")document.documentElement.dataset.theme="classic"}catch(e){}`,
