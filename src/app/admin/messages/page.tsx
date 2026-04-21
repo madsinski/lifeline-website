@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 interface Message {
   id: string;
   senderName: string;
-  senderRole: "client" | "coach" | "doctor" | "nurse" | "psychologist" | "system";
+  senderRole: "client" | "coach" | "doctor" | "nurse" | "psychologist" | "admin" | "system";
   content: string;
   createdAt: string;
   read: boolean;
@@ -30,7 +30,7 @@ interface StaffMember {
   id: string;
   name: string;
   email: string;
-  role: "coach" | "doctor" | "nurse" | "psychologist";
+  role: "coach" | "doctor" | "nurse" | "psychologist" | "admin";
   avatarInitial: string;
   active: boolean;
 }
@@ -80,6 +80,7 @@ const roleLabels: Record<StaffMember["role"], string> = {
   doctor: "Doctor",
   nurse: "Nurse",
   psychologist: "Psychologist",
+  admin: "Admin",
 };
 
 const roleColors: Record<StaffMember["role"], string> = {
@@ -87,6 +88,7 @@ const roleColors: Record<StaffMember["role"], string> = {
   doctor: "bg-blue-100 text-blue-700",
   nurse: "bg-purple-100 text-purple-700",
   psychologist: "bg-amber-100 text-amber-700",
+  admin: "bg-gray-900 text-white",
 };
 
 

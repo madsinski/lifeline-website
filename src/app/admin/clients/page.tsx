@@ -100,7 +100,7 @@ interface StaffMember {
   id: string;
   name: string;
   email: string;
-  role: "coach" | "doctor" | "nurse" | "psychologist";
+  role: "coach" | "doctor" | "nurse" | "psychologist" | "admin";
   avatarInitial: string;
   active: boolean;
 }
@@ -117,6 +117,7 @@ const staffRoleLabels: Record<StaffMember["role"], string> = {
   doctor: "Doctor",
   nurse: "Nurse",
   psychologist: "Psychologist",
+  admin: "Admin",
 };
 
 const staffRoleColors: Record<StaffMember["role"], string> = {
@@ -124,6 +125,7 @@ const staffRoleColors: Record<StaffMember["role"], string> = {
   doctor: "bg-blue-100 text-blue-700",
   nurse: "bg-purple-100 text-purple-700",
   psychologist: "bg-amber-100 text-amber-700",
+  admin: "bg-gray-900 text-white",
 };
 
 type SortKey = "name" | "email" | "tier" | "status" | "joined";
