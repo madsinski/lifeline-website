@@ -78,7 +78,7 @@ export async function POST(
     createClaim: createClaim ?? true,
     createElectronicInvoice: createElectronicInvoice ?? false,
     sendEmail: sendEmail ?? true,
-    reference: `lifeline:company:${companyId}`,
+    reference: `ll:${companyId}`,
     lines: [
       {
         description: lineDescription,
