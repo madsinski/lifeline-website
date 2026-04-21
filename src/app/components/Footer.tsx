@@ -94,7 +94,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="mb-2 flex items-start" style={{ marginLeft: '-2cm' }}>
+            <div className="mb-4 flex items-start" style={{ marginLeft: 'calc(-2cm + 6mm)' }}>
               <LifelineLogo size="sm" variant="white" />
             </div>
             <p className="text-gray-400 text-sm font-semibold mb-1">Lifeline Health ehf.</p>
