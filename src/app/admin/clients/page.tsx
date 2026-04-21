@@ -200,6 +200,7 @@ export default function ClientsPage() {
   const [coachAssignments, setCoachAssignments] = useState<Record<string, string>>({});
   const [deletingClient, setDeletingClient] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [sendingMessage, setSendingMessage] = useState<string | null>(null);
@@ -1019,6 +1020,62 @@ export default function ClientsPage() {
         </div>
       )}
       </>}
+
+      {/* Delete confirmation modal — type-to-confirm */}
+      {deleteConfirmId && (() => {
+        const target = clients.find((c) => c.id === deleteConfirmId);
+        if (!target) return null;
+        const typedMatch = deleteConfirmText.trim().toLowerCase() === target.email.toLowerCase();
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !deletingClient && (setDeleteConfirmId(null), setDeleteConfirmText(""))}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900">Delete client?</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Permanently deletes <strong className="text-gray-900">{target.name}</strong> ({target.email}).
+                    All subscriptions, conversations, measurements, bookings, and the auth user will be removed. <strong>This cannot be undone.</strong>
+                  </p>
+                </div>
+              </div>
+              <label className="block text-xs text-gray-500 mb-1">
+                Type the client's email to confirm:
+              </label>
+              <div className="text-xs font-mono text-gray-400 mb-2">{target.email}</div>
+              <input
+                type="text"
+                autoFocus
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={target.email}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-red-400 outline-none"
+                disabled={deletingClient === target.id}
+              />
+              <div className="flex gap-2 justify-end mt-5">
+                <button
+                  onClick={() => { setDeleteConfirmId(null); setDeleteConfirmText(""); }}
+                  disabled={deletingClient === target.id}
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => { await deleteClient(target.id); setDeleteConfirmText(""); }}
+                  disabled={!typedMatch || deletingClient === target.id}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {deletingClient === target.id ? "Deleting…" : "Delete client"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1154,19 +1211,11 @@ function ClientRowComponent({
         </td>
         <td className="px-4 py-3 text-sm text-gray-600">{client.joined}</td>
         <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
-          {showDeleteConfirm ? (
-            <div className="flex items-center gap-1">
-              <button onClick={() => onDeleteConfirm()} disabled={isDeleting}
-                className="px-2 py-1 text-[10px] font-medium text-white bg-red-600 rounded-md disabled:opacity-50">{isDeleting ? "..." : "Yes"}</button>
-              <button onClick={() => onDeleteCancel()}
-                className="px-2 py-1 text-[10px] font-medium text-gray-500 bg-gray-100 rounded-md">No</button>
-            </div>
-          ) : (
-            <button onClick={() => onDeleteClick()}
-              className="p-1 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Delete client">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            </button>
-          )}
+          <button onClick={() => onDeleteClick()}
+            disabled={isDeleting}
+            className="p-1 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50" title="Delete client">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
         </td>
       </tr>
       {isExpanded && (
