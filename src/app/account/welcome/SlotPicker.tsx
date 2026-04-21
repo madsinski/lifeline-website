@@ -68,9 +68,15 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   };
 
   const cancel = async () => {
+    if (typeof window !== "undefined" && !window.confirm("Cancel your measurement slot? You can pick another open time right after.")) return;
     setSaving("cancel");
     setError("");
-    await supabase.rpc("cancel_body_comp_slot", { p_event_id: event.id });
+    const { error } = await supabase.rpc("cancel_body_comp_slot", { p_event_id: event.id });
+    if (error) {
+      setError(error.message);
+      setSaving(null);
+      return;
+    }
     setSaving(null);
     onBooked();
     load();

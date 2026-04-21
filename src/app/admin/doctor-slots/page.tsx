@@ -80,7 +80,12 @@ export default function DoctorSlotsAdminPage() {
   }, [slots, filter, now]);
 
   async function deleteSlot(id: string) {
-    if (!confirm("Delete this slot?")) return;
+    const slot = slots.find((s) => s.id === id);
+    if (slot?.client_id) {
+      if (!confirm("This slot is booked by a client. Deleting it will silently remove their doctor consultation — they won't be notified. Are you absolutely sure?")) return;
+    } else {
+      if (!confirm("Delete this slot?")) return;
+    }
     const { error } = await supabase.from("doctor_slots").delete().eq("id", id);
     if (error) { setMsg(`Delete failed: ${error.message}`); return; }
     setMsg("Deleted.");

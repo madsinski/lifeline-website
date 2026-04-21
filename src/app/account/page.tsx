@@ -3325,6 +3325,12 @@ function CurrentBookings({
                   {editIcon}
                   Change slot
                 </button>
+                <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 hover:border-red-300 transition-colors">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel slot
+                </button>
                 {calButtons(
                   {
                     title: "Lifeline — Body-composition measurement",
@@ -3674,7 +3680,11 @@ function BloodTestDayPickerModal({
     if (!confirm("Cancel your blood-test day booking?")) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("blood_test_bookings").delete().eq("client_id", user.id);
+    const { error } = await supabase.from("blood_test_bookings").delete().eq("client_id", user.id);
+    if (error) {
+      alert(`Cancel failed: ${error.message}`);
+      return;
+    }
     onClose();
     window.location.reload();
   };

@@ -79,10 +79,29 @@ export default function StationSlotsAdminPage() {
   }, [slots, now]);
 
   async function deleteSlot(id: string) {
+    // Guard: deleting a slot that a client has claimed without handling the
+    // backing booking leaves the client with a "booked" state and no slot.
+    // Force the admin to either unclaim (release) first or, if a paid
+    // body_comp_booking is tied to it, use the Payments page to refund.
+    const slot = slots.find((s) => s.id === id);
+    if (slot?.client_id) {
+      alert(
+        "This slot is booked by a client. Release the claim first (Unclaim), or refund the booking via the Payments page. Deleting a claimed slot would leave the client stuck.",
+      );
+      return;
+    }
     if (!confirm("Delete this slot?")) return;
     const { error } = await supabase.from("station_slots").delete().eq("id", id);
     if (error) { setMsg(`Delete failed: ${error.message}`); return; }
     setMsg("Deleted.");
+    load();
+  }
+
+  async function unclaimSlot(id: string) {
+    if (!confirm("Release this slot? The client's booking row is left intact (and still paid, if applicable) — use the Payments page to refund. The slot goes back into the open pool.")) return;
+    const { error } = await supabase.rpc("release_station_slot_by_id", { p_slot_id: id });
+    if (error) { setMsg(`Release failed: ${error.message}`); return; }
+    setMsg("Released.");
     load();
   }
 
@@ -198,7 +217,10 @@ export default function StationSlotsAdminPage() {
                     </td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                       {isBooked && !s.completed_at && (
-                        <button onClick={() => markCompleted(s.id)} className="text-xs font-medium text-emerald-700 hover:underline">Mark done</button>
+                        <>
+                          <button onClick={() => markCompleted(s.id)} className="text-xs font-medium text-emerald-700 hover:underline">Mark done</button>
+                          <button onClick={() => unclaimSlot(s.id)} className="text-xs font-medium text-amber-700 hover:underline">Unclaim</button>
+                        </>
                       )}
                       <button onClick={() => deleteSlot(s.id)} className="text-xs font-medium text-red-600 hover:underline">Delete</button>
                     </td>
