@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, renderWelcomeEmail } from "@/lib/email";
 import { findAuthUserByEmail } from "@/lib/auth-helpers";
 import { signBiodyHeaders } from "@/lib/biody";
+import {
+  EMPLOYEE_TOS_KEY, EMPLOYEE_TOS_VERSION,
+  HEALTH_CONSENT_KEY, HEALTH_CONSENT_VERSION,
+  renderEmployeeTermsOfService, renderHealthAssessmentConsent,
+} from "@/lib/platform-terms-content";
+import { renderAcceptancePdf } from "@/lib/pdf-acceptance-renderer";
 
 export const maxDuration = 60;
 
@@ -166,6 +173,97 @@ async function handle(
     .from("company_members")
     .update({ client_id: userId, completed_at: now })
     .eq("id", memberRow.id);
+
+  // Record platform acceptances (Employee TOS + Health assessment consent)
+  // with server-authoritative audit trail + PDF certificates. Run best-effort
+  // in parallel; onboarding still succeeds if any step fails (the DB row is
+  // the source of truth for whether it's binding).
+  try {
+    const clientIp = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null;
+    const clientUa = req.headers.get("user-agent") || null;
+    const sha256 = (s: string | Buffer) => createHash("sha256").update(s).digest("hex");
+
+    const acceptances: Array<{
+      key: string; version: string; title: string; text: string;
+    }> = [
+      { key: EMPLOYEE_TOS_KEY, version: EMPLOYEE_TOS_VERSION, title: "Notkunarskilmálar starfsmanns", text: renderEmployeeTermsOfService() },
+      { key: HEALTH_CONSENT_KEY, version: HEALTH_CONSENT_VERSION, title: "Upplýst samþykki fyrir heilsumat", text: renderHealthAssessmentConsent() },
+    ];
+
+    await Promise.all(acceptances.map(async (doc) => {
+      // Skip if already recorded for this version (idempotency)
+      const { data: existing } = await supabaseAdmin
+        .from("platform_agreement_acceptances")
+        .select("id")
+        .eq("user_id", userId!)
+        .eq("document_key", doc.key)
+        .eq("document_version", doc.version)
+        .maybeSingle();
+      if (existing) return;
+
+      const { data: inserted, error: insErr } = await supabaseAdmin
+        .from("platform_agreement_acceptances")
+        .insert({
+          user_id: userId,
+          document_key: doc.key,
+          document_version: doc.version,
+          text_hash: sha256(doc.text),
+          ip: clientIp,
+          user_agent: clientUa,
+        })
+        .select("id, accepted_at")
+        .single();
+      if (insErr || !inserted) {
+        console.error(`[onboard-complete] acceptance insert ${doc.key}:`, insErr?.message);
+        return;
+      }
+
+      // Generate certificate PDF + upload + update row path (best effort)
+      try {
+        const pdfBytes = await renderAcceptancePdf({
+          userEmail: email,
+          userId: userId!,
+          documentKey: doc.key,
+          documentTitle: doc.title,
+          documentVersion: doc.version,
+          documentText: doc.text,
+          textHash: sha256(doc.text),
+          ip: clientIp,
+          userAgent: clientUa,
+          acceptedAt: inserted.accepted_at,
+        });
+        const storagePath = `${userId}/${inserted.id}.pdf`;
+        const { error: upErr } = await supabaseAdmin.storage
+          .from("platform-acceptance-pdfs")
+          .upload(storagePath, pdfBytes, { contentType: "application/pdf", upsert: false });
+        if (!upErr) {
+          await supabaseAdmin
+            .from("platform_agreement_acceptances")
+            .update({ pdf_storage_path: storagePath, pdf_sha256: sha256(pdfBytes) })
+            .eq("id", inserted.id);
+          // Email certificate to the employee (BCC ops)
+          try {
+            await sendEmail({
+              to: email,
+              bcc: ["contact@lifelinehealth.is"],
+              subject: `Staðfesting á samþykki — ${doc.title} ${doc.version}`,
+              html: `<!doctype html><html><body style="font-family:sans-serif;padding:24px;color:#374151;"><p>Meðfylgjandi er staðfesting á samþykki þínu á <strong>${doc.title}</strong> (${doc.version}).</p><p>— Lifeline Health ehf.</p></body></html>`,
+              text: `Meðfylgjandi er staðfesting á samþykki þínu á ${doc.title} (${doc.version}).`,
+              attachments: [{ filename: `${doc.key}-${doc.version}.pdf`, content: pdfBytes.toString("base64"), contentType: "application/pdf" }],
+            });
+          } catch (e) {
+            console.error(`[onboard-complete] email ${doc.key}:`, (e as Error).message);
+          }
+        } else {
+          console.error(`[onboard-complete] PDF upload ${doc.key}:`, upErr.message);
+        }
+      } catch (e) {
+        console.error(`[onboard-complete] PDF render ${doc.key}:`, (e as Error).message);
+      }
+    }));
+  } catch (e) {
+    console.error("[onboard-complete] acceptance block failed:", (e as Error).message);
+  }
 
   // Kick off Biody patient creation
   let biodyResult: unknown = null;

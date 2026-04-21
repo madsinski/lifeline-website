@@ -8,8 +8,14 @@ import {
   TOS_VERSION,
   DPA_KEY,
   DPA_VERSION,
+  EMPLOYEE_TOS_KEY,
+  EMPLOYEE_TOS_VERSION,
+  HEALTH_CONSENT_KEY,
+  HEALTH_CONSENT_VERSION,
   renderTermsOfService,
   renderDataProcessingAgreement,
+  renderEmployeeTermsOfService,
+  renderHealthAssessmentConsent,
 } from "@/lib/platform-terms-content";
 import { renderAcceptancePdf } from "@/lib/pdf-acceptance-renderer";
 
@@ -19,6 +25,8 @@ export const maxDuration = 30;
 const DOCUMENT_TITLES: Record<string, string> = {
   [TOS_KEY]: "Notkunarskilmálar (Terms of Service)",
   [DPA_KEY]: "Vinnslusamningur (Data Processing Agreement)",
+  [EMPLOYEE_TOS_KEY]: "Notkunarskilmálar starfsmanns",
+  [HEALTH_CONSENT_KEY]: "Upplýst samþykki fyrir heilsumat",
 };
 
 interface AcceptPayload {
@@ -56,6 +64,10 @@ export async function POST(req: NextRequest) {
     canonicalText = renderTermsOfService();
   } else if (document_key === DPA_KEY && document_version === DPA_VERSION) {
     canonicalText = renderDataProcessingAgreement();
+  } else if (document_key === EMPLOYEE_TOS_KEY && document_version === EMPLOYEE_TOS_VERSION) {
+    canonicalText = renderEmployeeTermsOfService();
+  } else if (document_key === HEALTH_CONSENT_KEY && document_version === HEALTH_CONSENT_VERSION) {
+    canonicalText = renderHealthAssessmentConsent();
   }
   if (!canonicalText) {
     return NextResponse.json({ error: "unknown_document_or_version" }, { status: 400 });

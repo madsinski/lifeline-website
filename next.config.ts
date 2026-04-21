@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
       "./public/fonts/NotoSans-Regular.ttf",
       "./public/fonts/NotoSans-Bold.ttf",
     ],
+    "/api/business/onboard/*/complete": [
+      "./public/fonts/NotoSans-Regular.ttf",
+      "./public/fonts/NotoSans-Bold.ttf",
+    ],
   },
 };
 

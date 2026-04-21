@@ -5,6 +5,14 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import BusinessHeader from "@/app/business/BusinessHeader";
 import { useI18n } from "@/lib/i18n";
+import {
+  EMPLOYEE_TOS_KEY,
+  EMPLOYEE_TOS_VERSION,
+  HEALTH_CONSENT_KEY,
+  HEALTH_CONSENT_VERSION,
+  renderEmployeeTermsOfService,
+  renderHealthAssessmentConsent,
+} from "@/lib/platform-terms-content";
 
 type Stage = "password" | "welcome" | "consent" | "profile" | "account" | "done";
 
@@ -33,7 +41,8 @@ export default function OnboardPage() {
   const [phone, setPhone] = useState("");
   const [kennitala, setKennitala] = useState("");
 
-  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptTos, setAcceptTos] = useState(false);
+  const [acceptHealth, setAcceptHealth] = useState(false);
   const [researchOptOut, setResearchOptOut] = useState(false);
   const [marketingOptOut, setMarketingOptOut] = useState(false);
 
@@ -131,7 +140,8 @@ export default function OnboardPage() {
         />}
 
         {stage === "consent" && <ConsentStage
-          acceptTerms={acceptTerms} setAcceptTerms={setAcceptTerms}
+          acceptTos={acceptTos} setAcceptTos={setAcceptTos}
+          acceptHealth={acceptHealth} setAcceptHealth={setAcceptHealth}
           researchOptOut={researchOptOut} setResearchOptOut={setResearchOptOut}
           marketingOptOut={marketingOptOut} setMarketingOptOut={setMarketingOptOut}
           onBack={() => setStage("welcome")}
@@ -283,46 +293,83 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
 }
 
 function ConsentStage({
-  acceptTerms, setAcceptTerms,
+  acceptTos, setAcceptTos,
+  acceptHealth, setAcceptHealth,
   researchOptOut, setResearchOptOut,
   marketingOptOut, setMarketingOptOut,
   onBack, onContinue,
 }: {
-  acceptTerms: boolean; setAcceptTerms: (v: boolean) => void;
+  acceptTos: boolean; setAcceptTos: (v: boolean) => void;
+  acceptHealth: boolean; setAcceptHealth: (v: boolean) => void;
   researchOptOut: boolean; setResearchOptOut: (v: boolean) => void;
   marketingOptOut: boolean; setMarketingOptOut: (v: boolean) => void;
   onBack: () => void; onContinue: () => void;
 }) {
   return (
-    <section className="bg-white rounded-2xl p-8 shadow-sm">
-      <h1 className="text-2xl font-semibold mb-2">Terms &amp; privacy</h1>
-      <p className="text-sm text-gray-600 mb-6">
-        Lifeline handles your health data under Icelandic law and the GDPR. Read our{" "}
-        <Link href="/terms" className="text-blue-600 hover:underline">Terms of Service</Link>
-        {" "}and{" "}
-        <Link href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>.
-      </p>
+    <section className="bg-white rounded-2xl p-8 shadow-sm space-y-8">
+      <header>
+        <h1 className="text-2xl font-semibold">Samþykki — skilmálar og heilsumat</h1>
+        <p className="text-sm text-gray-600 mt-2">
+          Áður en þú getur hafið heilsumat þarftu að samþykkja tvö skjöl: almenna notkunarskilmála og upplýst samþykki
+          fyrir heilsumati. Samþykkin eru skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni.
+        </p>
+      </header>
 
-      <div className="space-y-3">
-        <Checkbox checked={acceptTerms} onChange={setAcceptTerms} required>
-          <strong>I accept the Lifeline Health Terms of Service &amp; Privacy Policy</strong>{" "}
-          <span className="text-gray-500">(v{TERMS_VERSION}).</span>
-        </Checkbox>
+      {/* 1. Employee TOS */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">
+          1. Notkunarskilmálar starfsmanns ({EMPLOYEE_TOS_VERSION})
+        </h2>
+        <p className="text-xs text-gray-500 mb-2">Almennir skilmálar um notkun þína á þjónustusíðunni og snjallforritinu.</p>
+        <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+{renderEmployeeTermsOfService()}
+        </pre>
+        <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
+          <input type="checkbox" checked={acceptTos} onChange={(e) => setAcceptTos(e.target.checked)} className="mt-1" />
+          <span className="text-sm text-gray-700">
+            Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({EMPLOYEE_TOS_VERSION}).
+          </span>
+        </label>
+      </div>
 
+      {/* 2. Informed health consent */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">
+          2. Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
+        </h2>
+        <p className="text-xs text-gray-500 mb-2">
+          Sérstakt samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga.
+          Lifeline Health framkvæmir heilsumatið með leyfi frá landlækni; sjúkraskrá er varðveitt hjá Medalia.
+        </p>
+        <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+{renderHealthAssessmentConsent()}
+        </pre>
+        <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
+          <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1" />
+          <span className="text-sm text-gray-700">
+            Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
+          </span>
+        </label>
+      </div>
+
+      {/* Opt-out choices */}
+      <div className="border-t border-gray-100 pt-6 space-y-3">
+        <p className="text-sm font-medium text-gray-700">Val um frekari vinnslu (ekki nauðsynlegt):</p>
         <Checkbox checked={researchOptOut} onChange={setResearchOptOut}>
-          <strong>Opt out of research use.</strong>{" "}
-          <span className="text-gray-600">Don&apos;t use my anonymised data to improve Lifeline or for clinical research.</span>
+          <strong>Afþakka rannsóknanotkun.</strong>{" "}
+          <span className="text-gray-600">Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.</span>
         </Checkbox>
-
         <Checkbox checked={marketingOptOut} onChange={setMarketingOptOut}>
-          <strong>Opt out of marketing emails.</strong>{" "}
-          <span className="text-gray-600">Don&apos;t send me product news or promotions from Lifeline.</span>
+          <strong>Afþakka markaðspóst.</strong>{" "}
+          <span className="text-gray-600">Ekki senda mér vörufréttir eða kynningar frá Lifeline.</span>
         </Checkbox>
       </div>
 
-      <div className="flex items-center justify-between mt-8">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
         <button onClick={onBack} className="btn-ghost">Back</button>
-        <button onClick={onContinue} disabled={!acceptTerms} className="btn-primary">Continue</button>
+        <button onClick={onContinue} disabled={!acceptTos || !acceptHealth} className="btn-primary">
+          {!acceptTos || !acceptHealth ? "Samþykktu bæði skjölin" : "Halda áfram →"}
+        </button>
       </div>
     </section>
   );
