@@ -249,6 +249,35 @@ function EmployeeRows({ companyId }: { companyId: string }) {
   );
 }
 
+function SyncInvoicesButton() {
+  const [syncing, setSyncing] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const click = async () => {
+    setSyncing(true);
+    setResult(null);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch("/api/admin/invoices/sync", {
+        method: "POST",
+        headers: t ? { Authorization: `Bearer ${t}` } : {},
+      });
+      const j = await res.json();
+      setResult(`${j.synced || 0} invoice(s) updated${j.errors?.length ? ` · ${j.errors.length} error(s)` : ""}`);
+    } catch { setResult("Sync failed"); }
+    setSyncing(false);
+    setTimeout(() => setResult(null), 4000);
+  };
+  return (
+    <div className="flex items-center gap-2">
+      {result && <span className="text-xs text-emerald-600">{result}</span>}
+      <button onClick={click} disabled={syncing} className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
+        {syncing ? "Syncing…" : "Sync PayDay status"}
+      </button>
+    </div>
+  );
+}
+
 export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -301,7 +330,10 @@ export default function AdminCompaniesPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Companies</h1>
-        <Link href="/business/signup" className="text-sm text-blue-600 hover:underline">+ Create a company</Link>
+        <div className="flex items-center gap-3">
+          <SyncInvoicesButton />
+          <Link href="/business/signup" className="text-sm text-blue-600 hover:underline">+ Create a company</Link>
+        </div>
       </div>
       <p className="text-sm text-gray-500 mb-6">
         Click a company name to expand its employee roster. Update default tier, activate Biody profiles,

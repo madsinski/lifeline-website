@@ -43,7 +43,7 @@ async function fetchNewToken(): Promise<{ token: string; expiresAt: string } | n
   return { token, expiresAt };
 }
 
-async function getToken(): Promise<string | null> {
+export async function getToken(): Promise<string | null> {
   if (!PAYDAY_CLIENT_ID || !PAYDAY_CLIENT_SECRET) return null;
   const { data: cached } = await supabaseAdmin
     .from("payday_auth_cache")
@@ -77,6 +77,15 @@ async function paydayFetch(path: string, init: RequestInit = {}, retry = true): 
   let json: unknown = null;
   try { json = text ? JSON.parse(text) : null; } catch { /* non-JSON body */ }
   return { ok: res.ok, status: res.status, json, text };
+}
+
+/** Raw fetch — returns the native Response (for binary endpoints like PDF) */
+export async function paydayFetchRaw(path: string): Promise<Response> {
+  const token = await getToken();
+  if (!token) throw new Error("no_payday_token");
+  return fetch(`${PAYDAY_BASE_URL}${path}`, {
+    headers: { ...HEADERS_BASE, Authorization: `Bearer ${token}` },
+  });
 }
 
 // ─── Customers ──────────────────────────────────────────────────────────────
@@ -274,10 +283,59 @@ export async function createPaydayInvoice(p: InvoicePayload): Promise<InvoiceRes
   };
 }
 
+// ─── Invoice status sync ───────────────────────────────────────────────────
+
+export async function syncInvoiceStatuses(): Promise<{ synced: number; errors: string[] }> {
+  const errors: string[] = [];
+  let synced = 0;
+
+  // Get all local invoices that aren't terminal (paid/cancelled)
+  const { data: pending } = await supabaseAdmin
+    .from("company_invoices")
+    .select("id, payday_invoice_id, status")
+    .not("status", "in", '("paid","cancelled")')
+    .not("payday_invoice_id", "is", null);
+
+  if (!pending || pending.length === 0) return { synced: 0, errors: [] };
+
+  for (const inv of pending) {
+    try {
+      const res = await paydayFetch(`/invoices/${inv.payday_invoice_id}`);
+      if (!res.ok) { errors.push(`${inv.id}: fetch failed (${res.status})`); continue; }
+      const j = res.json as { status?: string; paidDate?: string; cancelledDate?: string } | null;
+      if (!j?.status) continue;
+
+      const paydayStatus = j.status.toLowerCase(); // DRAFT, SENT, PAID, CANCELLED, CREDIT, DELETED
+      let newStatus: string | null = null;
+      if (paydayStatus === "paid" && inv.status !== "paid") newStatus = "paid";
+      else if (paydayStatus === "cancelled" && inv.status !== "cancelled") newStatus = "cancelled";
+      else if (paydayStatus === "sent" && inv.status === "draft") newStatus = "sent";
+
+      if (newStatus) {
+        await supabaseAdmin.from("company_invoices").update({
+          status: newStatus,
+          ...(j.paidDate ? { paid_at: j.paidDate } : {}),
+        }).eq("id", inv.id);
+
+        // Also update the payments ledger
+        await supabaseAdmin.from("payments").update({
+          status: newStatus === "paid" ? "succeeded" : newStatus === "cancelled" ? "refunded" : "pending",
+          ...(j.paidDate ? { paid_at: j.paidDate } : {}),
+        }).eq("related_type", "company_invoice").eq("related_id", inv.id);
+
+        synced++;
+      }
+    } catch (e) {
+      errors.push(`${inv.id}: ${(e as Error).message}`);
+    }
+  }
+
+  return { synced, errors };
+}
+
 // ─── PDF URL builder ────────────────────────────────────────────────────────
 
 export function paydayPdfUrl(invoiceId: string): string {
-  // The PDF endpoint returns a binary; callers should download it server-side
-  // if they want to store it. We expose the URL for staff links to it.
-  return `${PAYDAY_BASE_URL}/invoices/${invoiceId}/pdf`;
+  // Route through our API proxy which adds the Bearer token
+  return `/api/admin/invoices/${invoiceId}/pdf`;
 }
