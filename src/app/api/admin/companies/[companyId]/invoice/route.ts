@@ -34,20 +34,41 @@ export async function POST(
   const kennitala = (decKt as string | null) || "";
   if (!kennitala) return NextResponse.json({ error: "company_kennitala_missing" }, { status: 400 });
 
-  const { count: completed } = await supabaseAdmin
-    .from("company_members")
-    .select("id", { count: "exact", head: true })
-    .eq("company_id", companyId)
-    .not("completed_at", "is", null);
+  // Get employee count and signed purchase order pricing
+  const [{ count: completed }, { count: totalMembers }, { data: latestPO }] = await Promise.all([
+    supabaseAdmin
+      .from("company_members")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .not("completed_at", "is", null),
+    supabaseAdmin
+      .from("company_members")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId),
+    supabaseAdmin
+      .from("b2b_purchase_orders")
+      .select("line_items, vat_isk, subtotal_isk, total_isk")
+      .eq("company_id", companyId)
+      .eq("status", "signed")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  const quantity = overrideQuantity ?? (completed || 0);
-  const unitPrice = overrideUnitPrice ?? (company.assessment_unit_price || 29900);
+  // Determine unit price: PO line item > company setting > default
+  let poUnitPrice: number | null = null;
+  if (latestPO?.line_items && Array.isArray(latestPO.line_items) && latestPO.line_items.length > 0) {
+    poUnitPrice = (latestPO.line_items[0] as { unit_price_isk?: number }).unit_price_isk || null;
+  }
+
+  const quantity = overrideQuantity ?? (totalMembers || 0);
+  const unitPrice = overrideUnitPrice ?? poUnitPrice ?? (company.assessment_unit_price || 49900);
   if (quantity <= 0) {
-    return NextResponse.json({ error: "nothing_to_invoice", detail: "No completed assessments yet." }, { status: 400 });
+    return NextResponse.json({ error: "nothing_to_invoice", detail: "No employees in roster." }, { status: 400 });
   }
 
   const amountNet = unitPrice * quantity;
-  // Health services are VAT exempt in Iceland (§2 gr. laga um virðisaukaskatt)
+  // Health services are VAT exempt in Iceland (§2 gr. laga um virðisaukaskatt / heilbrigðisþjónusta er vsk-frjáls)
   const vatRate = 0;
   const amountTotal = amountNet;
 

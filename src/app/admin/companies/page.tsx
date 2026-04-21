@@ -63,7 +63,7 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
     });
     const j = await res.json();
     if (!res.ok) setToast({ type: "error", text: `Failed: ${j.detail || j.error || "unknown"}\n\nPayDay response:\n${JSON.stringify(j.raw || "none", null, 2)}` });
-    else setToast({ type: "success", text: `Invoice created${j.payday_invoice_number ? ` · ${j.payday_invoice_number}` : ""} · ${j.quantity} × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK incl. VAT` });
+    else setToast({ type: "success", text: `Invoice created${j.payday_invoice_number ? ` · ${j.payday_invoice_number}` : ""}\n\n${j.quantity} employees × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK\nVAT exempt (health services)\nEindagi: 14 days` });
     setBusy(false);
   };
   return (

@@ -216,14 +216,13 @@ export async function createPaydayInvoice(p: InvoicePayload): Promise<InvoiceRes
 
   const today = new Date().toISOString().slice(0, 10);
   const in14 = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
-  const in28 = new Date(Date.now() + 28 * 86_400_000).toISOString().slice(0, 10);
 
   const body = {
     customer: { id: p.customerId },
     description: p.description || undefined,
     invoiceDate: p.invoiceDate || today,
     dueDate: p.dueDate || in14,
-    finalDueDate: p.finalDueDate || in28,
+    finalDueDate: p.finalDueDate || in14,
     currencyCode: p.currencyCode || "ISK",
     createClaim: p.createClaim ?? true,
     createElectronicInvoice: p.createElectronicInvoice ?? true,
