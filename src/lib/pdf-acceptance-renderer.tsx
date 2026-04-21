@@ -1,7 +1,6 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, Font, pdf } from "@react-pdf/renderer";
 import path from "path";
-import fs from "fs";
 
 // Register Noto Sans for Icelandic diacritic support. Idempotent across modules.
 const fontDir = path.join(process.cwd(), "public", "fonts");

@@ -40,7 +40,7 @@ import { hmac } from "https://deno.land/x/hmac@v2.0.1/mod.ts";
 // Adjust these amounts to match your actual pricing.
 const AMOUNT_TO_TIER: Record<number, string> = {
   9900: "self-maintained",
-  29900: "full-access",
+  29900: "premium",
 };
 
 function mapAmountToTier(amountISK: number): string | null {

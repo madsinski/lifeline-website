@@ -1,20 +1,17 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, Font, pdf } from "@react-pdf/renderer";
 import path from "path";
-import fs from "fs";
 import type { PurchaseOrderLineItem } from "./agreement-templates";
 
-// Load Noto Sans TTFs from disk at module load. Reading into a Buffer
-// avoids ambiguity about whether the file is reachable at render time on
-// Vercel — if the build bundled the TTFs, we have them in memory.
+// Load Noto Sans TTFs from disk. @react-pdf/font accepts string paths
+// (fontkit.open) and calls fs internally — passing a Buffer breaks the
+// internal isDataUrl() check ("dataUrl.substring is not a function").
 const fontDir = path.join(process.cwd(), "public", "fonts");
-const regularBuf = fs.readFileSync(path.join(fontDir, "NotoSans-Regular.ttf"));
-const boldBuf = fs.readFileSync(path.join(fontDir, "NotoSans-Bold.ttf"));
 Font.register({
   family: "Noto Sans",
   fonts: [
-    { src: regularBuf as unknown as string },
-    { src: boldBuf as unknown as string, fontWeight: "bold" },
+    { src: path.join(fontDir, "NotoSans-Regular.ttf") },
+    { src: path.join(fontDir, "NotoSans-Bold.ttf"), fontWeight: "bold" },
   ],
 });
 

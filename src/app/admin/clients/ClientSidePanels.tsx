@@ -58,7 +58,7 @@ function timeAgo(dateStr: string): string {
 const CONSULTATIONS_PER_TIER: Record<string, number> = {
   "free-trial": 1,
   "self-maintained": 0,
-  "full-access": 4,
+  "premium": 4,
 };
 
 export function AppointmentsCard({ clientId }: { clientId: string }) {

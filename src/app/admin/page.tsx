@@ -8,13 +8,13 @@ import { supabase } from "@/lib/supabase";
 const TIER_PRICES: Record<string, number> = {
   "free-trial": 0,
   "self-maintained": 9900,
-  "full-access": 29900,
+  "premium": 29900,
 };
 
 const TIER_LABELS: Record<string, string> = {
   "free-trial": "Free Plan",
   "self-maintained": "Self-Maintained",
-  "full-access": "Full Access",
+  "premium": "Premium",
 };
 
 // ─── Types ────────────────────────────────────────────────────
@@ -232,9 +232,9 @@ export default function AdminDashboardPage() {
           } else if (tier === "self-maintained") {
             selfMaintained++;
             mrr += TIER_PRICES["self-maintained"];
-          } else if (tier === "full-access") {
+          } else if (tier === "premium") {
             fullAccess++;
-            mrr += TIER_PRICES["full-access"];
+            mrr += TIER_PRICES["premium"];
           } else {
             noSub++;
           }
@@ -246,9 +246,9 @@ export default function AdminDashboardPage() {
             else if (tier === "self-maintained") {
               prevSelfMaintained++;
               prevMRR += TIER_PRICES["self-maintained"];
-            } else if (tier === "full-access") {
+            } else if (tier === "premium") {
               prevFullAccess++;
-              prevMRR += TIER_PRICES["full-access"];
+              prevMRR += TIER_PRICES["premium"];
             }
           }
         }
@@ -306,7 +306,7 @@ export default function AdminDashboardPage() {
     { label: "Total Clients", value: stats.totalClients, prev: stats.prevTotalClients, color: "border-l-4 border-l-[#10B981]" },
     { label: "Free Plan", value: stats.freeTrialCount, prev: stats.prevFreeTrialCount, color: "border-l-4 border-l-gray-400" },
     { label: "Self-Maintained", value: stats.selfMaintainedCount, prev: stats.prevSelfMaintainedCount, color: "border-l-4 border-l-blue-500" },
-    { label: "Full Access", value: stats.fullAccessCount, prev: stats.prevFullAccessCount, color: "border-l-4 border-l-emerald-500" },
+    { label: "Premium", value: stats.fullAccessCount, prev: stats.prevFullAccessCount, color: "border-l-4 border-l-emerald-500" },
   ];
 
   return (
@@ -369,7 +369,7 @@ export default function AdminDashboardPage() {
             )}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            {stats.selfMaintainedCount} x {formatISK(TIER_PRICES["self-maintained"])} + {stats.fullAccessCount} x {formatISK(TIER_PRICES["full-access"])}
+            {stats.selfMaintainedCount} x {formatISK(TIER_PRICES["self-maintained"])} + {stats.fullAccessCount} x {formatISK(TIER_PRICES["premium"])}
           </p>
         </div>
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-amber-400">
@@ -490,7 +490,7 @@ export default function AdminDashboardPage() {
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    client.tier === "Full Access" ? "bg-emerald-50 text-emerald-600" :
+                    client.tier === "Premium" ? "bg-emerald-50 text-emerald-600" :
                     client.tier === "Self-Maintained" ? "bg-blue-50 text-blue-600" :
                     client.tier === "Free Plan" ? "bg-gray-100 text-gray-600" :
                     "bg-gray-50 text-gray-400"

@@ -41,7 +41,7 @@ const TIERS = [
   { value: "", label: "— none —" },
   { value: "free-trial", label: "Free" },
   { value: "self-maintained", label: "Self-maintained" },
-  { value: "full-access", label: "Full Access" },
+  { value: "premium", label: "Premium" },
 ];
 
 function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; companyName: string }) {

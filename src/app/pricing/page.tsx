@@ -390,7 +390,7 @@ export default function PricingPage() {
                     </Link>
                   ) : (
                     <Link
-                      href={`/account?upgrade=${plan.name === "Self-maintained" ? "self-maintained" : "full-access"}`}
+                      href={`/account?upgrade=${plan.name === "Self-maintained" ? "self-maintained" : "premium"}`}
                       className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                         plan.popular
                           ? "bg-[#10B981] text-white shadow-lg shadow-green-500/30 hover:bg-[#047857]"

@@ -33,8 +33,8 @@ const tiers = [
     features: ["Everything in Free", "Personalized programs", "Progress analytics", "Priority support"],
   },
   {
-    id: "full-access",
-    name: "Full Access",
+    id: "premium",
+    name: "Premium",
     price: "29.900",
     period: "per month",
     badgeColor: "bg-green-100 text-green-700",

@@ -8,7 +8,7 @@ import ClientCategoryPanel from "./ClientCategoryPanel";
 import { AppointmentsCard, MessagesCard } from "./ClientSidePanels";
 import { ClientMacroPanel } from "./ClientMacroPanel";
 
-type Tier = "free-trial" | "self-maintained" | "full-access";
+type Tier = "free-trial" | "self-maintained" | "premium";
 type Status = "active" | "cancelled" | "expired" | "trial";
 
 interface Subscription {
@@ -67,14 +67,14 @@ interface Client {
 const tierColors: Record<Tier | "none", string> = {
   "free-trial": "bg-gray-100 text-gray-700",
   "self-maintained": "bg-blue-100 text-blue-800",
-  "full-access": "bg-emerald-100 text-emerald-800",
+  "premium": "bg-emerald-100 text-emerald-800",
   none: "bg-red-50 text-red-600",
 };
 
 const tierLabels: Record<Tier | "none", string> = {
   "free-trial": "Free",
   "self-maintained": "Self-Maintained",
-  "full-access": "Full Access",
+  "premium": "Premium",
   none: "No Subscription",
 };
 
@@ -92,7 +92,7 @@ const statusLabels: Record<Status, string> = {
   expired: "Expired",
 };
 
-const tierOptions: Tier[] = ["free-trial", "self-maintained", "full-access"];
+const tierOptions: Tier[] = ["free-trial", "self-maintained", "premium"];
 
 // ─── Staff types ────────────────────────────────────────────
 

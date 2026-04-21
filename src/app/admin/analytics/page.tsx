@@ -6,13 +6,13 @@ import { supabase } from "@/lib/supabase";
 const TIER_PRICES: Record<string, number> = {
   "free-trial": 0,
   "self-maintained": 9900,
-  "full-access": 29900,
+  "premium": 29900,
 };
 
 const TIER_LABELS: Record<string, string> = {
   "free-trial": "Free Plan",
   "self-maintained": "Self-Maintained",
-  "full-access": "Full Access",
+  "premium": "Premium",
 };
 
 function formatISK(amount: number) {
@@ -53,7 +53,7 @@ export default function AnalyticsPage() {
       const tierCounts: Record<string, number> = {
         "free-trial": 0,
         "self-maintained": 0,
-        "full-access": 0,
+        "premium": 0,
         none: 0,
       };
       let activeCount = 0;
@@ -76,7 +76,7 @@ export default function AnalyticsPage() {
       const activeRate = totalClients > 0 ? (activeCount / totalClients) * 100 : 0;
       const mrr =
         (tierCounts["self-maintained"] || 0) * TIER_PRICES["self-maintained"] +
-        (tierCounts["full-access"] || 0) * TIER_PRICES["full-access"];
+        (tierCounts["premium"] || 0) * TIER_PRICES["premium"];
 
       // Fetch appointments
       const { data: appointments } = await supabase
@@ -203,7 +203,7 @@ export default function AnalyticsPage() {
               const colors: Record<string, string> = {
                 "free-trial": "bg-gray-400",
                 "self-maintained": "bg-blue-500",
-                "full-access": "bg-[#10B981]",
+                "premium": "bg-[#10B981]",
               };
               return (
                 <div key={key}>
@@ -274,7 +274,7 @@ export default function AnalyticsPage() {
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Paying Clients</p>
             <p className="text-2xl font-bold text-[#1F2937] mt-1">
-              {(stats.tierCounts["self-maintained"] || 0) + (stats.tierCounts["full-access"] || 0)}
+              {(stats.tierCounts["self-maintained"] || 0) + (stats.tierCounts["premium"] || 0)}
             </p>
           </div>
         </div>
