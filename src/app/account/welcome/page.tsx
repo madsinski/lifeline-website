@@ -109,22 +109,15 @@ export default function AccountWelcomePage() {
 
           {/* Team photo + signature */}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-5 gap-6 items-center">
-            <div className="sm:col-span-3 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-100 via-white to-emerald-100 aspect-[16/9] relative border border-gray-100">
+            <div className="sm:col-span-3 rounded-2xl overflow-hidden border border-gray-100">
               <Image
                 src="/team-photo.png"
                 alt={t("b2b.welcome.team.alt", "The Lifeline team")}
-                fill
+                width={800}
+                height={600}
                 sizes="(max-width: 640px) 100vw, 60vw"
-                className="object-cover"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                className="w-full h-auto"
               />
-              <div className="absolute inset-0 flex items-center justify-center text-center pointer-events-none">
-                <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
-                  <svg className="w-6 h-6 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-              </div>
             </div>
             <div className="sm:col-span-2">
               <div className="text-sm text-[#64748B] mb-1">
