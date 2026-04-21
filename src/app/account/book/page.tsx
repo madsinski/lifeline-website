@@ -98,7 +98,8 @@ export default function BookAssessmentPage() {
           .eq("id", mySlot.booking_id)
           .maybeSingle();
         if (!backing || backing.status === "cancelled") {
-          await supabase.rpc("release_station_slot");
+          // Targeted release — don't touch other claims the user may hold.
+          await supabase.rpc("release_station_slot_by_id", { p_slot_id: mySlot.id });
         }
       }
 
@@ -195,20 +196,23 @@ export default function BookAssessmentPage() {
       let row = Array.isArray(claim) ? claim[0] : claim;
 
       // 'already_booked' means the user already has an active station claim.
-      // Check whether it's backed by a paid booking — if so, we must not
-      // silently cancel it (the user already paid). Only auto-release when
-      // all other active bookings are pending (unpaid drafts).
+      // A CONFIRMED booking (by staff) or a PAID booking is protected — we
+      // refuse to touch it and point the user at the dashboard. Only unpaid
+      // drafts in 'requested' state can be swapped.
       if (row && row.ok === false && row.error === "already_booked") {
         const { data: otherActive } = await supabase
           .from("body_comp_bookings")
-          .select("id, payment_status, scheduled_at")
+          .select("id, payment_status, status")
           .eq("client_id", userId!)
           .neq("id", id)
           .in("status", ["requested", "confirmed"]);
-        const anyPaid = (otherActive || []).some((b) => (b as { payment_status?: string }).payment_status === "paid");
-        if (anyPaid) {
+        const protectedBookings = (otherActive || []).filter((b) => {
+          const r = b as { payment_status?: string; status?: string };
+          return r.payment_status === "paid" || r.status === "confirmed";
+        });
+        if (protectedBookings.length > 0) {
           setPaymentError(
-            "You already have a paid measurement booking. Go to your dashboard to manage it, or email contact@lifelinehealth.is for help.",
+            "You already have an active measurement booking. Go to your dashboard to manage it, or email contact@lifelinehealth.is for help.",
           );
           await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", id);
           setBookingId(null);
@@ -219,17 +223,18 @@ export default function BookAssessmentPage() {
           "You already have a draft measurement booking. Cancel the old draft and use this new time instead?",
         );
         if (ok) {
-          // Only cancel unpaid drafts here — paid bookings were filtered out
-          // above. Then release any lingering station_slot claim so the RPC
-          // retry doesn't hit 'already_booked' again.
-          await supabase
-            .from("body_comp_bookings")
-            .update({ status: "cancelled" })
-            .eq("client_id", userId!)
-            .neq("id", id)
-            .eq("payment_status", "pending")
-            .in("status", ["requested", "confirmed"]);
-          await supabase.rpc("release_station_slot");
+          // Cancel each unpaid draft through the atomic RPC so the station
+          // claim is released per-booking — no more bulk release that could
+          // stomp on an unrelated legitimate slot.
+          for (const b of otherActive || []) {
+            const rr = b as { id: string; payment_status?: string; status?: string };
+            if (rr.payment_status === "pending" && rr.status === "requested") {
+              await supabase.rpc("refund_and_cancel_booking", {
+                p_booking_id: rr.id,
+                p_include_checkin_addon: false,
+              });
+            }
+          }
           ({ data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
             p_slot_id: selectedSlotId,
             p_booking_id: id,
@@ -245,10 +250,10 @@ export default function BookAssessmentPage() {
             : code === "already_booked" ? "You already have a measurement booking. Cancel it first from your dashboard, then try again."
             : claimErr?.message || "Could not reserve your time slot. Please try again."
         );
-        // Roll the booking back and clear any lingering slot claim so the user
-        // can pick a different time without repeatedly hitting the same error.
+        // Roll THIS draft back. Don't bulk-release — any slot the user still
+        // holds belongs to a different (legit) booking and is protected by
+        // the earlier already_booked check above.
         await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", id);
-        await supabase.rpc("release_station_slot");
         setBookingId(null);
         setStage("schedule");
         return;
@@ -262,6 +267,22 @@ export default function BookAssessmentPage() {
     if (!pkg || !bookingId || !userId) return;
     setPaying(true);
     setPaymentError(null);
+
+    // Re-select the booking first — another tab or admin may have cancelled
+    // it while the user was on the pay stage. Paying a cancelled booking
+    // would leave the payments ledger and the booking status inconsistent.
+    const { data: current } = await supabase
+      .from("body_comp_bookings")
+      .select("status, payment_status")
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!current || current.status !== "requested" || current.payment_status !== "pending") {
+      setPaymentError("Your booking is no longer payable — it may have been cancelled in another tab. Please start over.");
+      setPaying(false);
+      setStage("schedule");
+      return;
+    }
+
     const res = await createStraumurCharge({
       amountIsk: pkg.priceIsk,
       reference: bookingId,
@@ -274,24 +295,15 @@ export default function BookAssessmentPage() {
       setPaying(false);
       return;
     }
-    // Note: we intentionally leave `status` as 'requested' — the Lifeline
-    // staff confirms after reviewing the booking. The client's RLS update
-    // policy also restricts status to 'requested'/'cancelled', so touching
-    // it here would violate the check.
-    const paidAt = new Date().toISOString();
-    const { error: upErr } = await supabase
-      .from("body_comp_bookings")
-      .update({
-        payment_status: "paid",
-        payment_provider: "straumur",
-        payment_reference: res.providerReference,
-        paid_at: paidAt,
-      })
-      .eq("id", bookingId);
-    if (upErr) { setPaymentError(upErr.message); setPaying(false); return; }
 
-    // Mirror into the unified payments ledger so it shows in billing history.
-    await supabase.from("payments").insert({
+    // Insert the payments row FIRST — it's the canonical record of the
+    // charge. The unique partial index on (related_type, related_id) where
+    // status='succeeded' makes this idempotent: a double-click or stale
+    // retry whose prior attempt actually succeeded will fail here with a
+    // 23505 (unique_violation), which we treat as "already paid, just
+    // continue".
+    const paidAt = new Date().toISOString();
+    const { error: payErr } = await supabase.from("payments").insert({
       owner_type: "client",
       owner_id: userId,
       amount_isk: pkg.priceIsk,
@@ -304,6 +316,30 @@ export default function BookAssessmentPage() {
       related_id: bookingId,
       paid_at: paidAt,
     });
+    const duplicate = payErr && (payErr as { code?: string }).code === "23505";
+    if (payErr && !duplicate) {
+      setPaymentError(`Payment recorded but ledger write failed: ${payErr.message}. Please email contact@lifelinehealth.is.`);
+      setPaying(false);
+      return;
+    }
+
+    // Now update the booking. RLS restricts status to 'requested'/'cancelled'
+    // so we leave status alone; staff flip it to 'confirmed' later.
+    const { error: upErr } = await supabase
+      .from("body_comp_bookings")
+      .update({
+        payment_status: "paid",
+        payment_provider: "straumur",
+        payment_reference: res.providerReference,
+        paid_at: paidAt,
+      })
+      .eq("id", bookingId)
+      .eq("payment_status", "pending");
+    if (upErr) {
+      setPaymentError(`Payment succeeded but booking update failed: ${upErr.message}. We'll reconcile — email contact@lifelinehealth.is with your booking id ${bookingId}.`);
+      setPaying(false);
+      return;
+    }
 
     setPaying(false);
     setStage("done");

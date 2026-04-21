@@ -123,7 +123,34 @@ export default function AdminPaymentsPage() {
     load();
   }
   async function markRefunded(id: string) {
-    if (!confirm("Mark this payment as refunded?")) return;
+    // Look up what this payment is for. If it's tied to a body_comp_booking,
+    // run the atomic refund RPC so the booking, station_slot claim, doctor
+    // claim, and (optionally) the Check-in doctor add-on are all cleaned up
+    // in one transaction. For other related_types (subscriptions, invoices,
+    // etc.) fall back to the simple ledger-only mark-refunded.
+    const { data: p } = await supabase
+      .from("payments")
+      .select("related_type, related_id, amount_isk, description")
+      .eq("id", id)
+      .maybeSingle();
+    const related = p as { related_type?: string | null; related_id?: string | null; amount_isk?: number; description?: string } | null;
+    if (related?.related_type === "body_comp_booking" && related.related_id) {
+      if (!confirm(`Refund ${(related.amount_isk ?? 0).toLocaleString("is-IS")} ISK and cancel the booking? This also releases the measurement slot and any tied doctor consult.`)) return;
+      const includeAddon = confirm("Also refund the Check-in doctor add-on (18,500 ISK) for this client, if any?");
+      const { data, error } = await supabase.rpc("refund_and_cancel_booking", {
+        p_booking_id: related.related_id,
+        p_include_checkin_addon: includeAddon,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || (row && row.ok === false)) {
+        setMsg(`Refund failed: ${error?.message || row?.error}`);
+        return;
+      }
+      setMsg(`Refunded ${(row?.refunded_isk ?? 0).toLocaleString("is-IS")} ISK and cancelled booking.`);
+      load();
+      return;
+    }
+    if (!confirm("Mark this payment as refunded? (Ledger only — not linked to a booking.)")) return;
     const { error } = await supabase.from("payments").update({ status: "refunded", refunded_at: new Date().toISOString() }).eq("id", id);
     if (error) { setMsg(`Update failed: ${error.message}`); return; }
     setMsg("Marked refunded.");
