@@ -47,8 +47,9 @@ export async function POST(
   }
 
   const amountNet = unitPrice * quantity;
-  const vatRate = 24;
-  const amountTotal = Math.round(amountNet * (1 + vatRate / 100));
+  // Health services are VAT exempt in Iceland (§2 gr. laga um virðisaukaskatt)
+  const vatRate = 0;
+  const amountTotal = amountNet;
 
   const { data: contactUser } = await supabaseAdmin.auth.admin.getUserById(company.contact_person_id);
   const contactEmail = contactUser?.user?.email || null;
