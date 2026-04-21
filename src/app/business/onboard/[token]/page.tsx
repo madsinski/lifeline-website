@@ -295,7 +295,7 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
               {t("onboard.welcome.team.signature", "— The Lifeline team")}
             </p>
             <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-              {t("onboard.welcome.team.note", "Medical doctors, a nurse, and health coaches — working with you to improve your health.")}
+              {t("onboard.welcome.team.note", "Medical doctors, nurses, and health coaches — working with you to improve your health.")}
             </p>
           </div>
         </div>
