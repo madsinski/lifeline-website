@@ -101,8 +101,10 @@ serve(async (req) => {
       await supabaseAdmin.from('staff').delete().eq('email', clientEmail)
     }
 
-    // 8. Delete push tokens
-    await supabaseAdmin.from('push_tokens').delete().eq('user_id', userId).catch(() => {})
+    // 8. Delete push tokens (best-effort — table may not exist yet)
+    try {
+      await supabaseAdmin.from('push_tokens').delete().eq('user_id', userId)
+    } catch { /* ignore */ }
 
     // 9. Delete auth user — try by ID first, then look up by email
     let { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
