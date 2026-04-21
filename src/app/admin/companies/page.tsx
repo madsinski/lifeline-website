@@ -61,7 +61,7 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
       body: JSON.stringify({ unit_price: unit, notes: notes.trim() || undefined }),
     });
     const j = await res.json();
-    if (!res.ok) alert(`Failed: ${j.detail || j.error || "unknown"}`);
+    if (!res.ok) alert(`Failed: ${j.detail || j.error || "unknown"}\n\nPayDay response: ${JSON.stringify(j.raw || "none")}`);
     else alert(`Invoice created${j.payday_invoice_number ? ` · ${j.payday_invoice_number}` : ""} · ${j.quantity} × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK incl. VAT`);
     setBusy(false);
   };

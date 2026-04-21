@@ -121,6 +121,7 @@ export async function ensurePaydayCustomer(args: EnsureCustomerArgs): Promise<{ 
         return { ok: true, customer_id: match.id };
       }
     }
+    console.error("[payday] customer create failed", res.status, JSON.stringify(res.json ?? res.text));
     return { ok: false, error: `customer_create_http_${res.status}`, raw: res.json ?? res.text };
   }
 
