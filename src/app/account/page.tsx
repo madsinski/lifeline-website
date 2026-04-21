@@ -405,14 +405,17 @@ function AccountPageInner() {
             setBodyCompStatus("completed");
           }
 
-          // Fallback for B2C: a station_slot claim exists but no active
-          // body_comp_booking references it (admin-set, or legacy row).
-          // Surface it on the dashboard so the user can see their upcoming
-          // measurement instead of being stuck on the Get Started hero.
+          // Fallback for B2C: if no active booking was loaded, look at the
+          // station_slots table — that's the source of truth for who has
+          // claimed a measurement time. A claim may exist without a matching
+          // active booking (admin-set, legacy row, or a paid booking that
+          // was cancelled without a refund). Surface it on the dashboard
+          // so the user can see + manage the slot instead of being stuck on
+          // the Get Started hero.
           if (!companyId && !booking) {
             const { data: solo } = await supabase
               .from("station_slots")
-              .select("slot_at")
+              .select("slot_at, booking_id")
               .eq("client_id", currentUser.id)
               .is("completed_at", null)
               .order("slot_at", { ascending: true })
@@ -422,8 +425,34 @@ function AccountPageInner() {
               setBodyCompStatus("booked");
               setBodyCompBookingAt(solo.slot_at as string);
               setMySlotAt(solo.slot_at as string);
-              // Default to Foundational Health when we don't know the package
-              setBodyCompPackage("foundational");
+              // If the slot links back to a body_comp_booking, pull the
+              // real package + payment state from it — so the dashboard
+              // shows the right journey and the Cancel button knows
+              // whether to refund.
+              const backingId = (solo as { booking_id?: string | null }).booking_id;
+              if (backingId) {
+                const { data: bk } = await supabase
+                  .from("body_comp_bookings")
+                  .select("id, package, amount_isk, payment_status, scheduled_at")
+                  .eq("id", backingId)
+                  .maybeSingle();
+                if (bk) {
+                  const pkg = (bk as Record<string, unknown>).package as string | null;
+                  if (pkg === "foundational" || pkg === "checkin" || pkg === "self-checkin") {
+                    setBodyCompPackage(pkg);
+                  } else {
+                    setBodyCompPackage("foundational");
+                  }
+                  setCurrentBookingId(bk.id as string);
+                  setCurrentBookingPaid(((bk as Record<string, unknown>).payment_status as string | null) === "paid");
+                  setCurrentBookingAmount(((bk as Record<string, unknown>).amount_isk as number | null) ?? 0);
+                  setCurrentBookingScheduledAt(((bk as Record<string, unknown>).scheduled_at as string | null) ?? null);
+                } else {
+                  setBodyCompPackage("foundational");
+                }
+              } else {
+                setBodyCompPackage("foundational");
+              }
             }
           }
 
