@@ -1112,11 +1112,7 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Wellbeing check-in prompt (monthly) */}
-                <WellbeingPromptCard
-                  lastWellbeingAt={lastWellbeingAt}
-                  onStart={() => setWellbeingOpen(true)}
-                />
+                {/* Wellbeing check-in — disabled for now, moved to settings for later use */}
                 {/* Satisfaction prompts after milestones */}
                 <SatisfactionPromptCard
                   bodyCompStatus={bodyCompStatus}
