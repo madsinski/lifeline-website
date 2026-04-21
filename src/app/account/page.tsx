@@ -15,6 +15,7 @@ import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 import AvatarPicker from "../components/AvatarPicker";
 import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
+import { createStraumurCharge } from "@/lib/straumur";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -112,6 +113,8 @@ function AccountPageInner() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
+  const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
+  const [payingCheckinDoctor, setPayingCheckinDoctor] = useState(false);
   const [bodyCompBookingAt, setBodyCompBookingAt] = useState<string | null>(null);
   const [lastBodyCompAt, setLastBodyCompAt] = useState<string | null>(null);
   const [biodyActivated, setBiodyActivated] = useState(false);
@@ -261,7 +264,7 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at")
           .eq("id", currentUser.id)
           .single();
         if (clientData) {
@@ -280,6 +283,7 @@ function AccountPageInner() {
           setBiodyActivated(!!cData.biody_patient_id);
           setVideoPortalConfirmedAt((cData.video_consultation_portal_confirmed_at as string | null) || null);
           setAvatarUrl((cData.avatar_url as string | null) || null);
+          setCheckinDoctorAddonPaidAt((cData.checkin_doctor_addon_paid_at as string | null) || null);
           if (companyId) {
             setCompanyId(companyId);
             const { data: c } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
@@ -1041,6 +1045,55 @@ function AccountPageInner() {
                     completed={bodyCompStatus === "completed"}
                     hasDoctorBooking={!!myDoctorSlot || !!videoPortalConfirmedAt}
                     onGoToBiody={() => setBiodyEditOpen(true)}
+                    doctorAddonPaid={!!checkinDoctorAddonPaidAt}
+                    payingDoctorAddon={payingCheckinDoctor}
+                    hasAvailableInPersonSlots={upcomingDoctorSlots.length > 0}
+                    onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
+                    onConfirmVideoPortal={async () => {
+                      if (!confirm("Have you booked a video meeting with your Lifeline doctor in the patient portal?")) return;
+                      setVideoConfirmBusy(true);
+                      const { error } = await supabase.rpc("confirm_video_consultation_portal");
+                      if (!error) setVideoPortalConfirmedAt(new Date().toISOString());
+                      setVideoConfirmBusy(false);
+                    }}
+                    videoConfirmBusy={videoConfirmBusy}
+                    onPayDoctorAddon={async () => {
+                      if (!user) return;
+                      if (!confirm("Add a doctor consultation to your Check-in round for 18,500 kr? You'll be charged via Straumur.")) return;
+                      setPayingCheckinDoctor(true);
+                      try {
+                        const AMOUNT = 18500;
+                        const res = await createStraumurCharge({
+                          amountIsk: AMOUNT,
+                          reference: `checkin-doctor-${user.id}-${Date.now()}`,
+                          description: "Lifeline Health — Check-in doctor consultation",
+                          customer: { name: `${profileFirstName} ${profileLastName}`.trim() || user.email || "", email: user.email || "", phone: phone || null },
+                          returnUrl: typeof window !== "undefined" ? window.location.href : "",
+                        });
+                        if (!res.ok) { alert(`Payment failed: ${res.error}`); return; }
+                        const paidAt = new Date().toISOString();
+                        const { error: updErr } = await supabase
+                          .from("clients")
+                          .update({ checkin_doctor_addon_paid_at: paidAt })
+                          .eq("id", user.id);
+                        if (updErr) { alert(`Could not record payment: ${updErr.message}`); return; }
+                        await supabase.from("payments").insert({
+                          owner_type: "client",
+                          owner_id: user.id,
+                          amount_isk: AMOUNT,
+                          currency: "ISK",
+                          description: "Lifeline Health — Check-in doctor consultation",
+                          provider: "straumur",
+                          provider_reference: res.providerReference,
+                          status: "succeeded",
+                          related_type: "checkin_doctor_addon",
+                          paid_at: paidAt,
+                        });
+                        setCheckinDoctorAddonPaidAt(paidAt);
+                      } finally {
+                        setPayingCheckinDoctor(false);
+                      }
+                    }}
                   />
                 )}
 
@@ -2472,12 +2525,22 @@ function SelfCheckinJourney({ completed }: { completed: boolean }) {
 // view results in the patient portal.
 function CheckinJourney({
   biodyActivated, bodyCompBookingAt, completed, hasDoctorBooking, onGoToBiody,
+  doctorAddonPaid, payingDoctorAddon, onPayDoctorAddon,
+  hasAvailableInPersonSlots, onPickInPersonDoctorSlot,
+  onConfirmVideoPortal, videoConfirmBusy,
 }: {
   biodyActivated: boolean;
   bodyCompBookingAt: string | null;
   completed: boolean;
   hasDoctorBooking: boolean;
   onGoToBiody: () => void;
+  doctorAddonPaid: boolean;
+  payingDoctorAddon: boolean;
+  onPayDoctorAddon: () => void | Promise<void>;
+  hasAvailableInPersonSlots: boolean;
+  onPickInPersonDoctorSlot: () => void;
+  onConfirmVideoPortal: () => void;
+  videoConfirmBusy: boolean;
 }) {
   const slotLabel = bodyCompBookingAt
     ? new Date(bodyCompBookingAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
@@ -2510,21 +2573,57 @@ function CheckinJourney({
           : "We'll confirm the time once your station slot is finalised.",
       state: completed ? "done" : biodyActivated ? "active" : "pending",
     },
-    {
-      title: "Doctor consultation",
-      description: hasDoctorBooking
-        ? "Your consultation is booked. See Current bookings below."
-        : "Optional add-on — book a 1:1 doctor review of your progress and an updated action plan. Charged separately at 18,500 kr.",
-      state: hasDoctorBooking ? "done" : "pending",
-      cta: hasDoctorBooking ? undefined : (
-        <a
-          href="mailto:contact@lifelinehealth.is?subject=Check-in%20doctor%20consultation&body=Hi%20Lifeline%2C%20I%27d%20like%20to%20add%20a%20doctor%20consultation%20to%20my%20Check-in%20round%20(18%2C500%20kr).%20Please%20send%20me%20an%20invoice%20and%20available%20times."
-          className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md border border-[#3B82F6] text-[#3B82F6] bg-white hover:bg-blue-50"
-        >
-          Add for 18,500 kr
-        </a>
-      ),
-    },
+    (() => {
+      // Three sub-states: (a) not paid → offer 18,500 kr add-on
+      //                   (b) paid but not yet booked → pick in-person or video
+      //                   (c) booked → done
+      if (hasDoctorBooking) {
+        return {
+          title: "Doctor consultation",
+          description: "Your consultation is booked. See Current bookings below.",
+          state: "done" as const,
+        };
+      }
+      if (!doctorAddonPaid) {
+        return {
+          title: "Doctor consultation",
+          description: "Optional add-on — book a 1:1 doctor review of your progress and an updated action plan. Charged separately at 18,500 kr.",
+          state: "pending" as const,
+          cta: (
+            <button
+              onClick={onPayDoctorAddon}
+              disabled={payingDoctorAddon}
+              className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white hover:opacity-95 disabled:opacity-50"
+            >
+              {payingDoctorAddon && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {payingDoctorAddon ? "Charging…" : "Add for 18,500 kr"}
+            </button>
+          ),
+        };
+      }
+      return {
+        title: "Doctor consultation",
+        description: "Paid. Choose how you'd like to meet your Lifeline doctor.",
+        state: "active" as const,
+        cta: (
+          <div className="flex flex-wrap items-center gap-2">
+            {hasAvailableInPersonSlots ? (
+              <button onClick={onPickInPersonDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                Pick a time (in person)
+              </button>
+            ) : null}
+            <MedaliaButton label="Book video via portal" size="sm" variant="outline" />
+            <button
+              onClick={onConfirmVideoPortal}
+              disabled={videoConfirmBusy}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-60"
+            >
+              {videoConfirmBusy ? "…" : "I've booked — confirm"}
+            </button>
+          </div>
+        ),
+      };
+    })(),
     {
       title: "View your results in the patient portal",
       description: completed
