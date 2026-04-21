@@ -103,28 +103,36 @@ export default function AdminBookingsPage() {
 
 // ─── Bookings tab ───────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 50;
+
 function BookingsTable({ setMsg, onAfterAction }: { setMsg: (s: string) => void; onAfterAction: () => void }) {
   const [rows, setRows] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<StatusFilter>("active");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     let q = supabase
       .from("body_comp_bookings")
-      .select("id, client_id, scheduled_at, status, package, amount_isk, payment_status, paid_at, payment_reference, created_at, notes, client:clients!inner(full_name, email, checkin_doctor_addon_paid_at)")
+      .select("id, client_id, scheduled_at, status, package, amount_isk, payment_status, paid_at, payment_reference, created_at, notes, client:clients!inner(full_name, email, checkin_doctor_addon_paid_at)", { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(500);
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
     if (status === "active") q = q.in("status", ["requested", "confirmed"]);
     else if (status === "cancelled") q = q.eq("status", "cancelled");
-    const { data, error } = await q;
+    const { data, error, count } = await q;
     if (error) { setMsg(`Load failed: ${error.message}`); setLoading(false); return; }
     setRows((data as unknown as BookingRow[]) || []);
+    setTotalCount(count ?? 0);
     setLoading(false);
-  }, [status, setMsg]);
+  }, [status, page, setMsg]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Reset to first page when the user flips the status filter
+  useEffect(() => { setPage(0); }, [status]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -135,6 +143,10 @@ function BookingsTable({ setMsg, onAfterAction }: { setMsg: (s: string) => void;
       r.id.includes(s),
     );
   }, [rows, search]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const pageStart = totalCount === 0 ? 0 : page * PAGE_SIZE + 1;
+  const pageEnd = Math.min((page + 1) * PAGE_SIZE, totalCount);
 
   return (
     <div className="space-y-4">
@@ -175,6 +187,30 @@ function BookingsTable({ setMsg, onAfterAction }: { setMsg: (s: string) => void;
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-gray-600">
+        <div>
+          {totalCount === 0 ? "No results"
+            : `Showing ${pageStart.toLocaleString("en-GB")}–${pageEnd.toLocaleString("en-GB")} of ${totalCount.toLocaleString("en-GB")}${search ? ` (filtered on this page)` : ""}`}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0 || loading}
+            className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ← Prev
+          </button>
+          <span className="text-gray-500">Page {page + 1} of {totalPages}</span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1 || loading}
+            className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next →
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -355,22 +391,30 @@ function RefundRequestsTable({ setMsg, onAfterAction }: { setMsg: (s: string) =>
   const [rows, setRows] = useState<RefundRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     let q = supabase
       .from("refund_requests")
-      .select("id, client_id, booking_id, reason, requested_isk, approved_isk, include_checkin_addon, status, admin_note, created_at, resolved_at, client:clients!inner(full_name,email), booking:body_comp_bookings(scheduled_at,package,amount_isk)")
+      .select("id, client_id, booking_id, reason, requested_isk, approved_isk, include_checkin_addon, status, admin_note, created_at, resolved_at, client:clients!inner(full_name,email), booking:body_comp_bookings(scheduled_at,package,amount_isk)", { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(200);
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
     if (filter === "pending") q = q.eq("status", "pending");
-    const { data, error } = await q;
+    const { data, error, count } = await q;
     if (error) { setMsg(`Load failed: ${error.message}`); setLoading(false); return; }
     setRows((data as unknown as RefundRequestRow[]) || []);
+    setTotalCount(count ?? 0);
     setLoading(false);
-  }, [filter, setMsg]);
+  }, [filter, page, setMsg]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(0); }, [filter]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const pageStart = totalCount === 0 ? 0 : page * PAGE_SIZE + 1;
+  const pageEnd = Math.min((page + 1) * PAGE_SIZE, totalCount);
 
   async function approve(req: RefundRequestRow, amount: number, adminNote: string) {
     if (!req.booking_id) { setMsg("This request is not linked to a booking — resolve it manually."); return; }
@@ -435,6 +479,31 @@ function RefundRequestsTable({ setMsg, onAfterAction }: { setMsg: (s: string) =>
           {rows.map((r) => (
             <RefundRequestCard key={r.id} req={r} onApprove={approve} onDeny={deny} />
           ))}
+        </div>
+      )}
+
+      {totalCount > PAGE_SIZE && (
+        <div className="flex items-center justify-between text-xs text-gray-600">
+          <div>
+            Showing {pageStart.toLocaleString("en-GB")}–{pageEnd.toLocaleString("en-GB")} of {totalCount.toLocaleString("en-GB")}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0 || loading}
+              className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ← Prev
+            </button>
+            <span className="text-gray-500">Page {page + 1} of {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1 || loading}
+              className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>

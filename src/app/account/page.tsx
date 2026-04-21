@@ -120,6 +120,7 @@ function AccountPageInner() {
   const [cancelBusy, setCancelBusy] = useState(false);
   const [refundRequestOpen, setRefundRequestOpen] = useState(false);
   const [pendingRefundRequestId, setPendingRefundRequestId] = useState<string | null>(null);
+  const [resolvedRefundRequest, setResolvedRefundRequest] = useState<{ id: string; status: "approved" | "denied"; admin_note: string | null; approved_isk: number | null; resolved_at: string } | null>(null);
   const [pendingBooking, setPendingBooking] = useState<{ id: string; package: string | null; scheduled_at: string | null } | null>(null);
   const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
   const [payingCheckinDoctor, setPayingCheckinDoctor] = useState(false);
@@ -416,6 +417,26 @@ function AccountPageInner() {
             }
           } else if (cData.last_body_comp_at) {
             setBodyCompStatus("completed");
+          }
+
+          // Surface a recently-resolved refund request (approved or denied)
+          // so the user sees the admin's decision in the UI without relying
+          // on email. 14-day window — old enough to not clutter later views.
+          const resolvedCutoff = new Date(Date.now() - 14 * 86_400_000).toISOString();
+          const { data: recentResolved } = await supabase
+            .from("refund_requests")
+            .select("id, status, admin_note, approved_isk, resolved_at")
+            .eq("client_id", currentUser.id)
+            .in("status", ["approved", "denied"])
+            .gte("resolved_at", resolvedCutoff)
+            .order("resolved_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (recentResolved) {
+            const rr = recentResolved as { id: string; status: string; admin_note: string | null; approved_isk: number | null; resolved_at: string };
+            if (rr.status === "approved" || rr.status === "denied") {
+              setResolvedRefundRequest({ id: rr.id, status: rr.status, admin_note: rr.admin_note, approved_isk: rr.approved_isk, resolved_at: rr.resolved_at });
+            }
           }
 
           // Fallback for B2C: if no active booking was loaded, look at the
@@ -1224,6 +1245,43 @@ function AccountPageInner() {
                   </div>
                 </section>
 
+                {/* B2C: recently-resolved cancellation request. Shown for
+                    14 days after the admin approved or denied, so the user
+                    sees the outcome in the UI, not just the email. */}
+                {!companyId && resolvedRefundRequest && (
+                  <section className={`rounded-2xl border p-5 shadow-sm ${resolvedRefundRequest.status === "approved" ? "bg-emerald-50/60 border-emerald-100" : "bg-red-50/60 border-red-100"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-semibold uppercase tracking-wide mb-1 ${resolvedRefundRequest.status === "approved" ? "text-emerald-700" : "text-red-700"}`}>
+                          {resolvedRefundRequest.status === "approved" ? "Cancellation approved" : "Cancellation request denied"}
+                        </div>
+                        <h3 className={`text-base font-semibold ${resolvedRefundRequest.status === "approved" ? "text-emerald-900" : "text-red-900"}`}>
+                          {resolvedRefundRequest.status === "approved"
+                            ? `We're refunding ${(resolvedRefundRequest.approved_isk ?? 0).toLocaleString("is-IS")} ISK`
+                            : "We couldn't approve your refund"}
+                        </h3>
+                        {resolvedRefundRequest.admin_note && (
+                          <p className={`text-sm mt-2 whitespace-pre-wrap ${resolvedRefundRequest.status === "approved" ? "text-emerald-900/80" : "text-red-900/80"}`}>
+                            {resolvedRefundRequest.admin_note}
+                          </p>
+                        )}
+                        <p className={`text-[11px] mt-2 ${resolvedRefundRequest.status === "approved" ? "text-emerald-700" : "text-red-700"}`}>
+                          {resolvedRefundRequest.status === "approved"
+                            ? "Refund lands on your card within 3–5 business days."
+                            : "Your booking is still active. Reply to contact@lifelinehealth.is if you'd like to discuss."}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setResolvedRefundRequest(null)}
+                        className={`shrink-0 text-xs font-medium px-2 py-1 rounded-md hover:bg-white/60 ${resolvedRefundRequest.status === "approved" ? "text-emerald-700" : "text-red-700"}`}
+                        title="Dismiss"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </section>
+                )}
+
                 {/* B2C: pending (unpaid) booking → show a 'Resume booking' card */}
                 {!companyId && bodyCompStatus === "none" && pendingBooking && (
                   <ResumeBookingHero
@@ -1391,6 +1449,13 @@ function AccountPageInner() {
                   onChangeBcSlot={() => setBcPickerOpen(true)}
                   onChangeBloodDay={() => setBtPickerOpen(true)}
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
+                  onCancelDoctorSlot={async () => {
+                    if (!myDoctorSlot) return;
+                    if (!confirm("Cancel your doctor consultation? The slot will go back into the open pool.")) return;
+                    const { error } = await supabase.rpc("cancel_doctor_slot");
+                    if (error) { alert(`Cancel failed: ${error.message}`); return; }
+                    setMyDoctorSlot(null);
+                  }}
                   onCancelBcBooking={async () => {
                     const done = await cancelCurrentBooking("cancel");
                     if (done) {
@@ -3227,7 +3292,7 @@ function CurrentBookings({
   mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot, videoPortalConfirmedAt,
   bodyCompBookingAt, bodyCompStatus, bodyCompPackage,
   cancelBusy, pendingRefundRequestId,
-  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onCancelBcBooking, onWithdrawRefundRequest, onClearVideoPortal,
+  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onCancelDoctorSlot, onCancelBcBooking, onWithdrawRefundRequest, onClearVideoPortal,
 }: {
   isB2C: boolean;
   mySlotAt: string | null;
@@ -3243,6 +3308,7 @@ function CurrentBookings({
   onChangeBcSlot: () => void;
   onChangeBloodDay: () => void;
   onChangeDoctorSlot: () => void;
+  onCancelDoctorSlot: () => void;
   onCancelBcBooking: () => void;
   onWithdrawRefundRequest: () => void;
   onClearVideoPortal: () => void;
@@ -3513,6 +3579,12 @@ function CurrentBookings({
               <button onClick={onChangeDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 hover:border-violet-300 transition-colors">
                 {editIcon}
                 Change time
+              </button>
+              <button onClick={onCancelDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 hover:border-red-300 transition-colors">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
               </button>
               {calButtons(
                 {

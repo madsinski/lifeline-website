@@ -135,10 +135,25 @@ export default function AdminPaymentsPage() {
       .maybeSingle();
     const related = p as { related_type?: string | null; related_id?: string | null; amount_isk?: number; description?: string } | null;
     if (related?.related_type === "body_comp_booking" && related.related_id) {
-      if (!confirm(`Refund ${(related.amount_isk ?? 0).toLocaleString("is-IS")} ISK and cancel the booking? This also releases the measurement slot and any tied doctor consult.`)) return;
+      const full = related.amount_isk ?? 0;
+      const amountStr = window.prompt(
+        `Refund amount in ISK (full = ${full.toLocaleString("is-IS")}, 0 = cancel without refund):`,
+        String(full),
+      );
+      if (amountStr === null) return;
+      const amount = parseInt(amountStr.replace(/[^\d-]/g, ""), 10);
+      if (Number.isNaN(amount) || amount < 0 || amount > full) {
+        setMsg(`Refund amount must be between 0 and ${full.toLocaleString("is-IS")} ISK.`);
+        return;
+      }
+      const reason = (window.prompt("Admin reason (saved on booking as audit trail — required):", "") || "").trim();
+      if (!reason) { setMsg("Reason is required."); return; }
       const includeAddon = confirm("Also refund the Check-in doctor add-on (18,500 ISK) for this client, if any?");
-      const { data, error } = await supabase.rpc("refund_and_cancel_booking", {
+      if (!confirm(`Cancel booking and refund ${amount.toLocaleString("is-IS")} ISK${includeAddon ? " + 18,500 ISK doctor add-on" : ""}? This also releases the measurement slot and any tied doctor consult.`)) return;
+      const { data, error } = await supabase.rpc("admin_cancel_booking", {
         p_booking_id: related.related_id,
+        p_reason: reason,
+        p_refund_isk: amount,
         p_include_checkin_addon: includeAddon,
       });
       const row = Array.isArray(data) ? data[0] : data;

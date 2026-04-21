@@ -29,6 +29,8 @@ type Payment = {
   paid_at: string | null;
   created_at: string;
   pdf_url: string | null;
+  related_type: string | null;
+  related_id: string | null;
 };
 
 export default function BillingPanel({
@@ -54,7 +56,7 @@ export default function BillingPanel({
         .eq("owner_id", ownerId)
         .order("created_at", { ascending: false }),
       supabase.from("payments")
-        .select("id, amount_isk, currency, description, status, provider, provider_reference, paid_at, created_at, pdf_url")
+        .select("id, amount_isk, currency, description, status, provider, provider_reference, paid_at, created_at, pdf_url, related_type, related_id")
         .eq("owner_type", ownerType)
         .eq("owner_id", ownerId)
         .order("created_at", { ascending: false })
@@ -238,9 +240,33 @@ export default function BillingPanel({
                     </td>
                     <td className="py-3 text-right whitespace-nowrap">
                       {statusPill(p.status)}
-                      {p.pdf_url && (
+                      {p.pdf_url ? (
                         <a href={p.pdf_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-[#10B981] hover:underline">PDF</a>
-                      )}
+                      ) : p.related_type === "body_comp_booking" && p.related_id && p.status !== "pending" && p.amount_isk > 0 ? (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setActionId(p.id);
+                            try {
+                              const res = await fetch("/api/bookings/receipt", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ bookingId: p.related_id }),
+                              });
+                              const body = await res.json().catch(() => ({}));
+                              if (!res.ok || !body?.url) { setError(body?.error || "Receipt failed"); return; }
+                              window.open(body.url, "_blank", "noopener,noreferrer");
+                              load();
+                            } finally {
+                              setActionId(null);
+                            }
+                          }}
+                          disabled={actionId === p.id}
+                          className="ml-2 text-xs text-[#10B981] hover:underline disabled:opacity-60"
+                        >
+                          {actionId === p.id ? "…" : "Get receipt"}
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

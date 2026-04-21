@@ -395,6 +395,14 @@ function BookAssessmentContent() {
       body: JSON.stringify({ bookingId }),
     }).catch(() => {});
 
+    // Generate the receipt PDF and stamp payments.pdf_url so it appears in
+    // the BillingPanel.
+    fetch("/api/bookings/receipt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId }),
+    }).catch(() => {});
+
     setPaying(false);
     setStage("done");
   }
