@@ -106,6 +106,17 @@ serve(async (req) => {
       await supabaseAdmin.from('push_tokens').delete().eq('user_id', userId)
     } catch { /* ignore */ }
 
+    // 8a. Clean up tables that reference auth.users with strict FKs (no cascade).
+    // Any row left in these blocks auth.admin.deleteUser with "Database error
+    // deleting user". Best-effort on each so a missing table doesn't break the
+    // whole flow.
+    const cleanupByClientId: string[] = ['checkin_log', 'event_checkins']
+    for (const table of cleanupByClientId) {
+      try {
+        await supabaseAdmin.from(table).delete().eq('client_id', userId)
+      } catch { /* ignore */ }
+    }
+
     // 8b. Null out any FK references to auth.users that use ON DELETE NO
     // ACTION (i.e. would otherwise block auth deletion). Each is best-effort
     // — missing table or already-null rows are fine.
