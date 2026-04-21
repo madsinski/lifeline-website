@@ -96,7 +96,7 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
 
   return (
     <>
-      <button onClick={openDialog} className="text-purple-700 hover:underline">Invoice</button>
+      <button onClick={openDialog} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors">Invoice</button>
 
       {/* Invoice dialog */}
       {open && (
@@ -219,7 +219,7 @@ function EnsureGroupButton({ companyId }: { companyId: string }) {
     setBusy(false);
   };
   return (
-    <button onClick={click} disabled={busy} className="text-indigo-600 hover:underline disabled:opacity-50">
+    <button onClick={click} disabled={busy} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors">
       {busy ? "Creating…" : "Biody group"}
     </button>
   );
@@ -249,8 +249,8 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
     setBusy(false);
   };
   return (
-    <button onClick={click} disabled={busy} className="text-emerald-600 hover:underline disabled:opacity-50">
-      {busy ? "Creating…" : "Create all users in Biody"}
+    <button onClick={click} disabled={busy} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors">
+      {busy ? "Creating…" : "Create all in Biody"}
     </button>
   );
 }
@@ -292,7 +292,7 @@ function DeleteCompanyButton({ company, onDone }: { company: CompanyRow; onDone:
     setBusy(false);
   };
   return (
-    <button onClick={click} disabled={busy} className="text-red-600 hover:underline disabled:opacity-50">
+    <button onClick={click} disabled={busy} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors">
       {busy ? "Deleting…" : "Delete"}
     </button>
   );
@@ -537,14 +537,16 @@ export default function AdminCompaniesPage() {
                       </select>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{new Date(c.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap space-x-3">
+                    <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
                       <EnsureGroupButton companyId={c.id} />
                       <BulkActivateButton companyId={c.id} />
                       <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
-                      <button onClick={() => downloadCsv(c.id, c.name)} className="text-blue-600 hover:underline">
+                      <button onClick={() => downloadCsv(c.id, c.name)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
                         CSV
                       </button>
                       <DeleteCompanyButton company={c} onDone={load} />
+                    </div>
                     </td>
                   </tr>
                   {expanded.has(c.id) && <EmployeeRows companyId={c.id} />}
