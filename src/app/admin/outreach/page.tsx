@@ -52,6 +52,12 @@ export default function OutreachPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCount, setCopiedCount] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendSubject, setSendSubject] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{ sent: number; skipped_opted_out: number; skipped_no_email: number; failures: Array<{ email: string; error: string }> } | null>(null);
 
   useEffect(() => {
     load();
@@ -134,6 +140,68 @@ export default function OutreachPage() {
     return { marketing, research, both, all: clients.length };
   }, [clients]);
 
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allFilteredEligible = filtered.filter((c) => !c.marketing_opt_out);
+  const allSelected = allFilteredEligible.length > 0 && allFilteredEligible.every((c) => selectedIds.has(c.id));
+
+  const toggleAll = () => {
+    setSelectedIds((prev) => {
+      if (allSelected) {
+        const next = new Set(prev);
+        for (const c of allFilteredEligible) next.delete(c.id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const c of allFilteredEligible) next.add(c.id);
+      return next;
+    });
+  };
+
+  const openSendModal = () => {
+    if (!selectedIds.size) return;
+    setSendResult(null);
+    setShowSendModal(true);
+  };
+
+  const sendB2bIntro = async () => {
+    if (!selectedIds.size) return;
+    setSending(true);
+    setSendResult(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch("/api/admin/outreach/send-b2b-intro", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          recipient_ids: Array.from(selectedIds),
+          subject: sendSubject.trim() || undefined,
+          sender_name: senderName.trim() || undefined,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        alert(`Send failed: ${j.detail || j.error || "unknown"}`);
+      } else {
+        setSendResult(j);
+      }
+    } catch (e) {
+      alert(`Send error: ${(e as Error).message}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="p-6 sm:p-8 space-y-6">
       <header>
@@ -197,6 +265,14 @@ export default function OutreachPage() {
         <button onClick={exportCsv} disabled={!filtered.length} className="btn-action">
           Export CSV
         </button>
+        <button
+          onClick={openSendModal}
+          disabled={!selectedIds.size}
+          className="btn-action"
+          title={selectedIds.size ? `Send B2B intro to ${selectedIds.size} selected` : "Select clients first"}
+        >
+          Send B2B intro ({selectedIds.size})
+        </button>
       </div>
 
       {/* Results */}
@@ -212,6 +288,14 @@ export default function OutreachPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left text-gray-500">
                 <tr>
+                  <th className="px-3 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      title={allSelected ? "Deselect all (visible, marketing-eligible)" : "Select all (visible, marketing-eligible)"}
+                    />
+                  </th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Company</th>
@@ -220,8 +304,19 @@ export default function OutreachPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => (
-                  <tr key={c.id} className="border-t border-gray-100 hover:bg-gray-50">
+                {filtered.map((c) => {
+                  const marketingBlocked = c.marketing_opt_out;
+                  return (
+                  <tr key={c.id} className={`border-t border-gray-100 hover:bg-gray-50 ${selectedIds.has(c.id) ? "bg-emerald-50/40" : ""}`}>
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(c.id)}
+                        onChange={() => !marketingBlocked && toggleOne(c.id)}
+                        disabled={marketingBlocked}
+                        title={marketingBlocked ? "Client has opted out of marketing" : "Select"}
+                      />
+                    </td>
                     <td className="px-4 py-3 font-medium">{c.full_name || "—"}</td>
                     <td className="px-4 py-3 text-gray-700 font-mono text-xs">{c.email}</td>
                     <td className="px-4 py-3 text-gray-700">{c.company_name || "—"}</td>
@@ -232,12 +327,89 @@ export default function OutreachPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Send B2B intro modal */}
+      {showSendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !sending && setShowSendModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Send B2B intro</h2>
+              <button onClick={() => !sending && setShowSendModal(false)} className="text-gray-400 hover:text-gray-600" disabled={sending}>✕</button>
+            </div>
+            {sendResult ? (
+              <div className="space-y-3">
+                <div className="rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-800 p-3 text-sm">
+                  Sent to <strong>{sendResult.sent}</strong> recipient{sendResult.sent === 1 ? "" : "s"}.
+                </div>
+                {(sendResult.skipped_opted_out > 0 || sendResult.skipped_no_email > 0) && (
+                  <div className="text-xs text-gray-500">
+                    Skipped: {sendResult.skipped_opted_out} opted out of marketing, {sendResult.skipped_no_email} missing email.
+                  </div>
+                )}
+                {sendResult.failures.length > 0 && (
+                  <div className="rounded-lg bg-red-50 border border-red-100 text-red-700 p-3 text-xs">
+                    <p className="font-medium mb-1">{sendResult.failures.length} failed:</p>
+                    <ul className="list-disc pl-5 space-y-0.5">
+                      {sendResult.failures.slice(0, 10).map((f, i) => (
+                        <li key={i}><span className="font-mono">{f.email}</span> — {f.error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <button
+                  onClick={() => { setShowSendModal(false); setSelectedIds(new Set()); }}
+                  className="w-full py-2.5 rounded-lg bg-gray-900 text-white font-medium"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Sending the Lifeline for Business introduction (with a signup-funnel link) to <strong>{selectedIds.size}</strong> selected client{selectedIds.size === 1 ? "" : "s"}.
+                  Recipients who have opted out of marketing are automatically skipped server-side.
+                </p>
+                <label className="block text-xs text-gray-500">Custom subject (optional — leave blank for default)
+                  <input
+                    type="text"
+                    value={sendSubject}
+                    onChange={(e) => setSendSubject(e.target.value)}
+                    placeholder="Lifeline for [first name]'s workplace — 2-minute intro"
+                    className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                  />
+                </label>
+                <label className="block text-xs text-gray-500">Signed by (optional)
+                  <input
+                    type="text"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    placeholder="e.g. Mads — defaults to 'The Lifeline team'"
+                    className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                  />
+                </label>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+                  Email body is the standard B2B intro with a link to <code>/business/signup?ref=outreach</code> and a secondary link to <code>/business</code>. Clients click through to start the onboarding funnel.
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setShowSendModal(false)} disabled={sending} className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">
+                    Cancel
+                  </button>
+                  <button onClick={sendB2bIntro} disabled={sending} className="btn-action px-5 py-2">
+                    {sending ? "Sending…" : `Send to ${selectedIds.size}`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .btn-action {

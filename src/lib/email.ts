@@ -110,6 +110,78 @@ Or sign in later: ${loginUrl}
   return { text, html };
 }
 
+// Outreach: B2B introduction to an existing (B2C) client, nudging them to
+// bring Lifeline into their workplace as an employee benefit. Subject and
+// body are plain so staff can further edit in the modal before sending.
+export function renderB2bIntroEmail(params: {
+  recipientName: string;
+  signupUrl: string;        // /business/signup funnel
+  infoUrl: string;          // /business landing
+  senderName?: string;      // e.g. "Mads"
+}) {
+  const { recipientName, signupUrl, infoUrl, senderName } = params;
+  const firstName = (recipientName || "there").split(" ")[0] || "there";
+  const signoff = senderName || "The Lifeline team";
+
+  const text = `Hi ${firstName},
+
+You're using Lifeline personally — we thought you'd want to know that we also run a workplace version.
+
+Lifeline Health for Business gives every employee:
+  • An on-site body-composition scan (5-minute slots)
+  • A blood-test day at Sameind, during work hours
+  • A one-on-one review with a Lifeline doctor
+  • A personal health plan and ongoing digital coaching
+
+Everything runs under our licence from Embætti landlæknis, with data stored in Medalia (the FHIR-licensed medical record system). Employers see ONLY completion status — never individual health data.
+
+If this is something your workplace might be interested in, you (or someone on your HR team) can spin up a free company workspace in a couple of minutes:
+
+  ${signupUrl}
+
+Or read more first:
+
+  ${infoUrl}
+
+Happy to answer questions — just hit reply.
+
+— ${signoff}
+Lifeline Health ehf.`;
+
+  const html = `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
+  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    <h1 style="margin:0 0 12px;font-size:22px;color:#111827;">Would your workplace want Lifeline too?</h1>
+    <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(firstName)} — you're using Lifeline personally. We also run a workplace version, and we thought you might want to bring it to your team.</p>
+
+    <p style="margin:16px 0 8px;color:#111827;font-weight:600;">What every employee gets</p>
+    <ul style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.7;">
+      <li>On-site body-composition scan (5-minute slots)</li>
+      <li>Blood-test day at Sameind — during work hours</li>
+      <li>One-on-one review with a Lifeline doctor</li>
+      <li>Personal health plan and digital coaching</li>
+    </ul>
+
+    <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:12px 16px;border-radius:10px;margin:20px 0;color:#065F46;font-size:13px;">
+      🔒 <strong>Employers see only completion status — never individual health data.</strong>
+      Everything runs under our Landlæknir licence, with records in Medalia (FHIR-certified sjúkraskrá).
+    </div>
+
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${signupUrl}" style="display:inline-block;padding:13px 30px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start a company workspace</a>
+    </div>
+    <p style="text-align:center;margin:0 0 20px;color:#6b7280;font-size:13px;">
+      Takes about two minutes — no payment required to set up. <br>
+      <a href="${infoUrl}" style="color:#3B82F6;">See how it works</a>
+    </p>
+
+    <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">Questions? Reply to this email — we read everything.</p>
+    <p style="margin:8px 0 0;color:#9CA3AF;font-size:12px;">— ${escapeHtml(signoff)} · Lifeline Health ehf. · kt. 590925-1440</p>
+  </div>
+</body></html>`;
+  return { text, html, subject: `Lifeline for ${firstName}'s workplace — 2-minute intro` };
+}
+
 export function renderEventScheduledEmail(params: {
   recipientName: string;
   companyName: string;
