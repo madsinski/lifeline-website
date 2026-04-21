@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Prevent third-party SDKs from locking page scroll */
+html, body {
+  overflow: auto !important;
+  overscroll-behavior: auto !important;
+  height: auto !important;
+}
+
 :root {
   --background: #ecf0f3;
   --foreground: #1F2937;
