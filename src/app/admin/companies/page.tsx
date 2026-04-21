@@ -45,37 +45,147 @@ const TIERS = [
 ];
 
 function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; companyName: string }) {
-  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const click = async () => {
-    const override = prompt(`Unit price (ISK) per completed assessment for ${companyName}? Blank = use company default.`);
-    if (override === null) return;
-    const unit = override.trim() ? Number(override) : undefined;
-    const notes = prompt("Invoice note (optional — appears in the single line item)") || "";
-    if (!confirm(`Create ONE consolidated PayDay invoice for ${companyName} covering all completed assessments? PayDay will deliver it to the company kennitala automatically, and we'll also email the contact person.`)) return;
-    setBusy(true);
+
+  // Form state
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [unitPrice, setUnitPrice] = useState(49900);
+  const [notes, setNotes] = useState("");
+
+  // Past invoices
+  const [pastInvoices, setPastInvoices] = useState<{ number: string | null; quantity: number; amount_total: number; status: string; issued_at: string }[]>([]);
+
+  const openDialog = async () => {
+    setOpen(true);
+    setLoading(true);
+    setNotes("");
+    // Fetch employee count, pricing, and past invoices
+    const [{ count }, { data: po }, { data: invoices }] = await Promise.all([
+      supabase.from("company_members").select("id", { count: "exact", head: true }).eq("company_id", companyId),
+      supabase.from("b2b_purchase_orders").select("line_items").eq("company_id", companyId).eq("status", "signed").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("company_invoices").select("payday_invoice_number, quantity, amount_total, status, issued_at").eq("company_id", companyId).order("created_at", { ascending: false }).limit(5),
+    ]);
+    setEmployeeCount(count || 0);
+    if (po?.line_items && Array.isArray(po.line_items) && po.line_items.length > 0) {
+      setUnitPrice((po.line_items[0] as { unit_price_isk?: number }).unit_price_isk || 49900);
+    }
+    setPastInvoices((invoices || []).map((i: any) => ({ number: i.payday_invoice_number, quantity: i.quantity, amount_total: i.amount_total, status: i.status, issued_at: i.issued_at })));
+    setLoading(false);
+  };
+
+  const send = async () => {
+    setSending(true);
     const { data: s } = await supabase.auth.getSession();
     const t = s.session?.access_token;
     const res = await fetch(`/api/admin/companies/${companyId}/invoice`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-      body: JSON.stringify({ unit_price: unit, notes: notes.trim() || undefined }),
+      body: JSON.stringify({ unit_price: unitPrice, quantity: employeeCount, notes: notes.trim() || undefined }),
     });
     const j = await res.json();
+    setSending(false);
+    setOpen(false);
     if (!res.ok) setToast({ type: "error", text: `Failed: ${j.detail || j.error || "unknown"}\n\nPayDay response:\n${JSON.stringify(j.raw || "none", null, 2)}` });
-    else setToast({ type: "success", text: `Invoice created${j.payday_invoice_number ? ` · ${j.payday_invoice_number}` : ""}\n\n${j.quantity} employees × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK\nVAT exempt (health services)\nEindagi: 14 days` });
-    setBusy(false);
+    else setToast({ type: "success", text: `Invoice created${j.payday_invoice_number ? ` · #${j.payday_invoice_number}` : ""}\n\n${j.quantity} employees × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK\nVAT exempt (health services) · Eindagi: 14 days` });
   };
+
+  const total = employeeCount * unitPrice;
+
   return (
     <>
-      <button onClick={click} disabled={busy} className="text-purple-700 hover:underline disabled:opacity-50">
-        {busy ? "Creating…" : "Invoice"}
-      </button>
+      <button onClick={openDialog} className="text-purple-700 hover:underline">Invoice</button>
+
+      {/* Invoice dialog */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Invoice for {companyName}</h3>
+              <p className="text-sm text-gray-500 mt-0.5">PayDay · VAT exempt · 14-day eindagi</p>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-gray-400">Loading…</div>
+            ) : (
+              <div className="p-5 space-y-4">
+                {/* Past invoices */}
+                {pastInvoices.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Previous invoices</p>
+                    {pastInvoices.map((inv, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">
+                          {inv.number ? `#${inv.number}` : "—"} · {inv.quantity} emp · {inv.amount_total.toLocaleString()} ISK
+                        </span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${inv.status === "paid" ? "bg-emerald-50 text-emerald-700" : inv.status === "sent" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                          {inv.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Editable fields */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Employees</label>
+                    <input
+                      type="number" min={1} value={employeeCount}
+                      onChange={(e) => setEmployeeCount(Math.max(1, parseInt(e.target.value) || 0))}
+                      className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit price (ISK)</label>
+                    <input
+                      type="number" min={0} value={unitPrice}
+                      onChange={(e) => setUnitPrice(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Note (optional)</label>
+                  <input
+                    type="text" value={notes} onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Appears on the invoice line item"
+                    className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none"
+                  />
+                </div>
+
+                {/* Total */}
+                <div className="bg-emerald-50 rounded-lg p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">{employeeCount} × {unitPrice.toLocaleString()} ISK</p>
+                    <p className="text-xs text-gray-500">VAT exempt · health services</p>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900">{total.toLocaleString()} <span className="text-sm font-medium text-gray-500">ISK</span></p>
+                </div>
+              </div>
+            )}
+
+            <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+              <button onClick={() => setOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Cancel
+              </button>
+              <button onClick={send} disabled={sending || loading || employeeCount <= 0} className="px-4 py-2 text-sm font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                {sending ? "Sending…" : pastInvoices.length > 0 ? "Send new invoice" : "Send invoice"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result toast */}
       {toast && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setToast(null)}>
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className={`px-5 py-3 rounded-t-xl text-sm font-semibold ${toast.type === "error" ? "bg-red-50 text-red-800" : "bg-emerald-50 text-emerald-800"}`}>
-              {toast.type === "error" ? "Error" : "Success"}
+              {toast.type === "error" ? "Error" : "Invoice sent"}
             </div>
             <pre className="px-5 py-4 text-sm text-gray-800 whitespace-pre-wrap break-words select-all font-mono leading-relaxed">
               {toast.text}
