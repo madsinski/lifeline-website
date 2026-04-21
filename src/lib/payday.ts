@@ -4,9 +4,11 @@ const PAYDAY_BASE_URL = process.env.PAYDAY_BASE_URL || "https://api.payday.is";
 const PAYDAY_CLIENT_ID = process.env.PAYDAY_CLIENT_ID;
 const PAYDAY_CLIENT_SECRET = process.env.PAYDAY_CLIENT_SECRET;
 
-const HEADERS_BASE = {
+const PAYDAY_API_VERSION = process.env.PAYDAY_API_VERSION || "1";
+
+const HEADERS_BASE: Record<string, string> = {
   "Content-Type": "application/json",
-  "Api-Version": "alpha",
+  ...(process.env.PAYDAY_API_VERSION ? { "Api-Version": process.env.PAYDAY_API_VERSION } : {}),
 };
 
 // ─── OAuth token (cached in DB) ──────────────────────────────────────────────
@@ -94,8 +96,11 @@ export async function ensurePaydayCustomer(args: EnsureCustomerArgs): Promise<{ 
     return { ok: true, customer_id: args.existingPaydayCustomerId };
   }
 
+  // Strip dashes/spaces from kennitala — PayDay expects 10 digits
+  const cleanKt = args.kennitala.replace(/[-\s]/g, "");
+
   const body = {
-    ssn: args.kennitala,
+    ssn: cleanKt,
     email: args.email || undefined,
     language: "is",
     name: args.name,
@@ -103,25 +108,29 @@ export async function ensurePaydayCustomer(args: EnsureCustomerArgs): Promise<{ 
     finalDueDateDefaultDaysAfter: 14,
   };
 
+  console.log("[payday] creating customer", { name: args.name, ssn: cleanKt.slice(0, 4) + "...", email: args.email, baseUrl: PAYDAY_BASE_URL });
+
   const res = await paydayFetch("/customers", {
     method: "POST",
     body: JSON.stringify(body),
   });
 
   if (!res.ok) {
+    console.error("[payday] customer create failed", res.status, JSON.stringify(res.json ?? res.text));
     // A common failure mode is "customer already exists with this ssn".
-    // Fall back to search/query endpoints.
-    const searchRes = await paydayFetch(`/customers?perpage=10&page=1`);
+    // Try searching by SSN.
+    const searchRes = await paydayFetch(`/customers?ssn=${cleanKt}&perpage=50&page=1`);
     if (searchRes.ok && searchRes.json && typeof searchRes.json === "object") {
       type CustomerRow = { id?: string; ssn?: string };
-      const data = (searchRes.json as { data?: CustomerRow[] }).data || [];
-      const match = data.find((c) => c?.ssn === args.kennitala);
+      const raw = searchRes.json as { data?: CustomerRow[] } | CustomerRow[];
+      const data = Array.isArray(raw) ? raw : raw.data || [];
+      const match = data.find((c) => c?.ssn === cleanKt);
       if (match?.id) {
+        console.log("[payday] found existing customer", match.id);
         await supabaseAdmin.from("companies").update({ payday_customer_id: match.id }).eq("id", args.companyId);
         return { ok: true, customer_id: match.id };
       }
     }
-    console.error("[payday] customer create failed", res.status, JSON.stringify(res.json ?? res.text));
     return { ok: false, error: `customer_create_http_${res.status}`, raw: res.json ?? res.text };
   }
 
