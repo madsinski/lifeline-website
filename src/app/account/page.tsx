@@ -113,6 +113,7 @@ function AccountPageInner() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
+  const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
   const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
   const [payingCheckinDoctor, setPayingCheckinDoctor] = useState(false);
   const [bodyCompBookingAt, setBodyCompBookingAt] = useState<string | null>(null);
@@ -367,7 +368,7 @@ function AccountPageInner() {
           // are allowed through via the `amount_isk is null` branch.
           const { data: booking } = await supabase
             .from("body_comp_bookings")
-            .select("scheduled_at, status, amount_isk, payment_status, package, created_at")
+            .select("id, scheduled_at, status, amount_isk, payment_status, package, created_at")
             .eq("client_id", currentUser.id)
             .in("status", ["requested", "confirmed", "completed"])
             .or("amount_isk.is.null,payment_status.eq.paid")
@@ -380,9 +381,17 @@ function AccountPageInner() {
               setBodyCompStatus("booked");
               setBodyCompBookingAt(booking.scheduled_at || null);
             }
+            setCurrentBookingId(((booking as Record<string, unknown>).id as string) || null);
             const pkg = (booking as Record<string, unknown>).package as string | null;
             if (pkg === "foundational" || pkg === "checkin" || pkg === "self-checkin") {
               setBodyCompPackage(pkg);
+            } else {
+              // Fallback — older rows predate the `package` column. Infer
+              // from amount_isk so the journey shows the right flow.
+              const amt = (booking as Record<string, unknown>).amount_isk as number | null | undefined;
+              if (amt === 0) setBodyCompPackage("self-checkin");
+              else if (amt === 19900) setBodyCompPackage("checkin");
+              else if (amt === 49900) setBodyCompPackage("foundational");
             }
           } else if (cData.last_body_comp_at) {
             setBodyCompStatus("completed");
@@ -1033,7 +1042,15 @@ function AccountPageInner() {
                     patient-portal questionnaire remains. Short-circuit before
                     the full JourneyTimeline. */}
                 {!companyId && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none" && (
-                  <SelfCheckinJourney completed={bodyCompStatus === "completed"} />
+                  <SelfCheckinJourney
+                    completed={bodyCompStatus === "completed"}
+                    onChangePackage={async () => {
+                      if (!currentBookingId) { router.push("/account/book"); return; }
+                      if (!confirm("Cancel your Self Check-in and choose a different package?")) return;
+                      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
+                      router.push("/account/book");
+                    }}
+                  />
                 )}
 
                 {/* Check-in has its own 4-step journey: booked → Biody profile
@@ -1045,6 +1062,12 @@ function AccountPageInner() {
                     completed={bodyCompStatus === "completed"}
                     hasDoctorBooking={!!myDoctorSlot || !!videoPortalConfirmedAt}
                     onGoToBiody={() => setBiodyEditOpen(true)}
+                    onChangePackage={async () => {
+                      if (!currentBookingId) { router.push("/account/book"); return; }
+                      if (!confirm("Cancel your Check-in and choose a different package? Refunds for paid packages are handled manually — contact contact@lifelinehealth.is if you've already paid.")) return;
+                      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
+                      router.push("/account/book");
+                    }}
                     doctorAddonPaid={!!checkinDoctorAddonPaidAt}
                     payingDoctorAddon={payingCheckinDoctor}
                     hasAvailableInPersonSlots={upcomingDoctorSlots.length > 0}
@@ -2463,15 +2486,20 @@ export default function AccountPage() {
 // Self Check-in has no on-site measurement, no blood test, no doctor visit —
 // the next step is simply answering the questionnaire in the patient portal.
 // We render an abbreviated journey and a purpose-built hero card.
-function SelfCheckinJourney({ completed }: { completed: boolean }) {
+function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean; onChangePackage: () => void | Promise<void> }) {
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
         <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
-          <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-          Self Check-in
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
+            Change package
+          </button>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+            Self Check-in
+          </span>
+        </div>
       </div>
       <p className="text-sm text-[#6B7280] mb-6">
         Self Check-in is fully remote — no visit, no blood test. Just the questionnaire in the patient portal.
@@ -2527,7 +2555,7 @@ function CheckinJourney({
   biodyActivated, bodyCompBookingAt, completed, hasDoctorBooking, onGoToBiody,
   doctorAddonPaid, payingDoctorAddon, onPayDoctorAddon,
   hasAvailableInPersonSlots, onPickInPersonDoctorSlot,
-  onConfirmVideoPortal, videoConfirmBusy,
+  onConfirmVideoPortal, videoConfirmBusy, onChangePackage,
 }: {
   biodyActivated: boolean;
   bodyCompBookingAt: string | null;
@@ -2541,6 +2569,7 @@ function CheckinJourney({
   onPickInPersonDoctorSlot: () => void;
   onConfirmVideoPortal: () => void;
   videoConfirmBusy: boolean;
+  onChangePackage: () => void | Promise<void>;
 }) {
   const slotLabel = bodyCompBookingAt
     ? new Date(bodyCompBookingAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
@@ -2638,10 +2667,15 @@ function CheckinJourney({
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
         <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          Check-in
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
+            Change package
+          </button>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Check-in
+          </span>
+        </div>
       </div>
       <p className="text-sm text-[#6B7280] mb-6">Your follow-up round — track progress and refresh your plan.</p>
       <ol className="relative border-l-2 border-gray-100 ml-4 space-y-5">
