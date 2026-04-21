@@ -101,8 +101,16 @@ export async function refundStraumurCharge(args: {
   amountIsk: number;          // Full amount for now (Foundational = 49900, etc.)
 }): Promise<StraumurRefundResult> {
   await new Promise((r) => setTimeout(r, 800));
+  // Deterministic refund reference keyed on the charge + amount — a retry
+  // (transient network, double-click) sends the same refundReference so
+  // Straumur can de-dup server-side. When the real API is wired, pass this
+  // as an Idempotency-Key header.
+  const seed = `${args.providerReference}_${args.amountIsk}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  const stable = Math.abs(hash).toString(36);
   return {
     ok: true,
-    refundReference: `stub_refund_${args.providerReference.slice(0, 16)}_${Date.now().toString(36)}`,
+    refundReference: `stub_refund_${args.providerReference.slice(0, 16)}_${stable}`,
   };
 }

@@ -808,6 +808,9 @@ function PayStage({
         <p className="text-sm text-[#475569]">
           The Straumur checkout will open here once the API is connected. For now, click the button below to simulate payment and continue.
         </p>
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900">
+          <strong>Test mode:</strong> no real charge is made. Your booking will be marked paid for internal testing.
+        </div>
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="text-[#64748B]">Charge amount</span>
           <span className="font-semibold text-[#0F172A]">{pkg.priceIsk.toLocaleString("is-IS")} ISK</span>

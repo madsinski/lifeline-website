@@ -118,6 +118,8 @@ function AccountPageInner() {
   const [currentBookingAmount, setCurrentBookingAmount] = useState<number>(0);
   const [currentBookingScheduledAt, setCurrentBookingScheduledAt] = useState<string | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
+  const [refundRequestOpen, setRefundRequestOpen] = useState(false);
+  const [pendingRefundRequestId, setPendingRefundRequestId] = useState<string | null>(null);
   const [pendingBooking, setPendingBooking] = useState<{ id: string; package: string | null; scheduled_at: string | null } | null>(null);
   const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
   const [payingCheckinDoctor, setPayingCheckinDoctor] = useState(false);
@@ -390,6 +392,17 @@ function AccountPageInner() {
             setCurrentBookingPaid(((booking as Record<string, unknown>).payment_status as string | null) === "paid");
             setCurrentBookingAmount(((booking as Record<string, unknown>).amount_isk as number | null) ?? 0);
             setCurrentBookingScheduledAt(((booking as Record<string, unknown>).scheduled_at as string | null) ?? null);
+            // Check if the user already has a pending refund request for this
+            // booking, so we can show status instead of the Cancel button.
+            const { data: rr } = await supabase
+              .from("refund_requests")
+              .select("id")
+              .eq("client_id", currentUser.id)
+              .eq("booking_id", (booking as Record<string, unknown>).id as string)
+              .eq("status", "pending")
+              .limit(1)
+              .maybeSingle();
+            if (rr?.id) setPendingRefundRequestId(rr.id as string);
             const pkg = (booking as Record<string, unknown>).package as string | null;
             if (pkg === "foundational" || pkg === "checkin" || pkg === "self-checkin") {
               setBodyCompPackage(pkg);
@@ -909,7 +922,6 @@ function AccountPageInner() {
   // Returns true if the booking was cancelled, false if nothing changed.
   async function cancelCurrentBooking(reason: "change" | "cancel"): Promise<boolean> {
     if (!currentBookingId) return false;
-    const action = reason === "change" ? "Change package" : "Cancel booking";
     const scheduled = currentBookingScheduledAt ? new Date(currentBookingScheduledAt) : null;
     const hoursUntil = scheduled ? (scheduled.getTime() - Date.now()) / 3_600_000 : Infinity;
     const amount = currentBookingAmount || 0;
@@ -917,9 +929,9 @@ function AccountPageInner() {
 
     if (currentBookingPaid && amount > 0) {
       if (hoursUntil < 48) {
-        alert(
-          `${action} is not available within 48 hours of your booking. Please email contact@lifelinehealth.is and we'll sort it out manually.`,
-        );
+        // Within the no-self-serve-refund window: open the request form
+        // so the user can ask an admin for a goodwill cancellation.
+        setRefundRequestOpen(true);
         return false;
       }
       const human = (amount + (hasCheckinAddon ? 18500 : 0)).toLocaleString("is-IS");
@@ -1375,6 +1387,7 @@ function AccountPageInner() {
                   bodyCompStatus={bodyCompStatus}
                   bodyCompPackage={bodyCompPackage}
                   cancelBusy={cancelBusy}
+                  pendingRefundRequestId={pendingRefundRequestId}
                   onChangeBcSlot={() => setBcPickerOpen(true)}
                   onChangeBloodDay={() => setBtPickerOpen(true)}
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
@@ -1388,6 +1401,14 @@ function AccountPageInner() {
                       setCurrentBookingPaid(false);
                       setMySlotAt(null);
                     }
+                  }}
+                  onWithdrawRefundRequest={async () => {
+                    if (!pendingRefundRequestId) return;
+                    if (!confirm("Withdraw your cancellation request?")) return;
+                    await supabase.from("refund_requests")
+                      .update({ status: "withdrawn" })
+                      .eq("id", pendingRefundRequestId);
+                    setPendingRefundRequestId(null);
                   }}
                   onClearVideoPortal={async () => {
                     if (!confirm("Clear your video consultation confirmation?")) return;
@@ -1483,6 +1504,17 @@ function AccountPageInner() {
                     userId={user.id}
                     onClose={() => setBiodyEditOpen(false)}
                     onActivated={() => setBiodyActivated(true)}
+                  />
+                )}
+                {refundRequestOpen && currentBookingId && (
+                  <RefundRequestModal
+                    bookingId={currentBookingId}
+                    clientId={user.id}
+                    amountIsk={currentBookingAmount}
+                    includeCheckinAddon={bodyCompPackage === "checkin" && !!checkinDoctorAddonPaidAt}
+                    scheduledAt={currentBookingScheduledAt}
+                    onClose={() => setRefundRequestOpen(false)}
+                    onSubmitted={(id) => { setPendingRefundRequestId(id); setRefundRequestOpen(false); }}
                   />
                 )}
 
@@ -3194,8 +3226,8 @@ function CurrentBookings({
   isB2C,
   mySlotAt, companyEvent, myBloodTestBooking, myDoctorSlot, videoPortalConfirmedAt,
   bodyCompBookingAt, bodyCompStatus, bodyCompPackage,
-  cancelBusy,
-  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onCancelBcBooking, onClearVideoPortal,
+  cancelBusy, pendingRefundRequestId,
+  onChangeBcSlot, onChangeBloodDay, onChangeDoctorSlot, onCancelBcBooking, onWithdrawRefundRequest, onClearVideoPortal,
 }: {
   isB2C: boolean;
   mySlotAt: string | null;
@@ -3207,10 +3239,12 @@ function CurrentBookings({
   bodyCompStatus: "none" | "booked" | "completed";
   bodyCompPackage: "foundational" | "checkin" | "self-checkin" | null;
   cancelBusy: boolean;
+  pendingRefundRequestId: string | null;
   onChangeBcSlot: () => void;
   onChangeBloodDay: () => void;
   onChangeDoctorSlot: () => void;
   onCancelBcBooking: () => void;
+  onWithdrawRefundRequest: () => void;
   onClearVideoPortal: () => void;
 }) {
   const hasB2CBodyComp = isB2C && bodyCompStatus === "booked" && !!bodyCompBookingAt;
@@ -3577,17 +3611,36 @@ function CurrentBookings({
               </ul>
             </div>
             <div className="mt-4 pt-4 border-t border-emerald-100/70 flex flex-wrap gap-2">
-              <button
-                onClick={onCancelBcBooking}
-                disabled={cancelBusy}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                {cancelBusy ? "Cancelling…" : "Cancel booking"}
-              </button>
-              <span className="text-[11px] text-gray-500 self-center">Free refund up to 48 hours before your slot</span>
+              {pendingRefundRequestId ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 bg-amber-50">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Cancellation request sent — waiting for Lifeline
+                  </span>
+                  <button
+                    onClick={onWithdrawRefundRequest}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+                  >
+                    Withdraw
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={onCancelBcBooking}
+                    disabled={cancelBusy}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    {cancelBusy ? "Cancelling…" : "Cancel booking"}
+                  </button>
+                  <span className="text-[11px] text-gray-500 self-center">Free refund up to 48 hours before — after that, request review</span>
+                </>
+              )}
             </div>
           </div>
         ) : null;
@@ -3945,18 +3998,25 @@ function DoctorSlotPickerModal({
     if (!selectedId) { setError("Pick a time."); return; }
     setSaving(true);
     setError("");
-    if (existing) {
-      const { error: cancelErr } = await supabase.rpc("cancel_doctor_slot");
-      if (cancelErr) { setSaving(false); setError(cancelErr.message); return; }
-    }
-    const { data, error: bookErr } = await supabase.rpc("book_doctor_slot", {
-      p_slot_id: selectedId,
-      p_note: note.trim() || null,
-    });
+    // Atomic swap when changing an existing claim: claim new first, then
+    // release old. A failed claim leaves the original intact.
+    const rpcName = existing ? "change_doctor_slot" : "book_doctor_slot";
+    const args = existing
+      ? { p_to_slot_id: selectedId, p_note: note.trim() || null }
+      : { p_slot_id: selectedId, p_note: note.trim() || null };
+    const { data, error: bookErr } = await supabase.rpc(rpcName, args);
     setSaving(false);
     if (bookErr) { setError(bookErr.message); return; }
     const row = Array.isArray(data) ? data[0] : data;
-    if (row && row.ok === false) { setError(row.error === "slot_unavailable" ? "That slot was just taken. Pick another." : row.error === "already_booked" ? "You already have a booking." : row.error || "Failed to book."); return; }
+    if (row && row.ok === false) {
+      setError(
+        row.error === "slot_unavailable" ? "That slot was just taken. Pick another."
+        : row.error === "already_booked" ? "You already have a booking."
+        : row.error === "company_reserved" ? "That slot is reserved for another company."
+        : row.error || "Failed to book.",
+      );
+      return;
+    }
     await onBooked();
     onClose();
   };
@@ -4805,6 +4865,101 @@ function SatisfactionPromptCard({
           </div>
         </section>
       ))}
+    </div>
+  );
+}
+
+// ─── RefundRequestModal ─────────────────────────────────────────────────────
+// Shown when a client inside the 48-hour no-self-serve window wants to
+// cancel. Writes a row to refund_requests; the admin resolves it via
+// /admin/bookings. Approving the request fires admin_cancel_booking, which
+// reuses the same atomic server-side RPC as the self-serve path.
+
+function RefundRequestModal({
+  bookingId, clientId, amountIsk, includeCheckinAddon, scheduledAt, onClose, onSubmitted,
+}: {
+  bookingId: string;
+  clientId: string;
+  amountIsk: number;
+  includeCheckinAddon: boolean;
+  scheduledAt: string | null;
+  onClose: () => void;
+  onSubmitted: (requestId: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [includeAddon, setIncludeAddon] = useState(includeCheckinAddon);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const when = scheduledAt ? new Date(scheduledAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+
+  async function submit() {
+    if (!reason.trim()) { setErr("Please tell us why you need to cancel so we can help quickly."); return; }
+    setErr(""); setBusy(true);
+    const total = amountIsk + (includeAddon ? 18500 : 0);
+    const { data, error } = await supabase.from("refund_requests").insert({
+      client_id: clientId,
+      booking_id: bookingId,
+      booking_type: "body_comp_booking",
+      reason: reason.trim(),
+      requested_isk: total,
+      include_checkin_addon: includeAddon,
+      status: "pending",
+    }).select("id").single();
+    setBusy(false);
+    if (error) { setErr(error.message); return; }
+    onSubmitted((data as { id: string }).id);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold text-[#0F172A]">Request cancellation</h2>
+          <p className="text-sm text-[#64748B] mt-1">
+            Your booking is less than 48 hours away, so we need to review this manually. Tell us what&apos;s going on and our team will get back to you by email within one working day.
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-[#64748B]">Booking</span>
+              <span className="font-medium text-[#0F172A] text-right">{when}</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-[#64748B]">Amount paid</span>
+              <span className="font-medium text-[#0F172A]">{(amountIsk + (includeAddon ? 18500 : 0)).toLocaleString("is-IS")} ISK</span>
+            </div>
+          </div>
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Reason</span>
+            <textarea
+              rows={4}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. I'm unwell and can't make it — I'd like to reschedule or get a refund."
+              className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+            />
+          </label>
+          {includeCheckinAddon && (
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={includeAddon} onChange={(e) => setIncludeAddon(e.target.checked)} />
+              Also request refund of the 18,500 ISK Check-in doctor add-on
+            </label>
+          )}
+          {err && <div className="text-sm text-red-600">{err}</div>}
+          <p className="text-xs text-[#64748B]">
+            Refunds at our discretion beyond 48 hours. If approved, the amount goes back to your card within 3–5 business days.
+          </p>
+        </div>
+        <div className="p-4 border-t border-gray-100 flex items-center justify-end gap-2">
+          <button onClick={onClose} disabled={busy} className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            Close
+          </button>
+          <button onClick={submit} disabled={busy} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60">
+            {busy ? "Sending…" : "Send cancellation request"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
