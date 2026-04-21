@@ -167,9 +167,21 @@ Happy to answer anything — just hit reply.
 — ${signoff}
 Lifeline Health ehf. · kt. 590925-1440`;
 
+  // Derive logo URL from the signup URL's origin so it works across
+  // preview / prod domains without hardcoding.
+  let logoUrl = "https://www.lifelinehealth.is/lifeline-logo.png";
+  try { logoUrl = new URL(signupUrl).origin + "/lifeline-logo.png"; } catch {}
+
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
   <div style="max-width:640px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+
+    <!-- Branded header -->
+    <div style="background:white;padding:22px 32px;text-align:center;border-bottom:1px solid #F1F5F9;">
+      <a href="${infoUrl}" style="display:inline-block;text-decoration:none;">
+        <img src="${logoUrl}" alt="Lifeline Health" width="140" style="display:block;height:auto;max-width:140px;" />
+      </a>
+    </div>
 
     <!-- Hero -->
     <div style="background:linear-gradient(135deg,#0F172A,#065F46);padding:40px 32px 36px;color:white;position:relative;">
@@ -317,8 +329,17 @@ Lifeline Health ehf. · kt. 590925-1440`;
       </p>
 
       <hr style="border:none;border-top:1px solid #E2E8F0;margin:24px 0 20px;">
-      <p style="margin:0 0 4px;color:#64748B;font-size:12.5px;">Questions? Hit reply — a real person reads everything.</p>
-      <p style="margin:0;color:#94A3B8;font-size:11.5px;">— ${escapeHtml(signoff)} · Lifeline Health ehf. · kt. 590925-1440 · Þrastarási 71, 221 Hafnarfjörður</p>
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+        <tr>
+          <td style="vertical-align:middle;padding-right:16px;width:110px;">
+            <img src="${logoUrl}" alt="Lifeline Health" width="100" style="display:block;height:auto;max-width:100px;opacity:0.75;" />
+          </td>
+          <td style="vertical-align:middle;">
+            <p style="margin:0 0 3px;color:#64748B;font-size:12.5px;">Questions? Hit reply — a real person reads everything.</p>
+            <p style="margin:0;color:#94A3B8;font-size:11.5px;">— ${escapeHtml(signoff)} · Lifeline Health ehf. · kt. 590925-1440 · Þrastarási 71, 221 Hafnarfjörður</p>
+          </td>
+        </tr>
+      </table>
     </div>
   </div>
 </body></html>`;
