@@ -4907,7 +4907,15 @@ function RefundRequestModal({
     }).select("id").single();
     setBusy(false);
     if (error) { setErr(error.message); return; }
-    onSubmitted((data as { id: string }).id);
+    const requestId = (data as { id: string }).id;
+    // Fire-and-forget admin notification. The row is already saved, so even
+    // if the email fails the admin can still resolve from /admin/bookings.
+    fetch("/api/bookings/refund-request-submitted", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId }),
+    }).catch(() => {});
+    onSubmitted(requestId);
   }
 
   return (

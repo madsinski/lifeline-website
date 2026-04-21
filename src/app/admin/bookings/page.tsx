@@ -389,6 +389,12 @@ function RefundRequestsTable({ setMsg, onAfterAction }: { setMsg: (s: string) =>
       .update({ status: "approved", approved_isk: amount, admin_note: adminNote || null, resolved_at: new Date().toISOString() })
       .eq("id", req.id);
     setMsg(`Approved — refunded ${(r?.refunded_isk ?? 0).toLocaleString("is-IS")} ISK.`);
+    // Notify the client via email — fire-and-forget, row is already updated.
+    fetch("/api/bookings/refund-request-resolved", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: req.id }),
+    }).catch(() => {});
     load();
     onAfterAction();
   }
@@ -398,6 +404,11 @@ function RefundRequestsTable({ setMsg, onAfterAction }: { setMsg: (s: string) =>
       .update({ status: "denied", admin_note: adminNote || null, resolved_at: new Date().toISOString() })
       .eq("id", req.id);
     setMsg("Request denied.");
+    fetch("/api/bookings/refund-request-resolved", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: req.id }),
+    }).catch(() => {});
     load();
     onAfterAction();
   }
