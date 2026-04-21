@@ -79,12 +79,35 @@ export default function BookAssessmentPage() {
 
   async function handleReviewContinue() {
     // For paid packages, we create the booking up-front so we have a stable
-    // reference to pass to Straumur. For free (Self Check-in), we skip to done.
+    // reference to pass to Straumur. For free (Self Check-in), we still
+    // mirror a zero-amount Straumur record into the payments ledger so
+    // every B2C booking is linked to a payment provider entry.
     if (!pkg) return;
     if (pkg.priceIsk === 0) {
       const id = await createBooking();
-      if (!id) return;
+      if (!id || !userId) return;
       setBookingId(id);
+      const paidAt = new Date().toISOString();
+      const reference = `selfcheckin-${id}`;
+      // Stamp the booking with Straumur as the provider (zero-amount charge).
+      await supabase
+        .from("body_comp_bookings")
+        .update({ payment_provider: "straumur", payment_reference: reference })
+        .eq("id", id);
+      // Mirror into the unified payments ledger (consistent with paid packages).
+      await supabase.from("payments").insert({
+        owner_type: "client",
+        owner_id: userId,
+        amount_isk: 0,
+        currency: "ISK",
+        description: `Lifeline Health — ${pkg.name}`,
+        provider: "straumur",
+        provider_reference: reference,
+        status: "succeeded",
+        related_type: "body_comp_booking",
+        related_id: id,
+        paid_at: paidAt,
+      });
       setStage("done");
       return;
     }
