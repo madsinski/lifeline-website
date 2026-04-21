@@ -407,51 +407,62 @@ function AccountPageInner() {
 
           // Fallback for B2C: if no active booking was loaded, look at the
           // station_slots table — that's the source of truth for who has
-          // claimed a measurement time. A claim may exist without a matching
-          // active booking (admin-set, legacy row, or a paid booking that
-          // was cancelled without a refund). Surface it on the dashboard
-          // so the user can see + manage the slot instead of being stuck on
-          // the Get Started hero.
+          // claimed a measurement time. Three possibilities:
+          //   (a) claim has no booking_id         → admin-set, surface as
+          //                                         Foundational
+          //   (b) backing booking is active       → reconstruct state from it
+          //   (c) backing booking is cancelled    → orphan; release the slot
+          //                                         so the user isn't stuck
           if (!companyId && !booking) {
             const { data: solo } = await supabase
               .from("station_slots")
-              .select("slot_at, booking_id")
+              .select("id, slot_at, booking_id")
               .eq("client_id", currentUser.id)
               .is("completed_at", null)
               .order("slot_at", { ascending: true })
               .limit(1)
               .maybeSingle();
             if (solo?.slot_at) {
-              setBodyCompStatus("booked");
-              setBodyCompBookingAt(solo.slot_at as string);
-              setMySlotAt(solo.slot_at as string);
-              // If the slot links back to a body_comp_booking, pull the
-              // real package + payment state from it — so the dashboard
-              // shows the right journey and the Cancel button knows
-              // whether to refund.
               const backingId = (solo as { booking_id?: string | null }).booking_id;
+              const slotId = (solo as { id: string }).id;
+              let orphan = false;
               if (backingId) {
                 const { data: bk } = await supabase
                   .from("body_comp_bookings")
-                  .select("id, package, amount_isk, payment_status, scheduled_at")
+                  .select("id, package, amount_isk, payment_status, scheduled_at, status")
                   .eq("id", backingId)
                   .maybeSingle();
-                if (bk) {
+                if (bk && bk.status !== "cancelled") {
                   const pkg = (bk as Record<string, unknown>).package as string | null;
                   if (pkg === "foundational" || pkg === "checkin" || pkg === "self-checkin") {
                     setBodyCompPackage(pkg);
                   } else {
                     setBodyCompPackage("foundational");
                   }
+                  setBodyCompStatus("booked");
+                  setBodyCompBookingAt(solo.slot_at as string);
+                  setMySlotAt(solo.slot_at as string);
                   setCurrentBookingId(bk.id as string);
                   setCurrentBookingPaid(((bk as Record<string, unknown>).payment_status as string | null) === "paid");
                   setCurrentBookingAmount(((bk as Record<string, unknown>).amount_isk as number | null) ?? 0);
                   setCurrentBookingScheduledAt(((bk as Record<string, unknown>).scheduled_at as string | null) ?? null);
                 } else {
-                  setBodyCompPackage("foundational");
+                  // Backing booking is cancelled or missing → release the
+                  // orphan claim so the user can book fresh. A paid booking
+                  // that's still active (not cancelled) would have been
+                  // surfaced by the primary query above.
+                  orphan = true;
                 }
               } else {
+                // Admin-set claim with no backing booking row (or legacy) —
+                // surface as Foundational so it's visible + cancellable.
+                setBodyCompStatus("booked");
+                setBodyCompBookingAt(solo.slot_at as string);
+                setMySlotAt(solo.slot_at as string);
                 setBodyCompPackage("foundational");
+              }
+              if (orphan) {
+                await supabase.rpc("release_station_slot_by_id", { p_slot_id: slotId });
               }
             }
           }
@@ -888,11 +899,13 @@ function AccountPageInner() {
 
   // Shared cancel + (optional) refund helper for body_comp_bookings.
   // Policy:
-  //   • unpaid draft          → plain confirm + cancel + release slot
-  //   • paid,  ≥ 48h away     → confirm with refund amount, then refund
-  //                              via Straumur, mark payment refunded, cancel
-  //                              the booking, release the slot
-  //   • paid,  < 48h away     → alert contact support; no state change
+  //   • unpaid draft  → plain confirm + cancel
+  //   • paid, ≥ 48h   → confirm + atomic refund_and_cancel_booking RPC
+  //                     (refunds Straumur, marks the payments row refunded,
+  //                     cancels the booking, releases the station_slot, and
+  //                     optionally refunds the Check-in doctor add-on, all
+  //                     in a single SECURITY DEFINER server-side txn)
+  //   • paid, < 48h   → alert contact support; no state change
   // Returns true if the booking was cancelled, false if nothing changed.
   async function cancelCurrentBooking(reason: "change" | "cancel"): Promise<boolean> {
     if (!currentBookingId) return false;
@@ -900,6 +913,7 @@ function AccountPageInner() {
     const scheduled = currentBookingScheduledAt ? new Date(currentBookingScheduledAt) : null;
     const hoursUntil = scheduled ? (scheduled.getTime() - Date.now()) / 3_600_000 : Infinity;
     const amount = currentBookingAmount || 0;
+    const hasCheckinAddon = bodyCompPackage === "checkin" && !!checkinDoctorAddonPaidAt;
 
     if (currentBookingPaid && amount > 0) {
       if (hoursUntil < 48) {
@@ -908,18 +922,20 @@ function AccountPageInner() {
         );
         return false;
       }
-      const human = amount.toLocaleString("is-IS");
+      const human = (amount + (hasCheckinAddon ? 18500 : 0)).toLocaleString("is-IS");
+      const addonLine = hasCheckinAddon ? " (including your 18,500 ISK doctor add-on)" : "";
       const msg = reason === "change"
-        ? `Cancel your current booking and choose a different package? You'll receive a full refund of ${human} ISK to your card within 3–5 business days.`
-        : `Cancel your booking and refund ${human} ISK to your card within 3–5 business days?`;
+        ? `Cancel your current booking and choose a different package? You'll receive a full refund of ${human} ISK${addonLine} within 3–5 business days.`
+        : `Cancel your booking and refund ${human} ISK${addonLine} within 3–5 business days?`;
       if (!confirm(msg)) return false;
       setCancelBusy(true);
       try {
-        // Look up the succeeded payment row so we can mark it refunded and
-        // pass the provider reference to Straumur.
+        // Straumur refund first — if the provider call fails, abort before
+        // we touch any DB state. The RPC then atomically flips the payments
+        // row, booking row, station_slot, and (optionally) the add-on.
         const { data: pay } = await supabase
           .from("payments")
-          .select("id, provider_reference")
+          .select("provider_reference")
           .eq("related_type", "body_comp_booking")
           .eq("related_id", currentBookingId)
           .eq("status", "succeeded")
@@ -932,33 +948,39 @@ function AccountPageInner() {
           alert(`Refund failed: ${refund.error}. Your booking was not cancelled — please email contact@lifelinehealth.is.`);
           return false;
         }
-        const refundedAt = new Date().toISOString();
-        if (pay?.id) {
-          await supabase
-            .from("payments")
-            .update({ status: "refunded", refunded_at: refundedAt })
-            .eq("id", pay.id);
+        const { data, error } = await supabase.rpc("refund_and_cancel_booking", {
+          p_booking_id: currentBookingId,
+          p_include_checkin_addon: hasCheckinAddon,
+        });
+        const row = Array.isArray(data) ? data[0] : data;
+        if (error || (row && row.ok === false)) {
+          alert(`Could not complete the cancellation: ${error?.message || row?.error}. Please email contact@lifelinehealth.is.`);
+          return false;
         }
-        await supabase
-          .from("body_comp_bookings")
-          .update({ status: "cancelled", payment_status: "refunded" })
-          .eq("id", currentBookingId);
-        await supabase.rpc("release_station_slot");
+        setCheckinDoctorAddonPaidAt(null);
         return true;
       } finally {
         setCancelBusy(false);
       }
     }
 
-    // Unpaid draft
+    // Unpaid draft — just cancel (the RPC handles the no-refund path too
+    // so we keep a single code path)
     const msg = reason === "change"
       ? "Cancel your current booking and choose a different package?"
       : "Cancel your booking?";
     if (!confirm(msg)) return false;
     setCancelBusy(true);
     try {
-      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", currentBookingId);
-      await supabase.rpc("release_station_slot");
+      const { data, error } = await supabase.rpc("refund_and_cancel_booking", {
+        p_booking_id: currentBookingId,
+        p_include_checkin_addon: false,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || (row && row.ok === false)) {
+        alert(`Could not cancel: ${error?.message || row?.error}`);
+        return false;
+      }
       return true;
     } finally {
       setCancelBusy(false);
@@ -1065,7 +1087,7 @@ function AccountPageInner() {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 -mt-2">
+      <div id="account-content" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 -mt-2 scroll-mt-4">
         {/* Mobile: dropdown pinned at top of content area */}
         <div className="lg:hidden sticky top-16 z-20 -mx-4 px-4 py-3 bg-[#ecf0f3]/95 backdrop-blur-sm">
           <div className="relative">
@@ -1076,7 +1098,7 @@ function AccountPageInner() {
             </div>
             <select
               value={activeSection}
-              onChange={(e) => { setActiveSection(e.target.value as Section); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onChange={(e) => { setActiveSection(e.target.value as Section); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }}
               className="w-full bg-white rounded-2xl shadow-md pl-12 pr-12 py-4 text-sm font-semibold border-2 border-[#10B981]/30 text-[#1F2937] appearance-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all"
             >
               {navItems.map((item) => (
@@ -1098,7 +1120,7 @@ function AccountPageInner() {
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => { setActiveSection(item.id); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  onClick={() => { setActiveSection(item.id); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                     activeSection === item.id
                       ? "bg-[#10B981]/10 text-[#10B981]"
@@ -1198,8 +1220,17 @@ function AccountPageInner() {
                     bookingId={pendingBooking.id}
                     onCancel={async () => {
                       if (!confirm("Cancel your incomplete booking and start over?")) return;
-                      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", pendingBooking.id);
-                      await supabase.rpc("release_station_slot");
+                      // Route through the atomic RPC so any side-effects
+                      // (payments flag, slot claim) are handled consistently.
+                      const { data, error } = await supabase.rpc("refund_and_cancel_booking", {
+                        p_booking_id: pendingBooking.id,
+                        p_include_checkin_addon: false,
+                      });
+                      const row = Array.isArray(data) ? data[0] : data;
+                      if (error || (row && row.ok === false)) {
+                        alert(`Could not cancel: ${error?.message || row?.error}`);
+                        return;
+                      }
                       setPendingBooking(null);
                     }}
                   />
@@ -1486,7 +1517,7 @@ function AccountPageInner() {
                 </section>
 
                 {/* After your assessment — teaser for the coaching app */}
-                <AppTeaserCard onGoToCoaching={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+                <AppTeaserCard onGoToCoaching={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }} />
 
               </>
             )}
