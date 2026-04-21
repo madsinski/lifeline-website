@@ -562,44 +562,6 @@ export default function BusinessDashboardPage() {
         {/* Payment methods + payment history — reusable panel (ad-hoc charges) */}
         <BillingPanel ownerType="company" ownerId={companyId!} />
 
-        {/* Signed agreements — always visible once at least one exists,
-            including after finalize. Contact person can download anytime. */}
-        {signedDocs.length > 0 && (
-          <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-            <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
-              <div>
-                <h2 className="text-lg font-semibold text-[#1F2937]">Undirritaðir samningar</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Afrit af öllum rafrænt undirrituðum þjónustusamningum og innkaupapöntunum.
-                </p>
-              </div>
-            </div>
-            <ul className="divide-y divide-gray-100 border border-gray-100 rounded-xl bg-white">
-              {signedDocs.map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-900 truncate">
-                      {d.po_number || "(pöntun)"} · {d.signatory_name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {d.signatory_role} · {new Date(d.signed_at).toLocaleString("is-IS", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      {d.total_isk != null && <> · <strong>{d.total_isk.toLocaleString("is-IS")} kr</strong></>}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => downloadSignedPdf(d.id, d.pdf_storage_path)}
-                    disabled={downloadingId === d.id || !d.pdf_storage_path}
-                    title={!d.pdf_storage_path ? "PDF vantar" : "Hlaða niður PDF"}
-                    className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40 whitespace-nowrap"
-                  >
-                    {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Hlaða niður PDF" : "Vantar"}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         <div id="insights" className="scroll-mt-24" />
         <InsightsCard companyId={companyId!} />
 
