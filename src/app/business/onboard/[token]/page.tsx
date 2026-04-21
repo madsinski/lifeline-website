@@ -290,12 +290,12 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
             <img src="/team-photo.png" alt="The Lifeline team" className="w-full h-auto object-cover rounded-xl" />
           </div>
           <div className="sm:w-1/2">
-            <p className="text-sm text-gray-500 mb-1">{t("onboard.welcome.team.care", "With care,")}</p>
+            <p className="text-sm text-gray-500 mb-1">{t("onboard.welcome.team.care", "Welcome aboard,")}</p>
             <p className="text-xl text-gray-800 leading-tight" style={{ fontFamily: "'Caveat', 'Segoe Script', cursive" }}>
               {t("onboard.welcome.team.signature", "— The Lifeline team")}
             </p>
             <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-              {t("onboard.welcome.team.note", "Physicians, coaches and engineers — all working to make your health journey genuinely easier.")}
+              {t("onboard.welcome.team.note", "Medical doctors, a nurse, and technologists — practising under a Landlæknir licence, with records kept in Medalia.")}
             </p>
           </div>
         </div>
