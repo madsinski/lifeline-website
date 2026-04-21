@@ -46,6 +46,7 @@ const TIERS = [
 
 function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; companyName: string }) {
   const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const click = async () => {
     const override = prompt(`Unit price (ISK) per completed assessment for ${companyName}? Blank = use company default.`);
     if (override === null) return;
@@ -61,14 +62,33 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
       body: JSON.stringify({ unit_price: unit, notes: notes.trim() || undefined }),
     });
     const j = await res.json();
-    if (!res.ok) alert(`Failed: ${j.detail || j.error || "unknown"}\n\nPayDay response: ${JSON.stringify(j.raw || "none")}`);
-    else alert(`Invoice created${j.payday_invoice_number ? ` · ${j.payday_invoice_number}` : ""} · ${j.quantity} × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK incl. VAT`);
+    if (!res.ok) setToast({ type: "error", text: `Failed: ${j.detail || j.error || "unknown"}\n\nPayDay response:\n${JSON.stringify(j.raw || "none", null, 2)}` });
+    else setToast({ type: "success", text: `Invoice created${j.payday_invoice_number ? ` · ${j.payday_invoice_number}` : ""} · ${j.quantity} × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK incl. VAT` });
     setBusy(false);
   };
   return (
-    <button onClick={click} disabled={busy} className="text-purple-700 hover:underline disabled:opacity-50">
-      {busy ? "Creating…" : "Invoice"}
-    </button>
+    <>
+      <button onClick={click} disabled={busy} className="text-purple-700 hover:underline disabled:opacity-50">
+        {busy ? "Creating…" : "Invoice"}
+      </button>
+      {toast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setToast(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className={`px-5 py-3 rounded-t-xl text-sm font-semibold ${toast.type === "error" ? "bg-red-50 text-red-800" : "bg-emerald-50 text-emerald-800"}`}>
+              {toast.type === "error" ? "Error" : "Success"}
+            </div>
+            <pre className="px-5 py-4 text-sm text-gray-800 whitespace-pre-wrap break-words select-all font-mono leading-relaxed">
+              {toast.text}
+            </pre>
+            <div className="px-5 py-3 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setToast(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
