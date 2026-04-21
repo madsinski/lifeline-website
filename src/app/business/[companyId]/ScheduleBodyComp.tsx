@@ -77,11 +77,11 @@ export default function ScheduleBodyComp({ companyId, onClose, onCreated }: Prop
       >
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold">
-            {t("b2b.sched_bc.title", "Schedule body-composition day")}
+            {t("b2b.sched_bc.title", "Schedule measurement day")}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
             {t("b2b.sched_bc.subtitle",
-              "Our Lifeline nurse will come to your office. Book at least 2 weeks ahead.")}
+              "Blood pressure and body composition measurements on-site. Our nurse comes to your office — book at least 2 weeks ahead.")}
           </p>
         </div>
 

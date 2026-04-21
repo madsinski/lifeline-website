@@ -87,7 +87,7 @@ export default function CompanyWelcomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { icon: "👥", title: t("b2b.contact_welcome.step1_title", "Add employees"), body: t("b2b.contact_welcome.step1_body", "Upload your roster or invite team members by email.") },
-              { icon: "📅", title: t("b2b.contact_welcome.step2_title", "Schedule assessments"), body: t("b2b.contact_welcome.step2_body", "Pick dates for body composition scans and blood tests.") },
+              { icon: "📅", title: t("b2b.contact_welcome.step2_title", "Schedule assessments"), body: t("b2b.contact_welcome.step2_body", "Pick dates for measurements (blood pressure + body composition) and blood tests.") },
               { icon: "✍️", title: t("b2b.contact_welcome.step3_title", "Sign & invoice"), body: t("b2b.contact_welcome.step3_body", "Review the service agreement, sign, and we'll handle billing.") },
             ].map((step, i) => (
               <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-2">
