@@ -25,6 +25,35 @@ type Payment = {
 type Filter = "all" | "pending" | "succeeded" | "refunded" | "failed";
 type OwnerFilter = "all" | "client" | "company";
 
+function SyncPayDayButton() {
+  const [syncing, setSyncing] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const click = async () => {
+    setSyncing(true);
+    setResult(null);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch("/api/admin/invoices/sync", {
+        method: "POST",
+        headers: t ? { Authorization: `Bearer ${t}` } : {},
+      });
+      const j = await res.json();
+      setResult(`${j.synced || 0} invoice(s) updated${j.errors?.length ? ` · ${j.errors.length} error(s)` : ""}`);
+    } catch { setResult("Sync failed"); }
+    setSyncing(false);
+    setTimeout(() => setResult(null), 4000);
+  };
+  return (
+    <div className="flex items-center gap-2">
+      {result && <span className="text-xs text-emerald-600">{result}</span>}
+      <button onClick={click} disabled={syncing} className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
+        {syncing ? "Syncing…" : "Sync PayDay status"}
+      </button>
+    </div>
+  );
+}
+
 export default function AdminPaymentsPage() {
   const [rows, setRows] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,9 +142,12 @@ export default function AdminPaymentsPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-[#1F2937]">Payments</h1>
-        <p className="text-sm text-[#6B7280]">All Straumur + PayDay activity across clients and companies.</p>
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1F2937]">Payments</h1>
+          <p className="text-sm text-[#6B7280]">All Straumur + PayDay activity across clients and companies.</p>
+        </div>
+        <SyncPayDayButton />
       </header>
 
       {msg && (
