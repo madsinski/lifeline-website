@@ -127,56 +127,102 @@ export function renderB2bIntroEmail(params: {
 
 You're using Lifeline personally — we thought you'd want to know that we also run a workplace version.
 
-Lifeline Health for Business gives every employee:
-  • An on-site body-composition scan (5-minute slots)
-  • A blood-test day at Sameind, during work hours
-  • A one-on-one review with a Lifeline doctor
-  • A personal health plan and ongoing digital coaching
+LIFELINE HEALTH FOR BUSINESS
 
-Everything runs under our licence from Embætti landlæknis, with data stored in Medalia (the FHIR-licensed medical record system). Employers see ONLY completion status — never individual health data.
+What every employee gets:
+  ✓ On-site measurements — blood pressure and body composition in 5-minute slots
+  ✓ Targeted blood panel — at partner lab during work hours (walk-in)
+  ✓ Doctor-reviewed report — one page, three numbers that matter, a clear plan
+  ✓ 1-on-1 doctor consultation — personal review + action plan
+  ✓ Coaching app (optional) — daily actions, health coach, community
 
-If this is something your workplace might be interested in, you (or someone on your HR team) can spin up a free company workspace in a couple of minutes:
+How it works:
+  1. Kick-off call — we scope your programme and timing
+  2. Upload roster — employees get a 2-minute consent-first signup
+  3. Measurement day — our nurse visits on-site
+  4. Blood test at partner lab
+  5. Report + doctor consultation → personal action plan
 
+From kick-off to action plan in weeks, not quarters.
+
+Why it works:
+  • Built by physicians — every report reviewed by a doctor
+  • Only what moves the needle — targeted markers, not 50-page panels
+  • Priced per employee — only for what you use
+
+Privacy: Employers see only anonymised group trends — never individual health data. Licensed by Embætti landlæknis, records in Medalia (FHIR-certified). GDPR-compliant.
+
+Start a company workspace (2 min, no payment required):
   ${signupUrl}
 
-Or read more first:
-
+Full programme overview:
   ${infoUrl}
 
-Happy to answer questions — just hit reply.
+Questions? Hit reply — we read everything.
 
 — ${signoff}
 Lifeline Health ehf.`;
 
   const html = `<!doctype html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
-    <h1 style="margin:0 0 12px;font-size:22px;color:#111827;">Would your workplace want Lifeline too?</h1>
-    <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(firstName)} — you're using Lifeline personally. We also run a workplace version, and we thought you might want to bring it to your team.</p>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
 
-    <p style="margin:16px 0 8px;color:#111827;font-weight:600;">What every employee gets</p>
-    <ul style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.7;">
-      <li>On-site body-composition scan (5-minute slots)</li>
-      <li>Blood-test day at Sameind — during work hours</li>
-      <li>One-on-one review with a Lifeline doctor</li>
-      <li>Personal health plan and digital coaching</li>
-    </ul>
-
-    <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:12px 16px;border-radius:10px;margin:20px 0;color:#065F46;font-size:13px;">
-      🔒 <strong>Employers see only completion status — never individual health data.</strong>
-      Everything runs under our Landlæknir licence, with records in Medalia (FHIR-certified sjúkraskrá).
+    <!-- Hero -->
+    <div style="background:linear-gradient(135deg,#1F2937,#065F46);padding:32px 32px 28px;color:white;">
+      <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:0.7;">LIFELINE HEALTH FOR BUSINESS</p>
+      <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3;">Invest in your people.<br>Become a health-forward company.</h1>
+      <p style="margin:0;font-size:14px;opacity:0.85;line-height:1.6;">Hi ${escapeHtml(firstName)} — you're using Lifeline personally. We also run a workplace version that brings medical-grade health assessments directly to your team.</p>
     </div>
 
-    <div style="text-align:center;margin:28px 0;">
-      <a href="${signupUrl}" style="display:inline-block;padding:13px 30px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start a company workspace</a>
-    </div>
-    <p style="text-align:center;margin:0 0 20px;color:#6b7280;font-size:13px;">
-      Takes about two minutes — no payment required to set up. <br>
-      <a href="${infoUrl}" style="color:#3B82F6;">See how it works</a>
-    </p>
+    <div style="padding:28px 32px;">
 
-    <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">Questions? Reply to this email — we read everything.</p>
-    <p style="margin:8px 0 0;color:#9CA3AF;font-size:12px;">— ${escapeHtml(signoff)} · Lifeline Health ehf. · kt. 590925-1440</p>
+      <!-- What employees get -->
+      <p style="margin:0 0 12px;color:#111827;font-weight:700;font-size:16px;">What every employee gets</p>
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-bottom:24px;">
+        <tr><td style="padding:8px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:8px 0;color:#374151;font-size:14px;line-height:1.5;"><strong>On-site measurements</strong> — blood pressure and body composition in 5-minute slots. Our nurse comes to your office.</td></tr>
+        <tr><td style="padding:8px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:8px 0;color:#374151;font-size:14px;line-height:1.5;"><strong>Targeted blood panel</strong> — at partner lab during work hours. Walk-in, no appointment needed.</td></tr>
+        <tr><td style="padding:8px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:8px 0;color:#374151;font-size:14px;line-height:1.5;"><strong>Doctor-reviewed report</strong> — one page, three numbers that matter, a clear plan. No jargon, no 20-page PDFs.</td></tr>
+        <tr><td style="padding:8px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:8px 0;color:#374151;font-size:14px;line-height:1.5;"><strong>1-on-1 doctor consultation</strong> — personal review to set an evidence-based action plan.</td></tr>
+        <tr><td style="padding:8px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:8px 0;color:#374151;font-size:14px;line-height:1.5;"><strong>Coaching app</strong> (optional) — daily actions, health coach, community, and macro tracking.</td></tr>
+      </table>
+
+      <!-- How it works -->
+      <p style="margin:0 0 12px;color:#111827;font-weight:700;font-size:16px;">How it works</p>
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;vertical-align:top;width:24px;color:#6B7280;font-size:13px;font-weight:700;">1.</td><td style="padding:6px 0;color:#4B5563;font-size:14px;">Kick-off call — we scope your programme, headcount, and timing</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:24px;color:#6B7280;font-size:13px;font-weight:700;">2.</td><td style="padding:6px 0;color:#4B5563;font-size:14px;">Upload your roster — employees get a 2-minute consent-first signup</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:24px;color:#6B7280;font-size:13px;font-weight:700;">3.</td><td style="padding:6px 0;color:#4B5563;font-size:14px;">Measurement day — our nurse visits on-site, 5 min per person</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:24px;color:#6B7280;font-size:13px;font-weight:700;">4.</td><td style="padding:6px 0;color:#4B5563;font-size:14px;">Blood test at partner lab — walk-in, no appointment</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:24px;color:#6B7280;font-size:13px;font-weight:700;">5.</td><td style="padding:6px 0;color:#4B5563;font-size:14px;">Report + doctor consultation → personal action plan</td></tr>
+      </table>
+      <p style="margin:0 0 24px;color:#6B7280;font-size:13px;font-style:italic;">From kick-off to action plan in weeks, not quarters.</p>
+
+      <!-- Why it works -->
+      <div style="background:#F9FAFB;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="margin:0 0 10px;color:#111827;font-weight:700;font-size:14px;">Why it works</p>
+        <p style="margin:0 0 6px;color:#4B5563;font-size:13px;line-height:1.6;">• <strong>Built by physicians</strong> — every report is reviewed by a doctor, not generated by an algorithm.</p>
+        <p style="margin:0 0 6px;color:#4B5563;font-size:13px;line-height:1.6;">• <strong>Only what moves the needle</strong> — targeted markers that respond to lifestyle, not 50-page panels nobody reads.</p>
+        <p style="margin:0;color:#4B5563;font-size:13px;line-height:1.6;">• <strong>Priced per employee</strong> — only for what you use. No bulk-package upsell.</p>
+      </div>
+
+      <!-- Privacy -->
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:14px 16px;border-radius:10px;margin:0 0 28px;color:#065F46;font-size:13px;line-height:1.6;">
+        🔒 <strong>Privacy first.</strong> Employers see only anonymised group trends (masked where fewer than 5 responses) — never individual health data. Licensed by Embætti landlæknis, records stored in Medalia (FHIR-certified sjúkraskrá). GDPR-compliant.
+      </div>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:0 0 24px;">
+        <a href="${signupUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Start a company workspace</a>
+      </div>
+      <p style="text-align:center;margin:0 0 24px;color:#6b7280;font-size:13px;">
+        Takes about two minutes — no payment required.<br>
+        <a href="${infoUrl}" style="color:#3B82F6;text-decoration:underline;">See the full programme overview →</a>
+      </p>
+
+      <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0;">
+      <p style="margin:0 0 4px;color:#6b7280;font-size:13px;">Questions? Reply to this email — we read everything.</p>
+      <p style="margin:0;color:#9CA3AF;font-size:12px;">— ${escapeHtml(signoff)} · Lifeline Health ehf. · kt. 590925-1440</p>
+    </div>
   </div>
 </body></html>`;
   return { text, html, subject: `Lifeline for ${firstName}'s workplace — 2-minute intro` };
