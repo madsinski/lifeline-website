@@ -14,6 +14,7 @@ import { googleCalendarUrl, downloadIcs, type CalendarEvent } from "@/lib/calend
 import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 import AvatarPicker from "../components/AvatarPicker";
+import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -3586,6 +3587,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
  * where all feature content lives.
  */
 function GetStartedHero() {
+  const [showPackages, setShowPackages] = useState(false);
   return (
     <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #10B981, #0D9488)" }}>
       <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
@@ -3628,13 +3630,60 @@ function GetStartedHero() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
-          <Link
-            href="/assessment"
+          <button
+            type="button"
+            onClick={() => setShowPackages((v) => !v)}
+            aria-expanded={showPackages}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/40 text-white text-sm font-semibold hover:bg-white/10"
           >
-            Compare packages
-          </Link>
+            {showPackages ? "Hide packages" : "Compare packages"}
+            <svg className={`w-4 h-4 transition-transform ${showPackages ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
+
+        {/* Packages dropdown — mirrors /account/book package cards */}
+        {showPackages && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {ASSESSMENT_PACKAGES.map((pkg) => (
+              <div key={pkg.key} className="rounded-xl bg-white text-gray-900 shadow-sm overflow-hidden">
+                <div className={`h-1.5 bg-gradient-to-r ${pkg.accent}`} />
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className={`text-[10px] font-semibold uppercase tracking-wider ${pkg.dot}`}>{pkg.tag}</div>
+                      <h3 className="text-base font-bold text-[#0F172A] mt-0.5">{pkg.name}</h3>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-[#0F172A] whitespace-nowrap">{formatPackagePrice(pkg.priceIsk)}</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2 leading-relaxed">{pkg.summary}</p>
+                  <ul className="mt-3 space-y-1.5">
+                    {pkg.includes.map((inc) => (
+                      <li key={inc} className="flex items-start gap-1.5 text-xs text-gray-700">
+                        <svg className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${pkg.dot}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{inc}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={`/account/book?pkg=${pkg.key}`}
+                    className={`mt-4 inline-flex items-center justify-center w-full gap-1 py-2 rounded-lg text-white text-xs font-semibold bg-gradient-to-r ${pkg.accent} hover:opacity-95`}
+                  >
+                    Choose this package
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
