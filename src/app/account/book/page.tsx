@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +10,14 @@ import { PACKAGES, type PackageKey, type PackageDef } from "@/lib/assessment-pac
 type Stage = "package" | "schedule" | "review" | "pay" | "done";
 
 export default function BookAssessmentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>}>
+      <BookAssessmentContent />
+    </Suspense>
+  );
+}
+
+function BookAssessmentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeBookingId = searchParams.get("resume");
