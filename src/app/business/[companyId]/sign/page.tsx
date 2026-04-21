@@ -344,7 +344,7 @@ export default function SignAgreementPage() {
           <h2 className="font-semibold text-gray-900">Samningur og skilmálar</h2>
           <span className="text-xs text-gray-400">Þetta er nákvæmlega það sem verður undirritað.</span>
         </div>
-        <div className="bg-white p-6 max-h-[500px] overflow-y-auto text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md">
+        <div className="bg-white p-6 text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md">
           <div className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900">{renderThjonustusamningur(agreementParams)}</div>
           <div className="my-4 text-center text-gray-400">— — —</div>
           <div className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900">{renderThjonustuskilmalar()}</div>
