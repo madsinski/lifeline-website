@@ -167,22 +167,40 @@ export default function BookAssessmentPage() {
       });
       let row = Array.isArray(claim) ? claim[0] : claim;
 
-      // 'already_booked' means the user already has an active station booking
-      // from a previous paid round. Offer to cancel it and use the new time.
+      // 'already_booked' means the user already has an active station claim.
+      // Check whether it's backed by a paid booking — if so, we must not
+      // silently cancel it (the user already paid). Only auto-release when
+      // all other active bookings are pending (unpaid drafts).
       if (row && row.ok === false && row.error === "already_booked") {
+        const { data: otherActive } = await supabase
+          .from("body_comp_bookings")
+          .select("id, payment_status, scheduled_at")
+          .eq("client_id", userId!)
+          .neq("id", id)
+          .in("status", ["requested", "confirmed"]);
+        const anyPaid = (otherActive || []).some((b) => (b as { payment_status?: string }).payment_status === "paid");
+        if (anyPaid) {
+          setPaymentError(
+            "You already have a paid measurement booking. Go to your dashboard to manage it, or email contact@lifelinehealth.is for help.",
+          );
+          await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", id);
+          setBookingId(null);
+          setStage("schedule");
+          return;
+        }
         const ok = typeof window !== "undefined" && window.confirm(
-          "You already have a measurement booking. Cancel the old one and use this new time instead?",
+          "You already have a draft measurement booking. Cancel the old draft and use this new time instead?",
         );
         if (ok) {
-          // Cancel every active (requested/confirmed) paid booking for this
-          // user, then release any station_slot claim they still hold — the
-          // booking row and the slot claim are separate, and without the
-          // release the retry would hit 'already_booked' again.
+          // Only cancel unpaid drafts here — paid bookings were filtered out
+          // above. Then release any lingering station_slot claim so the RPC
+          // retry doesn't hit 'already_booked' again.
           await supabase
             .from("body_comp_bookings")
             .update({ status: "cancelled" })
             .eq("client_id", userId!)
             .neq("id", id)
+            .eq("payment_status", "pending")
             .in("status", ["requested", "confirmed"]);
           await supabase.rpc("release_station_slot");
           ({ data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
