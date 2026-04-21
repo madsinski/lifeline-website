@@ -157,7 +157,7 @@ function BusinessLoginInner() {
             </h1>
             <p className="text-sm text-[#6B7280] mt-1">
               {mode === "login"
-                ? t("b2b.login.subtitle", "Manage your company's roster and invitations.")
+                ? t("b2b.login.subtitle", "Access for managers and employees.")
                 : t("b2b.signup.subtitle", "Start the 4-step setup for Lifeline Health at your workplace.")}
             </p>
 
