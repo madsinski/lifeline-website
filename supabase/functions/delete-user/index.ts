@@ -117,6 +117,13 @@ serve(async (req) => {
       } catch { /* ignore */ }
     }
 
+    // peer_messages uses sender_id / receiver_id — delete any row referencing
+    // this user on either side.
+    try {
+      await supabaseAdmin.from('peer_messages').delete().eq('sender_id', userId)
+      await supabaseAdmin.from('peer_messages').delete().eq('receiver_id', userId)
+    } catch { /* ignore */ }
+
     // 8b. Null out any FK references to auth.users that use ON DELETE NO
     // ACTION (i.e. would otherwise block auth deletion). Each is best-effort
     // — missing table or already-null rows are fine.
