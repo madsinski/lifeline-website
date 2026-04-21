@@ -112,7 +112,7 @@ function BusinessLoginInner() {
             </span>
           </div>
           <p className="mt-3 text-[#6B7280] text-sm max-w-sm mx-auto">
-            {t("b2b.login.tagline", "Sign in to manage your company roster, measurement days, and billing.")}
+            {t("b2b.login.tagline", "Sign in to your company's Lifeline Health workspace — manage the programme or complete your assessment.")}
           </p>
         </div>
 
