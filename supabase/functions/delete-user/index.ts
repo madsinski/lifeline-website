@@ -106,6 +106,22 @@ serve(async (req) => {
       await supabaseAdmin.from('push_tokens').delete().eq('user_id', userId)
     } catch { /* ignore */ }
 
+    // 8b. Null out any FK references to auth.users that use ON DELETE NO
+    // ACTION (i.e. would otherwise block auth deletion). Each is best-effort
+    // — missing table or already-null rows are fine.
+    const nullOutTables: Array<[string, string]> = [
+      ['available_slots', 'created_by'],
+      ['station_slots', 'created_by'],
+      ['doctor_slots', 'created_by'],
+      ['body_comp_events', 'created_by'],
+      ['blood_test_days', 'created_by'],
+    ]
+    for (const [table, col] of nullOutTables) {
+      try {
+        await supabaseAdmin.from(table).update({ [col]: null }).eq(col, userId)
+      } catch { /* ignore */ }
+    }
+
     // 9. Delete auth user — try by ID first, then look up by email
     let { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (deleteAuthError && clientEmail) {
