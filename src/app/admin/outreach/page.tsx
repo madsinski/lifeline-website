@@ -204,12 +204,20 @@ export default function OutreachPage() {
 
   return (
     <div className="p-6 sm:p-8 space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Outreach</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Pick a segment based on client consent. Filter by company, search by name or email,
-          then copy the list or export CSV.
-        </p>
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">Outreach</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Pick a segment based on client consent. Filter by company, search by name or email,
+            then copy the list or export CSV.
+          </p>
+        </div>
+        <a
+          href="/admin/email-preview"
+          className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
+        >
+          Preview emails
+        </a>
       </header>
 
       {/* Segment selector */}

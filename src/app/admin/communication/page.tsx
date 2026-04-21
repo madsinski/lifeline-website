@@ -6,10 +6,12 @@ import AdminTabs from "../components/AdminTabs";
 
 const OutreachContent = dynamic(() => import("../outreach/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const EmailListContent = dynamic(() => import("../email-list/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const EmailPreviewContent = dynamic(() => import("../email-preview/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 
 const tabs = [
   { key: "outreach", label: "Outreach" },
   { key: "subscribers", label: "Subscribers" },
+  { key: "preview", label: "Email Preview" },
 ];
 
 export default function CommunicationPage() {
@@ -24,6 +26,7 @@ export default function CommunicationPage() {
       </div>
       {tab === "outreach" && <OutreachContent />}
       {tab === "subscribers" && <EmailListContent />}
+      {tab === "preview" && <EmailPreviewContent />}
     </div>
   );
 }
