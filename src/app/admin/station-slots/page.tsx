@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import SlotsBulkDeleteModal from "../components/SlotsBulkDeleteModal";
 
 type StationSlot = {
   id: string;
@@ -25,6 +26,7 @@ export default function StationSlotsAdminPage() {
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [showAdd, setShowAdd] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [msg, setMsg] = useState<string>("");
   const [now, setNow] = useState(() => Date.now());
 
@@ -98,12 +100,15 @@ export default function StationSlotsAdminPage() {
           <h1 className="text-2xl font-semibold text-[#1F2937]">Station slots</h1>
           <p className="text-sm text-[#6B7280]">Availability at the Lifeline measurement station for B2C Foundational Health bookings.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={() => { setShowAdd(true); setShowBulk(false); }} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-90">
             + Add slot
           </button>
           <button onClick={() => { setShowBulk(true); setShowAdd(false); }} className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
             Bulk add
+          </button>
+          <button onClick={() => setShowBulkDelete(true)} className="px-4 py-2 rounded-lg text-sm font-semibold border border-red-200 text-red-700 bg-white hover:bg-red-50">
+            Bulk delete
           </button>
         </div>
       </header>
@@ -117,6 +122,14 @@ export default function StationSlotsAdminPage() {
 
       {showAdd && <AddSlotForm onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
       {showBulk && <BulkAddForm onClose={() => setShowBulk(false)} onSaved={() => { setShowBulk(false); load(); }} />}
+      {showBulkDelete && (
+        <SlotsBulkDeleteModal
+          tableName="station_slots"
+          displayName="measurement slot"
+          onClose={() => setShowBulkDelete(false)}
+          onDone={(n) => { setShowBulkDelete(false); setMsg(`Deleted ${n} slot${n === 1 ? "" : "s"}.`); load(); }}
+        />
+      )}
 
       <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-3">
         {([

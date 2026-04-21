@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import SlotsBulkDeleteModal from "../components/SlotsBulkDeleteModal";
 
 type DoctorSlot = {
   id: string;
@@ -22,13 +23,16 @@ type DoctorSlot = {
 };
 
 type Filter = "upcoming" | "available" | "booked" | "past" | "all";
+type CompanyOption = { id: string; name: string };
 
 export default function DoctorSlotsAdminPage() {
   const [slots, setSlots] = useState<DoctorSlot[]>([]);
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [showAdd, setShowAdd] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [msg, setMsg] = useState<string>("");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -53,6 +57,9 @@ export default function DoctorSlotsAdminPage() {
       return;
     }
     setSlots((data as unknown as DoctorSlot[]) || []);
+    // Companies for the 'Reserve for' picker and bulk-delete filter
+    const { data: co } = await supabase.from("companies").select("id, name").order("name");
+    setCompanies((co as CompanyOption[]) || []);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -112,12 +119,15 @@ export default function DoctorSlotsAdminPage() {
           <h1 className="text-2xl font-semibold text-[#1F2937]">Doctor consultation slots</h1>
           <p className="text-sm text-[#6B7280]">Create and manage the available 1:1 consultation slots for employees.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={() => { setShowAdd(true); setShowBulk(false); }} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-90">
             + Add slot
           </button>
           <button onClick={() => { setShowBulk(true); setShowAdd(false); }} className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
             Bulk add
+          </button>
+          <button onClick={() => setShowBulkDelete(true)} className="px-4 py-2 rounded-lg text-sm font-semibold border border-red-200 text-red-700 bg-white hover:bg-red-50">
+            Bulk delete
           </button>
         </div>
       </header>
@@ -129,8 +139,18 @@ export default function DoctorSlotsAdminPage() {
         </div>
       )}
 
-      {showAdd && <AddSlotForm onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
-      {showBulk && <BulkAddForm onClose={() => setShowBulk(false)} onSaved={() => { setShowBulk(false); load(); }} />}
+      {showAdd && <AddSlotForm companies={companies} onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
+      {showBulk && <BulkAddForm companies={companies} onClose={() => setShowBulk(false)} onSaved={() => { setShowBulk(false); load(); }} />}
+      {showBulkDelete && (
+        <SlotsBulkDeleteModal
+          tableName="doctor_slots"
+          displayName="doctor consultation slot"
+          companies={companies}
+          showCompanyFilter
+          onClose={() => setShowBulkDelete(false)}
+          onDone={(n) => { setShowBulkDelete(false); setMsg(`Deleted ${n} slot${n === 1 ? "" : "s"}.`); load(); }}
+        />
+      )}
 
       <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-3">
         {([
@@ -224,7 +244,7 @@ export default function DoctorSlotsAdminPage() {
   );
 }
 
-function AddSlotForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function AddSlotForm({ companies, onClose, onSaved }: { companies: CompanyOption[]; onClose: () => void; onSaved: () => void }) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
   const [duration, setDuration] = useState(30);
@@ -233,6 +253,7 @@ function AddSlotForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   const [location, setLocation] = useState("");
   const [meetingLink, setMeetingLink] = useState("");
   const [notes, setNotes] = useState("");
+  const [reserveCompany, setReserveCompany] = useState<string>(""); // "" = open to anyone
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -249,6 +270,7 @@ function AddSlotForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
       location: location.trim() || null,
       meeting_link: meetingLink.trim() || null,
       notes: notes.trim() || null,
+      company_id: reserveCompany || null,
     });
     setSaving(false);
     if (error) { setErr(error.message); return; }
@@ -298,6 +320,22 @@ function AddSlotForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
           <span className="text-xs font-medium text-gray-600">Notes (shown to employee)</span>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </label>
+        <label className="block sm:col-span-2">
+          <span className="text-xs font-medium text-gray-600">Reserve for</span>
+          <select
+            value={reserveCompany}
+            onChange={(e) => setReserveCompany(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+          >
+            <option value="">Anyone (personal accounts)</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <span className="text-[11px] text-gray-500 mt-1 block">
+            Reserved slots are hidden from other clients and only bookable by employees of the chosen company.
+          </span>
+        </label>
       </div>
       {err && <div className="mt-3 text-sm text-red-600">{err}</div>}
       <div className="mt-4 flex justify-end gap-2">
@@ -310,7 +348,7 @@ function AddSlotForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   );
 }
 
-function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function BulkAddForm({ companies, onClose, onSaved }: { companies: CompanyOption[]; onClose: () => void; onSaved: () => void }) {
   const today = new Date().toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
@@ -325,6 +363,7 @@ function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   const [doctorName, setDoctorName] = useState("");
   const [location, setLocation] = useState("");
   const [meetingLink, setMeetingLink] = useState("");
+  const [reserveCompany, setReserveCompany] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -379,6 +418,7 @@ function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
       doctor_name: doctorName.trim() || null,
       location: location.trim() || null,
       meeting_link: meetingLink.trim() || null,
+      company_id: reserveCompany || null,
     }));
     const { error } = await supabase.from("doctor_slots").insert(inserts);
     setSaving(false);
@@ -452,6 +492,22 @@ function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         <label className="block sm:col-span-2">
           <span className="text-xs font-medium text-gray-600">Meeting link (video/phone)</span>
           <input type="text" value={meetingLink} onChange={(e) => setMeetingLink(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-xs font-medium text-gray-600">Reserve for</span>
+          <select
+            value={reserveCompany}
+            onChange={(e) => setReserveCompany(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+          >
+            <option value="">Anyone (personal accounts)</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <span className="text-[11px] text-gray-500 mt-1 block">
+            Reserved slots are only visible and bookable to employees of the chosen company.
+          </span>
         </label>
       </div>
       <div className="mt-3 rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-900">
