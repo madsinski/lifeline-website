@@ -580,8 +580,7 @@ export default function BusinessDashboardPage() {
         {/* Billing card — PayDay invoices specific to this company's programme */}
         <BillingCard companyId={companyId!} />
 
-        {/* Payment methods + payment history — reusable panel (ad-hoc charges) */}
-        <BillingPanel ownerType="company" ownerId={companyId!} />
+        {/* Payment methods removed — companies are invoiced via PayDay, not billed via card */}
 
         <div id="insights" className="scroll-mt-24" />
         <InsightsCard companyId={companyId!} />
