@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 
 type Inquiry = {
   id: string;
@@ -75,11 +76,13 @@ export default function CompanyInquiriesPage() {
     load();
   }
 
-  async function remove(id: string) {
-    if (!confirm("Delete this inquiry permanently?")) return;
-    const { error } = await supabase.from("company_inquiries").delete().eq("id", id);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  async function remove() {
+    if (!deleteId) return;
+    const { error } = await supabase.from("company_inquiries").delete().eq("id", deleteId);
     if (error) { setMsg(`Delete failed: ${error.message}`); return; }
     setMsg("Deleted.");
+    setDeleteId(null);
     load();
   }
 
@@ -174,13 +177,21 @@ export default function CompanyInquiriesPage() {
                     inquiry={r}
                     onStatus={(s) => updateStatus(r.id, s)}
                     onSaveNotes={(notes) => saveNotes(r.id, notes)}
-                    onDelete={() => remove(r.id)}
+                    onDelete={() => setDeleteId(r.id)}
                   />
                 )}
               </div>
             );
           })}
         </div>
+      )}
+      {deleteId && (
+        <DeleteConfirmModal
+          title="Delete inquiry"
+          description="Permanently delete this company inquiry and all associated notes."
+          onCancel={() => setDeleteId(null)}
+          onConfirm={remove}
+        />
       )}
     </div>
   );

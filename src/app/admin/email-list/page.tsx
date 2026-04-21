@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 
 type Subscriber = {
   id: string;
@@ -72,10 +73,11 @@ export default function EmailListPage() {
     if (!error) load();
   };
 
-  const remove = async (row: Subscriber) => {
-    if (!confirm(`Delete ${row.email}?`)) return;
-    const { error } = await supabase.from("email_subscribers").delete().eq("id", row.id);
-    if (!error) load();
+  const [deleteRow, setDeleteRow] = useState<Subscriber | null>(null);
+  const remove = async () => {
+    if (!deleteRow) return;
+    const { error } = await supabase.from("email_subscribers").delete().eq("id", deleteRow.id);
+    if (!error) { setDeleteRow(null); load(); }
   };
 
   return (
@@ -156,7 +158,7 @@ export default function EmailListPage() {
                     {r.unsubscribed_at ? "Resubscribe" : "Unsubscribe"}
                   </button>
                   <button
-                    onClick={() => remove(r)}
+                    onClick={() => setDeleteRow(r)}
                     className="text-xs text-red-600 hover:text-red-700"
                   >
                     Delete
@@ -167,6 +169,14 @@ export default function EmailListPage() {
           </tbody>
         </table>
       </div>
+      {deleteRow && (
+        <DeleteConfirmModal
+          title="Delete subscriber"
+          description={`Permanently delete ${deleteRow.email} from the email list.`}
+          onCancel={() => setDeleteRow(null)}
+          onConfirm={remove}
+        />
+      )}
     </div>
   );
 }

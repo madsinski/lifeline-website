@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 
 interface CompanyRow {
   id: string;
@@ -256,45 +257,32 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
 }
 
 function DeleteCompanyButton({ company, onDone }: { company: CompanyRow; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const click = async () => {
-    const hasEmployees = company.member_count > 0;
-    const baseMsg = `Delete company "${company.name}"?\n\nThis removes the company record and all ${company.member_count} roster entries.`;
-    if (!confirm(baseMsg)) return;
-
-    let deleteEmployees = false;
-    if (hasEmployees) {
-      deleteEmployees = confirm(
-        `Also permanently delete the ${company.completed_count} employee Lifeline accounts that were created via this company?\n\n` +
-        `OK = delete their accounts (IRREVERSIBLE).\nCancel = keep accounts (employees can still sign in; they just won't be linked to this company).`,
-      );
-    }
-
-    setBusy(true);
-    const { data: s } = await supabase.auth.getSession();
-    const t = s.session?.access_token;
-    const url = `/api/admin/companies/${company.id}${deleteEmployees ? "?delete_employees=true" : ""}`;
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
-    });
-    const j = await res.json();
-    if (!res.ok) {
-      alert(`Delete failed: ${j.error || "unknown"}`);
-    } else {
-      alert(
-        deleteEmployees
-          ? `Deleted company "${company.name}" + ${j.employees_deleted}/${j.employees_found} employee accounts.`
-          : `Deleted company "${company.name}". Employee accounts preserved.`,
-      );
-      onDone();
-    }
-    setBusy(false);
-  };
+  const [showModal, setShowModal] = useState(false);
   return (
-    <button onClick={click} disabled={busy} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors">
-      {busy ? "Deleting…" : "Delete"}
-    </button>
+    <>
+      <button onClick={() => setShowModal(true)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors">
+        Delete
+      </button>
+      {showModal && (
+        <DeleteConfirmModal
+          title={`Delete ${company.name}`}
+          description={`This will permanently delete the company "${company.name}" and all ${company.member_count} roster entries. Employee Lifeline accounts will be preserved but unlinked from this company.`}
+          onCancel={() => setShowModal(false)}
+          onConfirm={async () => {
+            const { data: s } = await supabase.auth.getSession();
+            const t = s.session?.access_token;
+            const res = await fetch(`/api/admin/companies/${company.id}`, {
+              method: "DELETE",
+              headers: t ? { Authorization: `Bearer ${t}` } : {},
+            });
+            const j = await res.json();
+            if (!res.ok) throw new Error(j.error || "Delete failed");
+            setShowModal(false);
+            onDone();
+          }}
+        />
+      )}
+    </>
   );
 }
 
