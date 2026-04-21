@@ -1362,7 +1362,7 @@ function AccountPageInner() {
                     </svg>
                     <p className="text-sm font-medium text-[#1F2937] mb-1">No messages yet</p>
                     <p className="text-xs text-[#6B7280] mb-3">
-                      Direct messaging with your coach is available on the Full Access plan.
+                      Direct messaging with your coach is available on the Premium plan.
                     </p>
                     <button onClick={() => setActiveSection("billing")}
                       className="text-sm font-medium text-[#10B981] hover:underline">
@@ -3768,7 +3768,7 @@ function ServicesSection({
                 {[
                   { label: "Free", sub: "community + education" },
                   { label: "Self-maintained", sub: "full app tools" },
-                  { label: "Full Access", sub: "personal coach" },
+                  { label: "Premium", sub: "personal coach" },
                 ].map((row) => (
                   <div key={row.label} className="rounded-lg border border-gray-100 bg-[#f8fafc] px-3 py-2 text-sm">
                     <div className="font-semibold text-[#0F172A]">{row.label}</div>

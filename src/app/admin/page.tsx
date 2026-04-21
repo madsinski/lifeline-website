@@ -384,7 +384,7 @@ export default function AdminDashboardPage() {
               <span className="font-medium text-[#1F2937]">{stats.selfMaintainedCount}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Full Access</span>
+              <span className="text-gray-600">Premium</span>
               <span className="font-medium text-[#1F2937]">{stats.fullAccessCount}</span>
             </div>
             {stats.noSubCount > 0 && (

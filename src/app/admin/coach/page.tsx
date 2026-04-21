@@ -270,7 +270,7 @@ export default function CoachDashboardPage() {
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Clients</p>
           <p className="text-2xl font-bold text-[#1F2937] mt-1">{totalClients}</p>
-          <p className="text-xs text-gray-400 mt-1">{clients.filter((c) => c.tier === "premium").length} full access</p>
+          <p className="text-xs text-gray-400 mt-1">{clients.filter((c) => c.tier === "premium").length} premium</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Unread Messages</p>

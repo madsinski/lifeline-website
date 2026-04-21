@@ -403,7 +403,7 @@ function Packages() {
                   {[
                     { label: "Free", sub: "community + education" },
                     { label: "Self-maintained", sub: "full app tools" },
-                    { label: "Full Access", sub: "personal coach" },
+                    { label: "Premium", sub: "personal coach" },
                     { label: "Volume rates", sub: "for 10+ seats" },
                   ].map((row) => (
                     <div key={row.label} className="rounded-lg border border-gray-100 bg-white px-3 py-2 text-sm">

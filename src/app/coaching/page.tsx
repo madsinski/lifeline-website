@@ -115,7 +115,7 @@ const subscriptions = [
     ],
   },
   {
-    name: "Full Access",
+    name: "Premium",
     price: "29.900",
     period: "per month",
     description: "Personal coach included",
@@ -624,7 +624,7 @@ export default function CoachingPage() {
                   <th className="text-center px-4 py-5 font-semibold text-gray-300">Free</th>
                   <th className="text-center px-4 py-5 font-semibold text-blue-300">Self-maintained</th>
                   <th className="text-center px-4 py-5 font-semibold text-[#10B981] relative">
-                    Full Access
+                    Premium
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-[#10B981] text-white text-[9px] font-bold rounded-b-md uppercase tracking-wider">Best</div>
                   </th>
                 </tr>

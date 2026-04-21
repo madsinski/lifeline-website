@@ -102,7 +102,7 @@ const coachingPlans = [
     ],
   },
   {
-    name: "Full Access",
+    name: "Premium",
     monthlyPrice: "29.900",
     annualPrice: "23.900",
     period: "per month",
