@@ -214,12 +214,26 @@ export async function createPaydayInvoice(p: InvoicePayload): Promise<InvoiceRes
     lines: p.lines,
   };
 
-  const res = await paydayFetch("/invoices", {
+  let res = await paydayFetch("/invoices", {
     method: "POST",
     body: JSON.stringify(body),
   });
 
+  // Error 21018: customer does not accept electronic invoices — retry without
   if (!res.ok) {
+    const errCode = (res.json as any)?.errorCode ?? (res.json as any)?.code ?? "";
+    if (String(errCode) === "21018" || JSON.stringify(res.json).includes("21018")) {
+      console.warn("[payday] customer does not accept e-invoices, retrying without createElectronicInvoice");
+      body.createElectronicInvoice = false;
+      res = await paydayFetch("/invoices", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    }
+  }
+
+  if (!res.ok) {
+    console.error("[payday] invoice create failed", res.status, JSON.stringify(res.json ?? res.text));
     return { ok: false, error: `invoice_http_${res.status}`, raw: res.json ?? res.text };
   }
 
