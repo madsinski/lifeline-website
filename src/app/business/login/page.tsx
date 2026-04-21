@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import LifelineLogo from "@/app/components/LifelineLogo";
+import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
 
 export default function BusinessLoginPage() {
   return (
@@ -114,6 +115,9 @@ function BusinessLoginInner() {
             {t("b2b.login.tagline", "Sign in to manage your company roster, measurement days, and billing.")}
           </p>
         </div>
+
+        {/* Audience switch */}
+        <LoginAudienceTabs active="business" />
 
         {/* Card */}
         <div className="relative overflow-hidden bg-white rounded-2xl shadow-lg">

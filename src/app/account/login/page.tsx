@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
+import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
 
 export default function AccountLoginPage() {
   return (
@@ -155,54 +156,60 @@ function AccountLoginContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#f0f3f6] to-[#ecf0f3] px-4 py-16">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#eff4fa] to-[#e2ebf5] px-4 py-16">
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <LifelineLogo size="lg" />
           </Link>
-          <p className="mt-2 text-[#6B7280] text-sm">
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-xs font-semibold uppercase tracking-wide">Personal account</span>
+          </div>
+          <p className="mt-3 text-[#6B7280] text-sm max-w-sm mx-auto">
             {mode === "login"
-              ? "Sign in to your account"
-              : "Create your account"}
+              ? "Sign in to your Lifeline account to view your health plan and progress."
+              : "Create a Lifeline account to get a medical-grade health assessment and personal plan."}
           </p>
         </div>
 
+        {/* Audience switch */}
+        <LoginAudienceTabs active="personal" />
+
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          {/* Toggle tabs */}
-          <div className="flex mb-6 bg-[#ecf0f3] rounded-full p-1">
-            <button
-              onClick={() => {
-                setMode("login");
-                setError("");
-                setInfo("");
-              }}
-              className={`flex-1 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
-                mode === "login"
-                  ? "bg-white text-[#1F2937] shadow-sm"
-                  : "text-[#6B7280] hover:text-[#1F2937]"
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => {
-                setMode("signup");
-                setError("");
-                setInfo("");
-              }}
-              className={`flex-1 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
-                mode === "signup"
-                  ? "bg-white text-[#1F2937] shadow-sm"
-                  : "text-[#6B7280] hover:text-[#1F2937]"
-              }`}
-            >
-              Create Account
-            </button>
+        <div className="relative overflow-hidden bg-white rounded-2xl shadow-lg">
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+
+          {/* Inner tabs — match /business/login styling */}
+          <div className="flex border-b border-gray-100 pt-2" role="tablist">
+            {([
+              { key: "login", label: "Sign in" },
+              { key: "signup", label: "Create account" },
+            ] as const).map((tab) => {
+              const active = mode === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => { setMode(tab.key); setError(""); setInfo(""); }}
+                  className={`flex-1 py-4 text-sm font-semibold transition-colors relative ${
+                    active ? "text-[#1F2937]" : "text-gray-400 hover:text-gray-600"
+                  }`}
+                >
+                  {tab.label}
+                  {active && (
+                    <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-12 h-0.5 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
+          <div className="p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === "signup" && (
               <>
@@ -385,6 +392,7 @@ function AccountLoginContent() {
               Forgot your password?
             </button>
           )}
+          </div>
         </div>
 
         <p className="text-center text-[#6B7280] text-xs mt-6">
