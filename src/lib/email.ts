@@ -58,6 +58,26 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ ok: boolean; 
   }
 }
 
+// Shared branding helpers used across every transactional email.
+
+export function lifelineLogoUrl(originOrUrl?: string | null): string {
+  const fallback = "https://www.lifelinehealth.is/lifeline-logo-rebrand.png";
+  if (!originOrUrl) return fallback;
+  try { return new URL(originOrUrl).origin + "/lifeline-logo-rebrand.png"; }
+  catch { return fallback; }
+}
+
+// White-strip logo header. Place as the very first element inside the
+// outer card of every transactional email so the recipient sees the brand
+// before any copy. linkHref defaults to the public landing page.
+export function lifelineLogoHeaderHtml(logoUrl: string, linkHref: string = "https://www.lifelinehealth.is"): string {
+  return `<div style="background:white;padding:22px 32px;text-align:center;border-bottom:1px solid #F1F5F9;">
+      <a href="${linkHref}" style="display:inline-block;text-decoration:none;">
+        <img src="${logoUrl}" alt="Lifeline Health" width="160" style="display:block;height:auto;max-width:160px;" />
+      </a>
+    </div>`;
+}
+
 export function renderWelcomeEmail(params: {
   companyName: string | null;
   recipientName: string;
@@ -84,9 +104,13 @@ Or sign in later: ${loginUrl}
 
 — Lifeline Health`;
 
+  const logoUrl = lifelineLogoUrl(welcomeUrl);
+
   const html = `<!doctype html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, welcomeUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 8px;font-size:22px;color:#111827;">You&apos;re in, ${escapeHtml(recipientName)} 🎉</h1>
     <p style="margin:0 0 20px;color:#4b5563;">
       Your Lifeline Health account is ready${companyName ? ` — welcomed aboard by <strong>${escapeHtml(companyName)}</strong>` : ""}.
@@ -105,6 +129,7 @@ Or sign in later: ${loginUrl}
       <a href="${welcomeUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start here</a>
     </div>
     <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Questions? Reply to this email or write to <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.</p>
+    </div>
   </div>
 </body></html>`;
   return { text, html };
@@ -168,20 +193,17 @@ Happy to answer anything — just hit reply.
 Lifeline Health ehf. · kt. 590925-1440`;
 
   // Derive logo URL from the signup URL's origin so it works across
-  // preview / prod domains without hardcoding.
-  let logoUrl = "https://www.lifelinehealth.is/lifeline-logo.png";
-  try { logoUrl = new URL(signupUrl).origin + "/lifeline-logo.png"; } catch {}
+  // preview / prod domains without hardcoding. Uses the rebrand wordmark
+  // PNG (same as the website) — PNG is universally rendered by every
+  // email client, including Outlook desktop which can't render SVG.
+  const logoUrl = lifelineLogoUrl(signupUrl);
 
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
   <div style="max-width:640px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
 
     <!-- Branded header -->
-    <div style="background:white;padding:22px 32px;text-align:center;border-bottom:1px solid #F1F5F9;">
-      <a href="${infoUrl}" style="display:inline-block;text-decoration:none;">
-        <img src="${logoUrl}" alt="Lifeline Health" width="140" style="display:block;height:auto;max-width:140px;" />
-      </a>
-    </div>
+    ${lifelineLogoHeaderHtml(logoUrl, infoUrl)}
 
     <!-- Hero -->
     <div style="background:linear-gradient(135deg,#0F172A,#065F46);padding:40px 32px 36px;color:white;position:relative;">
@@ -367,8 +389,11 @@ Each slot holds 2 people. Slots fill up fast — please book as soon as you can.
 
 — Lifeline Health`;
 
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+  const logoUrl = lifelineLogoUrl(bookUrl);
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, bookUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Your body-composition measurement is scheduled</h1>
     <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
     <p style="margin:0 0 16px;color:#4b5563;"><strong>${escapeHtml(companyName)}</strong> is hosting an on-site Lifeline body-composition day for all employees.</p>
@@ -382,6 +407,7 @@ Each slot holds 2 people. Slots fill up fast — please book as soon as you can.
     <p style="margin:0 0 16px;color:#4b5563;">Each measurement takes 5 minutes. Two people can be measured per slot. <strong>Pick your slot now</strong> — they fill up quickly.</p>
     <div style="text-align:center;margin:28px 0;">
       <a href="${bookUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Pick my slot</a>
+    </div>
     </div>
   </div>
 </body></html>`;
@@ -408,8 +434,11 @@ Open your patient portal: ${portalUrl}
 
 — Lifeline Health`;
 
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+  const logoUrl = lifelineLogoUrl(portalUrl);
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, portalUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Blood-test days are now approved</h1>
     <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
     <p style="margin:0 0 16px;color:#4b5563;"><strong>${escapeHtml(companyName)}</strong> has authorised these days for your blood test at any Sameind station:</p>
@@ -417,6 +446,7 @@ Open your patient portal: ${portalUrl}
     <p style="margin:0 0 16px;color:#4b5563;">Walk in on any of those days during the station's opening hours. The full list of stations — with addresses and hours — is on your Lifeline account Home.</p>
     <div style="text-align:center;margin:28px 0;">
       <a href="${portalUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open patient portal</a>
+    </div>
     </div>
   </div>
 </body></html>`;
@@ -446,8 +476,11 @@ See you tomorrow!
 
 — Lifeline Health`;
 
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+  const logoUrl = lifelineLogoUrl();
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Your measurement is tomorrow</h1>
     <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
     <div style="background:#f3f4f6;border-radius:10px;padding:16px;margin:20px 0;">
@@ -465,6 +498,7 @@ See you tomorrow!
       </ul>
     </div>
     <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Can't make it? Reply to this email or cancel your slot in the Lifeline portal.</p>
+    </div>
   </div>
 </body></html>`;
   return { text, html };
@@ -487,8 +521,11 @@ Body-comp events: ${eventCount}
 Blood-test days: ${bloodDayCount}
 
 Open the company in admin: ${adminUrl}`;
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+  const logoUrl = lifelineLogoUrl(adminUrl);
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, adminUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">${escapeHtml(companyName)} is ready</h1>
     <p style="margin:0 0 16px;color:#4b5563;">Their contact person (${escapeHtml(contactEmail)}) has finalized the B2B setup.</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0;">
@@ -498,6 +535,7 @@ Open the company in admin: ${adminUrl}`;
     </table>
     <div style="text-align:center;margin:28px 0;">
       <a href="${adminUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open in admin</a>
+    </div>
     </div>
   </div>
 </body></html>`;
@@ -519,14 +557,18 @@ You can still manage the roster, body-composition day, and blood-test days from 
 We'll take it from here. See you on measurement day.
 
 — Lifeline Health`;
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+  const logoUrl = lifelineLogoUrl(portalUrl);
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, portalUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Registration complete 🎉</h1>
     <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
     <p style="margin:0 0 16px;color:#4b5563;">Your Lifeline Health registration for <strong>${escapeHtml(companyName)}</strong> is complete. Our admin team has been notified — your part is done for now.</p>
     <p style="margin:0 0 16px;color:#4b5563;">You can still manage the roster, body-composition day, and blood-test days from the business dashboard whenever you need to.</p>
     <div style="text-align:center;margin:28px 0;">
       <a href="${portalUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Open dashboard</a>
+    </div>
     </div>
   </div>
 </body></html>`;
@@ -559,8 +601,11 @@ ${pdfUrl ? `\nPDF copy: ${pdfUrl}\n` : ""}
 If anything looks off, reply to this email and we'll help.
 
 — Lifeline Health`;
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+  const logoUrl = lifelineLogoUrl();
+  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">Your Lifeline invoice is on its way</h1>
     <p style="margin:0 0 16px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
     <p style="margin:0 0 16px;color:#4b5563;">We've issued an invoice to <strong>${escapeHtml(companyName)}</strong>. It's delivered through PayDay's electronic invoicing system to the company's kennitala, so your accounting software should receive it automatically.</p>
@@ -571,6 +616,7 @@ If anything looks off, reply to this email and we'll help.
     </div>
     ${pdfUrl ? `<div style="text-align:center;margin:24px 0;"><a href="${pdfUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">View PDF</a></div>` : ""}
     <p style="margin:0;color:#6b7280;font-size:13px;">If anything looks off, reply to this email and we'll help.</p>
+    </div>
   </div>
 </body></html>`;
   return { text, html };
@@ -596,9 +642,12 @@ The password is case-sensitive. If you didn't expect this email, you can ignore 
 
 — Lifeline Health`;
 
+  const logoUrl = lifelineLogoUrl(onboardUrl);
   const html = `<!doctype html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, onboardUrl)}
+    <div style="padding:32px;">
     <h1 style="margin:0 0 8px;font-size:22px;color:#111827;">Welcome to Lifeline Health</h1>
     <p style="margin:0 0 20px;color:#4b5563;">Hi ${escapeHtml(recipientName)},</p>
     <p style="margin:0 0 20px;color:#4b5563;"><strong>${escapeHtml(companyName)}</strong> has invited you to register with Lifeline Health.</p>
@@ -611,6 +660,7 @@ The password is case-sensitive. If you didn't expect this email, you can ignore 
       <div style="font-family:ui-monospace,monospace;font-size:22px;letter-spacing:0.1em;color:#111827;">${escapeHtml(password)}</div>
     </div>
     <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">If you didn't expect this email, you can ignore it. The link expires in 30 days.</p>
+    </div>
   </div>
 </body></html>`;
   return { text, html };
@@ -655,9 +705,12 @@ Questions? Reply to this email.
 — The Lifeline team
 Lifeline Health ehf.`;
 
+  const logoUrl = lifelineLogoUrl(renewalUrl);
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
   <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+
+    ${lifelineLogoHeaderHtml(logoUrl, renewalUrl)}
 
     <div style="background:linear-gradient(135deg,#1F2937,#065F46);padding:32px;color:white;">
       <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:0.7;">TIME FOR A CHECK-IN</p>
