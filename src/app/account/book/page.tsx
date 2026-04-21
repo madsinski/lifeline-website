@@ -47,17 +47,25 @@ export default function BookAssessmentPage() {
       // Only cancel stale drafts (older than 30 min). Recent pending
       // bookings are kept so the user can resume via ?resume=<id>.
       const cutoff = new Date(Date.now() - 30 * 60_000).toISOString();
-      const { data: staleDrafts } = await supabase
+      await supabase
         .from("body_comp_bookings")
         .update({ status: "cancelled" })
         .eq("client_id", user.id)
         .eq("payment_status", "pending")
         .eq("status", "requested")
-        .lt("created_at", cutoff)
-        .select("id");
-      // If we cancelled stale drafts, free any station_slot claims they held
-      // so the user can re-book without hitting 'already_booked'.
-      if (staleDrafts && staleDrafts.length > 0) {
+        .lt("created_at", cutoff);
+
+      // Release orphaned station_slot claims — i.e. claims held by this user
+      // where there is no active body_comp_booking to back them. This clears
+      // the user's state so they never hit 'already_booked' from a prior
+      // round whose booking was cancelled but whose slot claim lingered.
+      const { data: activeBookings } = await supabase
+        .from("body_comp_bookings")
+        .select("id")
+        .eq("client_id", user.id)
+        .in("status", ["requested", "confirmed"])
+        .limit(1);
+      if (!activeBookings || activeBookings.length === 0) {
         await supabase.rpc("release_station_slot");
       }
 
