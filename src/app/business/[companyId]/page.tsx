@@ -18,6 +18,17 @@ interface Company {
   roster_confirmed_at: string | null;
   registration_finalized_at: string | null;
   agreement_signed_at: string | null;
+  last_round_completed_at: string | null;
+  current_round_id: string | null;
+}
+
+interface AssessmentRound {
+  id: string;
+  round_number: number;
+  package: string;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
 }
 
 interface Member {
@@ -73,6 +84,8 @@ export default function BusinessDashboardPage() {
   }[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewerIsStaff, setViewerIsStaff] = useState(false);
+  const [rounds, setRounds] = useState<AssessmentRound[]>([]);
+  const [startingRound, setStartingRound] = useState(false);
   const [error, setError] = useState("");
   const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
   const [showSchedBC, setShowSchedBC] = useState(false);
@@ -83,7 +96,7 @@ export default function BusinessDashboardPage() {
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
     const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: ag }, { data: po }] = await Promise.all([
-      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at").eq("id", companyId).maybeSingle(),
+      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
         .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status")
@@ -119,8 +132,33 @@ export default function BusinessDashboardPage() {
         total_isk: poMap.get(a.id)?.total_isk ?? null,
       })));
 
+    // Fetch assessment rounds
+    const { data: roundsData } = await supabase
+      .from("assessment_rounds")
+      .select("id, round_number, package, status, started_at, completed_at")
+      .eq("company_id", companyId)
+      .order("round_number", { ascending: false });
+    setRounds((roundsData || []) as AssessmentRound[]);
+
     setLoading(false);
   }, [companyId]);
+
+  const startNewRound = async (pkg: string) => {
+    setStartingRound(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch(`/api/business/companies/${companyId}/start-round`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify({ package: pkg }),
+      });
+      const j = await res.json();
+      if (!res.ok) { alert(`Failed: ${j.error || "unknown"}`); return; }
+      loadData();
+    } catch { alert("Failed to start round"); }
+    setStartingRound(false);
+  };
 
   const downloadSignedPdf = async (agreementId: string, storagePath: string | null) => {
     if (!storagePath) {
@@ -573,6 +611,68 @@ export default function BusinessDashboardPage() {
             <button onClick={finalizeRegistration} className="mt-4 inline-block px-5 py-2.5 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
               Finalize registration
             </button>
+          </section>
+        )}
+
+        {/* Renewal card — shown when company has completed at least one round */}
+        {finalized && (
+          <section className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-white p-6 sm:p-8 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+            <div className="flex items-start gap-4 flex-wrap">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {rounds.length > 1 ? "Start another health round" : "Time for a check-in?"}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1 max-w-xl">
+                  {company.last_round_completed_at
+                    ? `Last round completed ${new Date(company.last_round_completed_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}. A follow-up measures progress and refreshes every action plan.`
+                    : "Schedule a follow-up round to track changes and update health plans."}
+                </p>
+
+                {/* Round history */}
+                {rounds.length > 0 && (
+                  <div className="mt-4 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Assessment history</p>
+                    {rounds.map((r) => (
+                      <div key={r.id} className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-700">Round {r.round_number} · {r.package}</span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          r.status === "completed" ? "bg-emerald-50 text-emerald-700" :
+                          r.status === "active" || r.status === "scheduling" ? "bg-blue-50 text-blue-700" :
+                          "bg-gray-100 text-gray-600"
+                        }`}>{r.status}</span>
+                        {r.completed_at && <span className="text-xs text-gray-400">{new Date(r.completed_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 mt-5 flex-wrap">
+                  <button
+                    onClick={() => startNewRound("checkin")}
+                    disabled={startingRound}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-emerald-500 to-teal-500 hover:opacity-90 disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    {startingRound ? "Starting…" : "Start check-in round"}
+                  </button>
+                  <button
+                    onClick={() => startNewRound("foundational")}
+                    disabled={startingRound}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Full foundational round
+                  </button>
+                </div>
+              </div>
+            </div>
           </section>
         )}
 

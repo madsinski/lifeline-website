@@ -13,6 +13,7 @@ const TEMPLATES = [
   { key: "finalize-staff", label: "Finalize (staff)" },
   { key: "finalize-contact", label: "Finalize (contact)" },
   { key: "invoice-contact", label: "Invoice Receipt" },
+  { key: "renewal", label: "Renewal / Check-in" },
 ];
 
 export default function EmailPreviewPage() {

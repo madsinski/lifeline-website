@@ -10,6 +10,7 @@ import {
   renderFinalizeStaffEmail,
   renderFinalizeContactEmail,
   renderInvoiceContactEmail,
+  renderRenewalEmail,
 } from "@/lib/email";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.lifelinehealth.is";
@@ -92,6 +93,14 @@ export async function GET(req: NextRequest) {
       break;
     case "invoice-contact":
       result = renderInvoiceContactEmail(sampleData);
+      break;
+    case "renewal":
+      result = renderRenewalEmail({
+        ...sampleData,
+        lastRoundDate: "October 2025",
+        lastRoundEmployees: 24,
+        renewalUrl: `${BASE}/business/sample-company`,
+      });
       break;
     default:
       return NextResponse.json({ error: "unknown_template" }, { status: 400 });

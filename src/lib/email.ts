@@ -498,6 +498,87 @@ The password is case-sensitive. If you didn't expect this email, you can ignore 
   return { text, html };
 }
 
+// ─── Renewal / Check-in Invitation ──────────────────────────────────────────
+
+export function renderRenewalEmail(params: {
+  recipientName: string;
+  companyName: string;
+  lastRoundDate: string;    // e.g. "October 2025"
+  lastRoundEmployees: number;
+  renewalUrl: string;       // link to start renewal
+  dashboardUrl: string;
+}) {
+  const { recipientName, companyName, lastRoundDate, lastRoundEmployees, renewalUrl, dashboardUrl } = params;
+  const firstName = (recipientName || "there").split(" ")[0] || "there";
+
+  const text = `Hi ${firstName},
+
+It's been a while since ${companyName}'s last Lifeline health round (${lastRoundDate}, ${lastRoundEmployees} employees).
+
+Time for a check-in? A follow-up assessment tracks what changed, adjusts each employee's plan, and gives you updated group insights.
+
+What a check-in round includes:
+  ✓ On-site measurements (blood pressure + body composition)
+  ✓ Targeted blood panel
+  ✓ Progress report comparing baseline to current
+  ✓ Updated health score and refreshed action plan
+  ✓ Brief doctor review for flagged changes
+
+The process is the same as last time — you schedule dates, employees show up, we handle the rest. Most companies complete a round in 2-3 weeks.
+
+Start your next round:
+  ${renewalUrl}
+
+View your company dashboard:
+  ${dashboardUrl}
+
+Questions? Reply to this email.
+
+— The Lifeline team
+Lifeline Health ehf.`;
+
+  const html = `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+
+    <div style="background:linear-gradient(135deg,#1F2937,#065F46);padding:32px;color:white;">
+      <p style="margin:0 0 8px;font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:0.7;">TIME FOR A CHECK-IN</p>
+      <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;">Track what changed.<br>Adjust the plan.</h1>
+      <p style="margin:0;font-size:14px;opacity:0.85;line-height:1.6;">Hi ${escapeHtml(firstName)} — ${escapeHtml(companyName)}'s last health round was in ${escapeHtml(lastRoundDate)} (${lastRoundEmployees} employees). A check-in round measures progress and refreshes every action plan.</p>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <p style="margin:0 0 12px;color:#111827;font-weight:700;font-size:16px;">What's in a check-in round</p>
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:6px 0;color:#374151;font-size:14px;line-height:1.5;">On-site measurements — blood pressure + body composition</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:6px 0;color:#374151;font-size:14px;line-height:1.5;">Targeted blood panel at partner lab</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:6px 0;color:#374151;font-size:14px;line-height:1.5;"><strong>Progress report</strong> — baseline vs. current comparison</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:6px 0;color:#374151;font-size:14px;line-height:1.5;">Updated health score + refreshed action plan</td></tr>
+        <tr><td style="padding:6px 0;vertical-align:top;width:28px;color:#10B981;font-size:16px;">✓</td><td style="padding:6px 0;color:#374151;font-size:14px;line-height:1.5;">Doctor review for any flagged changes</td></tr>
+      </table>
+
+      <div style="background:#F9FAFB;border-radius:12px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0 0 4px;color:#111827;font-weight:700;font-size:14px;">Same easy process</p>
+        <p style="margin:0;color:#4B5563;font-size:13px;line-height:1.6;">You schedule the dates, employees show up, we handle the rest. Most companies complete a check-in round in 2-3 weeks.</p>
+      </div>
+
+      <div style="text-align:center;margin:0 0 24px;">
+        <a href="${renewalUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Start your next round</a>
+      </div>
+      <p style="text-align:center;margin:0 0 24px;color:#6b7280;font-size:13px;">
+        <a href="${dashboardUrl}" style="color:#3B82F6;text-decoration:underline;">View your company dashboard →</a>
+      </p>
+
+      <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0;">
+      <p style="margin:0 0 4px;color:#6b7280;font-size:13px;">Questions? Reply to this email.</p>
+      <p style="margin:0;color:#9CA3AF;font-size:12px;">— The Lifeline team · Lifeline Health ehf.</p>
+    </div>
+  </div>
+</body></html>`;
+
+  return { text, html, subject: `${companyName} — time for a health check-in` };
+}
+
 function escapeHtml(s: string) {
   return s
     .replace(/&/g, "&amp;")
