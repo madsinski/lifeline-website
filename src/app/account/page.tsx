@@ -114,6 +114,7 @@ function AccountPageInner() {
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
+  const [pendingBooking, setPendingBooking] = useState<{ id: string; package: string | null; scheduled_at: string | null } | null>(null);
   const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
   const [payingCheckinDoctor, setPayingCheckinDoctor] = useState(false);
   const [bodyCompBookingAt, setBodyCompBookingAt] = useState<string | null>(null);
@@ -395,6 +396,26 @@ function AccountPageInner() {
             }
           } else if (cData.last_body_comp_at) {
             setBodyCompStatus("completed");
+          }
+
+          // Also pick up any pending (unpaid) booking the user started but
+          // didn't finish. Used to show a 'Resume booking' card instead of
+          // the 'Ready to take the first step?' hero.
+          const { data: pending } = await supabase
+            .from("body_comp_bookings")
+            .select("id, scheduled_at, package, created_at")
+            .eq("client_id", currentUser.id)
+            .eq("status", "requested")
+            .eq("payment_status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (pending) {
+            setPendingBooking({
+              id: pending.id as string,
+              package: ((pending as Record<string, unknown>).package as string | null) ?? null,
+              scheduled_at: ((pending as Record<string, unknown>).scheduled_at as string | null) ?? null,
+            });
           }
         } else {
           const metaName = currentUser.user_metadata?.full_name || "";
@@ -1032,9 +1053,22 @@ function AccountPageInner() {
                   </div>
                 </section>
 
-                {/* For B2C users who haven't booked a package yet, show a Get-started hero
-                    instead of the full journey — there's nothing yet to track. */}
-                {!companyId && bodyCompStatus === "none" && (
+                {/* B2C: pending (unpaid) booking → show a 'Resume booking' card */}
+                {!companyId && bodyCompStatus === "none" && pendingBooking && (
+                  <ResumeBookingHero
+                    pkg={pendingBooking.package}
+                    scheduledAt={pendingBooking.scheduled_at}
+                    bookingId={pendingBooking.id}
+                    onCancel={async () => {
+                      if (!confirm("Cancel your incomplete booking and start over?")) return;
+                      await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", pendingBooking.id);
+                      setPendingBooking(null);
+                    }}
+                  />
+                )}
+
+                {/* B2C: no booking at all → Get-started hero */}
+                {!companyId && bodyCompStatus === "none" && !pendingBooking && (
                   <GetStartedHero />
                 )}
 
@@ -3966,6 +4000,61 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
  * Compact teaser card on /account Home — links to the full Coaching app page
  * where all feature content lives.
  */
+// Shown when the user started a booking but hasn't finished paying.
+// Mirrors GetStartedHero's look so the dashboard doesn't feel 'reset'.
+function ResumeBookingHero({
+  pkg, scheduledAt, bookingId, onCancel,
+}: {
+  pkg: string | null;
+  scheduledAt: string | null;
+  bookingId: string;
+  onCancel: () => void | Promise<void>;
+}) {
+  const pkgLabel =
+    pkg === "foundational" ? "Foundational Health"
+      : pkg === "checkin" ? "Check-in"
+      : pkg === "self-checkin" ? "Self Check-in"
+      : "Your assessment";
+  const slotLabel = scheduledAt ? new Date(scheduledAt).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
+  return (
+    <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}>
+      <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+      <div className="relative p-8 sm:p-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 backdrop-blur-sm mb-4">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-xs font-semibold uppercase tracking-wide">Continue where you left off</span>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold leading-tight max-w-xl">
+          You have an incomplete booking.
+        </h2>
+        <p className="mt-3 text-base opacity-95 leading-relaxed max-w-xl">
+          Your <strong>{pkgLabel}</strong> booking is reserved but hasn&apos;t been paid for yet.
+          {slotLabel ? <> Scheduled for <strong>{slotLabel}</strong>.</> : null} Finish the payment to confirm it, or cancel to start over.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link
+            href={`/account/book?resume=${bookingId}`}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-[#92400E] text-base font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 hover:opacity-95 transition-all"
+          >
+            Finish booking
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+          <button
+            onClick={onCancel}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/40 text-white text-sm font-semibold hover:bg-white/10"
+          >
+            Cancel and start over
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function GetStartedHero() {
   const [showPackages, setShowPackages] = useState(false);
   return (

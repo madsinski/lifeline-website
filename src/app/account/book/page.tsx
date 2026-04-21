@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { createStraumurCharge, STRAUMUR_BRAND } from "@/lib/straumur";
@@ -11,6 +11,8 @@ type Stage = "package" | "schedule" | "review" | "pay" | "done";
 
 export default function BookAssessmentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resumeBookingId = searchParams.get("resume");
   const [authChecking, setAuthChecking] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string>("");
@@ -42,20 +44,40 @@ export default function BookAssessmentPage() {
         setFullName((data.full_name as string) || "");
         setPhone((data.phone as string | null) || null);
       }
-      // Clean up abandoned drafts from previous wizard runs — any
-      // paid-package booking still in 'pending' status is a user who
-      // bailed before paying. Cancel rather than delete (the client
-      // update policy allows setting status='cancelled'); cancelled
-      // rows are filtered out of the dashboard booking lookup.
+      // Only cancel stale drafts (older than 30 min). Recent pending
+      // bookings are kept so the user can resume via ?resume=<id>.
+      const cutoff = new Date(Date.now() - 30 * 60_000).toISOString();
       await supabase
         .from("body_comp_bookings")
         .update({ status: "cancelled" })
         .eq("client_id", user.id)
         .eq("payment_status", "pending")
-        .eq("status", "requested");
+        .eq("status", "requested")
+        .lt("created_at", cutoff);
+
+      // Resume flow: if ?resume=<id> is set and the booking belongs to the
+      // current user and is still pending, jump straight to the pay stage.
+      if (resumeBookingId) {
+        const { data: existing } = await supabase
+          .from("body_comp_bookings")
+          .select("id, package, scheduled_at, location, amount_isk, payment_status, status")
+          .eq("id", resumeBookingId)
+          .eq("client_id", user.id)
+          .maybeSingle();
+        if (existing && existing.status === "requested" && existing.payment_status === "pending") {
+          const pkgKey = (existing as Record<string, unknown>).package as "foundational" | "checkin" | "self-checkin" | null;
+          if (pkgKey) {
+            setSelectedPkg(pkgKey);
+            setSelectedSlotAt((existing as Record<string, unknown>).scheduled_at as string | null);
+            setSelectedLocation((existing as Record<string, unknown>).location as string | null);
+            setBookingId(existing.id as string);
+            setStage(pkgKey === "self-checkin" ? "done" : "pay");
+          }
+        }
+      }
       setAuthChecking(false);
     })();
-  }, [router]);
+  }, [router, resumeBookingId]);
 
   async function createBooking(): Promise<string | null> {
     if (!userId || !pkg) return null;
@@ -119,16 +141,40 @@ export default function BookAssessmentPage() {
     // between "I chose it" and "I clicked Continue", the RPC fails and we
     // send the user back to the schedule step with a clear error.
     if (needsVisit && selectedSlotId) {
-      const { data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
+      let { data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
         p_slot_id: selectedSlotId,
         p_booking_id: id,
       });
-      const row = Array.isArray(claim) ? claim[0] : claim;
+      let row = Array.isArray(claim) ? claim[0] : claim;
+
+      // 'already_booked' means the user already has an active station booking
+      // from a previous paid round. Offer to cancel it and use the new time.
+      if (row && row.ok === false && row.error === "already_booked") {
+        const ok = typeof window !== "undefined" && window.confirm(
+          "You already have a measurement booking. Cancel the old one and use this new time instead?",
+        );
+        if (ok) {
+          // Cancel every active (requested/confirmed) paid booking for this
+          // user so the RPC's 'already_booked' check clears.
+          await supabase
+            .from("body_comp_bookings")
+            .update({ status: "cancelled" })
+            .eq("client_id", userId!)
+            .neq("id", id)
+            .in("status", ["requested", "confirmed"]);
+          ({ data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
+            p_slot_id: selectedSlotId,
+            p_booking_id: id,
+          }));
+          row = Array.isArray(claim) ? claim[0] : claim;
+        }
+      }
+
       if (claimErr || (row && row.ok === false)) {
         const code = row?.error;
         setPaymentError(
           code === "slot_unavailable" ? "That time slot was just taken. Please pick another."
-            : code === "already_booked" ? "You already have a station booking. Cancel it first."
+            : code === "already_booked" ? "You already have a station booking. Cancel it first from your dashboard."
             : claimErr?.message || "Could not reserve your time slot. Please try again."
         );
         // Roll the booking back so the user can pick a different time
