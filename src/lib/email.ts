@@ -70,14 +70,17 @@ export function renderWelcomeEmail(params: {
 
 You're registered with Lifeline Health${viaLine}. 🎉
 
-Your next steps:
-  1. Activate your body-composition profile
-  2. Book your scan at a Lifeline station
-  3. Open your patient portal to view clinical records
-  4. Download the Lifeline app (coming soon)
+Your health assessment has four steps, all run on-site at ${companyName || "your workplace"}:
+
+  1. Book a 5-minute body-composition slot at the on-site measurement day your employer scheduled.
+  2. Book a blood-test day — head to a Sameind clinic on one of the authorised days (walk-in 08:00–12:00, no appointment needed).
+  3. A Lifeline doctor reviews your results and creates your personal health plan.
+  4. View your results and plan in your Lifeline portal and in Medalia (our secure medical record system).
+
+All your health data stays confidential — ${companyName ? `${companyName}` : "your employer"} never sees individual results.
 
 Start here: ${welcomeUrl}
-Or sign in: ${loginUrl}
+Or sign in later: ${loginUrl}
 
 — Lifeline Health`;
 
@@ -88,13 +91,16 @@ Or sign in: ${loginUrl}
     <p style="margin:0 0 20px;color:#4b5563;">
       Your Lifeline Health account is ready${companyName ? ` — welcomed aboard by <strong>${escapeHtml(companyName)}</strong>` : ""}.
     </p>
-    <p style="margin:0 0 12px;color:#4b5563;"><strong>Your next steps</strong></p>
-    <ol style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.6;">
-      <li>Activate your body-composition profile</li>
-      <li>Book your scan at a Lifeline station</li>
-      <li>Open your patient portal</li>
-      <li>Download the Lifeline app (coming soon)</li>
+    <p style="margin:0 0 12px;color:#4b5563;"><strong>Your four steps</strong></p>
+    <ol style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.7;">
+      <li><strong>Book your body-composition slot.</strong> Your employer scheduled an on-site measurement day. Pick a 5-minute time that works for you.</li>
+      <li><strong>Book a blood-test day.</strong> Choose one of the days your employer authorised for a walk-in at Sameind (08:00–12:00).</li>
+      <li><strong>Doctor review.</strong> A Lifeline doctor reviews your results and creates your personal health plan.</li>
+      <li><strong>See your results.</strong> View them in your Lifeline portal and in <strong>Medalia</strong>, our secure medical record system.</li>
     </ol>
+    <p style="margin:0 0 20px;color:#4b5563;font-size:13px;background:#F0FDF4;border:1px solid #BBF7D0;padding:10px 14px;border-radius:8px;">
+      🔒 All health data stays confidential. ${companyName ? escapeHtml(companyName) : "Your employer"} never sees individual results — only whether you've completed the assessment.
+    </p>
     <div style="text-align:center;margin:28px 0;">
       <a href="${welcomeUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start here</a>
     </div>
