@@ -4,11 +4,9 @@ const PAYDAY_BASE_URL = process.env.PAYDAY_BASE_URL || "https://api.payday.is";
 const PAYDAY_CLIENT_ID = process.env.PAYDAY_CLIENT_ID;
 const PAYDAY_CLIENT_SECRET = process.env.PAYDAY_CLIENT_SECRET;
 
-const PAYDAY_API_VERSION = process.env.PAYDAY_API_VERSION || "1";
-
 const HEADERS_BASE: Record<string, string> = {
   "Content-Type": "application/json",
-  ...(process.env.PAYDAY_API_VERSION ? { "Api-Version": process.env.PAYDAY_API_VERSION } : {}),
+  "Api-Version": "alpha",
 };
 
 // ─── OAuth token (cached in DB) ──────────────────────────────────────────────
@@ -118,13 +116,10 @@ export async function ensurePaydayCustomer(args: EnsureCustomerArgs): Promise<{ 
   if (!res.ok) {
     console.error("[payday] customer create failed", res.status, JSON.stringify(res.json ?? res.text));
     // A common failure mode is "customer already exists with this ssn".
-    // Try searching by SSN.
-    const searchRes = await paydayFetch(`/customers?ssn=${cleanKt}&perpage=50&page=1`);
-    if (searchRes.ok && searchRes.json && typeof searchRes.json === "object") {
-      type CustomerRow = { id?: string; ssn?: string };
-      const raw = searchRes.json as { data?: CustomerRow[] } | CustomerRow[];
-      const data = Array.isArray(raw) ? raw : raw.data || [];
-      const match = data.find((c) => c?.ssn === cleanKt);
+    // Try looking up by SSN.
+    const lookupRes = await paydayFetch(`/customers/number/${cleanKt}`);
+    if (lookupRes.ok && lookupRes.json) {
+      const match = lookupRes.json as { id?: string; ssn?: string };
       if (match?.id) {
         console.log("[payday] found existing customer", match.id);
         await supabaseAdmin.from("companies").update({ payday_customer_id: match.id }).eq("id", args.companyId);
@@ -134,12 +129,35 @@ export async function ensurePaydayCustomer(args: EnsureCustomerArgs): Promise<{ 
     return { ok: false, error: `customer_create_http_${res.status}`, raw: res.json ?? res.text };
   }
 
+  // PayDay returns no body on customer create — look up by SSN to get the ID
+  let customerId: string | undefined;
   const j = res.json as { id?: string; data?: { id?: string } } | null;
-  const customerId = j?.id || j?.data?.id;
+  customerId = j?.id || j?.data?.id;
+
   if (!customerId) {
-    return { ok: false, error: "customer_create_no_id", raw: res.json };
+    // Fetch by kennitala: GET /customers/number/:ssn
+    const lookupRes = await paydayFetch(`/customers/number/${cleanKt}`);
+    if (lookupRes.ok && lookupRes.json) {
+      const lookup = lookupRes.json as { id?: string };
+      customerId = lookup.id;
+    }
   }
 
+  if (!customerId) {
+    // Fallback: search all customers
+    const searchRes = await paydayFetch(`/customers?perpage=100&page=1`);
+    if (searchRes.ok && searchRes.json) {
+      const list = (searchRes.json as { customers?: { id: string; ssn: string }[] }).customers || [];
+      const match = list.find((c) => c.ssn === cleanKt);
+      customerId = match?.id;
+    }
+  }
+
+  if (!customerId) {
+    return { ok: false, error: "customer_create_no_id", raw: res.json ?? "Created OK but could not retrieve customer ID" };
+  }
+
+  console.log("[payday] customer created/found", customerId);
   await supabaseAdmin.from("companies").update({ payday_customer_id: customerId }).eq("id", args.companyId);
   return { ok: true, customer_id: customerId };
 }
