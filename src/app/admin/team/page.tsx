@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Fragment } from "react";
 import { supabase } from "@/lib/supabase";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 
 /*
   SQL to create the staff table (also in /supabase/staff.sql):
@@ -914,66 +915,14 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Delete confirmation modal */}
+      {/* 3-step delete confirmation: warning → type "delete" → admin password */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-red-600">Remove team member</h3>
-              <button
-                onClick={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}
-                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <div className="flex items-center gap-3 mb-3 p-3 bg-gray-50 rounded-lg">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${roleColors[deleteTarget.role]}`}>
-                  {getInitials(deleteTarget.name)}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{deleteTarget.name}</p>
-                  <p className="text-xs text-gray-500">{roleLabels[deleteTarget.role]}</p>
-                </div>
-              </div>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-red-700">
-                  This will permanently remove <strong>{deleteTarget.name}</strong> from the team. Any assigned clients will need to be reassigned.
-                </p>
-              </div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type <strong>{deleteTarget.name}</strong> to confirm
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmName}
-                onChange={(e) => setDeleteConfirmName(e.target.value)}
-                placeholder={deleteTarget.name}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-gray-900"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRemoveConfirm}
-                disabled={deleteConfirmName !== deleteTarget.name}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteConfirmModal
+          title={`Remove ${deleteTarget.name}`}
+          description={`This will permanently remove ${deleteTarget.name} (${roleLabels[deleteTarget.role]}) from the Lifeline team. Any clients assigned to them will need to be reassigned. This cannot be undone.`}
+          onCancel={() => { setDeleteTarget(null); setDeleteConfirmName(""); }}
+          onConfirm={async () => { await handleRemoveConfirm(); }}
+        />
       )}
 
       {/* Crop modal */}
