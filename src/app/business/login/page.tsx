@@ -298,13 +298,9 @@ function BusinessLoginInner() {
           </div>
         </div>
 
-        <p className="text-center text-[#6B7280] text-xs mt-6 space-x-3">
+        <p className="text-center text-[#6B7280] text-xs mt-6">
           <Link href="/" className="hover:text-blue-600 transition-colors">
             {t("b2b.login.back_home", "Back to Lifeline Health")}
-          </Link>
-          <span className="text-[#C7CDD4]">·</span>
-          <Link href="/account/login" className="hover:text-[#10B981] transition-colors">
-            {t("b2b.login.personal_login", "Personal account sign in →")}
           </Link>
         </p>
       </div>
