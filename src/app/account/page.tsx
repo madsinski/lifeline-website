@@ -3135,7 +3135,7 @@ function JourneyTimeline({
       done: false,
       active: hasBodyCompSlot && hasBloodTestBooking,
       description: hasBodyCompSlot && hasBloodTestBooking
-        ? "You'll receive an SMS from the Lifeline team within the next 7 days with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
+        ? "You'll receive an SMS from the Lifeline team with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
         : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test. The questionnaire will be available in your secure patient portal.",
       portal: true,
     },
