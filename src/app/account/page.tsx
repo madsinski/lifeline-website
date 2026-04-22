@@ -3084,11 +3084,11 @@ function JourneyTimeline({
     description: "Profile + consent complete.",
   };
   const bodyCompProfileStep: JourneyStep = {
-    title: "Body-composition profile",
+    title: "Body composition profile",
     done: biodyActivated,
     active: hasOnboarded && !biodyActivated,
     description: biodyActivated
-      ? "Registered with our measurement partner. You can update your details (height, weight, activity level) any time."
+      ? "Confirmed. You can update your details (height, weight, activity level) any time."
       : "Activate your profile — takes about a minute.",
     cta: { label: biodyActivated ? "Edit details" : "Activate", onClick: onGoToBiody },
   };
