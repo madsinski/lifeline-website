@@ -3112,9 +3112,14 @@ function JourneyTimeline({
         <div className="font-semibold mb-0.5">Fast from midnight</div>
         Water only — no food, coffee, tea, juice, or alcohol.
       </div>
-      <div className="rounded-lg border border-gray-200 p-3 bg-white">
-        <div className="text-xs font-semibold text-gray-700 mb-2">Sameind stations — walk in at any of these:</div>
-        <ul className="divide-y divide-gray-100">
+      <details className="group rounded-lg border border-gray-200 bg-white">
+        <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
+          <span>Sameind stations — walk in at any of these</span>
+          <svg className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </summary>
+        <ul className="divide-y divide-gray-100 border-t border-gray-100 px-3">
           {SAMEIND_STATIONS.map((s) => (
             <li key={s.id} className="py-2 text-xs">
               <div className="font-medium text-gray-900">{s.name}</div>
@@ -3123,7 +3128,7 @@ function JourneyTimeline({
             </li>
           ))}
         </ul>
-      </div>
+      </details>
       <p className="text-[11.5px] text-gray-500 leading-snug">
         No appointment required. Bring ID. Aim for 08:00–12:00 if you can — your results appear in your personal report a few days later.
       </p>
@@ -3883,9 +3888,14 @@ function BloodTestDayPickerModal({
             <div className="font-semibold mb-1">Important — fast before your blood test</div>
             You must <strong>fast from midnight</strong> the night before your visit. Water is fine; no food, no coffee, no tea, no juice, no alcohol.
           </div>
-          <div className="rounded-lg border border-gray-200 p-3">
-            <div className="text-xs font-semibold text-gray-700 mb-2">Sameind stations — walk in at any of these:</div>
-            <ul className="divide-y divide-gray-100">
+          <details className="group rounded-lg border border-gray-200 bg-white">
+            <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
+              <span>Sameind stations — walk in at any of these</span>
+              <svg className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <ul className="divide-y divide-gray-100 border-t border-gray-100 px-3">
               {SAMEIND_STATIONS.map((s) => (
                 <li key={s.id} className="py-2 text-xs">
                   <div className="font-medium text-gray-900">{s.name}</div>
@@ -3894,7 +3904,7 @@ function BloodTestDayPickerModal({
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
         <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
