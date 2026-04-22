@@ -19,6 +19,8 @@ type Preview = {
   contact_draft_name: string | null;
   contact_draft_email: string | null;
   contact_draft_role: string | null;
+  is_sub: boolean;
+  parent_name: string | null;
 };
 
 export default function ClaimPage() {
@@ -74,7 +76,10 @@ export default function ClaimPage() {
     if (password.length < 8) { setErr("Lykilorðið verður að vera að minnsta kosti 8 stafir."); return; }
     if (password !== password2) { setErr("Lykilorðin eru ekki eins."); return; }
     if (!signatoryName.trim()) { setErr("Nafn undirritanda vantar."); return; }
-    if (!acceptTos || !acceptDpa) { setErr("Samþykktu bæði þjónustuskilmála og gagnavinnslusamning."); return; }
+    if (!preview?.is_sub && (!acceptTos || !acceptDpa)) {
+      setErr("Samþykktu bæði þjónustuskilmála og gagnavinnslusamning.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(`/api/business/claim/${token}/complete`, {
@@ -85,8 +90,8 @@ export default function ClaimPage() {
           signatory_name: signatoryName.trim(),
           signatory_role: signatoryRole.trim(),
           signatory_email: signatoryEmail.trim().toLowerCase(),
-          accept_tos: true,
-          accept_dpa: true,
+          accept_tos: !!preview?.is_sub ? false : true,
+          accept_dpa: !!preview?.is_sub ? false : true,
         }),
       });
       const j = await res.json();
@@ -126,10 +131,18 @@ export default function ClaimPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">
             Velkomin, {preview.company_name}
           </h1>
-          <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-xl mx-auto">
-            Lifeline Health-teymið hefur stofnað aðgang fyrir fyrirtækið ykkar. Til að taka við umsjón
-            þarft þú að velja lykilorð og samþykkja þjónustuskilmála og gagnavinnslusamninginn. Þú færð PDF-staðfestingu í tölvupósti eftir undirritun.
-          </p>
+          {preview.is_sub && preview.parent_name ? (
+            <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-xl mx-auto">
+              Lifeline Health-teymið hefur stofnað aðgang fyrir <strong>{preview.company_name}</strong>, sem er undireining hjá <strong>{preview.parent_name}</strong>.
+              Móðurfyrirtækið hefur þegar samþykkt þjónustuskilmála og gagnavinnslusamning fyrir hönd allra eininga —
+              þú þarft aðeins að velja lykilorð til að taka við þessum aðgangi.
+            </p>
+          ) : (
+            <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-xl mx-auto">
+              Lifeline Health-teymið hefur stofnað aðgang fyrir fyrirtækið ykkar. Til að taka við umsjón
+              þarft þú að velja lykilorð og samþykkja þjónustuskilmála og gagnavinnslusamninginn. Þú færð PDF-staðfestingu í tölvupósti eftir undirritun.
+            </p>
+          )}
         </header>
 
         <form onSubmit={submit} className="space-y-5">
@@ -165,40 +178,44 @@ export default function ClaimPage() {
             </div>
           </section>
 
-          {/* ToS */}
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-900">2. Notkunarskilmálar ({TOS_VERSION})</h2>
-            <pre className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+          {/* ToS + DPA shown only at parent-level claims. Sub-company contacts
+              inherit the parent's legal signature and never see these sections. */}
+          {!preview.is_sub && (
+            <>
+              <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-3">
+                <h2 className="text-sm font-semibold text-gray-900">2. Notkunarskilmálar ({TOS_VERSION})</h2>
+                <pre className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderTermsOfService()}
-            </pre>
-            <label className="flex items-start gap-2 cursor-pointer select-none">
-              <input type="checkbox" checked={acceptTos} onChange={(e) => setAcceptTos(e.target.checked)} className="mt-1" />
-              <span className="text-sm text-gray-700">
-                Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.
-              </span>
-            </label>
-          </section>
+                </pre>
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={acceptTos} onChange={(e) => setAcceptTos(e.target.checked)} className="mt-1" />
+                  <span className="text-sm text-gray-700">
+                    Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.
+                  </span>
+                </label>
+              </section>
 
-          {/* DPA */}
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-900">3. Gagnavinnslusamningur (DPA, {DPA_VERSION})</h2>
-            <pre className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+              <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-3">
+                <h2 className="text-sm font-semibold text-gray-900">3. Gagnavinnslusamningur (DPA, {DPA_VERSION})</h2>
+                <pre className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderDataProcessingAgreement()}
-            </pre>
-            <label className="flex items-start gap-2 cursor-pointer select-none">
-              <input type="checkbox" checked={acceptDpa} onChange={(e) => setAcceptDpa(e.target.checked)} className="mt-1" />
-              <span className="text-sm text-gray-700">
-                Ég samþykki gagnavinnslusamning Lifeline Health ({DPA_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.
-              </span>
-            </label>
-          </section>
+                </pre>
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={acceptDpa} onChange={(e) => setAcceptDpa(e.target.checked)} className="mt-1" />
+                  <span className="text-sm text-gray-700">
+                    Ég samþykki gagnavinnslusamning Lifeline Health ({DPA_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.
+                  </span>
+                </label>
+              </section>
+            </>
+          )}
 
           {err && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>}
 
           <div className="flex items-center justify-end">
-            <button type="submit" disabled={submitting || !acceptTos || !acceptDpa}
+            <button type="submit" disabled={submitting || (!preview.is_sub && (!acceptTos || !acceptDpa))}
               className="px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50 hover:opacity-95">
-              {submitting ? "Vistar…" : "Samþykkja og taka við"}
+              {submitting ? "Vistar…" : preview.is_sub ? "Taka við aðganginum" : "Samþykkja og taka við"}
             </button>
           </div>
         </form>

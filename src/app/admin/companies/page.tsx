@@ -25,6 +25,8 @@ interface CompanyRow {
   status?: "draft" | "contact_invited" | "active" | "archived" | null;
   contact_draft_email?: string | null;
   contact_draft_name?: string | null;
+  parent_company_id?: string | null;
+  parent_name?: string | null;
 }
 
 interface MemberRow {
@@ -112,6 +114,56 @@ function InviteContactButton({ companyId, draftEmail, status }: { companyId: str
               {submitting ? "Sendi…" : "Senda boð"}
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One-click consolidated invoice for a parent (municipality-style)
+// company. Aggregates all active subs into one PayDay invoice, billed
+// to the parent's billing_contact_email.
+function ConsolidatedInvoiceButton({ companyId }: { companyId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function fire() {
+    if (!confirm("Búa til samheildarreikning fyrir móðurfyrirtækið og alla undireiningar? Reikningurinn fer á PayDay-tengilið móðurfyrirtækisins.")) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/admin/companies/${companyId}/consolidated-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ send_email: true, create_claim: true }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.ok) { setMsg(j?.detail || j?.error || "Mistókst."); return; }
+      setMsg(`Reikningur ${j.invoice_number || j.invoice_id} — ${(j.amount_total ?? 0).toLocaleString("is-IS")} ISK á ${j.lines?.length || 0} línur.`);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="relative inline-flex">
+      <button
+        onClick={fire}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 transition-colors disabled:opacity-50"
+        title="Einn reikningur fyrir móðurfyrirtæki + allar undireiningar"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10M7 11h10M7 15h4M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+        </svg>
+        {busy ? "Bý til…" : "Samheildarreikningur"}
+      </button>
+      {msg && (
+        <div className="absolute z-20 top-full left-0 mt-1 w-80 rounded-lg bg-white border border-gray-200 shadow-lg p-3 text-xs text-gray-800">
+          {msg}
+          <button onClick={() => setMsg(null)} className="ml-2 text-gray-400 hover:text-gray-600">✕</button>
         </div>
       )}
     </div>
@@ -430,23 +482,49 @@ export default function AdminCompaniesPage() {
     setLoading(true);
     const [rpcRes, tiersRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
-      supabase.from("companies").select("id, default_tier, status, contact_draft_email, contact_draft_name"),
+      supabase.from("companies").select("id, name, default_tier, status, contact_draft_email, contact_draft_name, parent_company_id"),
     ]);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
-      type ExtraRow = { id: string; default_tier: string | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null };
+      type ExtraRow = { id: string; name: string; default_tier: string | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; parent_company_id: string | null };
       const extraMap = new Map<string, ExtraRow>((tiersRes.data || []).map((t: ExtraRow) => [t.id, t]));
       const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => {
         const extra = extraMap.get(c.id);
+        const parentId = extra?.parent_company_id || null;
+        const parentName = parentId ? (extraMap.get(parentId)?.name || null) : null;
         return {
           ...c,
           default_tier: extra?.default_tier || null,
           status: extra?.status || "active",
           contact_draft_email: extra?.contact_draft_email || null,
           contact_draft_name: extra?.contact_draft_name || null,
+          parent_company_id: parentId,
+          parent_name: parentName,
         };
       });
-      setCompanies(rows);
+      // Tree order: parents first (sorted by name), each followed immediately
+      // by its children (sorted by name). Orphans (parent_id pointing at a
+      // non-existent company) fall through to the bottom alphabetically.
+      const parents = rows.filter((r) => !r.parent_company_id).sort((a, b) => a.name.localeCompare(b.name));
+      const childrenByParent = new Map<string, CompanyRow[]>();
+      for (const r of rows) {
+        if (r.parent_company_id) {
+          const arr = childrenByParent.get(r.parent_company_id) || [];
+          arr.push(r);
+          childrenByParent.set(r.parent_company_id, arr);
+        }
+      }
+      for (const arr of childrenByParent.values()) arr.sort((a, b) => a.name.localeCompare(b.name));
+      const ordered: CompanyRow[] = [];
+      for (const p of parents) {
+        ordered.push(p);
+        const kids = childrenByParent.get(p.id) || [];
+        ordered.push(...kids);
+      }
+      // Orphan children (parent missing): append to the end
+      const seen = new Set(ordered.map((r) => r.id));
+      for (const r of rows) if (!seen.has(r.id)) ordered.push(r);
+      setCompanies(ordered);
     }
     setLoading(false);
   }, []);
@@ -517,8 +595,11 @@ export default function AdminCompaniesPage() {
               {companies.map((c) => (
                 <Fragment key={c.id}>
                   <tr className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">
+                    <td className={`px-4 py-3 font-medium ${c.parent_company_id ? "pl-10" : ""}`}>
                       <div className="flex items-center gap-2 flex-wrap">
+                        {c.parent_company_id && (
+                          <span className="text-gray-300 select-none" aria-hidden>└</span>
+                        )}
                         <button
                           onClick={() => toggleExpand(c.id)}
                           className="inline-flex items-center gap-2 hover:underline"
@@ -532,6 +613,14 @@ export default function AdminCompaniesPage() {
                           </svg>
                           {c.name}
                         </button>
+                        {c.parent_company_id && c.parent_name && (
+                          <span
+                            className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium"
+                            title={`Reikningur gengur upp á ${c.parent_name}`}
+                          >
+                            Bílag til {c.parent_name}
+                          </span>
+                        )}
                         {c.status === "draft" ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold" title="Admin-created draft — contact person not yet invited.">
                             Drög
@@ -571,6 +660,9 @@ export default function AdminCompaniesPage() {
                         </Link>
                         {(c.status === "draft" || c.status === "contact_invited") && (
                           <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
+                        )}
+                        {!c.parent_company_id && companies.some((o) => o.parent_company_id === c.id) && (
+                          <ConsolidatedInvoiceButton companyId={c.id} />
                         )}
                       </div>
                     </td>

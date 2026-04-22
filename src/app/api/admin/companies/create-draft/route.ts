@@ -25,6 +25,15 @@ type Body = {
   contact_draft_phone?: string;
   contact_draft_role?: string;
   admin_notes?: string;
+  // Parent company (null for top-level). When set, the billing
+  // contact fields are ignored — billing walks up to the parent.
+  parent_company_id?: string | null;
+  // Billing contact (only meaningful on top-level / parent rows).
+  billing_contact_name?: string;
+  billing_contact_email?: string;
+  billing_contact_phone?: string;
+  billing_contact_role?: string;
+  billing_address?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -54,11 +63,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "kennitala_encrypt_failed", detail: encErr.message }, { status: 500 });
   }
 
+  // Validate parent_company_id (if provided) — must exist and be top-level.
+  const parentId = (body.parent_company_id || "").trim() || null;
+  if (parentId) {
+    const { data: parent } = await supabaseAdmin
+      .from("companies")
+      .select("id, parent_company_id")
+      .eq("id", parentId)
+      .maybeSingle();
+    if (!parent) return NextResponse.json({ error: "parent_not_found" }, { status: 400 });
+    if (parent.parent_company_id) {
+      return NextResponse.json({ error: "parent_is_itself_a_sub", detail: "Only one level of nesting is allowed." }, { status: 400 });
+    }
+  }
+
   const insertPayload: Record<string, unknown> = {
     name,
     kennitala_encrypted: encData,
     contact_person_id: null,
     status: "draft",
+    parent_company_id: parentId,
     company_address: body.company_address?.trim() || null,
     company_phone: body.company_phone?.trim() || null,
     default_tier: body.default_tier || null,
@@ -69,6 +93,16 @@ export async function POST(req: NextRequest) {
     admin_notes: body.admin_notes?.trim() || null,
     created_by_admin_id: user.id,
   };
+  // Billing contact is only meaningful on top-level companies. Subs
+  // inherit via walk-up to their parent, so we silently drop those
+  // fields when parent is set.
+  if (!parentId) {
+    insertPayload.billing_contact_name = body.billing_contact_name?.trim() || null;
+    insertPayload.billing_contact_email = body.billing_contact_email?.trim().toLowerCase() || null;
+    insertPayload.billing_contact_phone = body.billing_contact_phone?.trim() || null;
+    insertPayload.billing_contact_role = body.billing_contact_role?.trim() || null;
+    insertPayload.billing_address = body.billing_address?.trim() || null;
+  }
   if (typeof body.assessment_unit_price === "number" && body.assessment_unit_price >= 0) {
     insertPayload.assessment_unit_price = body.assessment_unit_price;
   }

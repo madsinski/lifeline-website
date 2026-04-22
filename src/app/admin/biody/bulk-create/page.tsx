@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 // defaults. Flags each client row with biody_placeholder_data so a
 // later B2B onboarding sweep can collect the real data.
 
-type Company = { id: string; name: string; status?: string | null };
+type Company = { id: string; name: string; status?: string | null; parent_company_id?: string | null };
 type Row = {
   full_name: string;
   kennitala: string;
@@ -71,11 +71,31 @@ export default function BiodyBulkCreatePage() {
     (async () => {
       const { data } = await supabase
         .from("companies")
-        .select("id, name, status")
+        .select("id, name, status, parent_company_id")
         .neq("status", "archived")
-        .order("status", { ascending: true })   // 'active' before 'contact_invited' before 'draft'
         .order("name", { ascending: true });
-      setCompanies((data as Company[]) || []);
+      const all = (data as Company[]) || [];
+      // Tree order: parents first (with 'aðalskrá' suffix if they have kids),
+      // each followed by its children alphabetically. Sub rows are indented
+      // with a leading '└ ' in the label so the dropdown reads as a tree.
+      const parents = all.filter((c) => !c.parent_company_id);
+      const childrenOf = new Map<string, Company[]>();
+      for (const c of all) {
+        if (c.parent_company_id) {
+          const arr = childrenOf.get(c.parent_company_id) || [];
+          arr.push(c);
+          childrenOf.set(c.parent_company_id, arr);
+        }
+      }
+      const ordered: Company[] = [];
+      for (const p of parents) {
+        ordered.push(p);
+        const kids = childrenOf.get(p.id) || [];
+        ordered.push(...kids);
+      }
+      const seen = new Set(ordered.map((c) => c.id));
+      for (const c of all) if (!seen.has(c.id)) ordered.push(c);
+      setCompanies(ordered);
     })();
   }, []);
 
@@ -157,10 +177,14 @@ export default function BiodyBulkCreatePage() {
         >
           <option value="">Veldu fyrirtæki…</option>
           {companies.map((c) => {
-            const suffix = c.status === "draft" ? " (drög)"
+            const hasChildren = companies.some((o) => o.parent_company_id === c.id);
+            const isChild = !!c.parent_company_id;
+            const statusSuffix = c.status === "draft" ? " (drög)"
               : c.status === "contact_invited" ? " (boð sent)"
               : "";
-            return <option key={c.id} value={c.id}>{c.name}{suffix}</option>;
+            const parentSuffix = hasChildren && !isChild ? " (aðalskrá)" : "";
+            const prefix = isChild ? "\u00A0\u00A0└ " : ""; // indent children
+            return <option key={c.id} value={c.id}>{prefix}{c.name}{parentSuffix}{statusSuffix}</option>;
           })}
         </select>
       </section>

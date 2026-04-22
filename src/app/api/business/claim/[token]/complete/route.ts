@@ -45,12 +45,13 @@ export async function POST(
   if (password.length < 8) return NextResponse.json({ error: "password_too_short" }, { status: 400 });
   if (!signatoryName) return NextResponse.json({ error: "signatory_name_required" }, { status: 400 });
   if (!signatoryEmail) return NextResponse.json({ error: "signatory_email_required" }, { status: 400 });
-  if (!body.accept_tos) return NextResponse.json({ error: "tos_required" }, { status: 400 });
-  if (!body.accept_dpa) return NextResponse.json({ error: "dpa_required" }, { status: 400 });
+  // TOS/DPA are required only at the parent-level claim. We can't tell
+  // yet without fetching the row — defer the required-check to after the
+  // company lookup. Empty acceptances stay falsy for the parent path.
 
   const { data: company } = await supabaseAdmin
     .from("companies")
-    .select("id, name, status, contact_draft_email, contact_draft_name, claim_token_expires_at")
+    .select("id, name, status, contact_draft_email, contact_draft_name, claim_token_expires_at, parent_company_id")
     .eq("claim_token_hash", tokenHash)
     .maybeSingle();
   if (!company) return NextResponse.json({ error: "invalid_or_consumed" }, { status: 404 });
@@ -59,6 +60,16 @@ export async function POST(
   }
   if (company.claim_token_expires_at && new Date(company.claim_token_expires_at) < new Date()) {
     return NextResponse.json({ error: "expired" }, { status: 410 });
+  }
+
+  // Sub-company contacts (the row has a parent) don't sign TOS + DPA
+  // — the parent has already signed those on behalf of the whole
+  // organisation. They only need to bind an auth account so they can
+  // manage their sub's roster and Biody group.
+  const isSubCompany = !!company.parent_company_id;
+  if (!isSubCompany) {
+    if (!body.accept_tos) return NextResponse.json({ error: "tos_required" }, { status: 400 });
+    if (!body.accept_dpa) return NextResponse.json({ error: "dpa_required" }, { status: 400 });
   }
 
   // Guard: the signatory email should match the draft email the admin
@@ -103,9 +114,11 @@ export async function POST(
   );
 
   // Record TOS + DPA acceptances with PDF certificates + email a copy.
+  // Only at parent-level claims — sub-company contacts inherit the
+  // parent's legal signature.
   const clientIp = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null;
   const clientUa = req.headers.get("user-agent") || null;
-  const acceptances = [
+  const acceptances = isSubCompany ? [] : [
     { key: TOS_KEY, version: TOS_VERSION, title: "Notkunarskilmálar", text: renderTermsOfService() },
     { key: DPA_KEY, version: DPA_VERSION, title: "Gagnavinnslusamningur (DPA)", text: renderDataProcessingAgreement() },
   ];
@@ -179,20 +192,25 @@ export async function POST(
   }
 
   // Flip the company: bind contact + clear the claim token + flip status.
+  // Only the parent-level claim stamps agreement_*; sub-company claims
+  // just bind the contact and activate.
+  const companyPatch: Record<string, unknown> = {
+    status: "active",
+    contact_person_id: userId,
+    claim_token_hash: null,
+    claim_token_expires_at: null,
+    contact_draft_email: null,
+    contact_draft_name: null,
+    contact_draft_phone: null,
+    contact_draft_role: null,
+  };
+  if (!isSubCompany) {
+    companyPatch.agreement_version = `tos_${TOS_VERSION}/dpa_${DPA_VERSION}`;
+    companyPatch.agreement_accepted_at = new Date().toISOString();
+  }
   const { error: companyUpdErr } = await supabaseAdmin
     .from("companies")
-    .update({
-      status: "active",
-      contact_person_id: userId,
-      agreement_version: `tos_${TOS_VERSION}/dpa_${DPA_VERSION}`,
-      agreement_accepted_at: new Date().toISOString(),
-      claim_token_hash: null,
-      claim_token_expires_at: null,
-      contact_draft_email: null,
-      contact_draft_name: null,
-      contact_draft_phone: null,
-      contact_draft_role: null,
-    })
+    .update(companyPatch)
     .eq("id", company.id);
   if (companyUpdErr) {
     return NextResponse.json({ error: "activate_failed", detail: companyUpdErr.message }, { status: 500 });
@@ -211,7 +229,7 @@ export async function GET(
   const tokenHash = sha256(token);
   const { data: company } = await supabaseAdmin
     .from("companies")
-    .select("id, name, status, contact_draft_email, contact_draft_name, contact_draft_role, claim_token_expires_at")
+    .select("id, name, status, contact_draft_email, contact_draft_name, contact_draft_role, claim_token_expires_at, parent_company_id")
     .eq("claim_token_hash", tokenHash)
     .maybeSingle();
   if (!company) return NextResponse.json({ error: "invalid_or_consumed" }, { status: 404 });
@@ -219,11 +237,24 @@ export async function GET(
   if (company.claim_token_expires_at && new Date(company.claim_token_expires_at) < new Date()) {
     return NextResponse.json({ error: "expired" }, { status: 410 });
   }
+  // Sub-company contacts skip ToS/DPA — parent has already signed.
+  // Tell the claim page so it can hide those panels.
+  let parentName: string | null = null;
+  if (company.parent_company_id) {
+    const { data: parent } = await supabaseAdmin
+      .from("companies")
+      .select("name")
+      .eq("id", company.parent_company_id)
+      .maybeSingle();
+    parentName = (parent?.name as string | null) || null;
+  }
   return NextResponse.json({
     ok: true,
     company_name: company.name,
     contact_draft_name: company.contact_draft_name,
     contact_draft_email: company.contact_draft_email,
     contact_draft_role: company.contact_draft_role,
+    is_sub: !!company.parent_company_id,
+    parent_name: parentName,
   });
 }

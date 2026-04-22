@@ -25,7 +25,7 @@ export async function POST(
 
   const { data: company } = await supabaseAdmin
     .from("companies")
-    .select("id, name, kennitala_encrypted, contact_person_id, assessment_unit_price, payday_customer_id")
+    .select("id, name, kennitala_encrypted, contact_person_id, assessment_unit_price, payday_customer_id, parent_company_id")
     .eq("id", companyId)
     .maybeSingle();
   if (!company) return NextResponse.json({ error: "company_not_found" }, { status: 404 });
@@ -72,21 +72,36 @@ export async function POST(
   const vatRate = 0;
   const amountTotal = amountNet;
 
-  // Admin-created companies may sit in 'draft' / 'contact_invited' with
-  // contact_person_id still null. We fall back to contact_draft_email in
-  // that case so PayDay still gets a reachable billing email.
+  // Billing email resolution order:
+  //   1. Parent company's billing_contact_email (if this is a sub and parent set one)
+  //   2. This company's own billing_contact_email (if top-level and set)
+  //   3. contact_person's auth email
+  //   4. contact_draft_email (admin-created drafts before the contact claimed)
+  // PayDay customer is created on whichever entity owns the kennitala, so
+  // municipal subs that share the parent's kennitala still bill cleanly.
   let contactEmail: string | null = null;
-  if (company.contact_person_id) {
-    const { data: contactUser } = await supabaseAdmin.auth.admin.getUserById(company.contact_person_id);
-    contactEmail = contactUser?.user?.email || null;
+  if (company.parent_company_id) {
+    const { data: parent } = await supabaseAdmin
+      .from("companies")
+      .select("billing_contact_email")
+      .eq("id", company.parent_company_id)
+      .maybeSingle();
+    contactEmail = (parent?.billing_contact_email as string | null) || null;
   }
   if (!contactEmail) {
-    const { data: companyDraft } = await supabaseAdmin
+    const { data: self } = await supabaseAdmin
       .from("companies")
-      .select("contact_draft_email")
+      .select("billing_contact_email, contact_draft_email")
       .eq("id", companyId)
       .maybeSingle();
-    contactEmail = (companyDraft?.contact_draft_email as string | null) || null;
+    contactEmail = (self?.billing_contact_email as string | null) || null;
+    if (!contactEmail && company.contact_person_id) {
+      const { data: contactUser } = await supabaseAdmin.auth.admin.getUserById(company.contact_person_id);
+      contactEmail = contactUser?.user?.email || null;
+    }
+    if (!contactEmail) {
+      contactEmail = (self?.contact_draft_email as string | null) || null;
+    }
   }
 
   // Step 1: ensure PayDay customer exists

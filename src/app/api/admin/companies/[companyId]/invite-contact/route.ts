@@ -38,7 +38,7 @@ export async function POST(
 
   const { data: company, error: companyErr } = await supabaseAdmin
     .from("companies")
-    .select("id, name, status, contact_person_id, contact_draft_name, contact_draft_email, contact_draft_role")
+    .select("id, name, status, contact_person_id, contact_draft_name, contact_draft_email, contact_draft_role, parent_company_id")
     .eq("id", companyId)
     .maybeSingle();
   if (companyErr || !company) {
@@ -76,8 +76,29 @@ export async function POST(
   const origin = req.headers.get("origin") || "https://www.lifelinehealth.is";
   const claimUrl = `${origin}/business/claim/${rawToken}`;
   const firstName = (company.contact_draft_name || contactEmail.split("@")[0]).split(" ")[0] || "þú";
+  const isSub = !!company.parent_company_id;
 
-  const bodyHtml = `
+  // Look up parent name so the sub-contact email can reference it.
+  let parentName: string | null = null;
+  if (isSub && company.parent_company_id) {
+    const { data: parent } = await supabaseAdmin
+      .from("companies")
+      .select("name")
+      .eq("id", company.parent_company_id)
+      .maybeSingle();
+    parentName = (parent?.name as string | null) || null;
+  }
+
+  const bodyHtml = isSub ? `
+    <p style="margin:0 0 14px;">Hæ ${escapeHtml(firstName)},</p>
+    <p style="margin:0 0 14px;">Lifeline Health-teymið hefur stofnað aðgang fyrir <strong>${escapeHtml(company.name)}</strong>${parentName ? `, sem er undireining hjá <strong>${escapeHtml(parentName)}</strong>` : ""}. Móðurfyrirtækið hefur þegar samþykkt þjónustuskilmála og gagnavinnslusamning fyrir hönd allra eininga — þú þarft aðeins að velja lykilorð til að taka við þessum aðgangi.</p>
+    <p style="margin:0 0 8px;font-weight:700;">Hvað gerist næst</p>
+    <ol style="margin:0 0 14px;padding-left:20px;color:#334155;line-height:1.7;">
+      <li>Þú velur lykilorð fyrir aðganginn þinn.</li>
+      <li>Þú færð umsjónarvettvang fyrir starfsmannalista og Biody-sjúklingahóp ${escapeHtml(company.name)}.</li>
+    </ol>
+    <p style="margin:0 0 0;color:#64748B;font-size:12.5px;">Hlekkurinn er einnota og rennur út eftir 14 daga. Ef hann er útrunninn, hafið samband við okkur og við sendum nýjan.</p>
+  ` : `
     <p style="margin:0 0 14px;">Hæ ${escapeHtml(firstName)},</p>
     <p style="margin:0 0 14px;">Lifeline Health-teymið hefur stofnað aðgang fyrir <strong>${escapeHtml(company.name)}</strong> fyrir ykkur. Til að taka við umsjón fyrirtækisins, smelltu á hnappinn hér að neðan og kláraðu skráninguna (um 5 mínútur).</p>
     <p style="margin:0 0 8px;font-weight:700;">Hvað gerist næst</p>
@@ -89,8 +110,10 @@ export async function POST(
     <p style="margin:0 0 0;color:#64748B;font-size:12.5px;">Hlekkurinn er einnota og rennur út eftir 14 daga. Ef hann er útrunninn, hafið samband við okkur og við sendum nýjan.</p>
   `;
   const html = renderBrandedEmail({
-    title: `Velkomin í Lifeline Health, ${escapeHtml(company.name)}`,
-    preheader: "Kláraðu skráningu fyrirtækisins og skrifaðu undir skilmálana.",
+    title: isSub
+      ? `Velkomin, ${escapeHtml(company.name)}`
+      : `Velkomin í Lifeline Health, ${escapeHtml(company.name)}`,
+    preheader: isSub ? "Veldu lykilorð til að taka við undireiningaraðganginum." : "Kláraðu skráningu fyrirtækisins og skrifaðu undir skilmálana.",
     accentLabel: "Tengiliðarboð",
     accentTone: "emerald",
     bodyHtml,
@@ -98,7 +121,9 @@ export async function POST(
     ctaUrl: claimUrl,
     footerNote: "Spurningar? Svaraðu þessum pósti eða sendu á contact@lifelinehealth.is.",
   });
-  const text = `Hæ ${firstName},\n\nLifeline Health hefur stofnað aðgang fyrir ${company.name}. Taktu við með þessum hlekk (gildir í 14 daga):\n\n${claimUrl}\n\nHvað gerist næst:\n  1. Þú velur lykilorð.\n  2. Þú samþykkir þjónustuskilmála og gagnavinnslusamning.\n  3. Þú færð PDF-eintak af samningunum í pósti.\n\n— Lifeline Health`;
+  const text = isSub
+    ? `Hæ ${firstName},\n\nLifeline Health hefur stofnað aðgang fyrir ${company.name}${parentName ? ` (undireining hjá ${parentName})` : ""}. Móðurfyrirtækið hefur þegar samþykkt þjónustuskilmála og DPA — þú þarft aðeins að velja lykilorð.\n\nTaktu við með þessum hlekk (gildir í 14 daga):\n\n${claimUrl}\n\n— Lifeline Health`
+    : `Hæ ${firstName},\n\nLifeline Health hefur stofnað aðgang fyrir ${company.name}. Taktu við með þessum hlekk (gildir í 14 daga):\n\n${claimUrl}\n\nHvað gerist næst:\n  1. Þú velur lykilorð.\n  2. Þú samþykkir þjónustuskilmála og gagnavinnslusamning.\n  3. Þú færð PDF-eintak af samningunum í pósti.\n\n— Lifeline Health`;
 
   const sendResult = await sendEmail({
     to: contactEmail,
