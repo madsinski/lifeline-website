@@ -3948,20 +3948,26 @@ function DobFields({
   value: string; // ISO YYYY-MM-DD, or ""
   onChange: (iso: string) => void;
 }) {
-  const [yyyy = "", mm = "", dd = ""] = (value || "").split("-");
+  // Keep per-field local state so partial typing stays visible. The parent
+  // only receives a well-formed YYYY-MM-DD (or empty string when any field
+  // is shorter than its expected length).
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
+  const [initialY = "", initialM = "", initialD = ""] = (value || "").split("-");
+  const [dd, setDd] = useState(initialD);
+  const [mm, setMm] = useState(initialM);
+  const [yyyy, setYyyy] = useState(initialY);
 
-  const emit = (nd: string, nm: string, ny: string) => {
-    if (nd.length === 2 && nm.length === 2 && ny.length === 4) {
-      // Basic sanity range clamp so we send a well-formed ISO to the DB
-      const dayN = Math.min(31, Math.max(1, parseInt(nd, 10) || 0));
-      const monN = Math.min(12, Math.max(1, parseInt(nm, 10) || 0));
-      onChange(`${ny}-${String(monN).padStart(2, "0")}-${String(dayN).padStart(2, "0")}`);
-    } else {
-      onChange(""); // incomplete → clear so required validation trips
+  useEffect(() => {
+    if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
+      const dayN = Math.min(31, Math.max(1, parseInt(dd, 10) || 0));
+      const monN = Math.min(12, Math.max(1, parseInt(mm, 10) || 0));
+      onChange(`${yyyy}-${String(monN).padStart(2, "0")}-${String(dayN).padStart(2, "0")}`);
+    } else if (value) {
+      onChange("");
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dd, mm, yyyy]);
 
   const digitsOnly = (s: string, max: number) => s.replace(/[^0-9]/g, "").slice(0, max);
 
@@ -3978,7 +3984,7 @@ function DobFields({
           value={dd}
           onChange={(e) => {
             const nd = digitsOnly(e.target.value, 2);
-            emit(nd, mm, yyyy);
+            setDd(nd);
             if (nd.length === 2) monthRef.current?.focus();
           }}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums"
@@ -3997,7 +4003,7 @@ function DobFields({
           value={mm}
           onChange={(e) => {
             const nm = digitsOnly(e.target.value, 2);
-            emit(dd, nm, yyyy);
+            setMm(nm);
             if (nm.length === 2) yearRef.current?.focus();
           }}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums"
@@ -4014,7 +4020,7 @@ function DobFields({
           placeholder="YYYY"
           maxLength={4}
           value={yyyy}
-          onChange={(e) => emit(dd, mm, digitsOnly(e.target.value, 4))}
+          onChange={(e) => setYyyy(digitsOnly(e.target.value, 4))}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums"
           required
         />

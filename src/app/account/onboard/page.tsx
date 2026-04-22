@@ -355,17 +355,28 @@ function ProfileStage({
   activityLevel: ActivityLevel; setActivityLevel: (v: ActivityLevel) => void;
   error: string; onBack: () => void; onContinue: () => void;
 }) {
-  const [yyyy = "", mm = "", dd = ""] = (dob || "").split("-");
-  const emit = (d: string, m: string, y: string) => {
-    if (d.length === 2 && m.length === 2 && y.length === 4) {
-      const day = Math.min(31, Math.max(1, parseInt(d, 10) || 0));
-      const mon = Math.min(12, Math.max(1, parseInt(m, 10) || 0));
-      setDob(`${y}-${String(mon).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
-    } else {
+  // Keep per-field local state so in-progress typing is visible even
+  // when the combined ISO dob isn't complete yet. Seed from the parent
+  // once (prefilled values from /account/clients row), then sync OUT
+  // to the parent whenever all three fields become well-formed.
+  const digits = (s: string, max: number) => s.replace(/[^0-9]/g, "").slice(0, max);
+  const [initialY = "", initialM = "", initialD = ""] = (dob || "").split("-");
+  const [dd, setDd] = useState(initialD);
+  const [mm, setMm] = useState(initialM);
+  const [yyyy, setYyyy] = useState(initialY);
+
+  // Propagate a complete date (or clear) to the parent form.
+  useEffect(() => {
+    if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
+      const day = Math.min(31, Math.max(1, parseInt(dd, 10) || 0));
+      const mon = Math.min(12, Math.max(1, parseInt(mm, 10) || 0));
+      setDob(`${yyyy}-${String(mon).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+    } else if (dob) {
+      // One of the three got cleared or shortened → invalidate the parent
       setDob("");
     }
-  };
-  const digits = (s: string, max: number) => s.replace(/[^0-9]/g, "").slice(0, max);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dd, mm, yyyy]);
 
   return (
     <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
@@ -418,7 +429,7 @@ function ProfileStage({
                 <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Day</span>
                 <input type="text" inputMode="numeric" autoComplete="bday-day" placeholder="DD" maxLength={2}
                   value={dd}
-                  onChange={(e) => { const v = digits(e.target.value, 2); emit(v, mm, yyyy); }}
+                  onChange={(e) => setDd(digits(e.target.value, 2))}
                   required
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
               </label>
@@ -426,7 +437,7 @@ function ProfileStage({
                 <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Month</span>
                 <input type="text" inputMode="numeric" autoComplete="bday-month" placeholder="MM" maxLength={2}
                   value={mm}
-                  onChange={(e) => { const v = digits(e.target.value, 2); emit(dd, v, yyyy); }}
+                  onChange={(e) => setMm(digits(e.target.value, 2))}
                   required
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
               </label>
@@ -434,7 +445,7 @@ function ProfileStage({
                 <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Year</span>
                 <input type="text" inputMode="numeric" autoComplete="bday-year" placeholder="YYYY" maxLength={4}
                   value={yyyy}
-                  onChange={(e) => { const v = digits(e.target.value, 4); emit(dd, mm, v); }}
+                  onChange={(e) => setYyyy(digits(e.target.value, 4))}
                   required
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
               </label>
