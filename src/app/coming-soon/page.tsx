@@ -36,7 +36,7 @@ export default function ComingSoon() {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-white px-6 py-10 overflow-hidden overscroll-none touch-none">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-white px-6 py-10 overflow-y-auto">
         <div className="flex-1" />
 
         <div className="flex flex-col items-center max-w-md w-full">
