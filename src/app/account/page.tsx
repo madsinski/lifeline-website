@@ -3149,43 +3149,62 @@ function JourneyTimeline({
       </p>
     </div>
   ) : undefined;
+  // Questionnaire step: order matters because the questionnaire is a
+  // prerequisite to the Sameind blood test (clinicians review answers
+  // before the panel is drawn). B2C activates once the user has booked
+  // their assessment; B2B once they have both a measurement slot + a
+  // blood-test day approved.
+  const questionnaireStep: JourneyStep = isB2C
+    ? {
+        title: "Health questionnaire",
+        done: false,
+        active: hasBodyCompBooking,
+        description: hasBodyCompBooking
+          ? "You'll receive an SMS from the Lifeline team with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
+          : "Book your assessment first — we'll SMS you the questionnaire link once your booking is confirmed.",
+        portal: true,
+      }
+    : {
+        title: "Health questionnaire",
+        done: false,
+        active: hasBodyCompSlot && hasBloodTestBooking,
+        description: hasBodyCompSlot && hasBloodTestBooking
+          ? "You'll receive an SMS from the Lifeline team with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
+          : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test. The questionnaire will be available in your secure patient portal.",
+        portal: true,
+      };
+  const bloodTestStep: JourneyStep = isB2C
+    ? {
+        // B2C: standing Sameind referral, no booking, no portal — just walk in
+        title: "Blood test at Sameind",
+        done: hasBodyCompCompleted,
+        active: hasBodyCompBooking && !hasBodyCompCompleted,
+        description: hasBodyCompCompleted
+          ? "Done — results will appear in your personal report."
+          : hasBodyCompBooking
+            ? "Walk in at any Sameind station during opening hours — no booking needed."
+            : "Your Sameind referral is issued when you book your assessment above.",
+        customBody: b2cBloodTestCustomBody,
+      }
+    : {
+        title: "Blood test at Sameind — pick your day",
+        done: hasBloodTestBooking,
+        active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
+        description: hasBloodTestBooking
+          ? "Day chosen. Walk in at any Sameind station during its opening hours."
+          : hasApprovedBloodDays
+            ? "Your company has approved days for you. Walk in at any Sameind station during its opening hours."
+            : "Your company will approve blood-test days. You'll be notified.",
+        cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Pick a day", onClick: onPickBloodTestDay } : undefined,
+      };
   const steps: JourneyStep[] = [
     onboardingStep,
     // B2C flips the order: book first (pay, reserve a time), then profile
     ...(isB2C ? [b2cBookStep, bodyCompProfileStep] : [bodyCompProfileStep, b2bMeasurementsStep]),
-    isB2C
-      ? {
-          // B2C: standing Sameind referral, no booking, no portal — just walk in
-          title: "Blood test at Sameind",
-          done: hasBodyCompCompleted,
-          active: hasBodyCompBooking && !hasBodyCompCompleted,
-          description: hasBodyCompCompleted
-            ? "Done — results will appear in your personal report."
-            : hasBodyCompBooking
-              ? "Walk in at any Sameind station during opening hours — no booking needed."
-              : "Your Sameind referral is issued when you book your assessment above.",
-          customBody: b2cBloodTestCustomBody,
-        }
-      : {
-          title: "Blood test at Sameind — pick your day",
-          done: hasBloodTestBooking,
-          active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
-          description: hasBloodTestBooking
-            ? "Day chosen. Walk in at any Sameind station during its opening hours."
-            : hasApprovedBloodDays
-              ? "Your company has approved days for you. Walk in at any Sameind station during its opening hours."
-              : "Your company will approve blood-test days. You'll be notified.",
-          cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Pick a day", onClick: onPickBloodTestDay } : undefined,
-        },
-    {
-      title: "Health questionnaire",
-      done: false,
-      active: hasBodyCompSlot && hasBloodTestBooking,
-      description: hasBodyCompSlot && hasBloodTestBooking
-        ? "You'll receive an SMS from the Lifeline team with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
-        : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test. The questionnaire will be available in your secure patient portal.",
-      portal: true,
-    },
+    // Questionnaire comes BEFORE the blood test — clinicians need answers
+    // logged before the panel is drawn.
+    questionnaireStep,
+    bloodTestStep,
     (() => {
       const hasAnyBooking = hasInPersonDoctorBooking || hasVideoPortalConfirmed;
       const canBook = hasAvailableInPersonSlots || hasBodyCompSlot; // video path always available
