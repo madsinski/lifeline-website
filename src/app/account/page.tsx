@@ -3102,22 +3102,49 @@ function JourneyTimeline({
         : "Your company will schedule the measurement day. You'll be notified.",
     cta: !hasBodyCompSlot && companyEvent ? { label: "Pick a slot", onClick: onPickBodyCompSlot } : undefined,
   };
+  // B2C blood-test step: no booking needed. The referral is standing;
+  // users just walk in at any Sameind station during opening hours. We
+  // inline the station list + fasting reminder as the practical info,
+  // instead of nudging them to the patient portal.
+  const b2cBloodTestCustomBody = (hasBodyCompBooking && !hasBodyCompCompleted) ? (
+    <div className="mt-3 space-y-3">
+      <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
+        <div className="font-semibold mb-0.5">Fast from midnight</div>
+        Water only — no food, coffee, tea, juice, or alcohol.
+      </div>
+      <div className="rounded-lg border border-gray-200 p-3 bg-white">
+        <div className="text-xs font-semibold text-gray-700 mb-2">Sameind stations — walk in at any of these:</div>
+        <ul className="divide-y divide-gray-100">
+          {SAMEIND_STATIONS.map((s) => (
+            <li key={s.id} className="py-2 text-xs">
+              <div className="font-medium text-gray-900">{s.name}</div>
+              <div className="text-gray-600">{fullAddress(s)}</div>
+              <div className="text-gray-500">{s.hours}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="text-[11.5px] text-gray-500 leading-snug">
+        No appointment required. Bring ID. Aim for 08:00–12:00 if you can — your results appear in your personal report a few days later.
+      </p>
+    </div>
+  ) : undefined;
   const steps: JourneyStep[] = [
     onboardingStep,
     // B2C flips the order: book first (pay, reserve a time), then profile
     ...(isB2C ? [b2cBookStep, bodyCompProfileStep] : [bodyCompProfileStep, b2bMeasurementsStep]),
     isB2C
       ? {
-          // B2C: standing Sameind referral, no company-approved days
+          // B2C: standing Sameind referral, no booking, no portal — just walk in
           title: "Blood test at Sameind",
-          done: hasBodyCompCompleted, // covered in the single booking; completes when the visit is done
+          done: hasBodyCompCompleted,
           active: hasBodyCompBooking && !hasBodyCompCompleted,
           description: hasBodyCompCompleted
             ? "Done — results will appear in your personal report."
             : hasBodyCompBooking
-              ? "Included with your booking. Walk in at any Sameind station during its opening hours — remember to fast from midnight."
+              ? "Walk in at any Sameind station during opening hours — no booking needed."
               : "Your Sameind referral is issued when you book your assessment above.",
-          portal: hasBodyCompBooking,
+          customBody: b2cBloodTestCustomBody,
         }
       : {
           title: "Blood test at Sameind — pick your day",
