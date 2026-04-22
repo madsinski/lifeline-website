@@ -691,27 +691,40 @@ export default function ClientsPage() {
   return (
     <div className="space-y-4">
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => setActiveTab("clients")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "clients"
-              ? "bg-white text-[#1F2937] shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Clients
-        </button>
-        <button
-          onClick={() => setActiveTab("staff")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "staff"
-              ? "bg-white text-[#1F2937] shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Staff
-        </button>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+          <button
+            onClick={() => setActiveTab("clients")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "clients"
+                ? "bg-white text-[#1F2937] shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Clients
+          </button>
+          <button
+            onClick={() => setActiveTab("staff")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "staff"
+                ? "bg-white text-[#1F2937] shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Staff
+          </button>
+        </div>
+        {activeTab === "clients" && (
+          <a
+            href="/admin/clients/bulk-invite"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Fjölda-boð
+          </a>
+        )}
       </div>
 
       {/* Staff tab */}
