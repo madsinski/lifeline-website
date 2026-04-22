@@ -715,15 +715,26 @@ export default function ClientsPage() {
           </button>
         </div>
         {activeTab === "clients" && (
-          <a
-            href="/admin/clients/bulk-invite"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Fjölda-boð
-          </a>
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href="/admin/clients/bulk-invite"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Fjölda-boð
+            </a>
+            <a
+              href="/admin/biody/bulk-create"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h7M16 4v12m-6-8v8m-4-4h8" />
+              </svg>
+              Biody fjölda-stofnun
+            </a>
+          </div>
         )}
       </div>
 
