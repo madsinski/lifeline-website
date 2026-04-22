@@ -120,6 +120,12 @@ function AccountPageInner() {
   const [cancelBusy, setCancelBusy] = useState(false);
   const [refundRequestOpen, setRefundRequestOpen] = useState(false);
   const [pendingRefundRequestId, setPendingRefundRequestId] = useState<string | null>(null);
+  // Manual journey ticks — persisted as JSONB on clients.journey_checks.
+  // Keys correspond to steps the backend can't auto-verify yet: the
+  // questionnaire answered in Medalia, the walk-in blood test at Sameind,
+  // and the final 'I've read my report' acknowledgement. Values are ISO
+  // timestamps; unticking deletes the key.
+  const [journeyChecks, setJourneyChecks] = useState<{ questionnaire?: string; blood_test?: string; results_viewed?: string }>({});
   const [resolvedRefundRequest, setResolvedRefundRequest] = useState<{ id: string; status: "approved" | "denied"; admin_note: string | null; approved_isk: number | null; resolved_at: string } | null>(null);
   const [pendingBooking, setPendingBooking] = useState<{ id: string; package: string | null; scheduled_at: string | null } | null>(null);
   const [checkinDoctorAddonPaidAt, setCheckinDoctorAddonPaidAt] = useState<string | null>(null);
@@ -273,7 +279,7 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, height_cm, weight_kg, activity_level, welcome_seen_at, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, height_cm, weight_kg, activity_level, welcome_seen_at, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at, journey_checks")
           .eq("id", currentUser.id)
           .single();
         // Onboard gate: B2C users who haven't finished the onboarding
@@ -305,6 +311,14 @@ function AccountPageInner() {
           const companyId = cData.company_id as string | null;
           setLastBodyCompAt((cData.last_body_comp_at as string | null) || null);
           setBiodyActivated(!!cData.biody_patient_id);
+          {
+            const jc = (cData.journey_checks as Record<string, unknown> | null) || {};
+            setJourneyChecks({
+              questionnaire: typeof jc.questionnaire === "string" ? jc.questionnaire : undefined,
+              blood_test: typeof jc.blood_test === "string" ? jc.blood_test : undefined,
+              results_viewed: typeof jc.results_viewed === "string" ? jc.results_viewed : undefined,
+            });
+          }
           setVideoPortalConfirmedAt((cData.video_consultation_portal_confirmed_at as string | null) || null);
           setAvatarUrl((cData.avatar_url as string | null) || null);
           setCheckinDoctorAddonPaidAt((cData.checkin_doctor_addon_paid_at as string | null) || null);
@@ -1445,6 +1459,29 @@ function AccountPageInner() {
                     setVideoConfirmBusy(false);
                   }}
                   onGoToBiody={() => setBiodyEditOpen(true)}
+                  journeyChecks={journeyChecks}
+                  onToggleJourneyCheck={async (key) => {
+                    if (!user) return;
+                    const nextValue = journeyChecks[key] ? undefined : new Date().toISOString();
+                    const next = { ...journeyChecks, [key]: nextValue };
+                    // Optimistic update
+                    setJourneyChecks(next);
+                    // Persist — strip keys that are undefined so the JSONB stays tidy
+                    const payload: Record<string, string> = {};
+                    (Object.keys(next) as Array<keyof typeof next>).forEach((k) => {
+                      const v = next[k];
+                      if (typeof v === "string") payload[k] = v;
+                    });
+                    const { error } = await supabase
+                      .from("clients")
+                      .update({ journey_checks: payload })
+                      .eq("id", user.id);
+                    if (error) {
+                      // Roll back
+                      setJourneyChecks(journeyChecks);
+                      alert(`Could not save: ${error.message}`);
+                    }
+                  }}
                 />
                 )}
 
@@ -3033,6 +3070,8 @@ function CheckinJourney({
   );
 }
 
+type JourneyCheckKey = "questionnaire" | "blood_test" | "results_viewed";
+
 function JourneyTimeline({
   isB2C,
   hasOnboarded, biodyActivated, hasBodyCompSlot, hasBodyCompBooking, hasBodyCompCompleted, hasBloodTestBooking,
@@ -3041,6 +3080,7 @@ function JourneyTimeline({
   onPickBodyCompSlot, onPickBloodTestDay, onPickInPersonDoctorSlot,
   onConfirmVideoPortal, onClearVideoPortal, onGoToBiody,
   onChangePackage,
+  journeyChecks, onToggleJourneyCheck,
 }: {
   isB2C: boolean;
   hasOnboarded: boolean;
@@ -3062,6 +3102,8 @@ function JourneyTimeline({
   onClearVideoPortal: () => void;
   onGoToBiody: () => void;
   onChangePackage?: () => void | Promise<void>;
+  journeyChecks?: { questionnaire?: string; blood_test?: string; results_viewed?: string };
+  onToggleJourneyCheck?: (key: JourneyCheckKey) => void;
 }) {
   const eventLabel = companyEvent
     ? `${new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}${companyEvent.location ? ` · ${companyEvent.location}` : ""}`
@@ -3076,7 +3118,12 @@ function JourneyTimeline({
     cta?: JourneyCta;
     portal?: boolean;
     customBody?: React.ReactNode;
+    manualCheck?: { key: JourneyCheckKey; label: string };
   };
+  const checks = journeyChecks || {};
+  const questionnaireDone = !!checks.questionnaire;
+  const bloodTestDone = !!checks.blood_test;
+  const resultsViewed = !!checks.results_viewed;
   const onboardingStep: JourneyStep = {
     title: "Onboarding",
     done: hasOnboarded,
@@ -3157,34 +3204,38 @@ function JourneyTimeline({
   const questionnaireStep: JourneyStep = isB2C
     ? {
         title: "Health questionnaire",
-        done: false,
-        active: hasBodyCompBooking,
+        done: questionnaireDone,
+        active: !questionnaireDone && hasBodyCompBooking,
         description: hasBodyCompBooking
           ? "Before proceeding to the blood tests, you will have to activate your health assessment and answer the health questionnaire in your secure patient portal."
           : "Book your assessment first — we'll SMS you the questionnaire link once your booking is confirmed.",
         portal: true,
+        manualCheck: { key: "questionnaire", label: "I've answered the questionnaire" },
       }
     : {
         title: "Health questionnaire",
-        done: false,
-        active: hasBodyCompSlot && hasBloodTestBooking,
+        done: questionnaireDone,
+        active: !questionnaireDone && hasBodyCompSlot && hasBloodTestBooking,
         description: hasBodyCompSlot && hasBloodTestBooking
           ? "You'll receive an SMS from the Lifeline team with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
           : "You'll get an SMS with the questionnaire within 7 days of booking your measurement + blood test. The questionnaire will be available in your secure patient portal.",
         portal: true,
+        manualCheck: { key: "questionnaire", label: "I've answered the questionnaire" },
       };
   const bloodTestStep: JourneyStep = isB2C
     ? {
-        // B2C: standing Sameind referral, no booking, no portal — just walk in
+        // B2C: standing Sameind referral, no booking, no portal — just walk in.
+        // 'done' is driven by the manual tick (or an admin-completed measurement).
         title: "Blood test at Sameind",
-        done: hasBodyCompCompleted,
-        active: hasBodyCompBooking && !hasBodyCompCompleted,
-        description: hasBodyCompCompleted
+        done: bloodTestDone || hasBodyCompCompleted,
+        active: !(bloodTestDone || hasBodyCompCompleted) && hasBodyCompBooking,
+        description: (bloodTestDone || hasBodyCompCompleted)
           ? "Done — results will appear in your personal report."
           : hasBodyCompBooking
             ? "Walk in at any Sameind station during opening hours — no booking needed."
             : "Your Sameind referral is issued when you book your assessment above.",
         customBody: b2cBloodTestCustomBody,
+        manualCheck: { key: "blood_test", label: "I've done my blood test" },
       }
     : {
         title: "Blood test at Sameind — pick your day",
@@ -3275,15 +3326,21 @@ function JourneyTimeline({
         customBody,
       };
     })(),
-    // Final step — every package ends in the patient portal.
+    // Final step — every package ends in the patient portal. For B2C the
+    // active circle kicks in once the doctor consultation is handled (the
+    // previous step's done condition), so the user sees it as the current
+    // step rather than a perpetually grey terminator.
     {
       title: "View your results in the patient portal",
-      done: false,
-      active: hasBodyCompCompleted,
-      description: hasBodyCompCompleted
-        ? "Your report, health score and action plan are ready in Medalia."
-        : "Once your measurements, blood work and doctor consultation are done, your full personal report lands in the Lifeline patient portal.",
+      done: resultsViewed,
+      active: !resultsViewed && (hasBodyCompCompleted || hasInPersonDoctorBooking || hasVideoPortalConfirmed),
+      description: resultsViewed
+        ? "Marked as reviewed. You can revisit your report any time in Medalia."
+        : hasBodyCompCompleted || hasInPersonDoctorBooking || hasVideoPortalConfirmed
+          ? "Your report, health score and action plan are ready in Medalia. Open the portal to review them, then tick the box below."
+          : "Once your measurements, blood work and doctor consultation are done, your full personal report lands in the Lifeline patient portal.",
       portal: true,
+      manualCheck: isB2C ? { key: "results_viewed", label: "I've reviewed my report" } : undefined,
     },
   ];
 
@@ -3332,6 +3389,17 @@ function JourneyTimeline({
                     </div>
                   )}
                   {"customBody" in s && s.customBody ? s.customBody : null}
+                  {"manualCheck" in s && s.manualCheck && onToggleJourneyCheck ? (
+                    <label className="mt-3 inline-flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={s.done}
+                        onChange={() => onToggleJourneyCheck(s.manualCheck!.key)}
+                        className="w-4 h-4 accent-emerald-600 rounded"
+                      />
+                      <span className="text-xs text-gray-600">{s.manualCheck.label}</span>
+                    </label>
+                  ) : null}
                 </div>
                 {"cta" in s && s.cta && (
                   s.cta.href ? (
@@ -3349,6 +3417,79 @@ function JourneyTimeline({
           );
         })}
       </ol>
+      {isB2C && steps.every((s) => s.done) ? <WhatsNextCard /> : null}
+    </section>
+  );
+}
+
+// Shown once every journey step is ticked. Nudges the user toward the
+// app, flags self check-ins as available any time, and sets the rhythm
+// for repeat check-ins + annual foundational assessment.
+function WhatsNextCard() {
+  return (
+    <section className="mt-8 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 sm:p-7 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 text-white flex items-center justify-center shadow-sm">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-1">Foundational assessment complete</div>
+          <h3 className="text-xl font-bold text-gray-900">What&apos;s next, now you&apos;ve got your baseline.</h3>
+          <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
+            Your plan is live in the Lifeline app — daily actions, programmes across the four pillars, and coaching messages when you need them.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-xl bg-white border border-blue-100 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H7V4h10v16zM12 18.5a1 1 0 100-2 1 1 0 000 2z" />
+              </svg>
+            </div>
+            <div className="font-semibold text-gray-900 text-sm">Open the Lifeline app</div>
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Your personal plan, daily actions, and coaching live in the mobile app.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a href="https://apps.apple.com/app/lifeline-health" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
+              App Store
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=is.lifelinehealth.app" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
+              Google Play
+            </a>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-white border border-emerald-100 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="font-semibold text-gray-900 text-sm">Stay on track</div>
+          </div>
+          <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5 list-disc list-inside marker:text-emerald-500">
+            <li><strong>Self check-in</strong> any time — free, five minutes, from the dashboard.</li>
+            <li><strong>Measurement check-in</strong> every 3–6 months — re-take the body composition + key labs.</li>
+            <li><strong>Full Foundational</strong> re-assessment every 12 months — complete report + doctor review.</li>
+          </ul>
+          <div className="mt-3">
+            <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+              Book a check-in
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
