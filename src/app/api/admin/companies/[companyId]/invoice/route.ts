@@ -72,8 +72,22 @@ export async function POST(
   const vatRate = 0;
   const amountTotal = amountNet;
 
-  const { data: contactUser } = await supabaseAdmin.auth.admin.getUserById(company.contact_person_id);
-  const contactEmail = contactUser?.user?.email || null;
+  // Admin-created companies may sit in 'draft' / 'contact_invited' with
+  // contact_person_id still null. We fall back to contact_draft_email in
+  // that case so PayDay still gets a reachable billing email.
+  let contactEmail: string | null = null;
+  if (company.contact_person_id) {
+    const { data: contactUser } = await supabaseAdmin.auth.admin.getUserById(company.contact_person_id);
+    contactEmail = contactUser?.user?.email || null;
+  }
+  if (!contactEmail) {
+    const { data: companyDraft } = await supabaseAdmin
+      .from("companies")
+      .select("contact_draft_email")
+      .eq("id", companyId)
+      .maybeSingle();
+    contactEmail = (companyDraft?.contact_draft_email as string | null) || null;
+  }
 
   // Step 1: ensure PayDay customer exists
   const customerRes = await ensurePaydayCustomer({

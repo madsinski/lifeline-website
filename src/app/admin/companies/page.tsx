@@ -22,6 +22,9 @@ interface CompanyRow {
   body_comp_event_count: number;
   blood_test_day_count: number;
   default_tier?: string | null;
+  status?: "draft" | "contact_invited" | "active" | "archived" | null;
+  contact_draft_email?: string | null;
+  contact_draft_name?: string | null;
 }
 
 interface MemberRow {
@@ -44,6 +47,76 @@ const TIERS = [
   { value: "self-maintained", label: "Self-maintained" },
   { value: "premium", label: "Premium" },
 ];
+
+// Button for admin-created draft / contact-invited companies: generates
+// a single-use claim token + sends the Icelandic invite email.
+// Idempotent — clicking on an already-invited company just re-sends.
+function InviteContactButton({ companyId, draftEmail, status }: { companyId: string; draftEmail: string | null; status: "draft" | "contact_invited" }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(draftEmail || "");
+  const [submitting, setSubmitting] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  async function send() {
+    setSubmitting(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/admin/companies/${companyId}/invite-contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(email ? { email } : {}),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Failed" }); return; }
+      setMsg({ kind: "ok", text: `Boð sent á ${j.sent_to}. Rennur út ${new Date(j.expires_at).toLocaleDateString("en-GB")}.` });
+    } catch (e) {
+      setMsg({ kind: "err", text: (e as Error).message });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        {status === "draft" ? "Senda boð" : "Senda aftur"}
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-80 rounded-lg bg-white border border-gray-200 shadow-lg p-3 right-0">
+          <div className="text-xs text-gray-600 mb-2">Tengiliðurinn fær íslenskan boðspóst með hlekk til að klára skráninguna og skrifa undir þjónustuskilmála + DPA.</div>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="contact@fyrirtæki.is"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+          />
+          {msg && (
+            <div className={`mt-2 text-xs ${msg.kind === "ok" ? "text-emerald-700" : "text-red-600"}`}>
+              {msg.text}
+            </div>
+          )}
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-700">Loka</button>
+            <button
+              onClick={send}
+              disabled={submitting || !email}
+              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {submitting ? "Sendi…" : "Senda boð"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; companyName: string }) {
   const [open, setOpen] = useState(false);
@@ -357,12 +430,22 @@ export default function AdminCompaniesPage() {
     setLoading(true);
     const [rpcRes, tiersRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
-      supabase.from("companies").select("id, default_tier"),
+      supabase.from("companies").select("id, default_tier, status, contact_draft_email, contact_draft_name"),
     ]);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
-      const tierMap = new Map<string, string | null>((tiersRes.data || []).map((t: { id: string; default_tier: string | null }) => [t.id, t.default_tier]));
-      const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => ({ ...c, default_tier: tierMap.get(c.id) || null }));
+      type ExtraRow = { id: string; default_tier: string | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null };
+      const extraMap = new Map<string, ExtraRow>((tiersRes.data || []).map((t: ExtraRow) => [t.id, t]));
+      const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => {
+        const extra = extraMap.get(c.id);
+        return {
+          ...c,
+          default_tier: extra?.default_tier || null,
+          status: extra?.status || "active",
+          contact_draft_email: extra?.contact_draft_email || null,
+          contact_draft_name: extra?.contact_draft_name || null,
+        };
+      });
       setCompanies(rows);
     }
     setLoading(false);
@@ -397,9 +480,14 @@ export default function AdminCompaniesPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold">Companies</h1>
-        <Link href="/business/signup" className="text-sm text-blue-600 hover:underline">+ Create a company</Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link href="/admin/companies/create" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95">
+            + Stofna drög (admin)
+          </Link>
+          <Link href="/business/signup" className="text-sm text-blue-600 hover:underline">+ Self-serve signup</Link>
+        </div>
       </div>
       <p className="text-sm text-gray-500 mb-6">
         Click a company name to expand its employee roster. Update default tier, activate Biody profiles,
@@ -444,7 +532,15 @@ export default function AdminCompaniesPage() {
                           </svg>
                           {c.name}
                         </button>
-                        {c.registration_finalized_at ? (
+                        {c.status === "draft" ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold" title="Admin-created draft — contact person not yet invited.">
+                            Drög
+                          </span>
+                        ) : c.status === "contact_invited" ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold" title="Invite sent to contact person; awaiting claim + signature.">
+                            Boð sent
+                          </span>
+                        ) : c.registration_finalized_at ? (
                           <span
                             className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold cursor-help"
                             title={`Finalized by ${c.finalized_by_name || c.finalized_by_email || "a company admin"}${c.finalized_by_email && c.finalized_by_name ? ` (${c.finalized_by_email})` : ""} on ${new Date(c.registration_finalized_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
@@ -463,7 +559,7 @@ export default function AdminCompaniesPage() {
                           {" "}on {new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                         </div>
                       )}
-                      <div className="mt-2">
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
                         <Link
                           href={`/business/${c.id}`}
                           className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors"
@@ -473,6 +569,9 @@ export default function AdminCompaniesPage() {
                           </svg>
                           Open
                         </Link>
+                        {(c.status === "draft" || c.status === "contact_invited") && (
+                          <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">{c.contact_email || "—"}</td>

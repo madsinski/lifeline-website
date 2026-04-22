@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 // defaults. Flags each client row with biody_placeholder_data so a
 // later B2B onboarding sweep can collect the real data.
 
-type Company = { id: string; name: string };
+type Company = { id: string; name: string; status?: string | null };
 type Row = {
   full_name: string;
   kennitala: string;
@@ -71,7 +71,9 @@ export default function BiodyBulkCreatePage() {
     (async () => {
       const { data } = await supabase
         .from("companies")
-        .select("id, name")
+        .select("id, name, status")
+        .neq("status", "archived")
+        .order("status", { ascending: true })   // 'active' before 'contact_invited' before 'draft'
         .order("name", { ascending: true });
       setCompanies((data as Company[]) || []);
     })();
@@ -154,7 +156,12 @@ export default function BiodyBulkCreatePage() {
           className="w-full max-w-md px-3 py-2 border border-gray-200 rounded-lg text-sm"
         >
           <option value="">Veldu fyrirtæki…</option>
-          {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {companies.map((c) => {
+            const suffix = c.status === "draft" ? " (drög)"
+              : c.status === "contact_invited" ? " (boð sent)"
+              : "";
+            return <option key={c.id} value={c.id}>{c.name}{suffix}</option>;
+          })}
         </select>
       </section>
 
