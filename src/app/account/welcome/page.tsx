@@ -23,6 +23,14 @@ export default function AccountWelcomePage() {
         .select("full_name, company_id")
         .eq("id", user.id)
         .maybeSingle();
+      // This page's copy assumes a company event / company-approved days
+      // (see 'Via {{company}}', 'employer-scheduled measurement day'
+      // below). B2C users (no company_id) should never see it — redirect
+      // them into the dedicated /account/onboard wizard instead.
+      if (client && !client.company_id) {
+        router.replace("/account/onboard");
+        return;
+      }
       if (client) {
         setFirstName((client.full_name || "").split(" ")[0] || "");
         const cid = client.company_id as string | null;

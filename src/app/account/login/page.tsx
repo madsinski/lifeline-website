@@ -51,16 +51,26 @@ function AccountLoginContent() {
         setLoading(false);
         return;
       }
-      // First-time login — if the client has never seen the welcome page, send them there.
+      // First-time login — route based on B2B vs B2C and onboarding state:
+      //   • B2B (company_id set), not yet seen welcome → /account/welcome
+      //   • B2C, profile incomplete (no biody fields) → /account/onboard
+      //   • Everyone else → /account or the next path
       if (signInData?.user?.id) {
         const { data: profile } = await supabase
           .from("clients")
-          .select("welcome_seen_at")
+          .select("welcome_seen_at, company_id, sex, date_of_birth, height_cm, weight_kg, activity_level")
           .eq("id", signInData.user.id)
           .maybeSingle();
+        const needsProfile = !profile?.sex || !profile?.date_of_birth || !profile?.height_cm || !profile?.weight_kg || !profile?.activity_level;
         if (profile && !profile.welcome_seen_at) {
-          router.push("/account/welcome");
-          return;
+          if (profile.company_id) {
+            router.push("/account/welcome");
+            return;
+          }
+          if (needsProfile) {
+            router.push("/account/onboard");
+            return;
+          }
         }
       }
       router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
@@ -82,15 +92,17 @@ function AccountLoginContent() {
         marketing_opt_out: marketingOptOut,
         created_at: now,
       };
-      // Redirect confirmed users straight to their dashboard. /account is
-      // always whitelisted by middleware.ts so they bypass the coming-soon
-      // gate during pre-launch AND after launch — no change needed later.
+      // Redirect confirmed users into the B2C onboarding wizard. /account
+      // and /account/onboard are both whitelisted by middleware.ts, so they
+      // bypass the coming-soon gate pre-launch and after launch. The wizard
+      // collects body-composition fields + health consent, activates Biody,
+      // stamps welcome_seen_at, then sends the user to /account.
       const origin = typeof window !== "undefined" ? window.location.origin : "https://www.lifelinehealth.is";
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${origin}/account`,
+          emailRedirectTo: `${origin}/account/onboard`,
           data: {
             full_name: fullName,
             ...(refCode ? { referred_by: refCode } : {}),

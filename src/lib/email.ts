@@ -151,19 +151,39 @@ export function renderWelcomeEmail(params: {
   loginUrl: string;
 }) {
   const { companyName, recipientName, welcomeUrl, loginUrl } = params;
+  const isB2B = !!companyName;
+
+  // Steps + copy differ by flow. B2B assumes the employer scheduled an
+  // on-site measurement day and authorised Sameind days. B2C books their
+  // own Foundational assessment + walks in at any Sameind station.
+  const steps: Array<{ title: string; body: string }> = isB2B
+    ? [
+        { title: "Book your body-composition slot.", body: "Your employer scheduled an on-site measurement day. Pick a 5-minute time that works for you." },
+        { title: "Book a blood-test day.", body: "Choose one of the days your employer authorised for a walk-in at Sameind (08:00–12:00)." },
+        { title: "Doctor review.", body: "A Lifeline doctor reviews your results and creates your personal health plan." },
+        { title: "See your results.", body: "View them in your Lifeline portal and in Medalia, our secure medical record system." },
+      ]
+    : [
+        { title: "Book your assessment.", body: "Pick a package and a 20-minute slot at the Lifeline station in Reykjavík." },
+        { title: "Walk in for your blood test.", body: "Your standing Sameind referral lets you walk in at any Sameind station during opening hours. Fast from midnight the night before — water only." },
+        { title: "Doctor review.", body: "A Lifeline doctor reviews your results and creates your personal health plan." },
+        { title: "See your results.", body: "View them in your Lifeline dashboard and in Medalia, our secure medical record system." },
+      ];
+
   const viaLine = companyName ? ` via ${companyName}` : "";
+  const privacyLine = companyName
+    ? `All your health data stays confidential — ${companyName} never sees individual results.`
+    : "All your health data stays confidential — only you and your Lifeline clinician see your individual results.";
+
   const text = `Hi ${recipientName},
 
 You're registered with Lifeline Health${viaLine}. 🎉
 
-Your health assessment has four steps, all run on-site at ${companyName || "your workplace"}:
+Your health assessment has four steps:
 
-  1. Book a 5-minute body-composition slot at the on-site measurement day your employer scheduled.
-  2. Book a blood-test day — head to a Sameind clinic on one of the authorised days (walk-in 08:00–12:00, no appointment needed).
-  3. A Lifeline doctor reviews your results and creates your personal health plan.
-  4. View your results and plan in your Lifeline portal and in Medalia (our secure medical record system).
+${steps.map((s, i) => `  ${i + 1}. ${s.title} ${s.body}`).join("\n")}
 
-All your health data stays confidential — ${companyName ? `${companyName}` : "your employer"} never sees individual results.
+${privacyLine}
 
 Start here: ${welcomeUrl}
 Or sign in later: ${loginUrl}
@@ -171,6 +191,9 @@ Or sign in later: ${loginUrl}
 — Lifeline Health`;
 
   const logoUrl = lifelineLogoUrl(welcomeUrl);
+  const privacyHtml = companyName
+    ? `🔒 All health data stays confidential. ${escapeHtml(companyName)} never sees individual results — only whether you've completed the assessment.`
+    : "🔒 Your health data stays confidential — only you and your Lifeline clinician see your individual results.";
 
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
@@ -183,13 +206,10 @@ Or sign in later: ${loginUrl}
     </p>
     <p style="margin:0 0 12px;color:#4b5563;"><strong>Your four steps</strong></p>
     <ol style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.7;">
-      <li><strong>Book your body-composition slot.</strong> Your employer scheduled an on-site measurement day. Pick a 5-minute time that works for you.</li>
-      <li><strong>Book a blood-test day.</strong> Choose one of the days your employer authorised for a walk-in at Sameind (08:00–12:00).</li>
-      <li><strong>Doctor review.</strong> A Lifeline doctor reviews your results and creates your personal health plan.</li>
-      <li><strong>See your results.</strong> View them in your Lifeline portal and in <strong>Medalia</strong>, our secure medical record system.</li>
+      ${steps.map((s) => `<li><strong>${escapeHtml(s.title)}</strong> ${escapeHtml(s.body)}</li>`).join("\n      ")}
     </ol>
     <p style="margin:0 0 20px;color:#4b5563;font-size:13px;background:#F0FDF4;border:1px solid #BBF7D0;padding:10px 14px;border-radius:8px;">
-      🔒 All health data stays confidential. ${companyName ? escapeHtml(companyName) : "Your employer"} never sees individual results — only whether you've completed the assessment.
+      ${privacyHtml}
     </p>
     <div style="text-align:center;margin:28px 0;">
       <a href="${welcomeUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start here</a>

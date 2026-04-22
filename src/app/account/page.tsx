@@ -273,9 +273,24 @@ function AccountPageInner() {
       try {
         const { data: clientData } = await supabase
           .from("clients")
-          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at")
+          .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, height_cm, weight_kg, activity_level, welcome_seen_at, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at")
           .eq("id", currentUser.id)
           .single();
+        // Onboard gate: B2C users who haven't finished the onboarding
+        // wizard yet (missing any of the biody profile fields + never
+        // stamped welcome_seen_at) get routed to /account/onboard so
+        // they can't skip it and land on a half-configured dashboard.
+        if (clientData) {
+          const cd = clientData as Record<string, unknown>;
+          const companyId = cd.company_id as string | null;
+          const welcomeSeen = cd.welcome_seen_at as string | null;
+          const missingProfile = !cd.sex || !cd.date_of_birth || !cd.height_cm || !cd.weight_kg || !cd.activity_level;
+          if (!companyId && !welcomeSeen && missingProfile) {
+            router.replace("/account/onboard");
+            setLoading(false);
+            return;
+          }
+        }
         if (clientData) {
           const nameParts = (clientData.full_name || "").split(" ");
           setProfileFirstName(nameParts[0] || "");
