@@ -178,6 +178,66 @@ export default function CalendarPage() {
   const [bulkSlotDays, setBulkSlotDays] = useState<string[]>([]);
   const [creatingSlot, setCreatingSlot] = useState(false);
 
+  // Upcoming client bookings — station_slots + doctor_slots. The legacy
+  // Calendar only tracks the 'appointments' / 'available_slots' tables,
+  // but all new bookings go through station_slots + doctor_slots. We
+  // surface them here so admins have a single-view summary of who is
+  // coming in, without having to switch tabs.
+  type ClientBooking = {
+    kind: "measurement" | "consultation";
+    id: string;
+    slot_at: string;
+    duration_minutes: number | null;
+    mode?: "video" | "phone" | "in_person" | null;
+    location?: string | null;
+    client_name: string | null;
+    client_email: string | null;
+  };
+  const [clientBookings, setClientBookings] = useState<ClientBooking[]>([]);
+  const [clientBookingsLoading, setClientBookingsLoading] = useState(false);
+
+  const loadClientBookings = useCallback(async () => {
+    setClientBookingsLoading(true);
+    const nowIso = new Date().toISOString();
+    const [{ data: stationRows }, { data: doctorRows }] = await Promise.all([
+      supabase
+        .from("station_slots")
+        .select("id, slot_at, duration_minutes, location, client:clients(full_name, email)")
+        .not("client_id", "is", null)
+        .is("completed_at", null)
+        .gte("slot_at", nowIso)
+        .order("slot_at", { ascending: true })
+        .limit(100),
+      supabase
+        .from("doctor_slots")
+        .select("id, slot_at, duration_minutes, mode, location, client:clients(full_name, email)")
+        .not("client_id", "is", null)
+        .is("completed_at", null)
+        .gte("slot_at", nowIso)
+        .order("slot_at", { ascending: true })
+        .limit(100),
+    ]);
+    const mk = (r: Record<string, unknown>, kind: ClientBooking["kind"]): ClientBooking => {
+      const c = (Array.isArray(r.client) ? r.client[0] : r.client) as { full_name?: string | null; email?: string | null } | null;
+      return {
+        kind,
+        id: r.id as string,
+        slot_at: r.slot_at as string,
+        duration_minutes: (r.duration_minutes as number | null) ?? null,
+        mode: (r.mode as "video" | "phone" | "in_person" | undefined) ?? null,
+        location: (r.location as string | null) ?? null,
+        client_name: c?.full_name ?? null,
+        client_email: c?.email ?? null,
+      };
+    };
+    const merged: ClientBooking[] = [
+      ...((stationRows || []) as Record<string, unknown>[]).map((r) => mk(r, "measurement")),
+      ...((doctorRows || []) as Record<string, unknown>[]).map((r) => mk(r, "consultation")),
+    ].sort((a, b) => a.slot_at.localeCompare(b.slot_at));
+    setClientBookings(merged);
+    setClientBookingsLoading(false);
+  }, []);
+
   const loadAppointments = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -221,7 +281,8 @@ export default function CalendarPage() {
     loadAppointments();
     loadCommunityEvents();
     loadSlots();
-  }, [loadAppointments, loadCommunityEvents, loadSlots]);
+    loadClientBookings();
+  }, [loadAppointments, loadCommunityEvents, loadSlots, loadClientBookings]);
 
   const loadClients = useCallback(async () => {
     const { data } = await supabase
@@ -437,6 +498,64 @@ export default function CalendarPage() {
         </button>
         </div>
       </div>
+
+      {/* Upcoming client bookings from station_slots / doctor_slots —
+          these don't live in the legacy `appointments` table this page
+          was built around. Without this section, admins only see them
+          in the Doctor Appointments / Measurement Appointments sub-tabs. */}
+      <section className="rounded-xl border border-gray-200 bg-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Upcoming client bookings</h3>
+            <p className="text-[11.5px] text-gray-500 mt-0.5">
+              Clients who have booked a measurement or doctor consultation. Live from station_slots + doctor_slots.
+            </p>
+          </div>
+          <button
+            onClick={loadClientBookings}
+            disabled={clientBookingsLoading}
+            className="text-xs text-gray-600 hover:text-gray-900 disabled:opacity-50"
+            title="Refresh"
+          >
+            {clientBookingsLoading ? "…" : "Refresh"}
+          </button>
+        </div>
+        {clientBookingsLoading ? (
+          <div className="p-4 text-xs text-gray-400">Loading…</div>
+        ) : clientBookings.length === 0 ? (
+          <div className="p-4 text-xs text-gray-400">No upcoming client bookings.</div>
+        ) : (
+          <ul className="divide-y divide-gray-50">
+            {clientBookings.slice(0, 20).map((b) => {
+              const when = new Date(b.slot_at);
+              const dayLabel = when.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Atlantic/Reykjavik" });
+              const timeLabel = when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Atlantic/Reykjavik" });
+              const modeLabel = b.kind === "consultation"
+                ? (b.mode === "video" ? "Video" : b.mode === "phone" ? "Phone" : b.mode === "in_person" ? "In person" : "Consultation")
+                : "Station measurement";
+              const accent = b.kind === "measurement" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-violet-50 text-violet-700 border-violet-100";
+              return (
+                <li key={`${b.kind}-${b.id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                  <div className="shrink-0 w-20 text-xs text-gray-500 font-medium tabular-nums">{dayLabel}</div>
+                  <div className="shrink-0 w-14 text-xs font-semibold text-gray-800 tabular-nums">{timeLabel}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-gray-900">{b.client_name || b.client_email || "—"}</div>
+                    <div className="truncate text-[11px] text-gray-500">{modeLabel}{b.location ? ` · ${b.location}` : ""}</div>
+                  </div>
+                  <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${accent}`}>
+                    {b.kind === "measurement" ? "Measurement" : "Doctor"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {clientBookings.length > 20 && (
+          <div className="px-4 py-2 text-[11px] text-gray-500 border-t border-gray-100">
+            Showing 20 of {clientBookings.length}. Full list in the Doctor / Measurement tabs.
+          </div>
+        )}
+      </section>
 
       {/* Create appointment modal */}
       {showCreateForm && (
