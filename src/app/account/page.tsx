@@ -3886,6 +3886,91 @@ function BloodTestDayPickerModal({
   );
 }
 
+// Three-field DOB input (DD / MM / YYYY). Easier to tab through than the
+// native date picker, and the auto-advance means mobile users never touch
+// the calendar UI. The parent state stays as ISO YYYY-MM-DD so the save
+// path is unchanged.
+function DobFields({
+  value, onChange,
+}: {
+  value: string; // ISO YYYY-MM-DD, or ""
+  onChange: (iso: string) => void;
+}) {
+  const [yyyy = "", mm = "", dd = ""] = (value || "").split("-");
+  const monthRef = useRef<HTMLInputElement>(null);
+  const yearRef = useRef<HTMLInputElement>(null);
+
+  const emit = (nd: string, nm: string, ny: string) => {
+    if (nd.length === 2 && nm.length === 2 && ny.length === 4) {
+      // Basic sanity range clamp so we send a well-formed ISO to the DB
+      const dayN = Math.min(31, Math.max(1, parseInt(nd, 10) || 0));
+      const monN = Math.min(12, Math.max(1, parseInt(nm, 10) || 0));
+      onChange(`${ny}-${String(monN).padStart(2, "0")}-${String(dayN).padStart(2, "0")}`);
+    } else {
+      onChange(""); // incomplete → clear so required validation trips
+    }
+  };
+
+  const digitsOnly = (s: string, max: number) => s.replace(/[^0-9]/g, "").slice(0, max);
+
+  return (
+    <div className="flex items-stretch gap-2">
+      <label className="flex-1">
+        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Day</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="bday-day"
+          placeholder="DD"
+          maxLength={2}
+          value={dd}
+          onChange={(e) => {
+            const nd = digitsOnly(e.target.value, 2);
+            emit(nd, mm, yyyy);
+            if (nd.length === 2) monthRef.current?.focus();
+          }}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums"
+          required
+        />
+      </label>
+      <label className="flex-1">
+        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Month</span>
+        <input
+          ref={monthRef}
+          type="text"
+          inputMode="numeric"
+          autoComplete="bday-month"
+          placeholder="MM"
+          maxLength={2}
+          value={mm}
+          onChange={(e) => {
+            const nm = digitsOnly(e.target.value, 2);
+            emit(dd, nm, yyyy);
+            if (nm.length === 2) yearRef.current?.focus();
+          }}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums"
+          required
+        />
+      </label>
+      <label className="flex-[1.4]">
+        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Year</span>
+        <input
+          ref={yearRef}
+          type="text"
+          inputMode="numeric"
+          autoComplete="bday-year"
+          placeholder="YYYY"
+          maxLength={4}
+          value={yyyy}
+          onChange={(e) => emit(dd, mm, digitsOnly(e.target.value, 4))}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums"
+          required
+        />
+      </label>
+    </div>
+  );
+}
+
 function BiodyProfileModal({
   userId, onClose, onActivated,
 }: {
@@ -3927,7 +4012,7 @@ function BiodyProfileModal({
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!sex || !heightCm || !weightKg || !activityLevel) {
+    if (!sex || !heightCm || !weightKg || !activityLevel || !dob) {
       setError("Please fill in every field.");
       return;
     }
@@ -4019,10 +4104,10 @@ function BiodyProfileModal({
                 <span className="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</span>
                 <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </label>
-              <label className="block sm:col-span-2">
-                <span className="block text-xs font-medium text-gray-700 mb-1">Date of birth (optional)</span>
-                <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-              </label>
+              <div className="block sm:col-span-2">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Date of birth</span>
+                <DobFields value={dob} onChange={setDob} />
+              </div>
             </div>
             {error && <div className="text-red-600 text-sm">{error}</div>}
             {saved && <div className="text-emerald-700 text-sm">Saved.</div>}
