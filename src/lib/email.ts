@@ -137,7 +137,7 @@ export function renderBrandedEmail(input: BrandedEmailInput): string {
       ${ctaBlock}
       ${footerNote}
       <p style="margin:24px 0 0;padding-top:18px;border-top:1px solid #F1F5F9;color:#94A3B8;font-size:12px;line-height:1.5;">
-        Lifeline Health ehf. · Laugavegur, Reykjavík · <a href="mailto:contact@lifelinehealth.is" style="color:#10B981;text-decoration:none;">contact@lifelinehealth.is</a>
+        Lifeline Health ehf. · Reykjavík · <a href="mailto:contact@lifelinehealth.is" style="color:#10B981;text-decoration:none;">contact@lifelinehealth.is</a>
       </p>
     </div>
   </div>

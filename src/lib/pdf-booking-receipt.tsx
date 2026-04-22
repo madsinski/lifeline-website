@@ -93,7 +93,7 @@ function ReceiptDocument({ input }: { input: BookingReceiptInput }) {
         <View style={s.header}>
           <View>
             <Text style={s.brand}>Lifeline Health</Text>
-            <Text style={s.brandSub}>Laugavegur, Reykjavík · lifelinehealth.is · contact@lifelinehealth.is</Text>
+            <Text style={s.brandSub}>Reykjavík · lifelinehealth.is · contact@lifelinehealth.is</Text>
           </View>
           <View>
             <Text style={s.receiptLabel}>{refunded ? "Credit note" : "Receipt"}</Text>
