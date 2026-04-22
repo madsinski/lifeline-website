@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { sendEmail, renderEventReminderEmail } from "@/lib/email";
+import { sendEmail, renderEventReminderEmail, renderBrandedEmail } from "@/lib/email";
 
 export const maxDuration = 300;
 
@@ -31,23 +31,29 @@ function renderB2CReminder(args: {
   location: string;
   packageLabel: string;
 }): { html: string; text: string } {
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);color:#0f172a;">
-    <div style="display:inline-block;padding:4px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">Tomorrow</div>
-    <h1 style="margin:16px 0 8px;font-size:22px;">Your ${escapeHtml(args.packageLabel)} is tomorrow, ${escapeHtml(args.firstName)}.</h1>
-    <div style="margin:18px 0;padding:14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;">
-      <div style="font-size:15px;color:#0f172a;font-weight:600;">${escapeHtml(args.dateLabel)} at ${escapeHtml(args.timeLabel)}</div>
+  const bodyHtml = `
+    <p style="margin:0 0 14px;">Hi ${escapeHtml(args.firstName)} — this is your reminder for tomorrow's visit.</p>
+    <div style="margin:18px 0;padding:14px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;">
+      <div style="font-size:15px;color:#0F172A;font-weight:700;">${escapeHtml(args.dateLabel)} at ${escapeHtml(args.timeLabel)}</div>
       <div style="font-size:13px;color:#475569;margin-top:2px;">${escapeHtml(args.location)}</div>
     </div>
-    <div style="padding:14px;background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:8px;font-size:14px;color:#78350f;">
+    <div style="padding:14px;background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #F59E0B;border-radius:8px;font-size:14px;color:#78350F;">
       <strong style="font-size:13px;display:block;margin-bottom:4px;">⚠ Fast from midnight tonight</strong>
       Water only — no food, coffee, tea, juice, or alcohol. This matters for clean blood-panel results.
     </div>
-    <p style="margin-top:20px;font-size:13px;color:#64748b;line-height:1.6;">
-      The visit takes about 20 minutes. Bring a jumper — it's easier to measure with a short-sleeved inner layer.
-    </p>
-    <p style="margin-top:12px;font-size:13px;color:#64748b;">Need to reschedule? <a href="https://www.lifelinehealth.is/account" style="color:#0369a1;">Manage your booking</a>. Free refund up to 48 hours before your slot.</p>
-  </div></body></html>`;
+    <p style="margin:16px 0 0;color:#64748B;font-size:13px;">The visit takes about 20 minutes. Bring a jumper — it's easier to measure with a short-sleeved inner layer.</p>
+  `;
+
+  const html = renderBrandedEmail({
+    title: `Your ${args.packageLabel} is tomorrow`,
+    preheader: `${args.dateLabel} at ${args.timeLabel} — fast from midnight tonight.`,
+    accentLabel: "Tomorrow",
+    accentTone: "amber",
+    bodyHtml,
+    ctaLabel: "Manage booking",
+    ctaUrl: "https://www.lifelinehealth.is/account",
+    footerNote: "Need to reschedule? Free refund up to 48 hours before your slot.",
+  });
 
   const text = `Hi ${args.firstName},\n\nYour ${args.packageLabel} is tomorrow.\n\nWhen: ${args.dateLabel} at ${args.timeLabel}\nWhere: ${args.location}\n\n*** FAST FROM MIDNIGHT TONIGHT — water only, no food, coffee, tea, juice, or alcohol. ***\n\nThe visit takes about 20 minutes. Bring a jumper — easier to measure with a short-sleeved inner layer.\n\nNeed to reschedule? https://www.lifelinehealth.is/account (free refund up to 48h before).\n\n— Lifeline Health`;
 

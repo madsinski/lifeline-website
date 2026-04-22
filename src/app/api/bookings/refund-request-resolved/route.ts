@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, renderBrandedEmail } from "@/lib/email";
 
 // Called by /admin/bookings after a refund_requests row is flipped to
 // approved or denied. Sends the client a short lifecycle email so they
@@ -60,24 +60,29 @@ export async function POST(req: NextRequest) {
     : `About your Lifeline cancellation request`;
 
   const bodyHtml = approved ? `
-    <p>We've approved your cancellation for <strong>${escapeHtml(pkgLabel)}</strong>${when ? ` on ${escapeHtml(when)}` : ""}.</p>
-    <p>We're refunding <strong>${approvedAmount.toLocaleString("is-IS")} ISK</strong> to the card you used. It usually lands within 3–5 business days, depending on your bank.</p>
-    ${rr.admin_note ? `<p style="margin-top:16px;padding:12px;background:#f1f5f9;border-radius:8px;font-size:13px;color:#334155;"><strong>Note from us:</strong> ${escapeHtml(rr.admin_note)}</p>` : ""}
-    <p>If you'd like to rebook, just visit your dashboard when you're ready — no rush.</p>
+    <p style="margin:0 0 14px;">${hello}</p>
+    <p style="margin:0 0 14px;">We've approved your cancellation for <strong>${escapeHtml(pkgLabel)}</strong>${when ? ` on ${escapeHtml(when)}` : ""}.</p>
+    <p style="margin:0 0 14px;">We're refunding <strong>${approvedAmount.toLocaleString("is-IS")} ISK</strong> to the card you used. It usually lands within 3–5 business days, depending on your bank.</p>
+    ${rr.admin_note ? `<p style="margin:18px 0;padding:12px 14px;background:#F1F5F9;border-radius:8px;font-size:13px;color:#334155;"><strong>Note from us:</strong> ${escapeHtml(rr.admin_note)}</p>` : ""}
+    <p style="margin:0;">If you'd like to rebook, just visit your dashboard when you're ready — no rush.</p>
   ` : `
-    <p>Thanks for your cancellation request for <strong>${escapeHtml(pkgLabel)}</strong>${when ? ` on ${escapeHtml(when)}` : ""}.</p>
-    <p>We're not able to approve a refund in this case${rr.admin_note ? `:</p><p style="padding:12px;background:#fef2f2;border-left:3px solid #dc2626;font-size:13.5px;color:#334155;">${escapeHtml(rr.admin_note)}</p><p>` : "."}</p>
-    <p>Your booking is still on the calendar. If there's anything we can do to help you make it, please reply to this email and we'll try our best.</p>
+    <p style="margin:0 0 14px;">${hello}</p>
+    <p style="margin:0 0 14px;">Thanks for your cancellation request for <strong>${escapeHtml(pkgLabel)}</strong>${when ? ` on ${escapeHtml(when)}` : ""}.</p>
+    <p style="margin:0 0 14px;">We're not able to approve a refund in this case${rr.admin_note ? ":" : "."}</p>
+    ${rr.admin_note ? `<p style="margin:0 0 14px;padding:12px 14px;background:#FEF2F2;border-left:3px solid #DC2626;font-size:13.5px;color:#334155;">${escapeHtml(rr.admin_note)}</p>` : ""}
+    <p style="margin:0;">Your booking is still on the calendar. If there's anything we can do to help you make it, please reply to this email and we'll try our best.</p>
   `;
 
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);color:#0f172a;">
-    <div style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;${approved ? "background:#dcfce7;color:#166534;" : "background:#fee2e2;color:#991b1b;"}">${approved ? "Refund approved" : "Request reviewed"}</div>
-    <h1 style="margin:16px 0 12px;font-size:20px;">${approved ? "We've processed your refund" : "About your cancellation request"}</h1>
-    <p style="color:#475569;font-size:14px;line-height:1.6;">${hello}</p>
-    <div style="color:#334155;font-size:14px;line-height:1.65;">${bodyHtml}</div>
-    <p style="margin-top:24px;font-size:13px;color:#64748b;">Questions? Reply to this email or contact@lifelinehealth.is.</p>
-  </div></body></html>`;
+  const html = renderBrandedEmail({
+    title: approved ? "We've processed your refund" : "About your cancellation request",
+    preheader: approved ? `Refund of ${approvedAmount.toLocaleString("is-IS")} ISK on the way.` : "We've reviewed your request.",
+    accentLabel: approved ? "Refund approved" : "Request reviewed",
+    accentTone: approved ? "emerald" : "red",
+    bodyHtml,
+    ctaLabel: approved ? "Open dashboard" : undefined,
+    ctaUrl: approved ? "https://www.lifelinehealth.is/account" : undefined,
+    footerNote: "Questions? Reply to this email or contact@lifelinehealth.is.",
+  });
 
   const text = approved
     ? `${hello}\n\nWe've approved your cancellation for ${pkgLabel}${when ? ` on ${when}` : ""}.\n\nWe're refunding ${approvedAmount.toLocaleString("is-IS")} ISK to your card — usually within 3–5 business days.\n\n${rr.admin_note ? `Note: ${rr.admin_note}\n\n` : ""}Reply here or email contact@lifelinehealth.is with questions.\n\n— Lifeline Health`

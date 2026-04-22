@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, renderBrandedEmail } from "@/lib/email";
 
 // Called by the book flow right after handlePay succeeds. Sends the client
 // a confirmation with booking details + fast-before-visit reminder. Also
@@ -51,37 +51,42 @@ export async function POST(req: NextRequest) {
   const firstName = client.full_name?.split(" ")[0] || "there";
 
   const detailsBlock = needsVisit ? `
-    <div style="margin:18px 0;padding:14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#0369a1;margin-bottom:8px;">Your appointment</div>
-      <div style="font-size:15px;color:#0f172a;font-weight:600;">${escapeHtml(when || "")}</div>
+    <div style="margin:18px 0;padding:14px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#0369A1;margin-bottom:8px;">Your appointment</div>
+      <div style="font-size:15px;color:#0F172A;font-weight:700;">${escapeHtml(when || "")}</div>
       <div style="font-size:13px;color:#475569;margin-top:2px;">${escapeHtml(booking.location || "Lifeline station, Reykjavík")}</div>
     </div>
-    <div style="padding:12px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:6px;font-size:13px;color:#78350f;">
+    <div style="padding:12px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:6px;font-size:13px;color:#78350F;">
       <strong>Fast from midnight</strong> the night before your visit — water only, no food, coffee, tea, juice, or alcohol. It's important for clean blood-panel results.
     </div>
   ` : `
-    <div style="margin:18px 0;padding:14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#6d28d9;margin-bottom:8px;">Self Check-in</div>
+    <div style="margin:18px 0;padding:14px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6D28D9;margin-bottom:8px;">Self Check-in</div>
       <div style="font-size:13px;color:#475569;">Start the questionnaire any time from your dashboard — no visit needed.</div>
     </div>
   `;
 
-  const html = `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06);color:#0f172a;">
-    <div style="display:inline-block;padding:4px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">Booking confirmed</div>
-    <h1 style="margin:16px 0 8px;font-size:22px;">You're booked, ${escapeHtml(firstName)}.</h1>
-    <p style="margin:0 0 6px;color:#475569;font-size:14px;line-height:1.6;">We've received your payment and reserved your spot for <strong>${escapeHtml(pkgLabel)}</strong>.</p>
+  const bodyHtml = `
+    <p style="margin:0 0 6px;color:#334155;">Hi ${escapeHtml(firstName)} — we've received your payment and reserved your spot for <strong>${escapeHtml(pkgLabel)}</strong>.</p>
     ${detailsBlock}
     <table style="width:100%;border-collapse:collapse;font-size:13px;color:#475569;margin-top:20px;">
-      <tr><td style="padding:5px 0;">Package</td><td style="padding:5px 0;text-align:right;color:#0f172a;">${escapeHtml(pkgLabel)}</td></tr>
-      <tr><td style="padding:5px 0;">Amount paid</td><td style="padding:5px 0;text-align:right;color:#0f172a;font-weight:600;">${amount} ISK</td></tr>
-      <tr><td style="padding:5px 0;">Reference</td><td style="padding:5px 0;text-align:right;color:#94a3b8;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;">${escapeHtml(bookingId.slice(0, 8))}</td></tr>
+      <tr><td style="padding:5px 0;">Package</td><td style="padding:5px 0;text-align:right;color:#0F172A;">${escapeHtml(pkgLabel)}</td></tr>
+      <tr><td style="padding:5px 0;">Amount paid</td><td style="padding:5px 0;text-align:right;color:#0F172A;font-weight:700;">${amount} ISK</td></tr>
+      <tr><td style="padding:5px 0;">Reference</td><td style="padding:5px 0;text-align:right;color:#94A3B8;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;">${escapeHtml(bookingId.slice(0, 8))}</td></tr>
     </table>
-    <p style="margin-top:24px;font-size:13px;color:#64748b;line-height:1.6;">
-      Need to change or cancel? Log in to <a href="https://www.lifelinehealth.is/account" style="color:#0369a1;">your dashboard</a>. Free refund up to 48 hours before your slot. Beyond that, you can send a cancellation request and we'll review it.
-    </p>
-    <p style="margin-top:12px;font-size:12px;color:#94a3b8;">Healthcare services are exempt from VAT in Iceland (Act 50/1988).</p>
-  </div></body></html>`;
+    <p style="margin:20px 0 0;font-size:12.5px;color:#94A3B8;">Healthcare services are exempt from VAT in Iceland (Act 50/1988).</p>
+  `;
+
+  const html = renderBrandedEmail({
+    title: `You're booked, ${firstName}.`,
+    preheader: `Your ${pkgLabel} is reserved${when ? ` — ${when}` : ""}.`,
+    accentLabel: "Booking confirmed",
+    accentTone: "emerald",
+    bodyHtml,
+    ctaLabel: "Open dashboard",
+    ctaUrl: "https://www.lifelinehealth.is/account",
+    footerNote: "Need to change or cancel? Log in to your dashboard. Free refund up to 48 hours before your slot — beyond that you can send a cancellation request for review.",
+  });
 
   const text = `Hi ${firstName},\n\nYou're booked for ${pkgLabel}.${when ? `\n\nWhen: ${when}\nWhere: ${booking.location || "Lifeline station, Reykjavík"}\n\nFAST FROM MIDNIGHT the night before your visit — water only.` : "\n\nStart your Self Check-in questionnaire from your dashboard whenever you're ready."}\n\nAmount paid: ${amount} ISK\nReference: ${bookingId.slice(0, 8)}\n\nNeed to change or cancel? Log in at https://www.lifelinehealth.is/account — free refund up to 48h before your slot.\n\n— Lifeline Health`;
 

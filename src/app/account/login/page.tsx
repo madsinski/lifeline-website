@@ -82,10 +82,15 @@ function AccountLoginContent() {
         marketing_opt_out: marketingOptOut,
         created_at: now,
       };
+      // Redirect confirmed users straight to their dashboard. /account is
+      // always whitelisted by middleware.ts so they bypass the coming-soon
+      // gate during pre-launch AND after launch — no change needed later.
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://www.lifelinehealth.is";
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: `${origin}/account`,
           data: {
             full_name: fullName,
             ...(refCode ? { referred_by: refCode } : {}),

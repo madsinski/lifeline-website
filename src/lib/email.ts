@@ -78,6 +78,72 @@ export function lifelineLogoHeaderHtml(logoUrl: string, linkHref: string = "http
     </div>`;
 }
 
+// Unified branded wrapper used by every transactional email so they all
+// look the same: logo header → card → optional accent pill → title →
+// body HTML → optional CTA button → footer note + legal line. Returns
+// the full <!doctype>…<body>…</body></html> string.
+export type BrandedEmailInput = {
+  title: string;
+  preheader?: string;            // Invisible "preview" copy under the subject in inbox lists
+  accentLabel?: string;          // Small pill ABOVE the title, e.g. "Booking confirmed"
+  accentTone?: "emerald" | "red" | "amber" | "violet" | "blue";
+  bodyHtml: string;              // Already-escaped HTML for the main body
+  ctaLabel?: string;
+  ctaUrl?: string;
+  footerNote?: string;           // Small copy below the CTA (e.g. "Reply with questions")
+  linkHref?: string;             // Where the logo links
+};
+
+const ACCENT_STYLES: Record<NonNullable<BrandedEmailInput["accentTone"]>, { bg: string; fg: string }> = {
+  emerald: { bg: "#DCFCE7", fg: "#166534" },
+  red:     { bg: "#FEE2E2", fg: "#991B1B" },
+  amber:   { bg: "#FEF3C7", fg: "#92400E" },
+  violet:  { bg: "#EDE9FE", fg: "#5B21B6" },
+  blue:    { bg: "#DBEAFE", fg: "#1E40AF" },
+};
+
+export function renderBrandedEmail(input: BrandedEmailInput): string {
+  const linkHref = input.linkHref || "https://www.lifelinehealth.is";
+  const logoUrl = lifelineLogoUrl(linkHref);
+  const accent = input.accentLabel ? ACCENT_STYLES[input.accentTone || "emerald"] : null;
+
+  const preheader = input.preheader
+    ? `<div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">${escapeHtml(input.preheader)}</div>`
+    : "";
+
+  const accentPill = accent
+    ? `<div style="display:inline-block;padding:4px 10px;border-radius:999px;background:${accent.bg};color:${accent.fg};font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;">${escapeHtml(input.accentLabel!)}</div>`
+    : "";
+
+  const ctaBlock = input.ctaLabel && input.ctaUrl
+    ? `<div style="text-align:center;margin:28px 0 8px;">
+        <a href="${input.ctaUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3B82F6,#10B981);color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">${escapeHtml(input.ctaLabel)}</a>
+      </div>`
+    : "";
+
+  const footerNote = input.footerNote
+    ? `<p style="margin:20px 0 0;color:#6B7280;font-size:13px;line-height:1.6;">${input.footerNote}</p>`
+    : "";
+
+  return `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F8FAFC;padding:40px 0;margin:0;">
+  ${preheader}
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, linkHref)}
+    <div style="padding:32px;color:#0F172A;">
+      ${accentPill}
+      <h1 style="margin:0 0 14px;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:#0F172A;">${escapeHtml(input.title)}</h1>
+      <div style="color:#334155;font-size:14px;line-height:1.65;">${input.bodyHtml}</div>
+      ${ctaBlock}
+      ${footerNote}
+      <p style="margin:24px 0 0;padding-top:18px;border-top:1px solid #F1F5F9;color:#94A3B8;font-size:12px;line-height:1.5;">
+        Lifeline Health ehf. · Laugavegur, Reykjavík · <a href="mailto:contact@lifelinehealth.is" style="color:#10B981;text-decoration:none;">contact@lifelinehealth.is</a>
+      </p>
+    </div>
+  </div>
+</body></html>`;
+}
+
 export function renderWelcomeEmail(params: {
   companyName: string | null;
   recipientName: string;
