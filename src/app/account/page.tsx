@@ -3160,7 +3160,7 @@ function JourneyTimeline({
         done: false,
         active: hasBodyCompBooking,
         description: hasBodyCompBooking
-          ? "You'll receive an SMS from the Lifeline team with a link to the questionnaire. The questionnaire will be available in your secure patient portal."
+          ? "Before proceeding to the blood tests, you will have to activate your health assessment and answer the health questionnaire in your secure patient portal."
           : "Book your assessment first — we'll SMS you the questionnaire link once your booking is confirmed.",
         portal: true,
       }
