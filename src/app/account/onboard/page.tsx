@@ -234,9 +234,36 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
         <div className="border-t border-gray-100 pt-6">
           <h3 className="text-sm font-semibold text-[#0F172A] mb-3">After you register</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <MiniCard color="#3B82F6" title="Get assessed" body="Book your Foundational Health assessment at the Lifeline station in Reykjavík." />
-            <MiniCard color="#10B981" title="Get your report" body="A Lifeline physician reviews your results and builds a personalised plan." />
-            <MiniCard color="#8B5CF6" title="Start coaching" body="Daily actions across exercise, nutrition, sleep and mental wellness in the app." />
+            <MiniCard
+              color="#3B82F6"
+              title="Get assessed"
+              body="Book your Foundational Health assessment at the Lifeline station in Reykjavík."
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              }
+            />
+            <MiniCard
+              color="#10B981"
+              title="Get your report"
+              body="A Lifeline physician reviews your results and builds a personalised plan."
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              }
+            />
+            <MiniCard
+              color="#8B5CF6"
+              title="Start coaching"
+              body="Daily actions across exercise, nutrition, sleep and mental wellness in the app."
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              }
+            />
           </div>
         </div>
         <div className="flex justify-end pt-2">
@@ -449,11 +476,14 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-function MiniCard({ color, title, body }: { color: string; title: string; body: string }) {
+function MiniCard({ color, title, body, icon }: { color: string; title: string; body: string; icon?: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-gray-100 p-4 bg-gradient-to-br from-white to-gray-50/50">
-      <div className="w-8 h-8 rounded-full mb-2" style={{ background: color, opacity: 0.12 }}>
-        <div className="w-full h-full rounded-full" style={{ background: color, opacity: 0.3 }} />
+      <div
+        className="w-9 h-9 rounded-full mb-3 flex items-center justify-center"
+        style={{ background: `${color}1A`, color }}
+      >
+        {icon}
       </div>
       <div className="font-semibold text-[#0F172A] text-sm">{title}</div>
       <div className="text-xs text-[#64748B] mt-1 leading-relaxed">{body}</div>
