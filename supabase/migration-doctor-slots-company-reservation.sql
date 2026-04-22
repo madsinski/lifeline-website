@@ -59,16 +59,20 @@ begin
     return;
   end if;
 
+  -- Qualify column refs with the table name: slot_at is also an OUT
+  -- parameter on this function (see `returns table(... slot_at ...)`), so
+  -- Postgres errors with "column reference slot_at is ambiguous" on any
+  -- unqualified use. Same applies to id / client_id / company_id.
   update public.doctor_slots
     set client_id = v_uid,
         -- Preserve a pre-set company reservation; only fill it from
         -- the client's own company when the slot was open to anyone.
-        company_id = coalesce(company_id, v_client_company),
+        company_id = coalesce(doctor_slots.company_id, v_client_company),
         booking_note = nullif(trim(coalesce(p_note, '')), ''),
         booked_at = now()
-    where id = p_slot_id
-      and client_id is null
-      and slot_at > now()
+    where doctor_slots.id = p_slot_id
+      and doctor_slots.client_id is null
+      and doctor_slots.slot_at > now()
     returning doctor_slots.slot_at into v_slot_at;
 
   if v_slot_at is null then
