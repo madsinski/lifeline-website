@@ -63,9 +63,14 @@ function InviteContactButton({ companyId, draftEmail, status }: { companyId: str
     setSubmitting(true);
     setMsg(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch(`/api/admin/companies/${companyId}/invite-contact`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(email ? { email } : {}),
       });
       const j = await res.json().catch(() => ({}));
@@ -79,9 +84,9 @@ function InviteContactButton({ companyId, draftEmail, status }: { companyId: str
   }
 
   return (
-    <div className="relative">
+    <>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => { setOpen(true); setMsg(null); }}
         className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,33 +95,60 @@ function InviteContactButton({ companyId, draftEmail, status }: { companyId: str
         {status === "draft" ? "Senda boð" : "Senda aftur"}
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-80 rounded-lg bg-white border border-gray-200 shadow-lg p-3 right-0">
-          <div className="text-xs text-gray-600 mb-2">Tengiliðurinn fær íslenskan boðspóst með hlekk til að klára skráninguna og skrifa undir þjónustuskilmála + DPA.</div>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="contact@fyrirtæki.is"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-          />
-          {msg && (
-            <div className={`mt-2 text-xs ${msg.kind === "ok" ? "text-emerald-700" : "text-red-600"}`}>
-              {msg.text}
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md my-16"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">
+                {status === "draft" ? "Senda boð á tengilið" : "Senda boð aftur"}
+              </h3>
+              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-          )}
-          <div className="mt-3 flex items-center justify-end gap-2">
-            <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-700">Loka</button>
-            <button
-              onClick={send}
-              disabled={submitting || !email}
-              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-            >
-              {submitting ? "Sendi…" : "Senda boð"}
-            </button>
+            <div className="p-5 space-y-3">
+              <p className="text-xs text-gray-600">
+                Tengiliðurinn fær íslenskan boðspóst með hlekk til að klára skráninguna og skrifa undir þjónustuskilmála + DPA. Hlekkurinn er einnota og rennur út eftir 14 daga.
+              </p>
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Netfang tengiliðs</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="contact@fyrirtæki.is"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                />
+              </label>
+              {msg && (
+                <div className={`text-xs rounded-lg px-3 py-2 ${msg.kind === "ok" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"}`}>
+                  {msg.text}
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+              <button onClick={() => setOpen(false)} className="text-xs font-medium text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-md hover:bg-gray-50">
+                Loka
+              </button>
+              <button
+                onClick={send}
+                disabled={submitting || !email}
+                className="text-xs font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {submitting ? "Sendi…" : "Senda boð"}
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
