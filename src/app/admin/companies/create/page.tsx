@@ -103,7 +103,10 @@ export default function AdminCompanyCreatePage() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j?.ok) { setErr(j?.detail || j?.error || "Stofnun mistókst."); return; }
-      router.push(`/admin/companies/${j.company.id}`);
+      // No per-company detail route exists yet — send the admin back to
+      // the list where they can invite the contact, attach documents
+      // and send the TOS/DPA claim.
+      router.push("/admin/companies");
     } catch (e) {
       setErr((e as Error).message);
     } finally {
