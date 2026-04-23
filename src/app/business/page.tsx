@@ -40,6 +40,21 @@ export default function BusinessIndexPage() {
         }
       }
       list.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
+      // If the user isn't a contact / co-admin on any company, they're
+      // either a regular employee (clients.company_id set — send them
+      // to their employee dashboard) or a brand-new signup with no
+      // company yet (show the 'create your first company' screen).
+      if (list.length === 0) {
+        const { data: client } = await supabase
+          .from("clients")
+          .select("company_id")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (client?.company_id) {
+          router.replace("/account");
+          return;
+        }
+      }
       setCompanies(list);
       if (list.length === 1) { router.replace(`/business/${list[0].id}`); return; }
       setAuthState("dashboard");
