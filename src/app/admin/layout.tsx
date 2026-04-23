@@ -233,18 +233,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    // Server-verify with getUser() so tokens revoked in other tabs
+    // (signOut in tab A, this is tab B) don't leave the admin UI
+    // falsely rendered. Only fall through to getSession() once the
+    // server has confirmed the user is still active.
+    (async () => {
+      const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+      if (!verifiedUser) {
+        setSession(false);
+        if (pathname !== "/admin/login") router.push("/admin/login");
+        return;
+      }
+      const { data: { session: s } } = await supabase.auth.getSession();
       if (s) {
         setSession(true);
         setUserEmail(s.user?.email ?? null);
         if (s.user?.email) loadStaffProfile(s.user.email);
       } else {
         setSession(false);
-        if (pathname !== "/admin/login") {
-          router.push("/admin/login");
-        }
+        if (pathname !== "/admin/login") router.push("/admin/login");
       }
-    });
+    })();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       if (s) {

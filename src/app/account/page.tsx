@@ -265,7 +265,16 @@ function AccountPageInner() {
 
   /* ---------- auth check + load data ---------- */
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Use getUser() (hits the server) not getSession() so a revoked JWT
+    // (e.g. signed out in another tab) is treated as logged-out even
+    // though the client still has it cached locally.
+    supabase.auth.getUser().then(async ({ data: { user: verifiedUser } }) => {
+      if (!verifiedUser) {
+        router.push("/account/login");
+        setLoading(false);
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/account/login");
         setLoading(false);

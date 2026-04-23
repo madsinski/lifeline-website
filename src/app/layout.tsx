@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import ScrollDebug from "./components/ScrollDebug";
+import AuthSync from "./components/AuthSync";
 import BetaFeedback from "./components/BetaFeedback";
 import { I18nProvider } from "@/lib/i18n";
 
@@ -49,6 +50,7 @@ export default function RootLayout({
         <I18nProvider>
         <ScrollToTop />
         <ScrollDebug />
+        <AuthSync />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
