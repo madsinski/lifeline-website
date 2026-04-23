@@ -3417,15 +3417,17 @@ function JourneyTimeline({
           );
         })}
       </ol>
-      {isB2C && steps.every((s) => s.done) ? <WhatsNextCard /> : null}
+      {steps.every((s) => s.done) ? <WhatsNextCard isB2C={isB2C} /> : null}
     </section>
   );
 }
 
 // Shown once every journey step is ticked. Nudges the user toward the
-// app, flags self check-ins as available any time, and sets the rhythm
-// for repeat check-ins + annual foundational assessment.
-function WhatsNextCard() {
+// app (self-managed vs coached) and sets the rhythm for repeat
+// check-ins. Shared between B2C and B2B — the only flow difference is
+// whether self-booking the next round is offered (B2C) or mentioned as
+// scheduled by the employer (B2B).
+function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
   return (
     <section className="mt-8 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 sm:p-7 shadow-sm">
       <div className="flex items-start gap-3">
@@ -3438,12 +3440,13 @@ function WhatsNextCard() {
           <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-1">Foundational assessment complete</div>
           <h3 className="text-xl font-bold text-gray-900">What&apos;s next, now you&apos;ve got your baseline.</h3>
           <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
-            Your plan is live in the Lifeline app — daily actions, programmes across the four pillars, and coaching messages when you need them.
+            You have your numbers, your doctor-reviewed action plan, and a clear direction. The next step is turning that into daily habits — and coming back for regular checkpoints so your plan stays accurate.
           </p>
         </div>
       </div>
 
       <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Lifeline app — two paths: self-managed vs personal coaching */}
         <div className="rounded-xl bg-white border border-blue-100 p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -3451,11 +3454,37 @@ function WhatsNextCard() {
                 <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H7V4h10v16zM12 18.5a1 1 0 100-2 1 1 0 000 2z" />
               </svg>
             </div>
-            <div className="font-semibold text-gray-900 text-sm">Open the Lifeline app</div>
+            <div className="font-semibold text-gray-900 text-sm">Put the plan into motion — the Lifeline app</div>
           </div>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            Your personal plan, daily actions, and coaching live in the mobile app.
+          <p className="text-xs text-gray-600 leading-relaxed mb-3">
+            Your personal plan, daily actions and tracking live in the mobile app. Pick the track that fits you.
           </p>
+
+          <div className="space-y-2.5">
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Track A</span>
+                <span className="text-sm font-semibold text-gray-900">Self-managed journey</span>
+              </div>
+              <p className="text-[12px] text-gray-600 leading-snug">
+                The whole programme, on your own. Daily actions, programmes across the four pillars, tracking and community — at your own pace.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Track B</span>
+                <span className="text-sm font-semibold text-gray-900">Personal coaching</span>
+              </div>
+              <p className="text-[12px] text-gray-700 leading-snug">
+                Everything in Track A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.
+              </p>
+              <Link href="/coaching" className="inline-block mt-1.5 text-[11px] font-semibold text-emerald-700 hover:underline">
+                Learn about coaching →
+              </Link>
+            </div>
+          </div>
+
           <div className="mt-3 flex flex-wrap gap-2">
             <a href="https://apps.apple.com/app/lifeline-health" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
               App Store
@@ -3466,6 +3495,7 @@ function WhatsNextCard() {
           </div>
         </div>
 
+        {/* Cadence reminders */}
         <div className="rounded-xl bg-white border border-emerald-100 p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -3475,18 +3505,35 @@ function WhatsNextCard() {
             </div>
             <div className="font-semibold text-gray-900 text-sm">Stay on track</div>
           </div>
-          <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5 list-disc list-inside marker:text-emerald-500">
-            <li><strong>Self check-in</strong> any time — free, five minutes, from the dashboard.</li>
-            <li><strong>Measurement check-in</strong> every 3–6 months — re-take the body composition + key labs.</li>
-            <li><strong>Full Foundational</strong> re-assessment every 12 months — complete report + doctor review.</li>
+
+          <ul className="text-xs text-gray-700 leading-relaxed space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span><strong>Self check-in</strong> — free, five-minute questionnaire. Suggested <strong>every month</strong> to catch changes early.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span><strong>Measurement check-in</strong> — every <strong>3–6 months</strong>. Re-take body composition + key labs so your plan stays calibrated.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-violet-500" />
+              <span><strong>Full Foundational re-assessment</strong> — every <strong>6–12 months</strong>. Complete panel, updated report and fresh doctor review.</span>
+            </li>
           </ul>
+
           <div className="mt-3">
-            <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
-              Book a check-in
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+            {isB2C ? (
+              <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                Book a check-in
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ) : (
+              <p className="text-[11px] text-gray-500">
+                Your next round will be scheduled by your employer. We&apos;ll email you when it&apos;s open.
+              </p>
+            )}
           </div>
         </div>
       </div>
