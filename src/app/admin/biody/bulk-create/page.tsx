@@ -168,7 +168,11 @@ export default function BiodyBulkCreatePage() {
       <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
         <div>
           <h2 className="text-sm font-semibold text-gray-900">1. Veldu fyrirtæki</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Biody-sjúklingarnir verða tengdir sjúklingahópi þessa fyrirtækis.</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Biody-sjúklingarnir verða tengdir sjúklingahópi þess fyrirtækis sem þú velur.
+            Fyrir sveitarfélög með undireiningar — veldu nákvæmlega þá undireiningu sem starfsmennirnir tilheyra
+            (t.d. <em>Grunnskóli Hafnarfjarðar</em>, ekki sveitarfélagið sjálft) svo mælingar aðskiljist rétt í Biody.
+          </p>
         </div>
         <select
           value={companyId}
@@ -187,6 +191,28 @@ export default function BiodyBulkCreatePage() {
             return <option key={c.id} value={c.id}>{prefix}{c.name}{parentSuffix}{statusSuffix}</option>;
           })}
         </select>
+        {companyId && (() => {
+          const picked = companies.find((c) => c.id === companyId);
+          if (!picked) return null;
+          const parent = picked.parent_company_id ? companies.find((c) => c.id === picked.parent_company_id) : null;
+          const hasChildren = companies.some((o) => o.parent_company_id === picked.id);
+          return (
+            <div className={`rounded-lg border px-3 py-2.5 text-xs flex items-start gap-2 ${parent ? "bg-emerald-50 border-emerald-100 text-emerald-900" : hasChildren ? "bg-amber-50 border-amber-100 text-amber-900" : "bg-blue-50 border-blue-100 text-blue-900"}`}>
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <div>Markmið: <strong>{picked.name}</strong>{parent ? <> · undir <strong>{parent.name}</strong></> : null}</div>
+                {parent
+                  ? <div className="mt-0.5 opacity-80">Sjúklingarnir lenda í Biody-hópi {picked.name} (aðskilið frá öðrum undireiningum). Reikningur gengur upp á {parent.name}.</div>
+                  : hasChildren
+                    ? <div className="mt-0.5 opacity-80">Þú ert að hlaða upp í móðurfyrirtækið sjálft. Eru þessir starfsmenn í miðlægri stjórnsýslu? Ef þeir tilheyra undireiningu, veldu hana í staðinn.</div>
+                    : <div className="mt-0.5 opacity-80">Einfalt fyrirtæki án undireininga.</div>
+                }
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">

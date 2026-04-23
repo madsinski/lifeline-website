@@ -58,13 +58,16 @@ export default function AdminCompanyCreatePage() {
   const [err, setErr] = useState("");
 
   const ktDigits = kennitala.replace(/\D/g, "");
-  const ktValid = ktDigits.length === 10;
+  const ktProvided = ktDigits.length > 0;
+  const ktValid = !ktProvided || ktDigits.length === 10;
+  const ktRequired = !parentId; // only top-level companies must provide one
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
     if (!name.trim()) { setErr("Nafn fyrirtækis vantar."); return; }
-    if (!ktValid) { setErr("Kennitala verður að vera 10 tölustafir."); return; }
+    if (ktRequired && ktDigits.length !== 10) { setErr("Kennitala verður að vera 10 tölustafir fyrir efsta þrep."); return; }
+    if (!ktValid) { setErr("Kennitala verður að vera 10 tölustafir ef hún er slegin inn."); return; }
     if (contactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contactEmail.trim())) {
       setErr("Ógilt netfang tengiliðs."); return;
     }
@@ -125,15 +128,18 @@ export default function AdminCompanyCreatePage() {
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
-            <Field label="Kennitala" required>
+            <Field label="Kennitala" required={ktRequired}>
               <input
                 type="text" inputMode="numeric" maxLength={11}
                 value={kennitala} onChange={(e) => setKennitala(e.target.value)}
-                placeholder="5705692039"
+                placeholder={ktRequired ? "5705692039" : "(erfist frá móðurfyrirtæki)"}
                 className={`w-full px-3 py-2 border rounded-lg text-sm font-mono ${kennitala && !ktValid ? "border-red-300" : "border-gray-200"}`}
-                required
               />
-              {kennitala && !ktValid && <p className="text-[11px] text-red-600 mt-1">10 tölustafir.</p>}
+              {kennitala && !ktValid ? (
+                <p className="text-[11px] text-red-600 mt-1">10 tölustafir.</p>
+              ) : !ktRequired ? (
+                <p className="text-[11px] text-gray-500 mt-1">Ekki nauðsynlegt — undireining notar kennitölu móðurfyrirtækisins við reikningagerð.</p>
+              ) : null}
             </Field>
             <Field label="Heimilisfang">
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}

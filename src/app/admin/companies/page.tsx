@@ -120,6 +120,230 @@ function InviteContactButton({ companyId, draftEmail, status }: { companyId: str
   );
 }
 
+// Historic document upload for a company: ToS / DPA / purchase orders
+// / other PDFs that were signed offline before the digital flow.
+// Opens a modal with the existing list + upload form.
+type CompanyDocument = {
+  id: string;
+  kind: "tos" | "dpa" | "purchase_order" | "other";
+  title: string | null;
+  filename: string;
+  content_type: string | null;
+  size_bytes: number | null;
+  signer_name: string | null;
+  signed_at: string | null;
+  note: string | null;
+  uploaded_at: string;
+  signed_url: string | null;
+};
+
+function DocumentsButton({ companyId }: { companyId: string }) {
+  const [open, setOpen] = useState(false);
+  const [docs, setDocs] = useState<CompanyDocument[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  // Upload form state
+  const [kind, setKind] = useState<"tos" | "dpa" | "purchase_order" | "other">("tos");
+  const [title, setTitle] = useState("");
+  const [signerName, setSignerName] = useState("");
+  const [signedAt, setSignedAt] = useState("");
+  const [note, setNote] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/companies/${companyId}/documents`);
+      const j = await res.json();
+      if (res.ok && j.ok) setDocs(j.documents || []);
+      else setMsg({ kind: "err", text: j?.detail || j?.error || "Gat ekki sótt skjöl." });
+    } finally { setLoading(false); }
+  };
+
+  const openModal = async () => { setOpen(true); setMsg(null); await load(); };
+
+  const submitUpload = async () => {
+    if (!file) { setMsg({ kind: "err", text: "Veldu PDF-skrá." }); return; }
+    setUploading(true);
+    setMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", kind);
+      if (title) fd.append("title", title);
+      if (signerName) fd.append("signer_name", signerName);
+      if (signedAt) fd.append("signed_at", signedAt);
+      if (note) fd.append("note", note);
+      const res = await fetch(`/api/admin/companies/${companyId}/documents`, {
+        method: "POST", body: fd,
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Upphleðsla mistókst." }); return; }
+      setMsg({ kind: "ok", text: "Skjali hlaðið upp." });
+      setFile(null); setTitle(""); setSignerName(""); setSignedAt(""); setNote("");
+      await load();
+    } finally { setUploading(false); }
+  };
+
+  const deleteDoc = async (docId: string) => {
+    if (!confirm("Eyða þessu skjali?")) return;
+    const res = await fetch(`/api/admin/companies/${companyId}/documents/${docId}`, { method: "DELETE" });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Eyðing mistókst." }); return; }
+    await load();
+  };
+
+  const kindLabels: Record<CompanyDocument["kind"], string> = {
+    tos: "Þjónustuskilmálar",
+    dpa: "Vinnslusamningur",
+    purchase_order: "Þjónustusamningur",
+    other: "Annað",
+  };
+  const kindPill = (k: CompanyDocument["kind"]) => {
+    const color = k === "tos" ? "bg-blue-50 text-blue-700 border-blue-100"
+      : k === "dpa" ? "bg-violet-50 text-violet-700 border-violet-100"
+      : k === "purchase_order" ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+      : "bg-gray-50 text-gray-700 border-gray-200";
+    return <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${color}`}>{kindLabels[k]}</span>;
+  };
+  const prettySize = (n: number | null) => n == null ? "—" : n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`;
+
+  return (
+    <>
+      <button
+        onClick={openModal}
+        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+        title="Hlaða upp / skoða skjöl fyrir þetta fyrirtæki"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Skjöl
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Skjöl fyrirtækis</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Þjónustuskilmálar, vinnslusamningar og verðsamningar sem voru undirritaðir utan kerfisins (t.d. á prentformi).</p>
+              </div>
+              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Upload form */}
+              <section className="rounded-xl border border-gray-200 p-4 space-y-3 bg-gray-50/40">
+                <div className="text-sm font-semibold text-gray-900">Hlaða upp nýju skjali</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="block text-xs font-medium text-gray-700 mb-1">Tegund *</span>
+                    <select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                      <option value="tos">Þjónustuskilmálar (ToS)</option>
+                      <option value="dpa">Vinnslusamningur (DPA)</option>
+                      <option value="purchase_order">Þjónustusamningur / verðsamningur</option>
+                      <option value="other">Annað</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-medium text-gray-700 mb-1">Heiti (valfrjálst)</span>
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                      placeholder="t.d. Þjónustusamningur 2026–2027"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-medium text-gray-700 mb-1">Nafn undirritanda</span>
+                    <input type="text" value={signerName} onChange={(e) => setSignerName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-medium text-gray-700 mb-1">Undirritunardagur</span>
+                    <input type="date" value={signedAt} onChange={(e) => setSignedAt(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="block text-xs font-medium text-gray-700 mb-1">Athugasemd</span>
+                    <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)}
+                      placeholder="Samningatímabil, sérmál, o.s.frv."
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="block text-xs font-medium text-gray-700 mb-1">PDF-skrá *</span>
+                    <input type="file" accept="application/pdf,image/png,image/jpeg" onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      className="w-full text-sm" />
+                    <p className="text-[11px] text-gray-500 mt-1">Hámark 25 MB. Leyfilegt: PDF, PNG, JPEG.</p>
+                  </label>
+                </div>
+                {msg && (
+                  <div className={`text-xs ${msg.kind === "ok" ? "text-emerald-700" : "text-red-600"}`}>{msg.text}</div>
+                )}
+                <div className="flex justify-end">
+                  <button onClick={submitUpload} disabled={uploading || !file}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
+                    {uploading ? "Hleð upp…" : "Hlaða upp"}
+                  </button>
+                </div>
+              </section>
+
+              {/* Existing docs */}
+              <section>
+                <div className="text-sm font-semibold text-gray-900 mb-2">Núverandi skjöl</div>
+                {loading ? (
+                  <div className="text-xs text-gray-500 py-4 text-center">Sæki…</div>
+                ) : docs.length === 0 ? (
+                  <div className="text-xs text-gray-500 py-4 text-center border border-dashed border-gray-200 rounded-lg">Engin skjöl eru skráð enn.</div>
+                ) : (
+                  <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+                    {docs.map((d) => (
+                      <li key={d.id} className="px-4 py-3 flex items-start gap-3">
+                        <div className="shrink-0 mt-0.5">{kindPill(d.kind)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">{d.title || d.filename}</div>
+                          <div className="text-[11px] text-gray-500 truncate">
+                            {d.filename} · {prettySize(d.size_bytes)} · hlaðið upp {new Date(d.uploaded_at).toLocaleDateString("en-GB")}
+                          </div>
+                          {(d.signer_name || d.signed_at) && (
+                            <div className="text-[11px] text-gray-600 mt-0.5">
+                              Undirritað {d.signer_name ? `af ${d.signer_name}` : ""}{d.signer_name && d.signed_at ? " · " : ""}{d.signed_at || ""}
+                            </div>
+                          )}
+                          {d.note && <div className="text-[11px] text-gray-500 mt-0.5 whitespace-pre-wrap">{d.note}</div>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {d.signed_url && (
+                            <a href={d.signed_url} target="_blank" rel="noopener noreferrer"
+                              className="text-xs font-medium text-blue-700 hover:underline">
+                              Opna
+                            </a>
+                          )}
+                          <button onClick={() => deleteDoc(d.id)}
+                            className="text-xs font-medium text-red-600 hover:underline">
+                            Eyða
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+
+            <div className="px-6 py-3 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">Loka</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // One-click consolidated invoice for a parent (municipality-style)
 // company. Aggregates all active subs into one PayDay invoice, billed
 // to the parent's billing_contact_email.
@@ -664,6 +888,7 @@ export default function AdminCompaniesPage() {
                         {!c.parent_company_id && companies.some((o) => o.parent_company_id === c.id) && (
                           <ConsolidatedInvoiceButton companyId={c.id} />
                         )}
+                        <DocumentsButton companyId={c.id} />
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">{c.contact_email || "—"}</td>

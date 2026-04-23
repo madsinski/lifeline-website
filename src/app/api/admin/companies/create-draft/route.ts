@@ -45,26 +45,37 @@ export async function POST(req: NextRequest) {
   const name = (body.name || "").trim();
   const kennitala = (body.kennitala || "").replace(/\D/g, "");
   const contactEmail = (body.contact_draft_email || "").trim().toLowerCase();
+  const parentIdRaw = (body.parent_company_id || "").trim();
 
   if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 });
-  if (kennitala.length !== 10) {
-    return NextResponse.json({ error: "kennitala must be 10 digits" }, { status: 400 });
+  // Kennitala is required for top-level companies only. Sub-companies
+  // (municipal schools, departments, etc.) use the parent's kennitala
+  // for billing and don't have one of their own.
+  if (!parentIdRaw && kennitala.length !== 10) {
+    return NextResponse.json({ error: "kennitala must be 10 digits for top-level companies" }, { status: 400 });
+  }
+  if (parentIdRaw && kennitala && kennitala.length !== 10) {
+    return NextResponse.json({ error: "kennitala must be 10 digits if provided" }, { status: 400 });
   }
   if (contactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contactEmail)) {
     return NextResponse.json({ error: "invalid_contact_email" }, { status: 400 });
   }
 
   // Encrypt company kennitala via existing RPC for consistency with
-  // self-serve signups.
-  const { data: encData, error: encErr } = await supabaseAdmin.rpc("enc_kennitala", {
-    p_text: kennitala,
-  });
-  if (encErr) {
-    return NextResponse.json({ error: "kennitala_encrypt_failed", detail: encErr.message }, { status: 500 });
+  // self-serve signups. Skipped when the sub didn't provide one.
+  let encData: unknown = null;
+  if (kennitala) {
+    const { data, error: encErr } = await supabaseAdmin.rpc("enc_kennitala", {
+      p_text: kennitala,
+    });
+    if (encErr) {
+      return NextResponse.json({ error: "kennitala_encrypt_failed", detail: encErr.message }, { status: 500 });
+    }
+    encData = data;
   }
 
   // Validate parent_company_id (if provided) — must exist and be top-level.
-  const parentId = (body.parent_company_id || "").trim() || null;
+  const parentId = parentIdRaw || null;
   if (parentId) {
     const { data: parent } = await supabaseAdmin
       .from("companies")

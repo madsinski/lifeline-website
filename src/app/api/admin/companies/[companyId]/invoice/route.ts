@@ -30,9 +30,34 @@ export async function POST(
     .maybeSingle();
   if (!company) return NextResponse.json({ error: "company_not_found" }, { status: 404 });
 
-  const { data: decKt } = await supabaseAdmin.rpc("dec_kennitala", { p_enc: company.kennitala_encrypted });
-  const kennitala = (decKt as string | null) || "";
-  if (!kennitala) return NextResponse.json({ error: "company_kennitala_missing" }, { status: 400 });
+  // Resolve the billing kennitala. Sub-companies (municipality schools /
+  // departments) typically share the parent's kennitala — so if this
+  // company has no encrypted kennitala of its own, walk up to its parent.
+  let kennitala = "";
+  let billingCompanyId = company.id;
+  let billingPaydayCustomerId = company.payday_customer_id;
+  let billingCompanyName = company.name;
+  if (company.kennitala_encrypted) {
+    const { data: decKt } = await supabaseAdmin.rpc("dec_kennitala", { p_enc: company.kennitala_encrypted });
+    kennitala = (decKt as string | null) || "";
+  }
+  if (!kennitala && company.parent_company_id) {
+    const { data: parent } = await supabaseAdmin
+      .from("companies")
+      .select("id, name, kennitala_encrypted, payday_customer_id")
+      .eq("id", company.parent_company_id)
+      .maybeSingle();
+    if (parent?.kennitala_encrypted) {
+      const { data: decKt } = await supabaseAdmin.rpc("dec_kennitala", { p_enc: parent.kennitala_encrypted });
+      kennitala = (decKt as string | null) || "";
+      // Bill the PayDay customer under the PARENT's kennitala — that's who
+      // the ministry / accounts-payable actually knows as the payer.
+      billingCompanyId = parent.id;
+      billingPaydayCustomerId = (parent.payday_customer_id as string | null) || null;
+      billingCompanyName = parent.name;
+    }
+  }
+  if (!kennitala) return NextResponse.json({ error: "company_kennitala_missing", detail: "Sub-company had no kennitala and its parent also has none set." }, { status: 400 });
 
   // Get employee count and signed purchase order pricing
   const [{ count: completed }, { count: totalMembers }, { data: latestPO }] = await Promise.all([
@@ -104,13 +129,14 @@ export async function POST(
     }
   }
 
-  // Step 1: ensure PayDay customer exists
+  // Step 1: ensure PayDay customer exists under the billing entity (parent
+  // if we walked up to its kennitala; otherwise this company itself).
   const customerRes = await ensurePaydayCustomer({
-    companyId,
+    companyId: billingCompanyId,
     kennitala,
-    name: company.name,
+    name: billingCompanyName,
     email: contactEmail,
-    existingPaydayCustomerId: company.payday_customer_id,
+    existingPaydayCustomerId: billingPaydayCustomerId,
   });
   if (!customerRes.ok || !customerRes.customer_id) {
     return NextResponse.json({
