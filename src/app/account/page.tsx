@@ -3480,11 +3480,19 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
         </div>
       </div>
 
+      {/* Two parallel paths with deliberately distinct colour families
+          so they don't read as one big blob. Left column (daily habit /
+          app work) is the COOL/BLUE scheme. Right column (cadence /
+          checkpoints over time) is the WARM/AMBER scheme. Inner cards
+          stay inside their column's family, just shifting shade. */}
       <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Lifeline app — two paths: self-managed vs personal coaching */}
-        <div className="rounded-2xl bg-white border border-blue-200 p-5 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-blue-100">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-sm">
+        {/* ── PATH 1: COOL / BLUE — The app + two tracks ─────────────── */}
+        <div className="rounded-2xl bg-white border-2 border-sky-200 p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="inline-flex items-center gap-1.5 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-sky-700 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded">Path 1 · Daily</span>
+          </div>
+          <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-sky-100">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-sm">
               <svg className="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H7V4h10v16zM12 18.5a1 1 0 100-2 1 1 0 000 2z" />
               </svg>
@@ -3496,10 +3504,10 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
           </p>
 
           <div className="space-y-3">
-            <div className="relative overflow-hidden rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-blue-50/50 to-white p-4 shadow-sm">
-              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-blue-600" />
+            <div className="relative overflow-hidden rounded-xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 via-sky-50/50 to-white p-4 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-sky-400 to-sky-500" />
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-blue-600 px-2 py-0.5 rounded-md shadow-sm">Track A</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-sky-500 px-2 py-0.5 rounded-md shadow-sm">Track A</span>
                 <span className="text-sm font-bold text-gray-900">Self-managed journey</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
@@ -3507,19 +3515,19 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               </p>
             </div>
 
-            <div className="relative overflow-hidden rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 via-emerald-50/70 to-white p-4 shadow-sm ring-1 ring-emerald-100">
-              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-emerald-500 to-emerald-600" />
+            <div className="relative overflow-hidden rounded-xl border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-white p-4 shadow-sm ring-1 ring-indigo-100">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-indigo-500 to-indigo-700" />
               <div className="absolute top-2 right-2">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-white border border-emerald-200 px-1.5 py-0.5 rounded shadow-sm">Recommended</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-700 bg-white border border-indigo-200 px-1.5 py-0.5 rounded shadow-sm">Recommended</span>
               </div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-emerald-600 px-2 py-0.5 rounded-md shadow-sm">Track B</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-600 px-2 py-0.5 rounded-md shadow-sm">Track B</span>
                 <span className="text-sm font-bold text-gray-900">Personal coaching</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
                 Everything in Track A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.
               </p>
-              <Link href="/coaching" className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline pl-1">
+              <Link href="/coaching" className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-indigo-700 hover:text-indigo-800 hover:underline pl-1">
                 Learn about coaching
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -3529,65 +3537,71 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href="https://apps.apple.com/app/lifeline-health" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
+            <a href="https://apps.apple.com/app/lifeline-health" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-sky-200 text-sky-700 bg-white hover:bg-sky-50">
               App Store
             </a>
-            <a href="https://play.google.com/store/apps/details?id=is.lifelinehealth.app" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
+            <a href="https://play.google.com/store/apps/details?id=is.lifelinehealth.app" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-sky-200 text-sky-700 bg-white hover:bg-sky-50">
               Google Play
             </a>
           </div>
         </div>
 
-        {/* Cadence reminders */}
-        <div className="rounded-2xl bg-white border border-emerald-200 p-5 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-emerald-100">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center shadow-sm">
+        {/* ── PATH 2: WARM / AMBER — Cadence over time ─────────────── */}
+        <div className="rounded-2xl bg-white border-2 border-amber-200 p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="inline-flex items-center gap-1.5 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">Path 2 · Over time</span>
+          </div>
+          <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-amber-100">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-sm">
               <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="font-bold text-gray-900 text-sm">Stay on track</div>
           </div>
+          <p className="text-xs text-gray-600 leading-relaxed mb-4">
+            Check back at the right cadence so your plan stays calibrated to your actual numbers — not last year&apos;s.
+          </p>
 
           <ul className="text-xs text-gray-700 leading-relaxed space-y-2.5">
-            <li className="relative flex items-start gap-3 rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-blue-50/50 to-white p-3 shadow-sm">
-              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-blue-600 rounded-l-xl" />
-              <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-sm">
+            <li className="relative flex items-start gap-3 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-amber-50/50 to-white p-3 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-amber-400 to-amber-500 rounded-l-xl" />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-sm">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-0.5">Every month</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 mb-0.5">Every month</div>
                 <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Self check-in</div>
                 <p className="text-[12px] text-gray-700 leading-snug">Free, five-minute questionnaire. Catches changes early.</p>
               </div>
             </li>
-            <li className="relative flex items-start gap-3 rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-50/50 to-white p-3 shadow-sm">
-              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-l-xl" />
-              <div className="shrink-0 w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+            <li className="relative flex items-start gap-3 rounded-xl border-2 border-orange-300 bg-gradient-to-br from-orange-50 via-orange-50/50 to-white p-3 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-orange-500 to-orange-600 rounded-l-xl" />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-orange-600 text-white flex items-center justify-center shadow-sm">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" strokeWidth={2} /><circle cx="12" cy="12" r="3" strokeWidth={2} /></svg>
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-0.5">Every 3–6 months</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-orange-700 mb-0.5">Every 3–6 months</div>
                 <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Measurement check-in</div>
                 <p className="text-[12px] text-gray-700 leading-snug">Re-take body composition + key labs so your plan stays calibrated.</p>
               </div>
             </li>
-            <li className="relative flex items-start gap-3 rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-violet-50/50 to-white p-3 shadow-sm">
-              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-violet-500 to-violet-600 rounded-l-xl" />
-              <div className="shrink-0 w-8 h-8 rounded-lg bg-violet-600 text-white flex items-center justify-center shadow-sm">
+            <li className="relative flex items-start gap-3 rounded-xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 via-rose-50/50 to-white p-3 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-rose-500 to-rose-600 rounded-l-xl" />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-sm">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-0.5">Every 6–12 months</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-rose-700 mb-0.5">Every 6–12 months</div>
                 <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Full Foundational re-assessment</div>
                 <p className="text-[12px] text-gray-700 leading-snug">Complete panel, updated report and fresh doctor review.</p>
               </div>
             </li>
           </ul>
 
-          <div className="mt-3 space-y-2">
+          <div className="mt-4 pt-4 border-t border-amber-100 space-y-2">
             {isB2C ? (
-              <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+              <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-sm">
                 Book a check-in
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -3601,7 +3615,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <p className="text-[11px] text-gray-500 leading-relaxed">
                   Want an extra check-in before then? You can self-pay for one between employer rounds.
                 </p>
-                <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md border border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50">
+                <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md border border-amber-300 text-amber-800 bg-white hover:bg-amber-50">
                   Book an extra check-in
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
