@@ -43,6 +43,7 @@ export default function AdminLegalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [docKindFilter, setDocKindFilter] = useState<"all" | "terms-of-service" | "data-processing-agreement" | "employee-terms-of-service" | "health-assessment-consent">("all");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -115,13 +116,44 @@ export default function AdminLegalPage() {
 
   const filteredPlatform = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return platformRows;
-    return platformRows.filter((r) =>
+    let rows = platformRows;
+    if (docKindFilter !== "all") rows = rows.filter((r) => r.document_key === docKindFilter);
+    if (!q) return rows;
+    return rows.filter((r) =>
       (r.user_email || "").toLowerCase().includes(q)
       || r.document_key.toLowerCase().includes(q)
       || r.document_version.toLowerCase().includes(q),
     );
-  }, [platformRows, search]);
+  }, [platformRows, search, docKindFilter]);
+
+  // Per-document-key counts, always against the unfiltered set so the
+  // pills show the true totals even when a filter narrows the table.
+  const platformCounts = useMemo(() => {
+    const all = platformRows;
+    return {
+      all: all.length,
+      "terms-of-service": all.filter((r) => r.document_key === "terms-of-service").length,
+      "data-processing-agreement": all.filter((r) => r.document_key === "data-processing-agreement").length,
+      "employee-terms-of-service": all.filter((r) => r.document_key === "employee-terms-of-service").length,
+      "health-assessment-consent": all.filter((r) => r.document_key === "health-assessment-consent").length,
+    };
+  }, [platformRows]);
+
+  const exportPlatformCsv = useCallback(() => {
+    const q = (s: string | null | undefined) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+    const header = ["User email", "User id", "Document key", "Version", "Accepted at", "IP", "User agent", "Text hash", "PDF path"].join(",");
+    const rows = filteredPlatform.map((r) => [
+      q(r.user_email), q(r.user_id), q(r.document_key), q(r.document_version),
+      q(r.accepted_at), q(r.ip), q(r.user_agent), q(r.text_hash), q(r.pdf_storage_path),
+    ].join(","));
+    const blob = new Blob(["\ufeff" + [header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `platform-acceptances-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredPlatform]);
 
   const downloadFromBucket = async (id: string, bucket: string, storagePath: string | null) => {
     if (!storagePath) {
@@ -173,7 +205,7 @@ export default function AdminLegalPage() {
           <p className="text-sm text-gray-500 mt-1">
             {tab === "commercial"
               ? "Commercial B2B service agreements + purchase orders signed by contact persons."
-              : "Platform-level acceptances: Terms of Service + Data Processing Agreement, one per user."}
+              : "Every click-through acceptance across the platform — B2B contact persons (ToS + DPA), employees (Employee ToS + Health consent) and B2C customers (Health consent). Each row includes the user, version, timestamp, IP and a downloadable PDF certificate."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -209,6 +241,40 @@ export default function AdminLegalPage() {
           Platform acceptances ({platformRows.length})
         </button>
       </div>
+
+      {/* Platform tab: document-type filter + CSV export. Counts reflect
+          the un-filtered totals so admins see the full picture at a glance. */}
+      {tab === "platform" && (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {([
+              { key: "all", label: "All" },
+              { key: "terms-of-service", label: "Terms of Service" },
+              { key: "data-processing-agreement", label: "DPA (Vinnslusamningur)" },
+              { key: "employee-terms-of-service", label: "Employee ToS" },
+              { key: "health-assessment-consent", label: "Health consent" },
+            ] as Array<{ key: typeof docKindFilter; label: string }>).map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setDocKindFilter(p.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  docKindFilter === p.key ? "bg-emerald-600 text-white" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {p.label} <span className="opacity-70">· {platformCounts[p.key]}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={exportPlatformCsv}
+            disabled={filteredPlatform.length === 0}
+            className="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40"
+            title="Download the current view as CSV for audit / file-keeping"
+          >
+            Export CSV
+          </button>
+        </div>
+      )}
 
       {error && <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">{error}</div>}
 

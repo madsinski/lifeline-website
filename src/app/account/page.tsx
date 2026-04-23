@@ -3340,7 +3340,10 @@ function JourneyTimeline({
           ? "Your report, health score and action plan are ready in Medalia. Open the portal to review them, then tick the box below."
           : "Once your measurements, blood work and doctor consultation are done, your full personal report lands in the Lifeline patient portal.",
       portal: true,
-      manualCheck: isB2C ? { key: "results_viewed", label: "I've reviewed my report" } : undefined,
+      // Available to both B2C and B2B — the "I've reviewed my report" tick
+      // is how either flow closes out the journey and reveals the
+      // What's next card.
+      manualCheck: { key: "results_viewed", label: "I've reviewed my report" },
     },
   ];
 

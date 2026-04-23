@@ -8,7 +8,7 @@ export const THJONUSTUSKILMALAR_VERSION = "thjonustuskilmalar-v1.0";
 export const THJONUSTUSAMNINGUR_VERSION = "thjonustusamningur-v1.0";
 
 export function renderThjonustuskilmalar(): string {
-  return `ÞJÓNUSTUSKILMÁLAR
+  return `KLÍNÍSKIR SKILMÁLAR HEILSUMATS
 Lifeline Health ehf. – Heilsumat starfsmanna
 
 1. Aðilar

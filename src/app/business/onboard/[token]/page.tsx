@@ -408,33 +408,37 @@ function ProfileStage({
   return (
     <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Confirm your details</h1>
-        <p className="text-sm text-gray-600 mt-1">We use these to set up your body-composition profile.</p>
+        <h1 className="text-2xl font-semibold">Líkamssamsetningarsnið</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Við höfum nafn og netfang úr boðspóstinum. Við þurfum kyn, hæð, þyngd og hreyfingarstig til að stofna Biody-sniðmátið þitt — fæðingardagur kemur úr kennitölunni sem þú notaðir áðan.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <Field label="Full name">
-          <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" />
-        </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Email"><input type="email" value={email} disabled className="input" /></Field>
-          <Field label="Phone">
+      {/* Light contact summary — read-only / easy-to-correct fields the
+          admin captured at invite time. No separate "confirm" framing. */}
+      <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4 space-y-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">Netfang</div>
+            <div className="text-gray-800">{email}</div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">Kennitala</div>
+            <div className="text-gray-800 font-mono">{maskKennitala(kennitala)}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Nafn (má leiðrétta)">
+            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" />
+          </Field>
+          <Field label="Símanúmer (má leiðrétta)">
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="input" />
           </Field>
         </div>
-        <Field label="Kennitala">
-          <input
-            type="text"
-            value={maskKennitala(kennitala)}
-            disabled
-            className="input font-mono tracking-wider"
-            title="Only the last 4 digits are shown for your protection. Lifeline holds your full kennitala encrypted."
-          />
-        </Field>
       </div>
 
       <div className="border-t border-gray-100 pt-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-700">Body-composition profile</h2>
+        <h2 className="text-sm font-semibold text-gray-700">Biody-gildi</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Sex">
             <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required className="input">
