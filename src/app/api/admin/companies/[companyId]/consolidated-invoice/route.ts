@@ -135,14 +135,17 @@ export async function POST(
   }
 
   // Step 2: one invoice, many lines.
+  // Keep reference short — PayDay rejects long ones. Use first 8 chars
+  // of the parent id (collision risk is negligible for our volume).
+  const shortRef = `ll-cons-${parent.id.slice(0, 8)}`;
   const invoiceRes = await createPaydayInvoice({
     customerId: customerRes.customer_id,
-    description: `Lifeline Health — ${parent.name} (samheildarreikningur${body.notes ? `, ${body.notes}` : ""})`,
+    description: `Lifeline Health samheildarreikningur - ${parent.name}${body.notes ? ` (${body.notes})` : ""}`,
     currencyCode: "ISK",
     createClaim: body.create_claim ?? true,
     createElectronicInvoice: body.create_electronic_invoice ?? false,
     sendEmail: body.send_email ?? true,
-    reference: `ll:consolidated:${parent.id}`,
+    reference: shortRef,
     lines: lines.map(({ sub_id: _sub, ...rest }) => rest),
   });
   if (!invoiceRes.ok) {

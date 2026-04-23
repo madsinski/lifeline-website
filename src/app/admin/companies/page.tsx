@@ -412,7 +412,18 @@ function ConsolidatedInvoiceButton({ companyId }: { companyId: string }) {
         body: JSON.stringify({ send_email: true, create_claim: true }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j?.ok) { setMsg(j?.detail || j?.error || "Mistókst."); return; }
+      if (!res.ok || !j?.ok) {
+        const base = j?.detail || j?.error || "Mistókst.";
+        let rawMsg = "";
+        if (j?.raw) {
+          try {
+            const r = typeof j.raw === "string" ? j.raw : JSON.stringify(j.raw);
+            rawMsg = r.length > 500 ? r.slice(0, 500) + "…" : r;
+          } catch { /* ignore */ }
+        }
+        setMsg(rawMsg ? `${base} — ${rawMsg}` : base);
+        return;
+      }
       setMsg(`Reikningur ${j.invoice_number || j.invoice_id} — ${(j.amount_total ?? 0).toLocaleString("is-IS")} ISK á ${j.lines?.length || 0} línur.`);
     } catch (e) {
       setMsg((e as Error).message);
