@@ -187,7 +187,11 @@ function DocumentsButton({ companyId }: { companyId: string }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/companies/${companyId}/documents`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`/api/admin/companies/${companyId}/documents`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const j = await res.json();
       if (res.ok && j.ok) setDocs(j.documents || []);
       else setMsg({ kind: "err", text: j?.detail || j?.error || "Gat ekki sótt skjöl." });
@@ -208,8 +212,12 @@ function DocumentsButton({ companyId }: { companyId: string }) {
       if (signerName) fd.append("signer_name", signerName);
       if (signedAt) fd.append("signed_at", signedAt);
       if (note) fd.append("note", note);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch(`/api/admin/companies/${companyId}/documents`, {
-        method: "POST", body: fd,
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
       });
       const j = await res.json();
       if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Upphleðsla mistókst." }); return; }
@@ -221,7 +229,12 @@ function DocumentsButton({ companyId }: { companyId: string }) {
 
   const deleteDoc = async (docId: string) => {
     if (!confirm("Eyða þessu skjali?")) return;
-    const res = await fetch(`/api/admin/companies/${companyId}/documents/${docId}`, { method: "DELETE" });
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch(`/api/admin/companies/${companyId}/documents/${docId}`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     const j = await res.json().catch(() => ({}));
     if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Eyðing mistókst." }); return; }
     await load();
@@ -388,9 +401,14 @@ function ConsolidatedInvoiceButton({ companyId }: { companyId: string }) {
     setBusy(true);
     setMsg(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch(`/api/admin/companies/${companyId}/consolidated-invoice`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ send_email: true, create_claim: true }),
       });
       const j = await res.json().catch(() => ({}));
