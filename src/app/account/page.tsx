@@ -3517,9 +3517,6 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
 
             <div className="relative overflow-hidden rounded-xl border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-white p-4 shadow-sm ring-1 ring-indigo-100">
               <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-indigo-500 to-indigo-700" />
-              <div className="absolute top-2 right-2">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-700 bg-white border border-indigo-200 px-1.5 py-0.5 rounded shadow-sm">Recommended</span>
-              </div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-600 px-2 py-0.5 rounded-md shadow-sm">Track B</span>
                 <span className="text-sm font-bold text-gray-900">Personal coaching</span>
