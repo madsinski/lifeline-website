@@ -112,7 +112,7 @@ function OverflowMenu({ children }: { children: (close: () => void) => ReactNode
   const toggle = () => {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setRect({ top: r.bottom + 4, left: r.right - 220, width: 220 });
+      setRect({ top: r.bottom + 4, left: r.right - 240, width: 240 });
     }
     setOpen((v) => !v);
   };
@@ -1355,42 +1355,30 @@ export default function AdminCompaniesPage() {
                         <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
                         <OverflowMenu>
                           {(close) => (
-                            <>
+                            <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
                               {(c.status === "draft" || c.status === "contact_invited") && (
-                                <div onClick={close}>
-                                  <InviteContactMenuItem companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
-                                </div>
+                                <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
                               )}
                               {isParentWithSubs && (
-                                <div onClick={close}>
-                                  <ConsolidatedInvoiceMenuItem companyId={c.id} companyName={c.name} />
-                                </div>
+                                <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
                               )}
-                              <div onClick={close}>
-                                <DocumentsMenuItem companyId={c.id} />
-                              </div>
-                              <MenuDivider />
-                              <div onClick={close}>
-                                <BiodyGroupMenuItem companyId={c.id} />
-                              </div>
-                              <div onClick={close}>
-                                <BulkActivateMenuItem companyId={c.id} />
-                              </div>
-                              <MenuDivider />
+                              <DocumentsButton companyId={c.id} />
+                              <div className="border-t border-gray-100 my-0.5" />
+                              <EnsureGroupButton companyId={c.id} />
+                              <BulkActivateButton companyId={c.id} />
+                              <div className="border-t border-gray-100 my-0.5" />
                               <button
                                 onClick={() => { downloadCsv(c.id, c.name); close(); }}
-                                className="w-full flex items-center gap-2 text-sm text-gray-700 px-3 py-1.5 hover:bg-gray-50"
+                                className="inline-flex items-center justify-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
                               >
-                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
                                 </svg>
                                 Export CSV
                               </button>
-                              <MenuDivider />
-                              <div onClick={close}>
-                                <DeleteCompanyMenuItem company={c} onDone={load} />
-                              </div>
-                            </>
+                              <div className="border-t border-gray-100 my-0.5" />
+                              <DeleteCompanyButton company={c} onDone={load} />
+                            </div>
                           )}
                         </OverflowMenu>
                       </div>
@@ -1407,61 +1395,3 @@ export default function AdminCompaniesPage() {
   );
 }
 
-function MenuDivider() {
-  return <div className="border-t border-gray-100 my-1" />;
-}
-
-// ────────────────────────────────────────────────────────────────────
-// Overflow-menu wrappers: thin re-dressings of the existing buttons
-// that render as left-aligned menu items instead of coloured pills.
-// Each just renders the original component inside a menu-item wrapper
-// or a lightly rewritten variant that opens the same modal/dialog.
-// ────────────────────────────────────────────────────────────────────
-
-function InviteContactMenuItem({ companyId, draftEmail, status }: { companyId: string; draftEmail: string | null; status: "draft" | "contact_invited" }) {
-  return (
-    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
-      <InviteContactButton companyId={companyId} draftEmail={draftEmail} status={status} />
-    </div>
-  );
-}
-
-function ConsolidatedInvoiceMenuItem({ companyId, companyName }: { companyId: string; companyName: string }) {
-  return (
-    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
-      <ConsolidatedInvoiceButton companyId={companyId} companyName={companyName} />
-    </div>
-  );
-}
-
-function DocumentsMenuItem({ companyId }: { companyId: string }) {
-  return (
-    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
-      <DocumentsButton companyId={companyId} />
-    </div>
-  );
-}
-
-function BiodyGroupMenuItem({ companyId }: { companyId: string }) {
-  return (
-    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
-      <EnsureGroupButton companyId={companyId} />
-    </div>
-  );
-}
-
-function BulkActivateMenuItem({ companyId }: { companyId: string }) {
-  return (
-    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
-      <BulkActivateButton companyId={companyId} />
-    </div>
-  );
-}
-
-function DeleteCompanyMenuItem({ company, onDone }: { company: CompanyRow; onDone: () => void }) {
-  return (
-    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-red-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-red-50">
-      <DeleteCompanyButton company={company} onDone={onDone} />
-    </div>
-  );
-}
