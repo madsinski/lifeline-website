@@ -34,6 +34,7 @@ interface PlatformAcceptanceRow {
   accepted_at: string;
   pdf_storage_path: string | null;
   user_email: string | null;
+  user_full_name: string | null;
 }
 
 export default function AdminLegalPage() {
@@ -63,19 +64,28 @@ export default function AdminLegalPage() {
         .order("accepted_at", { ascending: false }),
     ]);
 
-    // Resolve user emails for platform acceptances via clients table (best effort)
+    // Resolve user email + full name for platform acceptances via clients
+    // table so the list is searchable by name, not just email. Best-effort
+    // — a user with no clients row (rare) still shows the uuid.
     const platformUserIds = Array.from(new Set((platformAcc ?? []).map((r: { user_id: string }) => r.user_id)));
-    const userEmailMap = new Map<string, string>();
+    const userInfoMap = new Map<string, { email: string | null; full_name: string | null }>();
     if (platformUserIds.length > 0) {
-      const { data: clientRows } = await supabase.from("clients").select("id, email").in("id", platformUserIds);
-      for (const c of (clientRows ?? []) as { id: string; email: string }[]) {
-        if (c.email) userEmailMap.set(c.id, c.email);
+      const { data: clientRows } = await supabase
+        .from("clients")
+        .select("id, email, full_name")
+        .in("id", platformUserIds);
+      for (const c of (clientRows ?? []) as { id: string; email: string | null; full_name: string | null }[]) {
+        userInfoMap.set(c.id, { email: c.email || null, full_name: c.full_name || null });
       }
     }
-    setPlatformRows(((platformAcc ?? []) as Omit<PlatformAcceptanceRow, "user_email">[]).map((r) => ({
-      ...r,
-      user_email: userEmailMap.get(r.user_id) ?? null,
-    })));
+    setPlatformRows(((platformAcc ?? []) as Omit<PlatformAcceptanceRow, "user_email" | "user_full_name">[]).map((r) => {
+      const info = userInfoMap.get(r.user_id);
+      return {
+        ...r,
+        user_email: info?.email ?? null,
+        user_full_name: info?.full_name ?? null,
+      };
+    }));
     if (aErr) {
       setError(aErr.message);
       setLoading(false);
@@ -120,7 +130,8 @@ export default function AdminLegalPage() {
     if (docKindFilter !== "all") rows = rows.filter((r) => r.document_key === docKindFilter);
     if (!q) return rows;
     return rows.filter((r) =>
-      (r.user_email || "").toLowerCase().includes(q)
+      (r.user_full_name || "").toLowerCase().includes(q)
+      || (r.user_email || "").toLowerCase().includes(q)
       || r.document_key.toLowerCase().includes(q)
       || r.document_version.toLowerCase().includes(q),
     );
@@ -141,9 +152,9 @@ export default function AdminLegalPage() {
 
   const exportPlatformCsv = useCallback(() => {
     const q = (s: string | null | undefined) => `"${String(s ?? "").replace(/"/g, '""')}"`;
-    const header = ["User email", "User id", "Document key", "Version", "Accepted at", "IP", "User agent", "Text hash", "PDF path"].join(",");
+    const header = ["User name", "User email", "User id", "Document key", "Version", "Accepted at", "IP", "User agent", "Text hash", "PDF path"].join(",");
     const rows = filteredPlatform.map((r) => [
-      q(r.user_email), q(r.user_id), q(r.document_key), q(r.document_version),
+      q(r.user_full_name), q(r.user_email), q(r.user_id), q(r.document_key), q(r.document_version),
       q(r.accepted_at), q(r.ip), q(r.user_agent), q(r.text_hash), q(r.pdf_storage_path),
     ].join(","));
     const blob = new Blob(["\ufeff" + [header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
@@ -211,7 +222,7 @@ export default function AdminLegalPage() {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder={tab === "commercial" ? "Search company, signatory, PO…" : "Search user email, doc key…"}
+            placeholder={tab === "commercial" ? "Search company, signatory, PO…" : "Search client name, email, doc key…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm w-72 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none text-gray-900"
@@ -360,7 +371,10 @@ export default function AdminLegalPage() {
                 {filteredPlatform.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50/60">
                     <td className="px-4 py-3 text-sm text-gray-700">
-                      <div className="font-medium text-gray-900">{r.user_email || "—"}</div>
+                      <div className="font-medium text-gray-900">{r.user_full_name || r.user_email || "—"}</div>
+                      {r.user_full_name && r.user_email && (
+                        <div className="text-[11px] text-gray-500">{r.user_email}</div>
+                      )}
                       <div className="text-[10px] font-mono text-gray-400 truncate max-w-[220px]" title={r.user_id}>{r.user_id}</div>
                     </td>
                     <td className="px-4 py-3 text-sm font-mono text-gray-700">{r.document_key}</td>
