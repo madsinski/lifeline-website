@@ -137,6 +137,30 @@ export default function AccountOnboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
       <main className="max-w-2xl mx-auto px-6 py-10 sm:py-14 space-y-8">
+        {/* Signed-in-as confirmation. No "expected" email to compare
+            against here (unlike the B2B/claim flows with an invite
+            token), so we just show the current identity prominently
+            with an easy 'Wrong account? Sign out' escape hatch — that
+            prevents the cross-tab session bleed where someone clicks
+            a confirmation link with another Lifeline session open. */}
+        {email && (
+          <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-gray-200 bg-white/60 px-4 py-2.5 text-xs">
+            <span className="text-gray-600">
+              Skráð/ur inn sem <strong className="text-gray-900 font-mono">{email}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm("Skrá út og opna skráninguna aftur með öðrum aðganga?")) return;
+                await supabase.auth.signOut();
+                router.replace("/account/login?next=/account/onboard");
+              }}
+              className="text-gray-500 hover:text-gray-800 underline underline-offset-2"
+            >
+              Rangur aðgangur? Skrá út
+            </button>
+          </div>
+        )}
         <StageIndicator stage={stage} />
 
         {stage === "welcome" && (

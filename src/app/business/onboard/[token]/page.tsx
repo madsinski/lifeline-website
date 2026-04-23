@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import BusinessHeader from "@/app/business/BusinessHeader";
 import { useI18n } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
 import {
   EMPLOYEE_TOS_KEY,
   EMPLOYEE_TOS_VERSION,
@@ -53,6 +54,19 @@ export default function OnboardPage() {
     useState<"sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "">("");
 
   const [accountPassword, setAccountPassword] = useState("");
+
+  // Session-mismatch guard: detect if someone clicked this employee
+  // invite while already signed in as another Lifeline user. Completing
+  // onboarding in that state would bind the employee's body-comp /
+  // consent data to the wrong auth account.
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentEmail(user?.email || null);
+    })();
+  }, []);
 
   const verifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,6 +141,53 @@ export default function OnboardPage() {
       />
 
       <main className="max-w-2xl mx-auto px-6 py-12">
+        {/* Session-mismatch guard. If the user is signed in as a
+            different account from the one the invite was sent to,
+            refuse to let them proceed (a silent mismatch would bind
+            the new account's onboarding data to the wrong user). */}
+        {currentEmail && email && currentEmail.toLowerCase() !== email.toLowerCase() && (
+          <div className="mb-6 rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M4.929 19h14.142a2 2 0 001.78-2.924L13.78 4.924a2 2 0 00-3.56 0L3.15 16.076A2 2 0 004.929 19z" />
+              </svg>
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-amber-900 mb-1">Ertu skráð/ur inn sem rétti notandi?</div>
+                <p className="text-sm text-amber-900/90 leading-relaxed">
+                  Boðshlekkurinn var sendur á <strong className="font-mono">{email}</strong>, en þú ert núna skráð/ur inn sem <strong className="font-mono">{currentEmail}</strong>. Haltu ekki áfram — skráning myndi festast á rangan notanda. Skráðu þig út og opnaðu hlekkinn aftur.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setSigningOut(true);
+                      await supabase.auth.signOut();
+                      setCurrentEmail(null);
+                      setSigningOut(false);
+                    }}
+                    disabled={signingOut}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60"
+                  >
+                    {signingOut ? "Skráir út…" : `Skrá út ${currentEmail}`}
+                  </button>
+                  <Link href="/" className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-900 bg-white hover:bg-amber-50">
+                    Hætta við
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Hide the stage content entirely when a session mismatch is
+            detected — the banner above is the only path forward. Password
+            stage is exempt because the token lookup populates `email`
+            which the mismatch check depends on. */}
+        {(() => {
+          const mismatch = !!(currentEmail && email && currentEmail.toLowerCase() !== email.toLowerCase());
+          if (mismatch) return null;
+          return (
+            <>
         {stage !== "password" && stage !== "done" && <Progress stage={stage} />}
 
         {stage === "password" && <PasswordStage
@@ -176,6 +237,9 @@ export default function OnboardPage() {
         />}
 
         {stage === "done" && <DoneStage firstName={(fullName.split(" ")[0] || "").trim()} />}
+            </>
+          );
+        })()}
 
         {/* Silently consume unused vars so TS doesn't complain about one-time setters */}
         <input type="hidden" value={memberId || ""} readOnly />

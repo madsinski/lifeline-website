@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import {
   TOS_VERSION, renderTermsOfService,
   DPA_VERSION, renderDataProcessingAgreement,
@@ -43,6 +44,13 @@ export default function ClaimPage() {
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
 
+  // Session-mismatch guard — if the user is signed in as some OTHER
+  // account (common when they clicked the invite link in a browser
+  // tab while another Lifeline session was already open), we block
+  // the form and force them to choose: sign out, or go back.
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -62,6 +70,10 @@ export default function ClaimPage() {
         setSignatoryName(p.contact_draft_name || "");
         setSignatoryEmail(p.contact_draft_email || "");
         setSignatoryRole(p.contact_draft_role || "");
+        // Note any existing session so we can warn if it's for a
+        // different email (e.g. admin tested while logged in elsewhere).
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentEmail(user?.email || null);
       } catch (e) {
         setLoadErr((e as Error).message);
       } finally {
@@ -145,7 +157,48 @@ export default function ClaimPage() {
           )}
         </header>
 
-        <form onSubmit={submit} className="space-y-5">
+        {(() => {
+          const expected = (preview.contact_draft_email || "").toLowerCase();
+          const current = (currentEmail || "").toLowerCase();
+          if (!current || !expected || current === expected) return null;
+          return (
+            <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M4.929 19h14.142a2 2 0 001.78-2.924L13.78 4.924a2 2 0 00-3.56 0L3.15 16.076A2 2 0 004.929 19z" />
+                </svg>
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-amber-900 mb-1">Ertu skráð/ur inn sem rétti notandi?</div>
+                  <p className="text-sm text-amber-900/90 leading-relaxed">
+                    Þessi boðshlekkur var sendur á <strong className="font-mono">{preview.contact_draft_email}</strong>,
+                    en þú ert núna skráð/ur inn sem <strong className="font-mono">{currentEmail}</strong>. Ef þú heldur áfram mun aðgangurinn
+                    festast á rangan notanda. Skráðu þig út fyrst og opnaðu hlekkinn aftur í hreinum glugga.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setSigningOut(true);
+                        await supabase.auth.signOut();
+                        setCurrentEmail(null);
+                        setSigningOut(false);
+                      }}
+                      disabled={signingOut}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60"
+                    >
+                      {signingOut ? "Skráir út…" : `Skrá út ${currentEmail}`}
+                    </button>
+                    <Link href="/" className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-900 bg-white hover:bg-amber-50">
+                      Hætta við
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        <form onSubmit={submit} className={`space-y-5 ${currentEmail && preview.contact_draft_email && currentEmail.toLowerCase() !== preview.contact_draft_email.toLowerCase() ? "opacity-40 pointer-events-none" : ""}`}>
           {/* Account */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
             <h2 className="text-sm font-semibold text-gray-900">1. Aðgangur tengiliðs</h2>
