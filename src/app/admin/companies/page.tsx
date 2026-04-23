@@ -392,66 +392,301 @@ function DocumentsButton({ companyId }: { companyId: string }) {
 // One-click consolidated invoice for a parent (municipality-style)
 // company. Aggregates all active subs into one PayDay invoice, billed
 // to the parent's billing_contact_email.
-function ConsolidatedInvoiceButton({ companyId }: { companyId: string }) {
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+type ConsolidatedRow = {
+  id: string;
+  name: string;
+  isParent: boolean;
+  quantity: number;
+  unitPrice: number;
+  defaultQty: number; // for display / "reset"
+};
 
-  async function fire() {
-    if (!confirm("Búa til samheildarreikning fyrir móðurfyrirtækið og alla undireiningar? Reikningurinn fer á PayDay-tengilið móðurfyrirtækisins.")) return;
-    setBusy(true);
-    setMsg(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch(`/api/admin/companies/${companyId}/consolidated-invoice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ send_email: true, create_claim: true }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j?.ok) {
-        const base = j?.detail || j?.error || "Mistókst.";
-        let rawMsg = "";
-        if (j?.raw) {
-          try {
-            const r = typeof j.raw === "string" ? j.raw : JSON.stringify(j.raw);
-            rawMsg = r.length > 500 ? r.slice(0, 500) + "…" : r;
-          } catch { /* ignore */ }
+function ConsolidatedInvoiceButton({ companyId, companyName }: { companyId: string; companyName: string }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [rows, setRows] = useState<ConsolidatedRow[]>([]);
+  const [notes, setNotes] = useState("");
+  const [pastInvoices, setPastInvoices] = useState<{ number: string | null; quantity: number; amount_total: number; status: string; issued_at: string }[]>([]);
+  const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const openDialog = async () => {
+    setOpen(true);
+    setLoading(true);
+    setNotes("");
+
+    // Parent row
+    const { data: parent } = await supabase
+      .from("companies")
+      .select("id, name, assessment_unit_price")
+      .eq("id", companyId)
+      .maybeSingle();
+
+    // Sub-divisions (active only)
+    const { data: subs } = await supabase
+      .from("companies")
+      .select("id, name, assessment_unit_price")
+      .eq("parent_company_id", companyId)
+      .neq("status", "archived")
+      .order("name", { ascending: true });
+
+    const parentFallbackPrice = (parent as { assessment_unit_price?: number | null } | null)?.assessment_unit_price || 49900;
+
+    const all = [
+      parent ? { ...(parent as { id: string; name: string; assessment_unit_price?: number | null }), isParent: true } : null,
+      ...((subs || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null }>).map((s) => ({ ...s, isParent: false })),
+    ].filter(Boolean) as Array<{ id: string; name: string; assessment_unit_price?: number | null; isParent: boolean }>;
+
+    // Count employees per company (company_members, falling back to clients)
+    const rowsOut: ConsolidatedRow[] = await Promise.all(
+      all.map(async (c) => {
+        const { count } = await supabase
+          .from("company_members")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", c.id);
+        let qty = count || 0;
+        if (qty === 0) {
+          const { count: cc } = await supabase
+            .from("clients")
+            .select("id", { count: "exact", head: true })
+            .eq("company_id", c.id);
+          if ((cc || 0) > 0) qty = cc || 0;
         }
-        setMsg(rawMsg ? `${base} — ${rawMsg}` : base);
-        return;
+        return {
+          id: c.id,
+          name: c.name,
+          isParent: c.isParent,
+          quantity: qty,
+          defaultQty: qty,
+          unitPrice: c.assessment_unit_price || parentFallbackPrice,
+        };
+      }),
+    );
+    setRows(rowsOut);
+
+    // Past consolidated invoices on the parent
+    const { data: past } = await supabase
+      .from("company_invoices")
+      .select("payday_invoice_number, quantity, amount_total, status, issued_at")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    setPastInvoices(
+      (past || []).map((i: { payday_invoice_number: string | null; quantity: number; amount_total: number; status: string; issued_at: string }) => ({
+        number: i.payday_invoice_number,
+        quantity: i.quantity,
+        amount_total: i.amount_total,
+        status: i.status,
+        issued_at: i.issued_at,
+      })),
+    );
+
+    setLoading(false);
+  };
+
+  const updateRow = (id: string, patch: Partial<ConsolidatedRow>) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+
+  const send = async () => {
+    setSending(true);
+    const { data: s } = await supabase.auth.getSession();
+    const t = s.session?.access_token;
+    const active = rows.filter((r) => r.quantity > 0);
+    const parentRow = rows.find((r) => r.isParent);
+    const res = await fetch(`/api/admin/companies/${companyId}/consolidated-invoice`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: JSON.stringify({
+        send_email: true,
+        create_claim: true,
+        notes: notes.trim() || undefined,
+        include_parent: !!parentRow && parentRow.quantity > 0,
+        subs: active.map((r) => ({ company_id: r.id, quantity: r.quantity, unit_price: r.unitPrice })),
+      }),
+    });
+    const j = await res.json().catch(() => ({}));
+    setSending(false);
+    setOpen(false);
+    if (!res.ok || !j?.ok) {
+      const base = j?.detail || j?.error || "Mistókst.";
+      let rawMsg = "";
+      if (j?.raw) {
+        try {
+          const r = typeof j.raw === "string" ? j.raw : JSON.stringify(j.raw);
+          rawMsg = r.length > 600 ? r.slice(0, 600) + "…" : r;
+        } catch { /* ignore */ }
       }
-      setMsg(`Reikningur ${j.invoice_number || j.invoice_id} — ${(j.amount_total ?? 0).toLocaleString("is-IS")} ISK á ${j.lines?.length || 0} línur.`);
-    } catch (e) {
-      setMsg((e as Error).message);
-    } finally {
-      setBusy(false);
+      setToast({ type: "error", text: rawMsg ? `${base}\n\n${rawMsg}` : base });
+    } else {
+      setToast({
+        type: "success",
+        text: `Reikningur ${j.invoice_number || j.invoice_id}\n${(j.amount_total ?? 0).toLocaleString("is-IS")} ISK á ${j.lines?.length || 0} línur.`,
+      });
     }
-  }
+  };
+
+  const total = rows.reduce((sum, r) => sum + r.quantity * r.unitPrice, 0);
+  const activeLines = rows.filter((r) => r.quantity > 0).length;
 
   return (
-    <div className="relative inline-flex">
+    <>
       <button
-        onClick={fire}
-        disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 transition-colors disabled:opacity-50"
+        onClick={openDialog}
+        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 transition-colors"
         title="Einn reikningur fyrir móðurfyrirtæki + allar undireiningar"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10M7 11h10M7 15h4M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
         </svg>
-        {busy ? "Bý til…" : "Samheildarreikningur"}
+        Samheildarreikningur
       </button>
-      {msg && (
-        <div className="absolute z-20 top-full left-0 mt-1 w-80 rounded-lg bg-white border border-gray-200 shadow-lg p-3 text-xs text-gray-800">
-          {msg}
-          <button onClick={() => setMsg(null)} className="ml-2 text-gray-400 hover:text-gray-600">✕</button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-[640px] max-w-[calc(100vw-2rem)] my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 truncate">Samheildarreikningur · {companyName}</h3>
+              <p className="text-sm text-gray-500 mt-0.5">Einn PayDay-reikningur · VSK-frjáls (heilbrigðisþjónusta) · 14 daga eindagi</p>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-gray-400">Hleð…</div>
+            ) : (
+              <div className="px-6 py-5 space-y-4">
+                {/* Past invoices */}
+                {pastInvoices.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Fyrri reikningar</p>
+                    {pastInvoices.map((inv, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-gray-700 truncate">
+                          {inv.number ? `#${inv.number}` : "—"} · {inv.quantity} stk · {inv.amount_total.toLocaleString("is-IS")} ISK
+                        </span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${inv.status === "paid" ? "bg-emerald-50 text-emerald-700" : inv.status === "sent" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                          {inv.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Per-sub editable rows */}
+                <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="grid grid-cols-[1fr_90px_130px_110px] items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                    <div>Fyrirtæki / deild</div>
+                    <div className="text-right">Fjöldi</div>
+                    <div className="text-right">Einingaverð</div>
+                    <div className="text-right">Samtals</div>
+                  </div>
+                  {rows.length === 0 ? (
+                    <div className="px-3 py-4 text-sm text-gray-500 text-center">Engar deildir fundust.</div>
+                  ) : (
+                    rows.map((r) => {
+                      const rowTotal = r.quantity * r.unitPrice;
+                      return (
+                        <div
+                          key={r.id}
+                          className={`grid grid-cols-[1fr_90px_130px_110px] items-center gap-2 px-3 py-2 border-b border-gray-100 last:border-b-0 ${r.quantity === 0 ? "opacity-60" : ""}`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              {r.isParent && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 border border-purple-200 px-1.5 py-0.5 rounded">Móðurf.</span>
+                              )}
+                              <span className="text-sm text-gray-900 truncate">{r.name}</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">Sjálfgefið: {r.defaultQty}</div>
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            value={r.quantity}
+                            onChange={(e) => updateRow(r.id, { quantity: Math.max(0, parseInt(e.target.value) || 0) })}
+                            className="w-full px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-2 focus:ring-emerald-300 outline-none"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            value={r.unitPrice}
+                            onChange={(e) => updateRow(r.id, { unitPrice: Math.max(0, parseInt(e.target.value) || 0) })}
+                            className="w-full px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-2 focus:ring-emerald-300 outline-none"
+                          />
+                          <div className="text-sm text-gray-700 text-right font-medium tabular-nums">
+                            {rowTotal.toLocaleString("is-IS")}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Note */}
+                <div className="min-w-0">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Athugasemd (valfrjáls)</label>
+                  <input
+                    type="text"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Birtist á reikningnum"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none box-border"
+                  />
+                </div>
+
+                {/* Total */}
+                <div className="bg-emerald-50 rounded-lg p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-600">{activeLines} {activeLines === 1 ? "lína" : "línur"} á reikningi</p>
+                    <p className="text-xs text-gray-500">VSK-frjáls · heilbrigðisþjónusta</p>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 shrink-0">{total.toLocaleString("is-IS")} <span className="text-sm font-medium text-gray-500">ISK</span></p>
+                </div>
+              </div>
+            )}
+
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+              <button onClick={() => setOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                Hætta við
+              </button>
+              <button
+                onClick={send}
+                disabled={sending || loading || activeLines === 0 || total <= 0}
+                className="px-4 py-2 text-sm font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                {sending ? "Sendi…" : "Senda reikning"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+
+      {/* Result toast */}
+      {toast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setToast(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className={`px-6 py-4 border-b border-gray-100 ${toast.type === "success" ? "bg-emerald-50" : "bg-red-50"}`}>
+              <h3 className={`text-lg font-semibold ${toast.type === "success" ? "text-emerald-800" : "text-red-800"}`}>
+                {toast.type === "success" ? "Reikningur sendur" : "Mistókst"}
+              </h3>
+            </div>
+            <div className="px-6 py-4">
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap break-words font-sans">{toast.text}</pre>
+            </div>
+            <div className="px-6 py-3 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setToast(null)} className="px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
+                Loka
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -947,7 +1182,7 @@ export default function AdminCompaniesPage() {
                           <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
                         )}
                         {!c.parent_company_id && companies.some((o) => o.parent_company_id === c.id) && (
-                          <ConsolidatedInvoiceButton companyId={c.id} />
+                          <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
                         )}
                         <DocumentsButton companyId={c.id} />
                       </div>
