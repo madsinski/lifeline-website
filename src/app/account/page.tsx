@@ -16,6 +16,7 @@ import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 import AvatarPicker from "../components/AvatarPicker";
 import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
+import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -111,6 +112,11 @@ function AccountPageInner() {
   const [profileFirstName, setProfileFirstName] = useState("");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
+  const [staffRole, setStaffRole] = useState<GreetingRole | null>(null);
+  const staffGreeting = useMemo(
+    () => (staffRole ? pickStaffGreeting(staffRole, profileFirstName) : null),
+    [staffRole, profileFirstName],
+  );
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
@@ -283,6 +289,23 @@ function AccountPageInner() {
 
       const currentUser = session.user;
       setUser(currentUser);
+
+      // Detect staff role for the funny greeting. Falls through
+      // silently if the user isn't in the staff table.
+      if (currentUser.email) {
+        supabase
+          .from("staff")
+          .select("role")
+          .eq("email", currentUser.email)
+          .eq("active", true)
+          .maybeSingle()
+          .then(({ data }) => {
+            const r = (data?.role as GreetingRole | undefined) || null;
+            if (r === "admin" || r === "coach" || r === "doctor" || r === "nurse" || r === "psychologist") {
+              setStaffRole(r);
+            }
+          });
+      }
 
       // Load profile from clients table
       try {
@@ -1251,7 +1274,7 @@ function AccountPageInner() {
                       />
                       <div className="min-w-0 flex-1">
                         <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
-                          Welcome back, {profileFirstName || "there"}
+                          {staffGreeting ?? `Welcome back, ${profileFirstName || "there"}`}
                         </h1>
                         {companyName ? (
                           <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -3457,47 +3480,55 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Lifeline app — two paths: self-managed vs personal coaching */}
-        <div className="rounded-xl bg-white border border-blue-100 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <div className="rounded-2xl bg-white border border-blue-200 p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-blue-100">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-sm">
+              <svg className="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H7V4h10v16zM12 18.5a1 1 0 100-2 1 1 0 000 2z" />
               </svg>
             </div>
-            <div className="font-semibold text-gray-900 text-sm">Put the plan into motion — the Lifeline app</div>
+            <div className="font-bold text-gray-900 text-sm">Put the plan into motion — the Lifeline app</div>
           </div>
-          <p className="text-xs text-gray-600 leading-relaxed mb-3">
+          <p className="text-xs text-gray-600 leading-relaxed mb-4">
             Your personal plan, daily actions and tracking live in the mobile app. Pick the track that fits you.
           </p>
 
-          <div className="space-y-2.5">
-            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Track A</span>
-                <span className="text-sm font-semibold text-gray-900">Self-managed journey</span>
+          <div className="space-y-3">
+            <div className="relative overflow-hidden rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-blue-50/50 to-white p-4 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-blue-600" />
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-blue-600 px-2 py-0.5 rounded-md shadow-sm">Track A</span>
+                <span className="text-sm font-bold text-gray-900">Self-managed journey</span>
               </div>
-              <p className="text-[12px] text-gray-600 leading-snug">
+              <p className="text-[12px] text-gray-700 leading-snug pl-1">
                 The whole programme, on your own. Daily actions, programmes across the four pillars, tracking and community — at your own pace.
               </p>
             </div>
 
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Track B</span>
-                <span className="text-sm font-semibold text-gray-900">Personal coaching</span>
+            <div className="relative overflow-hidden rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 via-emerald-50/70 to-white p-4 shadow-sm ring-1 ring-emerald-100">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-emerald-500 to-emerald-600" />
+              <div className="absolute top-2 right-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-white border border-emerald-200 px-1.5 py-0.5 rounded shadow-sm">Recommended</span>
               </div>
-              <p className="text-[12px] text-gray-700 leading-snug">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-emerald-600 px-2 py-0.5 rounded-md shadow-sm">Track B</span>
+                <span className="text-sm font-bold text-gray-900">Personal coaching</span>
+              </div>
+              <p className="text-[12px] text-gray-700 leading-snug pl-1">
                 Everything in Track A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.
               </p>
-              <Link href="/coaching" className="inline-block mt-1.5 text-[11px] font-semibold text-emerald-700 hover:underline">
-                Learn about coaching →
+              <Link href="/coaching" className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline pl-1">
+                Learn about coaching
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <a href="https://apps.apple.com/app/lifeline-health" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
               App Store
             </a>
@@ -3508,28 +3539,49 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
         </div>
 
         {/* Cadence reminders */}
-        <div className="rounded-xl bg-white border border-emerald-100 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+        <div className="rounded-2xl bg-white border border-emerald-200 p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-emerald-100">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center shadow-sm">
+              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="font-semibold text-gray-900 text-sm">Stay on track</div>
+            <div className="font-bold text-gray-900 text-sm">Stay on track</div>
           </div>
 
-          <ul className="text-xs text-gray-700 leading-relaxed space-y-2">
-            <li className="flex items-start gap-2">
-              <span className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-blue-500" />
-              <span><strong>Self check-in</strong> — free, five-minute questionnaire. Suggested <strong>every month</strong> to catch changes early.</span>
+          <ul className="text-xs text-gray-700 leading-relaxed space-y-2.5">
+            <li className="relative flex items-start gap-3 rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-blue-50/50 to-white p-3 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-blue-600 rounded-l-xl" />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-0.5">Every month</div>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Self check-in</div>
+                <p className="text-[12px] text-gray-700 leading-snug">Free, five-minute questionnaire. Catches changes early.</p>
+              </div>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span><strong>Measurement check-in</strong> — every <strong>3–6 months</strong>. Re-take body composition + key labs so your plan stays calibrated.</span>
+            <li className="relative flex items-start gap-3 rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-50/50 to-white p-3 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-l-xl" />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" strokeWidth={2} /><circle cx="12" cy="12" r="3" strokeWidth={2} /></svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-0.5">Every 3–6 months</div>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Measurement check-in</div>
+                <p className="text-[12px] text-gray-700 leading-snug">Re-take body composition + key labs so your plan stays calibrated.</p>
+              </div>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-violet-500" />
-              <span><strong>Full Foundational re-assessment</strong> — every <strong>6–12 months</strong>. Complete panel, updated report and fresh doctor review.</span>
+            <li className="relative flex items-start gap-3 rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-violet-50/50 to-white p-3 shadow-sm">
+              <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-violet-500 to-violet-600 rounded-l-xl" />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-violet-600 text-white flex items-center justify-center shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-violet-700 mb-0.5">Every 6–12 months</div>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Full Foundational re-assessment</div>
+                <p className="text-[12px] text-gray-700 leading-snug">Complete panel, updated report and fresh doctor review.</p>
+              </div>
             </li>
           </ul>
 
@@ -4018,18 +4070,98 @@ function CurrentBookings({
           </div>
         ) : null;
 
-        const entries = [
+        const now = Date.now();
+        // End-of-event timestamps. Anything past these has finished
+        // and should drop out of "Current bookings" into the Past
+        // section below.
+        const bcEnd = mySlotAt ? new Date(mySlotAt).getTime() + 15 * 60 * 1000 : Infinity;
+        const btEnd = myBloodTestBooking ? new Date(myBloodTestBooking.day + "T23:59:59").getTime() : Infinity;
+        const drEnd = myDoctorSlot ? new Date(myDoctorSlot.slot_at).getTime() + myDoctorSlot.duration_minutes * 60 * 1000 : Infinity;
+        const bcB2CEnd = bodyCompBookingAt ? new Date(bodyCompBookingAt).getTime() + 30 * 60 * 1000 : Infinity;
+
+        type Entry = { key: string; card: React.ReactNode; time: number; past?: { label: string; sublabel: string; time: number; accent: string } };
+        const entries: Entry[] = [
           { key: "self-checkin", card: selfCheckinCard, time: 0 },
-          { key: "bc", card: bcCard, time: bcTime },
-          { key: "bc-b2c", card: bcB2CCard, time: bodyCompBookingAt ? new Date(bodyCompBookingAt).getTime() : Infinity },
-          { key: "bt", card: btCard, time: btTime },
-          { key: "dr", card: drCard, time: drTime },
+          { key: "bc", card: bcCard, time: bcTime, past: mySlotAt && companyEvent && bcEnd < now ? {
+            label: "On-site measurements",
+            sublabel: companyEvent.location || "Measurement",
+            time: new Date(mySlotAt).getTime(),
+            accent: "blue",
+          } : undefined },
+          { key: "bc-b2c", card: bcB2CCard, time: bodyCompBookingAt ? new Date(bodyCompBookingAt).getTime() : Infinity, past: hasB2CBodyComp && bodyCompBookingAt && bcB2CEnd < now ? {
+            label: "Body composition measurement",
+            sublabel: "At a Lifeline station",
+            time: new Date(bodyCompBookingAt).getTime(),
+            accent: "emerald",
+          } : undefined },
+          { key: "bt", card: btCard, time: btTime, past: myBloodTestBooking && btEnd < now ? {
+            label: "Blood test at Sameind",
+            sublabel: "Walk-in",
+            time: new Date(myBloodTestBooking.day + "T00:00:00").getTime(),
+            accent: "rose",
+          } : undefined },
+          { key: "dr", card: drCard, time: drTime, past: myDoctorSlot && drEnd < now ? {
+            label: myDoctorSlot.doctor_name ? `Consultation with ${myDoctorSlot.doctor_name}` : "Doctor consultation",
+            sublabel: myDoctorSlot.mode === "video" ? "Video call" : myDoctorSlot.mode === "phone" ? "Phone call" : "In person",
+            time: new Date(myDoctorSlot.slot_at).getTime(),
+            accent: "violet",
+          } : undefined },
           { key: "dr-video", card: drVideoCard, time: videoPortalConfirmedAt ? new Date(videoPortalConfirmedAt).getTime() : Infinity },
-        ].filter((e) => e.card).sort((a, b) => a.time - b.time);
+        ].filter((e) => e.card);
+
+        const upcoming = entries.filter((e) => !e.past).sort((a, b) => a.time - b.time);
+        const past = entries.filter((e) => e.past).sort((a, b) => (b.past!.time - a.past!.time));
+
+        const accentBg: Record<string, string> = {
+          blue: "bg-blue-50 text-blue-700 border-blue-100",
+          emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+          rose: "bg-rose-50 text-rose-700 border-rose-100",
+          violet: "bg-violet-50 text-violet-700 border-violet-100",
+        };
+
         return (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {entries.map((e) => e.card)}
-          </div>
+          <>
+            {upcoming.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {upcoming.map((e) => e.card)}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center">
+                <p className="text-sm text-gray-600">No upcoming bookings. Use the journey steps above to book your next check-in.</p>
+              </div>
+            )}
+            {past.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-gray-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <h4 className="text-sm font-semibold text-gray-700">Past bookings</h4>
+                  <span className="text-[11px] font-medium text-gray-500">{past.length} completed</span>
+                </div>
+                <ul className="space-y-2">
+                  {past.map((e) => {
+                    const p = e.past!;
+                    const d = new Date(p.time);
+                    return (
+                      <li key={e.key} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${accentBg[p.accent] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Completed
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 truncate">{p.label}</div>
+                          <div className="text-xs text-gray-500 truncate">{p.sublabel}</div>
+                        </div>
+                        <div className="text-xs text-gray-500 text-right shrink-0">
+                          {d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </>
         );
       })()}
     </section>

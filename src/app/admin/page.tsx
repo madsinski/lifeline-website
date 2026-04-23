@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import BiodySyncStatus from "./components/BiodySyncStatus";
+import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 
 // ─── Pricing (ISK per month) ──────────────────────────────────
 const TIER_PRICES: Record<string, number> = {
@@ -147,6 +148,32 @@ export default function AdminDashboardPage() {
   const [supabaseStatus, setSupabaseStatus] = useState<"connected" | "error" | "checking">("checking");
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [brandTheme, setBrandTheme] = useState<"rebrand" | "classic">("rebrand");
+  const [staffRole, setStaffRole] = useState<GreetingRole | null>(null);
+  const [staffFirstName, setStaffFirstName] = useState<string | null>(null);
+  const staffGreeting = useMemo(
+    () => (staffRole ? pickStaffGreeting(staffRole, staffFirstName) : null),
+    [staffRole, staffFirstName],
+  );
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+      const { data } = await supabase
+        .from("staff")
+        .select("role, name")
+        .eq("email", user.email)
+        .eq("active", true)
+        .maybeSingle();
+      if (!data) return;
+      const r = (data.role as GreetingRole | undefined) || null;
+      if (r === "admin" || r === "coach" || r === "doctor" || r === "nurse" || r === "psychologist") {
+        setStaffRole(r);
+      }
+      const first = ((data as { name?: string | null }).name || "").trim().split(/\s+/)[0] || null;
+      setStaffFirstName(first);
+    })();
+  }, []);
 
   // Load and apply brand theme on mount
   useEffect(() => {
@@ -312,6 +339,14 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {staffGreeting && (
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-5 shadow-sm">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500" />
+          <h1 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">{staffGreeting}</h1>
+          <p className="text-xs text-gray-500 mt-1">Lifeline Admin · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
+        </div>
+      )}
+
       {/* System Status Bar */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-4">
