@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Fragment } from "react";
+import { useEffect, useState, useCallback, Fragment, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
@@ -49,6 +49,102 @@ const TIERS = [
   { value: "self-maintained", label: "Self-maintained" },
   { value: "premium", label: "Premium" },
 ];
+
+// One source of truth for the company lifecycle pill. Collapsing all the
+// branchy "Drög / Boð sent / Awaiting finalize / Ready / Setup" logic
+// into a single component keeps the table row skinny and consistent.
+function CompanyStatusPill({ c }: { c: CompanyRow }) {
+  let label = "Setup";
+  let tone = "bg-gray-100 text-gray-600 border-gray-200";
+  let dot = "bg-gray-400";
+  let title = "Initial setup.";
+  if (c.status === "draft") {
+    label = "Drög"; tone = "bg-amber-100 text-amber-800 border-amber-200"; dot = "bg-amber-500";
+    title = "Admin-created draft — contact person not yet invited.";
+  } else if (c.status === "contact_invited") {
+    label = "Boð sent"; tone = "bg-blue-100 text-blue-800 border-blue-200"; dot = "bg-blue-500";
+    title = "Invite sent to contact person; awaiting claim + signature.";
+  } else if (c.registration_finalized_at) {
+    label = "Ready"; tone = "bg-emerald-100 text-emerald-800 border-emerald-200"; dot = "bg-emerald-500";
+    const finalizer = c.finalized_by_name || c.finalized_by_email || "a company admin";
+    title = `Finalized by ${finalizer} on ${new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+  } else if (c.roster_confirmed_at && c.body_comp_event_count > 0 && c.blood_test_day_count > 0) {
+    label = "Awaiting finalize"; tone = "bg-amber-100 text-amber-800 border-amber-200"; dot = "bg-amber-500";
+    title = "Roster confirmed; waiting for the contact person to finalize.";
+  }
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${tone}`} title={title}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      {label}
+    </span>
+  );
+}
+
+// Compact roster progress: one cell instead of three columns. Shows the
+// three counts + a mini bar coloured to completion ratio.
+function RosterProgressCell({ c }: { c: CompanyRow }) {
+  const total = Math.max(1, c.member_count);
+  const invitedPct = Math.min(100, Math.round((c.invited_count / total) * 100));
+  const completedPct = Math.min(100, Math.round((c.completed_count / total) * 100));
+  return (
+    <div className="min-w-[160px]">
+      <div className="flex items-baseline justify-between gap-2 text-[12px]">
+        <span className="font-semibold text-gray-900 tabular-nums">{c.completed_count}</span>
+        <span className="text-gray-400 tabular-nums">of {c.member_count}</span>
+      </div>
+      <div className="relative mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden" title={`${c.member_count} on roster · ${c.invited_count} invited · ${c.completed_count} completed`}>
+        <div className="absolute inset-y-0 left-0 bg-blue-400" style={{ width: `${invitedPct}%` }} />
+        <div className="absolute inset-y-0 left-0 bg-emerald-500" style={{ width: `${completedPct}%` }} />
+      </div>
+      <div className="mt-1 text-[10px] text-gray-400 tabular-nums">{c.invited_count} invited</div>
+    </div>
+  );
+}
+
+// Overflow "more actions" menu. A button that toggles a fixed-position
+// popover anchored to the button via getBoundingClientRect. Using a
+// fixed overlay sidesteps table-cell clipping issues that ate our
+// earlier dropdowns.
+function OverflowMenu({ children }: { children: (close: () => void) => ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setRect({ top: r.bottom + 4, left: r.right - 220, width: 220 });
+    }
+    setOpen((v) => !v);
+  };
+  const close = () => setOpen(false);
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500"
+        title="Fleiri aðgerðir"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <circle cx="4" cy="10" r="1.75" />
+          <circle cx="10" cy="10" r="1.75" />
+          <circle cx="16" cy="10" r="1.75" />
+        </svg>
+      </button>
+      {open && rect && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={close} />
+          <div
+            className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 py-1"
+            style={{ top: rect.top, left: Math.max(8, rect.left), width: rect.width }}
+          >
+            {children(close)}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 
 // Button for admin-created draft / contact-invited companies: generates
 // a single-use claim token + sends the Icelandic invite email.
@@ -1076,122 +1172,155 @@ export default function AdminCompaniesPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Summary counts for the table header
+  const parentCount = companies.filter((c) => !c.parent_company_id).length;
+  const subCount = companies.filter((c) => !!c.parent_company_id).length;
+  const draftCount = companies.filter((c) => c.status === "draft" || c.status === "contact_invited").length;
+  const readyCount = companies.filter((c) => c.registration_finalized_at).length;
+
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <h1 className="text-2xl font-semibold">Companies</h1>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link href="/admin/companies/create" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95">
-            + Stofna drög (admin)
+      {/* Header */}
+      <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Companies</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Click a company to expand its roster. Parent rows show their sub-divisions nested beneath.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link href="/admin/companies/create" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white px-3 py-2 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95 shadow-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Stofna drög (admin)
           </Link>
-          <Link href="/business/signup" className="text-sm text-blue-600 hover:underline">+ Self-serve signup</Link>
+          <Link href="/business/signup" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+            Self-serve signup
+          </Link>
         </div>
       </div>
-      <p className="text-sm text-gray-500 mb-6">
-        Click a company name to expand its employee roster. Update default tier, activate Biody profiles,
-        export, or delete from each row.
-      </p>
+
+      {/* Summary chips */}
+      {!loading && companies.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap mb-5">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+            {parentCount} {parentCount === 1 ? "parent" : "parents"}
+          </span>
+          {subCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              {subCount} sub-{subCount === 1 ? "division" : "divisions"}
+            </span>
+          )}
+          {draftCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              {draftCount} awaiting onboard
+            </span>
+          )}
+          {readyCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {readyCount} ready
+            </span>
+          )}
+        </div>
+      )}
+
       {loading && <div className="text-gray-500">Loading…</div>}
       {error && <div className="text-red-600">{error}</div>}
       {!loading && companies.length === 0 && (
-        <div className="text-gray-500">No companies yet.</div>
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-8 text-center text-gray-500">
+          No companies yet.
+        </div>
       )}
       {companies.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-gray-500">
+            <thead className="bg-gray-50/70 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3">Company</th>
+                <th className="px-5 py-3">Company</th>
                 <th className="px-4 py-3">Contact</th>
-                <th className="px-4 py-3">Roster</th>
-                <th className="px-4 py-3">Invited</th>
-                <th className="px-4 py-3">Completed</th>
-                <th className="px-4 py-3">Default tier</th>
+                <th className="px-4 py-3">Progress</th>
+                <th className="px-4 py-3">Tier</th>
                 <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3"></th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {companies.map((c) => (
+              {companies.map((c) => {
+                const isSub = !!c.parent_company_id;
+                const isParentWithSubs = !isSub && companies.some((o) => o.parent_company_id === c.id);
+                return (
                 <Fragment key={c.id}>
-                  <tr className="border-t border-gray-100">
-                    <td className={`px-4 py-3 font-medium ${c.parent_company_id ? "pl-10" : ""}`}>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {c.parent_company_id && (
-                          <span className="text-gray-300 select-none" aria-hidden>└</span>
+                  <tr className={`border-t border-gray-100 hover:bg-gray-50/60 transition-colors ${isSub ? "bg-slate-50/40" : "bg-white"}`}>
+                    {/* Company */}
+                    <td className="px-5 py-3 align-top">
+                      <div className={`flex items-start gap-2 ${isSub ? "pl-6" : ""}`}>
+                        {isSub && (
+                          <span className="text-slate-300 select-none mt-0.5" aria-hidden>└</span>
                         )}
-                        <button
-                          onClick={() => toggleExpand(c.id)}
-                          className="inline-flex items-center gap-2 hover:underline"
-                          title="Show employees"
-                        >
-                          <svg
-                            className={`w-3 h-3 transition-transform ${expanded.has(c.id) ? "rotate-90" : ""}`}
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        <div className="min-w-0 flex-1">
+                          <button
+                            onClick={() => toggleExpand(c.id)}
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-900 hover:underline text-left"
+                            title="Show employees"
                           >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                          {c.name}
-                        </button>
-                        {c.parent_company_id && c.parent_name && (
-                          <span
-                            className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium"
-                            title={`Reikningur gengur upp á ${c.parent_name}`}
-                          >
-                            Bílag til {c.parent_name}
-                          </span>
-                        )}
-                        {c.status === "draft" ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold" title="Admin-created draft — contact person not yet invited.">
-                            Drög
-                          </span>
-                        ) : c.status === "contact_invited" ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold" title="Invite sent to contact person; awaiting claim + signature.">
-                            Boð sent
-                          </span>
-                        ) : c.registration_finalized_at ? (
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold cursor-help"
-                            title={`Finalized by ${c.finalized_by_name || c.finalized_by_email || "a company admin"}${c.finalized_by_email && c.finalized_by_name ? ` (${c.finalized_by_email})` : ""} on ${new Date(c.registration_finalized_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}
-                          >
-                            Ready ⓘ
-                          </span>
-                        ) : c.roster_confirmed_at && c.body_comp_event_count > 0 && c.blood_test_day_count > 0 ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting finalize</span>
-                        ) : (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Setup</span>
-                        )}
-                      </div>
-                      {c.registration_finalized_at && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Approved by <span className="font-medium text-gray-700">{c.finalized_by_name || c.finalized_by_email || "—"}</span>
-                          {" "}on {new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            <svg
+                              className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${expanded.has(c.id) ? "rotate-90" : ""}`}
+                              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            <span className="truncate">{c.name}</span>
+                          </button>
+                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            <CompanyStatusPill c={c} />
+                            {isSub && c.parent_name && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200"
+                                title={`Reikningur gengur upp á ${c.parent_name}`}
+                              >
+                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                </svg>
+                                Bílag til {c.parent_name}
+                              </span>
+                            )}
+                            {isParentWithSubs && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200" title="Has sub-divisions">
+                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                                Parent
+                              </span>
+                            )}
+                          </div>
+                          {c.registration_finalized_at && (
+                            <div className="text-[11px] text-gray-400 mt-1">
+                              Ready · {c.finalized_by_name || c.finalized_by_email || "—"} · {new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        <Link
-                          href={`/business/${c.id}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                          Open
-                        </Link>
-                        {(c.status === "draft" || c.status === "contact_invited") && (
-                          <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
-                        )}
-                        {!c.parent_company_id && companies.some((o) => o.parent_company_id === c.id) && (
-                          <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
-                        )}
-                        <DocumentsButton companyId={c.id} />
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{c.contact_email || "—"}</td>
-                    <td className="px-4 py-3">{c.member_count}</td>
-                    <td className="px-4 py-3">{c.invited_count}</td>
-                    <td className="px-4 py-3">{c.completed_count}</td>
-                    <td className="px-4 py-3">
+
+                    {/* Contact */}
+                    <td className="px-4 py-3 align-top">
+                      <div className="text-[13px] text-gray-700 truncate max-w-[220px]" title={c.contact_email || ""}>
+                        {c.contact_email || <span className="text-gray-300">—</span>}
+                      </div>
+                    </td>
+
+                    {/* Progress */}
+                    <td className="px-4 py-3 align-top">
+                      <RosterProgressCell c={c} />
+                    </td>
+
+                    {/* Tier */}
+                    <td className="px-4 py-3 align-top">
                       <select
                         value={c.default_tier || ""}
                         onChange={async (e) => {
@@ -1199,31 +1328,140 @@ export default function AdminCompaniesPage() {
                           await supabase.from("companies").update({ default_tier: tier }).eq("id", c.id);
                           setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, default_tier: tier } : x));
                         }}
-                        className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
+                        className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white hover:border-gray-300 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200 outline-none"
                       >
                         {TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{new Date(c.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                      <EnsureGroupButton companyId={c.id} />
-                      <BulkActivateButton companyId={c.id} />
-                      <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
-                      <button onClick={() => downloadCsv(c.id, c.name)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
-                        CSV
-                      </button>
-                      <DeleteCompanyButton company={c} onDone={load} />
-                    </div>
+
+                    {/* Created */}
+                    <td className="px-4 py-3 align-top text-[12px] text-gray-500 whitespace-nowrap">
+                      {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/business/${c.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+                          title="Open company dashboard"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          Open
+                        </Link>
+                        <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
+                        <OverflowMenu>
+                          {(close) => (
+                            <>
+                              {(c.status === "draft" || c.status === "contact_invited") && (
+                                <div onClick={close}>
+                                  <InviteContactMenuItem companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
+                                </div>
+                              )}
+                              {isParentWithSubs && (
+                                <div onClick={close}>
+                                  <ConsolidatedInvoiceMenuItem companyId={c.id} companyName={c.name} />
+                                </div>
+                              )}
+                              <div onClick={close}>
+                                <DocumentsMenuItem companyId={c.id} />
+                              </div>
+                              <MenuDivider />
+                              <div onClick={close}>
+                                <BiodyGroupMenuItem companyId={c.id} />
+                              </div>
+                              <div onClick={close}>
+                                <BulkActivateMenuItem companyId={c.id} />
+                              </div>
+                              <MenuDivider />
+                              <button
+                                onClick={() => { downloadCsv(c.id, c.name); close(); }}
+                                className="w-full flex items-center gap-2 text-sm text-gray-700 px-3 py-1.5 hover:bg-gray-50"
+                              >
+                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                                </svg>
+                                Export CSV
+                              </button>
+                              <MenuDivider />
+                              <div onClick={close}>
+                                <DeleteCompanyMenuItem company={c} onDone={load} />
+                              </div>
+                            </>
+                          )}
+                        </OverflowMenu>
+                      </div>
                     </td>
                   </tr>
                   {expanded.has(c.id) && <EmployeeRows companyId={c.id} />}
                 </Fragment>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function MenuDivider() {
+  return <div className="border-t border-gray-100 my-1" />;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Overflow-menu wrappers: thin re-dressings of the existing buttons
+// that render as left-aligned menu items instead of coloured pills.
+// Each just renders the original component inside a menu-item wrapper
+// or a lightly rewritten variant that opens the same modal/dialog.
+// ────────────────────────────────────────────────────────────────────
+
+function InviteContactMenuItem({ companyId, draftEmail, status }: { companyId: string; draftEmail: string | null; status: "draft" | "contact_invited" }) {
+  return (
+    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
+      <InviteContactButton companyId={companyId} draftEmail={draftEmail} status={status} />
+    </div>
+  );
+}
+
+function ConsolidatedInvoiceMenuItem({ companyId, companyName }: { companyId: string; companyName: string }) {
+  return (
+    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
+      <ConsolidatedInvoiceButton companyId={companyId} companyName={companyName} />
+    </div>
+  );
+}
+
+function DocumentsMenuItem({ companyId }: { companyId: string }) {
+  return (
+    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
+      <DocumentsButton companyId={companyId} />
+    </div>
+  );
+}
+
+function BiodyGroupMenuItem({ companyId }: { companyId: string }) {
+  return (
+    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
+      <EnsureGroupButton companyId={companyId} />
+    </div>
+  );
+}
+
+function BulkActivateMenuItem({ companyId }: { companyId: string }) {
+  return (
+    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-gray-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-gray-50">
+      <BulkActivateButton companyId={companyId} />
+    </div>
+  );
+}
+
+function DeleteCompanyMenuItem({ company, onDone }: { company: CompanyRow; onDone: () => void }) {
+  return (
+    <div className="[&_button]:w-full [&_button]:flex [&_button]:items-center [&_button]:gap-2 [&_button]:text-sm [&_button]:font-medium [&_button]:text-red-700 [&_button]:bg-transparent [&_button]:border-0 [&_button]:px-3 [&_button]:py-1.5 [&_button]:rounded-none hover:[&_button]:bg-red-50">
+      <DeleteCompanyButton company={company} onDone={onDone} />
     </div>
   );
 }
