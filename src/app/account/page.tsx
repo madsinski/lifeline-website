@@ -3546,7 +3546,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
         {/* ── PATH 2: WARM / AMBER — Cadence over time ─────────────── */}
         <div className="rounded-2xl bg-white border-2 border-amber-200 p-5 shadow-md hover:shadow-lg transition-shadow">
           <div className="inline-flex items-center gap-1.5 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">Path 2 · Over time</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">Path 2 · Recheck</span>
           </div>
           <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-amber-100">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-sm">
