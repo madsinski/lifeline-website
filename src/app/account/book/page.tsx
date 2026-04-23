@@ -23,6 +23,9 @@ function BookAssessmentContent() {
   const resumeBookingId = searchParams.get("resume");
   const [authChecking, setAuthChecking] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  // B2B employees can book self-paid extras between employer rounds.
+  // When true we surface a small banner so they understand the context.
+  const [isB2BEmployee, setIsB2BEmployee] = useState(false);
   const [fullName, setFullName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [phone, setPhone] = useState<string | null>(null);
@@ -47,10 +50,11 @@ function BookAssessmentContent() {
       if (!user) { router.push("/account/login?next=/account/book"); return; }
       setUserId(user.id);
       setEmail(user.email || "");
-      const { data } = await supabase.from("clients").select("full_name, phone").eq("id", user.id).maybeSingle();
+      const { data } = await supabase.from("clients").select("full_name, phone, company_id").eq("id", user.id).maybeSingle();
       if (data) {
         setFullName((data.full_name as string) || "");
         setPhone((data.phone as string | null) || null);
+        setIsB2BEmployee(!!(data as { company_id?: string | null }).company_id);
       }
       // Guard: if the user already has an active PAID booking, they can't
       // silently start a new one — we won't auto-cancel paid bookings. Route
@@ -429,6 +433,20 @@ function BookAssessmentContent() {
             Back to dashboard
           </Link>
         </header>
+
+        {isB2BEmployee && stage === "package" && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex items-start gap-3">
+            <svg className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div className="font-semibold mb-1">This is an extra self-paid check-in</div>
+              <p className="leading-relaxed text-amber-900/90">
+                Your employer covers your standard Lifeline rounds — we&apos;ll email you when the next one opens. Anything you book here is an <strong>extra you pay for yourself</strong>, on top of what your employer provides. You can still take the employer round when it opens.
+              </p>
+            </div>
+          </div>
+        )}
 
         <StageIndicator stage={stage} />
 

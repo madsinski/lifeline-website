@@ -3521,7 +3521,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
             </li>
           </ul>
 
-          <div className="mt-3">
+          <div className="mt-3 space-y-2">
             {isB2C ? (
               <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
                 Book a check-in
@@ -3530,9 +3530,20 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 </svg>
               </Link>
             ) : (
-              <p className="text-[11px] text-gray-500">
-                Your next round will be scheduled by your employer. We&apos;ll email you when it&apos;s open.
-              </p>
+              <>
+                <p className="text-[11px] text-gray-600 leading-relaxed">
+                  Your employer schedules the next full round. We&apos;ll email you when it&apos;s open — it takes priority over anything you&apos;ve booked yourself.
+                </p>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Want an extra check-in before then? You can self-pay for one between employer rounds.
+                </p>
+                <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md border border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50">
+                  Book an extra check-in
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </>
             )}
           </div>
         </div>
