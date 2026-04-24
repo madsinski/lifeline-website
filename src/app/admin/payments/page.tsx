@@ -289,13 +289,12 @@ export default function AdminPaymentsPage() {
             </thead>
             <tbody>
               {filtered.map((p) => {
-                const companyName =
-                  p.owner_type === "company"
-                    ? (p.company?.name || null)
-                    : (p.client_company?.name || null);
+                const isCompanyPayment = p.owner_type === "company";
+                const ownerCompanyName = p.company?.name || null;
+                const employerName = p.client_company?.name || null;
                 const payerLabel = p.owner_type === "client"
                   ? (p.client?.full_name || p.client?.email || p.owner_id.slice(0, 8))
-                  : (p.company?.name || p.owner_id.slice(0, 8));
+                  : (ownerCompanyName || p.owner_id.slice(0, 8));
                 return (
                 <tr key={p.id} className="border-t border-gray-100 align-top">
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
@@ -303,15 +302,28 @@ export default function AdminPaymentsPage() {
                     <div className="text-[10px] text-gray-500">{new Date(p.paid_at || p.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
                   </td>
                   <td className="px-4 py-3 text-gray-800">
-                    {companyName ? (
+                    {isCompanyPayment ? (
                       <>
-                        <div className="font-medium truncate max-w-[180px]" title={companyName}>{companyName}</div>
-                        <div className="text-[10px] uppercase tracking-wide text-gray-400">
-                          {p.owner_type === "company" ? "Billed to company" : "Employee of"}
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                          Company
+                        </span>
+                        <div className="font-medium text-[13px] mt-1 truncate max-w-[200px]" title={ownerCompanyName || ""}>
+                          {ownerCompanyName || <span className="text-gray-400">— unknown —</span>}
                         </div>
                       </>
                     ) : (
-                      <span className="text-xs text-gray-400">— personal —</span>
+                      <>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                          Personal
+                        </span>
+                        {employerName && (
+                          <div className="text-[11px] text-gray-500 mt-1 truncate max-w-[200px]" title={employerName}>
+                            employee of <span className="text-gray-700 font-medium">{employerName}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
