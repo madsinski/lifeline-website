@@ -249,6 +249,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setSession(true);
         setUserEmail(s.user?.email ?? null);
         if (s.user?.email) loadStaffProfile(s.user.email);
+
+        // Staff e-signature gate: if this user has any outstanding
+        // required agreement (NDA / þagnarskylda / acceptable use /
+        // data-protection briefing) they land on /admin/onboard until
+        // all of them are signed at the current version. /admin/login
+        // and /admin/onboard itself are exempt so we don't loop.
+        if (pathname !== "/admin/onboard" && pathname !== "/admin/login") {
+          try {
+            const token = s.access_token;
+            const res = await fetch("/api/admin/staff/me/agreements", {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const j = await res.json().catch(() => ({}));
+            if (res.ok && j?.ok && Array.isArray(j.pending) && j.pending.length > 0) {
+              router.replace("/admin/onboard");
+            }
+          } catch {
+            // Gate is best-effort — don't block the page on network blips.
+          }
+        }
       } else {
         setSession(false);
         if (pathname !== "/admin/login") router.push("/admin/login");

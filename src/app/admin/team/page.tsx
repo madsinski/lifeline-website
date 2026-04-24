@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import StaffLegalButton from "./StaffLegalButton";
 
 /*
   SQL to create the staff table (also in /supabase/staff.sql):
@@ -757,6 +758,7 @@ export default function TeamPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                               </svg>
                             </button>
+                            <StaffLegalButton staffId={member.id} staffName={member.name} />
                             <button
                               onClick={() => handleRemoveClick(member)}
                               className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
