@@ -46,6 +46,7 @@ export default function AdminLegalPage() {
   const [search, setSearch] = useState("");
   const [docKindFilter, setDocKindFilter] = useState<"all" | "terms-of-service" | "data-processing-agreement" | "employee-terms-of-service" | "health-assessment-consent">("all");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,6 +167,35 @@ export default function AdminLegalPage() {
     URL.revokeObjectURL(url);
   }, [filteredPlatform]);
 
+  const backfillPdfs = async () => {
+    if (!confirm("Regenerate missing acceptance PDFs for every platform acceptance that has no PDF yet?")) return;
+    setBackfilling(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch("/api/admin/legal/backfill-acceptance-pdfs", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.ok) {
+        alert(`Backfill failed: ${j?.detail || j?.error || "unknown"}`);
+        return;
+      }
+      const c = j.counts || {};
+      alert(
+        `Scanned ${c.scanned}\n` +
+        `Regenerated ${c.regenerated}\n` +
+        `Skipped (old version) ${c.skipped_version_not_found}\n` +
+        `Skipped (text drift) ${c.skipped_text_hash_mismatch}\n` +
+        `Failed ${c.failed}`
+      );
+      await load();
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   const downloadFromBucket = async (id: string, bucket: string, storagePath: string | null) => {
     if (!storagePath) {
       alert("PDF is missing — the upload may have failed.");
@@ -230,6 +260,16 @@ export default function AdminLegalPage() {
           <button onClick={load} disabled={loading} className="px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50">
             {loading ? "Loading…" : "Refresh"}
           </button>
+          {tab === "platform" && platformRows.some((r) => !r.pdf_storage_path) && (
+            <button
+              onClick={backfillPdfs}
+              disabled={backfilling}
+              className="px-3 py-2 text-sm font-medium text-amber-800 border border-amber-300 rounded-lg bg-amber-50 hover:bg-amber-100 disabled:opacity-50"
+              title="Regenerate missing PDF certificates for older acceptances"
+            >
+              {backfilling ? "Regenerating…" : "Backfill missing PDFs"}
+            </button>
+          )}
         </div>
       </div>
 
