@@ -250,12 +250,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setUserEmail(s.user?.email ?? null);
         if (s.user?.email) loadStaffProfile(s.user.email);
 
+        // MFA gate. Admins handle patient data — require a TOTP-verified
+        // session (AAL2). If enrolled but not verified this session, send
+        // to the MFA challenge; if not enrolled yet, send to the enroll
+        // page. /admin/mfa and /admin/login are exempt so we don't loop.
+        try {
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          const { data: factorsData } = await supabase.auth.mfa.listFactors();
+          const totpFactors = factorsData?.totp || [];
+          const hasFactor = totpFactors.some((f) => f.status === "verified");
+          const needsMfa = pathname !== "/admin/mfa" && pathname !== "/admin/login";
+          if (needsMfa) {
+            if (!hasFactor) {
+              router.replace("/admin/mfa?mode=enroll");
+              return;
+            }
+            if (aalData?.currentLevel !== "aal2") {
+              router.replace("/admin/mfa?mode=challenge");
+              return;
+            }
+          }
+        } catch {
+          // MFA endpoints missing or network blip — fall through to the
+          // rest of the layout so we never hard-lock out a legit admin.
+        }
+
         // Staff e-signature gate: if this user has any outstanding
         // required agreement (NDA / þagnarskylda / acceptable use /
         // data-protection briefing) they land on /admin/onboard until
         // all of them are signed at the current version. /admin/login
         // and /admin/onboard itself are exempt so we don't loop.
-        if (pathname !== "/admin/onboard" && pathname !== "/admin/login") {
+        if (pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
           try {
             const token = s.access_token;
             const res = await fetch("/api/admin/staff/me/agreements", {
@@ -291,7 +316,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => subscription.unsubscribe();
   }, [pathname, router]);
 
-  if (pathname === "/admin/login") {
+  if (pathname === "/admin/login" || pathname === "/admin/mfa") {
     return <div className="min-h-screen bg-gray-100">{children}</div>;
   }
 
