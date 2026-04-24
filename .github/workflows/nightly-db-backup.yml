@@ -133,14 +133,22 @@ jobs:
           SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
-          # List all objects in the bucket, sorted newest-first.
-          curl --fail --show-error -sS \
+          # List all objects in the bucket, sorted newest-first. Don't
+          # --fail so we see the actual response body if anything 4xxs.
+          HTTP_CODE=$(curl --show-error -sS -o /tmp/list.json -w "%{http_code}" \
             -X POST "https://${PROJECT_REF}.supabase.co/storage/v1/object/list/db-backups" \
             -H "Authorization: Bearer ${SERVICE_KEY}" \
             -H "apikey: ${SERVICE_KEY}" \
             -H "Content-Type: application/json" \
-            --data '{"limit": 500, "sortBy": {"column": "created_at", "order": "desc"}}' \
-            > /tmp/list.json
+            --data '{"prefix": "", "limit": 500, "sortBy": {"column": "created_at", "order": "desc"}}')
+          echo "List status: ${HTTP_CODE}"
+          echo "List body:"
+          cat /tmp/list.json
+          echo
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "::warning::Prune list failed (HTTP ${HTTP_CODE}) — skipping prune. Backup itself succeeded."
+            exit 0
+          fi
           python3 - <<'PY'
           import json, urllib.request, os
           items = json.load(open('/tmp/list.json'))
