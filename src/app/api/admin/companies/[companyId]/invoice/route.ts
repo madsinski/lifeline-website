@@ -213,6 +213,10 @@ export async function POST(
     await supabaseAdmin.from("payments").insert({
       owner_type: "company",
       owner_id: companyId,
+      // Snapshot the company identity so the payments ledger stays
+      // readable even if the company row is later deleted.
+      owner_company_id: companyId,
+      owner_company_name: company.name,
       amount_isk: amountTotal,
       currency: "ISK",
       description: `Lifeline assessments · ${quantity} × ${unitPrice.toLocaleString("is-IS")} ISK`,

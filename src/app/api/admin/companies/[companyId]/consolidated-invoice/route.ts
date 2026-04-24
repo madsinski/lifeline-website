@@ -190,6 +190,29 @@ export async function POST(
     console.error("[consolidated-invoice] DB insert failed:", error);
   }
 
+  // Mirror into the unified payments ledger. The single-invoice route
+  // already does this; keep them symmetric so every invoice — single
+  // or consolidated — surfaces on /admin/business Payments.
+  try {
+    await supabaseAdmin.from("payments").insert({
+      owner_type: "company",
+      owner_id: parent.id,
+      owner_company_id: parent.id,
+      owner_company_name: parent.name,
+      amount_isk: amountTotal,
+      currency: "ISK",
+      description: `Samheildarreikningur · ${lines.length} línur · ${lines.reduce((s, l) => s + l.quantity, 0)} mælingar`,
+      provider: "payday",
+      provider_reference: invoiceRes.invoice_number || invoiceRes.invoice_id || null,
+      status: "pending",
+      related_type: "company_invoice",
+      related_id: null,
+      pdf_url: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
+    });
+  } catch (e) {
+    console.error("[consolidated-invoice] payments ledger mirror failed:", e);
+  }
+
   return NextResponse.json({
     ok: true,
     invoice_id: invoiceRes.invoice_id,

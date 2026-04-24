@@ -26,6 +26,8 @@ function BookAssessmentContent() {
   // B2B employees can book self-paid extras between employer rounds.
   // When true we surface a small banner so they understand the context.
   const [isB2BEmployee, setIsB2BEmployee] = useState(false);
+  // Company snapshot for payments rows — null for personal accounts.
+  const [employerCompany, setEmployerCompany] = useState<{ id: string; name: string | null } | null>(null);
   const [fullName, setFullName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [phone, setPhone] = useState<string | null>(null);
@@ -54,7 +56,12 @@ function BookAssessmentContent() {
       if (data) {
         setFullName((data.full_name as string) || "");
         setPhone((data.phone as string | null) || null);
-        setIsB2BEmployee(!!(data as { company_id?: string | null }).company_id);
+        const companyId = (data as { company_id?: string | null }).company_id || null;
+        setIsB2BEmployee(!!companyId);
+        if (companyId) {
+          const { data: co } = await supabase.from("companies").select("id, name").eq("id", companyId).maybeSingle();
+          if (co) setEmployerCompany({ id: co.id as string, name: (co.name as string) || null });
+        }
       }
       // Guard: if the user already has an active PAID booking, they can't
       // silently start a new one — we won't auto-cancel paid bookings. Route
@@ -213,6 +220,8 @@ function BookAssessmentContent() {
       await supabase.from("payments").insert({
         owner_type: "client",
         owner_id: userId,
+        owner_company_id: employerCompany?.id ?? null,
+        owner_company_name: employerCompany?.name ?? null,
         amount_isk: 0,
         currency: "ISK",
         description: `Lifeline Health — ${pkg.name}`,
@@ -357,6 +366,8 @@ function BookAssessmentContent() {
     const { error: payErr } = await supabase.from("payments").insert({
       owner_type: "client",
       owner_id: userId,
+      owner_company_id: employerCompany?.id ?? null,
+      owner_company_name: employerCompany?.name ?? null,
       amount_isk: pkg.priceIsk,
       currency: "ISK",
       description: `Lifeline Health — ${pkg.name}`,

@@ -1435,6 +1435,8 @@ function AccountPageInner() {
                         await supabase.from("payments").insert({
                           owner_type: "client",
                           owner_id: user.id,
+                          owner_company_id: companyId ?? null,
+                          owner_company_name: companyName ?? null,
                           amount_isk: AMOUNT,
                           currency: "ISK",
                           description: "Lifeline Health — Check-in doctor consultation",

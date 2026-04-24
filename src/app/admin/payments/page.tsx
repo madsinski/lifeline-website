@@ -7,6 +7,10 @@ type Payment = {
   id: string;
   owner_type: "client" | "company";
   owner_id: string;
+  // Snapshot columns — set at insert time, preserved even if the
+  // company is later deleted. Prefer these over live lookups.
+  owner_company_id: string | null;
+  owner_company_name: string | null;
   amount_isk: number;
   currency: string;
   description: string;
@@ -19,10 +23,8 @@ type Payment = {
   created_at: string;
   pdf_url: string | null;
   client?: { full_name?: string | null; email?: string | null } | null;
+  // Live-lookup fallback fields for pre-snapshot rows.
   company?: { name?: string | null } | null;
-  // Resolved after fetch for B2C payments: the employer of the client
-  // (if any), so personal check-ins billed to the employee still show
-  // which company they belong to.
   client_company?: { id: string | null; name: string | null } | null;
 };
 
@@ -76,7 +78,7 @@ export default function AdminPaymentsPage() {
     // employer of B2C payers so company-of-client is visible too.
     const { data: paymentsData } = await supabase
       .from("payments")
-      .select("id, owner_type, owner_id, amount_isk, currency, description, provider, provider_reference, status, related_type, related_id, paid_at, created_at, pdf_url")
+      .select("id, owner_type, owner_id, owner_company_id, owner_company_name, amount_isk, currency, description, provider, provider_reference, status, related_type, related_id, paid_at, created_at, pdf_url")
       .order("created_at", { ascending: false })
       .limit(500);
     const base = (paymentsData as Payment[]) || [];
@@ -369,8 +371,15 @@ export default function AdminPaymentsPage() {
             <tbody>
               {filtered.map((p) => {
                 const isCompanyPayment = p.owner_type === "company";
-                const ownerCompanyName = p.company?.name || null;
-                const employerName = p.client_company?.name || null;
+                // Snapshot wins. Falls back to live lookup for legacy
+                // rows that predate the snapshot columns.
+                const snapshotCompanyName = p.owner_company_name || null;
+                const ownerCompanyName = isCompanyPayment
+                  ? (snapshotCompanyName || p.company?.name || null)
+                  : null;
+                const employerName = !isCompanyPayment
+                  ? (snapshotCompanyName || p.client_company?.name || null)
+                  : null;
                 const payerLabel = p.owner_type === "client"
                   ? (p.client?.full_name || p.client?.email || p.owner_id.slice(0, 8))
                   : (ownerCompanyName || p.owner_id.slice(0, 8));
