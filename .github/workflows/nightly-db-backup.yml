@@ -38,22 +38,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Install postgres client (pg_dump)
+      - name: Install postgres client (pg_dump 17)
         run: |
-          # Match Supabase's Postgres major version. Supabase runs
-          # Postgres 17 — older pg_dump refuses to dump a newer server,
-          # so we install pg_dump 17 from the official PGDG apt repo.
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
-            https://www.postgresql.org/media/keys/ACCC4CF8.asc
-          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17
-          # Make sure pg_dump 17 wins over any pre-installed older
-          # version on the runner.
-          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          # Supabase runs Postgres 17, and pg_dump refuses to dump a
+          # newer server with an older client. Install the 17 client
+          # from PGDG.
+          set -euxo pipefail
+          sudo install -d -m 0755 /etc/apt/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /etc/apt/keyrings/pgdg.gpg
+          CODENAME=$(lsb_release -cs)
+          echo "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-          pg_dump --version
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Dump database
         id: dump
