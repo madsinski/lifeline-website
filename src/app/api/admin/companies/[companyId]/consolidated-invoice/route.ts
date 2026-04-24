@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
 import { ensurePaydayCustomer, createPaydayInvoice, paydayPdfUrl } from "@/lib/payday";
+import { logAdminAction } from "@/lib/audit";
 
 // Consolidated invoice for a parent (municipality-style) company: one
 // PayDay invoice with one line per active sub-company, billed to the
@@ -212,6 +213,18 @@ export async function POST(
   } catch (e) {
     console.error("[consolidated-invoice] payments ledger mirror failed:", e);
   }
+
+  await logAdminAction(req, {
+    actor: { id: user.id, email: user.email },
+    action: "company.consolidated_invoice.create",
+    target_type: "company",
+    target_id: parent.id,
+    detail: {
+      amount_total: amountTotal,
+      lines: lines.length,
+      payday_invoice_number: invoiceRes.invoice_number || null,
+    },
+  });
 
   return NextResponse.json({
     ok: true,

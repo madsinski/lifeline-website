@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff, findAuthUserByEmail } from "@/lib/auth-helpers";
 import { activateBiodyForClient } from "@/lib/biody";
+import { logAdminAction } from "@/lib/audit";
 
 // Admin bulk-create Biody patients from a minimal HR roster.
 //
@@ -194,5 +195,14 @@ export async function POST(req: NextRequest) {
     biody_existed: results.filter((r) => r.status === "biody_existed").length,
     failed: results.filter((r) => r.status === "failed").length,
   };
+
+  await logAdminAction(req, {
+    actor: { id: user.id, email: user.email },
+    action: "biody.bulk_create.submit",
+    target_type: "company",
+    target_id: companyId,
+    detail: { counts, batch_size: invitees.length },
+  });
+
   return NextResponse.json({ ok: true, company_name: company.name, counts, results });
 }

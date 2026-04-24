@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
 import { ensurePaydayCustomer, createPaydayInvoice, paydayPdfUrl } from "@/lib/payday";
 import { sendEmail as sendResendEmail, renderInvoiceContactEmail } from "@/lib/email";
+import { logAdminAction } from "@/lib/audit";
 
 export const maxDuration = 60;
 
@@ -265,6 +266,19 @@ export async function POST(
       notify_error = e instanceof Error ? e.message : String(e);
     }
   }
+
+  await logAdminAction(req, {
+    actor: { id: user.id, email: user.email },
+    action: "company.invoice.create",
+    target_type: "company",
+    target_id: companyId,
+    detail: {
+      amount_total: amountTotal,
+      quantity,
+      unit_price: unitPrice,
+      payday_invoice_number: invoiceRes.invoice_number || null,
+    },
+  });
 
   return NextResponse.json({
     ok: true,

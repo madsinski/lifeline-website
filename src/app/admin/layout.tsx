@@ -316,6 +316,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => subscription.unsubscribe();
   }, [pathname, router]);
 
+  // Idle-session timeout. Admins can see patient data, so if the tab
+  // is left open and unattended we force a re-auth. Any mouse move /
+  // key press / click resets the clock; 30 minutes of silence signs
+  // out. Login + MFA pages are exempt so we don't kick people during
+  // enrollment.
+  useEffect(() => {
+    if (pathname === "/admin/login" || pathname === "/admin/mfa") return;
+    const IDLE_MS = 30 * 60 * 1000; // 30 minutes
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reset = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try { await supabase.auth.signOut(); } catch { /* ignore */ }
+        router.replace("/admin/login?reason=idle");
+      }, IDLE_MS);
+    };
+    const events: (keyof DocumentEventMap)[] = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    for (const ev of events) document.addEventListener(ev, reset, { passive: true });
+    reset();
+    return () => {
+      if (timer) clearTimeout(timer);
+      for (const ev of events) document.removeEventListener(ev, reset);
+    };
+  }, [pathname, router]);
+
   if (pathname === "/admin/login" || pathname === "/admin/mfa") {
     return <div className="min-h-screen bg-gray-100">{children}</div>;
   }

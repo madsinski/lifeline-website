@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff, findAuthUserByEmail } from "@/lib/auth-helpers";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
+import { logAdminAction } from "@/lib/audit";
 
 // Admin-only bulk invite for personal clients (no company context).
 //
@@ -208,5 +209,14 @@ export async function POST(req: NextRequest) {
     skipped_already_completed: results.filter((r) => r.status === "skipped_already_completed").length,
     failed: results.filter((r) => r.status === "failed").length,
   };
+
+  await logAdminAction(req, {
+    actor: { id: user.id, email: user.email },
+    action: "clients.bulk_invite.submit",
+    target_type: "clients",
+    target_id: null,
+    detail: { counts, batch_size: invitees.length },
+  });
+
   return NextResponse.json({ ok: true, counts, results });
 }
