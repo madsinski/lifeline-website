@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, Fragment, useRef, type ReactNode } fr
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import BulkBiodyButton from "./BulkBiodyButton";
 
 interface CompanyRow {
   id: string;
@@ -1193,7 +1194,7 @@ export default function AdminCompaniesPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Stofna drög (admin)
+            Admin stofna fyrirtæki
           </Link>
           <Link href="/business/signup" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
             Self-serve signup
@@ -1364,6 +1365,12 @@ export default function AdminCompaniesPage() {
                               )}
                               <DocumentsButton companyId={c.id} />
                               <div className="border-t border-gray-100 my-0.5" />
+                              <BulkBiodyButton
+                                companyId={c.id}
+                                companyName={c.name}
+                                parentName={c.parent_company_id ? c.parent_name || null : null}
+                                hasChildren={isParentWithSubs}
+                              />
                               <EnsureGroupButton companyId={c.id} />
                               <BulkActivateButton companyId={c.id} />
                               <div className="border-t border-gray-100 my-0.5" />
