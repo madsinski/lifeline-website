@@ -112,6 +112,18 @@ export default function StaffOnboardPage() {
 
   const allDone = !loading && pending.length === 0;
 
+  const downloadText = (key: string, title: string, version: string, text: string) => {
+    const filename = `${key}-${version}.txt`;
+    const header = `${title}\nLifeline Health ehf.\nÚtgáfa ${version}\n\n`;
+    const blob = new Blob([header + text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/40 py-10 px-4">
       <div className="max-w-4xl mx-auto">
@@ -242,6 +254,16 @@ export default function StaffOnboardPage() {
                       <h2 className="text-xl font-bold text-gray-900">{active.title}</h2>
                       <p className="text-[11px] text-gray-500 mt-0.5 font-mono">{active.key} · {active.version} · SHA-256 {active.text_hash.slice(0, 16)}…</p>
                     </div>
+                    <button
+                      onClick={() => downloadText(active.key, active.title, active.version, active.text)}
+                      className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+                      title="Download plain-text copy (for legal review)"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                      </svg>
+                      .txt
+                    </button>
                   </div>
 
                   <textarea

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Tab = "commercial" | "platform";
@@ -319,23 +320,35 @@ export default function AdminLegalPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => setTab("commercial")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            tab === "commercial" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-          }`}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+          <button
+            onClick={() => setTab("commercial")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              tab === "commercial" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Commercial agreements ({rows.length})
+          </button>
+          <button
+            onClick={() => setTab("platform")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              tab === "platform" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Platform acceptances ({platformRows.length})
+          </button>
+        </div>
+        <Link
+          href="/admin/legal/templates"
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+          title="Browse every templated legal document, download .txt for legal review"
         >
-          Commercial agreements ({rows.length})
-        </button>
-        <button
-          onClick={() => setTab("platform")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            tab === "platform" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Platform acceptances ({platformRows.length})
-        </button>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Browse templates →
+        </Link>
       </div>
 
       {/* Platform tab: document-type filter + CSV export. Counts reflect

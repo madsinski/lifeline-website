@@ -19,6 +19,17 @@ export const STAFF_ACCEPTABLE_USE_VERSION = "v1.0";
 export const STAFF_DATA_PROTECTION_KEY = "staff-data-protection";
 export const STAFF_DATA_PROTECTION_VERSION = "v1.0";
 
+// Case-by-case service agreement with healthcare staff who are paid
+// per measurement/visit rather than a fixed salary. This is a
+// "verktakasamningur" under Icelandic tax law, not a ráðningarsamningur
+// — the contractor handles their own tax/pension/insurance. Lawyers
+// should review the rate and payment timing if they change.
+export const STAFF_CONTRACTOR_KEY = "staff-contractor-agreement";
+export const STAFF_CONTRACTOR_VERSION = "v1.0";
+// Compensation constants — baked into the v1.0 text. Change → bump version.
+export const STAFF_CONTRACTOR_ISK_PER_MEASUREMENT = 2000;
+export const STAFF_CONTRACTOR_PAYMENT_DAYS = 28;
+
 // ─── Required-by-role matrix ────────────────────────────────
 // Every active staff member signs NDA + acceptable-use + data-protection.
 // Clinicians (doctor, nurse, psychologist) additionally sign the
@@ -30,7 +41,8 @@ export type StaffAgreementKey =
   | typeof STAFF_NDA_KEY
   | typeof STAFF_CONFIDENTIALITY_KEY
   | typeof STAFF_ACCEPTABLE_USE_KEY
-  | typeof STAFF_DATA_PROTECTION_KEY;
+  | typeof STAFF_DATA_PROTECTION_KEY
+  | typeof STAFF_CONTRACTOR_KEY;
 
 export function requiredAgreementsForRole(role: StaffRoleLabel): Array<{ key: StaffAgreementKey; version: string; title: string }> {
   const base: Array<{ key: StaffAgreementKey; version: string; title: string }> = [
@@ -40,6 +52,7 @@ export function requiredAgreementsForRole(role: StaffRoleLabel): Array<{ key: St
   ];
   if (role === "doctor" || role === "nurse" || role === "psychologist") {
     base.push({ key: STAFF_CONFIDENTIALITY_KEY, version: STAFF_CONFIDENTIALITY_VERSION, title: "Yfirlýsing um þagnarskyldu (heilbrigðisstarfsmaður)" });
+    base.push({ key: STAFF_CONTRACTOR_KEY, version: STAFF_CONTRACTOR_VERSION, title: "Verktakasamningur (case-by-case heilbrigðisstörf)" });
   }
   return base;
 }
@@ -222,10 +235,100 @@ Lifeline Health ehf. – Yfirlýsing um meðferð persónuupplýsinga
 8.1 Með rafrænni undirritun staðfesti ég að ég hafi fengið fræðslu um persónuvernd, skil skyldur mínar samkvæmt GDPR og lögum nr. 90/2018, og mun fylgja þeim reglum sem Lifeline Health setur um meðferð persónuupplýsinga.`;
 }
 
+// ─── Verktakasamningur (case-by-case clinical contractor) ───
+// For nurses / doctors / psychologists paid per measurement or visit
+// instead of a fixed salary. Not a ráðningarsamningur — the contractor
+// handles their own tax and pension. If you need to change the rate
+// or payment window, bump STAFF_CONTRACTOR_VERSION so every existing
+// signer has to re-acknowledge the new terms.
+export function renderStaffContractorAgreement(): string {
+  const isk = STAFF_CONTRACTOR_ISK_PER_MEASUREMENT.toLocaleString("is-IS");
+  return `VERKTAKASAMNINGUR
+Lifeline Health ehf. – Verktakasamningur um heilsumælingar í atvinnuskyni
+Útgáfa ${STAFF_CONTRACTOR_VERSION}
+
+1. Aðilar
+1.1 Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline" eða „verkkaupi").
+1.2 Undirritaður heilbrigðisstarfsmaður (hér eftir „verktaki"), sem starfar sem verktaki samkvæmt samningi þessum.
+1.3 Aðilar undirrita þennan samning sem sjálfstæða lögaðila — samningurinn stofnar ekki til ráðningarsambands í skilningi laga nr. 28/1930 eða laga nr. 80/1938, og verktaki hlýtur ekki launþegaréttindi (t.d. orlof, veikindadagar, lífeyri eða atvinnuleysisbótarétt) samkvæmt þessum samningi.
+
+2. Umfang verkefnis
+2.1 Verktaki framkvæmir heilsumælingar fyrir viðskiptavini Lifeline — líkamssamsetningarmælingar (body composition), blóðþrýstingsmælingar, hæðar- og þyngdarmælingar, og skráningar á svörum úr heilsuspurningalistum — í samræmi við verkferla Lifeline og faglega staðla.
+2.2 Mælingar fara fram á tilteknum mælingadögum hjá viðskiptavinum Lifeline, á tíma og stað sem Lifeline tilkynnir með eðlilegum fyrirvara.
+2.3 Hver einstök mælingalota (samsett heilsumat fyrir einn einstakling) telst ein „mæling" (e. measurement) í skilningi þessa samnings.
+
+3. Faglegar kröfur og starfsleyfi
+3.1 Verktaki ábyrgist að hafa gilt starfsleyfi sem hjúkrunarfræðingur/læknir/sjúkraliði (eftir atvikum) frá Embætti landlæknis, sbr. lög nr. 34/2012 um heilbrigðisstarfsmenn, og að starfsleyfið sé virkt á meðan samningurinn er í gildi.
+3.2 Verktaki skal tilkynna Lifeline tafarlaust ef starfsleyfi fellur úr gildi, er takmarkað, eða er til skoðunar hjá Embætti landlæknis. Samningurinn fellur sjálfkrafa úr gildi ef starfsleyfi er afturkallað.
+3.3 Verktaki er bundinn þeim verkferlum, öryggisreglum og gæðastöðlum sem Lifeline setur fyrir heilsumælingar, enda er Lifeline rekið sem heilbrigðisþjónusta skv. lögum nr. 40/2007 og ber ábyrgð gagnvart skjólstæðingum.
+
+4. Endurgjald
+4.1 Verktaki fær greitt ${isk} ISK fyrir hverja fullkomna mælingu sem hann framkvæmir.
+4.2 Ofangreind fjárhæð er án VSK — heilbrigðisþjónusta er vsk-frjáls skv. 2. mgr. 2. gr. laga nr. 50/1988 um virðisaukaskatt.
+4.3 Endurgjald innifelur tíma, undirbúning, ferðir innan höfuðborgarsvæðisins, skráningar í sjúkraskrá Lifeline og eftirfylgni eftir mælingar.
+4.4 Lifeline greiðir hvorki akstur, dagpeninga né aðrar útlagðar kostnað verktaka nema sérstakt skriflegt samkomulag sé gert þar um.
+
+5. Reikningagerð og greiðsla
+5.1 Í lok hvers mánaðar sendir verktaki Lifeline reikning með upplýsingum um: fjölda mælinga, staðsetningu og dagsetningu, heildarfjárhæð.
+5.2 Lifeline greiðir rétta reikninga innan ${STAFF_CONTRACTOR_PAYMENT_DAYS} daga frá móttöku.
+5.3 Dragist greiðsla umfram gjalddaga án réttmætrar ástæðu greiðir Lifeline dráttarvexti skv. III. kafla laga nr. 38/2001 um vexti og verðtryggingu.
+5.4 Verktaki ber ábyrgð á eigin bókhaldi og staðgreiðslu, sbr. lög nr. 45/1987 um staðgreiðslu opinberra gjalda og lög nr. 50/1988 um virðisaukaskatt (þó heilbrigðisþjónusta sé vsk-frjáls).
+
+6. Skattar, lífeyrir og tryggingar
+6.1 Verktaki starfar á eigin kennitölu og ber sjálfur ábyrgð á:
+    a) greiðslu staðgreiðsluskatts af þóknun (sbr. lög nr. 45/1987);
+    b) greiðslu lífeyrisiðgjalda í viðurkenndan lífeyrissjóð (sbr. lög nr. 129/1997 um skyldutryggingu lífeyrisréttinda);
+    c) greiðslu tryggingagjalds og annarra opinberra gjalda;
+    d) eigin sjúkra- og slysatryggingum.
+6.2 Lifeline er ekki skuldbundið til að halda eftir eða skila neinum opinberum gjöldum af þóknun verktaka.
+
+7. Afbókanir og breytingar
+7.1 Hvor aðili getur afbókað einstaka mælingalotu með að lágmarki 48 klst. fyrirvara án endurgjalds.
+7.2 Afbóki Lifeline mælingalotu með skemmri fyrirvara en 48 klst. greiðist verktaka samsvarandi helmingsgjald (1.000 ISK) fyrir hverja fyrirhugaða mælingu í þeirri lotu, enda hafi verktaki staðfest þátttöku.
+7.3 Mæti verktaki ekki eða sé óstarfhæfur á mælingalotu án 48 klst. fyrirvara, og Lifeline þurfi að útvega staðgengil, getur Lifeline haldið eftir endurgjaldi fyrir þá lotu og krafið verktaka um sannanlegan aukakostnað vegna staðgengils.
+
+8. Þagnarskylda og persónuvernd
+8.1 Verktaki er bundinn sértækri þagnarskyldu heilbrigðisstarfsmanna skv. lögum nr. 34/2012 og réttindum sjúklinga skv. lögum nr. 74/1997, svo og trúnaðarskyldu gagnvart Lifeline skv. sérstökum trúnaðarsamningi sem er hluti af skráningu verktaka í kerfið.
+8.2 Allar persónuupplýsingar sem verktaki fær aðgang að í störfum skv. samningi þessum tilheyra viðskiptavinum Lifeline og Lifeline sjálfu sem ábyrgðaraðila skv. lögum nr. 90/2018 um persónuvernd. Verktaki er vinnsluaðili í skilningi laganna.
+
+9. Faglega ábyrgð og tryggingaskylda
+9.1 Lifeline ber faglega ábyrgð á heilbrigðisþjónustunni gagnvart skjólstæðingum sem rekstraraðili með starfsleyfi landlæknis.
+9.2 Verktaki ber sjálfur ábyrgð á eigin háttsemi og vanrækslu skv. almennum reglum um skaðabætur, og skal tilkynna Lifeline öll atvik sem upp koma við störfin innan 24 klst.
+9.3 Verktaka er ráðlagt að hafa starfsábyrgðartryggingu.
+
+10. Hugverkaréttur og gagnavinnsla
+10.1 Öll kerfi, verkferlar, spurningalistar, skráningarform og önnur gögn sem Lifeline lætur verktaka í té eru eign Lifeline. Verktaki fær notendaleyfi til þeirra meðan samningurinn er í gildi.
+10.2 Mælingargögn og sjúkraskrárgögn sem til verða við störfin eru eign viðskiptavina Lifeline (persónugögn) og Lifeline sem rekstraraðila sjúkraskrár skv. lögum nr. 55/2009.
+
+11. Samningstími og uppsögn
+11.1 Samningurinn tekur gildi við rafræna undirritun verktaka og er ótímabundinn.
+11.2 Hvor aðili getur sagt samningnum upp án ástæðu með 14 daga skriflegum fyrirvara (tölvupóstur á skráð netfang hins aðila telst gildur).
+11.3 Lifeline getur sagt samningnum upp án fyrirvara ef:
+    a) starfsleyfi verktaka fellur úr gildi eða er afturkallað;
+    b) verktaki brýtur gróflega trúnaðarskyldu eða þagnarskyldu;
+    c) verktaki stendur ekki við skuldbindingar sínar skv. samningi þessum þrátt fyrir áminningu.
+11.4 Uppsögn hefur ekki áhrif á mælingar sem þegar hafa verið framkvæmdar eða fjárhæðir sem þegar hafa fallið til greiðslu.
+
+12. Yfirfærsla réttinda og skuldbindinga
+12.1 Verktaki má ekki framselja störf skv. samningi þessum til þriðja aðila án skriflegs samþykkis Lifeline.
+
+13. Breytingar á samningi
+13.1 Breytingar á samningi þessum skulu gerðar skriflega og undirritaðar af báðum aðilum. Breytingar á endurgjaldi eða uppsagnarákvæðum teljast verulegar og kalla á nýja útgáfu samningsins.
+
+14. Lögsaga og varnarþing
+14.1 Um samning þennan gilda íslensk lög.
+14.2 Rísi ágreiningur milli aðila og náist ekki sátt innan 30 daga skal hann rekinn fyrir Héraðsdómi Reykjaness.
+
+15. Staðfesting
+15.1 Með rafrænni undirritun staðfestir verktaki að hafa lesið, skilið og samþykkt samning þennan, og að hann hafi heimild til að gangast undir skuldbindingar sínar samkvæmt honum.
+15.2 Rafræn undirritun hefur sömu bindandi áhrif og handskrifuð undirritun skv. lögum nr. 28/2001 um rafrænar undirskriftir. Staðfesting hefur verið send verktaka með tölvupósti sem PDF-skjal ásamt tímastimpli og IP-tölu.`;
+}
+
 // ─── Registry: key → renderer, for generic code paths ────────
 export const STAFF_DOC_REGISTRY: Record<string, { version: string; title: string; render: () => string }> = {
   [STAFF_NDA_KEY]: { version: STAFF_NDA_VERSION, title: "Trúnaðarsamningur (NDA)", render: renderStaffNDA },
   [STAFF_CONFIDENTIALITY_KEY]: { version: STAFF_CONFIDENTIALITY_VERSION, title: "Yfirlýsing um þagnarskyldu (heilbrigðisstarfsmaður)", render: renderStaffConfidentiality },
   [STAFF_ACCEPTABLE_USE_KEY]: { version: STAFF_ACCEPTABLE_USE_VERSION, title: "Tækjareglur og aðgangsstjórnun", render: renderStaffAcceptableUse },
   [STAFF_DATA_PROTECTION_KEY]: { version: STAFF_DATA_PROTECTION_VERSION, title: "Persónuverndarfræðsla", render: renderStaffDataProtectionBriefing },
+  [STAFF_CONTRACTOR_KEY]: { version: STAFF_CONTRACTOR_VERSION, title: "Verktakasamningur (case-by-case heilbrigðisstörf)", render: renderStaffContractorAgreement },
 };
