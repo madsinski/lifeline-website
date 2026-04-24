@@ -115,9 +115,14 @@ export default function BiodyBulkCreatePage() {
     setErr("");
     setSummary(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch("/api/admin/biody/bulk-create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ company_id: companyId, invitees: valid }),
       });
       const j = await res.json().catch(() => ({}));

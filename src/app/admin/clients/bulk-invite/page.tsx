@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 // Admin CSV / paste bulk invite for personal clients. The parsed rows
 // are previewed with per-row validation status before the admin fires
@@ -76,9 +77,14 @@ export default function AdminBulkInvitePage() {
     setErr("");
     setSummary(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch("/api/admin/clients/bulk-invite", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ invitees: valid }),
       });
       const j = await res.json().catch(() => ({}));
