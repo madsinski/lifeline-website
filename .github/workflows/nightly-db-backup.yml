@@ -61,6 +61,22 @@ jobs:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
+          if [ -z "${DB_URL:-}" ]; then
+            echo "::error::SUPABASE_DB_URL secret is missing or empty."
+            echo "Check: Repo → Settings → Secrets and variables → Actions →"
+            echo "       Repository secrets → SUPABASE_DB_URL exists."
+            exit 1
+          fi
+          # Also sanity-check the URL shape so we fail fast with a clear
+          # message if someone pasted a placeholder. Don't log the URL.
+          case "$DB_URL" in
+            postgresql://*|postgres://*) : ;;
+            *) echo "::error::DB_URL does not start with postgresql:// — fix the secret value."; exit 1 ;;
+          esac
+          if printf %s "$DB_URL" | grep -q "hidden\|YOUR-PASSWORD\|\[" ; then
+            echo "::error::DB_URL still contains a placeholder ('hidden', '[YOUR-PASSWORD]', etc). Paste the revealed Session-pooler URL from Supabase."
+            exit 1
+          fi
           DATE=$(date -u +%Y-%m-%d-%H%M)
           FILENAME="lifeline-${DATE}.sql.gz"
           # --no-owner / --no-acl: portable across environments — strip
