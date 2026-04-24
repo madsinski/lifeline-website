@@ -65,6 +65,8 @@ export default function AdminPaymentsPage() {
   const [owner, setOwner] = useState<OwnerFilter>("all");
   const [query, setQuery] = useState("");
   const [msg, setMsg] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -160,6 +162,51 @@ export default function AdminPaymentsPage() {
     for (const r of rows) c[r.status]++;
     return c;
   }, [rows]);
+
+  async function bulkDelete(opts: { all?: boolean }) {
+    const ids = Array.from(selected);
+    const count = opts.all ? rows.length : ids.length;
+    if (count === 0) return;
+    const prompt = opts.all
+      ? `Delete ALL ${rows.length} payments? This cannot be undone.`
+      : `Delete ${ids.length} selected payment(s)? This cannot be undone.`;
+    if (!confirm(prompt)) return;
+    setDeleting(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const res = await fetch("/api/admin/payments/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify(opts.all ? { all: true } : { ids }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.ok) {
+        setMsg(`Delete failed: ${j?.detail || j?.error || "unknown"}`);
+      } else {
+        setMsg(`Deleted ${j.deleted} payment(s).`);
+        setSelected(new Set());
+        await load();
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAllFiltered() {
+    setSelected((prev) => {
+      if (prev.size === filtered.length && filtered.every((r) => prev.has(r.id))) return new Set();
+      return new Set(filtered.map((r) => r.id));
+    });
+  }
 
   async function markSucceeded(id: string) {
     const { error } = await supabase.from("payments").update({ status: "succeeded", paid_at: new Date().toISOString() }).eq("id", id);
@@ -266,6 +313,29 @@ export default function AdminPaymentsPage() {
         />
       </div>
 
+      {/* Bulk-action bar */}
+      {!loading && rows.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+          <span>{selected.size} selected</span>
+          <button
+            onClick={() => bulkDelete({ all: false })}
+            disabled={selected.size === 0 || deleting}
+            className="px-2.5 py-1 rounded-md border border-red-300 text-red-700 bg-white hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Delete selected
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={() => bulkDelete({ all: true })}
+            disabled={deleting}
+            className="px-2.5 py-1 rounded-md border border-red-400 text-red-800 bg-red-50 hover:bg-red-100 font-semibold disabled:opacity-40"
+            title="Wipe every row — use for starting fresh"
+          >
+            Delete ALL payments
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-sm text-gray-500">Loading…</div>
       ) : filtered.length === 0 ? (
@@ -277,6 +347,15 @@ export default function AdminPaymentsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
               <tr>
+                <th className="px-3 py-3 text-left font-medium w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={filtered.length > 0 && filtered.every((r) => selected.has(r.id))}
+                    onChange={toggleAllFiltered}
+                    className="w-4 h-4 accent-emerald-600"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left font-medium">Date</th>
                 <th className="px-4 py-3 text-left font-medium">Company</th>
                 <th className="px-4 py-3 text-left font-medium">Paid by</th>
@@ -296,7 +375,15 @@ export default function AdminPaymentsPage() {
                   ? (p.client?.full_name || p.client?.email || p.owner_id.slice(0, 8))
                   : (ownerCompanyName || p.owner_id.slice(0, 8));
                 return (
-                <tr key={p.id} className="border-t border-gray-100 align-top">
+                <tr key={p.id} className={`border-t border-gray-100 align-top ${selected.has(p.id) ? "bg-emerald-50/40" : ""}`}>
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(p.id)}
+                      onChange={() => toggleRow(p.id)}
+                      className="w-4 h-4 accent-emerald-600"
+                    />
+                  </td>
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
                     {new Date(p.paid_at || p.created_at).toLocaleDateString("en-GB")}
                     <div className="text-[10px] text-gray-500">{new Date(p.paid_at || p.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>

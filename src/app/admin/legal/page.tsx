@@ -47,6 +47,44 @@ export default function AdminLegalPage() {
   const [docKindFilter, setDocKindFilter] = useState<"all" | "terms-of-service" | "data-processing-agreement" | "employee-terms-of-service" | "health-assessment-consent">("all");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [backfilling, setBackfilling] = useState(false);
+  const [selectedCommercial, setSelectedCommercial] = useState<Set<string>>(new Set());
+  const [selectedPlatform, setSelectedPlatform] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+
+  const bulkDelete = async (target: "commercial" | "platform", opts: { all?: boolean }) => {
+    const ids = target === "commercial" ? Array.from(selectedCommercial) : Array.from(selectedPlatform);
+    const count = opts.all ? (target === "commercial" ? rows.length : platformRows.length) : ids.length;
+    if (count === 0) return;
+    const label = target === "commercial" ? "commercial agreement(s)" : "platform acceptance(s)";
+    const prompt = opts.all
+      ? `Delete ALL ${count} ${label}? This removes legal evidence of sign-off and cannot be undone.`
+      : `Delete ${ids.length} selected ${label}? This cannot be undone.`;
+    if (!confirm(prompt)) return;
+    setDeleting(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      const endpoint = target === "commercial"
+        ? "/api/admin/legal/agreements/bulk-delete"
+        : "/api/admin/legal/acceptances/bulk-delete";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+        body: JSON.stringify(opts.all ? { all: true } : { ids }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.ok) {
+        alert(`Delete failed: ${j?.detail || j?.error || "unknown"}`);
+      } else {
+        alert(`Deleted ${j.deleted} row(s). Storage blobs removed: ${j.blobs_removed ?? 0}.`);
+        if (target === "commercial") setSelectedCommercial(new Set());
+        else setSelectedPlatform(new Set());
+        await load();
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -343,12 +381,48 @@ export default function AdminLegalPage() {
         </div>
       )}
 
+      {tab === "commercial" && rows.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-3">
+          <span>{selectedCommercial.size} selected</span>
+          <button
+            onClick={() => bulkDelete("commercial", {})}
+            disabled={selectedCommercial.size === 0 || deleting}
+            className="px-2.5 py-1 rounded-md border border-red-300 text-red-700 bg-white hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Delete selected
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={() => bulkDelete("commercial", { all: true })}
+            disabled={deleting}
+            className="px-2.5 py-1 rounded-md border border-red-400 text-red-800 bg-red-50 hover:bg-red-100 font-semibold disabled:opacity-40"
+            title="Wipe every commercial agreement row"
+          >
+            Delete ALL commercial agreements
+          </button>
+        </div>
+      )}
+
       {tab === "commercial" && filtered.length > 0 && (
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-3 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all"
+                      checked={filtered.length > 0 && filtered.every((r) => selectedCommercial.has(r.id))}
+                      onChange={() => {
+                        setSelectedCommercial((prev) => {
+                          if (filtered.every((r) => prev.has(r.id))) return new Set();
+                          return new Set(filtered.map((r) => r.id));
+                        });
+                      }}
+                      className="w-4 h-4 accent-emerald-600"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Company</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">PO</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Signatory</th>
@@ -361,7 +435,21 @@ export default function AdminLegalPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50/60">
+                  <tr key={r.id} className={`hover:bg-gray-50/60 ${selectedCommercial.has(r.id) ? "bg-emerald-50/40" : ""}`}>
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedCommercial.has(r.id)}
+                        onChange={() => {
+                          setSelectedCommercial((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 accent-emerald-600"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{r.company_name}</td>
                     <td className="px-4 py-3 text-xs font-mono text-gray-700">{r.po_number || "—"}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">
@@ -399,12 +487,48 @@ export default function AdminLegalPage() {
         </div>
       )}
 
+      {tab === "platform" && platformRows.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-3">
+          <span>{selectedPlatform.size} selected</span>
+          <button
+            onClick={() => bulkDelete("platform", {})}
+            disabled={selectedPlatform.size === 0 || deleting}
+            className="px-2.5 py-1 rounded-md border border-red-300 text-red-700 bg-white hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Delete selected
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={() => bulkDelete("platform", { all: true })}
+            disabled={deleting}
+            className="px-2.5 py-1 rounded-md border border-red-400 text-red-800 bg-red-50 hover:bg-red-100 font-semibold disabled:opacity-40"
+            title="Wipe every platform acceptance row"
+          >
+            Delete ALL platform acceptances
+          </button>
+        </div>
+      )}
+
       {tab === "platform" && filteredPlatform.length > 0 && (
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-3 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all"
+                      checked={filteredPlatform.length > 0 && filteredPlatform.every((r) => selectedPlatform.has(r.id))}
+                      onChange={() => {
+                        setSelectedPlatform((prev) => {
+                          if (filteredPlatform.every((r) => prev.has(r.id))) return new Set();
+                          return new Set(filteredPlatform.map((r) => r.id));
+                        });
+                      }}
+                      className="w-4 h-4 accent-emerald-600"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Document</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Version</th>
@@ -416,7 +540,21 @@ export default function AdminLegalPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredPlatform.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50/60">
+                  <tr key={r.id} className={`hover:bg-gray-50/60 ${selectedPlatform.has(r.id) ? "bg-emerald-50/40" : ""}`}>
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedPlatform.has(r.id)}
+                        onChange={() => {
+                          setSelectedPlatform((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 accent-emerald-600"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       <div className="font-medium text-gray-900">{r.user_full_name || r.user_email || "—"}</div>
                       {r.user_full_name && r.user_email && (
