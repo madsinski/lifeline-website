@@ -1,0 +1,131 @@
+name: Nightly DB Backup
+
+# Belt-and-braces backup that runs alongside Supabase's built-in daily
+# snapshots (which are 7 day rolling, recoverable only from the
+# Supabase dashboard). This dumps the entire public schema + data via
+# pg_dump and uploads it to the private "db-backups" Storage bucket.
+# Cheap to run, easy to download manually if Supabase is ever
+# unreachable, and gives us a portable export if we ever migrate off.
+#
+# Required GitHub repository secrets (Settings → Secrets → Actions):
+#   SUPABASE_DB_URL        — postgres connection string from
+#                            Supabase Dashboard → Project → Settings →
+#                            Database → "Connection string (URI)".
+#                            Use the DIRECT connection (port 5432),
+#                            NOT the pooler (6543) — pg_dump needs
+#                            session-level connections.
+#   SUPABASE_PROJECT_REF   — "cfnibfxzltxiriqxvvru" for this project.
+#   SUPABASE_SERVICE_ROLE_KEY — service-role API key (Settings →
+#                              API → service_role secret).
+#
+# Retention: keeps the last 14 daily dumps, prunes anything older.
+
+on:
+  schedule:
+    # 03:00 UTC = 03:00 in Iceland (UTC year-round). Off-peak.
+    - cron: '0 3 * * *'
+  workflow_dispatch:    # manual trigger for testing / pre-migration snapshots
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install postgres client (pg_dump)
+        run: |
+          # Match Supabase's Postgres major version. Supabase runs
+          # Postgres 15; install matching client to avoid
+          # version-mismatch warnings.
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-15
+          pg_dump --version
+
+      - name: Dump database
+        id: dump
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d-%H%M)
+          FILENAME="lifeline-${DATE}.sql.gz"
+          # --no-owner / --no-acl: portable across environments — strip
+          # the supabase-internal role grants so the dump can be
+          # restored to a fresh project without complaints.
+          pg_dump \
+            --no-owner --no-acl \
+            --exclude-schema=auth \
+            --exclude-schema=storage \
+            --exclude-schema=realtime \
+            --exclude-schema=supabase_functions \
+            --exclude-schema=vault \
+            --exclude-schema=pgsodium \
+            --exclude-schema=graphql \
+            --exclude-schema=graphql_public \
+            --exclude-schema=net \
+            --exclude-schema=extensions \
+            "$DB_URL" \
+            | gzip -9 > "$FILENAME"
+          ls -lh "$FILENAME"
+          echo "filename=$FILENAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Supabase Storage
+        env:
+          PROJECT_REF:   ${{ secrets.SUPABASE_PROJECT_REF }}
+          SERVICE_KEY:   ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FILENAME:      ${{ steps.dump.outputs.filename }}
+        run: |
+          set -euo pipefail
+          curl --fail --show-error -sS \
+            -X POST "https://${PROJECT_REF}.supabase.co/storage/v1/object/db-backups/${FILENAME}" \
+            -H "Authorization: Bearer ${SERVICE_KEY}" \
+            -H "apikey: ${SERVICE_KEY}" \
+            -H "Content-Type: application/gzip" \
+            --data-binary "@${FILENAME}"
+          echo
+          echo "Uploaded: ${FILENAME}"
+
+      - name: Prune old backups (keep newest 14)
+        env:
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          # List all objects in the bucket, sorted newest-first.
+          curl --fail --show-error -sS \
+            -X POST "https://${PROJECT_REF}.supabase.co/storage/v1/object/list/db-backups" \
+            -H "Authorization: Bearer ${SERVICE_KEY}" \
+            -H "apikey: ${SERVICE_KEY}" \
+            -H "Content-Type: application/json" \
+            --data '{"limit": 500, "sortBy": {"column": "created_at", "order": "desc"}}' \
+            > /tmp/list.json
+          python3 - <<'PY'
+          import json, urllib.request, os
+          items = json.load(open('/tmp/list.json'))
+          # Keep newest 14, delete the rest.
+          to_delete = [i['name'] for i in items[14:]]
+          if not to_delete:
+              print("No old backups to prune (have", len(items), "total).")
+              raise SystemExit(0)
+          ref = os.environ['PROJECT_REF']
+          key = os.environ['SERVICE_KEY']
+          for name in to_delete:
+              url = f"https://{ref}.supabase.co/storage/v1/object/db-backups/{name}"
+              req = urllib.request.Request(url, method='DELETE',
+                  headers={'Authorization': f'Bearer {key}', 'apikey': key})
+              try:
+                  urllib.request.urlopen(req).read()
+                  print("deleted", name)
+              except Exception as e:
+                  print("could not delete", name, ":", e)
+          PY
