@@ -61,12 +61,15 @@ const defaultPermissions: Record<StaffRole, Permission[]> = {
   psychologist: ["manage_clients", "send_messages"],
 };
 
+type EmploymentType = "salaried" | "piece_rate" | "contractor";
+
 interface TeamMember {
   id: string;
   name: string;
   email: string;
   phone: string;
   role: StaffRole;
+  employment_type: EmploymentType | null;
   active: boolean;
   permissions: Permission[];
   invited: boolean;
@@ -75,6 +78,23 @@ interface TeamMember {
   bio?: string | null;
   years_experience?: number | null;
   qualifications?: string[] | null;
+}
+
+const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
+  salaried: "Salaried",
+  piece_rate: "Piece-rate (2 000 ISK/mæling)",
+  contractor: "Independent contractor",
+};
+
+const EMPLOYMENT_COLORS: Record<EmploymentType, string> = {
+  salaried: "bg-sky-100 text-sky-800 border-sky-200",
+  piece_rate: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  contractor: "bg-amber-100 text-amber-800 border-amber-200",
+};
+
+function defaultEmploymentTypeFor(role: StaffRole): EmploymentType {
+  if (role === "admin" || role === "coach") return "salaried";
+  return "piece_rate";
 }
 
 const roleLabels: Record<StaffRole, string> = {
@@ -98,10 +118,10 @@ const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "a
 // ─── Fallback mock data ───────────────────────────────────────
 
 const fallbackTeam: TeamMember[] = [
-  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", phone: "+354 555 1001", role: "coach", active: true, permissions: defaultPermissions.coach, invited: true },
-  { id: "staff-2", name: "Dr. Gudmundur Sigurdsson", email: "gudmundur@lifeline.is", phone: "+354 555 1002", role: "doctor", active: true, permissions: defaultPermissions.doctor, invited: true },
-  { id: "staff-3", name: "Helga Jonsdottir", email: "helga@lifeline.is", phone: "+354 555 1003", role: "nurse", active: true, permissions: defaultPermissions.nurse, invited: true },
-  { id: "staff-4", name: "Dr. Anna Kristjansdottir", email: "anna.k@lifeline.is", phone: "+354 555 1004", role: "psychologist", active: true, permissions: defaultPermissions.psychologist, invited: true },
+  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", phone: "+354 555 1001", role: "coach", employment_type: "salaried", active: true, permissions: defaultPermissions.coach, invited: true },
+  { id: "staff-2", name: "Dr. Gudmundur Sigurdsson", email: "gudmundur@lifeline.is", phone: "+354 555 1002", role: "doctor", employment_type: "piece_rate", active: true, permissions: defaultPermissions.doctor, invited: true },
+  { id: "staff-3", name: "Helga Jonsdottir", email: "helga@lifeline.is", phone: "+354 555 1003", role: "nurse", employment_type: "piece_rate", active: true, permissions: defaultPermissions.nurse, invited: true },
+  { id: "staff-4", name: "Dr. Anna Kristjansdottir", email: "anna.k@lifeline.is", phone: "+354 555 1004", role: "psychologist", employment_type: "piece_rate", active: true, permissions: defaultPermissions.psychologist, invited: true },
 ];
 
 // ─── Connection status type ───────────────────────────────────
@@ -150,15 +170,17 @@ export default function TeamPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newRole, setNewRole] = useState<StaffRole>("coach");
+  const [newEmployment, setNewEmployment] = useState<EmploymentType>(defaultEmploymentTypeFor("coach"));
   const [newPermissions, setNewPermissions] = useState<Permission[]>(defaultPermissions.coach);
   const [sendInvite, setSendInvite] = useState(true);
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
 
-  // Update permissions when role changes
+  // Update permissions + employment default when role changes
   const handleRoleChange = (role: StaffRole) => {
     setNewRole(role);
     setNewPermissions(defaultPermissions[role]);
+    setNewEmployment(defaultEmploymentTypeFor(role));
   };
 
   const togglePermission = (perm: Permission) => {
@@ -192,6 +214,7 @@ export default function TeamPage() {
             email: row.email,
             phone: row.phone || "",
             role: row.role as StaffRole,
+            employment_type: (row.employment_type as EmploymentType | null) ?? null,
             active: row.active ?? true,
             permissions: (row.permissions as Permission[]) || defaultPermissions[row.role as StaffRole] || [],
             invited: row.invited ?? false,
@@ -225,6 +248,7 @@ export default function TeamPage() {
               email: row.email,
               phone: row.phone || "",
               role: row.role as StaffRole,
+              employment_type: (row.employment_type as EmploymentType | null) ?? null,
               active: row.active ?? true,
               permissions: (row.permissions as Permission[]) || defaultPermissions[row.role as StaffRole] || [],
               invited: row.invited ?? false,
@@ -255,6 +279,7 @@ export default function TeamPage() {
       email: newEmail.trim(),
       phone: newPhone.trim(),
       role: newRole,
+      employment_type: newEmployment,
       permissions: newPermissions,
       active: true,
       invited: false,
@@ -281,6 +306,7 @@ export default function TeamPage() {
           email: data.email,
           phone: data.phone || "",
           role: data.role as StaffRole,
+          employment_type: (data.employment_type as EmploymentType | null) ?? newEmployment,
           active: data.active ?? true,
           permissions: (data.permissions as Permission[]) || newPermissions,
           invited: data.invited ?? false,
@@ -336,6 +362,7 @@ export default function TeamPage() {
     setNewEmail("");
     setNewPhone("");
     setNewRole("coach");
+    setNewEmployment(defaultEmploymentTypeFor("coach"));
     setNewPermissions(defaultPermissions.coach);
     setShowAddModal(false);
   };
@@ -416,7 +443,7 @@ export default function TeamPage() {
 
   const startEdit = (member: TeamMember) => {
     setEditingId(member.id);
-    setEditValues({ name: member.name, email: member.email, phone: member.phone, role: member.role, permissions: member.permissions, avatar_url: member.avatar_url, specialty: member.specialty, bio: member.bio, years_experience: member.years_experience, qualifications: member.qualifications });
+    setEditValues({ name: member.name, email: member.email, phone: member.phone, role: member.role, employment_type: member.employment_type, permissions: member.permissions, avatar_url: member.avatar_url, specialty: member.specialty, bio: member.bio, years_experience: member.years_experience, qualifications: member.qualifications });
   };
 
   const saveEdit = async (id: string) => {
@@ -430,6 +457,7 @@ export default function TeamPage() {
           email: editValues.email,
           phone: editValues.phone,
           role: editValues.role,
+          employment_type: editValues.employment_type ?? null,
           permissions: editValues.permissions,
           avatar_url: editValues.avatar_url || null,
           specialty: editValues.specialty || null,
@@ -675,22 +703,41 @@ export default function TeamPage() {
                     </td>
                     <td className="px-4 py-3">
                       {isEditing ? (
-                        <select
-                          value={editValues.role ?? member.role}
-                          onChange={(e) => setEditValues({ ...editValues, role: e.target.value as StaffRole })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
-                        >
-                          {roleOptions.map((r) => (
-                            <option key={r} value={r}>{roleLabels[r]}</option>
-                          ))}
-                        </select>
+                        <div className="flex flex-col gap-1.5">
+                          <select
+                            value={editValues.role ?? member.role}
+                            onChange={(e) => setEditValues({ ...editValues, role: e.target.value as StaffRole })}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
+                          >
+                            {roleOptions.map((r) => (
+                              <option key={r} value={r}>{roleLabels[r]}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={editValues.employment_type ?? member.employment_type ?? defaultEmploymentTypeFor(editValues.role ?? member.role)}
+                            onChange={(e) => setEditValues({ ...editValues, employment_type: e.target.value as EmploymentType })}
+                            className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
+                            title="Drives which contract doc they sign at onboarding"
+                          >
+                            <option value="salaried">Salaried</option>
+                            <option value="piece_rate">Piece-rate (2 000 ISK/mæling)</option>
+                            <option value="contractor">Contractor</option>
+                          </select>
+                        </div>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColors[member.role]}`}>
-                            {roleLabels[member.role]}
-                          </span>
-                          {member.specialty && (
-                            <span className="text-[10px] text-gray-400">{member.specialty}</span>
+                        <div className="flex flex-col items-start gap-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColors[member.role]}`}>
+                              {roleLabels[member.role]}
+                            </span>
+                            {member.specialty && (
+                              <span className="text-[10px] text-gray-400">{member.specialty}</span>
+                            )}
+                          </div>
+                          {member.employment_type && (
+                            <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${EMPLOYMENT_COLORS[member.employment_type]}`}>
+                              {EMPLOYMENT_LABELS[member.employment_type]}
+                            </span>
                           )}
                         </div>
                       )}
@@ -1052,6 +1099,21 @@ export default function TeamPage() {
                     <option key={r} value={r}>{roleLabels[r]}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Employment type</label>
+                <select
+                  value={newEmployment}
+                  onChange={(e) => setNewEmployment(e.target.value as EmploymentType)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+                >
+                  <option value="salaried">Salaried — fixed monthly wage (ráðningarsamningur uploaded as bespoke PDF)</option>
+                  <option value="piece_rate">Piece-rate — 2 000 ISK per measurement (lausráðningarsamningur, click-through)</option>
+                  <option value="contractor">Independent contractor — self-employed, own tax (verktakasamningur, click-through)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1 leading-snug">
+                  Decides which contract doc they sign at onboarding. Pick <strong>piece_rate</strong> for clinicians paid per measurement (Lifeline is the employer of record, withholds tax + pays tryggingagjald + pension). Pick <strong>salaried</strong> for full-time / fixed-salary staff — you upload the bespoke ráðningarsamningur PDF via the Legal panel on the row. Only pick <strong>contractor</strong> for genuinely independent work (IT, marketing, etc.).
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>

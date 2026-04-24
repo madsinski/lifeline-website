@@ -4,8 +4,9 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
 import {
   STAFF_DOC_REGISTRY,
-  requiredAgreementsForRole,
+  requiredAgreementsForStaff,
   type StaffRoleLabel,
+  type EmploymentType,
 } from "@/lib/staff-terms-content";
 
 // List the signing state for the current staff member.
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, name, role, active")
+    .select("id, name, role, employment_type, active")
     .eq("id", user.id)
     .maybeSingle();
   if (!staffRow || !staffRow.active) {
@@ -30,7 +31,8 @@ export async function GET(req: NextRequest) {
   }
 
   const role = (staffRow.role as StaffRoleLabel) || "coach";
-  const required = requiredAgreementsForRole(role);
+  const employmentType = (staffRow.employment_type as EmploymentType | null) || null;
+  const required = requiredAgreementsForStaff(role, employmentType);
 
   const { data: signedRows } = await supabaseAdmin
     .from("staff_agreement_acceptances")
@@ -84,6 +86,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     role,
+    employment_type: employmentType,
     name: staffRow.name,
     required: required.map((r) => ({ key: r.key, version: r.version, title: r.title })),
     pending,

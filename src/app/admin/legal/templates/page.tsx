@@ -8,6 +8,7 @@ import {
   STAFF_CONFIDENTIALITY_KEY, STAFF_CONFIDENTIALITY_VERSION, renderStaffConfidentiality,
   STAFF_ACCEPTABLE_USE_KEY, STAFF_ACCEPTABLE_USE_VERSION, renderStaffAcceptableUse,
   STAFF_DATA_PROTECTION_KEY, STAFF_DATA_PROTECTION_VERSION, renderStaffDataProtectionBriefing,
+  STAFF_PIECE_RATE_EMPLOYMENT_KEY, STAFF_PIECE_RATE_EMPLOYMENT_VERSION, renderStaffPieceRateEmployment,
   STAFF_CONTRACTOR_KEY, STAFF_CONTRACTOR_VERSION, renderStaffContractorAgreement,
 } from "@/lib/staff-terms-content";
 import {
@@ -38,7 +39,8 @@ const TEMPLATES: TemplateMeta[] = [
   { key: STAFF_CONFIDENTIALITY_KEY, version: STAFF_CONFIDENTIALITY_VERSION, title: "Þagnarskylda heilbrigðisstarfsmanns", category: "staff", audience: "Clinicians (doctor / nurse / psychologist)", render: renderStaffConfidentiality },
   { key: STAFF_ACCEPTABLE_USE_KEY, version: STAFF_ACCEPTABLE_USE_VERSION, title: "Tækjareglur og aðgangsstjórnun", category: "staff", audience: "All staff", render: renderStaffAcceptableUse },
   { key: STAFF_DATA_PROTECTION_KEY, version: STAFF_DATA_PROTECTION_VERSION, title: "Persónuverndarfræðsla", category: "staff", audience: "All staff", render: renderStaffDataProtectionBriefing },
-  { key: STAFF_CONTRACTOR_KEY, version: STAFF_CONTRACTOR_VERSION, title: "Verktakasamningur (case-by-case)", category: "staff", audience: "Clinicians paid per-measurement", render: renderStaffContractorAgreement },
+  { key: STAFF_PIECE_RATE_EMPLOYMENT_KEY, version: STAFF_PIECE_RATE_EMPLOYMENT_VERSION, title: "Lausráðningarsamningur (afkastahvetjandi)", category: "staff", audience: "Clinicians paid per measurement (launþegi)", render: renderStaffPieceRateEmployment },
+  { key: STAFF_CONTRACTOR_KEY, version: STAFF_CONTRACTOR_VERSION, title: "Verktakasamningur (sjálfstæður verktaki)", category: "staff", audience: "Independent non-clinical contractors (optional)", render: renderStaffContractorAgreement },
   // Platform
   { key: TOS_KEY, version: TOS_VERSION, title: "Notkunarskilmálar (B2B)", category: "platform", audience: "Company contact persons", render: renderTermsOfService },
   { key: DPA_KEY, version: DPA_VERSION, title: "Gagnavinnslusamningur (DPA)", category: "platform", audience: "Company contact persons", render: renderDataProcessingAgreement },
