@@ -41,14 +41,18 @@ jobs:
       - name: Install postgres client (pg_dump)
         run: |
           # Match Supabase's Postgres major version. Supabase runs
-          # Postgres 15; install matching client to avoid
-          # version-mismatch warnings.
+          # Postgres 17 — older pg_dump refuses to dump a newer server,
+          # so we install pg_dump 17 from the official PGDG apt repo.
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
             https://www.postgresql.org/media/keys/ACCC4CF8.asc
           sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-15
+          sudo apt-get install -y -qq postgresql-client-17
+          # Make sure pg_dump 17 wins over any pre-installed older
+          # version on the runner.
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
           pg_dump --version
 
       - name: Dump database
