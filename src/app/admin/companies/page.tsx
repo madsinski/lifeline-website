@@ -1388,22 +1388,22 @@ export default function AdminCompaniesPage() {
                       hasChildren={isParentWithSubs}
                     />
                     <DocumentsButton companyId={c.id} />
+                    <button
+                      onClick={() => downloadCsv(c.id, c.name)}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                      title="Download employee roster as CSV"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                      </svg>
+                      Export CSV
+                    </button>
                     <div className="flex-1" />
                     <OverflowMenu>
-                      {(close) => (
+                      {() => (
                         <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
                           <EnsureGroupButton companyId={c.id} />
                           <BulkActivateButton companyId={c.id} />
-                          <div className="border-t border-gray-100 my-0.5" />
-                          <button
-                            onClick={() => { downloadCsv(c.id, c.name); close(); }}
-                            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                            </svg>
-                            Export CSV
-                          </button>
                           <div className="border-t border-gray-100 my-0.5" />
                           <DeleteCompanyButton company={c} onDone={load} />
                         </div>
