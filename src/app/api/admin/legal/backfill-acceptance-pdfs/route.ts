@@ -98,7 +98,8 @@ export async function POST(req: NextRequest) {
         .from("platform-acceptance-pdfs")
         .upload(storagePath, pdfBytes, { contentType: "application/pdf", upsert: true });
       if (upErr) {
-        results.push({ id: r.id, status: "failed", error: upErr.message });
+        console.error("[backfill] storage upload failed", r.id, upErr);
+        results.push({ id: r.id, status: "failed", error: `upload: ${upErr.message}` });
         continue;
       }
 
@@ -107,12 +108,14 @@ export async function POST(req: NextRequest) {
         .update({ pdf_storage_path: storagePath, pdf_sha256: sha256(pdfBytes) })
         .eq("id", r.id);
       if (updErr) {
-        results.push({ id: r.id, status: "failed", error: updErr.message });
+        console.error("[backfill] row update failed", r.id, updErr);
+        results.push({ id: r.id, status: "failed", error: `update: ${updErr.message}` });
         continue;
       }
       results.push({ id: r.id, status: "regenerated" });
     } catch (e) {
-      results.push({ id: r.id, status: "failed", error: (e as Error).message });
+      console.error("[backfill] exception for", r.id, e);
+      results.push({ id: r.id, status: "failed", error: `exception: ${(e as Error).message}` });
     }
   }
 

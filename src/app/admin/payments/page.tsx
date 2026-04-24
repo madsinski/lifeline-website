@@ -20,6 +20,10 @@ type Payment = {
   pdf_url: string | null;
   client?: { full_name?: string | null; email?: string | null } | null;
   company?: { name?: string | null } | null;
+  // Resolved after fetch for B2C payments: the employer of the client
+  // (if any), so personal check-ins billed to the employee still show
+  // which company they belong to.
+  client_company?: { id: string | null; name: string | null } | null;
 };
 
 type Filter = "all" | "pending" | "succeeded" | "refunded" | "failed";
@@ -64,29 +68,69 @@ export default function AdminPaymentsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    // Fetch payments without joins. owner_id is polymorphic (either a
+    // client or a company) so we can't rely on a single FK join — we
+    // resolve names in a second pass. This also lets us look up the
+    // employer of B2C payers so company-of-client is visible too.
+    const { data: paymentsData } = await supabase
       .from("payments")
-      .select(`
-        id, owner_type, owner_id, amount_isk, currency, description, provider,
-        provider_reference, status, related_type, related_id, paid_at,
-        created_at, pdf_url,
-        client:clients!payments_owner_id_fkey(full_name, email),
-        company:companies!payments_owner_id_fkey(name)
-      `)
+      .select("id, owner_type, owner_id, amount_isk, currency, description, provider, provider_reference, status, related_type, related_id, paid_at, created_at, pdf_url")
       .order("created_at", { ascending: false })
       .limit(500);
-    setLoading(false);
-    if (error) {
-      // Fallback without the joins if the FK alias path fails
-      const { data: plain } = await supabase
-        .from("payments")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      setRows((plain as Payment[]) || []);
-      return;
+    const base = (paymentsData as Payment[]) || [];
+    if (base.length === 0) { setRows([]); setLoading(false); return; }
+
+    const clientIds = Array.from(new Set(base.filter((p) => p.owner_type === "client").map((p) => p.owner_id)));
+    const companyIds = Array.from(new Set(base.filter((p) => p.owner_type === "company").map((p) => p.owner_id)));
+
+    const clientMap = new Map<string, { full_name: string | null; email: string | null; company_id: string | null }>();
+    const companyMap = new Map<string, { name: string | null }>();
+
+    // Parallel lookups. For clients we also fetch their company_id so
+    // B2C rows can show "via Acme ehf." alongside the client's name.
+    const [clientsRes, companiesRes] = await Promise.all([
+      clientIds.length > 0
+        ? supabase.from("clients").select("id, full_name, email, company_id").in("id", clientIds)
+        : Promise.resolve({ data: [] }),
+      companyIds.length > 0
+        ? supabase.from("companies").select("id, name").in("id", companyIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    for (const c of (clientsRes.data as Array<{ id: string; full_name: string | null; email: string | null; company_id: string | null }>) || []) {
+      clientMap.set(c.id, { full_name: c.full_name, email: c.email, company_id: c.company_id });
     }
-    setRows((data as unknown as Payment[]) || []);
+    for (const c of (companiesRes.data as Array<{ id: string; name: string | null }>) || []) {
+      companyMap.set(c.id, { name: c.name });
+    }
+
+    // Resolve employer names for B2C payers with a company_id set.
+    const employerIds = Array.from(new Set(Array.from(clientMap.values()).map((c) => c.company_id).filter((x): x is string => !!x).filter((id) => !companyMap.has(id))));
+    if (employerIds.length > 0) {
+      const { data: employers } = await supabase.from("companies").select("id, name").in("id", employerIds);
+      for (const c of (employers as Array<{ id: string; name: string | null }>) || []) {
+        companyMap.set(c.id, { name: c.name });
+      }
+    }
+
+    const enriched: Payment[] = base.map((p) => {
+      if (p.owner_type === "client") {
+        const cli = clientMap.get(p.owner_id);
+        return {
+          ...p,
+          client: cli ? { full_name: cli.full_name, email: cli.email } : null,
+          company: null,
+          client_company: cli?.company_id ? { id: cli.company_id, name: companyMap.get(cli.company_id)?.name || null } : null,
+        };
+      }
+      return {
+        ...p,
+        client: null,
+        company: companyMap.get(p.owner_id) ? { name: companyMap.get(p.owner_id)!.name } : null,
+      };
+    });
+    setRows(enriched);
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -103,6 +147,7 @@ export default function AdminPaymentsPage() {
           r.client?.full_name || "",
           r.client?.email || "",
           r.company?.name || "",
+          r.client_company?.name || "",
         ].join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
@@ -233,7 +278,8 @@ export default function AdminPaymentsPage() {
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Date</th>
-                <th className="px-4 py-3 text-left font-medium">Owner</th>
+                <th className="px-4 py-3 text-left font-medium">Company</th>
+                <th className="px-4 py-3 text-left font-medium">Paid by</th>
                 <th className="px-4 py-3 text-left font-medium">Description</th>
                 <th className="px-4 py-3 text-right font-medium">Amount</th>
                 <th className="px-4 py-3 text-left font-medium">Provider</th>
@@ -242,19 +288,38 @@ export default function AdminPaymentsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {filtered.map((p) => {
+                const companyName =
+                  p.owner_type === "company"
+                    ? (p.company?.name || null)
+                    : (p.client_company?.name || null);
+                const payerLabel = p.owner_type === "client"
+                  ? (p.client?.full_name || p.client?.email || p.owner_id.slice(0, 8))
+                  : (p.company?.name || p.owner_id.slice(0, 8));
+                return (
                 <tr key={p.id} className="border-t border-gray-100 align-top">
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
                     {new Date(p.paid_at || p.created_at).toLocaleDateString("en-GB")}
                     <div className="text-[10px] text-gray-500">{new Date(p.paid_at || p.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
                   </td>
+                  <td className="px-4 py-3 text-gray-800">
+                    {companyName ? (
+                      <>
+                        <div className="font-medium truncate max-w-[180px]" title={companyName}>{companyName}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                          {p.owner_type === "company" ? "Billed to company" : "Employee of"}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400">— personal —</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-700">
                     <div className="text-[10px] uppercase tracking-wide text-gray-500">{p.owner_type}</div>
-                    <div className="font-medium">
-                      {p.owner_type === "client"
-                        ? (p.client?.full_name || p.client?.email || p.owner_id.slice(0, 8))
-                        : (p.company?.name || p.owner_id.slice(0, 8))}
-                    </div>
+                    <div className="font-medium truncate max-w-[180px]" title={payerLabel}>{payerLabel}</div>
+                    {p.owner_type === "client" && p.client?.email && p.client.email !== payerLabel && (
+                      <div className="text-[10px] text-gray-400 truncate max-w-[180px]" title={p.client.email}>{p.client.email}</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-900 max-w-sm">
                     {p.description}
@@ -277,7 +342,8 @@ export default function AdminPaymentsPage() {
                     )}
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>

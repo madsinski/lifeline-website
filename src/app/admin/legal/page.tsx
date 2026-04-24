@@ -183,13 +183,20 @@ export default function AdminLegalPage() {
         return;
       }
       const c = j.counts || {};
+      const failures = (j.results || []).filter((r: { status: string; error?: string }) => r.status === "failed");
+      // Dedupe error strings so we don't flood the alert when every row
+      // hit the same problem (usually the case).
+      const uniqErrs = Array.from(new Set(failures.map((r: { error?: string }) => r.error || "no detail"))) as string[];
+      const errDetail = uniqErrs.length > 0 ? "\n\nUnique errors:\n" + uniqErrs.map((e) => "  • " + e).join("\n") : "";
       alert(
         `Scanned ${c.scanned}\n` +
         `Regenerated ${c.regenerated}\n` +
         `Skipped (old version) ${c.skipped_version_not_found}\n` +
         `Skipped (text drift) ${c.skipped_text_hash_mismatch}\n` +
-        `Failed ${c.failed}`
+        `Failed ${c.failed}` +
+        errDetail
       );
+      console.log("[backfill] full results:", j);
       await load();
     } finally {
       setBackfilling(false);
