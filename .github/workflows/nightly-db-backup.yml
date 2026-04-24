@@ -106,13 +106,25 @@ jobs:
           FILENAME:      ${{ steps.dump.outputs.filename }}
         run: |
           set -euo pipefail
-          curl --fail --show-error -sS \
-            -X POST "https://${PROJECT_REF}.supabase.co/storage/v1/object/db-backups/${FILENAME}" \
+          # PUT + x-upsert lets us safely re-run in the same minute (or
+          # retry an earlier failed run) without colliding on filename.
+          # POST returns 400/409 on collision; PUT-with-upsert overwrites.
+          # Capture response body so we can see the real error if it 4xxs.
+          HTTP_CODE=$(curl --show-error -sS -o /tmp/upload-response.json -w "%{http_code}" \
+            -X PUT "https://${PROJECT_REF}.supabase.co/storage/v1/object/db-backups/${FILENAME}" \
             -H "Authorization: Bearer ${SERVICE_KEY}" \
             -H "apikey: ${SERVICE_KEY}" \
-            -H "Content-Type: application/gzip" \
-            --data-binary "@${FILENAME}"
+            -H "Content-Type: application/octet-stream" \
+            -H "x-upsert: true" \
+            --data-binary "@${FILENAME}")
+          echo "Status: ${HTTP_CODE}"
+          echo "Body:"
+          cat /tmp/upload-response.json
           echo
+          if [ "${HTTP_CODE}" != "200" ] && [ "${HTTP_CODE}" != "201" ]; then
+            echo "::error::Upload failed (HTTP ${HTTP_CODE})"
+            exit 1
+          fi
           echo "Uploaded: ${FILENAME}"
 
       - name: Prune old backups (keep newest 14)
