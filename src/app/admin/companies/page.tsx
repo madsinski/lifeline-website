@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Fragment, useRef, type ReactNode } from "react";
+import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
@@ -1061,31 +1061,40 @@ function EmployeeRows({ companyId }: { companyId: string }) {
     })();
   }, [companyId]);
 
-  if (err) return <tr><td colSpan={8} className="px-4 py-3 text-red-600 text-xs">{err}</td></tr>;
-  if (!members) return <tr><td colSpan={8} className="px-4 py-3 text-gray-500 text-xs">Loading employees…</td></tr>;
-  if (members.length === 0) return <tr><td colSpan={8} className="px-4 py-3 text-gray-500 text-xs italic">No employees on roster.</td></tr>;
+  if (err) return <div className="px-4 py-3 text-red-600 text-xs">{err}</div>;
+  if (!members) return <div className="px-4 py-3 text-gray-500 text-xs">Loading employees…</div>;
+  if (members.length === 0) return <div className="px-4 py-3 text-gray-500 text-xs italic">No employees on roster.</div>;
 
   return (
-    <>
+    <div className="divide-y divide-gray-100 border-t border-gray-100 bg-gray-50/50">
+      <div className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto] gap-3 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-100/60">
+        <div>Name</div>
+        <div>Email</div>
+        <div>KT</div>
+        <div>Phone</div>
+        <div>Status</div>
+        <div>Activity</div>
+      </div>
       {members.map((m) => (
-        <tr key={m.id} className="border-t border-gray-50 bg-gray-50/60">
-          <td className="pl-12 pr-4 py-2 text-sm font-medium">{m.full_name}</td>
-          <td className="px-4 py-2 text-sm text-gray-700">{m.email}</td>
-          <td className="px-4 py-2 text-xs text-gray-500 font-mono">•••••{m.kennitala_last4 || ""}</td>
-          <td className="px-4 py-2 text-sm text-gray-700">{m.phone || "—"}</td>
-          <td className="px-4 py-2"><MemberStatus m={m} /></td>
-          <td className="px-4 py-2"><DataDot m={m} /></td>
-          <td className="px-4 py-2 text-xs text-gray-500">
+        <div key={m.id} className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto] gap-3 px-4 py-2 items-center text-sm">
+          <div className="font-medium text-gray-800 truncate">{m.full_name}</div>
+          <div className="text-gray-700 truncate">{m.email}</div>
+          <div className="text-xs text-gray-500 font-mono">•••••{m.kennitala_last4 || ""}</div>
+          <div className="text-gray-700">{m.phone || "—"}</div>
+          <div className="flex items-center gap-1.5">
+            <MemberStatus m={m} />
+            <DataDot m={m} />
+          </div>
+          <div className="text-xs text-gray-500">
             {m.completed_at
               ? `Done ${new Date(m.completed_at).toLocaleDateString()}`
               : m.invited_at
                 ? `Invited ${new Date(m.invited_at).toLocaleDateString()}`
                 : `Added ${new Date(m.created_at).toLocaleDateString()}`}
-          </td>
-          <td className="px-4 py-2"></td>
-        </tr>
+          </div>
+        </div>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -1238,90 +1247,107 @@ export default function AdminCompaniesPage() {
         </div>
       )}
       {companies.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50/70 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-              <tr>
-                <th className="px-5 py-3">Company</th>
-                <th className="px-4 py-3">Contact</th>
-                <th className="px-4 py-3">Progress</th>
-                <th className="px-4 py-3">Tier</th>
-                <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {companies.map((c) => {
-                const isSub = !!c.parent_company_id;
-                const isParentWithSubs = !isSub && companies.some((o) => o.parent_company_id === c.id);
-                return (
-                <Fragment key={c.id}>
-                  <tr className={`border-t border-gray-100 hover:bg-gray-50/60 transition-colors ${isSub ? "bg-slate-50/40" : "bg-white"}`}>
-                    {/* Company */}
-                    <td className="px-5 py-3 align-top">
-                      <div className={`flex items-start gap-2 ${isSub ? "pl-6" : ""}`}>
-                        {isSub && (
-                          <span className="text-slate-300 select-none mt-0.5" aria-hidden>└</span>
-                        )}
-                        <div className="min-w-0 flex-1">
+        <div className="space-y-3">
+          {companies.map((c) => {
+            const isSub = !!c.parent_company_id;
+            const isParentWithSubs = !isSub && companies.some((o) => o.parent_company_id === c.id);
+            const isExpanded = expanded.has(c.id);
+            return (
+              <div
+                key={c.id}
+                className={
+                  isSub
+                    ? "relative ml-8 bg-slate-50/70 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                    : "bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                }
+              >
+                {/* Connector from sub to parent area */}
+                {isSub && (
+                  <div className="absolute -left-6 top-0 bottom-0 w-6 pointer-events-none flex items-center justify-center">
+                    <div className="w-px h-full bg-slate-300" />
+                    <div className="absolute top-6 left-0 w-6 border-t border-slate-300" />
+                  </div>
+                )}
+
+                {/* Coloured left-edge stripe to emphasize parent vs sub */}
+                {!isSub && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-emerald-500 rounded-l-2xl" />
+                )}
+
+                <div className={`${isSub ? "p-3.5" : "pl-5 pr-4 py-4"}`}>
+                  {/* Header line: expand toggle + name + badges + date */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                      <button
+                        onClick={() => toggleExpand(c.id)}
+                        className="mt-0.5 shrink-0 p-1 rounded hover:bg-gray-100 text-gray-400"
+                        title={isExpanded ? "Hide employees" : "Show employees"}
+                      >
+                        <svg
+                          className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => toggleExpand(c.id)}
-                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-900 hover:underline text-left"
-                            title="Show employees"
+                            className={`font-bold text-gray-900 hover:underline text-left ${isSub ? "text-sm" : "text-base"}`}
                           >
-                            <svg
-                              className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${expanded.has(c.id) ? "rotate-90" : ""}`}
-                              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                            <span className="truncate">{c.name}</span>
+                            {c.name}
                           </button>
-                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                            <CompanyStatusPill c={c} />
-                            {isSub && c.parent_name && (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200"
-                                title={`Reikningur gengur upp á ${c.parent_name}`}
-                              >
-                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                </svg>
-                                Bílag til {c.parent_name}
-                              </span>
-                            )}
-                            {isParentWithSubs && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200" title="Has sub-divisions">
-                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                                Parent
-                              </span>
-                            )}
-                          </div>
-                          {c.registration_finalized_at && (
-                            <div className="text-[11px] text-gray-400 mt-1">
-                              Ready · {c.finalized_by_name || c.finalized_by_email || "—"} · {new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                            </div>
+                          <CompanyStatusPill c={c} />
+                          {isSub && c.parent_name && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200"
+                              title={`Reikningur gengur upp á ${c.parent_name}`}
+                            >
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                              </svg>
+                              Bílag til {c.parent_name}
+                            </span>
+                          )}
+                          {isParentWithSubs && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200" title="Has sub-divisions">
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                              </svg>
+                              Parent
+                            </span>
                           )}
                         </div>
+                        {c.registration_finalized_at && (
+                          <div className="text-[11px] text-gray-400 mt-0.5">
+                            Ready · {c.finalized_by_name || c.finalized_by_email || "—"} · {new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                          </div>
+                        )}
                       </div>
-                    </td>
+                    </div>
+                    <div className="text-[11px] text-gray-500 whitespace-nowrap shrink-0 pt-1">
+                      {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
+                    </div>
+                  </div>
 
+                  {/* Data row: contact, progress, tier */}
+                  <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.4fr_auto] gap-x-6 gap-y-2 items-start`}>
                     {/* Contact */}
-                    <td className="px-4 py-3 align-top">
-                      <div className="text-[13px] text-gray-700 truncate max-w-[220px]" title={c.contact_email || ""}>
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Contact</div>
+                      <div className="text-[13px] text-gray-800 truncate" title={c.contact_email || ""}>
                         {c.contact_email || <span className="text-gray-300">—</span>}
                       </div>
-                    </td>
-
+                    </div>
                     {/* Progress */}
-                    <td className="px-4 py-3 align-top">
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster progress</div>
                       <RosterProgressCell c={c} />
-                    </td>
-
+                    </div>
                     {/* Tier */}
-                    <td className="px-4 py-3 align-top">
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Default tier</div>
                       <select
                         value={c.default_tier || ""}
                         onChange={async (e) => {
@@ -1333,69 +1359,68 @@ export default function AdminCompaniesPage() {
                       >
                         {TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Created */}
-                    <td className="px-4 py-3 align-top text-[12px] text-gray-500 whitespace-nowrap">
-                      {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
-                    </td>
+                  {/* Actions toolbar — primary actions are always visible */}
+                  <div className={`mt-3 pt-3 border-t ${isSub ? "border-slate-200" : "border-gray-100"} flex items-center gap-1.5 flex-wrap`}>
+                    <Link
+                      href={`/business/${c.id}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md border border-gray-300 text-gray-800 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                      title="Open company dashboard"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      Open
+                    </Link>
+                    <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
+                    {isParentWithSubs && (
+                      <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
+                    )}
+                    {(c.status === "draft" || c.status === "contact_invited") && (
+                      <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
+                    )}
+                    <BulkBiodyButton
+                      companyId={c.id}
+                      companyName={c.name}
+                      parentName={c.parent_company_id ? c.parent_name || null : null}
+                      hasChildren={isParentWithSubs}
+                    />
+                    <DocumentsButton companyId={c.id} />
+                    <div className="flex-1" />
+                    <OverflowMenu>
+                      {(close) => (
+                        <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
+                          <EnsureGroupButton companyId={c.id} />
+                          <BulkActivateButton companyId={c.id} />
+                          <div className="border-t border-gray-100 my-0.5" />
+                          <button
+                            onClick={() => { downloadCsv(c.id, c.name); close(); }}
+                            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                            </svg>
+                            Export CSV
+                          </button>
+                          <div className="border-t border-gray-100 my-0.5" />
+                          <DeleteCompanyButton company={c} onDone={load} />
+                        </div>
+                      )}
+                    </OverflowMenu>
+                  </div>
+                </div>
 
-                    {/* Actions */}
-                    <td className="px-4 py-3 align-top">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link
-                          href={`/business/${c.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
-                          title="Open company dashboard"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                          Open
-                        </Link>
-                        <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
-                        <OverflowMenu>
-                          {(close) => (
-                            <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
-                              {(c.status === "draft" || c.status === "contact_invited") && (
-                                <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
-                              )}
-                              {isParentWithSubs && (
-                                <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
-                              )}
-                              <DocumentsButton companyId={c.id} />
-                              <div className="border-t border-gray-100 my-0.5" />
-                              <BulkBiodyButton
-                                companyId={c.id}
-                                companyName={c.name}
-                                parentName={c.parent_company_id ? c.parent_name || null : null}
-                                hasChildren={isParentWithSubs}
-                              />
-                              <EnsureGroupButton companyId={c.id} />
-                              <BulkActivateButton companyId={c.id} />
-                              <div className="border-t border-gray-100 my-0.5" />
-                              <button
-                                onClick={() => { downloadCsv(c.id, c.name); close(); }}
-                                className="inline-flex items-center justify-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                                </svg>
-                                Export CSV
-                              </button>
-                              <div className="border-t border-gray-100 my-0.5" />
-                              <DeleteCompanyButton company={c} onDone={load} />
-                            </div>
-                          )}
-                        </OverflowMenu>
-                      </div>
-                    </td>
-                  </tr>
-                  {expanded.has(c.id) && <EmployeeRows companyId={c.id} />}
-                </Fragment>
-              );})}
-            </tbody>
-          </table>
+                {/* Expanded employee list */}
+                {isExpanded && (
+                  <div className="rounded-b-2xl overflow-hidden">
+                    <EmployeeRows companyId={c.id} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
