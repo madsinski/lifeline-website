@@ -629,9 +629,16 @@ export default function ExercisesPage() {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <input type="checkbox" checked={selectedIds.has(ex.id)} onChange={() => toggleSelect(ex.id)} className="mt-1 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981] cursor-pointer" onClick={(e) => e.stopPropagation()} />
-                  {ex.illustration_url && (
+                  {ex.video_url ? (
+                    <video
+                      src={ex.video_url}
+                      autoPlay loop muted playsInline
+                      poster={ex.illustration_url || undefined}
+                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                    />
+                  ) : ex.illustration_url ? (
                     <img src={ex.illustration_url} alt={ex.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-                  )}
+                  ) : null}
                   <div className="min-w-0 flex-1" onClick={() => setViewingExercise(ex)}>
                     <h3 className="font-semibold text-gray-900 truncate">{ex.name}</h3>
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{ex.description}</p>
@@ -683,8 +690,15 @@ export default function ExercisesPage() {
       {viewingExercise && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingExercise(null)}>
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {/* Image */}
-            {viewingExercise.illustration_url ? (
+            {/* Media — video if available, else illustration, else generic icon */}
+            {viewingExercise.video_url ? (
+              <video
+                src={viewingExercise.video_url}
+                autoPlay loop muted playsInline controls
+                poster={viewingExercise.illustration_url || undefined}
+                className="w-full h-[300px] object-cover rounded-t-2xl bg-black"
+              />
+            ) : viewingExercise.illustration_url ? (
               <img src={viewingExercise.illustration_url} alt={viewingExercise.name} className="w-full h-[300px] object-cover rounded-t-2xl" />
             ) : (
               <div className="w-full h-[300px] rounded-t-2xl flex items-center justify-center" style={{ backgroundColor: `${CATEGORY_COLORS[viewingExercise.category]}20` }}>
