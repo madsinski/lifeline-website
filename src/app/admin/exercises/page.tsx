@@ -694,9 +694,11 @@ export default function ExercisesPage() {
             {viewingExercise.video_url ? (
               <video
                 src={viewingExercise.video_url}
-                autoPlay loop muted playsInline controls
+                autoPlay loop muted playsInline
                 poster={viewingExercise.illustration_url || undefined}
                 className="w-full h-[300px] object-cover rounded-t-2xl bg-black"
+                onLoadedData={(e) => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
+                onEnded={(e) => { const v = e.target as HTMLVideoElement; v.currentTime = 0; v.play().catch(() => {}); }}
               />
             ) : viewingExercise.illustration_url ? (
               <img src={viewingExercise.illustration_url} alt={viewingExercise.name} className="w-full h-[300px] object-cover rounded-t-2xl" />
