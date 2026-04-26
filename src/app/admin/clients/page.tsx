@@ -1097,37 +1097,25 @@ function InlineClientEditor({ client }: { client: Client }) {
     setSaving(true);
     setMsg(null);
     try {
-      const { error } = await supabase.from("clients").update({
-        full_name: name.trim() || client.name,
-        phone: phone.trim() || null,
-        address: address.trim() || null,
-        date_of_birth: dob || null,
-        sex: sex || null,
-      }).eq("id", client.id);
-      if (error) throw new Error(error.message);
-
-      // Sync name/phone to company_members (B2B roster)
-      if (client.companyId) {
-        await supabase.from("company_members").update({
+      // Send all changes to server-side API (uses admin client, bypasses RLS)
+      const { data: s } = await supabase.auth.getSession();
+      const t = s.session?.access_token;
+      if (!t) throw new Error("Not authenticated");
+      const res = await fetch(`/api/admin/clients/${client.id}/update-profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({
           full_name: name.trim() || client.name,
+          email: email.trim() !== client.email ? email.trim() : undefined,
           phone: phone.trim() || null,
-        }).eq("email", client.email).eq("company_id", client.companyId);
-      }
-
-      if (email.trim() && email.trim() !== client.email) {
-        const { data: s } = await supabase.auth.getSession();
-        const t = s.session?.access_token;
-        if (t) {
-          const res = await fetch(`/api/admin/clients/${client.id}/update-email`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-            body: JSON.stringify({ email: email.trim() }),
-          });
-          if (!res.ok) {
-            const j = await res.json().catch(() => ({}));
-            throw new Error(j.error || "Email update failed");
-          }
-        }
+          address: address.trim() || null,
+          date_of_birth: dob || null,
+          sex: sex || null,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Update failed");
       }
       setMsg("Saved");
       setTimeout(() => { setOpen(false); setMsg(null); }, 1000);
