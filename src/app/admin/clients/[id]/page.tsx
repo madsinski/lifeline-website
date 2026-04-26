@@ -61,6 +61,155 @@ interface Conversation {
   lastMessage: string;
 }
 
+function ClientDetailsEditor({ client, onSaved }: { client: Client; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const [fullName, setFullName] = useState(client.full_name || "");
+  const [email, setEmail] = useState(client.email || "");
+  const [phone, setPhone] = useState(client.phone || "");
+  const [address, setAddress] = useState(client.address || "");
+  const [dateOfBirth, setDateOfBirth] = useState(client.date_of_birth || "");
+  const [sex, setSex] = useState(client.sex || "");
+
+  const reset = () => {
+    setFullName(client.full_name || "");
+    setEmail(client.email || "");
+    setPhone(client.phone || "");
+    setAddress(client.address || "");
+    setDateOfBirth(client.date_of_birth || "");
+    setSex(client.sex || "");
+    setMsg(null);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      // Update clients table
+      const { error: clientErr } = await supabase.from("clients").update({
+        full_name: fullName.trim() || client.full_name,
+        phone: phone.trim() || null,
+        address: address.trim() || null,
+        date_of_birth: dateOfBirth || null,
+        sex: sex || null,
+      }).eq("id", client.id);
+
+      if (clientErr) throw new Error(clientErr.message);
+
+      // Update auth email if changed
+      if (email.trim() && email.trim() !== client.email) {
+        const { data: s } = await supabase.auth.getSession();
+        const token = s.session?.access_token;
+        if (token) {
+          const res = await fetch(`/api/admin/clients/${client.id}/update-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ email: email.trim() }),
+          });
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j.error || "Email update failed");
+          }
+        }
+      }
+
+      setMsg({ type: "ok", text: "Saved" });
+      setEditing(false);
+      onSaved();
+    } catch (e) {
+      setMsg({ type: "err", text: (e as Error).message });
+    }
+    setSaving(false);
+  };
+
+  if (!editing) {
+    return (
+      <div className="mt-6 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Personal details</p>
+          <button onClick={() => { reset(); setEditing(true); }} className="text-xs font-medium text-emerald-600 hover:text-emerald-700">
+            Edit
+          </button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div>
+            <p className="text-xs text-gray-400">Full name</p>
+            <p className="text-sm text-gray-700 mt-0.5">{client.full_name}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Email</p>
+            <p className="text-sm text-gray-700 mt-0.5">{client.email}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Phone</p>
+            <p className="text-sm text-gray-700 mt-0.5">{client.phone || "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Address</p>
+            <p className="text-sm text-gray-700 mt-0.5">{client.address || "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Date of birth</p>
+            <p className="text-sm text-gray-700 mt-0.5">{client.date_of_birth ? formatDate(client.date_of_birth) : "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Sex</p>
+            <p className="text-sm text-gray-700 mt-0.5 capitalize">{client.sex || "—"}</p>
+          </div>
+        </div>
+        {msg && <p className={`text-xs mt-2 ${msg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>{msg.text}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 pt-4 border-t border-gray-100">
+      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3">Edit personal details</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Full name</label>
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Phone</label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+354..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Address</label>
+          <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Date of birth</label>
+          <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 outline-none" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Sex</label>
+          <select value={sex} onChange={(e) => setSex(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-300 outline-none">
+            <option value="">—</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+      </div>
+      {msg && <p className={`text-xs mt-2 ${msg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>{msg.text}</p>}
+      <div className="flex items-center gap-2 mt-4">
+        <button onClick={save} disabled={saving} className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+        <button onClick={() => { setEditing(false); reset(); }} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -183,25 +332,8 @@ export default function ClientDetailPage() {
           </div>
         </div>
 
-        {/* Contact details */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-4 border-t border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Phone</p>
-            <p className="text-sm text-gray-700 mt-1">{client.phone || "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Address</p>
-            <p className="text-sm text-gray-700 mt-1">{client.address || "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Date of Birth</p>
-            <p className="text-sm text-gray-700 mt-1">{client.date_of_birth ? formatDate(client.date_of_birth) : "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Sex</p>
-            <p className="text-sm text-gray-700 mt-1 capitalize">{client.sex || "—"}</p>
-          </div>
-        </div>
+        {/* Contact details — editable */}
+        <ClientDetailsEditor client={client} onSaved={loadClient} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
