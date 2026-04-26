@@ -1,7 +1,51 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+
+// Intersection-observer-driven thumbnail. Renders a poster frame at first;
+// when the card scrolls into view it lazily mounts a <video> + plays. When
+// it scrolls back out, pauses to free the decoder. Without this, 800+
+// simultaneous <video autoplay> elements tank Chrome on the exercises page.
+function VideoThumb({ videoUrl, posterUrl, alt, className }: {
+  videoUrl: string;
+  posterUrl?: string | null;
+  alt: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { root: null, rootMargin: "200px", threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={className}>
+      {visible ? (
+        <video
+          src={videoUrl}
+          autoPlay loop muted playsInline
+          poster={posterUrl || undefined}
+          className="w-full h-full object-cover"
+          onEnded={(e) => { const v = e.target as HTMLVideoElement; v.currentTime = 0; v.play().catch(() => {}); }}
+        />
+      ) : posterUrl ? (
+        <img src={posterUrl} alt={alt} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-gray-100" />
+      )}
+    </div>
+  );
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -630,11 +674,11 @@ export default function ExercisesPage() {
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <input type="checkbox" checked={selectedIds.has(ex.id)} onChange={() => toggleSelect(ex.id)} className="mt-1 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981] cursor-pointer" onClick={(e) => e.stopPropagation()} />
                   {ex.video_url ? (
-                    <video
-                      src={ex.video_url}
-                      autoPlay loop muted playsInline
-                      poster={ex.illustration_url || undefined}
-                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                    <VideoThumb
+                      videoUrl={ex.video_url}
+                      posterUrl={ex.illustration_url}
+                      alt={ex.name}
+                      className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100"
                     />
                   ) : ex.illustration_url ? (
                     <img src={ex.illustration_url} alt={ex.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
