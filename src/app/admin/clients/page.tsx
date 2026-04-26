@@ -1106,6 +1106,14 @@ function InlineClientEditor({ client }: { client: Client }) {
       }).eq("id", client.id);
       if (error) throw new Error(error.message);
 
+      // Sync name/phone to company_members (B2B roster)
+      if (client.companyId) {
+        await supabase.from("company_members").update({
+          full_name: name.trim() || client.name,
+          phone: phone.trim() || null,
+        }).eq("email", client.email).eq("company_id", client.companyId);
+      }
+
       if (email.trim() && email.trim() !== client.email) {
         const { data: s } = await supabase.auth.getSession();
         const t = s.session?.access_token;

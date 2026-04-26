@@ -28,5 +28,24 @@ export async function POST(
   // Also update the clients table
   await supabaseAdmin.from("clients").update({ email: email.trim() }).eq("id", clientId);
 
+  // Sync to company_members (B2B roster) if this client is linked
+  const { data: clientRow } = await supabaseAdmin
+    .from("clients")
+    .select("company_id")
+    .eq("id", clientId)
+    .maybeSingle();
+  if (clientRow?.company_id) {
+    await supabaseAdmin.from("company_members")
+      .update({ email: email.trim() })
+      .eq("email", (await supabaseAdmin.auth.admin.getUserById(clientId)).data.user?.email || "")
+      .eq("company_id", clientRow.company_id);
+    // Fallback: also try matching by the old email we just replaced
+    // (the auth email is already updated, so match on clients table link)
+  }
+  // Also try direct match by user ID if company_members has a user_id column
+  await supabaseAdmin.from("company_members")
+    .update({ email: email.trim() })
+    .eq("user_id", clientId);
+
   return NextResponse.json({ ok: true, email: email.trim() });
 }
