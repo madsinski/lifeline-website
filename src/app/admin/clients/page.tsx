@@ -1069,6 +1069,112 @@ export default function ClientsPage() {
 // ─── Client Row Component ──────────────────────────────────
 
 
+function InlineClientEditor({ client }: { client: Client }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [name, setName] = useState(client.name);
+  const [email, setEmail] = useState(client.email);
+  const [phone, setPhone] = useState(client.phone || "");
+  const [address, setAddress] = useState(client.address || "");
+  const [dob, setDob] = useState(client.dateOfBirth || "");
+  const [sex, setSex] = useState(client.sex || "");
+
+  if (!open) {
+    return (
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+        <div className="text-sm text-gray-700">
+          <span className="font-semibold">{client.name}</span> · {client.email}{client.phone ? ` · ${client.phone}` : ""}
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); setOpen(true); setMsg(null); }} className="text-xs font-medium text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded hover:bg-emerald-50">
+          Edit details
+        </button>
+      </div>
+    );
+  }
+
+  const save = async () => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      const { error } = await supabase.from("clients").update({
+        full_name: name.trim() || client.name,
+        phone: phone.trim() || null,
+        address: address.trim() || null,
+        date_of_birth: dob || null,
+        sex: sex || null,
+      }).eq("id", client.id);
+      if (error) throw new Error(error.message);
+
+      if (email.trim() && email.trim() !== client.email) {
+        const { data: s } = await supabase.auth.getSession();
+        const t = s.session?.access_token;
+        if (t) {
+          const res = await fetch(`/api/admin/clients/${client.id}/update-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+            body: JSON.stringify({ email: email.trim() }),
+          });
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j.error || "Email update failed");
+          }
+        }
+      }
+      setMsg("Saved");
+      setTimeout(() => { setOpen(false); setMsg(null); }, 1000);
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="mb-4 pb-4 border-b border-gray-100" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Edit personal details</p>
+        <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Phone</label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Address</label>
+          <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Date of birth</label>
+          <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Sex</label>
+          <select value={sex} onChange={(e) => setSex(e.target.value)} className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-200 outline-none">
+            <option value="">—</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 mt-3">
+        <button onClick={save} disabled={saving} className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+          {saving ? "Saving…" : "Save"}
+        </button>
+        {msg && <span className={`text-xs ${msg === "Saved" ? "text-emerald-600" : "text-red-600"}`}>{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
 function ClientRowComponent({
   client,
   isEven,
@@ -1209,8 +1315,9 @@ function ClientRowComponent({
           <td colSpan={10} className="bg-[#10B981]/[0.04] px-5 py-5 border-b-2 border-[#10B981]/30 shadow-[inset_4px_0_0_0_#10B981]">
             {/* Two-column layout */}
             <div className="flex gap-3">
-              {/* Left: categories with profile summary */}
+              {/* Left: categories with profile summary + edit */}
               <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200/60 p-5">
+                <InlineClientEditor client={client} />
                 <ClientCategoryPanel
                   clientId={client.id}
                   clientName={client.name}
