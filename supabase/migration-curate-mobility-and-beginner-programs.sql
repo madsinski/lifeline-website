@@ -1,0 +1,28 @@
+-- Curate action_exercises content for mobility-base and beginner-foundation.
+--
+-- mobility-base: 3 sessions/week (days 1/3/5 = Tue/Thu/Sat), 7 exercises
+--                each, 8-week cycle:
+--                  Day 1: lower-body mobility (cat, world's greatest, 90/90,
+--                         hip flexor, calf, dancer's, child's pose)
+--                  Day 3: upper-body mobility (cat, dynamic back, chest+
+--                         shoulder, arm circles, upper back, side neck,
+--                         child's pose)
+--                  Day 5: full-body flow (cat, inchworm, world's greatest,
+--                         hip circles, dynamic chest, pelvic tilt bridge,
+--                         child's pose)
+--                = 168 rows
+--
+-- beginner-foundation: 3 sessions/week, 5 exercises each, 8-week cycle:
+--                  Day 1: push fundamentals (cat, pushups, plank, sit
+--                         squats, child's pose)
+--                  Day 3: pull/posterior (cat, pullups, pelvic tilt
+--                         bridge, toe touches, hamstring stretch)
+--                  Day 5: squat fundamentals (cat, sit squats, crossover
+--                         reverse lunge, plank, calf stretch)
+--                = 120 rows
+--
+-- Action_keys follow the established pattern:
+--   exercise-{program_key}-w{week}d{day}-morning-0
+--
+-- Applied via Mgmt API directly because the SQL is large; this file
+-- documents the schema for future env recreation.
