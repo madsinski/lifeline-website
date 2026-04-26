@@ -50,7 +50,9 @@ export async function POST(
   }
 
   // 3. Sync to company_members (B2B roster) using OLD email for matching
-  if (companyId && oldEmail) {
+  // Match across ALL companies — the client might be in a sub-company's
+  // roster while clients.company_id points to the parent, or vice versa.
+  if (oldEmail) {
     const memberUpdate: Record<string, unknown> = {};
     if (full_name) memberUpdate.full_name = full_name;
     if (phone !== undefined) memberUpdate.phone = phone;
@@ -59,8 +61,7 @@ export async function POST(
     if (Object.keys(memberUpdate).length > 0) {
       await supabaseAdmin.from("company_members")
         .update(memberUpdate)
-        .eq("email", oldEmail)
-        .eq("company_id", companyId);
+        .eq("email", oldEmail);
     }
   }
 
