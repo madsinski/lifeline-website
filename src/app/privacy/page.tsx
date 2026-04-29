@@ -7,8 +7,8 @@ export const metadata = {
   description: "How Lifeline Health collects, uses, stores, and protects your personal and health data.",
 };
 
-const VERSION = "1.2";
-const LAST_UPDATED = "17 April 2026";
+const VERSION = "1.3";
+const LAST_UPDATED = "21 April 2026";
 
 export default function PrivacyPage() {
   return (
@@ -84,7 +84,8 @@ export default function PrivacyPage() {
         <table>
           <thead><tr><th>Recipient</th><th>Purpose</th><th>Location</th></tr></thead>
           <tbody>
-            <tr><td>Supabase Inc.</td><td>Database, authentication</td><td>EU (Frankfurt)</td></tr>
+            <tr><td>Medalia ehf.</td><td>Licensed health record system (sjúkraskrá) under Icelandic law nr. 55/2009 — joint controller with Lifeline for health record data per GDPR Art. 26</td><td>Iceland</td></tr>
+            <tr><td>Supabase Inc.</td><td>Database, authentication, operational data</td><td>EU (Frankfurt)</td></tr>
             <tr><td>Vercel Inc.</td><td>Web hosting, delivery</td><td>EU + US (with SCCs)</td></tr>
             <tr><td>Resend (Lilo Labs Inc.)</td><td>Transactional email delivery</td><td>EU + US (with SCCs)</td></tr>
             <tr><td>Biody Manager (Aminogram SAS)</td><td>Body-composition measurement partner</td><td>EU (France)</td></tr>
@@ -95,6 +96,23 @@ export default function PrivacyPage() {
         <p>
           We never sell personal data. All processors are bound by GDPR-compliant data processing
           agreements. Transfers outside the EEA rely on EU Standard Contractual Clauses.
+        </p>
+
+        <h2>6a. Where your health record lives</h2>
+        <p>
+          Lifeline operates as a licensed healthcare service (heilbrigðisþjónusta) under
+          Icelandic law nr. 40/2007. Your formal medical record (sjúkraskrá) — including
+          clinical interpretations, blood-test results, doctor&apos;s notes, and finalised
+          health-assessment outcomes — is held in <strong>Medalia ehf.</strong>, a sjúkraskrár-
+          system licensed under Icelandic law nr. 55/2009. Lifeline and Medalia act as{" "}
+          <strong>joint controllers</strong> for that record under GDPR Art. 26.
+        </p>
+        <p>
+          The Lifeline app and admin console are operational tools (scheduling, programs,
+          coaching, self-tracking) — not your medical record. Body-composition values from
+          Biody scans are entered into Medalia by a clinician as part of your assessment;
+          a copy is also shown in your Lifeline dashboard for your own self-tracking, with
+          your explicit consent and only visible to you.
         </p>
 
         <h2>7. What we share with Biody Manager</h2>

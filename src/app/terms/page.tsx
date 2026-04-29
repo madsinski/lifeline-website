@@ -92,6 +92,9 @@ export default function TermsPage() {
 
         <h2>7. Who we share data with</h2>
         <ul>
+          <li><strong>Medalia ehf.</strong> — licensed sjúkraskrár-system (Icelandic law nr. 55/2009)
+          where your formal medical record is held. Lifeline and Medalia act as joint controllers
+          for health-record data under GDPR Art. 26.</li>
           <li><strong>Biody Manager</strong> (our body composition measurement partner). We share name, email,
           date of birth, sex, height, and activity level to register you as a patient. We do not send
           your kennitala to Biody.</li>
