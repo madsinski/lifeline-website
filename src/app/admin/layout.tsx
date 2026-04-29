@@ -150,13 +150,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingRefundRequestsCount, setPendingRefundRequestsCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
 
-  // Load coaching view preference from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("admin_coaching_view");
-      if (saved === "true") setCoachingView(true);
-    } catch {}
-  }, []);
+  // Coaching-view preference is resolved inside loadStaffProfile once
+  // the role is known — we used to read it here on mount, which made
+  // the toggle "stick" for users whose role had changed (e.g. coach
+  // promoted back to admin still saw the coach sidebar).
 
   // Load unread message count and new clients count
   useEffect(() => {
@@ -223,10 +220,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (data) {
         setUserRole(data.role || "coach");
         setUserPermissions((data.permissions as string[]) || []);
-        // Non-admin users default to coaching view
+        // Resolve the coaching-view preference:
+        //   - Non-admins (no manage_team) are locked into coaching view
+        //     and any stale localStorage value is cleared.
+        //   - Admins respect their saved preference (default: admin view).
         const hasManageTeam = (data.permissions as string[])?.includes("manage_team");
-        if (data.role !== "admin" && !hasManageTeam) {
+        const adminLevel = data.role === "admin" || hasManageTeam;
+        if (!adminLevel) {
           setCoachingView(true);
+          try { localStorage.removeItem("admin_coaching_view"); } catch {}
+        } else {
+          try {
+            const saved = localStorage.getItem("admin_coaching_view");
+            setCoachingView(saved === "true");
+          } catch {
+            setCoachingView(false);
+          }
         }
       }
     } catch {}
