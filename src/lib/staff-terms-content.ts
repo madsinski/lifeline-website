@@ -40,6 +40,15 @@ export const STAFF_ACCEPTABLE_USE_VERSION = "v1.0";
 export const STAFF_DATA_PROTECTION_KEY = "staff-data-protection";
 export const STAFF_DATA_PROTECTION_VERSION = "v1.0";
 
+// Operational onboarding checklist — covers the day-to-day boundary
+// between Lifeline's wellness surface (this app) and the sjúkraskrá
+// (Medalia), incident reporting, approved tools, and offboarding. The
+// staff member ticks through every item; the signed PDF lives in their
+// document vault for their own later review and admin audit.
+// Bump version whenever the operational rules change.
+export const STAFF_ONBOARDING_CHECKLIST_KEY = "staff-onboarding-checklist";
+export const STAFF_ONBOARDING_CHECKLIST_VERSION = "v1.0";
+
 // Lausráðningarsamningur — on-call employment contract for clinicians
 // on piece-rate pay. Lifeline withholds tax, pays tryggingagjald +
 // pension mótframlag, accrues orlof. Correct instrument when the
@@ -72,6 +81,7 @@ export type StaffAgreementKey =
   | typeof STAFF_CONFIDENTIALITY_KEY
   | typeof STAFF_ACCEPTABLE_USE_KEY
   | typeof STAFF_DATA_PROTECTION_KEY
+  | typeof STAFF_ONBOARDING_CHECKLIST_KEY
   | typeof STAFF_PIECE_RATE_EMPLOYMENT_KEY
   | typeof STAFF_CONTRACTOR_KEY;
 
@@ -95,6 +105,7 @@ export function requiredAgreementsForStaff(
     { key: STAFF_NDA_KEY, version: STAFF_NDA_VERSION, title: "Trúnaðarsamningur (NDA)" },
     { key: STAFF_ACCEPTABLE_USE_KEY, version: STAFF_ACCEPTABLE_USE_VERSION, title: "Tækjareglur og aðgangsstjórnun" },
     { key: STAFF_DATA_PROTECTION_KEY, version: STAFF_DATA_PROTECTION_VERSION, title: "Persónuverndarfræðsla" },
+    { key: STAFF_ONBOARDING_CHECKLIST_KEY, version: STAFF_ONBOARDING_CHECKLIST_VERSION, title: "Móttökugátlisti og verklagsreglur" },
   ];
   if (role === "doctor" || role === "nurse" || role === "psychologist") {
     base.push({ key: STAFF_CONFIDENTIALITY_KEY, version: STAFF_CONFIDENTIALITY_VERSION, title: "Yfirlýsing um þagnarskyldu (heilbrigðisstarfsmaður)" });
@@ -291,6 +302,148 @@ Lifeline Health ehf. – Yfirlýsing um meðferð persónuupplýsinga
 8.1 Með rafrænni undirritun staðfesti ég að ég hafi fengið fræðslu um persónuvernd, skil skyldur mínar samkvæmt GDPR og lögum nr. 90/2018, og mun fylgja þeim reglum sem Lifeline Health setur um meðferð persónuupplýsinga.`;
 }
 
+// ─── Onboarding checklist (all staff) ────────────────────────
+// Operational rules a staff member must understand on day one:
+// where each kind of data lives, what they may and may not do in
+// the app, how to report incidents, what to do at offboarding.
+// Bump STAFF_ONBOARDING_CHECKLIST_VERSION on any text change so
+// existing staff get re-prompted.
+export function renderStaffOnboardingChecklist(): string {
+  return `MÓTTÖKUGÁTLISTI OG VERKLAGSREGLUR FYRIR STARFSMENN
+Lifeline Health ehf. – Staðfesting móttökufræðslu
+Útgáfa ${STAFF_ONBOARDING_CHECKLIST_VERSION}
+
+Þessi gátlisti er stuttur leiðarvísir um þær daglegu reglur sem ég
+sem starfsmaður Lifeline Health skuldbind mig til að fylgja. Hann
+kemur ekki í stað NDA, þagnarskyldu, tækjareglna eða persónuverndar-
+fræðslu — heldur útskýrir hvernig þau ákvæði eru framkvæmd í daglegu
+starfi mínu. Ég staðfesti hvert atriði fyrir sig.
+
+1. Hvar er sjúkraskráin og hvar er hún ekki
+1.1 Sjúkraskrá skjólstæðings (sjúkdómssaga, klínísk túlkun, læknisbréf,
+    blóðprufuniðurstöður og líkamssamsetning sem hluti af heilsumati)
+    er varðveitt í Medalia, sem rekur sjúkraskrá samkvæmt lögum nr.
+    55/2009 og er sameiginlegur ábyrgðaraðili með Lifeline skv. 26.
+    gr. GDPR.
+1.2 Lifeline appið og admin-svæðið eru rekstrartæki — tímabókanir,
+    áætlanir, samskipti milli skjólstæðings og þjálfara, sjálfsmælingar.
+    Þau eru EKKI sjúkraskrá. Þangað til Medalia API tengingin er tilbúin
+    starfar appið sem velferðar- og sjálfsmælingatól (wellness mode).
+1.3 Klínísk svör, túlkanir og læknisráðgjöf fara fram inni í Medalia
+    eða í læknisviðtali — ekki gegnum spjall í appinu.
+
+2. Aðgangsregla — lágmörkun
+2.1 Ég opna eingöngu þau gögn sem ég þarf til að sinna mínu hlutverki.
+2.2 Ég fletti EKKI upp skjólstæðingum sem ég er ekki að þjónusta —
+    hvorki úr forvitni, í þágu þriðja aðila né af persónulegum ástæðum.
+2.3 Allt aðgangs- og lestrarferli er skráð. Lifeline áskilur sér rétt
+    til reglubundinnar úttektar á aðgangi og bregst við óeðlilegri notkun.
+
+3. Hlutverkaskil
+3.1 Coach: tímabókanir, áætlanir, hreyfing, hvetjandi samskipti.
+3.2 Doctor / nurse: klínísk túlkun, áhættumat, læknisviðtöl — fer fram
+    í Medalia, ekki í admin-appinu.
+3.3 Psychologist: andleg heilsa — sálfræðiskráning og nótur fara í
+    aðskilið kerfi sem aðrir starfsmenn hafa ekki aðgang að.
+3.4 Admin: rekstrarstjórnun, samningar, fyrirtækjareikningar — án
+    aðgangs að klínískum gögnum.
+
+4. Skilaboðakerfið — hvað má og hvað ekki
+4.1 Skilaboð milli mín og skjólstæðings eru EKKI læknisráðgjöf og eiga
+    ekki að innihalda klíníska greiningu, lyfjabreytingar, túlkun blóð-
+    prufa eða sjúkdómsgreiningar.
+4.2 Ef skjólstæðingur spyr læknisfræðilegrar spurningar (lyf, einkenni,
+    túlkun mælinga) vísa ég honum í Medalia eða læknisviðtal og lýk
+    með stuttu, hlutlausu svari ("sendi þetta áfram á lækninn okkar").
+4.3 Ég afrita aldrei skilaboð, mælingar eða upplýsingar út úr kerfinu —
+    hvorki í tölvupóst, skjáskot, persónuleg símtæki né einkareikninga.
+
+5. Samþykkt verkfæri og samskiptaleiðir
+5.1 Heilsufarsgögn meðhöndla ég eingöngu í Medalia, Lifeline admin og
+    samþykktum dulkóðuðum samskiptakerfum (t.d. Signal þegar admin
+    samþykkir).
+5.2 Ég sendi aldrei kennitölu, heilsufarsupplýsingar eða mælingar
+    í gegnum venjulegan tölvupóst, SMS eða aðrar opnar leiðir.
+5.3 Ég nota tvíþátta auðkenningu (2FA) þar sem hún er í boði og
+    skrái mig út af tækjum sem ég nota ekki.
+
+6. Atvik — hvenær og hvert ég tilkynni
+6.1 Ég tilkynni án tafar (innan klukkustundar ef mögulegt) til
+    persónuverndarfulltrúa (pv@lifelinehealth.is) og næsta yfirmanns ef:
+    a) tæki sem geymir vinnugögn týnist eða er stolið;
+    b) ég sendi gögn á rangan viðtakanda;
+    c) ég sé óvenjulega virkni í kerfunum (innskráning ég kannast ekki
+       við, óþekktar fyrirspurnir, óvænt skeyti);
+    d) ég kemst að því að ég hafi flett upp eða unnið með gögn sem ég
+       hefði ekki átt að gera;
+    e) skjólstæðingur tilkynnir mér um öryggis- eða persónuverndaráhyggjur.
+6.2 Lifeline ber ábyrgð á að meta atvikið og tilkynna Persónuvernd og
+    skjólstæðing eftir atvikum innan 72 klst., sbr. 33. gr. GDPR.
+    Mitt hlutverk er að tilkynna strax — ekki að meta sjálfur hvort
+    atvik telst tilkynningarskylt.
+
+7. Réttindi skjólstæðings (GDPR 15–22)
+7.1 Ef skjólstæðingur biður um:
+    a) afrit af sínum gögnum (aðgangsréttur);
+    b) leiðréttingu á ranglegum upplýsingum;
+    c) eyðingu (réttur til að gleymast — takmarkaður fyrir sjúkraskrá
+       skv. lögum nr. 55/2009);
+    d) flutning gagna (data portability);
+    e) afturköllun samþykkis;
+       — þá svara ég ekki sjálfur heldur áframsendi beiðnina á
+    pv@lifelinehealth.is og staðfesti við skjólstæðing að beiðnin sé
+    móttekin og verður svarað innan 30 daga.
+
+8. Mörkin milli velferðar og sjúkraskrár (interim mode)
+8.1 Þangað til Medalia API kemur (áætlað innan 6 mánaða) er Lifeline
+    appið flokkað sem velferðar- og sjálfsmælingatól.
+8.2 Ég gef ekki læknisráðgjöf í appinu. Ég túlka ekki blóðprufur,
+    breyti ekki lyfjameðferð, geri ekki greiningar.
+8.3 Skjólstæðingur getur sótt sín Biody-mæld gögn inn í appið með
+    afdráttarlausu samþykki — það breytir ekki því að gögnin eru hluti
+    af sjúkraskrá hans í Medalia. Ég skoða þau gögn í Medalia þegar
+    ég þarf á þeim að halda klínískt — ekki í appinu.
+
+9. Starfslok
+9.1 Við starfslok skila ég öllum tækjum, lyklum og aðgöngum til
+    Lifeline án tafar.
+9.2 Aðgangur að kerfum er afturkallaður strax og ég staðfesti að
+    engin gögn séu eftir í persónulegum tækjum eða einkareikningum.
+9.3 Þagnarskylda mín skv. lögum nr. 34/2012 og þessum samningum er
+    ÆVILÖNG og fellur ekki niður við starfslok.
+
+10. Eftirlit og sjálfsskoðun
+10.1 Ég get hvenær sem er skoðað þennan undirritaða gátlista í
+     "Mín skjöl" innan Lifeline admin og þannig rifjað upp reglurnar.
+10.2 Lifeline endurskoðar reglur þessar reglulega; ég staðfesti þær
+     á ný þegar ný útgáfa er gefin út.
+10.3 Yfirlæknir og persónuverndarfulltrúi eru tengiliðir mínir vegna
+     spurninga um þagnarskyldu, klínísk mörk og persónuvernd.
+
+11. Staðfesting hvers liðar
+Með rafrænni undirritun staðfesti ég hvert atriði hér að ofan:
+[ ] 1.   Ég veit hvar sjúkraskráin er og hvar hún er ekki.
+[ ] 2.   Ég virði aðgangsreglur og fletti aðeins upp því sem ég þarf.
+[ ] 3.   Ég þekki mín hlutverkaskil.
+[ ] 4.   Ég veit hvað má og má ekki segja í skilaboðakerfinu.
+[ ] 5.   Ég nota eingöngu samþykktar samskiptaleiðir og verkfæri.
+[ ] 6.   Ég veit hvernig á að tilkynna atvik og innan hvaða tíma.
+[ ] 7.   Ég áframsendi beiðnir skjólstæðinga til pv@lifelinehealth.is.
+[ ] 8.   Ég virði velferðar/sjúkraskrár-mörkin í interim mode.
+[ ] 9.   Ég veit hvað gerist við starfslok og að þagnarskylda er ævilöng.
+[ ] 10.  Ég veit hvar ég get nálgast þessar reglur til upprifjunar.
+
+12. Lokastaðfesting
+12.1 Með rafrænni undirritun staðfesti ég að:
+     a) ég hef lesið og skilið alla 11 liði þessa gátlista;
+     b) ég mun fylgja þessum reglum í daglegu starfi;
+     c) ég átta mig á að brot getur leitt til viðvörunar, uppsagnar,
+        tilkynningar til Embættis landlæknis (ef við á) og refsiábyrgðar.
+12.2 Lifeline geymir undirritað PDF-afrit af þessum gátlista í minni
+     skjalageymslu (staff-acceptance-pdfs), og ég get nálgast það
+     hvenær sem er gegnum "Mín skjöl" í admin-svæðinu.`;
+}
+
 // ─── Lausráðningarsamningur (piece-rate employment) ─────────
 // Employment contract for clinicians paid per measurement. Lifeline
 // is the employer of record, on launagreiðandaskrá, handles tax
@@ -485,6 +638,7 @@ export const STAFF_DOC_REGISTRY: Record<string, { version: string; title: string
   [STAFF_CONFIDENTIALITY_KEY]: { version: STAFF_CONFIDENTIALITY_VERSION, title: "Yfirlýsing um þagnarskyldu (heilbrigðisstarfsmaður)", render: renderStaffConfidentiality },
   [STAFF_ACCEPTABLE_USE_KEY]: { version: STAFF_ACCEPTABLE_USE_VERSION, title: "Tækjareglur og aðgangsstjórnun", render: renderStaffAcceptableUse },
   [STAFF_DATA_PROTECTION_KEY]: { version: STAFF_DATA_PROTECTION_VERSION, title: "Persónuverndarfræðsla", render: renderStaffDataProtectionBriefing },
+  [STAFF_ONBOARDING_CHECKLIST_KEY]: { version: STAFF_ONBOARDING_CHECKLIST_VERSION, title: "Móttökugátlisti og verklagsreglur", render: renderStaffOnboardingChecklist },
   [STAFF_PIECE_RATE_EMPLOYMENT_KEY]: { version: STAFF_PIECE_RATE_EMPLOYMENT_VERSION, title: "Lausráðningarsamningur (afkastahvetjandi launakerfi)", render: renderStaffPieceRateEmployment },
   [STAFF_CONTRACTOR_KEY]: { version: STAFF_CONTRACTOR_VERSION, title: "Verktakasamningur (sjálfstæður verktaki)", render: renderStaffContractorAgreement },
 };
