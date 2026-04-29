@@ -1702,6 +1702,8 @@ function AccountPageInner() {
                 {/* After your assessment — teaser for the coaching app */}
                 <AppTeaserCard onGoToCoaching={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }} />
 
+                <WellnessFramingCard />
+
               </>
             )}
 
@@ -2883,6 +2885,42 @@ export default function AccountPage() {
 }
 
 // ── Home overview sub-components ──────────────────────────────────────────
+
+// Wellness-mode framing. Persistent, plain-language reminder that this
+// dashboard is a self-tracking surface — not the formal medical record.
+// The medical record (sjúkraskrá) lives in Medalia under Icelandic law
+// nr. 55/2009. This framing is a regulatory requirement for operating
+// the app as a wellness surface during the pre-Medalia-API interim, and
+// remains useful afterwards as a clear pointer to where clinical data
+// lives.
+function WellnessFramingCard() {
+  return (
+    <section className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5 sm:p-6">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 mt-0.5">
+          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div className="text-sm text-slate-700 leading-relaxed">
+          <p className="font-medium text-slate-900 mb-1">About your dashboard</p>
+          <p>
+            This is your self-tracking and scheduling dashboard — not your medical record.
+            Your formal medical record (sjúkraskrá) is held in <strong>Medalia</strong>, a
+            licensed health-record system under Icelandic law nr. 55/2009. Open the patient
+            portal from your assessment cards to see your clinical results, doctor&apos;s notes,
+            and blood-test outcomes. For coaching messages here, please remember they are not
+            medical advice — clinical questions go through Medalia or a doctor&apos;s appointment.
+          </p>
+          <p className="mt-2 text-xs text-slate-500">
+            Read more in our{" "}
+            <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-700">privacy policy</Link>.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // Self Check-in has no on-site measurement, no blood test, no doctor visit —
 // the next step is simply answering the questionnaire in the patient portal.
