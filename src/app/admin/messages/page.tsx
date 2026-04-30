@@ -828,6 +828,19 @@ export default function AdminMessagesPage() {
 
         {/* Messages */}
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50/50">
+          {/* Wellness-mode disclaimer pinned to the top of every conversation. */}
+          <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5 mb-2">
+            <div className="flex items-start gap-2 text-xs text-amber-900">
+              <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="leading-relaxed">
+                Skilaboð hér eru ekki læknisráðgjöf. Klínískar spurningar (lyf, einkenni,
+                túlkun mælinga) skal vísa á Medalia eða læknisviðtal —{" "}
+                <span className="font-medium">ekki túlka blóðprufur eða breyta meðferð í skilaboðum</span>.
+              </p>
+            </div>
+          </div>
           {groupedMessages.map((group) => (
             <div key={group.date}>
               <div className="flex items-center gap-3 my-4">

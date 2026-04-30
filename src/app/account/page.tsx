@@ -1864,6 +1864,11 @@ function AccountPageInner() {
                 <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Messages</h2>
                 {conversationsCount > 0 ? (
                   <div className="space-y-3">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 text-xs text-amber-900 leading-relaxed">
+                      Coaching messages are not medical advice. For clinical questions
+                      (medications, symptoms, lab results) please use{" "}
+                      <strong>Medalia</strong> or book a doctor&apos;s appointment.
+                    </div>
                     <p className="text-sm text-[#6B7280]">
                       You have <span className="font-semibold text-[#1F2937]">{conversationsCount}</span> conversation{conversationsCount !== 1 ? "s" : ""}.
                     </p>
@@ -2825,6 +2830,11 @@ function AccountPageInner() {
                   </div>
                 )}
 
+                {/* Data & privacy — Biody-import consent + DSR */}
+                <div className="border-b border-gray-100 pb-5 mb-5">
+                  <DataPrivacyPanel userId={user.id} />
+                </div>
+
                 {/* Delete Account */}
                 <div>
                   <div className="flex items-center justify-between">
@@ -2881,6 +2891,188 @@ export default function AccountPage() {
     }>
       <AccountPageInner />
     </Suspense>
+  );
+}
+
+// ── Data & privacy panel (Settings) ──────────────────────────────────────
+
+// Hash an arbitrary string with SHA-256. We use SubtleCrypto (browser
+// global) and cache the consent text hash so the server can later
+// verify the user signed the version they saw.
+async function sha256Hex(s: string): Promise<string> {
+  const data = new TextEncoder().encode(s);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+const BIODY_CONSENT_KEY = "biody-import-v1";
+const BIODY_CONSENT_VERSION = "v1.0";
+const BIODY_CONSENT_TEXT =
+  `SAMÞYKKI FYRIR BIRTINGU LÍKAMSSAMSETNINGAR Í LIFELINE APPI v1.0 — ` +
+  `Ég samþykki að líkamssamsetningarmælingar mínar úr Biody Manager séu ` +
+  `sóttar inn í mælaborðið mitt í Lifeline appinu. Þetta er sjálfsmæling, ` +
+  `ekki sjúkraskráin (sem er í Medalia skv. lögum nr. 55/2009). Ég get ` +
+  `afturkallað þetta hvenær sem er.`;
+
+function DataPrivacyPanel({ userId }: { userId: string }) {
+  const [biodyConsent, setBiodyConsent] = useState<boolean | null>(null);
+  const [savingConsent, setSavingConsent] = useState(false);
+  const [dsrType, setDsrType] = useState("access");
+  const [dsrDetails, setDsrDetails] = useState("");
+  const [dsrSending, setDsrSending] = useState(false);
+  const [dsrMsg, setDsrMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("client_consents")
+        .select("granted, revoked_at")
+        .eq("client_id", userId)
+        .eq("consent_key", BIODY_CONSENT_KEY)
+        .is("revoked_at", null)
+        .maybeSingle();
+      setBiodyConsent(!!data && data.granted === true);
+    })();
+  }, [userId]);
+
+  const toggleBiodyConsent = async () => {
+    setSavingConsent(true);
+    try {
+      if (biodyConsent) {
+        // revoke
+        await supabase
+          .from("client_consents")
+          .update({ revoked_at: new Date().toISOString() })
+          .eq("client_id", userId)
+          .eq("consent_key", BIODY_CONSENT_KEY)
+          .is("revoked_at", null);
+        setBiodyConsent(false);
+      } else {
+        // grant
+        const text_hash = await sha256Hex(BIODY_CONSENT_TEXT);
+        await supabase.from("client_consents").insert({
+          client_id: userId,
+          consent_key: BIODY_CONSENT_KEY,
+          consent_version: BIODY_CONSENT_VERSION,
+          text_hash,
+          granted: true,
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        });
+        setBiodyConsent(true);
+      }
+    } finally {
+      setSavingConsent(false);
+    }
+  };
+
+  const submitDsr = async () => {
+    setDsrSending(true);
+    setDsrMsg(null);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const token = s.session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch("/api/account/data-subject-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: dsrType, details: dsrDetails }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || "Request failed");
+      setDsrMsg({
+        type: "ok",
+        text: "Request received — our DPO will respond within 30 days.",
+      });
+      setDsrDetails("");
+    } catch (e) {
+      setDsrMsg({ type: "err", text: (e as Error).message });
+    } finally {
+      setDsrSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-sm font-medium text-[#1F2937]">Data &amp; privacy</p>
+        <p className="text-xs text-[#6B7280]">Control how your health data flows in this app</p>
+      </div>
+
+      {/* Biody import consent */}
+      <div className="bg-[#F9FAFB] rounded-xl p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-[#1F2937]">Show my Biody body composition here</p>
+            <p className="text-xs text-[#6B7280] mt-0.5">
+              Sync your Biody scan results into this dashboard for self-tracking.
+              Off by default. Your medical record in Medalia is unaffected either way.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleBiodyConsent}
+            disabled={savingConsent || biodyConsent === null}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              biodyConsent ? "bg-[#10B981]" : "bg-gray-300"
+            } ${savingConsent || biodyConsent === null ? "opacity-60" : ""}`}
+            aria-pressed={!!biodyConsent}
+            aria-label="Toggle Biody import"
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                biodyConsent ? "translate-x-[22px]" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* DSR form */}
+      <div className="bg-[#F9FAFB] rounded-xl p-4">
+        <p className="text-sm font-medium text-[#1F2937] mb-1">Submit a data protection request</p>
+        <p className="text-xs text-[#6B7280] mb-3">
+          Access, correction, deletion, portability, or withdrawal of consent under GDPR Arts. 15–22.
+        </p>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <select
+            value={dsrType}
+            onChange={(e) => setDsrType(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+          >
+            <option value="access">Access (Art. 15)</option>
+            <option value="rectification">Rectification (Art. 16)</option>
+            <option value="erasure">Erasure (Art. 17)</option>
+            <option value="restriction">Restriction (Art. 18)</option>
+            <option value="portability">Portability (Art. 20)</option>
+            <option value="objection">Objection (Art. 21)</option>
+            <option value="withdraw_consent">Withdraw consent (Art. 7(3))</option>
+          </select>
+          <input
+            type="text"
+            value={dsrDetails}
+            onChange={(e) => setDsrDetails(e.target.value)}
+            placeholder="Optional details (max 4000 chars)"
+            className="sm:col-span-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+          />
+        </div>
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            onClick={submitDsr}
+            disabled={dsrSending}
+            className="px-4 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50"
+          >
+            {dsrSending ? "Sending…" : "Submit request"}
+          </button>
+          {dsrMsg && (
+            <p className={`text-xs ${dsrMsg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>
+              {dsrMsg.text}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
