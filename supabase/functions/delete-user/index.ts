@@ -140,6 +140,35 @@ serve(async (req) => {
       } catch { /* ignore */ }
     }
 
+    // 8c. Health-data tables — Sprint 1.9. Delete rows tied to this client
+    // so the wellness-mode mirror in Supabase contains nothing about the
+    // deleted user. The clinical record in Medalia is unaffected; Medalia
+    // retention is governed by lög nr. 55/2009 and handled out-of-band
+    // until the Medalia API ships.
+    const healthTablesByClientId: string[] = [
+      'weight_log',
+      'macro_targets',
+      'body_comp_bookings',
+      'blood_test_bookings',
+      'health_records',
+      'client_consents',
+      'client_satisfaction_surveys',
+      'client_wellbeing_surveys',
+      'refund_requests',
+      'client_programs',
+    ]
+    for (const table of healthTablesByClientId) {
+      try {
+        await supabaseAdmin.from(table).delete().eq('client_id', userId)
+      } catch { /* ignore — table may not exist yet */ }
+    }
+
+    // body_comp_events: created_by is already nulled above; rows themselves
+    // belong to the assessment_round, not the client, so they remain. The
+    // measurement values are derived from Biody and live in Medalia as the
+    // sjúkraskrá of record. No rows here are personally-identifying once
+    // created_by is nulled.
+
     // 9. Delete auth user — try by ID first, then look up by email
     let { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (deleteAuthError && clientEmail) {

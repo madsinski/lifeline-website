@@ -7,8 +7,8 @@ export const metadata = {
   description: "How Lifeline Health collects, uses, stores, and protects your personal and health data.",
 };
 
-const VERSION = "1.3";
-const LAST_UPDATED = "21 April 2026";
+const VERSION = "1.4";
+const LAST_UPDATED = "29 April 2026";
 
 export default function PrivacyPage() {
   return (
@@ -72,12 +72,13 @@ export default function PrivacyPage() {
 
         <h2>5. How we store your kennitala</h2>
         <p>
-          Kennitala is considered sensitive personal data under Icelandic law. We store it encrypted
-          at rest with a symmetric key held in an isolated secrets vault. Decryption is available
-          only to a narrow set of server functions, never to arbitrary database readers, and every
-          decryption event is recorded to an append-only audit log. By default, Lifeline support
-          staff see only the last four digits; full decryption requires staff-level permission and
-          is logged.
+          Kennitala is considered sensitive personal data under Icelandic law. We follow the
+          principle of <strong>data minimisation</strong>: only the last four digits are stored
+          in our database, and only for the limited purposes of identifying employee rosters in
+          B2B onboarding and matching duplicates. We do not store, decrypt, or transmit your full
+          kennitala — neither to staff nor to any third party. If a future regulatory or clinical
+          process requires it, that process will live inside Medalia (the licensed sjúkraskrár-
+          system) where access is logged under Icelandic law nr. 55/2009 §14, not in this app.
         </p>
 
         <h2>6. Who we share your data with</h2>
@@ -134,12 +135,13 @@ export default function PrivacyPage() {
 
         <h2>9. Security measures</h2>
         <ul>
-          <li>TLS encryption in transit; encryption at rest for sensitive columns (kennitala, credentials).</li>
-          <li>Role-based access control in the database via Row-Level Security.</li>
-          <li>Password hashing with bcrypt; invite passwords rate-limited and lockable.</li>
+          <li>TLS encryption in transit; database hosted on Supabase with at-rest encryption at the storage layer.</li>
+          <li>Role-based access control via Row-Level Security; specialty-based separation between coaches, clinicians, and admins.</li>
+          <li>Audit logging on every write to health-sensitive tables (clients, messages, weight log, body composition events).</li>
+          <li>Quarterly staff access review — every team member&apos;s permissions are revisited every 90 days.</li>
           <li>Service-role credentials stored in a secrets manager, never in source code.</li>
-          <li>Audit logging of every access to sensitive data (kennitala decryption, staff reads).</li>
-          <li>Principle of least privilege for Lifeline staff — full kennitala requires elevated permission.</li>
+          <li>MFA (TOTP, AAL2) required for every Lifeline staff session before admin access is granted.</li>
+          <li>Sentry redaction strips request bodies on health-related routes so error monitoring cannot leak Art. 9 data.</li>
         </ul>
         <p>
           No system is perfectly secure. If you believe your account has been compromised, contact{" "}
@@ -160,8 +162,11 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p>
-          Email <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a> with any
-          request; we will respond within 30 days.
+          To exercise any of these rights, email{" "}
+          <a href="mailto:pv@lifelinehealth.is">pv@lifelinehealth.is</a> (our data protection
+          inbox) or submit a request from your account settings under <em>Data &amp; privacy</em>.
+          We respond within 30 days per GDPR Art. 12. Health record requests that need data held
+          in Medalia are coordinated with our joint-controller per the Art. 26 arrangement.
         </p>
 
         <h2>11. Cookies &amp; analytics</h2>

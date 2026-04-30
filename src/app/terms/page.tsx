@@ -97,7 +97,8 @@ export default function TermsPage() {
           for health-record data under GDPR Art. 26.</li>
           <li><strong>Biody Manager</strong> (our body composition measurement partner). We share name, email,
           date of birth, sex, height, and activity level to register you as a patient. We do not send
-          your kennitala to Biody.</li>
+          your kennitala to Biody. Lifeline only stores the last four digits of your kennitala
+          (data minimisation); we do not store the full number.</li>
           <li><strong>Supabase</strong> (our database and authentication provider) and <strong>Vercel</strong> (our
           web hosting provider), under GDPR-compliant data processing agreements.</li>
           <li><strong>Resend</strong> (our transactional email provider), which delivers invitations and
