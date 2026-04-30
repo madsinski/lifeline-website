@@ -1,0 +1,142 @@
+-- =============================================================
+-- Sprint 1.1 — Column encryption RUNBOOK (do not paste-and-run)
+--
+-- ⚠️  THIS FILE IS A STAGED RUNBOOK, NOT A ONE-SHOT MIGRATION.
+--
+-- Encrypting columns that hold live production data requires:
+--   1. Backup verification (the nightly pg_dump must be confirmed
+--      restorable BEFORE any encryption step).
+--   2. A maintenance window where writes to the affected tables are
+--      paused (or routed through a dual-write code path).
+--   3. Application code that reads via the decryption view rather
+--      than the raw column.
+--   4. A controlled cutover, with rollback path, per table.
+--
+-- Naive paste-and-run will overwrite plaintext with ciphertext while
+-- the running app is still doing plaintext writes — guaranteed
+-- corruption. Read every step before executing any of them.
+--
+-- Source of truth for the encryption design:
+--   - Supabase Vault (libsodium / pgsodium) for the master key
+--   - Per-column "encrypted" sibling columns (e.g. weight_kg_enc)
+--   - A SECURITY DEFINER view that decrypts on read
+--   - An UPDATE-on-write trigger that mirrors plaintext → encrypted
+--   - Once the trigger is verified, drop the plaintext column
+-- =============================================================
+
+-- ─── Step 1 — Enable pgsodium and create a Vault key ─────────
+-- Run once. Vault stores the key id; the key material lives only in
+-- the Vault and is never returned to clients.
+--
+-- CREATE EXTENSION IF NOT EXISTS pgsodium;
+-- INSERT INTO pgsodium.key (name) VALUES ('lifeline_health_v1') ON CONFLICT DO NOTHING;
+-- SELECT id FROM pgsodium.key WHERE name = 'lifeline_health_v1';
+--   ⇒ note this UUID; pass it to the helper functions below as p_key_id.
+
+-- ─── Step 2 — Helper: fetch the key id by name (avoid hardcoding) ─
+-- CREATE OR REPLACE FUNCTION public.lifeline_encryption_key()
+-- RETURNS UUID
+-- LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pgsodium, public
+-- AS $$ SELECT id FROM pgsodium.key WHERE name = 'lifeline_health_v1' LIMIT 1; $$;
+-- REVOKE ALL ON FUNCTION public.lifeline_encryption_key() FROM PUBLIC;
+
+-- ─── Step 3 — Add encrypted siblings ───────────────────────────
+-- One per Art. 9 column. Name suffix _enc so it's obvious in queries.
+--
+-- ALTER TABLE public.clients
+--   ADD COLUMN IF NOT EXISTS weight_kg_enc      BYTEA,
+--   ADD COLUMN IF NOT EXISTS body_fat_pct_enc   BYTEA,
+--   ADD COLUMN IF NOT EXISTS muscle_mass_pct_enc BYTEA,
+--   ADD COLUMN IF NOT EXISTS height_cm_enc      BYTEA,
+--   ADD COLUMN IF NOT EXISTS sex_enc            BYTEA,
+--   ADD COLUMN IF NOT EXISTS date_of_birth_enc  BYTEA;
+--
+-- ALTER TABLE public.weight_log
+--   ADD COLUMN IF NOT EXISTS weight_kg_enc      BYTEA,
+--   ADD COLUMN IF NOT EXISTS body_fat_pct_enc   BYTEA;
+--
+-- ALTER TABLE public.messages
+--   ADD COLUMN IF NOT EXISTS content_enc        BYTEA;
+
+-- ─── Step 4 — Backfill (chunked, off-peak) ─────────────────────
+-- DO IT IN BATCHES OF 1000 ROWS. The example for clients.weight_kg:
+--
+-- WITH batch AS (
+--   SELECT id FROM public.clients
+--   WHERE weight_kg IS NOT NULL AND weight_kg_enc IS NULL
+--   ORDER BY id LIMIT 1000
+-- )
+-- UPDATE public.clients c
+-- SET weight_kg_enc = pgsodium.crypto_aead_det_encrypt(
+--     convert_to(weight_kg::TEXT, 'utf8'),
+--     ''::BYTEA,
+--     public.lifeline_encryption_key()
+--   )
+-- FROM batch WHERE c.id = batch.id;
+--
+-- Repeat each batch until 0 rows updated. Repeat per column / table.
+
+-- ─── Step 5 — Read-side: decrypted view ───────────────────────
+-- Application reads through this view; raw columns become hidden.
+--
+-- CREATE OR REPLACE VIEW public.clients_decrypted
+-- WITH (security_invoker = true)
+-- AS SELECT
+--   id, email, full_name, /* ...non-encrypted columns... */
+--   convert_from(
+--     pgsodium.crypto_aead_det_decrypt(weight_kg_enc, ''::BYTEA, public.lifeline_encryption_key()),
+--     'utf8'
+--   )::NUMERIC AS weight_kg,
+--   /* ...repeat for each encrypted column... */
+-- FROM public.clients;
+--
+-- GRANT SELECT ON public.clients_decrypted TO authenticated;
+
+-- ─── Step 6 — Write-side: trigger to mirror plaintext → enc ────
+-- During the dual-run period, application code may still write the
+-- plaintext column. A trigger keeps the encrypted sibling in sync so
+-- there's no read/write skew.
+--
+-- CREATE OR REPLACE FUNCTION public.tg_encrypt_clients_writes()
+-- RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+-- BEGIN
+--   IF NEW.weight_kg IS DISTINCT FROM OLD.weight_kg THEN
+--     NEW.weight_kg_enc := pgsodium.crypto_aead_det_encrypt(
+--       convert_to(NEW.weight_kg::TEXT, 'utf8'), ''::BYTEA,
+--       public.lifeline_encryption_key()
+--     );
+--   END IF;
+--   /* ...repeat for each column... */
+--   RETURN NEW;
+-- END;
+-- $$;
+-- CREATE TRIGGER encrypt_clients_writes BEFORE INSERT OR UPDATE ON public.clients
+--   FOR EACH ROW EXECUTE FUNCTION public.tg_encrypt_clients_writes();
+
+-- ─── Step 7 — Application cutover ─────────────────────────────
+-- Update read paths to use clients_decrypted; verify all UIs work.
+-- Wait at least one full day. Then:
+--
+-- ALTER TABLE public.clients
+--   DROP COLUMN weight_kg,
+--   DROP COLUMN body_fat_pct,
+--   DROP COLUMN muscle_mass_pct,
+--   DROP COLUMN height_cm,
+--   DROP COLUMN sex,
+--   DROP COLUMN date_of_birth;
+--
+-- After this, weight_kg/etc only exist as decrypted-view columns.
+
+-- ─── Rollback ────────────────────────────────────────────────
+-- - Step 7 dropped columns: restore from backup (this is why Step 0
+--   matters).
+-- - Steps 3–6 are reversible: drop trigger, drop view, drop _enc
+--   columns. No data lost.
+
+-- ─── What is intentionally NOT in this file ──────────────────
+-- - Live SQL. Every statement above is commented out.
+-- - Hardcoded key ids — fetched via helper.
+-- - Concurrency-unsafe CTEs — use batches, off-peak.
+
+-- Document author: Sprint 1 prep, 2026-04-29.
+-- Owner before execution: Backend lead + DevOps + DPO sign-off.
