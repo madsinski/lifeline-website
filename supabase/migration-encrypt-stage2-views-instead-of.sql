@@ -55,6 +55,12 @@ CREATE OR REPLACE FUNCTION public.tg_clients_decrypted_insert()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public AS $$
 BEGIN
+  -- Materialise defaults onto NEW so PostgREST's RETURNING gets the
+  -- generated id (see messages_decrypted insert for the same pattern).
+  IF NEW.id IS NULL THEN NEW.id := gen_random_uuid(); END IF;
+  IF NEW.created_at IS NULL THEN NEW.created_at := now(); END IF;
+  IF NEW.updated_at IS NULL THEN NEW.updated_at := now(); END IF;
+
   INSERT INTO public.clients (
     id, email, full_name,
     sex, height_cm, weight_kg, body_fat_pct, muscle_mass_pct,
@@ -75,14 +81,14 @@ BEGIN
     phone_enc, address_enc, date_of_birth_enc,
     emergency_contact_name_enc, emergency_contact_phone_enc, kennitala_last4_enc
   ) VALUES (
-    COALESCE(NEW.id, gen_random_uuid()),
+    NEW.id,
     NEW.email, NEW.full_name,
     NEW.sex, NEW.height_cm, NEW.weight_kg, NEW.body_fat_pct, NEW.muscle_mass_pct,
     NEW.activity_level, NEW.macro_goal, NEW.avatar_url,
     NEW.company_id, NEW.biody_patient_id, NEW.biody_uuid, NEW.biody_placeholder_data, NEW.biody_activation_started_at,
     NEW.last_body_comp_at, NEW.welcome_seen_at,
     NEW.terms_accepted_at, NEW.terms_version,
-    COALESCE(NEW.created_at, now()), COALESCE(NEW.updated_at, now()),
+    NEW.created_at, NEW.updated_at,
     NEW.custom_programs, NEW.exercise_profile, NEW.journey_checks,
     NEW.consistency_score, NEW.intensity_score, NEW.scores_updated_at,
     NEW.video_consultation_portal_confirmed_at, NEW.checkin_doctor_addon_paid_at,
@@ -200,18 +206,22 @@ CREATE OR REPLACE FUNCTION public.tg_messages_decrypted_insert()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public AS $$
 BEGIN
+  -- Materialise defaults onto NEW *before* INSERT, so PostgREST's
+  -- INSERT ... RETURNING returns a complete row (otherwise NEW.id is
+  -- still NULL when supabase-js calls .select().single() and the
+  -- client treats it as "no row inserted").
+  IF NEW.id IS NULL THEN NEW.id := gen_random_uuid(); END IF;
+  IF NEW.created_at IS NULL THEN NEW.created_at := now(); END IF;
+  IF NEW.read IS NULL THEN NEW.read := false; END IF;
+
   INSERT INTO public.messages (
     id, conversation_id, sender_id, sender_name, sender_role,
     content_enc, read, created_at
   ) VALUES (
-    COALESCE(NEW.id, gen_random_uuid()),
-    NEW.conversation_id,
-    NEW.sender_id,
-    NEW.sender_name,
-    NEW.sender_role,
+    NEW.id, NEW.conversation_id, NEW.sender_id, NEW.sender_name, NEW.sender_role,
     public.encrypt_text(NEW.content),
-    COALESCE(NEW.read, false),
-    COALESCE(NEW.created_at, now())
+    NEW.read,
+    NEW.created_at
   );
   RETURN NEW;
 END;
