@@ -62,7 +62,7 @@ SET search_path = public
 AS $$
   SELECT CASE
     WHEN p IS NULL OR p = '' THEN NULL
-    ELSE pgp_sym_encrypt(p, public.lifeline_encryption_passphrase(), 'cipher-algo=aes256')
+    ELSE pgp_sym_encrypt(p, public.lifeline_encryption_passphrase(), 'cipher-algo=aes256'::text)
   END;
 $$;
 REVOKE ALL ON FUNCTION public.encrypt_text(TEXT) FROM PUBLIC;
