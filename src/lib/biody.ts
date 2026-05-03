@@ -51,7 +51,7 @@ export async function activateBiodyForClient(clientId: string): Promise<Activate
   }
 
   const { data: client, error: clientErr } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("id, full_name, date_of_birth, height_cm, activity_level, sex, biody_patient_id, biody_uuid")
     .eq("id", clientId)
     .maybeSingle();

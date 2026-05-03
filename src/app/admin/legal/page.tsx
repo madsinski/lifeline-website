@@ -111,7 +111,7 @@ export default function AdminLegalPage() {
     const userInfoMap = new Map<string, { email: string | null; full_name: string | null }>();
     if (platformUserIds.length > 0) {
       const { data: clientRows } = await supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("id, email, full_name")
         .in("id", platformUserIds);
       for (const c of (clientRows ?? []) as { id: string; email: string | null; full_name: string | null }[]) {

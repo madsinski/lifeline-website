@@ -218,7 +218,7 @@ export default function ClientsPage() {
       // First try fetching clients without joining subscriptions
       // (the join can fail if there's no FK relationship or RLS issues)
       const { data: clientsData, error: clientsError } = await supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -647,12 +647,12 @@ export default function ClientsPage() {
       const authUserIds = (result.authUserIds as string[]) || [];
       let orphansRemoved = 0;
       if (authUserIds.length > 0) {
-        const { data: allClients } = await supabase.from("clients").select("id");
+        const { data: allClients } = await supabase.from("clients_decrypted").select("id");
         if (allClients) {
           const authSet = new Set(authUserIds);
           const orphans = allClients.filter((c: { id: string }) => !authSet.has(c.id));
           for (const orphan of orphans) {
-            const { error: delErr } = await supabase.from("clients").delete().eq("id", orphan.id);
+            const { error: delErr } = await supabase.from("clients_decrypted").delete().eq("id", orphan.id);
             if (!delErr) orphansRemoved++;
           }
         }
@@ -684,7 +684,7 @@ export default function ClientsPage() {
     setCoachAssignments((prev) => ({ ...prev, [clientId]: staffId }));
     // Persist to Supabase
     try {
-      await supabase.from("clients").update({ assigned_coach_id: staffId }).eq("id", clientId);
+      await supabase.from("clients_decrypted").update({ assigned_coach_id: staffId }).eq("id", clientId);
     } catch {}
   };
 
@@ -940,12 +940,12 @@ export default function ClientsPage() {
                 let created = 0;
                 for (const u of authData.users) {
                   const { data: existing } = await supabase
-                    .from("clients")
+                    .from("clients_decrypted")
                     .select("id")
                     .eq("id", u.id)
                     .maybeSingle();
                   if (!existing) {
-                    await supabase.from("clients").insert({
+                    await supabase.from("clients_decrypted").insert({
                       id: u.id,
                       email: u.email || "",
                       full_name: (u.user_metadata?.full_name as string) || null,

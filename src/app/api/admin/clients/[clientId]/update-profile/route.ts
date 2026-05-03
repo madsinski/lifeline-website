@@ -17,7 +17,7 @@ export async function POST(
 
   // Get old client data for matching company_members
   const { data: oldClient } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("email, company_id, full_name")
     .eq("id", clientId)
     .maybeSingle();
@@ -38,7 +38,7 @@ export async function POST(
   if (sex !== undefined) clientUpdate.sex = sex;
 
   if (Object.keys(clientUpdate).length > 0) {
-    const { error } = await supabaseAdmin.from("clients").update(clientUpdate).eq("id", clientId);
+    const { error } = await supabaseAdmin.from("clients_decrypted").update(clientUpdate).eq("id", clientId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
@@ -46,7 +46,7 @@ export async function POST(
   if (email && email !== oldEmail) {
     const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(clientId, { email });
     if (authErr) return NextResponse.json({ error: authErr.message }, { status: 400 });
-    await supabaseAdmin.from("clients").update({ email }).eq("id", clientId);
+    await supabaseAdmin.from("clients_decrypted").update({ email }).eq("id", clientId);
   }
 
   // 3. Sync to company_members (B2B roster) using OLD email for matching

@@ -105,12 +105,12 @@ async function createOne(companyId: string, row: Invitee): Promise<ResultRow> {
     // real data the user or another admin already entered.
     const nowIso = new Date().toISOString();
     const { data: existingClient } = await supabaseAdmin
-      .from("clients")
+      .from("clients_decrypted")
       .select("id, full_name, phone, kennitala_last4, sex, height_cm, weight_kg, activity_level, date_of_birth, company_id, biody_patient_id, biody_placeholder_data")
       .eq("id", userId)
       .maybeSingle();
     if (!existingClient) {
-      const { error: insErr } = await supabaseAdmin.from("clients").insert({
+      const { error: insErr } = await supabaseAdmin.from("clients_decrypted").insert({
         id: userId,
         email,
         full_name: fullName,
@@ -143,7 +143,7 @@ async function createOne(companyId: string, row: Invitee): Promise<ResultRow> {
         patch.biody_placeholder_data = true;
       }
       const { error: upErr } = await supabaseAdmin
-        .from("clients")
+        .from("clients_decrypted")
         .update(patch)
         .eq("id", userId);
       if (upErr) return { email, status: "failed", error: upErr.message };

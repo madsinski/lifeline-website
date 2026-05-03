@@ -286,7 +286,7 @@ export default function CalendarPage() {
 
   const loadClients = useCallback(async () => {
     const { data } = await supabase
-      .from("clients")
+      .from("clients_decrypted")
       .select("id, full_name, email")
       .order("full_name", { ascending: true });
     if (data) {

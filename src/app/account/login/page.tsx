@@ -57,7 +57,7 @@ function AccountLoginContent() {
       //   • Everyone else → /account or the next path
       if (signInData?.user?.id) {
         const { data: profile } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("welcome_seen_at, company_id, sex, date_of_birth, height_cm, weight_kg, activity_level")
           .eq("id", signInData.user.id)
           .maybeSingle();
@@ -117,17 +117,17 @@ function AccountLoginContent() {
       // Create client profile and free subscription
       if (signUpData?.user) {
         try {
-          const { error: insertErr } = await supabase.from('clients').insert({
+          const { error: insertErr } = await supabase.from("clients_decrypted").insert({
             id: signUpData.user.id,
             ...clientFields,
           });
           // Handle re-created account (same email, new auth ID)
           if (insertErr?.code === '23505') {
-            const { data: old } = await supabase.from('clients').select('id').eq('email', email).single();
+            const { data: old } = await supabase.from("clients_decrypted").select('id').eq('email', email).single();
             if (old && old.id !== signUpData.user.id) {
               await supabase.from('subscriptions').delete().eq('client_id', old.id);
-              await supabase.from('clients').delete().eq('id', old.id);
-              await supabase.from('clients').insert({
+              await supabase.from("clients_decrypted").delete().eq('id', old.id);
+              await supabase.from("clients_decrypted").insert({
                 id: signUpData.user.id,
                 ...clientFields,
               });

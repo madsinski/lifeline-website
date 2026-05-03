@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (rr.client_id !== user.id) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const { data: client } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("full_name, email, phone")
     .eq("id", rr.client_id)
     .maybeSingle();

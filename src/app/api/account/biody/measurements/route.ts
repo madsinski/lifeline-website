@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 
   // Self-only mapping.
   const { data: clientRow } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("biody_patient_id")
     .eq("id", user.id)
     .maybeSingle();

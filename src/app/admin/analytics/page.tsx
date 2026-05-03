@@ -43,7 +43,7 @@ export default function AnalyticsPage() {
     try {
       // Fetch clients with subscriptions
       const { data: clients } = await supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("id, created_at, subscriptions(tier, status)");
 
       const allClients = clients ?? [];

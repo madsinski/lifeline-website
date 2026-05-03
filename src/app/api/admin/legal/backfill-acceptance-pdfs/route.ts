@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       // Resolve signer email — best effort via clients, falls back to auth.
       let signerEmail: string | null = null;
       const { data: client } = await supabaseAdmin
-        .from("clients")
+        .from("clients_decrypted")
         .select("email")
         .eq("id", r.user_id)
         .maybeSingle();

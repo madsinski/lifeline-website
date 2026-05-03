@@ -19,7 +19,7 @@ export default function AccountWelcomePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/account/login"); return; }
       const { data: client } = await supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("full_name, company_id")
         .eq("id", user.id)
         .maybeSingle();
@@ -164,7 +164,7 @@ function NextStepsHero() {
   async function markSeen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) await supabase.from("clients").update({ welcome_seen_at: new Date().toISOString() }).eq("id", user.id);
+      if (user) await supabase.from("clients_decrypted").update({ welcome_seen_at: new Date().toISOString() }).eq("id", user.id);
     } catch {}
   }
   return (

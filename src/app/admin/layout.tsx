@@ -184,7 +184,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const loadCounts = async () => {
       try {
         const { count: msgCount, error: msgErr } = await supabase
-          .from("messages")
+          .from("messages_decrypted")
           .select("*", { count: "exact", head: true })
           .eq("read", false)
           .neq("sender_role", "coach");
@@ -193,7 +193,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       try {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const { count: clientCount, error: clientErr } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("*", { count: "exact", head: true })
           .gte("created_at", sevenDaysAgo);
         if (!clientErr && clientCount !== null) setNewClientsCount(clientCount);

@@ -37,7 +37,7 @@ export default function Navbar() {
     const loadUserName = async (userId: string, email?: string) => {
       try {
         const { data } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("full_name")
           .eq("id", userId)
           .single();
@@ -76,7 +76,7 @@ export default function Navbar() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("full_name")
           .eq("id", session.user.id)
           .single()

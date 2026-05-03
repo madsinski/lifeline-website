@@ -240,7 +240,7 @@ export async function POST(
   if (contactEmail) {
     try {
       const { data: contactClient } = await supabaseAdmin
-        .from("clients")
+        .from("clients_decrypted")
         .select("full_name")
         .eq("id", company.contact_person_id)
         .maybeSingle();

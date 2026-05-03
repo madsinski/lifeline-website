@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   // 1. Update the client row with the profile fields + opt-outs + welcome_seen_at.
   const { error: upErr } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .update({
       sex,
       date_of_birth,
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
   // 4. Send B2C welcome email (non-blocking).
   try {
     const { data: clientRow } = await supabaseAdmin
-      .from("clients")
+      .from("clients_decrypted")
       .select("full_name")
       .eq("id", user.id)
       .maybeSingle();

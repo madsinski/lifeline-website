@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   // Look up recipient info. Only send to clients who haven't opted out of marketing.
   const { data: rows, error: rErr } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("id, email, full_name, marketing_opt_out")
     .in("id", ids);
   if (rErr) return NextResponse.json({ error: rErr.message }, { status: 500 });

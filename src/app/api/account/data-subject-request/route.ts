@@ -110,7 +110,7 @@ export async function POST(req: Request) {
   const user = userData.user;
 
   const { data: clientRow } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("id, full_name, email, phone, company_id, kennitala_last4")
     .eq("id", user.id)
     .maybeSingle();

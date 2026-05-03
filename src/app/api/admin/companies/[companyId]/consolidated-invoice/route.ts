@@ -77,7 +77,7 @@ export async function POST(
     // clients directly (these are Biody placeholders + self-signups).
     if ((count || 0) === 0) {
       const { count: clientCount } = await supabaseAdmin
-        .from("clients")
+        .from("clients_decrypted")
         .select("id", { count: "exact", head: true })
         .eq("company_id", sid);
       if ((clientCount || 0) > 0) counts.set(sid, clientCount || 0);

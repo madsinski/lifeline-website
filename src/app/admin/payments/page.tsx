@@ -94,7 +94,7 @@ export default function AdminPaymentsPage() {
     // B2C rows can show "via Acme ehf." alongside the client's name.
     const [clientsRes, companiesRes] = await Promise.all([
       clientIds.length > 0
-        ? supabase.from("clients").select("id, full_name, email, company_id").in("id", clientIds)
+        ? supabase.from("clients_decrypted").select("id, full_name, email, company_id").in("id", clientIds)
         : Promise.resolve({ data: [] }),
       companyIds.length > 0
         ? supabase.from("companies").select("id, name").in("id", companyIds)

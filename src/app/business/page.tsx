@@ -46,7 +46,7 @@ export default function BusinessIndexPage() {
       // company yet (show the 'create your first company' screen).
       if (list.length === 0) {
         const { data: client } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("company_id")
           .eq("id", user.id)
           .maybeSingle();

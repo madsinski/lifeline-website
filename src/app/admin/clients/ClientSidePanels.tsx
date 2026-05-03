@@ -261,7 +261,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
       // Load messages
       if (convId) {
         const { data: msgs } = await supabase
-          .from("messages")
+          .from("messages_decrypted")
           .select("id, sender_name, sender_role, content, created_at")
           .eq("conversation_id", convId)
           .order("created_at", { ascending: true });
@@ -269,7 +269,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
 
         // Mark client messages as read
         await supabase
-          .from("messages")
+          .from("messages_decrypted")
           .update({ read: true })
           .eq("conversation_id", convId)
           .eq("sender_role", "client")
@@ -304,7 +304,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
           });
           // Auto-mark as read if from client
           if (msg.sender_role === "client") {
-            supabase.from("messages").update({ read: true }).eq("id", msg.id).then(() => {});
+            supabase.from("messages_decrypted").update({ read: true }).eq("id", msg.id).then(() => {});
           }
         }
       )
@@ -324,7 +324,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
       const isRealUUID = staff?.id && /^[0-9a-f]{8}-/i.test(staff.id);
 
       const { data } = await supabase
-        .from("messages")
+        .from("messages_decrypted")
         .insert({
           conversation_id: conversationId,
           sender_id: isRealUUID ? staff.id : null,

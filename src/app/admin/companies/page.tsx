@@ -544,7 +544,7 @@ function ConsolidatedInvoiceButton({ companyId, companyName }: { companyId: stri
         let qty = count || 0;
         if (qty === 0) {
           const { count: cc } = await supabase
-            .from("clients")
+            .from("clients_decrypted")
             .select("id", { count: "exact", head: true })
             .eq("company_id", c.id);
           if ((cc || 0) > 0) qty = cc || 0;

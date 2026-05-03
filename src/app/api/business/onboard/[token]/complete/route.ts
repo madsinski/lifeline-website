@@ -112,14 +112,14 @@ async function handle(
   // remove it so the handle_new_user trigger doesn't collide on clients.email.
   try {
     const { data: staleClients } = await supabaseAdmin
-      .from("clients")
+      .from("clients_decrypted")
       .select("id")
       .ilike("email", email);
     for (const row of staleClients || []) {
       const { data: authCheck } = await supabaseAdmin.auth.admin.getUserById(row.id);
       if (!authCheck?.user) {
         console.warn("[onboard-complete] removing orphan clients row", row.id, email);
-        await supabaseAdmin.from("clients").delete().eq("id", row.id);
+        await supabaseAdmin.from("clients_decrypted").delete().eq("id", row.id);
       }
     }
   } catch (e) {
@@ -164,7 +164,7 @@ async function handle(
   if (dobIso) clientPayload.date_of_birth = dobIso;
 
   const { error: upErr } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .upsert(clientPayload, { onConflict: "id" });
   if (upErr) return NextResponse.json({ error: `clients upsert: ${upErr.message}` }, { status: 500 });
 

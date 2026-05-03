@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: client } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("full_name, email")
     .eq("id", rr.client_id)
     .maybeSingle();

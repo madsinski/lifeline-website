@@ -88,7 +88,7 @@ function ClientDetailsEditor({ client, onSaved }: { client: Client; onSaved: () 
     setMsg(null);
     try {
       // Update clients table
-      const { error: clientErr } = await supabase.from("clients").update({
+      const { error: clientErr } = await supabase.from("clients_decrypted").update({
         full_name: fullName.trim() || client.full_name,
         phone: phone.trim() || null,
         address: address.trim() || null,
@@ -235,11 +235,11 @@ export default function ClientDetailPage() {
     try {
       // Load all in parallel
       const [clientRes, subRes, aptRes, progRes, convRes] = await Promise.all([
-        supabase.from("clients").select("*").eq("id", clientId).single(),
+        supabase.from("clients_decrypted").select("*").eq("id", clientId).single(),
         supabase.from("subscriptions").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(1),
         supabase.from("appointments").select("*").eq("client_id", clientId).order("date", { ascending: false }).limit(10),
         supabase.from("client_programs").select("*").eq("client_id", clientId),
-        supabase.from("conversations").select("*, messages(id, content, created_at)").eq("client_id", clientId),
+        supabase.from("conversations").select("*, messages_decrypted(id, content, created_at)").eq("client_id", clientId),
       ]);
 
       if (clientRes.data) setClient(clientRes.data as Client);

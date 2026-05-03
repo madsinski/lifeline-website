@@ -55,7 +55,7 @@ export default function AccountOnboardPage() {
       if (!user) { router.push("/account/login?next=/account/onboard"); return; }
       setEmail(user.email || "");
       const { data } = await supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("full_name, sex, date_of_birth, height_cm, weight_kg, activity_level, company_id, welcome_seen_at")
         .eq("id", user.id)
         .maybeSingle();

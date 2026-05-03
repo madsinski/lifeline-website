@@ -67,7 +67,7 @@ export default function OutreachPage() {
     setLoading(true);
     const [clientsRes, companiesRes] = await Promise.all([
       supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("id, full_name, email, research_opt_out, marketing_opt_out, company_id, created_at")
         .not("email", "is", null)
         .order("created_at", { ascending: false }),

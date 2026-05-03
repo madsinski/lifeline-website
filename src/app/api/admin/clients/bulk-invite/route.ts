@@ -105,7 +105,7 @@ async function inviteOne(origin: string, row: Invitee): Promise<ResultRow> {
       // Completed already? (has a session + set a password, or onboarded.)
       // We still let them get a fresh magic link — they might have lost it.
       const { data: clientRow } = await supabaseAdmin
-        .from("clients")
+        .from("clients_decrypted")
         .select("welcome_seen_at")
         .eq("id", userId)
         .maybeSingle();
@@ -128,12 +128,12 @@ async function inviteOne(origin: string, row: Invitee): Promise<ResultRow> {
     // (don't clobber what the user or a previous admin set).
     const nowIso = new Date().toISOString();
     const { data: existingClient } = await supabaseAdmin
-      .from("clients")
+      .from("clients_decrypted")
       .select("id, full_name, phone, kennitala_last4, sex")
       .eq("id", userId)
       .maybeSingle();
     if (!existingClient) {
-      await supabaseAdmin.from("clients").insert({
+      await supabaseAdmin.from("clients_decrypted").insert({
         id: userId,
         email,
         full_name: fullName || email.split("@")[0],
@@ -144,7 +144,7 @@ async function inviteOne(origin: string, row: Invitee): Promise<ResultRow> {
         updated_at: nowIso,
       });
     } else {
-      await supabaseAdmin.from("clients").update({
+      await supabaseAdmin.from("clients_decrypted").update({
         full_name: existingClient.full_name || fullName || email.split("@")[0],
         phone: existingClient.phone || phone,
         kennitala_last4: existingClient.kennitala_last4 || kennitalaLast4,

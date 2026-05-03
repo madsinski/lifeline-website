@@ -107,7 +107,7 @@ export default function ClientProgramEditorPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: client } = await supabase.from("clients").select("full_name, email").eq("id", clientId).single();
+      const { data: client } = await supabase.from("clients_decrypted").select("full_name, email").eq("id", clientId).single();
       setClientName((client as Record<string, string>)?.full_name || (client as Record<string, string>)?.email || "Client");
 
       const { data: custom } = await supabase

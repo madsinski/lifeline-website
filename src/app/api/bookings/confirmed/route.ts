@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (booking.payment_status !== "paid") return NextResponse.json({ error: "not_paid" }, { status: 400 });
 
   const { data: client } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("full_name, email")
     .eq("id", booking.client_id)
     .maybeSingle();

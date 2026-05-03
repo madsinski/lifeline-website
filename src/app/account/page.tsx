@@ -310,7 +310,7 @@ function AccountPageInner() {
       // Load profile from clients table
       try {
         const { data: clientData } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, height_cm, weight_kg, activity_level, welcome_seen_at, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at, journey_checks")
           .eq("id", currentUser.id)
           .single();
@@ -650,7 +650,7 @@ function AccountPageInner() {
       // Check if client has any data (for connected devices)
       try {
         const { data: clientCheck } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("id")
           .eq("id", currentUser.id)
           .single();
@@ -698,7 +698,7 @@ function AccountPageInner() {
       // Load custom programs
       try {
         const { data: cpData } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("custom_programs")
           .eq("id", currentUser.id)
           .single();
@@ -830,7 +830,7 @@ function AccountPageInner() {
       created_at: editingProgramId ? (customPrograms.find(p => p.id === editingProgramId)?.created_at || new Date().toISOString()) : new Date().toISOString(),
     };
     const updated = editingProgramId ? customPrograms.map(p => p.id === editingProgramId ? program : p) : [...customPrograms, program];
-    const { error } = await supabase.from("clients").update({ custom_programs: updated }).eq("id", user.id);
+    const { error } = await supabase.from("clients_decrypted").update({ custom_programs: updated }).eq("id", user.id);
     if (!error) {
       setCustomPrograms(updated);
       setShowProgramBuilder(false);
@@ -844,7 +844,7 @@ function AccountPageInner() {
   const deleteCustomProgram = async (id: string) => {
     if (!user) return;
     const updated = customPrograms.filter(p => p.id !== id);
-    await supabase.from("clients").update({ custom_programs: updated }).eq("id", user.id);
+    await supabase.from("clients_decrypted").update({ custom_programs: updated }).eq("id", user.id);
     setCustomPrograms(updated);
   };
 
@@ -898,7 +898,7 @@ function AccountPageInner() {
     }
     setProfileSaving(true);
     const fullName = `${profileFirstName.trim()} ${profileLastName.trim()}`.trim();
-    await supabase.from("clients").update({
+    await supabase.from("clients_decrypted").update({
       full_name: fullName,
       phone: phone.trim() || null,
       address: address.trim() || null,
@@ -942,9 +942,9 @@ function AccountPageInner() {
       }
 
       // Ensure client row exists
-      const { data: clientExists } = await supabase.from("clients").select("id").eq("id", user.id).single();
+      const { data: clientExists } = await supabase.from("clients_decrypted").select("id").eq("id", user.id).single();
       if (!clientExists) {
-        await supabase.from("clients").insert({
+        await supabase.from("clients_decrypted").insert({
           id: user.id,
           email: user.email,
           full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "",
@@ -1260,7 +1260,7 @@ function AccountPageInner() {
                             const publicUrl = urlData?.publicUrl ? `${urlData.publicUrl}?t=${Date.now()}` : "";
                             if (!publicUrl) throw new Error("Could not resolve the uploaded image URL.");
                             const { error: dbErr } = await supabase
-                              .from("clients")
+                              .from("clients_decrypted")
                               .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
                               .eq("id", user.id);
                             if (dbErr) throw dbErr;
@@ -1428,7 +1428,7 @@ function AccountPageInner() {
                         if (!res.ok) { alert(`Payment failed: ${res.error}`); return; }
                         const paidAt = new Date().toISOString();
                         const { error: updErr } = await supabase
-                          .from("clients")
+                          .from("clients_decrypted")
                           .update({ checkin_doctor_addon_paid_at: paidAt })
                           .eq("id", user.id);
                         if (updErr) { alert(`Could not record payment: ${updErr.message}`); return; }
@@ -1507,7 +1507,7 @@ function AccountPageInner() {
                       if (typeof v === "string") payload[k] = v;
                     });
                     const { error } = await supabase
-                      .from("clients")
+                      .from("clients_decrypted")
                       .update({ journey_checks: payload })
                       .eq("id", user.id);
                     if (error) {
@@ -4844,7 +4844,7 @@ function BiodyProfileModal({
   useEffect(() => {
     (async () => {
       const { data } = await supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("sex, height_cm, weight_kg, activity_level, date_of_birth, biody_patient_id")
         .eq("id", userId)
         .maybeSingle();
@@ -4870,7 +4870,7 @@ function BiodyProfileModal({
     }
     setSaving(true);
     setError("");
-    const { error: upErr } = await supabase.from("clients").update({
+    const { error: upErr } = await supabase.from("clients_decrypted").update({
       sex,
       height_cm: Number(heightCm),
       weight_kg: Number(weightKg),

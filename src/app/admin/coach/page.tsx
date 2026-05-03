@@ -116,9 +116,9 @@ export default function CoachDashboardPage() {
     try {
       // Parallel fetch all data
       const [clientsRes, apptsRes, convsRes, programsRes] = await Promise.all([
-        supabase.from("clients").select("*, subscriptions(tier, status, trial_ends_at)").order("created_at", { ascending: false }),
+        supabase.from("clients_decrypted").select("*, subscriptions(tier, status, trial_ends_at)").order("created_at", { ascending: false }),
         supabase.from("appointments").select("*, clients(full_name, email)").eq("status", "booked").order("date", { ascending: true }).order("time", { ascending: true }),
-        supabase.from("conversations").select("*, messages(content, created_at, read, sender_role)").or("archived.is.null,archived.eq.false").order("created_at", { ascending: false }).limit(10),
+        supabase.from("conversations").select("*, messages_decrypted(content, created_at, read, sender_role)").or("archived.is.null,archived.eq.false").order("created_at", { ascending: false }).limit(10),
         supabase.from("client_programs").select("category_key, program_key"),
       ]);
 

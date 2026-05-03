@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!slot.client_id) return NextResponse.json({ ok: true, skipped: "no_client" });
 
   const { data: client } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("full_name, email")
     .eq("id", slot.client_id)
     .maybeSingle();

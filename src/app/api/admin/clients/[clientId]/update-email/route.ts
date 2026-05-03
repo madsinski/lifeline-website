@@ -21,7 +21,7 @@ export async function POST(
 
   // Get the OLD email before updating anything
   const { data: oldClient } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("email, company_id")
     .eq("id", clientId)
     .maybeSingle();
@@ -37,7 +37,7 @@ export async function POST(
   }
 
   // Update clients table
-  await supabaseAdmin.from("clients").update({ email: newEmail }).eq("id", clientId);
+  await supabaseAdmin.from("clients_decrypted").update({ email: newEmail }).eq("id", clientId);
 
   // Sync to company_members using the OLD email to find the row
   if (companyId && oldEmail) {

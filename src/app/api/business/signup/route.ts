@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const userId = data.user.id;
 
   // Ensure a clients row exists (idempotent)
-  await supabaseAdmin.from("clients").upsert(
+  await supabaseAdmin.from("clients_decrypted").upsert(
     {
       id: userId,
       email,

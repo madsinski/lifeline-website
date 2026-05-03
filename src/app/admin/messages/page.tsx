@@ -150,7 +150,7 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
     // Single query: conversations with all messages (no N+1)
     const { data: convRows, error: convError } = await supabase
       .from("conversations")
-      .select("*, messages(*)")
+      .select("*, messages_decrypted(*)")
       .order("created_at", { ascending: false });
 
     if (convError) return null;
@@ -159,7 +159,7 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
     // Batch-load all client names in one query
     const clientIds = [...new Set(convRows.map((c: Record<string, unknown>) => c.client_id as string))];
     const { data: clientRows } = await supabase
-      .from("clients")
+      .from("clients_decrypted")
       .select("id, full_name, email")
       .in("id", clientIds);
     const clientMap = new Map(
@@ -247,7 +247,7 @@ async function sendMessageToSupabase(
     const isRealUUID = staff.id && /^[0-9a-f]{8}-/i.test(staff.id);
 
     const { data, error } = await supabase
-      .from("messages")
+      .from("messages_decrypted")
       .insert({
         conversation_id: conversationId,
         sender_id: isRealUUID ? staff.id : null,
@@ -313,7 +313,7 @@ async function sendMessageToSupabase(
 async function markConversationReadInSupabase(conversationId: string): Promise<void> {
   try {
     await supabase
-      .from("messages")
+      .from("messages_decrypted")
       .update({ read: true })
       .eq("conversation_id", conversationId)
       .eq("read", false);
@@ -331,7 +331,7 @@ interface ClientOption {
 async function loadClientsForNewConversation(): Promise<ClientOption[]> {
   try {
     const { data, error } = await supabase
-      .from("clients")
+      .from("clients_decrypted")
       .select("id, full_name, email")
       .order("full_name", { ascending: true });
     if (error || !data) return [];
@@ -372,7 +372,7 @@ async function createConversationWithClient(
     if (error || !conv) return null;
 
     // Add welcome message
-    await supabase.from("messages").insert({
+    await supabase.from("messages_decrypted").insert({
       conversation_id: (conv as SupabaseConversation).id,
       sender_id: isRealUUID ? staff.id : null,
       sender_name: staff.name,
@@ -597,7 +597,7 @@ export default function AdminMessagesPage() {
     if (convIds.length > 0) {
       // Delete messages first, then conversations (in case no cascade is configured).
       // Use .select() so we can detect silent RLS denials (0 rows affected).
-      const { error: msgErr } = await supabase.from("messages").delete().in("conversation_id", convIds).select("id");
+      const { error: msgErr } = await supabase.from("messages_decrypted").delete().in("conversation_id", convIds).select("id");
       if (msgErr) {
         alert(`Failed to delete messages: ${msgErr.message}`);
         return;

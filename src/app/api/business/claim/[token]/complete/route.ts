@@ -102,7 +102,7 @@ export async function POST(
   // Make sure a clients row exists so the contact also has a personal
   // profile they can sign in to. Kept optional — agreement signing is
   // the critical bit here.
-  await supabaseAdmin.from("clients").upsert(
+  await supabaseAdmin.from("clients_decrypted").upsert(
     {
       id: userId,
       email: signatoryEmail,

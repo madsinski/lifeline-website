@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
     const { data: rows } = await supabaseAdmin
-      .from("clients")
+      .from("clients_decrypted")
       .select("id")
       .eq("company_id", companyId)
       .is("biody_patient_id", null);

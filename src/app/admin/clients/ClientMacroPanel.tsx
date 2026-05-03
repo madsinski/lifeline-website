@@ -77,7 +77,7 @@ export function ClientMacroPanel({ clientId }: { clientId: string }) {
           .order("calculated_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
-        supabase.from("clients")
+        supabase.from("clients_decrypted")
           .select("height_cm, weight_kg, body_fat_pct, muscle_mass_pct, activity_level, macro_goal")
           .eq("id", clientId)
           .maybeSingle(),

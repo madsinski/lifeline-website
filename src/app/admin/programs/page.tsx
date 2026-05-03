@@ -344,7 +344,7 @@ export default function ProgramsCMSPage() {
   const loadShareClients = useCallback(async (programKey: string, categoryKey: string, search: string) => {
     setShareLoading(true);
     try {
-      let query = supabase.from("clients").select("id, full_name, email").order("full_name", { ascending: true }).limit(50);
+      let query = supabase.from("clients_decrypted").select("id, full_name, email").order("full_name", { ascending: true }).limit(50);
       if (search.trim()) {
         query = query.or(`full_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%`);
       }
@@ -558,7 +558,7 @@ export default function ProgramsCMSPage() {
     setCustomizeLoading(true);
     try {
       let query = supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("id, full_name, email")
         .order("full_name", { ascending: true })
         .limit(50);

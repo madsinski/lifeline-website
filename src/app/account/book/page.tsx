@@ -52,7 +52,7 @@ function BookAssessmentContent() {
       if (!user) { router.push("/account/login?next=/account/book"); return; }
       setUserId(user.id);
       setEmail(user.email || "");
-      const { data } = await supabase.from("clients").select("full_name, phone, company_id").eq("id", user.id).maybeSingle();
+      const { data } = await supabase.from("clients_decrypted").select("full_name, phone, company_id").eq("id", user.id).maybeSingle();
       if (data) {
         setFullName((data.full_name as string) || "");
         setPhone((data.phone as string | null) || null);

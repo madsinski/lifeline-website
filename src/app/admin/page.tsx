@@ -207,7 +207,7 @@ export default function AdminDashboardPage() {
 
     try {
       const { data: clients, error } = await supabase
-        .from("clients")
+        .from("clients_decrypted")
         .select("*, subscriptions(*)")
         .order("created_at", { ascending: false });
 

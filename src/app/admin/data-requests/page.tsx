@@ -109,7 +109,7 @@ export default function DataRequestsPage() {
       const ids = Array.from(new Set(list.map((r) => r.client_id)));
       if (ids.length > 0) {
         const { data: cs } = await supabase
-          .from("clients")
+          .from("clients_decrypted")
           .select("id, full_name, email, phone, kennitala_last4, company_id")
           .in("id", ids);
         const map: Record<string, ClientLite> = {};

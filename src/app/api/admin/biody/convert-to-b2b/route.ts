@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   if (!companyId) return NextResponse.json({ error: "company_id required" }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
-    .from("clients")
+    .from("clients_decrypted")
     .select("id, email, full_name, phone, kennitala_last4, biody_patient_id, created_at")
     .eq("company_id", companyId)
     .eq("biody_placeholder_data", true)
