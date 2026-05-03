@@ -163,7 +163,7 @@ export default function PrivacyPage() {
         </ul>
         <p>
           To exercise any of these rights, email{" "}
-          <a href="mailto:pv@lifelinehealth.is">pv@lifelinehealth.is</a> (our data protection
+          <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a> (our data protection
           inbox) or submit a request from your account settings under <em>Data &amp; privacy</em>.
           We respond within 30 days per GDPR Art. 12. Health record requests that need data held
           in Medalia are coordinated with our joint-controller per the Art. 26 arrangement.

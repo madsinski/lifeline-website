@@ -1,7 +1,7 @@
 # Data Subject Rights — Internal Runbook
 
 When a user submits a request via `/account` → Data & privacy, an email
-arrives at `pv@lifelinehealth.is` with their auth.user id, email, and
+arrives at `contact@lifelinehealth.is` with their auth.user id, email, and
 the type of request. Use this runbook to fulfill each type within the
 30-day GDPR window.
 

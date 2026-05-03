@@ -6,7 +6,7 @@
 // supabase/runbooks/dsr-runbook.md.
 
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -53,21 +53,14 @@ export async function POST(req: Request) {
   }
   const accessToken = authHeader.slice("Bearer ".length);
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) {
-    return NextResponse.json({ ok: false, error: "Server misconfigured" }, { status: 500 });
-  }
-
-  const admin = createClient(supabaseUrl, serviceKey);
-  const { data: userData, error: userErr } = await admin.auth.getUser(accessToken);
+  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(accessToken);
   if (userErr || !userData.user) {
     return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
   }
   const user = userData.user;
 
   // Look up the matching client + company for context.
-  const { data: clientRow } = await admin
+  const { data: clientRow } = await supabaseAdmin
     .from("clients")
     .select("id, full_name, email, phone, company_id, kennitala_last4")
     .eq("id", user.id)
@@ -102,7 +95,7 @@ export async function POST(req: Request) {
     Runbook: supabase/runbooks/dsr-runbook.md</p>
   `;
 
-  const dpoEmail = process.env.DPO_EMAIL || "pv@lifelinehealth.is";
+  const dpoEmail = process.env.DPO_EMAIL || "contact@lifelinehealth.is";
 
   const sent = await sendEmail({
     to: dpoEmail,
