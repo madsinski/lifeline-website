@@ -38,21 +38,14 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- body_comp_events
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'body_comp_events') THEN
-    EXECUTE 'ALTER TABLE public.body_comp_events ENABLE ROW LEVEL SECURITY';
-    EXECUTE 'DROP POLICY IF EXISTS "Staff can view body comp events" ON public.body_comp_events';
-    EXECUTE 'DROP POLICY IF EXISTS "Staff can manage body comp events" ON public.body_comp_events';
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Clients can view own body comp events') THEN
-      EXECUTE $p$
-        CREATE POLICY "Clients can view own body comp events" ON public.body_comp_events
-          FOR SELECT TO authenticated
-          USING (client_id = auth.uid())
-      $p$;
-    END IF;
-  END IF;
-END $$;
+-- body_comp_events — INTENTIONALLY SKIPPED.
+-- This table is event/session metadata (assessment_round_id, created_by,
+-- timestamps) without a direct client_id. The client linkage runs through
+-- body_comp_bookings (which has client_id and is already scoped via the
+-- existing booking-integrity migration). Adding a self-only policy here
+-- would either fail outright (no client_id column) or require a join-based
+-- USING clause that performs poorly. The write-side audit trigger on
+-- body_comp_events from the foundations migration is sufficient.
 
 -- macro_targets — derived from body comp + activity. Same self-only
 -- treatment. If macro_targets has client_id column, scope to it.
