@@ -1,5 +1,5 @@
 -- =============================================================
--- Sprint 1 foundations: audit_log, client_consents,
+-- Sprint 1 foundations: health_audit_log, client_consents,
 -- staff_access_reviews, and specialty-based access helpers.
 --
 -- Bundled because they share the same SECURITY DEFINER helper pattern
@@ -18,7 +18,7 @@
 -- Retention: 6 years per Lög 55/2009 §13. Cleanup is manual until
 -- a retention cron is added.
 
-CREATE TABLE IF NOT EXISTS public.audit_log (
+CREATE TABLE IF NOT EXISTS public.health_audit_log (
   id           BIGSERIAL PRIMARY KEY,
   actor_id     UUID,
   actor_email  TEXT,
@@ -31,27 +31,27 @@ CREATE TABLE IF NOT EXISTS public.audit_log (
   occurred_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS audit_log_table_row_idx ON public.audit_log (table_name, row_id);
-CREATE INDEX IF NOT EXISTS audit_log_actor_idx ON public.audit_log (actor_id, occurred_at DESC);
-CREATE INDEX IF NOT EXISTS audit_log_occurred_idx ON public.audit_log (occurred_at DESC);
+CREATE INDEX IF NOT EXISTS health_audit_log_table_row_idx ON public.health_audit_log (table_name, row_id);
+CREATE INDEX IF NOT EXISTS health_audit_log_actor_idx ON public.health_audit_log (actor_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS health_audit_log_occurred_idx ON public.health_audit_log (occurred_at DESC);
 
-ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.health_audit_log ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can read audit log') THEN
-    CREATE POLICY "Admins can read audit log" ON public.audit_log
+    CREATE POLICY "Admins can read audit log" ON public.health_audit_log
       FOR SELECT TO authenticated
       USING (is_admin_staff());
   END IF;
 END $$;
 
--- No INSERT/UPDATE/DELETE policy — audit_log is written only by
+-- No INSERT/UPDATE/DELETE policy — health_audit_log is written only by
 -- triggers and the SECURITY DEFINER helpers below. Callers cannot
 -- mutate it directly.
 
--- Helper: write a single audit_log row. SECURITY DEFINER so ordinary
+-- Helper: write a single health_audit_log row. SECURITY DEFINER so ordinary
 -- callers can record their own access without needing INSERT
--- privilege on audit_log.
+-- privilege on health_audit_log.
 CREATE OR REPLACE FUNCTION public.log_health_access(
   p_action TEXT,
   p_table TEXT,
@@ -76,7 +76,7 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO public.audit_log (actor_id, actor_email, actor_role, action, table_name, row_id, metadata)
+  INSERT INTO public.health_audit_log (actor_id, actor_email, actor_role, action, table_name, row_id, metadata)
   VALUES (v_actor, v_email, v_role, p_action, p_table, p_row_id, p_metadata);
 END;
 $$;
@@ -110,7 +110,7 @@ BEGIN
     v_row_id := COALESCE((NEW.id)::TEXT, '');
   END IF;
 
-  INSERT INTO public.audit_log (actor_id, actor_email, actor_role, action, table_name, row_id, metadata)
+  INSERT INTO public.health_audit_log (actor_id, actor_email, actor_role, action, table_name, row_id, metadata)
   VALUES (v_actor, v_email, v_role, TG_OP, TG_TABLE_NAME, v_row_id,
           jsonb_build_object('op', TG_OP));
 
@@ -314,26 +314,34 @@ GRANT EXECUTE ON FUNCTION public.is_active_coach_or_clinician() TO authenticated
 -- Tighten messaging-staff policies to exclude pure admins from reading
 -- coach↔client conversation content. Admins still manage scheduling +
 -- billing; clinical communications are clinician/coach scope only.
+-- Messaging access: coaches, clinicians, AND admins (admins are
+-- effectively superusers in this app — they can see everything for
+-- support and incident response). Pure non-admin coach/clinician roles
+-- are still scoped via is_active_coach_or_clinician().
 DROP POLICY IF EXISTS "Staff can view all conversations" ON public.conversations;
-CREATE POLICY "Coach or clinician can view conversations" ON public.conversations
+DROP POLICY IF EXISTS "Coach or clinician can view conversations" ON public.conversations;
+CREATE POLICY "Messaging staff can view conversations" ON public.conversations
   FOR SELECT TO authenticated
-  USING (is_active_coach_or_clinician());
+  USING (is_active_coach_or_clinician() OR is_admin_staff());
 
 DROP POLICY IF EXISTS "Staff can manage conversations" ON public.conversations;
-CREATE POLICY "Coach or clinician can manage conversations" ON public.conversations
+DROP POLICY IF EXISTS "Coach or clinician can manage conversations" ON public.conversations;
+CREATE POLICY "Messaging staff can manage conversations" ON public.conversations
   FOR ALL TO authenticated
-  USING (is_active_coach_or_clinician())
-  WITH CHECK (is_active_coach_or_clinician());
+  USING (is_active_coach_or_clinician() OR is_admin_staff())
+  WITH CHECK (is_active_coach_or_clinician() OR is_admin_staff());
 
 DROP POLICY IF EXISTS "Staff can view all messages" ON public.messages;
-CREATE POLICY "Coach or clinician can view messages" ON public.messages
+DROP POLICY IF EXISTS "Coach or clinician can view messages" ON public.messages;
+CREATE POLICY "Messaging staff can view messages" ON public.messages
   FOR SELECT TO authenticated
-  USING (is_active_coach_or_clinician());
+  USING (is_active_coach_or_clinician() OR is_admin_staff());
 
 DROP POLICY IF EXISTS "Staff can send messages" ON public.messages;
-CREATE POLICY "Coach or clinician can send messages" ON public.messages
+DROP POLICY IF EXISTS "Coach or clinician can send messages" ON public.messages;
+CREATE POLICY "Messaging staff can send messages" ON public.messages
   FOR INSERT TO authenticated
-  WITH CHECK (is_active_coach_or_clinician());
+  WITH CHECK (is_active_coach_or_clinician() OR is_admin_staff());
 
 -- Note: client-side policies from migration-fix-blanket-rls.sql remain
 -- in place and are unchanged — clients still see/send their own messages.

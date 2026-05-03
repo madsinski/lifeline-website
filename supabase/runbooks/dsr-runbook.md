@@ -40,7 +40,7 @@ SELECT * FROM refund_requests      WHERE client_id = :uid;
 SELECT * FROM appointments         WHERE client_id = :uid;
 SELECT * FROM checkin_log          WHERE client_id = :uid;
 SELECT * FROM event_checkins       WHERE client_id = :uid;
-SELECT * FROM audit_log WHERE actor_id = :uid OR row_id = :uid::text;
+SELECT * FROM health_audit_log WHERE actor_id = :uid OR row_id = :uid::text;
 ```
 
 Export each as CSV/JSON. Bundle into a zip. Email to the user from a
@@ -51,7 +51,7 @@ clinical record is in Medalia and how to request that side.
 
 Validate the corrected value with the user (a typo? a name change? a
 new address?). Update via the admin UI when possible; SQL when not.
-Record the change in `audit_log` (auto-fires) and reply with what was
+Record the change in `health_audit_log` (auto-fires) and reply with what was
 changed.
 
 ### 3. Erasure (Art. 17)
@@ -108,7 +108,7 @@ consent, also tombstone any cached rows in `weight_log`,
 
 ## Audit trail
 
-Every action you take should leave a row in `audit_log`. The triggers
+Every action you take should leave a row in `health_audit_log`. The triggers
 on health tables fire automatically; for actions outside those tables
 (e.g. Resend email, Medalia coordination notes), use the
 `log_health_access(action, table, row_id, metadata)` SECURITY DEFINER
