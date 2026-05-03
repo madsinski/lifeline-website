@@ -1706,6 +1706,10 @@ function AccountPageInner() {
                   <BiodyReconsentBanner userId={user.id} onGoToSettings={() => setActiveSection("settings")} />
                 )}
 
+                {biodyActivated && (
+                  <BodyCompositionCard userId={user.id} />
+                )}
+
                 <WellnessFramingCard />
 
               </>
@@ -3103,6 +3107,120 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
 }
 
 // ── Home overview sub-components ──────────────────────────────────────────
+
+// Body composition card — pulls measurements from Biody on demand.
+// Only renders when consent is granted; otherwise shows the toggle prompt.
+// No data is persisted in Supabase from this read — see lib/biody-client.ts.
+interface BodyCompSummary {
+  measuredAt: string;
+  weight_kg: number | null;
+  body_fat_pct: number | null;
+  muscle_mass_kg: number | null;
+  body_water_pct: number | null;
+  phase_angle: number | null;
+  bmr_kcal: number | null;
+  waist_to_hip: number | null;
+}
+
+function BodyCompositionCard({ userId }: { userId: string }) {
+  const [hasConsent, setHasConsent] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [measurements, setMeasurements] = useState<BodyCompSummary[] | null>(null);
+
+  // Check consent first; only fetch when granted.
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("client_consents")
+        .select("id, granted")
+        .eq("client_id", userId)
+        .eq("consent_key", "biody-import-v1")
+        .is("revoked_at", null)
+        .maybeSingle();
+      setHasConsent(!!data && data.granted === true);
+    })();
+  }, [userId]);
+
+  useEffect(() => {
+    if (hasConsent !== true) return;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: s } = await supabase.auth.getSession();
+        const token = s.session?.access_token;
+        if (!token) throw new Error("Not signed in");
+        const res = await fetch("/api/account/biody/measurements", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.ok) throw new Error(j.error || "Could not load measurements");
+        setMeasurements(j.measurements as BodyCompSummary[]);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [hasConsent]);
+
+  if (hasConsent === null) return null;
+  if (hasConsent === false) return null; // re-consent banner handles this case
+
+  const latest = measurements?.[0];
+
+  return (
+    <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+      <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <h2 className="text-lg font-semibold text-[#1F2937]">Body composition</h2>
+          <p className="text-xs text-[#6B7280] mt-0.5">
+            Latest readings from your Biody scan — pulled live, not stored here.
+          </p>
+        </div>
+        {latest && (
+          <span className="text-xs text-gray-400">
+            Measured {new Date(latest.measuredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        )}
+      </div>
+
+      {loading && <p className="text-sm text-gray-500">Loading measurements…</p>}
+      {error && (
+        <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+          Couldn&apos;t reach Biody: {error}
+        </div>
+      )}
+      {!loading && !error && measurements && measurements.length === 0 && (
+        <p className="text-sm text-gray-500">No analysed measurements yet. Book a scan to get started.</p>
+      )}
+      {latest && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Stat label="Weight" value={latest.weight_kg} unit="kg" />
+          <Stat label="Body fat" value={latest.body_fat_pct} unit="%" />
+          <Stat label="Muscle mass" value={latest.muscle_mass_kg} unit="kg" />
+          <Stat label="Body water" value={latest.body_water_pct} unit="%" />
+          <Stat label="Phase angle" value={latest.phase_angle} unit="°" />
+          <Stat label="BMR" value={latest.bmr_kcal} unit="kcal" />
+          <Stat label="Waist : hip" value={latest.waist_to_hip} unit="" />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Stat({ label, value, unit }: { label: string; value: number | null; unit: string }) {
+  return (
+    <div className="rounded-lg bg-[#F9FAFB] px-3 py-2.5">
+      <p className="text-xs text-[#6B7280]">{label}</p>
+      <p className="text-sm font-semibold text-[#1F2937] mt-0.5">
+        {value === null ? "—" : `${Number(value).toLocaleString("en-GB", { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ""}`}
+      </p>
+    </div>
+  );
+}
 
 // Re-consent banner shown to existing Biody-activated users who don't
 // yet have an active client_consents row for biody-import-v1. Backfill
