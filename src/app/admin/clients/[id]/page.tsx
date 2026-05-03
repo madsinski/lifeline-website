@@ -233,30 +233,45 @@ export default function ClientDetailPage() {
   const loadClient = useCallback(async () => {
     setLoading(true);
     try {
-      // Load all in parallel
+      // Load all in parallel. Conversations + messages fetched separately
+      // because messages_decrypted is a view and PostgREST doesn't auto-detect
+      // the FK relationship through it for embeds.
       const [clientRes, subRes, aptRes, progRes, convRes] = await Promise.all([
         supabase.from("clients_decrypted").select("*").eq("id", clientId).single(),
         supabase.from("subscriptions").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(1),
         supabase.from("appointments").select("*").eq("client_id", clientId).order("date", { ascending: false }).limit(10),
         supabase.from("client_programs").select("*").eq("client_id", clientId),
-        supabase.from("conversations").select("*, messages_decrypted(id, content, created_at)").eq("client_id", clientId),
+        supabase.from("conversations").select("*").eq("client_id", clientId),
       ]);
 
       if (clientRes.data) setClient(clientRes.data as Client);
       if (subRes.data && subRes.data.length > 0) setSubscription(subRes.data[0] as Subscription);
       if (aptRes.data) setAppointments(aptRes.data as Appointment[]);
       if (progRes.data) setPrograms(progRes.data as ClientProgram[]);
-      if (convRes.data) {
+      if (convRes.data && convRes.data.length > 0) {
+        const convIds = (convRes.data as { id: string }[]).map((c) => c.id);
+        const { data: msgRows } = await supabase
+          .from("messages_decrypted")
+          .select("id, conversation_id, content, created_at")
+          .in("conversation_id", convIds);
+        const msgsByConv = new Map<string, { id: string; content: string; created_at: string }[]>();
+        for (const m of (msgRows ?? []) as { id: string; conversation_id: string; content: string; created_at: string }[]) {
+          const arr = msgsByConv.get(m.conversation_id);
+          if (arr) arr.push(m); else msgsByConv.set(m.conversation_id, [m]);
+        }
         setConversations(
-          (convRes.data as (Record<string, unknown> & { messages: { id: string; content: string; created_at: string }[] })[]).map((c) => ({
-            id: c.id as string,
-            coach_name: (c.coach_name as string) || "Coach",
-            created_at: c.created_at as string,
-            messageCount: c.messages?.length ?? 0,
-            lastMessage: c.messages?.length > 0
-              ? c.messages.sort((a: { created_at: string }, b: { created_at: string }) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].content
-              : "",
-          }))
+          (convRes.data as Record<string, unknown>[]).map((c) => {
+            const messages = msgsByConv.get(c.id as string) ?? [];
+            return {
+              id: c.id as string,
+              coach_name: (c.coach_name as string) || "Coach",
+              created_at: c.created_at as string,
+              messageCount: messages.length,
+              lastMessage: messages.length > 0
+                ? messages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].content
+                : "",
+            };
+          })
         );
       }
     } catch (e) {

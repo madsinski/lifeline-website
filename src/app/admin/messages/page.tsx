@@ -147,14 +147,27 @@ interface SupabaseMessage {
 
 async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
   try {
-    // Single query: conversations with all messages (no N+1)
+    // Two-step instead of PostgREST embed: messages_decrypted is a view
+    // and PostgREST doesn't auto-detect the FK relationship through it.
+    // Fetch conversations first, then their messages by conversation_id.
     const { data: convRows, error: convError } = await supabase
       .from("conversations")
-      .select("*, messages_decrypted(*)")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (convError) return null;
     if (!convRows || convRows.length === 0) return [];
+
+    const conversationIds = (convRows as { id: string }[]).map((c) => c.id);
+    const { data: msgRows } = await supabase
+      .from("messages_decrypted")
+      .select("*")
+      .in("conversation_id", conversationIds);
+    const msgsByConv = new Map<string, SupabaseMessage[]>();
+    for (const m of (msgRows ?? []) as SupabaseMessage[]) {
+      const arr = msgsByConv.get(m.conversation_id);
+      if (arr) arr.push(m); else msgsByConv.set(m.conversation_id, [m]);
+    }
 
     // Batch-load all client names in one query
     const clientIds = [...new Set(convRows.map((c: Record<string, unknown>) => c.client_id as string))];
@@ -175,15 +188,17 @@ async function loadConversationsFromSupabase(): Promise<Conversation[] | null> {
       allMessages: SupabaseMessage[];
     };
     const bundles = new Map<string, Bundle>();
-    for (const conv of convRows as (SupabaseConversation & { messages: SupabaseMessage[] })[]) {
+    for (const conv of convRows as SupabaseConversation[]) {
+      const messages = msgsByConv.get(conv.id) ?? [];
+      const enriched = { ...conv, messages };
       const existing = bundles.get(conv.client_id);
       if (!existing) {
-        bundles.set(conv.client_id, { conv, allMessages: [...(conv.messages ?? [])] });
+        bundles.set(conv.client_id, { conv: enriched, allMessages: [...messages] });
       } else {
-        existing.allMessages.push(...(conv.messages ?? []));
+        existing.allMessages.push(...messages);
         // Prefer the most-recently-created conversation as the primary
         if (new Date(conv.created_at).getTime() > new Date(existing.conv.created_at).getTime()) {
-          existing.conv = conv;
+          existing.conv = enriched;
         }
       }
     }

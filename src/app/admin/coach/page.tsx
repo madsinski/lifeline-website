@@ -118,7 +118,7 @@ export default function CoachDashboardPage() {
       const [clientsRes, apptsRes, convsRes, programsRes] = await Promise.all([
         supabase.from("clients_decrypted").select("*, subscriptions(tier, status, trial_ends_at)").order("created_at", { ascending: false }),
         supabase.from("appointments").select("*, clients(full_name, email)").eq("status", "booked").order("date", { ascending: true }).order("time", { ascending: true }),
-        supabase.from("conversations").select("*, messages_decrypted(content, created_at, read, sender_role)").or("archived.is.null,archived.eq.false").order("created_at", { ascending: false }).limit(10),
+        supabase.from("conversations").select("*").or("archived.is.null,archived.eq.false").order("created_at", { ascending: false }).limit(10),
         supabase.from("client_programs").select("category_key, program_key"),
       ]);
 
@@ -172,8 +172,23 @@ export default function CoachDashboardPage() {
       setTodayAppointments(todayAppts);
       setUpcomingAppointments(futureAppts);
 
-      // Conversations — count unread
-      const convRows = (convsRes.data || []) as ConversationRow[];
+      // Conversations + their messages (two-step because messages_decrypted
+      // is a view; PostgREST won't auto-embed through it).
+      const convRowsBase = (convsRes.data || []) as Omit<ConversationRow, "messages">[];
+      let convRows: ConversationRow[] = convRowsBase.map((c) => ({ ...c, messages: [] }));
+      if (convRowsBase.length > 0) {
+        const convIds = convRowsBase.map((c) => c.id);
+        const { data: msgRows } = await supabase
+          .from("messages_decrypted")
+          .select("conversation_id, content, created_at, read, sender_role")
+          .in("conversation_id", convIds);
+        const byConv = new Map<string, { content: string; created_at: string; read: boolean; sender_role: string }[]>();
+        for (const m of (msgRows ?? []) as { conversation_id: string; content: string; created_at: string; read: boolean; sender_role: string }[]) {
+          const arr = byConv.get(m.conversation_id);
+          if (arr) arr.push(m); else byConv.set(m.conversation_id, [m]);
+        }
+        convRows = convRowsBase.map((c) => ({ ...c, messages: byConv.get(c.id) ?? [] }));
+      }
       setRecentConversations(convRows);
       let unread = 0;
       for (const conv of convRows) {
