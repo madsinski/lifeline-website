@@ -1,0 +1,85 @@
+VINNSLUSAMNINGUR — BIODY MANAGER
+Lifeline Health ehf. og Aminogram SAS (Biody Manager)
+Útgáfa v1.0
+Skv. 28. gr. reglugerðar (ESB) 2016/679 (GDPR) og laga nr. 90/2018.
+
+1. Aðilar
+1.1 Ábyrgðaraðili: Lifeline Health ehf., kt. 590925-1440 ("Ábyrgðaraðili").
+1.2 Vinnsluaðili: Aminogram SAS, sem rekur Biody Manager mælitækja- og
+    skýjaþjónustu ("Vinnsluaðili").
+
+2. Efni og tilgangur vinnslunnar
+2.1 Vinnsluaðili veitir tæki og hugbúnað til mælinga á líkamssamsetningu
+    skjólstæðinga ábyrgðaraðila. Mælingar fara fram á starfsstöðvum sem
+    ábyrgðaraðili hefur samning við.
+2.2 Vinnsluaðili vinnur eingöngu með persónuupplýsingar skv. fyrirmælum
+    ábyrgðaraðila og í þágu þeirrar þjónustu.
+
+3. Tegundir persónuupplýsinga og flokkar skráðra einstaklinga
+3.1 Persónuupplýsingar: nafn, netfang, fæðingardagur, kyn, hæð, virkni-
+    stig (lifestyle level), niðurstöður líkamssamsetningarmælinga (fituprósenta,
+    vöðvamassi, fasahorn, BMR, líkamsvökvi o.fl.), tímasetningar mælinga.
+3.2 Flokkar: skjólstæðingar Lifeline yfir 18 ára aldri sem hafa veitt
+    afdráttarlaust samþykki fyrir mælingu.
+3.3 Vinnsluaðili tekur EKKI við kennitölu og fær ekki aðgang að lykilorðum
+    skjólstæðinga.
+
+4. Skyldur Vinnsluaðila
+4.1 Vinnsluaðili skuldbindur sig til að:
+    a) vinna persónuupplýsingar einungis samkvæmt skriflegum fyrirmælum
+       ábyrgðaraðila;
+    b) tryggja að starfsmenn sem hafa aðgang séu bundnir trúnaðarskyldu;
+    c) viðhafa viðeigandi tæknilegar og skipulagslegar ráðstafanir skv.
+       32. gr. GDPR;
+    d) aðstoða ábyrgðaraðila við að uppfylla skyldur sínar gagnvart skráðum
+       einstaklingum (15.–22. gr. GDPR);
+    e) aðstoða ábyrgðaraðila við að tilkynna persónuverndarbrot;
+    f) eyða eða skila öllum persónuupplýsingum þegar samningi lýkur, eftir
+       ósk ábyrgðaraðila;
+    g) gera tiltækar allar nauðsynlegar upplýsingar til að sýna fram á að
+       skyldur skv. þessum samningi séu uppfylltar, og leyfa eftirlit eða
+       úttektir, þ.m.t. úttektir framkvæmdar af þriðja aðila á vegum
+       ábyrgðaraðila.
+
+5. Undirvinnsluaðilar
+5.1 Vinnsluaðili má einungis fela undirvinnsluaðila vinnslu með
+    fyrirframskriflegri heimild ábyrgðaraðila. Listi yfir samþykkta
+    undirvinnsluaðila er viðauki við samning þennan og uppfærður reglulega.
+5.2 Vinnsluaðili tilkynnir ábyrgðaraðila a.m.k. 30 dögum fyrir breytingu á
+    undirvinnsluaðilum og veitir ábyrgðaraðila tækifæri til að mótmæla.
+
+6. Atvikastjórnun
+6.1 Vinnsluaðili tilkynnir ábyrgðaraðila án ástæðulauss dráttar og eigi
+    síðar en 24 klst. eftir að persónuverndarbrot kemur í ljós.
+6.2 Tilkynningin skal innihalda þær upplýsingar sem 33. gr. (3) GDPR
+    krefst, eftir því sem þær eru fáanlegar.
+
+7. Flutningur til þriðju landa
+7.1 Persónuupplýsingar eru hýstar innan EES (Frakkland). Verði flutningur
+    út fyrir EES nauðsynlegur skal hann grundvallast á viðeigandi
+    verndarráðstöfunum skv. 46. gr. GDPR (t.d. SCC).
+
+8. Réttindi skráðra einstaklinga
+8.1 Vinnsluaðili veitir ábyrgðaraðila tæknilegan stuðning til að uppfylla
+    aðgangsbeiðnir, leiðréttingarbeiðnir, eyðingarbeiðnir og flutnings-
+    beiðnir innan 7 daga frá ósk.
+
+9. Trúnaður
+9.1 Vinnsluaðili meðhöndlar allar persónuupplýsingar sem trúnaðarmál og
+    tryggir að starfsfólk hafi undirritað trúnaðarskuldbindingu.
+
+10. Bótaákvæði og ábyrgð
+10.1 Aðilar bera þá ábyrgð sem leiðir af 82. gr. GDPR. Ákvæði þetta
+     takmarkar ekki rétt skráðs einstaklings til bóta.
+
+11. Gildistími og uppsögn
+11.1 Samningurinn gildir á meðan þjónustusamband aðila stendur og lýkur með
+     uppsögn þess. Skyldur skv. 4.1(f) lifa uppsögn af.
+
+12. Lögsaga og varnarþing
+12.1 Um samning þennan gilda íslensk lög. Rísi ágreiningur skal hann rekinn
+     fyrir Héraðsdómi Reykjaness.
+
+13. Undirritanir
+13.1 Fyrir hönd Lifeline Health ehf.: ____________________________ Dags. _________
+13.2 Fyrir hönd Aminogram SAS:        ____________________________ Dags. _________

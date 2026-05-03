@@ -1702,6 +1702,10 @@ function AccountPageInner() {
                 {/* After your assessment — teaser for the coaching app */}
                 <AppTeaserCard onGoToCoaching={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }} />
 
+                {biodyActivated && (
+                  <BiodyReconsentBanner userId={user.id} onGoToSettings={() => setActiveSection("settings")} />
+                )}
+
                 <WellnessFramingCard />
 
               </>
@@ -2896,25 +2900,7 @@ export default function AccountPage() {
 
 // ── Data & privacy panel (Settings) ──────────────────────────────────────
 
-// Hash an arbitrary string with SHA-256. We use SubtleCrypto (browser
-// global) and cache the consent text hash so the server can later
-// verify the user signed the version they saw.
-async function sha256Hex(s: string): Promise<string> {
-  const data = new TextEncoder().encode(s);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 const BIODY_CONSENT_KEY = "biody-import-v1";
-const BIODY_CONSENT_VERSION = "v1.0";
-const BIODY_CONSENT_TEXT =
-  `SAMÞYKKI FYRIR BIRTINGU LÍKAMSSAMSETNINGAR Í LIFELINE APPI v1.0 — ` +
-  `Ég samþykki að líkamssamsetningarmælingar mínar úr Biody Manager séu ` +
-  `sóttar inn í mælaborðið mitt í Lifeline appinu. Þetta er sjálfsmæling, ` +
-  `ekki sjúkraskráin (sem er í Medalia skv. lögum nr. 55/2009). Ég get ` +
-  `afturkallað þetta hvenær sem er.`;
 
 const DSR_OPTIONS: Array<{ value: string; label: string; help: string }> = [
   {
@@ -2979,28 +2965,20 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
   const toggleBiodyConsent = async () => {
     setSavingConsent(true);
     try {
-      if (biodyConsent) {
-        // revoke
-        await supabase
-          .from("client_consents")
-          .update({ revoked_at: new Date().toISOString() })
-          .eq("client_id", userId)
-          .eq("consent_key", BIODY_CONSENT_KEY)
-          .is("revoked_at", null);
-        setBiodyConsent(false);
-      } else {
-        // grant
-        const text_hash = await sha256Hex(BIODY_CONSENT_TEXT);
-        await supabase.from("client_consents").insert({
-          client_id: userId,
-          consent_key: BIODY_CONSENT_KEY,
-          consent_version: BIODY_CONSENT_VERSION,
-          text_hash,
-          granted: true,
-          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-        });
-        setBiodyConsent(true);
-      }
+      const { data: s } = await supabase.auth.getSession();
+      const token = s.session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const action = biodyConsent ? "revoke" : "grant";
+      const res = await fetch("/api/account/consent/biody-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || "Consent update failed");
+      setBiodyConsent(action === "grant");
+    } catch (e) {
+      alert("Could not save your choice: " + (e as Error).message);
     } finally {
       setSavingConsent(false);
     }
@@ -3125,6 +3103,51 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
 }
 
 // ── Home overview sub-components ──────────────────────────────────────────
+
+// Re-consent banner shown to existing Biody-activated users who don't
+// yet have an active client_consents row for biody-import-v1. Backfill
+// for the consent system shipped 2026-04-30 — see runbook §6.
+function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGoToSettings: () => void }) {
+  const [needsConsent, setNeedsConsent] = useState<boolean>(false);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("client_consents")
+        .select("id")
+        .eq("client_id", userId)
+        .eq("consent_key", "biody-import-v1")
+        .is("revoked_at", null)
+        .maybeSingle();
+      setNeedsConsent(!data);
+    })();
+  }, [userId]);
+
+  if (!needsConsent) return null;
+
+  return (
+    <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">
+      <div className="flex items-start gap-3">
+        <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div className="text-sm text-amber-900 leading-relaxed flex-1">
+          <p className="font-medium text-amber-950 mb-1">Please confirm a privacy preference</p>
+          <p>
+            We&apos;ve added a new privacy control: whether your Biody body-composition
+            measurements show up in this app dashboard for self-tracking. By default
+            they don&apos;t. Your medical record in Medalia is not affected either way.
+          </p>
+          <button
+            onClick={onGoToSettings}
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+          >
+            Open Data &amp; privacy settings
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // Wellness-mode framing. Persistent, plain-language reminder that this
 // dashboard is a self-tracking surface — not the formal medical record.

@@ -1,0 +1,90 @@
+SAMKOMULAG UM SAMEIGINLEGA ÁBYRGÐ Á VINNSLU SJÚKRASKRÁRGAGNA
+Lifeline Health ehf. og Medalia ehf.
+Útgáfa v1.1
+Skv. 26. gr. reglugerðar (ESB) 2016/679 (GDPR) og laga nr. 90/2018 um persónuvernd.
+
+1. Aðilar
+1.1 Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður
+    (hér eftir „Lifeline").
+1.2 Medalia ehf., kt. 530224-0230, Kirkjubraut 13, 170 Seltjarnarnes
+    (hér eftir „Medalia"). Medalia rekur viðurkennt sjúkraskrárkerfi með leyfi
+    skv. lögum nr. 55/2009 um sjúkraskrár.
+
+2. Tilgangur og umfang
+2.1 Aðilar starfa sameiginlega að því að safna, varðveita og veita aðgang að
+    sjúkraskrárgögnum þeirra einstaklinga sem nýta heilbrigðisþjónustu
+    Lifeline. Vinnslan grundvallast á 9. gr. (2)(h) GDPR (heilbrigðisþjónusta)
+    og 9. gr. (2)(a) GDPR (afdráttarlaust samþykki) þar sem það á við.
+2.2 Aðilar teljast sameiginlegir ábyrgðaraðilar í skilningi 26. gr. GDPR um
+    þá vinnslu sem fellur undir samkomulag þetta.
+
+3. Ábyrgðaskipting
+3.1 Lifeline ber ábyrgð á:
+    a) öflun upplýsts samþykkis skjólstæðings;
+    b) söfnun grunngagna (spurningalistar, mælingar, blóðsýni);
+    c) klínískri túlkun og samantekt heilsumats;
+    d) miðlun heilsumatsskýrslu til skjólstæðings og lögbundinni eftirfylgni;
+    e) að uppfylla skyldur sínar sem heilbrigðisstarfsemi skv. lögum nr. 40/2007.
+3.2 Medalia ber ábyrgð á:
+    a) öruggri varðveislu sjúkraskrárgagna í sjúkraskrárkerfi með leyfi skv.
+       lögum nr. 55/2009;
+    b) aðgangsstjórnun, rekstri og lögbundinni rekjanleikaskráningu skv. 14.
+       gr. þeirra laga;
+    c) tæknilegu öryggi (dulkóðun við hvíld og á flutningi, varagögn,
+       atvikastjórnun);
+    d) að framfylgja réttindum skráðra einstaklinga innan sjúkraskrárkerfisins.
+
+4. Sameiginleg ábyrgð
+4.1 Aðilar bera sameiginlega ábyrgð á:
+    a) að veita skráðum einstaklingum upplýsingar skv. 13. og 14. gr. GDPR;
+    b) að taka við og afgreiða beiðnir skráðra einstaklinga skv. 15.–22. gr.
+       GDPR (aðgangur, leiðrétting, eyðing, takmörkun, andmæli, flutningur);
+    c) að tilkynna persónuverndarbrot skv. 33. og 34. gr. GDPR.
+
+5. Tengiliður fyrir skráða einstaklinga
+5.1 Skráðir einstaklingar geta nýtt sér réttindi sín gagnvart hvorum aðila sem er.
+    Til einföldunar er Lifeline aðaltengiliður (pv@lifelinehealth.is). Lifeline
+    áframsendir Medalia ef beiðnin krefst aðgerða innan sjúkraskrárkerfisins.
+5.2 Hvor aðili um sig skal svara skráðum einstaklingi innan 30 daga frá móttöku
+    beiðni, sbr. 12. gr. GDPR.
+
+6. Tæknilegt og skipulagt öryggi
+6.1 Aðilar skuldbinda sig til að viðhafa viðeigandi tæknilegar og skipulagslegar
+    ráðstafanir skv. 32. gr. GDPR, þ.m.t.:
+    a) dulkóðun viðkvæmra gagna við hvíld og á flutningi;
+    b) hlutverkaskipt aðgangsstjórnun (least privilege);
+    c) lögboðna rekjanleikaskráningu á flettingar í sjúkraskrá;
+    d) reglubundnar úttektir og atvikastjórnun.
+6.2 Aðgangur starfsfólks Lifeline að sjúkraskrá fer fram inni í Medalia. Lifeline
+    rekur ekki sjálfstæða sjúkraskrá utan Medalia.
+
+7. Atvikastjórnun og tilkynningar
+7.1 Aðili sem verður þess áskynja að persónuverndarbrot eigi sér stað skal
+    tilkynna hinum aðila án ástæðulauss dráttar og eigi síðar en 24 klst. eftir
+    að atvikið verður ljóst.
+7.2 Lifeline tekur að sér tilkynningu til Persónuverndar og skráðra einstaklinga
+    skv. 33. og 34. gr. GDPR þegar atvikið varðar gögn sem voru í söfnun eða
+    klínískri túlkun. Medalia tekur að sér tilkynningu þegar atvikið varðar
+    sjúkraskrárkerfið sjálft. Aðilar samræma sig fyrirfram þegar bæði eiga við.
+
+8. Vinnsluaðilar (sub-processors)
+8.1 Hvor aðili um sig sér um sína undirvinnsluaðila skv. 28. gr. GDPR og deilir
+    núverandi lista með hinum aðila þegar farið er fram á það.
+
+9. Gildistími og uppsögn
+9.1 Samkomulag þetta gildir á meðan aðilar vinna saman að heilbrigðisþjónustu
+    samkvæmt þjónustusamningi.
+9.2 Við uppsögn skal Medalia varðveita sjúkraskrárgögn áfram skv. lögum nr.
+    55/2009. Lifeline eyðir eigin afritum innan 90 daga.
+
+10. Birting til skráðra einstaklinga
+10.1 Útdráttur úr samkomulagi þessu skal birtur á persónuverndaryfirlýsingu
+     Lifeline (lifelinehealth.is/privacy) skv. 26. gr. (2) GDPR.
+
+11. Lögsaga og varnarþing
+11.1 Um samkomulag þetta gilda íslensk lög. Rísi ágreiningur skal hann rekinn
+     fyrir Héraðsdómi Reykjaness.
+
+12. Undirritanir
+12.1 Fyrir hönd Lifeline Health ehf.: ____________________________ Dags. _________
+12.2 Fyrir hönd Medalia ehf.:           ____________________________ Dags. _________

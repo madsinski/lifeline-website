@@ -1,0 +1,66 @@
+MAT Á ÁHRIFUM Á PERSÓNUVERND (DPIA) — INTERIM WELLNESS-MODE
+Lifeline Health ehf.
+Útgáfa v1.0
+Skv. 35. gr. GDPR og 29. gr. laga nr. 90/2018.
+
+1. Bakgrunnur
+1.1 Lifeline rekur heilbrigðisþjónustu skv. lögum nr. 40/2007 með leyfi frá
+    Embætti landlæknis. Sjúkraskrá skjólstæðinga er varðveitt í Medalia
+    (lög nr. 55/2009). Þangað til Medalia API tenging er tilbúin (áætlað
+    innan 6 mánaða) starfar Lifeline appið og admin-svæðið sem velferðar-
+    og sjálfsmælingatól (wellness-mode), aðskilið frá sjúkraskránni.
+
+2. Lýsing á vinnslunni
+2.1 Tegund gagna í Lifeline appi:
+    a) Persónuupplýsingar: nafn, netfang, sími, heimilisfang, kennitala
+       (síðustu 4 stafir), fæðingardagur.
+    b) Sjálfsmælingar: þyngd, virkniupptökur, hreyfing, máltíðir,
+       hugleiðingar — innslegnar af notanda eða sóttar með afdráttarlausu
+       samþykki úr Biody Manager.
+    c) Tímabókanir og samskipti við þjálfara.
+2.2 Tegund gagna í Medalia (utan gildissviðs þessa DPIA): klínísk túlkun,
+    blóðprufuniðurstöður, læknisbréf, full sjúkraskrá.
+
+3. Lagagrundvöllur
+3.1 Almennar persónuupplýsingar: 6. gr. (1)(b) GDPR (samningur).
+3.2 Heilsufarsgögn í wellness-mode: 9. gr. (2)(a) GDPR (afdráttarlaust
+    samþykki) auk 9. gr. (2)(h) (heilbrigðisþjónusta).
+3.3 Sérstaklega vegna innflutnings frá Biody: skráð samþykki í
+    client_consents (consent_key='biody-import-v1').
+
+4. Áhætta sem metin er
+4.1 Áhætta 1 — Klíníska gögn í Supabase utan sjúkraskrárkerfis.
+    Líkur: lágar (vegna hlutverkaskiptingar og takmarkaðs aðgangs).
+    Áhrif: há (Art. 9 gögn, lög nr. 55/2009).
+    Mótvægi: (a) self-only RLS á body comp / weight log / macro_targets;
+    (b) dulkóðun á klínískum dálkum við hvíld (sjá runbook); (c)
+    skilaboða-skammstöfun „þetta eru ekki klínísk ráð"; (d) öllu starfsfólki
+    bannað að nota appið sem sjúkraskrá og skv. móttökugátlista skuldbundið
+    til að viðhalda því aðskilnaði.
+4.2 Áhætta 2 — Misnotkun starfsmannsaðgangs.
+    Líkur: lágar (lítill starfsmannafjöldi, undirritaðir samningar).
+    Áhrif: há.
+    Mótvægi: (a) hlutverkaskipt RLS (is_active_coach_or_clinician,
+    is_admin_staff, is_active_psychologist); (b) audit_log skráir allar
+    skrifaðgerðir; (c) ársfjórðungsleg endurskoðun aðgangs (staff_access_reviews).
+4.3 Áhætta 3 — Kennitala í Supabase.
+    Líkur: lágar (geymd sem síðustu 4 stafir).
+    Áhrif: meðallmenn.
+    Mótvægi: lágmörkunarreglan; engin geymsla á heilli kennitölu í Lifeline.
+4.4 Áhætta 4 — Tilkynningarskil til Persónuverndar á 72 klst.
+    Mótvægi: atvikastjórnun skjalfest í móttökugátlista starfsmanna; tengiliður
+    pv@lifelinehealth.is; sjálfvirk tilkynning til viðkomandi yfirmanns.
+
+5. Niðurstaða
+5.1 Áhætta er metin viðunandi með framantöldum mótvægisaðgerðum, og afmörkun
+    appsins sem velferðartóls (ekki sjúkraskrár) er trúverðug og tæknilega
+    framkvæmanleg.
+5.2 Endurskoðun: þetta DPIA skal endurskoðað:
+    a) þegar Medalia API tengingin fer í loftið;
+    b) við hverja meiri háttar breytingu á gagnaflæði;
+    c) eigi síðar en 12 mánuðum frá útgáfudegi.
+
+6. Undirritun persónuverndarfulltrúa
+6.1 Persónuverndarfulltrúi: ____________________________
+6.2 Dagsetning:               ____________________________
+6.3 Næsta endurskoðun:        ____________________________
