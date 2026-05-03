@@ -288,7 +288,12 @@ export default function AdminLegalPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Legal</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-semibold text-gray-900">Legal</h1>
+            <Link href="/admin/legal/drafts" className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 hover:bg-emerald-100">
+              Unsigned drafts →
+            </Link>
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             {tab === "commercial"
               ? "Commercial B2B service agreements + purchase orders signed by contact persons."

@@ -119,6 +119,8 @@ const sidebarLinks = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
       </svg>
     ),
+    badge: true,
+    badgeType: "access-review" as const,
   },
   {
     href: "/admin/data-requests",
@@ -169,6 +171,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [unresolvedFeedbackCount, setUnresolvedFeedbackCount] = useState(0);
   const [pendingRefundRequestsCount, setPendingRefundRequestsCount] = useState(0);
   const [openDsrCount, setOpenDsrCount] = useState(0);
+  const [overdueAccessReviewCount, setOverdueAccessReviewCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
 
   // Coaching-view preference is resolved inside loadStaffProfile once
@@ -215,6 +218,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .select("*", { count: "exact", head: true })
           .in("status", ["received", "in_progress"]);
         if (!dsrErr && dsrCount !== null) setOpenDsrCount(dsrCount);
+      } catch {}
+      // Overdue access reviews: active staff whose most recent review is
+      // older than 90 days (or who have never been reviewed and were
+      // created more than 90 days ago).
+      try {
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: activeStaff } = await supabase
+          .from("staff")
+          .select("id, created_at")
+          .eq("active", true);
+        if (activeStaff && activeStaff.length > 0) {
+          const ids = activeStaff.map((s) => s.id);
+          const { data: reviews } = await supabase
+            .from("staff_access_reviews")
+            .select("reviewed_staff_id, reviewed_at")
+            .in("reviewed_staff_id", ids)
+            .order("reviewed_at", { ascending: false });
+          const lastReviewed: Record<string, string> = {};
+          for (const r of reviews || []) {
+            if (!lastReviewed[r.reviewed_staff_id]) lastReviewed[r.reviewed_staff_id] = r.reviewed_at;
+          }
+          const overdue = activeStaff.filter((s) => {
+            const ref = lastReviewed[s.id] || s.created_at;
+            return ref < ninetyDaysAgo;
+          }).length;
+          setOverdueAccessReviewCount(overdue);
+        }
       } catch {}
     };
     loadCounts();
@@ -465,7 +495,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 : pathname.startsWith(link.href);
             const badgeType = (link as any).badgeType as string | undefined;
             const isMessageBadge = 'badge' in link && (link as any).badge;
-            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : isMessageBadge ? unreadCount : 0;
+            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : badgeType === "access-review" ? overdueAccessReviewCount : isMessageBadge ? unreadCount : 0;
             const hasBadge = badgeCount > 0;
             return (
               <Link
