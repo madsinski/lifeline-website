@@ -2916,13 +2916,52 @@ const BIODY_CONSENT_TEXT =
   `ekki sjúkraskráin (sem er í Medalia skv. lögum nr. 55/2009). Ég get ` +
   `afturkallað þetta hvenær sem er.`;
 
+const DSR_OPTIONS: Array<{ value: string; label: string; help: string }> = [
+  {
+    value: "access",
+    label: "Get a copy of all my data",
+    help: "We'll prepare a downloadable file with everything we have about you in this app and email it within 30 days. (Your medical record lives in Medalia and has its own way to request it.)",
+  },
+  {
+    value: "rectification",
+    label: "Correct something that's wrong",
+    help: "For your name, phone, address, and other personal details, the fastest way is to use \"Personal information\" above. Use this option when something else needs fixing — describe what's wrong below.",
+  },
+  {
+    value: "erasure",
+    label: "Delete my account and data",
+    help: "Permanently removes your Lifeline account and the data we've collected. The fastest way is the \"Delete Account\" button below. Use this option only if you'd rather have us do it manually. Your medical record in Medalia stays under its own retention rules (Icelandic law nr. 55/2009).",
+  },
+  {
+    value: "restriction",
+    label: "Pause processing while a question is sorted",
+    help: "We'll stop using your data for new things while we discuss a concern with you. Your account stays open. Useful if you're disputing something.",
+  },
+  {
+    value: "portability",
+    label: "Export my data to another service",
+    help: "Same as \"Get a copy\" but in a machine-readable format suitable for moving to another app or service.",
+  },
+  {
+    value: "objection",
+    label: "Stop using my data for a specific purpose",
+    help: "For example, marketing emails or anonymised research. Tell us specifically what you want stopped.",
+  },
+  {
+    value: "withdraw_consent",
+    label: "Withdraw a consent I gave earlier",
+    help: "If there's an opt-in you'd like to take back. The Biody toggle above is the most common case — flip it off and you're done. Use this for anything you can't toggle yourself.",
+  },
+];
+
 function DataPrivacyPanel({ userId }: { userId: string }) {
   const [biodyConsent, setBiodyConsent] = useState<boolean | null>(null);
   const [savingConsent, setSavingConsent] = useState(false);
-  const [dsrType, setDsrType] = useState("access");
+  const [dsrType, setDsrType] = useState("");
   const [dsrDetails, setDsrDetails] = useState("");
   const [dsrSending, setDsrSending] = useState(false);
   const [dsrMsg, setDsrMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const dsrSelected = useMemo(() => DSR_OPTIONS.find((o) => o.value === dsrType) || null, [dsrType]);
 
   useEffect(() => {
     (async () => {
@@ -3029,41 +3068,50 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* DSR form */}
+      {/* Privacy request — plain-language menu */}
       <div className="bg-[#F9FAFB] rounded-xl p-4">
-        <p className="text-sm font-medium text-[#1F2937] mb-1">Submit a data protection request</p>
-        <p className="text-xs text-[#6B7280] mb-3">
-          Access, correction, deletion, portability, or withdrawal of consent under GDPR Arts. 15–22.
+        <p className="text-sm font-medium text-[#1F2937] mb-1">Ask us to do something with your data</p>
+        <p className="text-xs text-[#6B7280] mb-3 leading-relaxed">
+          Under EU and Icelandic privacy law you have rights over your personal data —
+          you can ask for a copy, ask us to fix something, ask us to delete it, and more.
+          Most things you can do yourself in this app (edit your profile, toggle Biody on/off,
+          delete your account). For anything else, pick an option below and we&apos;ll respond
+          within 30 days.
         </p>
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="space-y-3">
           <select
             value={dsrType}
-            onChange={(e) => setDsrType(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+            onChange={(e) => { setDsrType(e.target.value); setDsrMsg(null); }}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
           >
-            <option value="access">Access (Art. 15)</option>
-            <option value="rectification">Rectification (Art. 16)</option>
-            <option value="erasure">Erasure (Art. 17)</option>
-            <option value="restriction">Restriction (Art. 18)</option>
-            <option value="portability">Portability (Art. 20)</option>
-            <option value="objection">Objection (Art. 21)</option>
-            <option value="withdraw_consent">Withdraw consent (Art. 7(3))</option>
+            <option value="">— Choose what you&apos;d like to do —</option>
+            {DSR_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
-          <input
-            type="text"
-            value={dsrDetails}
-            onChange={(e) => setDsrDetails(e.target.value)}
-            placeholder="Optional details (max 4000 chars)"
-            className="sm:col-span-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-          />
+          {dsrSelected && (
+            <div className="rounded-lg bg-white border border-gray-200 px-3 py-2.5 text-xs text-[#4B5563] leading-relaxed">
+              {dsrSelected.help}
+            </div>
+          )}
+          {dsrType && (
+            <textarea
+              value={dsrDetails}
+              onChange={(e) => setDsrDetails(e.target.value)}
+              placeholder="Anything else we should know? (optional)"
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 resize-y"
+              maxLength={4000}
+            />
+          )}
         </div>
         <div className="flex items-center gap-3 mt-3">
           <button
             onClick={submitDsr}
-            disabled={dsrSending}
-            className="px-4 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50"
+            disabled={dsrSending || !dsrType}
+            className="px-4 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {dsrSending ? "Sending…" : "Submit request"}
+            {dsrSending ? "Sending…" : "Send request"}
           </button>
           {dsrMsg && (
             <p className={`text-xs ${dsrMsg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>

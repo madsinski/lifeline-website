@@ -1,8 +1,6 @@
 // Data Subject Rights endpoint (GDPR Art. 15–22 / Lög 90/2018).
-// Authenticated users submit a typed request; we email
-// pv@lifelinehealth.is with full context and respond to the user
-// from the data-protection inbox. The Lifeline-side runbook for
-// fulfilling each request type lives in
+// Records the request to dsr_requests, then notifies the DPO inbox
+// and confirms to the user. Internal fulfilment runbook lives at
 // supabase/runbooks/dsr-runbook.md.
 
 import { NextResponse } from "next/server";
@@ -22,14 +20,66 @@ const REQUEST_TYPES = [
 ] as const;
 type RequestType = (typeof REQUEST_TYPES)[number];
 
-const TYPE_LABELS: Record<RequestType, string> = {
-  access: "Access (Art. 15) — copy of my personal data",
-  rectification: "Rectification (Art. 16) — correct inaccurate data",
-  erasure: "Erasure / right to be forgotten (Art. 17)",
-  restriction: "Restriction of processing (Art. 18)",
-  portability: "Data portability (Art. 20)",
-  objection: "Objection to processing (Art. 21)",
-  withdraw_consent: "Withdraw consent (Art. 7(3))",
+// Plain-language labels shown back to the user + admin.
+const PLAIN_LABELS: Record<RequestType, string> = {
+  access: "Get a copy of all my data",
+  rectification: "Correct something that's wrong",
+  erasure: "Delete my account and data",
+  restriction: "Pause processing while a question is sorted",
+  portability: "Export my data to another service",
+  objection: "Stop using my data for a specific purpose",
+  withdraw_consent: "Withdraw consent I gave earlier",
+};
+
+const ARTICLE_REFS: Record<RequestType, string> = {
+  access: "GDPR Art. 15",
+  rectification: "GDPR Art. 16",
+  erasure: "GDPR Art. 17",
+  restriction: "GDPR Art. 18",
+  portability: "GDPR Art. 20",
+  objection: "GDPR Art. 21",
+  withdraw_consent: "GDPR Art. 7(3)",
+};
+
+// What the admin needs to do for each type. Mirrors dsr-runbook.md.
+const ADMIN_STEPS: Record<RequestType, string[]> = {
+  access: [
+    "Acknowledge to the user within 72 hours.",
+    "Run the SQL block under 'Access (Art. 15)' in supabase/runbooks/dsr-runbook.md to pull all their data.",
+    "Bundle as a zip, email it from Resend, mark dsr_requests.status = 'completed'.",
+  ],
+  rectification: [
+    "Confirm the corrected value with the user (reply asking what to change to what).",
+    "Update via the admin UI when possible; SQL when not.",
+    "Audit log fires automatically. Mark dsr_requests.status = 'completed'.",
+  ],
+  erasure: [
+    "Confirm the user understands which data is in scope (Lifeline) vs. Medalia (separate retention rules).",
+    "Trigger the delete-user edge function with the user's auth.uid.",
+    "Coordinate with Medalia for sjúkraskrá redaction where lawful.",
+    "Mark dsr_requests.status = 'completed' once both sides are done.",
+  ],
+  restriction: [
+    "Add a row in client_consents with granted=false for the relevant processing key.",
+    "Pause the relevant background processing (cron jobs, marketing).",
+    "Mark dsr_requests.status = 'completed'.",
+  ],
+  portability: [
+    "Same as access, but emit JSON-LD or another machine-readable format.",
+    "CSV is acceptable when no obvious target exists.",
+    "Mark dsr_requests.status = 'completed'.",
+  ],
+  objection: [
+    "Stop processing for the named purpose unless there are compelling legitimate grounds.",
+    "Most common: marketing emails — flip subscriptions / email_preferences flags.",
+    "Mark dsr_requests.status = 'completed'.",
+  ],
+  withdraw_consent: [
+    "Find the active row in client_consents for the relevant consent_key.",
+    "Set revoked_at = now().",
+    "If it's the Biody-import consent: tombstone cached weight_log/body comp rows.",
+    "Mark dsr_requests.status = 'completed'.",
+  ],
 };
 
 export async function POST(req: Request) {
@@ -59,7 +109,6 @@ export async function POST(req: Request) {
   }
   const user = userData.user;
 
-  // Look up the matching client + company for context.
   const { data: clientRow } = await supabaseAdmin
     .from("clients")
     .select("id, full_name, email, phone, company_id, kennitala_last4")
@@ -71,50 +120,94 @@ export async function POST(req: Request) {
     req.headers.get("x-real-ip") ||
     "unknown";
   const userAgent = req.headers.get("user-agent") || "unknown";
-  const submittedAt = new Date().toISOString();
 
-  const subject = `[DSR] ${TYPE_LABELS[type]} — ${user.email ?? user.id}`;
-  const html = `
-    <h2>Data Subject Rights request received</h2>
-    <p><strong>Request type:</strong> ${TYPE_LABELS[type]}</p>
-    <p><strong>Submitted at:</strong> ${submittedAt}</p>
-    <h3>Requester</h3>
-    <ul>
-      <li>auth.users.id: <code>${user.id}</code></li>
-      <li>email: ${user.email ?? "(unknown)"}</li>
-      <li>full_name: ${clientRow?.full_name ?? "(no clients row)"}</li>
-      <li>phone: ${clientRow?.phone ?? "—"}</li>
-      <li>kennitala_last4: ${clientRow?.kennitala_last4 ?? "—"}</li>
-      <li>company_id: ${clientRow?.company_id ?? "—"}</li>
-      <li>IP: ${ip}</li>
-      <li>User-Agent: ${userAgent}</li>
-    </ul>
-    <h3>Free-text details from requester</h3>
-    <pre style="white-space: pre-wrap; font-family: ui-monospace, monospace; background: #f5f5f5; padding: 12px; border-radius: 6px;">${escapeHtml(details || "(none provided)")}</pre>
-    <p>Action required: respond within 30 days per GDPR Art. 12.
-    Runbook: supabase/runbooks/dsr-runbook.md</p>
-  `;
+  // Persist as an auditable row first.
+  const { data: dsrRow, error: dsrErr } = await supabaseAdmin
+    .from("dsr_requests")
+    .insert({
+      client_id: user.id,
+      client_email: user.email ?? null,
+      request_type: type,
+      details: details || null,
+      status: "received",
+      ip,
+      user_agent: userAgent,
+    })
+    .select("id, submitted_at")
+    .single();
+
+  if (dsrErr) {
+    return NextResponse.json(
+      { ok: false, error: `Could not record request: ${dsrErr.message}` },
+      { status: 500 },
+    );
+  }
 
   const dpoEmail = process.env.DPO_EMAIL || "contact@lifelinehealth.is";
+  const plain = PLAIN_LABELS[type];
+  const article = ARTICLE_REFS[type];
+  const steps = ADMIN_STEPS[type];
 
-  const sent = await sendEmail({
-    to: dpoEmail,
-    subject,
-    html,
-  });
+  const deadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 
-  // Confirmation to the requester.
+  // Admin notification — action-oriented format.
+  const subject = `[Privacy request] ${plain} — ${user.email ?? user.id}`;
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 640px;">
+      <h2 style="margin:0 0 8px 0;">A user made a privacy request</h2>
+      <p style="margin:0 0 18px 0; color:#6b7280;">Through their Lifeline account → Settings → Data &amp; privacy.</p>
+
+      <table style="width:100%; border-collapse: collapse; margin-bottom: 18px;">
+        <tr><td style="padding: 6px 0; color:#6b7280; width: 140px;">What they want</td><td style="padding: 6px 0;"><strong>${plain}</strong> <span style="color:#9ca3af;">(${article})</span></td></tr>
+        <tr><td style="padding: 6px 0; color:#6b7280;">Submitted</td><td style="padding: 6px 0;">${dsrRow.submitted_at}</td></tr>
+        <tr><td style="padding: 6px 0; color:#6b7280;">Respond by</td><td style="padding: 6px 0;"><strong style="color:#dc2626;">${deadline}</strong> (30 days, GDPR Art. 12(3))</td></tr>
+      </table>
+
+      <h3 style="margin: 18px 0 8px 0;">Requester</h3>
+      <table style="width:100%; border-collapse: collapse; margin-bottom: 18px; font-size: 14px;">
+        <tr><td style="padding: 4px 0; color:#6b7280; width: 140px;">Name</td><td style="padding: 4px 0;">${escapeHtml(clientRow?.full_name ?? "(no clients row)")}</td></tr>
+        <tr><td style="padding: 4px 0; color:#6b7280;">Email</td><td style="padding: 4px 0;"><a href="mailto:${escapeHtml(user.email ?? "")}">${escapeHtml(user.email ?? "(unknown)")}</a></td></tr>
+        <tr><td style="padding: 4px 0; color:#6b7280;">Phone</td><td style="padding: 4px 0;">${escapeHtml(clientRow?.phone ?? "—")}</td></tr>
+        <tr><td style="padding: 4px 0; color:#6b7280;">Kennitala (last 4)</td><td style="padding: 4px 0;">${escapeHtml(clientRow?.kennitala_last4 ?? "—")}</td></tr>
+        <tr><td style="padding: 4px 0; color:#6b7280;">auth.uid</td><td style="padding: 4px 0;"><code style="background:#f3f4f6; padding:2px 4px; border-radius:3px;">${escapeHtml(user.id)}</code></td></tr>
+        <tr><td style="padding: 4px 0; color:#6b7280;">company_id</td><td style="padding: 4px 0;">${escapeHtml(clientRow?.company_id ?? "—")}</td></tr>
+        <tr><td style="padding: 4px 0; color:#6b7280;">IP / UA</td><td style="padding: 4px 0; color:#9ca3af; font-size: 12px;">${escapeHtml(ip)} · ${escapeHtml(userAgent)}</td></tr>
+      </table>
+
+      ${
+        details
+          ? `<h3 style="margin: 18px 0 8px 0;">Details from the user</h3>
+             <pre style="white-space: pre-wrap; font-family: ui-monospace, monospace; background: #f9fafb; padding: 12px; border-radius: 6px; font-size: 13px;">${escapeHtml(details)}</pre>`
+          : ""
+      }
+
+      <h3 style="margin: 18px 0 8px 0;">What to do</h3>
+      <ol style="padding-left: 20px;">
+        ${steps.map((s) => `<li style="margin-bottom: 6px;">${escapeHtml(s)}</li>`).join("")}
+      </ol>
+
+      <p style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">
+        Tracked as <code>dsr_requests.id = ${dsrRow.id}</code>.
+        Full runbook with copy-paste SQL: <code>supabase/runbooks/dsr-runbook.md</code>.
+      </p>
+    </div>
+  `;
+
+  const sent = await sendEmail({ to: dpoEmail, subject, html });
+
   if (user.email) {
     await sendEmail({
       to: user.email,
-      subject: "We received your data protection request",
+      subject: "We received your privacy request",
       html: `
-        <p>Hi ${clientRow?.full_name?.split(" ")[0] ?? "there"},</p>
-        <p>We've received your request: <strong>${TYPE_LABELS[type]}</strong>.</p>
-        <p>Our data protection officer will respond within 30 days.
-        For health record matters, we coordinate with Medalia per our joint-controller arrangement.</p>
+        <p>Hi ${escapeHtml(clientRow?.full_name?.split(" ")[0] ?? "there")},</p>
+        <p>Thanks for getting in touch. We've received your request:</p>
+        <p style="padding: 12px 16px; background: #f9fafb; border-left: 3px solid #10B981;"><strong>${plain}</strong></p>
+        <p>Our team will respond within 30 days. For matters involving your medical record (sjúkraskrá), we coordinate with Medalia, the licensed health-record system that holds it.</p>
         <p>If you didn't make this request, please reply to this email immediately.</p>
-        <p>— Lifeline Health</p>
+        <p style="color:#6b7280; font-size:13px;">— Lifeline Health</p>
       `,
     });
   }
@@ -126,7 +219,7 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, type, submittedAt });
+  return NextResponse.json({ ok: true, type, requestId: dsrRow.id });
 }
 
 function escapeHtml(s: string): string {
