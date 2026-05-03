@@ -58,7 +58,7 @@ CREATE OR REPLACE FUNCTION public.encrypt_text(p TEXT)
 RETURNS BYTEA
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT CASE
     WHEN p IS NULL OR p = '' THEN NULL
@@ -73,7 +73,7 @@ RETURNS TEXT
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT CASE
     WHEN p IS NULL THEN NULL
