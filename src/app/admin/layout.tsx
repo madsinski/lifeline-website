@@ -112,6 +112,17 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/data-requests",
+    label: "Privacy requests",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+      </svg>
+    ),
+    badge: true,
+    badgeType: "data-requests" as const,
+  },
+  {
     href: "/admin/settings",
     label: "Settings",
     icon: (
@@ -148,6 +159,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newClientsCount, setNewClientsCount] = useState(0);
   const [unresolvedFeedbackCount, setUnresolvedFeedbackCount] = useState(0);
   const [pendingRefundRequestsCount, setPendingRefundRequestsCount] = useState(0);
+  const [openDsrCount, setOpenDsrCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
 
   // Coaching-view preference is resolved inside loadStaffProfile once
@@ -187,6 +199,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .select("*", { count: "exact", head: true })
           .eq("status", "pending");
         if (!rrErr && rrCount !== null) setPendingRefundRequestsCount(rrCount);
+      } catch {}
+      try {
+        const { count: dsrCount, error: dsrErr } = await supabase
+          .from("dsr_requests")
+          .select("*", { count: "exact", head: true })
+          .in("status", ["received", "in_progress"]);
+        if (!dsrErr && dsrCount !== null) setOpenDsrCount(dsrCount);
       } catch {}
     };
     loadCounts();
@@ -425,6 +444,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/settings" && !isAdmin) return false;
             if (link.href === "/admin/business" && !isAdmin) return false;
             if (link.href === "/admin/communication" && !isAdmin) return false;
+            if (link.href === "/admin/data-requests" && !isAdmin) return false;
             if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !isAdmin) return false;
             if (link.href === "/admin/content" && !userPermissions.includes("manage_programs") && !isAdmin) return false;
             return true;
@@ -435,7 +455,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 : pathname.startsWith(link.href);
             const badgeType = (link as any).badgeType as string | undefined;
             const isMessageBadge = 'badge' in link && (link as any).badge;
-            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : isMessageBadge ? unreadCount : 0;
+            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : isMessageBadge ? unreadCount : 0;
             const hasBadge = badgeCount > 0;
             return (
               <Link
