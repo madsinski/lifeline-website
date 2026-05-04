@@ -41,8 +41,8 @@ async function getCroppedImg(imageSrc: string, crop: Area): Promise<Blob> {
 
 // ─── Types ───────────────────────────────────────────────────
 
-type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin";
-type Permission = "manage_clients" | "manage_programs" | "manage_team" | "view_analytics" | "send_messages" | "app_user_access";
+type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin" | "lawyer";
+type Permission = "manage_clients" | "manage_programs" | "manage_team" | "view_analytics" | "send_messages" | "app_user_access" | "view_legal";
 
 const allPermissions: { key: Permission; label: string; description: string }[] = [
   { key: "manage_clients", label: "Manage Clients", description: "View, edit, and delete client profiles" },
@@ -51,6 +51,7 @@ const allPermissions: { key: Permission; label: string; description: string }[] 
   { key: "view_analytics", label: "View Analytics", description: "Access analytics and reports" },
   { key: "send_messages", label: "Send Messages", description: "Message clients directly" },
   { key: "app_user_access", label: "Access Lifeline as a user", description: "Can use the Lifeline app as a regular member (grants free subscription)" },
+  { key: "view_legal", label: "View Legal Documents", description: "External counsel: read and sign off on legal documents only — no client data access" },
 ];
 
 const defaultPermissions: Record<StaffRole, Permission[]> = {
@@ -59,6 +60,7 @@ const defaultPermissions: Record<StaffRole, Permission[]> = {
   doctor: ["manage_clients", "view_analytics"],
   nurse: ["manage_clients", "send_messages"],
   psychologist: ["manage_clients", "send_messages"],
+  lawyer: ["view_legal"],
 };
 
 type EmploymentType = "salaried" | "piece_rate" | "contractor";
@@ -94,6 +96,7 @@ const EMPLOYMENT_COLORS: Record<EmploymentType, string> = {
 
 function defaultEmploymentTypeFor(role: StaffRole): EmploymentType {
   if (role === "admin" || role === "coach") return "salaried";
+  if (role === "lawyer") return "contractor";
   return "piece_rate";
 }
 
@@ -103,6 +106,7 @@ const roleLabels: Record<StaffRole, string> = {
   nurse: "Nurse",
   psychologist: "Psychologist",
   admin: "Admin",
+  lawyer: "External counsel (lawyer)",
 };
 
 const roleColors: Record<StaffRole, string> = {
@@ -111,9 +115,10 @@ const roleColors: Record<StaffRole, string> = {
   nurse: "bg-purple-100 text-purple-700",
   psychologist: "bg-amber-100 text-amber-700",
   admin: "bg-gray-100 text-gray-700",
+  lawyer: "bg-indigo-100 text-indigo-700",
 };
 
-const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "admin"];
+const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "admin", "lawyer"];
 
 // ─── Fallback mock data ───────────────────────────────────────
 
