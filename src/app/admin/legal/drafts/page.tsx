@@ -59,17 +59,20 @@ import {
   SECURITY_POSTURE_LAST_UPDATED,
   renderSecurityPosture,
 } from "@/lib/security-posture";
-import CopyButton from "./CopyButton";
-import DocReviewPanel from "./DocReviewPanel";
+import DocCard, { type DocLanguage } from "./DocCard";
 import LegalTabBar from "../LegalTabBar";
 
 interface DraftSection {
   id: string;
   title: string;
   version: string;
-  filename: string;
+  filenameBase: string;
   description: string;
-  text: string;
+  // Source language is the one the document was originally drafted in.
+  // The other language is shown as a placeholder until translated —
+  // see DocCard for how that is rendered.
+  sourceLanguage: DocLanguage;
+  text: { is: string | null; en: string | null };
 }
 
 interface DraftCategory {
@@ -110,10 +113,13 @@ export default function LegalDraftsPage() {
           id: "security-posture",
           title: "Security & Privacy Posture Statement",
           version: `${SECURITY_POSTURE_VERSION} · updated ${SECURITY_POSTURE_LAST_UPDATED}`,
-          filename: `lifeline-security-posture-${SECURITY_POSTURE_VERSION}.txt`,
+          filenameBase: `lifeline-security-posture-${SECURITY_POSTURE_VERSION}`,
           description:
             "Full inventory of legal basis, data categories, hosting, encryption, access controls, audit logging, DSR workflow, processors, breach response, DPIA, staff training, and the wellness/sjúkraskrá architecture. Maintained in src/lib/security-posture.ts — bump version + last_updated when content changes.",
-          text: renderSecurityPosture(),
+          // Bilingual document: Icelandic body with English section headers.
+          // Same string serves both toggles for now.
+          sourceLanguage: "is",
+          text: { is: renderSecurityPosture(), en: renderSecurityPosture() },
         },
       ],
     },
@@ -126,19 +132,21 @@ export default function LegalDraftsPage() {
           id: "privacy-policy",
           title: "Privacy Policy",
           version: `${PUBLIC_PRIVACY_VERSION} · updated ${PUBLIC_PRIVACY_LAST_UPDATED}`,
-          filename: `privacy-policy-${PUBLIC_PRIVACY_VERSION}.txt`,
+          filenameBase: `privacy-policy-${PUBLIC_PRIVACY_VERSION}`,
           description:
             "Public privacy policy at lifelinehealth.is/privacy. Plain-text mirror — styled version is at the live URL.",
-          text: renderPublicPrivacyPolicy(),
+          sourceLanguage: "en",
+          text: { is: null, en: renderPublicPrivacyPolicy() },
         },
         {
           id: "terms-of-service",
           title: "Terms of Service (public)",
           version: `${PUBLIC_TERMS_VERSION} · updated ${PUBLIC_TERMS_LAST_UPDATED}`,
-          filename: `terms-of-service-${PUBLIC_TERMS_VERSION}.txt`,
+          filenameBase: `terms-of-service-${PUBLIC_TERMS_VERSION}`,
           description:
             "Public terms at lifelinehealth.is/terms. Plain-text mirror — styled version is at the live URL.",
-          text: renderPublicTermsOfService(),
+          sourceLanguage: "en",
+          text: { is: null, en: renderPublicTermsOfService() },
         },
       ],
     },
@@ -151,34 +159,38 @@ export default function LegalDraftsPage() {
           id: "platform-tos",
           title: "Platform Terms of Service",
           version: TOS_VERSION,
-          filename: `platform-tos-${TOS_VERSION}.txt`,
+          filenameBase: `platform-tos-${TOS_VERSION}`,
           description: "Click-through TOS for B2C clients on app signup.",
-          text: renderTermsOfService(),
+          sourceLanguage: "is",
+          text: { is: renderTermsOfService(), en: null },
         },
         {
           id: "platform-dpa",
           title: "Data Processing Agreement (B2B contact persons)",
           version: DPA_VERSION,
-          filename: `platform-dpa-${DPA_VERSION}.txt`,
+          filenameBase: `platform-dpa-${DPA_VERSION}`,
           description: "DPA accepted by B2B contact persons during company onboarding.",
-          text: renderDataProcessingAgreement(),
+          sourceLanguage: "is",
+          text: { is: renderDataProcessingAgreement(), en: null },
         },
         {
           id: "employee-tos",
           title: "Employee Terms of Service",
           version: EMPLOYEE_TOS_VERSION,
-          filename: `employee-tos-${EMPLOYEE_TOS_VERSION}.txt`,
+          filenameBase: `employee-tos-${EMPLOYEE_TOS_VERSION}`,
           description: "Click-through accepted by employees joining via a B2B roster.",
-          text: renderEmployeeTermsOfService(),
+          sourceLanguage: "is",
+          text: { is: renderEmployeeTermsOfService(), en: null },
         },
         {
           id: "health-consent",
           title: "Health Assessment Consent",
           version: HEALTH_CONSENT_VERSION,
-          filename: `health-consent-${HEALTH_CONSENT_VERSION}.txt`,
+          filenameBase: `health-consent-${HEALTH_CONSENT_VERSION}`,
           description:
             "Explicit consent (GDPR Art. 9(2)(a)) to process Art. 9 health data — mandatory before any clinical workflow.",
-          text: renderHealthAssessmentConsent(),
+          sourceLanguage: "is",
+          text: { is: renderHealthAssessmentConsent(), en: null },
         },
       ],
     },
@@ -191,61 +203,68 @@ export default function LegalDraftsPage() {
           id: "staff-nda",
           title: "Staff NDA (Trúnaðarsamningur)",
           version: STAFF_NDA_VERSION,
-          filename: `staff-nda-${STAFF_NDA_VERSION}.txt`,
+          filenameBase: `staff-nda-${STAFF_NDA_VERSION}`,
           description: "Required for every staff member regardless of role.",
-          text: renderStaffNDA(),
+          sourceLanguage: "is",
+          text: { is: renderStaffNDA(), en: null },
         },
         {
           id: "staff-confidentiality",
           title: "Healthcare Confidentiality (Þagnarskylda)",
           version: STAFF_CONFIDENTIALITY_VERSION,
-          filename: `staff-confidentiality-${STAFF_CONFIDENTIALITY_VERSION}.txt`,
+          filenameBase: `staff-confidentiality-${STAFF_CONFIDENTIALITY_VERSION}`,
           description:
             "Statutory healthcare confidentiality declaration under Lög 34/2012 + 74/1997. Required for clinicians (doctor / nurse / psychologist).",
-          text: renderStaffConfidentiality(),
+          sourceLanguage: "is",
+          text: { is: renderStaffConfidentiality(), en: null },
         },
         {
           id: "staff-acceptable-use",
           title: "Acceptable Use (Tækjareglur)",
           version: STAFF_ACCEPTABLE_USE_VERSION,
-          filename: `staff-acceptable-use-${STAFF_ACCEPTABLE_USE_VERSION}.txt`,
+          filenameBase: `staff-acceptable-use-${STAFF_ACCEPTABLE_USE_VERSION}`,
           description: "Device + access policy. Required for every staff member.",
-          text: renderStaffAcceptableUse(),
+          sourceLanguage: "is",
+          text: { is: renderStaffAcceptableUse(), en: null },
         },
         {
           id: "staff-data-protection",
           title: "Data Protection Briefing (Persónuverndarfræðsla)",
           version: STAFF_DATA_PROTECTION_VERSION,
-          filename: `staff-data-protection-${STAFF_DATA_PROTECTION_VERSION}.txt`,
+          filenameBase: `staff-data-protection-${STAFF_DATA_PROTECTION_VERSION}`,
           description: "GDPR / Lög 90/2018 briefing. Required for every staff member.",
-          text: renderStaffDataProtectionBriefing(),
+          sourceLanguage: "is",
+          text: { is: renderStaffDataProtectionBriefing(), en: null },
         },
         {
           id: "staff-onboarding-checklist",
           title: "Operational Onboarding Checklist (Móttökugátlisti)",
           version: STAFF_ONBOARDING_CHECKLIST_VERSION,
-          filename: `staff-onboarding-checklist-${STAFF_ONBOARDING_CHECKLIST_VERSION}.txt`,
+          filenameBase: `staff-onboarding-checklist-${STAFF_ONBOARDING_CHECKLIST_VERSION}`,
           description:
             "Day-one operational rules: where data lives, what's allowed in coaching messages, incident reporting, offboarding. Required for every staff member.",
-          text: renderStaffOnboardingChecklist(),
+          sourceLanguage: "is",
+          text: { is: renderStaffOnboardingChecklist(), en: null },
         },
         {
           id: "staff-piece-rate",
           title: "Piece-rate Employment (Lausráðningarsamningur)",
           version: STAFF_PIECE_RATE_EMPLOYMENT_VERSION,
-          filename: `staff-piece-rate-${STAFF_PIECE_RATE_EMPLOYMENT_VERSION}.txt`,
+          filenameBase: `staff-piece-rate-${STAFF_PIECE_RATE_EMPLOYMENT_VERSION}`,
           description:
             "Click-through employment contract for clinicians paid per measurement. Lifeline as employer of record.",
-          text: renderStaffPieceRateEmployment(),
+          sourceLanguage: "is",
+          text: { is: renderStaffPieceRateEmployment(), en: null },
         },
         {
           id: "staff-contractor",
           title: "Contractor Agreement (Verktakasamningur)",
           version: STAFF_CONTRACTOR_VERSION,
-          filename: `staff-contractor-${STAFF_CONTRACTOR_VERSION}.txt`,
+          filenameBase: `staff-contractor-${STAFF_CONTRACTOR_VERSION}`,
           description:
             "Click-through contractor agreement for genuinely independent contractors (not used for clinicians by default).",
-          text: renderStaffContractorAgreement(),
+          sourceLanguage: "is",
+          text: { is: renderStaffContractorAgreement(), en: null },
         },
       ],
     },
@@ -258,27 +277,30 @@ export default function LegalDraftsPage() {
           id: "thjonustuskilmalar",
           title: "Klínískir skilmálar heilsumats (B2B service terms)",
           version: THJONUSTUSKILMALAR_VERSION,
-          filename: `thjonustuskilmalar-${THJONUSTUSKILMALAR_VERSION}.txt`,
+          filenameBase: `thjonustuskilmalar-${THJONUSTUSKILMALAR_VERSION}`,
           description: "Generic clinical service terms attached to every B2B service agreement.",
-          text: renderThjonustuskilmalar(),
+          sourceLanguage: "is",
+          text: { is: renderThjonustuskilmalar(), en: null },
         },
         {
           id: "thjonustusamningur",
           title: "Þjónustusamningur (B2B service agreement template)",
           version: THJONUSTUSAMNINGUR_VERSION,
-          filename: `thjonustusamningur-${THJONUSTUSAMNINGUR_VERSION}.txt`,
+          filenameBase: `thjonustusamningur-${THJONUSTUSAMNINGUR_VERSION}`,
           description:
             "Per-company B2B service agreement. Rendered here with placeholder company name + kennitala.",
-          text: renderThjonustusamningur(SAMPLE_COMPANY),
+          sourceLanguage: "is",
+          text: { is: renderThjonustusamningur(SAMPLE_COMPANY), en: null },
         },
         {
           id: "purchase-order",
           title: "Purchase Order template",
           version: "v1.0",
-          filename: "purchase-order-template.txt",
+          filenameBase: "purchase-order-template",
           description:
             "Per-engagement PO attached as appendix to the service agreement. Placeholder line items.",
-          text: renderPurchaseOrder(SAMPLE_PO),
+          sourceLanguage: "is",
+          text: { is: renderPurchaseOrder(SAMPLE_PO), en: null },
         },
       ],
     },
@@ -291,28 +313,31 @@ export default function LegalDraftsPage() {
           id: "medalia-joint-controller",
           title: "Medalia joint-controller arrangement",
           version: MEDALIA_JOINT_CONTROLLER_VERSION,
-          filename: `medalia-joint-controller-${MEDALIA_JOINT_CONTROLLER_VERSION}.txt`,
+          filenameBase: `medalia-joint-controller-${MEDALIA_JOINT_CONTROLLER_VERSION}`,
           description:
             "GDPR Art. 26 joint-controller arrangement for sjúkraskrá-grade health record data. Lawyer note: Lifeline already has a separate vinnslusamningur (DPA) with Medalia — review whether this Art. 26 arrangement supplements that, or whether the existing DPA covers the relationship sufficiently.",
-          text: renderMedaliaJointControllerArrangement(),
+          sourceLanguage: "is",
+          text: { is: renderMedaliaJointControllerArrangement(), en: null },
         },
         {
           id: "biody-dpa",
           title: "Biody Manager DPA",
           version: BIODY_DPA_VERSION,
-          filename: `biody-dpa-${BIODY_DPA_VERSION}.txt`,
+          filenameBase: `biody-dpa-${BIODY_DPA_VERSION}`,
           description:
             "GDPR Art. 28 DPA with Aminogram SAS (Biody Manager). Lifeline operates the Biody account + API integration but Biody's infrastructure stores client measurements — that storage activity makes Biody a processor regardless of who controls the workflow. Standard SaaS pattern.",
-          text: renderBiodyDPA(),
+          sourceLanguage: "is",
+          text: { is: renderBiodyDPA(), en: null },
         },
         {
           id: "dpia-interim",
           title: "DPIA — wellness-mode interim",
           version: DPIA_INTERIM_VERSION,
-          filename: `dpia-interim-${DPIA_INTERIM_VERSION}.txt`,
+          filenameBase: `dpia-interim-${DPIA_INTERIM_VERSION}`,
           description:
             "DPIA under GDPR Art. 35 / Lög 90/2018 §29 covering the current wellness-mode interim architecture. Signed by the persónuverndarfulltrúi (DPO).",
-          text: renderDPIAInterim(),
+          sourceLanguage: "is",
+          text: { is: renderDPIAInterim(), en: null },
         },
       ],
     },
@@ -325,10 +350,11 @@ export default function LegalDraftsPage() {
           id: "client-consent-biody-import",
           title: "Biody import consent (in-app toggle)",
           version: CLIENT_CONSENT_BIODY_IMPORT_VERSION,
-          filename: `client-consent-biody-import-${CLIENT_CONSENT_BIODY_IMPORT_VERSION}.txt`,
+          filenameBase: `client-consent-biody-import-${CLIENT_CONSENT_BIODY_IMPORT_VERSION}`,
           description:
             "Plain-language consent shown when a user opts in to syncing their Biody body composition into the app dashboard.",
-          text: renderClientConsentBiodyImport(),
+          sourceLanguage: "is",
+          text: { is: renderClientConsentBiodyImport(), en: null },
         },
       ],
     },
@@ -379,40 +405,18 @@ export default function LegalDraftsPage() {
             <h2 className="text-lg font-semibold text-[#1F2937]">{cat.title}</h2>
             <p className="text-xs text-gray-500 mt-0.5 max-w-3xl">{cat.blurb}</p>
           </div>
-          {cat.drafts.map((d) => {
-            const dataUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(d.text);
-            return (
-              <section key={d.id} id={d.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <header className="border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <h3 className="text-base font-semibold text-[#1F2937]">
-                      {d.title} <span className="text-xs font-normal text-gray-400 ml-1">{d.version}</span>
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">{d.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CopyButton text={d.text} />
-                    <a
-                      href={dataUrl}
-                      download={d.filename}
-                      className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
-                    >
-                      Download .txt
-                    </a>
-                  </div>
-                </header>
-                <pre className="px-5 py-4 text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed bg-gray-50/30 max-h-[420px] overflow-y-auto">
-                  {d.text}
-                </pre>
-                <DocReviewPanel
-                  documentKey={d.id}
-                  documentVersion={d.version}
-                  documentTitle={d.title}
-                  documentText={d.text}
-                />
-              </section>
-            );
-          })}
+          {cat.drafts.map((d) => (
+            <DocCard
+              key={d.id}
+              id={d.id}
+              title={d.title}
+              version={d.version}
+              filenameBase={d.filenameBase}
+              description={d.description}
+              sourceLanguage={d.sourceLanguage}
+              text={d.text}
+            />
+          ))}
         </div>
       ))}
     </div>
