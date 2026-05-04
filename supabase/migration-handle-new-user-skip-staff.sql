@@ -40,40 +40,41 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, auth
-AS $$
-DECLARE
-  meta_role TEXT;
-BEGIN
-  -- Staff path: when /api/admin/staff/create invites a user it
-  -- passes { name, role } in the GoTrue invite payload, which
-  -- ends up here as raw_user_meta_data->>'role'. Any of the six
-  -- staff roles → skip clients-row creation entirely. The
-  -- staff/create API has already (or will momentarily) inserted
-  -- the matching public.staff row using the same auth.users.id.
-  meta_role := NEW.raw_user_meta_data->>'role';
-  IF meta_role IN ('admin','coach','doctor','nurse','psychologist','lawyer') THEN
-    RETURN NEW;
-  END IF;
+AS $function$
+  DECLARE
+    meta_role TEXT;
+  BEGIN
+    -- Staff path: when /api/admin/staff/create invites a user it
+    -- passes { name, role } in the GoTrue invite payload, which
+    -- ends up here as raw_user_meta_data->>'role'. Any of the six
+    -- staff roles → skip the entire B2C welcome flow.
+    --   - no clients row (they're not a client)
+    --   - no welcome points (lifescore is a client-engagement metric)
+    --   - no activity-feed entry (the feed is the social wall)
+    meta_role := NEW.raw_user_meta_data->>'role';
+    IF meta_role IN ('admin','coach','doctor','nurse','psychologist','lawyer') THEN
+      RETURN NEW;
+    END IF;
 
-  -- Non-staff path (B2C / B2B client signups): create the clients
-  -- row exactly as the original trigger did. Adjust the columns
-  -- below if your previous trigger inserted more.
-  INSERT INTO public.clients (id, email, full_name)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(
-      NEW.raw_user_meta_data->>'full_name',
-      NEW.raw_user_meta_data->>'name',
-      ''
+    -- Non-staff path: identical to the original trigger.
+    INSERT INTO public.clients (id, email, full_name, created_at)
+    VALUES (
+      NEW.id,
+      NEW.email,
+      COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+      NOW()
     )
-  )
-  ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (id) DO NOTHING;
 
-  RETURN NEW;
-END;
-$$;
+    INSERT INTO public.lifescore_points (client_id, points, reason, category)
+    VALUES (NEW.id, 20, 'joined Lifeline Health', 'welcome');
+
+    INSERT INTO public.activity_feed (client_id, action, points)
+    VALUES (NEW.id, 'joined Lifeline Health', 20);
+
+    RETURN NEW;
+  END;
+  $function$;
 
 -- The trigger itself (on_auth_user_created) doesn't need to be
 -- recreated — it already calls handle_new_user(); we just
