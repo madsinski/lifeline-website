@@ -28,7 +28,7 @@ if (dsn) {
     environment: process.env.NEXT_PUBLIC_VERCEL_ENV || "development",
     // Never ship PII.
     sendDefaultPii: false,
-    beforeSend(event) {
+    beforeSend(event, hint) {
       const req = event.request;
       if (req?.query_string) req.query_string = "[redacted]";
       if (req?.url && HEALTH_ROUTE_PREFIXES.some((p) => req.url!.includes(p))) {
@@ -38,6 +38,41 @@ if (dsn) {
           delete (req.headers as Record<string, unknown>).cookie;
         }
       }
+
+      // Fire-and-forget mirror to /api/errors/capture so the admin
+      // panel can surface recent errors. Never blocks Sentry send.
+      try {
+        const err = (hint?.originalException as Error | undefined) || null;
+        const message =
+          event.message ||
+          err?.message ||
+          event.exception?.values?.[0]?.value ||
+          "(no message)";
+        const stack =
+          err?.stack ||
+          event.exception?.values?.[0]?.stacktrace?.frames
+            ?.map((f) => `${f.filename || ""}:${f.lineno || ""}:${f.colno || ""} ${f.function || ""}`)
+            .join("\n") ||
+          null;
+        const url = typeof window !== "undefined" ? window.location.href : null;
+        const pathname = typeof window !== "undefined" ? window.location.pathname : null;
+        fetch("/api/errors/capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message,
+            stack,
+            url,
+            pathname,
+            runtime: "browser",
+            user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+            fingerprint: event.fingerprint?.[0] || null,
+            level: event.level || "error",
+          }),
+          keepalive: true,
+        }).catch(() => undefined);
+      } catch { /* never block Sentry */ }
+
       return event;
     },
   });

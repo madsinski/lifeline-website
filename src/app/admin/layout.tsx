@@ -112,6 +112,15 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/errors",
+    label: "Error logs",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/access-review",
     label: "Access review",
     icon: (
@@ -499,6 +508,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/communication" && !isAdmin) return false;
             if (link.href === "/admin/data-requests" && !isAdmin) return false;
             if (link.href === "/admin/access-review" && !isAdmin) return false;
+            if (link.href === "/admin/errors" && !isAdmin) return false;
             if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !isAdmin) return false;
             if (link.href === "/admin/content" && !userPermissions.includes("manage_programs") && !isAdmin) return false;
             return true;
