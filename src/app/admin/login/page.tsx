@@ -18,9 +18,15 @@ import { supabase } from "@/lib/supabase";
 //      - URL hash:  #access_token=...&type=recovery|invite      (legacy implicit flow)
 //      - URL query: ?token_hash=...&type=recovery|invite        (newer PKCE flow)
 //    We detect either one, establish the session (verifyOtp for the
-//    PKCE form; the JS client auto-handles the hash form), and then
-//    show the "Set your password" card. After save we strip the URL
-//    so a refresh doesn't re-trigger the flow.
+//    PKCE form; the JS client auto-handles the hash form), then:
+//      a) If the user already has a verified MFA factor, the
+//         recovery session is only AAL1 — Supabase rejects
+//         updateUser({ password }) until we step up to AAL2. So
+//         we run the TOTP challenge inline first.
+//      b) Otherwise (e.g. a brand-new invitee with no MFA yet) we
+//         skip straight to the password form.
+//    After save we strip the URL so a refresh doesn't re-trigger
+//    the flow.
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -34,11 +40,41 @@ export default function AdminLoginPage() {
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
+  // MFA-step-up-during-recovery state. When the recovery session is
+  // AAL1 but the user has a verified TOTP factor, we challenge them
+  // here before letting them change the password. mfaRequired === false
+  // either means "no MFA enrolled" or "already at AAL2".
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
+
   // Forgot-password request state.
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSending, setForgotSending] = useState(false);
   const [forgotMsg, setForgotMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // After a recovery / invite session is established, decide whether
+  // an MFA step-up is required before we can show the password form.
+  // Supabase only allows updateUser({ password }) at AAL2 when the
+  // user has a verified factor.
+  const evaluateMfaRequirement = async (): Promise<boolean> => {
+    try {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const verified = factors?.totp.find((f) => f.status === "verified");
+      if (verified && aal?.currentLevel !== "aal2") {
+        setMfaFactorId(verified.id);
+        setMfaRequired(true);
+        return true;
+      }
+    } catch {
+      // MFA endpoints unreachable — fall through to password form;
+      // the updateUser call will still error if AAL2 is needed.
+    }
+    return false;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +112,7 @@ export default function AdminLoginPage() {
           return;
         }
         setSetupMode(detected);
+        await evaluateMfaRequirement();
         return;
       }
 
@@ -86,6 +123,7 @@ export default function AdminLoginPage() {
       if (!session) return;
       if (detected) {
         setSetupMode(detected);
+        await evaluateMfaRequirement();
       } else {
         // Already signed in by some other means (open in another tab,
         // refreshed after sign-in) — let the admin layout route by role.
@@ -134,6 +172,31 @@ export default function AdminLoginPage() {
     router.replace("/admin");
   };
 
+  const handleMfaStepUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaFactorId) return;
+    if (mfaCode.length !== 6 || mfaBusy) return;
+    setError("");
+    setMfaBusy(true);
+    try {
+      const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (challenge.error) throw challenge.error;
+      const verify = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.data.id,
+        code: mfaCode.trim(),
+      });
+      if (verify.error) throw verify.error;
+      // Session is now AAL2 — drop the MFA card so the password form shows.
+      setMfaRequired(false);
+      setMfaCode("");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotMsg(null);
@@ -172,8 +235,55 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* Setup-password card (invite / recovery flow) */}
-        {setupMode && (
+        {/* MFA step-up card — shown when a recovery session is AAL1
+            and the user has a verified TOTP factor. Supabase requires
+            AAL2 before any password change. */}
+        {setupMode && mfaRequired && (
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              Verify with your authenticator
+            </h2>
+            <p className="text-sm text-gray-500 mb-5">
+              Enter the 6-digit code from your authenticator app to continue.
+              Required by Supabase before a password reset takes effect.
+            </p>
+            <form onSubmit={handleMfaStepUp} className="space-y-5">
+              <div>
+                <label htmlFor="mfaCode" className="block text-sm font-medium text-gray-700 mb-1">
+                  6-digit code
+                </label>
+                <input
+                  id="mfaCode"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="123456"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-base font-mono tracking-[0.4em] text-center text-gray-900 focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all"
+                  autoFocus
+                />
+              </div>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={mfaBusy || mfaCode.length !== 6}
+                className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {mfaBusy ? "Verifying..." : "Verify & continue"}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Setup-password card (invite / recovery flow) — gated until
+            MFA step-up is complete (or not required). */}
+        {setupMode && !mfaRequired && (
           <div className="bg-white rounded-xl shadow-lg p-8 mb-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
               {setupMode === "invite" ? "Welcome — set your password" : "Reset your password"}
