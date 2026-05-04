@@ -290,6 +290,26 @@ function AccountPageInner() {
       const currentUser = session.user;
       setUser(currentUser);
 
+      // Lawyer hard-redirect: external counsel ("lawyer" role) is never a
+      // client and must not see the consumer account surface. Bounce
+      // straight to the legal drafts viewer — the admin layout owns
+      // everything from there. Other staff roles can still legitimately
+      // visit /account (e.g. a coach who is also a paying client).
+      if (currentUser.email) {
+        try {
+          const { data: lawyerCheck } = await supabase
+            .from("staff")
+            .select("role")
+            .eq("email", currentUser.email)
+            .eq("active", true)
+            .maybeSingle();
+          if (lawyerCheck?.role === "lawyer") {
+            router.replace("/admin/legal/drafts");
+            return;
+          }
+        } catch { /* fall through */ }
+      }
+
       // Detect staff role for the funny greeting. Falls through
       // silently if the user isn't in the staff table.
       if (currentUser.email) {

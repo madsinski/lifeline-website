@@ -794,6 +794,17 @@ export default function TeamPage() {
                             </button>
                             <button
                               onClick={async () => {
+                                // Explicit confirm before sending — the
+                                // button used to fire on a single click,
+                                // which made it easy to spam an external
+                                // recipient (e.g. counsel) with multiple
+                                // password-reset emails. The recipient's
+                                // email is shown so the admin can't
+                                // mis-click on the wrong row.
+                                const ok = window.confirm(
+                                  `Send a password-reset / login email to ${member.email}?\n\nThis will be visible in their inbox immediately. Only do this if they asked for it — duplicate sends look suspicious.`,
+                                );
+                                if (!ok) return;
                                 try {
                                   const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
                                     redirectTo: `${window.location.origin}/admin/login`,
