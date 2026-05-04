@@ -63,7 +63,7 @@ const defaultPermissions: Record<StaffRole, Permission[]> = {
   lawyer: ["view_legal"],
 };
 
-type EmploymentType = "salaried" | "piece_rate" | "contractor";
+type EmploymentType = "salaried" | "piece_rate" | "contractor" | "shareholder";
 
 interface TeamMember {
   id: string;
@@ -86,12 +86,14 @@ const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
   salaried: "Salaried",
   piece_rate: "Piece-rate (2 000 ISK/mæling)",
   contractor: "Independent contractor",
+  shareholder: "Shareholder (no payment relationship)",
 };
 
 const EMPLOYMENT_COLORS: Record<EmploymentType, string> = {
   salaried: "bg-sky-100 text-sky-800 border-sky-200",
   piece_rate: "bg-emerald-100 text-emerald-800 border-emerald-200",
   contractor: "bg-amber-100 text-amber-800 border-amber-200",
+  shareholder: "bg-indigo-100 text-indigo-800 border-indigo-200",
 };
 
 function defaultEmploymentTypeFor(role: StaffRole): EmploymentType {
@@ -279,87 +281,88 @@ export default function TeamPage() {
     setSaveError(null);
     setInviteStatus(null);
 
-    const memberData = {
-      name: newName.trim(),
-      email: newEmail.trim(),
-      phone: newPhone.trim(),
-      role: newRole,
-      employment_type: newEmployment,
-      permissions: newPermissions,
-      active: true,
-      invited: false,
-    };
+    if (connectionStatus !== "connected") {
+      // Offline / fallback mode — insert into local state only.
+      setTeam((prev) => [
+        ...prev,
+        {
+          id: `staff-${Date.now()}`,
+          name: newName.trim(),
+          email: newEmail.trim(),
+          phone: newPhone.trim(),
+          role: newRole,
+          employment_type: newEmployment,
+          active: true,
+          permissions: newPermissions,
+          invited: false,
+        },
+      ]);
+      setShowAddModal(false);
+      return;
+    }
 
-    let addedMember: TeamMember | null = null;
-
-    if (connectionStatus === "connected") {
-      const { data, error } = await supabase
-        .from("staff")
-        .insert(memberData)
-        .select()
-        .single();
-
-      if (error) {
-        setSaveError(`Failed to add: ${error.message}`);
+    setInviteSending(true);
+    setInviteStatus(sendInvite ? "Creating account and sending invite…" : "Creating account…");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setSaveError("Not authenticated.");
+        setInviteSending(false);
+        return;
+      }
+      const resp = await fetch("/api/admin/staff/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          name: newName.trim(),
+          email: newEmail.trim(),
+          phone: newPhone.trim(),
+          role: newRole,
+          employment_type: newEmployment,
+          permissions: newPermissions,
+          send_invite: sendInvite,
+        }),
+      });
+      const result = await resp.json();
+      if (!resp.ok || !result.ok) {
+        setSaveError(`Failed to add: ${result.error || resp.statusText}`);
+        setInviteSending(false);
         return;
       }
 
-      if (data) {
-        addedMember = {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          phone: data.phone || "",
-          role: data.role as StaffRole,
-          employment_type: (data.employment_type as EmploymentType | null) ?? newEmployment,
-          active: data.active ?? true,
-          permissions: (data.permissions as Permission[]) || newPermissions,
-          invited: data.invited ?? false,
-        };
-        setTeam((prev) => [...prev, addedMember!]);
-      }
-    } else {
-      addedMember = {
-        id: `staff-${Date.now()}`,
-        ...memberData,
+      const data = result.staff;
+      const addedMember: TeamMember = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        phone: data.phone || "",
+        role: data.role as StaffRole,
+        employment_type: (data.employment_type as EmploymentType | null) ?? newEmployment,
+        active: data.active ?? true,
+        permissions: (data.permissions as Permission[]) || newPermissions,
+        invited: data.invited ?? false,
       };
-      setTeam((prev) => [...prev, addedMember!]);
-    }
-
-    // Send invite email via Edge Function
-    if (sendInvite && addedMember) {
-      setInviteSending(true);
-      setInviteStatus("Sending invite...");
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const resp = await fetch(
-            "https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/invite-team",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ email: newEmail.trim(), name: newName.trim(), role: newRole }),
-            },
-          );
-          const result = await resp.json();
-          if (resp.ok) {
-            if (connectionStatus === "connected" && addedMember.id) {
-              await supabase.from("staff").update({ invited: true }).eq("id", addedMember.id);
-            }
-            setTeam(prev => prev.map(m => m.id === addedMember!.id ? { ...m, invited: true } : m));
-            setInviteStatus(`Invite email sent to ${newEmail.trim()}`);
-          } else {
-            setInviteStatus(`Invite failed: ${result.error || "Unknown error"}`);
-          }
-        } else {
-          setInviteStatus(`Not authenticated — could not send invite.`);
+      setTeam((prev) => {
+        const idx = prev.findIndex((m) => m.id === addedMember.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = addedMember;
+          return next;
         }
-      } catch {
-        setInviteStatus(`Could not send invite email.`);
-      }
+        return [...prev, addedMember];
+      });
+
+      setInviteStatus(
+        sendInvite
+          ? `Invite email sent to ${addedMember.email}. Auth user id is aligned with staff.id (RLS-ready).`
+          : `Auth user + staff row created (no invite email).`,
+      );
+    } catch (e) {
+      setSaveError(`Could not create staff: ${(e as Error).message}`);
+    } finally {
       setInviteSending(false);
     }
 
