@@ -3,6 +3,14 @@
 // string returned by the render functions is sha256-hashed and stored
 // in staff_agreement_acceptances.text_hash. Any change — even
 // whitespace — MUST bump the version so existing staff get re-prompted.
+//
+// LANGUAGE: Icelandic is the SOURCE language and the only legally
+// binding text for click-through acceptance — hashes are always
+// computed against the IS version. English translations are courtesy
+// translations for non-Icelandic-speaking staff and for the lawyer's
+// bilingual review. Acceptance flows must always pass language="is".
+
+export type DocumentLanguage = "is" | "en";
 
 export type StaffRoleLabel = "admin" | "coach" | "doctor" | "nurse" | "psychologist" | "lawyer";
 
@@ -142,7 +150,50 @@ export function requiredAgreementsForRole(role: StaffRoleLabel): Array<{ key: St
 }
 
 // ─── NDA (all staff) ─────────────────────────────────────────
-export function renderStaffNDA(): string {
+export function renderStaffNDA(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `STAFF NON-DISCLOSURE AGREEMENT
+Lifeline Health ehf. – Confidentiality undertaking
+Version ${STAFF_NDA_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Parties and scope
+1.1 Lifeline Health ehf., reg. no. 590925-1440, Langholtsvegi 111, 104 Reykjavík ("Lifeline Health") and the undersigned employee enter into this agreement on the handling of confidential information.
+1.2 The agreement covers all confidential information which the employee gains access to in their role, whether oral, written, electronic or otherwise observable.
+
+2. What is confidential information
+2.1 Confidential information for the purposes of this agreement is all non-public information relating to:
+    a) client health data, including name, kennitala, medical history and measurements;
+    b) operating plans, financial information, business relationships and contracts;
+    c) technical information, including software, system design, algorithms and documentation;
+    d) product roadmaps, project plans and unpublished marketing material;
+    e) staff information, including pay terms and contracts.
+
+3. Obligations of the employee
+3.1 The employee undertakes to:
+    a) keep confidential information secret and use it solely in connection with their role at Lifeline Health;
+    b) not disclose confidential information to any third party without Lifeline Health's prior written consent;
+    c) protect confidential information against unauthorised access, theft and unlawful disclosure;
+    d) return all confidential information, copies and IT equipment to Lifeline Health on termination.
+
+4. Exceptions
+4.1 The confidentiality obligation does not apply to information which:
+    a) is or becomes public without the employee's involvement;
+    b) the employee can demonstrably prove they already had before this agreement;
+    c) the employee lawfully obtains from a third party not bound by confidentiality;
+    d) must be disclosed to public authorities or courts under statutory obligation — in which case the employee must inform Lifeline Health without delay unless legally prohibited.
+
+5. Duration
+5.1 The obligations under this agreement apply during employment and for three (3) years after termination, unless statute provides otherwise — the duty of confidentiality regarding health data is however lifelong, in accordance with Act no. 34/2012 on healthcare professionals and the separate declaration thereon.
+
+6. Breach and damages
+6.1 Breach of this agreement may give rise to summary dismissal, liability in damages towards Lifeline Health and criminal liability under law, including Article 136 of the General Penal Code (Act no. 19/1940) and Act no. 75/2019 on the protection of trade secrets.
+
+7. Governing law and venue
+7.1 This agreement is governed by Icelandic law. Any dispute shall be brought before the District Court of Reykjanes (Héraðsdómur Reykjaness).`;
+  }
   return `TRÚNAÐARSAMNINGUR STARFSMANNS
 Lifeline Health ehf. – Samningur um trúnað og þagmælsku
 Útgáfa ${STAFF_NDA_VERSION}
@@ -188,7 +239,46 @@ Lifeline Health ehf. – Samningur um trúnað og þagmælsku
 // heilbrigðisstarfsmenn + lög nr. 74/1997 um sjúklingaréttindi.
 // Lifelong and non-waivable — treated as a separate doc from the NDA
 // so the clinical obligation is recorded explicitly.
-export function renderStaffConfidentiality(): string {
+export function renderStaffConfidentiality(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `HEALTHCARE PROFESSIONAL CONFIDENTIALITY DECLARATION
+Lifeline Health ehf. – Pursuant to Act no. 34/2012 and Act no. 74/1997
+Version ${STAFF_CONFIDENTIALITY_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+The undersigned healthcare professional, working for Lifeline Health ehf. (reg. no. 590925-1440), hereby declares:
+
+1. Statutory duty of confidentiality
+1.1 I am aware of my duty of confidentiality under Article 17 of Act no. 34/2012 on healthcare professionals and Articles 12–14 of Act no. 74/1997 on patients' rights, which covers everything I may learn in my role about a patient's health, treatment, personal circumstances, social relationships and other matters.
+1.2 The confidentiality obligation also applies to information I may derive from registered medical-record data, examination results, physical measurements and health-assessment reports.
+
+2. Scope
+2.1 I undertake not to disclose any information covered by the confidentiality obligation to any third party — orally, in writing or electronically — except where:
+    a) the patient has given written and informed consent;
+    b) it is necessary for the patient's treatment within the Lifeline Health team and other parties providing or participating in that treatment, in accordance with Article 17(5) of Act no. 34/2012;
+    c) required by law or court order.
+
+3. Cases of doubt
+3.1 If there is any doubt about whether disclosure is permissible, I shall seek guidance from Lifeline Health's chief physician, the Data Protection Officer or the managing director before any information is provided.
+
+4. Access to medical records
+4.1 I am aware that all access and processing in the medical-record system (Medalia, under Act no. 55/2009 on medical records) is logged and traceable, and that unauthorised use or browsing of medical records may give rise to both termination of employment and possible criminal liability.
+
+5. Lifelong confidentiality
+5.1 The duty of confidentiality is lifelong and does not end on termination of my employment with Lifeline Health.
+
+6. Consequences of breach
+6.1 Breach of the confidentiality obligation may give rise to:
+    a) summary dismissal;
+    b) notification to the Directorate of Health under Article 12 of Act no. 41/2007 on the Directorate of Health and Public Health;
+    c) fines or imprisonment up to one year under Article 136 of the General Penal Code (Act no. 19/1940);
+    d) liability in damages to the patient and Lifeline Health.
+
+7. Confirmation
+7.1 By electronic signature I confirm that I have read, understood and accepted this declaration and that it forms part of the terms of my engagement with Lifeline Health.`;
+  }
   return `YFIRLÝSING UM ÞAGNARSKYLDU HEILBRIGÐISSTARFSMANNS
 Lifeline Health ehf. – Skv. lögum nr. 34/2012 og lögum nr. 74/1997
 Útgáfa ${STAFF_CONFIDENTIALITY_VERSION}
@@ -226,7 +316,55 @@ Undirritaður heilbrigðisstarfsmaður, sem starfar fyrir Lifeline Health ehf. (
 }
 
 // ─── Acceptable use / device policy ──────────────────────────
-export function renderStaffAcceptableUse(): string {
+export function renderStaffAcceptableUse(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `DEVICE POLICY AND ACCESS MANAGEMENT
+Lifeline Health ehf. – Information-security and system-use policy
+Version ${STAFF_ACCEPTABLE_USE_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Scope
+1.1 This policy applies to all use by the employee of Lifeline Health's systems, software and devices, whether issued by the company (managed device) or being the employee's personal device used for work (BYOD).
+
+2. Access and passwords
+2.1 The employee is personally responsible for their login credentials and may not share them with others.
+2.2 Passwords must be at least 12 characters, unique (not reused from other services) and stored in a password manager.
+2.3 The employee shall use two-factor authentication (2FA) wherever offered.
+
+3. Devices that store or access health data
+3.1 A device used to handle health data must:
+    a) have a screen lock with password, fingerprint or face ID;
+    b) have encrypted storage (FileVault, BitLocker, iOS/Android default);
+    c) keep the operating system and security updates current;
+    d) be free from known malware risks (informally: no pirated software, no untrusted browser extensions without approval).
+
+4. Sensitive data
+4.1 Health data and personally identifiable information must only be stored in approved systems (Medalia medical record, Lifeline admin, approved cloud services).
+4.2 Health data must not be stored on local drives, in personal email accounts or in unapproved cloud services (e.g. personal Google Drive, Dropbox, iCloud).
+4.3 Printing shall only occur when necessary and printed material must be destroyed securely (shredder) when no longer needed.
+
+5. Email and communications
+5.1 Personally identifiable health data must not be sent in plain email. Approved encrypted communication systems shall be used (Medalia documents, Signal where approved).
+5.2 Customers and partners must not be invited to the employee's personal accounts.
+
+6. Incident reporting
+6.1 The employee shall notify their manager and the Data Protection Officer (pv@lifelinehealth.is) without delay in the case of:
+    a) loss or theft of a device storing health data;
+    b) suspected access breach;
+    c) accidental disclosure of personal data (e.g. sending to the wrong recipient);
+    d) suspected malware or cyberattack.
+
+7. Use outside work
+7.1 Lifeline Health equipment and accounts shall be used only for work. Personal use is permitted in moderation provided it does not breach this policy.
+
+8. Monitoring
+8.1 All activity in Lifeline Health systems is logged and Lifeline Health reserves the right to trace access if a breach is suspected. Breach of this policy may give rise to a warning, dismissal or criminal liability as applicable.
+
+9. Confirmation
+9.1 By electronic signature I confirm that I have read, understood and accepted this policy.`;
+  }
   return `TÆKJAREGLUR OG AÐGANGSSTJÓRNUN
 Lifeline Health ehf. – Reglur um upplýsingaöryggi og notkun kerfa
 Útgáfa ${STAFF_ACCEPTABLE_USE_VERSION}
@@ -273,7 +411,55 @@ Lifeline Health ehf. – Reglur um upplýsingaöryggi og notkun kerfa
 }
 
 // ─── Data-protection briefing / processor declaration ───────
-export function renderStaffDataProtectionBriefing(): string {
+export function renderStaffDataProtectionBriefing(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `DATA-PROTECTION BRIEFING FOR STAFF
+Lifeline Health ehf. – Statement on the handling of personal data
+Version ${STAFF_DATA_PROTECTION_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Purpose
+1.1 As an employee of Lifeline Health ehf., I process personal data on behalf of the company in the role of processor / processing agent, and I am bound by Act no. 90/2018 on data protection and the processing of personal data (GDPR, EU Regulation 2016/679).
+
+2. Legal basis for processing
+2.1 Health-data processing takes place on the basis of:
+    a) the patient's explicit consent under Article 9(2)(a) GDPR; or
+    b) the provision of healthcare under Article 9(2)(h) GDPR and Act no. 40/2007 on healthcare services.
+2.2 Operational data (pay, contracts, access management) is processed on the basis of contract and legitimate interests.
+
+3. Principles I shall follow
+3.1 Lawfulness, fairness and transparency — only process data for purposes the patient has been informed of.
+3.2 Purpose limitation — do not use data for purposes other than those originally defined.
+3.3 Data minimisation — only process the data necessary for the task at hand.
+3.4 Accuracy — ensure the data is correct and up to date.
+3.5 Storage limitation — do not retain data longer than necessary.
+3.6 Security — only process data in approved systems, in accordance with the Device Policy.
+
+4. Patient rights
+4.1 The patient has the right to:
+    a) know what data is stored about them;
+    b) request a copy (right of access);
+    c) have inaccurate data corrected;
+    d) request erasure where statute permits (the right to be forgotten is limited for medical records under Act no. 55/2009);
+    e) withdraw consent at any time.
+4.2 Requests from patients shall be forwarded to the Data Protection Officer (pv@lifelinehealth.is). The employee shall not respond directly to such requests.
+
+5. Incident reporting (data breach)
+5.1 Suspicion of a personal-data breach — whether unauthorised access, loss of data or wrong disclosure — shall be reported without delay to the Data Protection Officer.
+5.2 Lifeline Health notifies the Icelandic Data Protection Authority and the patient as required by law.
+
+6. Role of the employee vis-à-vis patients
+6.1 The employee is not an independent controller — all processing takes place on behalf of Lifeline Health, which is the controller vis-à-vis patients. The employee may therefore not take independent decisions on disclosure or other processing outside established procedures.
+
+7. Contacts
+7.1 Lifeline Health Data Protection Officer: pv@lifelinehealth.is
+7.2 Icelandic Data Protection Authority: postur@personuvernd.is · www.personuvernd.is
+
+8. Confirmation
+8.1 By electronic signature I confirm that I have received the data-protection briefing, understand my obligations under GDPR and Act no. 90/2018, and will follow the rules Lifeline Health sets for the handling of personal data.`;
+  }
   return `PERSÓNUVERNDARFRÆÐSLA FYRIR STARFSMENN
 Lifeline Health ehf. – Yfirlýsing um meðferð persónuupplýsinga
 Útgáfa ${STAFF_DATA_PROTECTION_VERSION}
@@ -325,7 +511,153 @@ Lifeline Health ehf. – Yfirlýsing um meðferð persónuupplýsinga
 // the app, how to report incidents, what to do at offboarding.
 // Bump STAFF_ONBOARDING_CHECKLIST_VERSION on any text change so
 // existing staff get re-prompted.
-export function renderStaffOnboardingChecklist(): string {
+export function renderStaffOnboardingChecklist(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `STAFF ONBOARDING CHECKLIST AND OPERATING PROCEDURES
+Lifeline Health ehf. – Acknowledgement of onboarding briefing
+Version ${STAFF_ONBOARDING_CHECKLIST_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+This checklist is a short guide to the day-to-day rules I undertake
+to follow as a Lifeline Health employee. It does not replace the NDA,
+the confidentiality declaration, the device policy or the data-
+protection briefing — it explains how those provisions are applied
+in my daily work. I confirm each item separately.
+
+1. Where the medical record is and where it is not
+1.1 The patient's medical record (clinical history, clinical interpretation,
+    doctor's letters, blood-test results and body composition as part of
+    the health assessment) is stored in Medalia, which operates the
+    medical record under Act no. 55/2009 and is a joint controller
+    with Lifeline under Article 26 GDPR.
+1.2 The Lifeline app and admin area are operational tools — bookings,
+    plans, communications between patient and coach, self-tracking.
+    They are NOT the medical record. Until the Medalia API integration
+    is complete the app operates as a wellness and self-tracking tool
+    (wellness mode).
+1.3 Clinical answers, interpretations and medical advice take place
+    inside Medalia or in a doctor's consultation — not via chat in the
+    app.
+
+2. Access principle — minimisation
+2.1 I only open the data I need to perform my role.
+2.2 I do NOT look up patients I am not serving — neither out of
+    curiosity, on behalf of a third party, nor for personal reasons.
+2.3 All access and read activity is logged. Lifeline reserves the
+    right to periodic access review and acts on abnormal usage.
+
+3. Role boundaries
+3.1 Coach: bookings, plans, exercise, motivational communication.
+3.2 Doctor / nurse: clinical interpretation, risk assessment, medical
+    consultations — performed in Medalia, not in the admin app.
+3.3 Psychologist: mental health — psychology records and notes go in
+    a separate system not accessible to other staff.
+3.4 Admin: operations, contracts, company invoicing — without access
+    to clinical data.
+
+4. The messaging system — what is and is not allowed
+4.1 Messages between me and the patient are NOT medical advice and
+    must not contain clinical diagnosis, medication changes,
+    interpretation of blood tests or disease diagnoses.
+4.2 If a patient asks a medical question (medication, symptoms,
+    interpretation of measurements) I refer them to Medalia or a
+    doctor's consultation and end with a short, neutral reply ("I'll
+    pass this on to our doctor").
+4.3 I never copy messages, measurements or information out of the
+    system — not into email, screenshots, personal devices or
+    personal accounts.
+
+5. Approved tools and channels
+5.1 Health data is handled only in Medalia, Lifeline admin and
+    approved encrypted communication systems (e.g. Signal where
+    admin approves).
+5.2 I never send kennitala, health information or measurements via
+    regular email, SMS or other open channels.
+5.3 I use two-factor authentication (2FA) where offered and sign out
+    of devices I am not using.
+
+6. Incidents — when and where to report
+6.1 I report without delay (within an hour where possible) to the
+    Data Protection Officer (pv@lifelinehealth.is) and my immediate
+    supervisor if:
+    a) a device storing work data is lost or stolen;
+    b) I send data to the wrong recipient;
+    c) I see unusual activity in the systems (a login I do not
+       recognise, unexpected queries, unexpected messages);
+    d) I become aware that I have looked up or processed data I
+       should not have;
+    e) a patient reports security or privacy concerns to me.
+6.2 Lifeline is responsible for assessing the incident and notifying
+    the Icelandic Data Protection Authority and the patient as
+    appropriate within 72 hours, in accordance with Article 33 GDPR.
+    My role is to report immediately — not to assess myself whether
+    the incident is reportable.
+
+7. Patient rights (GDPR 15–22)
+7.1 If a patient requests:
+    a) a copy of their data (right of access);
+    b) correction of incorrect information;
+    c) erasure (right to be forgotten — limited for medical records
+       under Act no. 55/2009);
+    d) data portability;
+    e) withdrawal of consent;
+       — I do not respond myself but forward the request to
+    pv@lifelinehealth.is and confirm to the patient that the request
+    has been received and will be answered within 30 days.
+
+8. The boundary between wellness and medical record (interim mode)
+8.1 Until the Medalia API arrives (estimated within 6 months) the
+    Lifeline app is classified as a wellness and self-tracking tool.
+8.2 I do not give medical advice in the app. I do not interpret
+    blood tests, change medication or make diagnoses.
+8.3 The patient may import their Biody-measured data into the app
+    with explicit consent — this does not change the fact that the
+    data is part of their medical record in Medalia. I look at that
+    data in Medalia when I need it clinically — not in the app.
+
+9. End of employment
+9.1 On termination I return all devices, keys and accounts to
+    Lifeline without delay.
+9.2 Access to systems is revoked immediately and I confirm that no
+    data remains on personal devices or personal accounts.
+9.3 My duty of confidentiality under Act no. 34/2012 and these
+    agreements is LIFELONG and does not end on termination.
+
+10. Monitoring and self-review
+10.1 I can at any time review this signed checklist in "My documents"
+     within Lifeline admin and so refresh the rules.
+10.2 Lifeline reviews these rules periodically; I confirm them again
+     when a new version is issued.
+10.3 The chief physician and Data Protection Officer are my contacts
+     for questions about confidentiality, clinical boundaries and
+     data protection.
+
+11. Confirmation of each item
+By electronic signature I confirm each item above:
+[ ] 1.   I know where the medical record is and where it is not.
+[ ] 2.   I respect the access rules and only look up what I need.
+[ ] 3.   I know the boundaries of my role.
+[ ] 4.   I know what is and is not allowed in the messaging system.
+[ ] 5.   I use only approved channels and tools.
+[ ] 6.   I know how and within what time to report incidents.
+[ ] 7.   I forward patient requests to pv@lifelinehealth.is.
+[ ] 8.   I respect the wellness/medical-record boundary in interim mode.
+[ ] 9.   I know what happens on termination and that confidentiality is lifelong.
+[ ] 10.  I know where to find these rules to refresh them.
+
+12. Final confirmation
+12.1 By electronic signature I confirm that:
+     a) I have read and understood all 11 sections of this checklist;
+     b) I will follow these rules in my daily work;
+     c) I understand that breach may lead to a warning, dismissal,
+        notification to the Directorate of Health (where applicable)
+        and criminal liability.
+12.2 Lifeline keeps a signed PDF copy of this checklist in my
+     document store (staff-acceptance-pdfs), and I can access it at
+     any time through "My documents" in the admin area.`;
+  }
   return `MÓTTÖKUGÁTLISTI OG VERKLAGSREGLUR FYRIR STARFSMENN
 Lifeline Health ehf. – Staðfesting móttökufræðslu
 Útgáfa ${STAFF_ONBOARDING_CHECKLIST_VERSION}
@@ -470,8 +802,100 @@ Með rafrænni undirritun staðfesti ég hvert atriði hér að ofan:
 // Lifeline's equipment + SOPs, and the measurements feed Lifeline's
 // sjúkraskrá. Fixed salary details belong in a bespoke ráðningar-
 // samningur PDF (kind: employment_contract) uploaded per employee.
-export function renderStaffPieceRateEmployment(): string {
+export function renderStaffPieceRateEmployment(language: DocumentLanguage = "is"): string {
   const isk = STAFF_PIECE_RATE_ISK_PER_MEASUREMENT.toLocaleString("is-IS");
+  if (language === "en") {
+    const iskEn = STAFF_PIECE_RATE_ISK_PER_MEASUREMENT.toLocaleString("en-US");
+    return `ON-CALL EMPLOYMENT CONTRACT — PERFORMANCE-BASED PAY
+Lifeline Health ehf. – On-call employment contract for healthcare professionals
+Version ${STAFF_PIECE_RATE_EMPLOYMENT_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Parties
+1.1 Employer: Lifeline Health ehf., reg. no. 590925-1440, Langholtsvegi 111, 104 Reykjavík ("Lifeline").
+1.2 Employee: the undersigned healthcare professional ("the employee").
+1.3 This is an employment contract under Act no. 19/1979, Act no. 30/1987 on holiday and Act no. 55/1980 on the working terms of employees. Lifeline is registered with the Directorate of Internal Revenue's wage-payer register and withholds income tax and pays the social-security contribution under Act no. 113/1990.
+
+2. Position and role
+2.1 The employee is engaged as a healthcare professional to perform health measurements and related clinical tasks for Lifeline — including body-composition measurements, blood-pressure, height and weight measurements, and recording responses to health-assessment questionnaires.
+2.2 The engagement is on-call without fixed working hours: Lifeline offers the employee individual measurement sessions with reasonable notice and the employee may accept or decline each session without reason and without consequence to the employment relationship.
+2.3 All healthcare services the employee provides under this engagement are performed under Lifeline's healthcare licence (Act no. 40/2007 on healthcare services). The chief physician of Lifeline bears ultimate medical responsibility for the clinical process.
+
+3. Professional licence
+3.1 The employee warrants that they hold a current licence from the Directorate of Health under Act no. 34/2012 on healthcare professionals and shall notify Lifeline without delay if the licence lapses, is restricted or comes under review.
+3.2 This contract terminates automatically without notice if the licence is revoked.
+
+4. Place of work
+4.1 Measurements take place at Lifeline's customers — typically in the capital region. By agreement the employee may perform measurements outside the capital region, in which case separate provisions on travel cost apply.
+
+5. Pay and pay structure
+5.1 Pay is performance-based (piece-rate): ${iskEn} ISK per complete measurement session the employee performs (one session = a combined health assessment for one individual: body composition, blood pressure, height, weight, and recording of questionnaire responses).
+5.2 Pay covers normal preparation, travel within the capital region, and recording in the medical record (Medalia).
+5.3 No overtime is paid above a measurement session, since the employee themselves decides how many sessions to take.
+5.4 A holiday allowance of 10.17% is calculated on all pay under Act no. 30/1987 and added automatically to the pay slip.
+5.5 December bonus and holiday bonus under the applicable trade-union collective agreement are paid pro rata according to measurement sessions performed.
+
+6. Payment arrangements
+6.1 Payroll runs at the end of each month. Lifeline pays out the wages for that month no later than the ${STAFF_PIECE_RATE_PAYMENT_DUE_DAY}th of the following month.
+6.2 A pay slip is issued in accordance with Article 5(2) of Act no. 55/1980 and contains the number of measurement sessions, pay amount, withholding, pension contribution (own and employer match) and holiday allowance.
+6.3 If wage payment is delayed beyond the due date without legitimate reason, default interest under Chapter III of Act no. 38/2001 applies.
+
+7. Withholding, social-security contribution and pension
+7.1 Lifeline withholds income tax under Act no. 45/1987 and pays the social-security contribution on gross wages under Act no. 113/1990. The employee enjoys accident-insurance entitlement from Icelandic Health Insurance during the engagement.
+7.2 Lifeline pays an 11.5% employer pension contribution under Act no. 129/1997 on mandatory pension insurance.
+7.3 The employee pays a 4% own pension contribution which is deducted from pay. Supplementary pension saving is voluntary and the employee notifies Lifeline of their election at the start of engagement.
+7.4 The employee notifies Lifeline of their union (e.g. Icelandic Nurses' Association, Icelandic Medical Association) so that the correct union and sickness-fund contributions are paid.
+
+8. Holiday and holiday entitlement
+8.1 The employee enjoys minimum holiday under Act no. 30/1987: 24 working days per holiday year (1 May – 30 April), or a 10.17% holiday allowance in pay as applicable when the work is sessional rather than continuous.
+8.2 Because of the on-call nature of the engagement, the holiday allowance is paid as a percentage of each pay (see §5.4) instead of continuous holiday days. Agreement on a longer holiday is permissible and shall then be made in writing.
+
+9. Sickness and unpaid leave
+9.1 The employee enjoys minimum sickness rights under Act no. 19/1979 and the applicable trade-union collective agreement — i.e. the right to sick pay for booked measurement sessions the employee was unable to attend due to demonstrable illness, to the extent provided by law and the collective agreement.
+9.2 Sickness must be notified to Lifeline immediately by email or phone — before the measurement session begins where possible.
+9.3 Long-term sickness or parental leave is governed by the general rules of Act no. 19/1979 and Act no. 144/2020 on parental and child leave.
+
+10. Cancellation of measurement sessions
+10.1 The employee may decline an individual measurement session before confirmation without reason.
+10.2 If the employee has confirmed a measurement session they shall give at least 48 hours' notice of cancellation. Later cancellation is not permitted except for sickness or force majeure.
+10.3 If Lifeline cancels a confirmed measurement session with less than 48 hours' notice, Lifeline shall pay the employee half-fee (${Math.round(STAFF_PIECE_RATE_ISK_PER_MEASUREMENT / 2).toLocaleString("en-US")} ISK) for each scheduled measurement in that session.
+
+11. Confidentiality and data protection
+11.1 The employee is bound by the statutory duty of confidentiality under Act no. 34/2012 and Act no. 74/1997, confirmed in a separate declaration (Confidentiality Declaration).
+11.2 The employee shall comply with the separate non-disclosure agreement (NDA), the device policy and the data-protection briefing of Lifeline Health, signed simultaneously with this contract.
+11.3 All data the employee processes in the engagement is the property of customers (personal data) and of Lifeline as controller under Act no. 90/2018 and as the operator of the medical record under Act no. 55/2009.
+
+12. Professional supervision and complaints
+12.1 The employee performs their duties in accordance with Lifeline's procedures, quality standards and safety rules.
+12.2 The chief physician of Lifeline exercises professional supervision. Incidents arising in the engagement shall be reported within 24 hours using Lifeline's incident form.
+
+13. Intellectual property
+13.1 All systems, procedures, questionnaires and recording forms are the property of Lifeline. The employee receives a user licence to them during the engagement and returns all electronic access on termination.
+
+14. Notice period
+14.1 Notice period is governed by Article 3 of Act no. 19/1979:
+    a) During the probation period (first 3 months): 1 week from either party.
+    b) After the probation period: 1 month.
+    c) After 5 years' service: 2 months.
+    d) After 10 years' service: 3 months.
+14.2 Notice shall be in writing (an email to the registered email address of the other party suffices).
+
+15. Summary termination
+15.1 Lifeline may terminate this contract immediately without notice if:
+    a) the employee grossly breaches confidentiality or trust;
+    b) the employee's licence lapses or is revoked;
+    c) the employee materially breaches the contract despite written warning.
+
+16. Governing law
+16.1 This contract is governed by Icelandic law.
+16.2 If a dispute arises and is not settled within 30 days it shall be brought before the District Court of Reykjanes (Héraðsdómur Reykjaness).
+
+17. Confirmation
+17.1 By electronic signature the employee confirms that they have read, understood and accepted this contract.
+17.2 Electronic signature has the same binding effect as a handwritten signature under Act no. 28/2001 on electronic signatures. A confirmation email with PDF copy, IP address and timestamp is sent to the employee on signing.`;
+  }
   return `LAUSRÁÐNINGARSAMNINGUR — AFKASTAHVETJANDI LAUNAKERFI
 Lifeline Health ehf. – Lausráðningarsamningur heilbrigðisstarfsmanns
 Útgáfa ${STAFF_PIECE_RATE_EMPLOYMENT_VERSION}
@@ -566,8 +990,93 @@ Lifeline Health ehf. – Lausráðningarsamningur heilbrigðisstarfsmanns
 // handles their own tax and pension. If you need to change the rate
 // or payment window, bump STAFF_CONTRACTOR_VERSION so every existing
 // signer has to re-acknowledge the new terms.
-export function renderStaffContractorAgreement(): string {
+export function renderStaffContractorAgreement(language: DocumentLanguage = "is"): string {
   const isk = STAFF_CONTRACTOR_ISK_PER_MEASUREMENT.toLocaleString("is-IS");
+  if (language === "en") {
+    const iskEn = STAFF_CONTRACTOR_ISK_PER_MEASUREMENT.toLocaleString("en-US");
+    return `INDEPENDENT CONTRACTOR AGREEMENT
+Lifeline Health ehf. – Contractor agreement for commercial health measurements
+Version ${STAFF_CONTRACTOR_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Parties
+1.1 Lifeline Health ehf., reg. no. 590925-1440, Langholtsvegi 111, 104 Reykjavík ("Lifeline" or "the customer").
+1.2 The undersigned healthcare professional ("the contractor"), engaged as an independent contractor under this agreement.
+1.3 The parties enter into this agreement as separate legal persons — the agreement does not create an employment relationship within the meaning of Act no. 28/1930 or Act no. 80/1938, and the contractor does not acquire employee rights (e.g. holiday, sick days, pension or unemployment-benefit rights) under this agreement.
+
+2. Scope of work
+2.1 The contractor performs health measurements for Lifeline's customers — body-composition, blood-pressure, height and weight measurements, and recording of responses to health questionnaires — in accordance with Lifeline's procedures and professional standards.
+2.2 Measurements take place on specified measurement days at Lifeline's customers, at a time and place which Lifeline notifies with reasonable notice.
+2.3 Each individual measurement session (a combined health assessment for one individual) constitutes one "measurement" within the meaning of this agreement.
+
+3. Professional requirements and licence
+3.1 The contractor warrants holding a valid licence as a nurse / doctor / healthcare assistant (as applicable) from the Directorate of Health under Act no. 34/2012 on healthcare professionals, and that the licence is valid while this agreement is in force.
+3.2 The contractor shall notify Lifeline without delay if their licence lapses, is restricted, or is under review by the Directorate of Health. The agreement terminates automatically if the licence is revoked.
+3.3 The contractor is bound by the procedures, safety rules and quality standards Lifeline sets for health measurements, since Lifeline operates as a healthcare service under Act no. 40/2007 and is responsible to patients.
+
+4. Compensation
+4.1 The contractor is paid ${iskEn} ISK per complete measurement performed.
+4.2 The above amount is exclusive of VAT — healthcare services are VAT-exempt under Article 2(2) of Act no. 50/1988 on value-added tax.
+4.3 Compensation covers time, preparation, travel within the capital region, recording in Lifeline's medical record, and follow-up after measurements.
+4.4 Lifeline does not pay travel allowance, per diem or other expenses of the contractor unless agreed in writing.
+
+5. Invoicing and payment
+5.1 At the end of each month the contractor sends Lifeline an invoice with: number of measurements, location and date, total amount.
+5.2 Lifeline pays correctly issued invoices within ${STAFF_CONTRACTOR_PAYMENT_DAYS} days of receipt.
+5.3 If payment is delayed beyond the due date without legitimate reason Lifeline pays default interest under Chapter III of Act no. 38/2001 on interest and price-indexing.
+5.4 The contractor is responsible for their own bookkeeping and tax withholding under Act no. 45/1987 on withholding of public charges and Act no. 50/1988 on value-added tax (although healthcare services are VAT-exempt).
+
+6. Taxes, pension and insurance
+6.1 The contractor operates under their own kennitala and is themselves responsible for:
+    a) payment of withholding tax on the fee (Act no. 45/1987);
+    b) payment of pension contributions to a recognised pension fund (Act no. 129/1997 on mandatory pension insurance);
+    c) payment of social-security contribution and other public charges;
+    d) own health and accident insurance.
+6.2 Lifeline is not obliged to withhold or remit any public charges from the contractor's fee.
+
+7. Cancellations and changes
+7.1 Either party may cancel an individual measurement session with at least 48 hours' notice without compensation.
+7.2 If Lifeline cancels a measurement session with less than 48 hours' notice, the contractor is paid a corresponding half-fee (1,000 ISK) per scheduled measurement in that session, provided the contractor had confirmed participation.
+7.3 If the contractor fails to attend or is unable to perform a measurement session without 48 hours' notice, and Lifeline must arrange a substitute, Lifeline may withhold compensation for that session and may seek demonstrable extra cost of the substitute from the contractor.
+
+8. Confidentiality and data protection
+8.1 The contractor is bound by the specific duty of confidentiality of healthcare professionals under Act no. 34/2012 and patients' rights under Act no. 74/1997, as well as the confidentiality obligation towards Lifeline under a separate non-disclosure agreement which is part of the contractor's onboarding.
+8.2 All personal data which the contractor accesses in the course of work under this agreement belongs to Lifeline's customers and to Lifeline itself as controller under Act no. 90/2018 on data protection. The contractor is a processor within the meaning of the Act.
+
+9. Professional liability and insurance
+9.1 Lifeline bears professional responsibility for the healthcare service vis-à-vis patients as the operator with a Directorate-of-Health licence.
+9.2 The contractor is responsible for their own conduct and negligence under general rules of damages, and shall report to Lifeline all incidents arising in the work within 24 hours.
+9.3 The contractor is advised to hold professional indemnity insurance.
+
+10. Intellectual property and data processing
+10.1 All systems, procedures, questionnaires, recording forms and other materials Lifeline provides to the contractor are Lifeline's property. The contractor receives a user licence to them while the agreement is in force.
+10.2 Measurement data and medical-record data created in the course of work are the property of Lifeline's customers (personal data) and of Lifeline as the operator of the medical record under Act no. 55/2009.
+
+11. Term and termination
+11.1 The agreement enters into force on the contractor's electronic signature and is for an indefinite term.
+11.2 Either party may terminate without reason on 14 days' written notice (an email to the registered email address of the other party suffices).
+11.3 Lifeline may terminate without notice if:
+    a) the contractor's licence lapses or is revoked;
+    b) the contractor grossly breaches confidentiality or trust;
+    c) the contractor fails to meet their obligations under this agreement despite warning.
+11.4 Termination does not affect measurements already performed or amounts already due.
+
+12. Assignment of rights and obligations
+12.1 The contractor may not subcontract the work under this agreement to any third party without Lifeline's prior written consent.
+
+13. Changes to the agreement
+13.1 Changes to this agreement shall be made in writing and signed by both parties. Changes to compensation or termination provisions are material and require a new version of the agreement.
+
+14. Governing law and venue
+14.1 This agreement is governed by Icelandic law.
+14.2 If a dispute arises between the parties and is not settled within 30 days it shall be brought before the District Court of Reykjanes (Héraðsdómur Reykjaness).
+
+15. Confirmation
+15.1 By electronic signature the contractor confirms that they have read, understood and accepted this agreement, and that they have authority to undertake their obligations under it.
+15.2 Electronic signature has the same binding effect as a handwritten signature under Act no. 28/2001 on electronic signatures. Confirmation has been sent to the contractor by email as a PDF document together with timestamp and IP address.`;
+  }
   return `VERKTAKASAMNINGUR
 Lifeline Health ehf. – Verktakasamningur um heilsumælingar í atvinnuskyni
 Útgáfa ${STAFF_CONTRACTOR_VERSION}
@@ -650,7 +1159,9 @@ Lifeline Health ehf. – Verktakasamningur um heilsumælingar í atvinnuskyni
 }
 
 // ─── Registry: key → renderer, for generic code paths ────────
-export const STAFF_DOC_REGISTRY: Record<string, { version: string; title: string; render: () => string }> = {
+// The render() default of "is" preserves the legally binding text for
+// existing callers that hash text for click-through acceptance.
+export const STAFF_DOC_REGISTRY: Record<string, { version: string; title: string; render: (lang?: DocumentLanguage) => string }> = {
   [STAFF_NDA_KEY]: { version: STAFF_NDA_VERSION, title: "Trúnaðarsamningur (NDA)", render: renderStaffNDA },
   [STAFF_CONFIDENTIALITY_KEY]: { version: STAFF_CONFIDENTIALITY_VERSION, title: "Yfirlýsing um þagnarskyldu (heilbrigðisstarfsmaður)", render: renderStaffConfidentiality },
   [STAFF_ACCEPTABLE_USE_KEY]: { version: STAFF_ACCEPTABLE_USE_VERSION, title: "Tækjareglur og aðgangsstjórnun", render: renderStaffAcceptableUse },

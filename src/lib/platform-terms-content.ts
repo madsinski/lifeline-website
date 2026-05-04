@@ -2,6 +2,15 @@
 // The EXACT string returned by the render functions is hashed and stored in
 // platform_agreement_acceptances.text_hash. Any change — even whitespace —
 // MUST bump the version so existing users get re-prompted to accept.
+//
+// LANGUAGE: Icelandic is the SOURCE language (the version hashed +
+// legally binding under §6.1 of each doc — Icelandic law). English
+// translations are provided as a courtesy for non-Icelandic-speaking
+// users and for the lawyer's bilingual review. If the IS and EN
+// versions ever conflict, IS wins. Acceptance flows must always pass
+// language="is" so the hash is computed against the binding text.
+
+export type DocumentLanguage = "is" | "en";
 
 export const TOS_VERSION = "v1.1";
 export const DPA_VERSION = "v1.0";
@@ -14,7 +23,55 @@ export const EMPLOYEE_TOS_KEY = "employee-terms-of-service";
 export const HEALTH_CONSENT_KEY = "health-assessment-consent";
 
 // ─── Terms of Service (platform use) ────────────────────────
-export function renderTermsOfService(): string {
+export function renderTermsOfService(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `TERMS OF USE
+Lifeline Health ehf. – Service portal for employers
+Version ${TOS_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Parties and scope
+1.1 Lifeline Health ehf., reg. no. 590925-1440, Langholtsvegi 111, 104 Reykjavík ("Lifeline Health") operates a service portal (heilsumat.lifelinehealth.is and related URLs) which allows employers to enrol employees in health-assessment services and manage their participation.
+1.2 These terms govern all use of the service portal by employers, their contact persons, and any other authorised users.
+1.3 By creating an account and ticking the acceptance checkbox the user confirms that they have read and accept these terms on behalf of the employer.
+
+2. Access and authority
+2.1 The employer's contact person warrants that they are authorised to act for the company and to bind it through their entries.
+2.2 The contact person is responsible for keeping their login credentials secure and for notifying Lifeline Health without delay if account misuse is suspected.
+
+3. Acceptable use
+3.1 The user shall not:
+    a) use the service portal unlawfully or contrary to general standards of decency;
+    b) attempt to disrupt or impair the operation or security of the portal;
+    c) submit false, misleading or deceptive information about employees;
+    d) upload personal data which the user has no lawful basis to process.
+3.2 Lifeline Health reserves the right to disable any account which breaches these terms.
+
+4. Role and limitation of liability
+4.1 The service portal is an administrative tool for managing health-assessment projects and does not replace the actual healthcare service or medical advice.
+4.2 Lifeline Health uses reasonable efforts to keep the portal in operation but does not warrant that it will always be free from defects, interruptions or security incidents.
+4.3 Lifeline Health is not liable for any loss to the user caused by malfunctions, third-party providers, or events beyond its reasonable control.
+
+5. Intellectual property
+5.1 All content on the service portal — including software, text, images, trademarks and design — is the property of Lifeline Health or its partners and protected by copyright and intellectual-property law.
+5.2 The user may not copy, modify, distribute or commercially exploit the content without Lifeline Health's prior written consent.
+
+6. Fees and commercial agreement
+6.1 Use of the service portal itself is provided at no charge to the employer; fees for the actual health-assessment service are charged on the basis of a separate service agreement and purchase order signed electronically before service is delivered.
+6.2 These terms do not replace the commercial service agreement for health-assessment services.
+
+7. Termination
+7.1 The user may at any time request that their account be closed by emailing contact@lifelinehealth.is.
+7.2 Lifeline Health may close an account on reasonable notice or without notice if the user breaches these terms.
+
+8. Changes to these terms
+8.1 Lifeline Health may update these terms. For material changes the user will be asked to accept the new version before continued use is permitted.
+
+9. Governing law and venue
+9.1 These terms are governed by Icelandic law. Any dispute shall be brought before the District Court of Reykjanes (Héraðsdómur Reykjaness).`;
+  }
   return `NOTKUNARSKILMÁLAR
 Lifeline Health ehf. – Þjónustusíða fyrir vinnuveitendur
 Útgáfa ${TOS_VERSION}
@@ -61,7 +118,72 @@ Lifeline Health ehf. – Þjónustusíða fyrir vinnuveitendur
 }
 
 // ─── Data Processing Agreement (GDPR) ──────────────────────
-export function renderDataProcessingAgreement(): string {
+export function renderDataProcessingAgreement(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `DATA PROCESSING AGREEMENT
+Lifeline Health ehf. – Employee health assessment
+Version ${DPA_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Background and purpose
+1.1 This data processing agreement is entered into pursuant to Article 28 of Regulation (EU) 2016/679 of the European Parliament and the Council (GDPR) and Act no. 90/2018 on data protection and the processing of personal data.
+1.2 The agreement governs all processing of personal data which Lifeline Health ehf. (the "processor") performs on behalf of the employer (the "controller") in connection with the health-assessment service.
+
+2. Definitions
+2.1 Terms used in this agreement have the meaning given in Article 4 GDPR.
+
+3. Roles of the parties
+3.1 The controller is the employee's employer and determines the purpose and means of processing the employee data which it transfers to the processor.
+3.2 The processor processes the personal data only in accordance with the controller's documented instructions and in compliance with this agreement.
+3.3 When an employee participates in the health assessment and provides their direct consent, Lifeline Health becomes an independent controller of that individual's health data under Act no. 34/2012 on healthcare professionals and Act no. 55/2009 on medical records. That processing falls outside this agreement.
+
+4. Nature and purpose of processing
+4.1 The purpose of processing is to enable Lifeline Health to offer the controller's employees participation in the health assessment and to manage bookings and the status of each employee throughout the process.
+4.2 The nature of processing is collection, storage, transmission, deletion and other handling of personal data under this agreement.
+
+5. Categories of personal data
+5.1 The following categories of personal data will be processed on behalf of the controller:
+    a) name, kennitala (Icelandic ID number), email and phone number of employees;
+    b) the employee's status in the invitation flow (invitation sent, booking, attendance);
+    c) the employee's affiliation with the employer (membership identifier).
+5.2 Special categories of health data (Art. 9 GDPR) are not processed on behalf of the controller. Such processing takes place under the responsibility of Lifeline Health as an independent controller, on the basis of the employee's direct consent.
+
+6. Categories of data subjects
+6.1 The controller's employees enrolled in its health-assessment project.
+
+7. Retention period
+7.1 Information referred to in §5.1 is retained while the controller is an active customer of Lifeline Health.
+7.2 When the engagement ends the processor will delete or return the data on the controller's instructions, unless Lifeline Health is required by Icelandic medical-record law to retain it for longer.
+
+8. Sub-processors
+8.1 The processor uses the following sub-processors to deliver the service:
+    a) Medalia ehf. – hosting of the FHIR-compliant medical record (Iceland);
+    b) Supabase Inc. – database and authentication (EEA);
+    c) Resend Inc. – transactional email (EEA / United States, on the basis of Standard Contractual Clauses);
+    d) Vercel Inc. – hosting of the service portal (EEA).
+8.2 Changes to sub-processors will be notified with reasonable prior notice.
+
+9. Security measures
+9.1 The processor implements appropriate technical and organisational security measures pursuant to Article 32 GDPR, including encryption of kennitala, access control, monitoring of processing activities, and regular security reviews.
+9.2 Personnel of the processor involved in the processing are bound by confidentiality.
+
+10. Rights of data subjects
+10.1 The processor assists the controller in fulfilling its obligations towards data subjects, including the right of access, rectification and erasure, to the extent reasonably possible.
+
+11. Notification of personal-data breach
+11.1 The processor will notify the controller without undue delay, and in any event no later than 48 hours after becoming aware of a breach, in accordance with Article 33 GDPR.
+
+12. Deletion or return of data
+12.1 At the end of the service, in accordance with the controller's instructions, the processor will delete or return all personal data it has processed, unless Icelandic law requires retention.
+
+13. Liability
+13.1 The parties are each responsible for their respective role under GDPR and Act no. 90/2018.
+
+14. Governing law and venue
+14.1 This processing agreement is governed by Icelandic law. Any dispute shall be brought before the District Court of Reykjanes (Héraðsdómur Reykjaness).`;
+  }
   return `VINNSLUSAMNINGUR UM PERSÓNUUPPLÝSINGAR
 Lifeline Health ehf. – Heilsumat starfsmanna
 Útgáfa ${DPA_VERSION}
@@ -127,7 +249,54 @@ Lifeline Health ehf. – Heilsumat starfsmanna
 // ─── Employee Terms of Service (platform use) ──────────────
 // Covers an employee's personal use of the Lifeline portal / app —
 // distinct from the commercial TOS the contact person accepts.
-export function renderEmployeeTermsOfService(): string {
+export function renderEmployeeTermsOfService(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `TERMS OF USE FOR EMPLOYEES
+Lifeline Health ehf. – Service portal and mobile app
+Version ${EMPLOYEE_TOS_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. Parties and scope
+1.1 Lifeline Health ehf., reg. no. 590925-1440, Langholtsvegi 111, 104 Reykjavík ("Lifeline Health") operates a service portal and mobile app which lets you participate in the health assessment your employer offers you.
+1.2 These terms govern your personal use of the service. They do not replace the commercial terms which your employer has accepted with Lifeline Health.
+
+2. Healthcare licence and Lifeline Health's role
+2.1 Lifeline Health provides healthcare services under licence from the Directorate of Health (Embætti landlæknis) and is operated in accordance with Act no. 40/2007 on healthcare services and Act no. 34/2012 on healthcare professionals.
+2.2 The healthcare professionals of Lifeline Health, including doctors, all hold the licences required by the Directorate of Health.
+2.3 Your medical-record data is stored with Medalia ehf., a recognised medical-record service provider licensed under Act no. 55/2009 on medical records, in accordance with the FHIR standard.
+
+3. Access and proper use
+3.1 You must be 18 years or older to use the service.
+3.2 You undertake to keep your login credentials secure and to notify Lifeline Health without delay if misuse is suspected.
+3.3 You use the service at your own risk and undertake to provide accurate information in questionnaires and measurements.
+
+4. Participation is voluntary
+4.1 Participation in the health assessment is entirely voluntary. You may decline, withdraw at any time or stop using the service without consequence to your employment relationship.
+4.2 Lifeline Health does not transmit information about your decision to your employer without your consent — see the privacy terms.
+
+5. Access to results
+5.1 The results of your health assessment will be available in the Medalia medical-record system. A Lifeline Health doctor interprets the results and advises you.
+5.2 Your employer receives no personally identifiable health data about you.
+
+6. Intellectual property
+6.1 All content of the service portal and mobile app — software, text, images and design — is the property of Lifeline Health or its partners and protected by copyright and intellectual-property law.
+
+7. Limitation of liability
+7.1 Lifeline Health uses reasonable efforts to keep the service in operation but does not warrant that it will always be free from defects or interruptions.
+7.2 Recommendations based on the health assessment are general guidance and do not replace emergency treatment or a visit to primary care when needed.
+
+8. Termination of access
+8.1 You may at any time request that your account be closed by emailing contact@lifelinehealth.is.
+8.2 Lifeline Health may close an account on reasonable notice or without notice if the user breaches these terms.
+
+9. Changes to these terms
+9.1 Lifeline Health may update these terms. For material changes you will be asked to accept the new version before continued use is permitted.
+
+10. Governing law and venue
+10.1 These terms are governed by Icelandic law. Any dispute shall be brought before the District Court of Reykjanes (Héraðsdómur Reykjaness).`;
+  }
   return `NOTKUNARSKILMÁLAR FYRIR STARFSMENN
 Lifeline Health ehf. – Þjónustusíða og snjallforrit
 Útgáfa ${EMPLOYEE_TOS_VERSION}
@@ -177,7 +346,81 @@ Lifeline Health ehf. – Þjónustusíða og snjallforrit
 // health data AND informed consent under lög nr. 74/1997 um
 // réttindi sjúklinga. Separate from the TOS so the two can be
 // audited + presented independently.
-export function renderHealthAssessmentConsent(): string {
+export function renderHealthAssessmentConsent(language: DocumentLanguage = "is"): string {
+  if (language === "en") {
+    return `INFORMED CONSENT FOR HEALTH ASSESSMENT
+Lifeline Health ehf. – Health-assessment service
+Version ${HEALTH_CONSENT_VERSION}
+
+UNOFFICIAL ENGLISH TRANSLATION. The Icelandic version is the legally
+binding text; in case of any conflict the Icelandic version prevails.
+
+1. About this consent
+1.1 By ticking this consent you confirm that you have read and understood the information below and give your informed consent to the processing of your health data in connection with the health assessment provided by Lifeline Health ehf., reg. no. 590925-1440 ("Lifeline Health").
+1.2 This consent is given pursuant to Article 9 of Regulation (EU) 2016/679 (GDPR), Article 11 of Act no. 90/2018 on processing of special-category personal data, and Act no. 74/1997 on patients' rights.
+
+2. Who performs the health assessment?
+2.1 Lifeline Health performs the health assessment under licence from the Directorate of Health (Embætti landlæknis) and in accordance with Act no. 40/2007 on healthcare services.
+2.2 The doctors and other healthcare professionals of Lifeline Health hold the licences required by the Directorate of Health (Act no. 34/2012 on healthcare professionals) and are bound by the duty of confidentiality under Article 17 of that Act.
+
+3. Who stores your medical-record data?
+3.1 Your medical-record data is recorded and stored in the Medalia medical-record system operated by Medalia ehf., a recognised medical-record provider licensed under Act no. 55/2009 on medical records.
+3.2 The data is stored to the FHIR standard and meets the requirements of data-protection and medical-record law concerning security and access control.
+3.3 Lifeline Health and Medalia are joint controllers for the processing, each in their respective role, under Article 26 GDPR.
+
+4. What data will be processed?
+4.1 Your responses to questionnaires on lifestyle, health, family history and previous illness.
+4.2 Physical measurements: height, weight, blood pressure, body composition (measured with the Biody device).
+4.3 Blood-test results from Sameind or an equivalent recognised laboratory.
+4.4 The doctor's clinical findings and risk assessment, e.g. on the basis of the SCORE2 algorithm.
+4.5 Your communications with the healthcare professionals of Lifeline Health through the service portal.
+
+5. For what purpose?
+5.1 To perform a clinical health assessment and risk assessment for you.
+5.2 To provide you with personalised recommendations and a health-promotion plan.
+5.3 To maintain your medical record so as to ensure continuity of care.
+5.4 To follow up on the results with you through the service portal.
+
+6. Legal bases
+6.1 For the actual processing of health data in the medical record: Article 13(1) of Act no. 55/2009 on medical records and Article 9(2)(h) GDPR (necessary for the provision of healthcare).
+6.2 For other processing (e.g. communications via the service portal): Article 9(2)(a) GDPR (your explicit consent, given here).
+
+7. Who has access to the data?
+7.1 The healthcare professionals of Lifeline Health involved in your health assessment.
+7.2 You yourself — you have access to your own data through the Lifeline Health service portal and Medalia's patient view.
+7.3 Your employer does NOT receive personally identifiable health data about you. They receive only attendance confirmation or non-identifiable aggregate data.
+7.4 Third parties have no access except with your specific consent or as required by law.
+
+8. Retention period
+8.1 Medical-record data is retained in accordance with Act no. 55/2009 on medical records, which prescribes a minimum retention period for medical records.
+8.2 Other personal data is retained while you remain an active user of the service and deleted within a reasonable time after you stop using the service, unless statutory obligations require otherwise.
+
+9. Your rights
+9.1 You have the right to:
+    a) access information about yourself;
+    b) have inaccurate information corrected;
+    c) have information erased where this is permitted by law;
+    d) restrict processing or object to it;
+    e) port your data to another provider;
+    f) withdraw your consent at any time without effect on your employment relationship.
+9.2 You also have the right to lodge a complaint with the Icelandic Data Protection Authority (personuvernd.is) if you believe your personal data has been handled improperly.
+
+10. Withdrawing consent
+10.1 You may withdraw your consent at any time by emailing contact@lifelinehealth.is.
+10.2 Withdrawal does not affect the lawfulness of processing carried out on the basis of consent before withdrawal, nor processing based on other legal grounds (e.g. Act no. 55/2009 on medical records).
+
+11. Risks and limitations of the service
+11.1 The Lifeline Health assessment is a screening and risk assessment and does not replace medical diagnosis or treatment by primary care or a specialist.
+11.2 The results reflect your health at the time of the examination and may change.
+11.3 If you receive results that cause you concern, seek further assistance from primary care or a specialist.
+
+12. Consent
+12.1 By ticking the consent box you confirm that:
+    a) you have received sufficient information about the purpose and nature of the processing;
+    b) you give informed and direct consent to the processing of your health data;
+    c) you understand that you may withdraw your consent at any time;
+    d) you are 18 years or older.`;
+  }
   return `UPPLÝST SAMÞYKKI FYRIR HEILSUMAT
 Lifeline Health ehf. – Heilsumatsþjónusta
 Útgáfa ${HEALTH_CONSENT_VERSION}

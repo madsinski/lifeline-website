@@ -117,7 +117,8 @@ export default function LegalDraftsPage() {
           description:
             "Full inventory of legal basis, data categories, hosting, encryption, access controls, audit logging, DSR workflow, processors, breach response, DPIA, staff training, and the wellness/sjúkraskrá architecture. Maintained in src/lib/security-posture.ts — bump version + last_updated when content changes.",
           // Bilingual document: Icelandic body with English section headers.
-          // Same string serves both toggles for now.
+          // Same string serves both toggles — keep as-is until a fully
+          // English version of the posture statement is drafted.
           sourceLanguage: "is",
           text: { is: renderSecurityPosture(), en: renderSecurityPosture() },
         },
@@ -136,7 +137,7 @@ export default function LegalDraftsPage() {
           description:
             "Public privacy policy at lifelinehealth.is/privacy. Plain-text mirror — styled version is at the live URL.",
           sourceLanguage: "en",
-          text: { is: null, en: renderPublicPrivacyPolicy() },
+          text: { is: renderPublicPrivacyPolicy("is"), en: renderPublicPrivacyPolicy("en") },
         },
         {
           id: "terms-of-service",
@@ -146,7 +147,7 @@ export default function LegalDraftsPage() {
           description:
             "Public terms at lifelinehealth.is/terms. Plain-text mirror — styled version is at the live URL.",
           sourceLanguage: "en",
-          text: { is: null, en: renderPublicTermsOfService() },
+          text: { is: renderPublicTermsOfService("is"), en: renderPublicTermsOfService("en") },
         },
       ],
     },
@@ -162,7 +163,7 @@ export default function LegalDraftsPage() {
           filenameBase: `platform-tos-${TOS_VERSION}`,
           description: "Click-through TOS for B2C clients on app signup.",
           sourceLanguage: "is",
-          text: { is: renderTermsOfService(), en: null },
+          text: { is: renderTermsOfService("is"), en: renderTermsOfService("en") },
         },
         {
           id: "platform-dpa",
@@ -171,7 +172,7 @@ export default function LegalDraftsPage() {
           filenameBase: `platform-dpa-${DPA_VERSION}`,
           description: "DPA accepted by B2B contact persons during company onboarding.",
           sourceLanguage: "is",
-          text: { is: renderDataProcessingAgreement(), en: null },
+          text: { is: renderDataProcessingAgreement("is"), en: renderDataProcessingAgreement("en") },
         },
         {
           id: "employee-tos",
@@ -180,7 +181,7 @@ export default function LegalDraftsPage() {
           filenameBase: `employee-tos-${EMPLOYEE_TOS_VERSION}`,
           description: "Click-through accepted by employees joining via a B2B roster.",
           sourceLanguage: "is",
-          text: { is: renderEmployeeTermsOfService(), en: null },
+          text: { is: renderEmployeeTermsOfService("is"), en: renderEmployeeTermsOfService("en") },
         },
         {
           id: "health-consent",
@@ -190,7 +191,7 @@ export default function LegalDraftsPage() {
           description:
             "Explicit consent (GDPR Art. 9(2)(a)) to process Art. 9 health data — mandatory before any clinical workflow.",
           sourceLanguage: "is",
-          text: { is: renderHealthAssessmentConsent(), en: null },
+          text: { is: renderHealthAssessmentConsent("is"), en: renderHealthAssessmentConsent("en") },
         },
       ],
     },
@@ -206,7 +207,7 @@ export default function LegalDraftsPage() {
           filenameBase: `staff-nda-${STAFF_NDA_VERSION}`,
           description: "Required for every staff member regardless of role.",
           sourceLanguage: "is",
-          text: { is: renderStaffNDA(), en: null },
+          text: { is: renderStaffNDA("is"), en: renderStaffNDA("en") },
         },
         {
           id: "staff-confidentiality",
@@ -216,7 +217,7 @@ export default function LegalDraftsPage() {
           description:
             "Statutory healthcare confidentiality declaration under Lög 34/2012 + 74/1997. Required for clinicians (doctor / nurse / psychologist).",
           sourceLanguage: "is",
-          text: { is: renderStaffConfidentiality(), en: null },
+          text: { is: renderStaffConfidentiality("is"), en: renderStaffConfidentiality("en") },
         },
         {
           id: "staff-acceptable-use",
@@ -225,7 +226,7 @@ export default function LegalDraftsPage() {
           filenameBase: `staff-acceptable-use-${STAFF_ACCEPTABLE_USE_VERSION}`,
           description: "Device + access policy. Required for every staff member.",
           sourceLanguage: "is",
-          text: { is: renderStaffAcceptableUse(), en: null },
+          text: { is: renderStaffAcceptableUse("is"), en: renderStaffAcceptableUse("en") },
         },
         {
           id: "staff-data-protection",
@@ -234,7 +235,7 @@ export default function LegalDraftsPage() {
           filenameBase: `staff-data-protection-${STAFF_DATA_PROTECTION_VERSION}`,
           description: "GDPR / Lög 90/2018 briefing. Required for every staff member.",
           sourceLanguage: "is",
-          text: { is: renderStaffDataProtectionBriefing(), en: null },
+          text: { is: renderStaffDataProtectionBriefing("is"), en: renderStaffDataProtectionBriefing("en") },
         },
         {
           id: "staff-onboarding-checklist",
@@ -244,7 +245,7 @@ export default function LegalDraftsPage() {
           description:
             "Day-one operational rules: where data lives, what's allowed in coaching messages, incident reporting, offboarding. Required for every staff member.",
           sourceLanguage: "is",
-          text: { is: renderStaffOnboardingChecklist(), en: null },
+          text: { is: renderStaffOnboardingChecklist("is"), en: renderStaffOnboardingChecklist("en") },
         },
         {
           id: "staff-piece-rate",
@@ -254,7 +255,7 @@ export default function LegalDraftsPage() {
           description:
             "Click-through employment contract for clinicians paid per measurement. Lifeline as employer of record.",
           sourceLanguage: "is",
-          text: { is: renderStaffPieceRateEmployment(), en: null },
+          text: { is: renderStaffPieceRateEmployment("is"), en: renderStaffPieceRateEmployment("en") },
         },
         {
           id: "staff-contractor",
@@ -264,7 +265,7 @@ export default function LegalDraftsPage() {
           description:
             "Click-through contractor agreement for genuinely independent contractors (not used for clinicians by default).",
           sourceLanguage: "is",
-          text: { is: renderStaffContractorAgreement(), en: null },
+          text: { is: renderStaffContractorAgreement("is"), en: renderStaffContractorAgreement("en") },
         },
       ],
     },
@@ -280,7 +281,7 @@ export default function LegalDraftsPage() {
           filenameBase: `thjonustuskilmalar-${THJONUSTUSKILMALAR_VERSION}`,
           description: "Generic clinical service terms attached to every B2B service agreement.",
           sourceLanguage: "is",
-          text: { is: renderThjonustuskilmalar(), en: null },
+          text: { is: renderThjonustuskilmalar("is"), en: renderThjonustuskilmalar("en") },
         },
         {
           id: "thjonustusamningur",
@@ -290,7 +291,7 @@ export default function LegalDraftsPage() {
           description:
             "Per-company B2B service agreement. Rendered here with placeholder company name + kennitala.",
           sourceLanguage: "is",
-          text: { is: renderThjonustusamningur(SAMPLE_COMPANY), en: null },
+          text: { is: renderThjonustusamningur(SAMPLE_COMPANY, "is"), en: renderThjonustusamningur(SAMPLE_COMPANY, "en") },
         },
         {
           id: "purchase-order",
@@ -300,7 +301,7 @@ export default function LegalDraftsPage() {
           description:
             "Per-engagement PO attached as appendix to the service agreement. Placeholder line items.",
           sourceLanguage: "is",
-          text: { is: renderPurchaseOrder(SAMPLE_PO), en: null },
+          text: { is: renderPurchaseOrder(SAMPLE_PO, "is"), en: renderPurchaseOrder(SAMPLE_PO, "en") },
         },
       ],
     },
@@ -317,7 +318,7 @@ export default function LegalDraftsPage() {
           description:
             "GDPR Art. 26 joint-controller arrangement for sjúkraskrá-grade health record data. Lawyer note: Lifeline already has a separate vinnslusamningur (DPA) with Medalia — review whether this Art. 26 arrangement supplements that, or whether the existing DPA covers the relationship sufficiently.",
           sourceLanguage: "is",
-          text: { is: renderMedaliaJointControllerArrangement(), en: null },
+          text: { is: renderMedaliaJointControllerArrangement("is"), en: renderMedaliaJointControllerArrangement("en") },
         },
         {
           id: "biody-dpa",
@@ -327,7 +328,7 @@ export default function LegalDraftsPage() {
           description:
             "GDPR Art. 28 DPA with Aminogram SAS (Biody Manager). Lifeline operates the Biody account + API integration but Biody's infrastructure stores client measurements — that storage activity makes Biody a processor regardless of who controls the workflow. Standard SaaS pattern.",
           sourceLanguage: "is",
-          text: { is: renderBiodyDPA(), en: null },
+          text: { is: renderBiodyDPA("is"), en: renderBiodyDPA("en") },
         },
         {
           id: "dpia-interim",
@@ -337,7 +338,7 @@ export default function LegalDraftsPage() {
           description:
             "DPIA under GDPR Art. 35 / Lög 90/2018 §29 covering the current wellness-mode interim architecture. Signed by the persónuverndarfulltrúi (DPO).",
           sourceLanguage: "is",
-          text: { is: renderDPIAInterim(), en: null },
+          text: { is: renderDPIAInterim("is"), en: renderDPIAInterim("en") },
         },
       ],
     },
@@ -354,7 +355,7 @@ export default function LegalDraftsPage() {
           description:
             "Plain-language consent shown when a user opts in to syncing their Biody body composition into the app dashboard.",
           sourceLanguage: "is",
-          text: { is: renderClientConsentBiodyImport(), en: null },
+          text: { is: renderClientConsentBiodyImport("is"), en: renderClientConsentBiodyImport("en") },
         },
       ],
     },

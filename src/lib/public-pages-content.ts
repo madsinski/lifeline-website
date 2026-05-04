@@ -14,12 +14,196 @@
 // public JSX page is what users see; this renderer is what the lawyer
 // reviews. They must stay in sync.
 
+export type DocumentLanguage = "is" | "en";
+
 export const PUBLIC_PRIVACY_VERSION = "v1.4";
 export const PUBLIC_PRIVACY_LAST_UPDATED = "2026-04-29";
 export const PUBLIC_TERMS_VERSION = "v1.2";
 export const PUBLIC_TERMS_LAST_UPDATED = "2026-04-17";
 
-export function renderPublicPrivacyPolicy(): string {
+export function renderPublicPrivacyPolicy(language: DocumentLanguage = "en"): string {
+  if (language === "is") {
+    return `LIFELINE HEALTH — PERSÓNUVERNDARYFIRLÝSING
+Útgáfa ${PUBLIC_PRIVACY_VERSION}  ·  Síðast uppfært ${PUBLIC_PRIVACY_LAST_UPDATED}
+
+Þessi yfirlýsing lýsir hvaða persónuupplýsingar Lifeline Health ehf.
+(„Lifeline", „við") safnar um þig, hvers vegna, hvernig við notum þær,
+hverjum við miðlum þeim, hve lengi við varðveitum þær og þeim réttindum
+sem þú átt yfir þeim. Hún gildir samhliða notkunarskilmálum okkar — ef
+eitthvað hér rekst á við annað þá ræður þetta skjal í persónuvernd.
+
+1. HVER FER MEÐ GÖGNIN ÞÍN
+Lifeline Health ehf., íslenskt félag (Reykjavík), er ábyrgðaraðili
+persónuupplýsinga þinna. Spurningar og beiðnir má senda á
+contact@lifelinehealth.is.
+
+2. FLOKKAR GAGNA SEM VIÐ SÖFNUM
+- Auðkenni og tengiliðir: nafn, kennitala, netfang, símanúmer, heimilisfang.
+- Aðgangur: lykilorð (geymt sem salt-hashað, aldrei í læsilegu formi),
+  innskráningarsaga, tæki + IP á lotu-stigi.
+- Heilsuprófíll: fæðingardagur, kyn, hæð, þyngd, virknistig, heilsumarkmið,
+  sjúkrasaga sem þú velur að deila.
+- Mælingar: niðurstöður líkamssamsetningarmælinga (fituprósenta,
+  vöðvamassi, fasahorn, BMR, líkamsvökvi o.fl.) frá mælingaaðila okkar Biody.
+- Notkun: skráðar máltíðir, vigtanir, framvinda áætlana, samskipti við
+  Lifeline-þjálfara.
+- B2B-aðlögun (eingöngu B2B): fyrirtækið sem þú tilheyrir og staða aðlögunar.
+
+3. HVERNIG VIÐ SÖFNUM ÞEIM
+- Beint frá þér þegar þú skráir þig, svarar matskönnunum eða notar appið.
+- Frá vinnuveitanda þínum (eingöngu B2B) sem gefur okkur nafn, kennitölu,
+  netfang og síma áður en þér er boðið — þú fyllir út afganginn sjálf(ur).
+- Frá Biody Manager þegar þú mætir í líkamssamsetningarmælingu hjá
+  samstarfs-stofu okkar.
+- Sjálfvirkt um appið (t.d. tímabelti símans, gerð tækis fyrir stuðning).
+
+4. AF HVERJU VIÐ NOTUM ÞÆR (LAGAGRUNDVÖLLUR)
+- Efni samnings (6. gr. (1)(b) GDPR). Að veita þér þá þjónustu sem þú
+  skráðir þig fyrir — mat, skýrslur, þjálfun, líkamssamsetningareftirlit.
+- Afdráttarlaust samþykki fyrir sérflokki (9. gr. (2)(a)). Heilsugögn eru
+  einungis unnin þegar þú hefur samþykkt skilmála okkar í aðlögunarferli.
+- Lögmætir hagsmunir (6. gr. (1)(f)). Forvarnir gegn svikum, villuleit og
+  öruggur rekstur kerfisins.
+- Samþykki (6. gr. (1)(a)). Markaðspóstur og notkun ópersónugreinanlegra
+  gagna í rannsóknum — bæði opt-in; þú getur dregið samþykki til baka hvenær
+  sem er.
+- Lagaskylda (6. gr. (1)(c)). Þar sem íslensk heilbrigðislög, skattalög eða
+  dómsúrskurðir krefjast varðveislu eða miðlunar.
+
+5. HVERNIG VIÐ GEYMUM KENNITÖLU ÞÍNA
+Kennitala telst viðkvæmt persónugagn samkvæmt íslenskum lögum. Við fylgjum
+lágmörkunarreglu: aðeins síðustu fjórir stafir eru geymdir í gagnagrunni
+okkar, og einungis í þeim takmarkaða tilgangi að þekkja starfsmannalista í
+B2B-aðlögun og finna tvítekningar. Við geymum, dulkóðum eða sendum ekki
+fulla kennitölu — hvorki til starfsfólks né þriðja aðila. Krefjist
+regluverks- eða klínísks ferlis þess í framtíðinni mun það ferli liggja inni
+í Medalia (löggildu sjúkraskrárkerfi) þar sem aðgangur er skráður
+samkvæmt lögum nr. 55/2009 §14, ekki í þessu appi.
+
+6. HVERJUM VIÐ MIÐLUM GÖGNUM ÞÍNUM
+  Móttakandi                       | Tilgangur                                                                                                | Staðsetning
+  Medalia ehf.                      | Löggilt sjúkraskrárkerfi skv. lögum 55/2009 — sameiginlegur ábyrgðaraðili með Lifeline (26. gr. GDPR) | Ísland
+  Supabase Inc.                     | Gagnagrunnur, auðkenning, rekstrargögn                                                                  | EES (Frankfurt)
+  Vercel Inc.                       | Vefhýsing, afhending                                                                                   | EES + USA (með SCC)
+  Resend (Lilo Labs Inc.)           | Sending sjálfvirks tölvupósts                                                                          | EES + USA (með SCC)
+  Biody Manager (Aminogram SAS)     | Mælingafélagi fyrir líkamssamsetningu                                                                  | EES (Frakkland)
+  Vinnuveitandi þinn (eingöngu B2B) | Staða aðlögunar — engin heilsugögn                                                                     | Ísland
+  Íslensk yfirvöld                  | Þar sem lög krefjast (dómsúrskurður, heilbrigðislög)                                                   | Ísland
+
+Við seljum aldrei persónuupplýsingar. Allir vinnsluaðilar eru bundnir
+GDPR-vinnslusamningum. Flutningur út fyrir EES grundvallast á stöðluðum
+samningsákvæðum ESB.
+
+6a. HVAR SJÚKRASKRÁIN ÞÍN LIGGUR
+Lifeline rekur löggilta heilbrigðisþjónustu samkvæmt lögum nr. 40/2007.
+Formleg sjúkraskrá þín — þ.m.t. klínísk túlkun, blóðprufuniðurstöður,
+læknisbréf og frágengið heilsumat — er varðveitt hjá Medalia ehf., löggildu
+sjúkraskrárkerfi skv. lögum nr. 55/2009. Lifeline og Medalia eru
+sameiginlegir ábyrgðaraðilar þeirrar skrár skv. 26. gr. GDPR.
+
+Lifeline appið og admin-svæðið eru rekstrartæki (tímabókanir, áætlanir,
+þjálfun, sjálfsmælingar) — ekki sjúkraskráin þín. Niðurstöður
+líkamssamsetningar úr Biody-mælingum eru færðar í Medalia af
+heilbrigðisstarfsmanni sem hluti af heilsumati þínu; afrit er einnig sýnt á
+Lifeline-mælaborðinu þínu fyrir þína eigin sjálfsskráningu, með
+afdráttarlausu samþykki þínu og einungis sýnilegt þér.
+
+7. HVAÐ VIÐ DEILUM MEÐ BIODY MANAGER
+Til að skrá þig sem sjúkling í mælitækinu sendum við Biody nafn þitt,
+netfang, fæðingardag (úr kennitölu þinni), kyn, hæð og virknistig. Við
+sendum EKKI kennitölu þína né lykilorð í Lifeline. Biody varðveitir
+mælinganiðurstöðurnar og skilar okkur þeim; við tengjum þær við
+Lifeline-aðganginn þinn.
+
+8. VARÐVEISLA
+- Virkir aðgangar: við varðveitum gögnin þín svo lengi sem þú notar Lifeline.
+- Eyðing aðgangs: persónugreinanlegar upplýsingar eru eytt innan 30 daga
+  frá ósk þinni, nema þar sem varðveisla er áskilin samkvæmt íslenskum lögum.
+- Óvirk B2B-boð: ónotuð boð eru eytt eftir 12 mánuði.
+- Skráningar (audit log): geymdar í 24 mánuði vegna öryggis og
+  regluverkstilgangs.
+- Ópersónugreinanleg samanteknu gögn: geta verið geymd ótímabundið þar sem
+  þau bera ekki lengur kennsl á þig.
+
+9. ÖRYGGISRÁÐSTAFANIR
+- TLS-dulkóðun á flutningi; gagnagrunnur hjá Supabase með
+  geymsludulkóðun á diskstigi.
+- Hlutverkaskipt aðgangsstjórnun með Row-Level Security; sérgreinaskipt
+  aðgreining á milli þjálfara, lækna og admin.
+- Audit-skráning á öllum skrifum á heilsuviðkvæmar töflur (clients,
+  messages, weight log, body composition events).
+- Ársfjórðungsleg endurskoðun aðgangs starfsfólks — heimildir hvers
+  starfsmanns yfirfarnar á 90 daga fresti.
+- Lyklar þjónustureikninga geymdir í lykilageymi, aldrei í kóðagrunni.
+- MFA (TOTP, AAL2) krafist í hverri lotu Lifeline-starfsfólks áður en
+  aðgangur að admin er veittur.
+- Sentry-hreinsun fjarlægir beiðnabolta á heilsuleiðum til að villuvöktun
+  geti ekki lekið 9. gr. gögnum.
+
+Engin kerfi eru fullkomlega örugg. Ef þú telur að aðgangurinn þinn hafi
+verið brotinn, hafðu samband við contact@lifelinehealth.is.
+
+10. RÉTTINDI ÞÍN
+Samkvæmt íslenskum persónuverndarlögum og GDPR ESB hefur þú rétt á að:
+- Fá aðgang að persónuupplýsingum sem við varðveitum um þig.
+- Leiðrétta það sem er rangt.
+- Eyða gögnum þínum („réttur til að gleymast"), með fyrirvara um
+  lögbundna varðveislu.
+- Takmarka eða andmæla tiltekinni vinnslu.
+- Flytjanleiki — fá gögnin þín á vélrænu, samræmdu sniði.
+- Draga samþykki til baka hvenær sem er fyrir markaðsefni eða
+  rannsóknarnotkun.
+- Leggja fram kvörtun hjá Persónuvernd á www.personuvernd.is.
+
+Til að nýta þessi réttindi sendu tölvupóst á contact@lifelinehealth.is
+(persónuverndarpósthólfið okkar) eða sendu beiðni úr aðgangsstillingum
+þínum undir „Gögn og persónuvernd". Við svörum innan 30 daga skv. 12.
+gr. GDPR. Beiðnir um sjúkraskrárgögn í Medalia eru samræmdar við okkar
+sameiginlega ábyrgðaraðila skv. 26. gr. samkomulaginu.
+
+11. KÖKUR OG TÖLFRÆÐI
+Við notum aðeins nauðsynlegar kökur til að halda þér innskráðum. Við
+notum ekki auglýsingakökur. Sú tölfræði sem við keyrum er
+persónuverndarvæn og samanteknu (engin krossvefjandi rakning).
+
+12. BÖRN
+Lifeline er ekki ætlað börnum yngri en 18 ára. Ef þú telur að barn hafi
+stofnað aðgang skaltu hafa samband og við eyðum honum.
+
+13. B2B (FYRIRTÆKJAAÐLÖGUN) — SÉRTÆK ÁKVÆÐI
+Þegar vinnuveitandi þinn aðlagar þig í gegnum Lifeline:
+- Lifeline starfar sem vinnsluaðili tengiliðaupplýsinga sem
+  vinnuveitandinn lætur okkur í té, og sem ábyrgðaraðili heilsugagna sem
+  þú deilir beint með okkur.
+- Tengiliður vinnuveitanda þíns sér nafn, netfang, síma og síðustu
+  fjóra stafi kennitölu — EKKI líkamssamsetningu, mælingar eða nein
+  klínísk gögn.
+- Vinnuveitandi þinn fær einungis stöðu aðlögunar — ekkert klínískt.
+- Ef þú hættir hjá fyrirtækinu helst Lifeline-aðgangurinn þinn áfram
+  þinn. Þú ákveður hvort þú heldur honum.
+
+14. ALÞJÓÐLEGIR FLUTNINGAR
+Gögnin þín eru fyrst og fremst hýst innan ESS. Sumir vinnsluaðilar
+okkar (t.d. Resend) starfa í Bandaríkjunum samkvæmt stöðluðum
+samningsákvæðum ESB. Við flytjum ekki gögn til lögsagna án
+fullnægjandi verndar.
+
+15. SJÁLFVIRK ÁKVARÐANATAKA
+Lifeline tekur ekki ákvarðanir með laga- eða sambærilega marktækum
+áhrifum eingöngu á grundvelli sjálfvirkrar vinnslu. Allar klínískt
+viðamiklar ákvarðanir fela í sér löggiltan Lifeline-lækni.
+
+16. BREYTINGAR Á ÞESSARI YFIRLÝSINGU
+Við tilkynnum þér um efnislegar breytingar a.m.k. 14 dögum áður en þær
+taka gildi, með tölvupósti eða í appinu. Núverandi útgáfa er ávallt á
+lifelinehealth.is/privacy.
+
+17. SAMBAND
+Spurningar, áhyggjur eða beiðnir um persónugögnin þín:
+contact@lifelinehealth.is.
+
+— Lifeline Health ehf. · Reykjavík, Ísland`;
+  }
   return `LIFELINE HEALTH — PRIVACY POLICY
 Version ${PUBLIC_PRIVACY_VERSION}  ·  Last updated ${PUBLIC_PRIVACY_LAST_UPDATED}
 
@@ -214,7 +398,152 @@ contact@lifelinehealth.is.
 — Lifeline Health ehf. · Reykjavík, Iceland`;
 }
 
-export function renderPublicTermsOfService(): string {
+export function renderPublicTermsOfService(language: DocumentLanguage = "en"): string {
+  if (language === "is") {
+    return `LIFELINE HEALTH — NOTKUNARSKILMÁLAR OG PERSÓNUVERND (OPINBER ÚTGÁFA)
+Útgáfa ${PUBLIC_TERMS_VERSION}  ·  Síðast uppfært ${PUBLIC_TERMS_LAST_UPDATED}
+
+Þessi síða nær yfir skilmála sem Lifeline Health ehf. („Lifeline", „við")
+veitir þjónustu sína undir, og hvernig við förum með persónuupplýsingar
+einstakra notenda („þú") og fyrirtækjaviðskiptavina. Hún er rituð á
+einföldu máli. Formleg þýðing á íslensku er fáanleg eftir beiðni.
+
+1. HVER VIÐ ERUM
+Lifeline Health ehf. er íslenskt félag sem veitir stafræna heilsuþjálfun,
+líkamssamsetningareftirlit og fjarheilbrigðisþjónustu í gegnum vefinn
+lifelinehealth.is og Lifeline-snjallforritið.
+
+2. ÞJÓNUSTA SEM VIÐ VEITUM
+- Heilsumat, áætlanir og þjálfun veitt af löggiltu Lifeline-starfsfólki.
+- Líkamssamsetningarmælingar framkvæmdar í samstarfsstofum með Biody
+  Manager mælitækinu, og gerðar aðgengilegar þér rafrænt.
+- Valfrjáls skráning í appi (máltíðir, vigtanir, venjur) og samfélagsvirkni.
+- Fyrir fyrirtækjaviðskiptavini: aðlögun starfsfólks og samanteknu
+  skýrslur.
+
+3. AÐGANGURINN ÞINN
+Til að nota Lifeline þarftu að stofna aðgang. Þú berð ábyrgð á að halda
+lykilorði þínu öruggu og á virkni á aðganginum þínum. Þú þarft að vera
+a.m.k. 18 ára, eða með leyfi forráðamanns, til að skrá þig.
+
+4. PERSÓNUUPPLÝSINGAR SEM VIÐ SÖFNUM
+Þegar þú skráir þig beint söfnum við:
+- Nafni, netfangi, símanúmeri
+- Fæðingardegi, kyni, hæð, þyngd, virknistigi
+- Heilsumarkmiðum sem þú velur að deila
+- Líkamssamsetningarmælingum, ef þú heimsækir samstarfsstofu
+- Máltíðum, vigtunum, framvindu áætlana, og skilaboðum ef þú notar þá
+  virkni
+
+Ef þú gengur í gegnum aðlögun frá fyrirtækjaviðskiptavini (vinnuveitanda
+þínum), gefur tengiliður fyrirtækisins okkur nafn þitt, kennitölu,
+netfang og síma áður en þér er boðið. Þú fyllir svo inn restina sjálf(ur)
+í aðlögunarferlinu. Lifeline deilir aldrei heilsugögnum þínum aftur til
+vinnuveitanda þíns — aðeins stöðu aðlögunar.
+
+5. HVERNIG VIÐ GEYMUM KENNITÖLU ÞÍNA
+Kennitala þín er dulkóðuð í geymslu með stöðluðum samhverfu-dulkóðunar
+aðferðum. Dulkóðunarlykillinn er stjórnaður aðskilið frá gagnagrunninum.
+Aðeins þröngur hópur þjónustuferla — ekki einstaklingar — getur óskað
+eftir afkóðun, og hver afkóðun er skráð. Lifeline-starfsfólk sem þarf
+að bera kennsl á þig í stuðningssamhengi sér aðeins síðustu fjóra stafi
+sjálfgefið.
+
+6. HVAÐ VIÐ NOTUM GÖGNIN ÞÍN TIL
+- Rekstur þjónustunnar. Að veita þá virkni sem þú baðst um.
+- Öryggi og gæði. Að greina misnotkun, koma í veg fyrir svik, leiðrétta
+  villur.
+- Rannsóknir (opt-out). Við getum notað ópersónugreinanlegar útgáfur af
+  gögnum þínum til að bæta Lifeline og fyrir ópersónugreinanlegar klínískar
+  rannsóknir. Þú getur valið frá í aðlögun eða hvenær sem er úr
+  aðgangsstillingum.
+- Markaðsstarf (opt-out). Áviðunarvarnar uppfærslur og kynningar með
+  tölvupósti. Þú getur valið frá í aðlögun, úr hvaða pósti sem er, eða úr
+  aðgangsstillingum.
+
+7. HVERJUM VIÐ MIÐLUM GÖGNUM
+- Medalia ehf. — löggilt sjúkraskrárkerfi (lög nr. 55/2009) þar sem
+  formleg sjúkraskrá þín er varðveitt. Lifeline og Medalia starfa sem
+  sameiginlegir ábyrgðaraðilar fyrir sjúkraskrárgögn skv. 26. gr. GDPR.
+- Biody Manager (mælingafélagi okkar fyrir líkamssamsetningu). Við
+  deilum nafni, netfangi, fæðingardegi, kyni, hæð og virknistigi til að
+  skrá þig sem sjúkling. Við sendum ekki kennitölu þína til Biody.
+  Lifeline geymir aðeins síðustu fjóra stafi kennitölu þinnar
+  (lágmörkun); við geymum ekki fulla kennitölu.
+- Supabase (gagnagrunns- og auðkenningaraðilinn okkar) og Vercel
+  (vefhýsingaraðilinn okkar), undir GDPR-samhæfðum vinnslusamningum.
+- Resend (tölvupóstþjónusta okkar fyrir sjálfvirkan póst), sem afhendir
+  boðspóst og tilkynningar.
+- Íslensk heilbrigðis- og lögregluyfirvöld, ef lög krefjast.
+
+Við seljum aldrei persónuupplýsingar þínar.
+
+8. HVE LENGI VIÐ VARÐVEITUM GÖGNIN ÞÍN
+Við varðveitum aðganginn þinn og tengd heilsugögn meðan aðgangurinn er
+virkur. Ef þú eyðir aðganginum þínum eyðum við persónugreinanlegum
+upplýsingum innan 30 daga, nema þar sem varðveisla er áskilin samkvæmt
+íslenskum heilbrigðislögum. Ópersónugreinanlegar samanteknu upplýsingar
+má geyma ótímabundið.
+
+9. RÉTTINDI ÞÍN
+Samkvæmt íslenskum persónuverndarlögum og GDPR ESB hefur þú rétt á að
+fá aðgang að, leiðrétta, flytja, takmarka eða eyða persónuupplýsingum
+þínum. Sendu tölvupóst á contact@lifelinehealth.is og við svörum innan
+30 daga. Þú hefur einnig rétt á að leggja fram kvörtun hjá Persónuvernd
+á www.personuvernd.is.
+
+10. ÖRYGGI
+Lifeline notar TLS fyrir gögn á flutningi, dulkóðun á viðkvæmum
+dálkum í geymslu, hlutverkaskipta aðgangsstjórnun og audit-skráningu.
+Engin kerfi eru fullkomin — ef þú telur að aðgangurinn þinn hafi verið
+brotinn, hafðu samband við contact@lifelinehealth.is.
+
+11. FYRIR FYRIRTÆKJAVIÐSKIPTAVINI (B2B)
+Ef fyrirtækið þitt aðlagar starfsmenn í gegnum Lifeline gildir
+eftirfarandi til viðbótar:
+- Lifeline starfar sem vinnsluaðili fyrir heilsugögn sem starfsmenn
+  velja að deila, og sem ábyrgðaraðili fyrir kerfisrekstur.
+- Tengiliður fyrirtækisins þíns sér starfsmannalistann (nafn, netfang,
+  síma, síðustu 4 stafi kennitölu) og stöðu aðlögunar — EKKI heilsugögn.
+- Útflutningur á fullum kennitölum er aðeins aðgengilegur
+  Lifeline-starfsfólki, vegna úttekta og regluverkstilgangs.
+- Fyrirtækið þitt staðfestir að það hafi lögmætan grundvöll
+  (ráðningarsamning, atvinnuheilbrigðisáætlun eða samþykki starfsmanns)
+  til að deila tengiliðaupplýsingum starfsmanns með Lifeline.
+- Lifeline mun eyða starfsmannafærslum eftir skriflegri beiðni þinni,
+  nema þar sem varðveisla er lagaskylt.
+
+12. GREIÐSLUR OG ÁSKRIFTIR
+Greiddar áskriftir eru reikningsfærðar fyrirfram, óendurgreiðanlegar
+nema að íslenskri neytendaverndar-lögum sé skylt, og endurnýjast
+sjálfvirkt. Þú getur sagt upp hvenær sem er úr aðgangsstillingum þínum.
+Fyrir B2B er reikningsfærsla stjórnað af aðskildum þjónustusamningi
+þínum.
+
+13. LÆKNISFRÆÐILEGUR FYRIRVARI
+Lifeline er heilsuþjálfunar- og velferðarþjónusta, ekki staðgöngull
+löggilts læknis. Ráðfærðu þig alltaf við löggiltan heilbrigðisstarfsmann
+áður en þú breytir lyfjameðferð, langvinnri sjúkdómastjórnun eða ef þú
+ert ófrísk(ur), að gefa brjóst eða með heilsufarsástand. Í neyðartilfelli
+hringdu í 112.
+
+14. BREYTINGAR Á ÞESSUM SKILMÁLUM
+Við getum uppfært þetta skjal stundum. Efnislegar breytingar verða
+tilkynntar þér með tölvupósti eða í appinu a.m.k. 14 dögum áður en þær
+taka gildi. Núverandi útgáfa er alltaf fáanleg á
+lifelinehealth.is/terms.
+
+15. LÖGSAGA
+Þessir skilmálar eru stjórnað af íslenskum lögum. Deilur falla undir
+einkarétt dómstóla Reykjavíkur, nema neytendaverndarlög kveði annað á.
+
+16. SAMBAND
+- Almennt: contact@lifelinehealth.is
+- Persónuvernd: contact@lifelinehealth.is
+- Öryggi: contact@lifelinehealth.is
+
+— Lifeline Health ehf. · Reykjavík, Ísland`;
+  }
   return `LIFELINE HEALTH — TERMS OF SERVICE & PRIVACY POLICY (PUBLIC)
 Version ${PUBLIC_TERMS_VERSION}  ·  Last updated ${PUBLIC_TERMS_LAST_UPDATED}
 
