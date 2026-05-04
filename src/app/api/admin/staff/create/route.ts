@@ -141,13 +141,14 @@ export async function POST(req: Request) {
     }
   }
 
-  // Some Supabase projects have a handle_new_user() trigger that auto-
-  // inserts a clients row whenever auth.users gains a row. For staff
-  // (especially external counsel) that's wrong — the new staff member
-  // shouldn't be a "client". Delete the auto-created clients row by id
-  // so we don't end up with a half-staff-half-client identity. Safe
-  // because we only delete the row whose id matches the auth user we
-  // just created — pre-existing clients with other ids are untouched.
+  // Defensive: the handle_new_user() trigger has been patched (see
+  // migration-handle-new-user-skip-staff.sql) to skip clients-row
+  // creation when raw_user_meta_data->>'role' is a staff role —
+  // which we always pass via the invite payload above. So the
+  // delete below should be a no-op for any user created through
+  // this API. Kept as a safety net for users created out-of-band
+  // (e.g. directly through the Supabase dashboard) that we later
+  // upgrade into staff.
   if (authCreated) {
     try {
       await supabaseAdmin.from("clients").delete().eq("id", authUserId);
