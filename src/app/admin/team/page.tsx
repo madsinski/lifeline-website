@@ -1053,9 +1053,9 @@ export default function TeamPage() {
 
       {/* Add member modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-8 max-h-[calc(100vh-4rem)] flex flex-col">
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100 flex-shrink-0">
               <h3 className="text-lg font-semibold text-[#1F2937]">Add team member</h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -1066,7 +1066,7 @@ export default function TeamPage() {
                 </svg>
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto p-6 pt-4 flex-1">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
@@ -1157,7 +1157,7 @@ export default function TeamPage() {
                 <p className="text-xs text-gray-400 ml-6.5 mt-0.5">The team member will receive an email to set up their account</p>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 mt-6">
+            <div className="flex items-center justify-end gap-3 p-6 pt-4 border-t border-gray-100 flex-shrink-0">
               <button
                 onClick={() => setShowAddModal(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
