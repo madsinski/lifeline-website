@@ -336,29 +336,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setUserEmail(s.user?.email ?? null);
         if (s.user?.email) loadStaffProfile(s.user.email);
 
-        // MFA gate. Admins handle patient data — require a TOTP-verified
-        // session (AAL2). If enrolled but not verified this session, send
-        // to the MFA challenge; if not enrolled yet, send to the enroll
-        // page. /admin/mfa and /admin/login are exempt so we don't loop.
-        try {
-          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-          const { data: factorsData } = await supabase.auth.mfa.listFactors();
-          const totpFactors = factorsData?.totp || [];
-          const hasFactor = totpFactors.some((f) => f.status === "verified");
-          const needsMfa = pathname !== "/admin/mfa" && pathname !== "/admin/login";
-          if (needsMfa) {
-            if (!hasFactor) {
-              router.replace("/admin/mfa?mode=enroll");
-              return;
+        // Look up role inline before the MFA gate — loadStaffProfile is
+        // async and writes to state, but we need the role *now* to decide
+        // whether to enforce AAL2.
+        let inlineRole: string | null = null;
+        if (s.user?.email) {
+          try {
+            const { data: roleRow } = await supabase
+              .from("staff")
+              .select("role")
+              .eq("email", s.user.email)
+              .eq("active", true)
+              .maybeSingle();
+            inlineRole = (roleRow?.role as string | undefined) ?? null;
+          } catch { /* fall through */ }
+        }
+
+        // MFA gate. Admins/clinicians/coaches handle patient data — they
+        // need a TOTP-verified session (AAL2). External counsel (lawyer)
+        // only ever sees /admin/legal/*, which contains zero patient data,
+        // so we skip MFA for that role to keep the review experience
+        // friction-free. Signoff non-repudiation comes from the
+        // authenticated session + IP + sha256 + PDF certificate stored in
+        // legal_review_signoffs, not from AAL2.
+        if (inlineRole !== "lawyer") {
+          try {
+            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            const { data: factorsData } = await supabase.auth.mfa.listFactors();
+            const totpFactors = factorsData?.totp || [];
+            const hasFactor = totpFactors.some((f) => f.status === "verified");
+            const needsMfa = pathname !== "/admin/mfa" && pathname !== "/admin/login";
+            if (needsMfa) {
+              if (!hasFactor) {
+                router.replace("/admin/mfa?mode=enroll");
+                return;
+              }
+              if (aalData?.currentLevel !== "aal2") {
+                router.replace("/admin/mfa?mode=challenge");
+                return;
+              }
             }
-            if (aalData?.currentLevel !== "aal2") {
-              router.replace("/admin/mfa?mode=challenge");
-              return;
-            }
+          } catch {
+            // MFA endpoints missing or network blip — fall through to the
+            // rest of the layout so we never hard-lock out a legit admin.
           }
-        } catch {
-          // MFA endpoints missing or network blip — fall through to the
-          // rest of the layout so we never hard-lock out a legit admin.
         }
 
         // Staff e-signature gate: if this user has any outstanding

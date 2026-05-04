@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.1";
+export const SECURITY_POSTURE_VERSION = "v1.2";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-05-04";
 
 export function renderSecurityPosture(): string {
@@ -183,7 +183,12 @@ Auðkenning:
   - Notendur: Supabase Auth (netfang + lykilorð, lykilorð geymd salt-
     hashed með bcrypt).
   - Starfsfólk: sama auðkenning + skylda tvíþátta auðkenning (TOTP /
-    AAL2) áður en hægt er að komast inn í admin svæði.
+    AAL2) áður en hægt er að komast inn í admin svæði — að undanskildum
+    ytri lögmönnum (role='lawyer') sem hafa eingöngu aðgang að
+    /admin/legal/* (engin sjúklingaupplýsingar, engin klínísk gögn).
+    Fyrir þá er ekki krafist AAL2; sönnun á undirskrift skjala er
+    tryggð með auðkenndri lotu, IP-skráningu, SHA-256 á textaskjalinu
+    og rafrænni vottun (PDF) sem er vistuð í legal_review_signoffs.
 
 Hlutverkaskipt aðgangsstjórnun (RBAC):
   Hlutverk: coach, doctor, nurse, psychologist, admin, lawyer.
@@ -418,7 +423,10 @@ og varðveittir í eftirfarandi geymslum:
 Tæknilegt:
   ✓ Dálka-dulkóðun á Art. 9 og PII gögnum (pgcrypto + Vault)
   ✓ Row Level Security á öllum töflum með persónuupplýsingum
-  ✓ MFA (TOTP / AAL2) skylda fyrir allt starfsfólk
+  ✓ MFA (TOTP / AAL2) skylda fyrir allt starfsfólk sem fær aðgang að
+    sjúklingagögnum (admin / coach / doctor / nurse / psychologist).
+    Ytri lögmaður (lawyer) er undanþeginn — hefur eingöngu aðgang að
+    skjalasafni, ekki klínískum gögnum.
   ✓ TLS 1.3 á öllum opinberum endapunktum
   ✓ HMAC-undirritun innri þjónustukalla
   ✓ Sentry redaction á health-routes (PII í villuskráningu)
@@ -441,6 +449,14 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.2 (2026-05-04)
+  Ytri lögmaður (role='lawyer') er undanþeginn AAL2 / TOTP MFA. Hann
+  hefur eingöngu aðgang að /admin/legal/* þar sem engin sjúklingagögn
+  liggja; sönnun á undirskrift skjala er tryggð með auðkenndri lotu,
+  IP-skráningu, SHA-256 á textaskjalinu og rafrænni vottun (PDF) sem
+  vistuð er í legal_review_signoffs. Allir aðrir hlutverkar (admin /
+  coach / doctor / nurse / psychologist) þurfa áfram MFA.
 
 v1.1 (2026-05-04)
   Lögheimili Lifeline Health ehf. uppfært í Langholtsveg 111, 104
