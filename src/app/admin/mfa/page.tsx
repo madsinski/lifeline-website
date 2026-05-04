@@ -66,8 +66,10 @@ function MfaPageInner() {
     }
   };
 
-  const verify = async () => {
+  const verify = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!factorId) return;
+    if (busy || code.length !== 6) return;
     setErr(null);
     setBusy(true);
     try {
@@ -114,7 +116,7 @@ function MfaPageInner() {
         )}
 
         {mode === "enroll" && qrCode && (
-          <div className="space-y-4">
+          <form onSubmit={verify} className="space-y-4">
             <div className="rounded-lg border border-gray-200 bg-white p-4 flex flex-col items-center">
               <p className="text-xs text-gray-600 mb-2">Scan this QR in Google Authenticator, Authy, or 1Password.</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -130,6 +132,8 @@ function MfaPageInner() {
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Verify with the 6-digit code</label>
               <input
                 type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="123456"
@@ -138,21 +142,23 @@ function MfaPageInner() {
               />
             </div>
             <button
-              onClick={verify}
+              type="submit"
               disabled={busy || code.length !== 6}
               className="w-full py-2.5 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-500 text-white font-semibold text-sm disabled:opacity-50"
             >
               {busy ? "Verifying…" : "Verify & finish"}
             </button>
-          </div>
+          </form>
         )}
 
         {mode === "challenge" && (
-          <div className="space-y-4">
+          <form onSubmit={verify} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">6-digit code</label>
               <input
                 type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="123456"
@@ -161,19 +167,20 @@ function MfaPageInner() {
               />
             </div>
             <button
-              onClick={verify}
+              type="submit"
               disabled={busy || code.length !== 6}
               className="w-full py-2.5 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-500 text-white font-semibold text-sm disabled:opacity-50"
             >
               {busy ? "Verifying…" : "Continue"}
             </button>
             <button
+              type="button"
               onClick={() => { supabase.auth.signOut(); router.replace("/admin/login"); }}
               className="w-full py-2 text-xs text-gray-500 hover:text-gray-700"
             >
               Sign out
             </button>
-          </div>
+          </form>
         )}
 
         {mode === "done" && (
