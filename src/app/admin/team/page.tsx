@@ -730,6 +730,7 @@ export default function TeamPage() {
                             <option value="salaried">Salaried</option>
                             <option value="piece_rate">Piece-rate (2 000 ISK/mæling)</option>
                             <option value="contractor">Contractor</option>
+                            <option value="shareholder">Shareholder (no payment)</option>
                           </select>
                         </div>
                       ) : (
@@ -1118,9 +1119,10 @@ export default function TeamPage() {
                   <option value="salaried">Salaried — fixed monthly wage (ráðningarsamningur uploaded as bespoke PDF)</option>
                   <option value="piece_rate">Piece-rate — 2 000 ISK per measurement (lausráðningarsamningur, click-through)</option>
                   <option value="contractor">Independent contractor — self-employed, own tax (verktakasamningur, click-through)</option>
+                  <option value="shareholder">Shareholder — no payment relationship (e.g. external counsel doing pro bono work; no contract)</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1 leading-snug">
-                  Decides which contract doc they sign at onboarding. Pick <strong>piece_rate</strong> for clinicians paid per measurement (Lifeline is the employer of record, withholds tax + pays tryggingagjald + pension). Pick <strong>salaried</strong> for full-time / fixed-salary staff — you upload the bespoke ráðningarsamningur PDF via the Legal panel on the row. Only pick <strong>contractor</strong> for genuinely independent work (IT, marketing, etc.).
+                  Decides which contract doc they sign at onboarding. Pick <strong>piece_rate</strong> for clinicians paid per measurement (Lifeline is the employer of record, withholds tax + pays tryggingagjald + pension). Pick <strong>salaried</strong> for full-time / fixed-salary staff — you upload the bespoke ráðningarsamningur PDF via the Legal panel on the row. Pick <strong>contractor</strong> for genuinely independent paid work (IT, marketing, etc.). Pick <strong>shareholder</strong> for someone with no payment relationship (e.g. an investor doing pro bono legal work).
                 </p>
               </div>
               <div>
