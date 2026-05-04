@@ -47,6 +47,14 @@ import {
   renderPurchaseOrder,
 } from "@/lib/agreement-templates";
 import {
+  PUBLIC_PRIVACY_VERSION,
+  PUBLIC_PRIVACY_LAST_UPDATED,
+  PUBLIC_TERMS_VERSION,
+  PUBLIC_TERMS_LAST_UPDATED,
+  renderPublicPrivacyPolicy,
+  renderPublicTermsOfService,
+} from "@/lib/public-pages-content";
+import {
   SECURITY_POSTURE_VERSION,
   SECURITY_POSTURE_LAST_UPDATED,
   renderSecurityPosture,
@@ -111,25 +119,26 @@ export default function LegalDraftsPage() {
     },
     {
       title: "Public-facing",
-      blurb: "Visible to anyone on the website. Already published — counsel may suggest copy edits.",
+      blurb:
+        "Visible to anyone on the website at /privacy and /terms. Plain-text mirror shown here for review; the live styled version lives at the URL. Both must be kept in sync — see src/lib/public-pages-content.ts.",
       drafts: [
         {
           id: "privacy-policy",
           title: "Privacy Policy",
-          version: "v1.4",
-          filename: "privacy-policy-v1.4.html",
+          version: `${PUBLIC_PRIVACY_VERSION} · updated ${PUBLIC_PRIVACY_LAST_UPDATED}`,
+          filename: `privacy-policy-${PUBLIC_PRIVACY_VERSION}.txt`,
           description:
-            "Public privacy policy at /privacy. Lawyer should review the published page directly: this list links to it.",
-          text: "(JSX page — open https://www.lifelinehealth.is/privacy or src/app/privacy/page.tsx in the repo to read the full content)",
+            "Public privacy policy at lifelinehealth.is/privacy. Plain-text mirror — styled version is at the live URL.",
+          text: renderPublicPrivacyPolicy(),
         },
         {
           id: "terms-of-service",
           title: "Terms of Service (public)",
-          version: "current",
-          filename: "terms-public.html",
+          version: `${PUBLIC_TERMS_VERSION} · updated ${PUBLIC_TERMS_LAST_UPDATED}`,
+          filename: `terms-of-service-${PUBLIC_TERMS_VERSION}.txt`,
           description:
-            "Public terms at /terms. Lawyer should review the published page directly.",
-          text: "(JSX page — open https://www.lifelinehealth.is/terms or src/app/terms/page.tsx in the repo)",
+            "Public terms at lifelinehealth.is/terms. Plain-text mirror — styled version is at the live URL.",
+          text: renderPublicTermsOfService(),
         },
       ],
     },
