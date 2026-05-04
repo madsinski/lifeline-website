@@ -248,7 +248,7 @@ function AgreementDocument(p: AgreementPdfProps) {
 
         <Text style={s.h3}>1. Aðilar</Text>
         <Text style={s.p}>
-          Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline Health") veitir
+          Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík (hér eftir „Lifeline Health") veitir
           heilsumat til starfsmanna fyrirtækja samkvæmt þjónustusamningi við viðkomandi vinnuveitanda.
         </Text>
 

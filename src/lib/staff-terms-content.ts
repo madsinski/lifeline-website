@@ -30,7 +30,7 @@ export function defaultEmploymentType(role: StaffRoleLabel): EmploymentType {
 
 // ─── Keys / versions ─────────────────────────────────────────
 export const STAFF_NDA_KEY = "staff-nda";
-export const STAFF_NDA_VERSION = "v1.0";
+export const STAFF_NDA_VERSION = "v1.1";
 
 export const STAFF_CONFIDENTIALITY_KEY = "staff-confidentiality";
 export const STAFF_CONFIDENTIALITY_VERSION = "v1.0";
@@ -56,7 +56,7 @@ export const STAFF_ONBOARDING_CHECKLIST_VERSION = "v1.0";
 // clinician works under Lifeline's healthcare license, uses Lifeline's
 // equipment/protocols, and measurements feed the Lifeline sjúkraskrá.
 export const STAFF_PIECE_RATE_EMPLOYMENT_KEY = "staff-piece-rate-employment";
-export const STAFF_PIECE_RATE_EMPLOYMENT_VERSION = "v1.0";
+export const STAFF_PIECE_RATE_EMPLOYMENT_VERSION = "v1.1";
 // Compensation constants — baked into the v1.0 text. Change → bump version.
 export const STAFF_PIECE_RATE_ISK_PER_MEASUREMENT = 2000;
 export const STAFF_PIECE_RATE_PAYMENT_DUE_DAY = 5; // 5th of next month
@@ -66,7 +66,7 @@ export const STAFF_PIECE_RATE_PAYMENT_DUE_DAY = 5; // 5th of next month
 // clinicians by default — they should be on the piece_rate employment
 // contract because they work under Lifeline's healthcare license.
 export const STAFF_CONTRACTOR_KEY = "staff-contractor-agreement";
-export const STAFF_CONTRACTOR_VERSION = "v1.0";
+export const STAFF_CONTRACTOR_VERSION = "v1.1";
 export const STAFF_CONTRACTOR_ISK_PER_MEASUREMENT = 2000;
 export const STAFF_CONTRACTOR_PAYMENT_DAYS = 28;
 
@@ -145,7 +145,7 @@ Lifeline Health ehf. – Samningur um trúnað og þagmælsku
 Útgáfa ${STAFF_NDA_VERSION}
 
 1. Aðilar og gildissvið
-1.1 Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline Health") og undirritaður starfsmaður gera með sér samning þennan um meðferð trúnaðarupplýsinga.
+1.1 Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík (hér eftir „Lifeline Health") og undirritaður starfsmaður gera með sér samning þennan um meðferð trúnaðarupplýsinga.
 1.2 Samningurinn gildir um allar trúnaðarupplýsingar sem starfsmaður fær aðgang að í starfi sínu, hvort sem þær eru munnlegar, skriflegar, rafrænar eða sýnilegar á annan hátt.
 
 2. Hvað telst trúnaðarupplýsingar
@@ -474,7 +474,7 @@ Lifeline Health ehf. – Lausráðningarsamningur heilbrigðisstarfsmanns
 Útgáfa ${STAFF_PIECE_RATE_EMPLOYMENT_VERSION}
 
 1. Aðilar
-1.1 Vinnuveitandi: Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline").
+1.1 Vinnuveitandi: Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík (hér eftir „Lifeline").
 1.2 Launþegi: undirritaður heilbrigðisstarfsmaður (hér eftir „starfsmaður").
 1.3 Samningurinn er launþegasamningur skv. lögum nr. 19/1979, lögum nr. 30/1987 um orlof og lögum nr. 55/1980 um starfskjör launafólks. Lifeline er skráð á launagreiðendaskrá Ríkisskattstjóra og heldur eftir staðgreiðslu og greiðir tryggingagjald skv. lögum nr. 113/1990.
 
@@ -570,7 +570,7 @@ Lifeline Health ehf. – Verktakasamningur um heilsumælingar í atvinnuskyni
 Útgáfa ${STAFF_CONTRACTOR_VERSION}
 
 1. Aðilar
-1.1 Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline" eða „verkkaupi").
+1.1 Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík (hér eftir „Lifeline" eða „verkkaupi").
 1.2 Undirritaður heilbrigðisstarfsmaður (hér eftir „verktaki"), sem starfar sem verktaki samkvæmt samningi þessum.
 1.3 Aðilar undirrita þennan samning sem sjálfstæða lögaðila — samningurinn stofnar ekki til ráðningarsambands í skilningi laga nr. 28/1930 eða laga nr. 80/1938, og verktaki hlýtur ekki launþegaréttindi (t.d. orlof, veikindadagar, lífeyri eða atvinnuleysisbótarétt) samkvæmt þessum samningi.
 

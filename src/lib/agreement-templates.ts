@@ -4,7 +4,7 @@
 // what the signatory saw when they signed. Any content change MUST bump the
 // version string.
 
-export const THJONUSTUSKILMALAR_VERSION = "thjonustuskilmalar-v1.0";
+export const THJONUSTUSKILMALAR_VERSION = "thjonustuskilmalar-v1.1";
 export const THJONUSTUSAMNINGUR_VERSION = "thjonustusamningur-v1.0";
 
 export function renderThjonustuskilmalar(): string {
@@ -12,7 +12,7 @@ export function renderThjonustuskilmalar(): string {
 Lifeline Health ehf. – Heilsumat starfsmanna
 
 1. Aðilar
-Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline Health") veitir heilsumat til starfsmanna fyrirtækja samkvæmt þjónustusamningi við viðkomandi vinnuveitanda.
+Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík (hér eftir „Lifeline Health") veitir heilsumat til starfsmanna fyrirtækja samkvæmt þjónustusamningi við viðkomandi vinnuveitanda.
 
 2. Gildissvið
 Skilmálar þessir gilda um alla þátttöku starfsmanna í heilsumati sem Lifeline Health veitir. Þjónustan er eingöngu í boði fyrir einstaklinga 18 ára og eldri.

@@ -3,9 +3,9 @@
 // platform_agreement_acceptances.text_hash. Any change — even whitespace —
 // MUST bump the version so existing users get re-prompted to accept.
 
-export const TOS_VERSION = "v1.0";
+export const TOS_VERSION = "v1.1";
 export const DPA_VERSION = "v1.0";
-export const EMPLOYEE_TOS_VERSION = "v1.0";
+export const EMPLOYEE_TOS_VERSION = "v1.1";
 export const HEALTH_CONSENT_VERSION = "v1.0";
 
 export const TOS_KEY = "terms-of-service";
@@ -20,7 +20,7 @@ Lifeline Health ehf. – Þjónustusíða fyrir vinnuveitendur
 Útgáfa ${TOS_VERSION}
 
 1. Aðilar og gildissvið
-1.1 Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline Health") rekur þjónustusíðu (heilsumat.lifelinehealth.is og tengdar slóðir) sem gerir vinnuveitendum kleift að skrá starfsmenn í heilsumatsþjónustu og hafa umsjón með þátttöku þeirra.
+1.1 Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík (hér eftir „Lifeline Health") rekur þjónustusíðu (heilsumat.lifelinehealth.is og tengdar slóðir) sem gerir vinnuveitendum kleift að skrá starfsmenn í heilsumatsþjónustu og hafa umsjón með þátttöku þeirra.
 1.2 Skilmálar þessir gilda um alla notkun þjónustusíðunnar af hálfu vinnuveitenda, tengiliða þeirra og annarra notenda sem aðgang hafa.
 1.3 Með því að stofna aðgang og merkja við samþykki staðfestir notandi að hann hafi lesið og samþykki skilmála þessa fyrir hönd vinnuveitandans.
 
@@ -133,7 +133,7 @@ Lifeline Health ehf. – Þjónustusíða og snjallforrit
 Útgáfa ${EMPLOYEE_TOS_VERSION}
 
 1. Aðilar og gildissvið
-1.1 Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður (hér eftir „Lifeline Health") rekur þjónustusíðu og snjallforrit sem gerir þér kleift að taka þátt í heilsumati sem vinnuveitandi þinn býður þér.
+1.1 Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík (hér eftir „Lifeline Health") rekur þjónustusíðu og snjallforrit sem gerir þér kleift að taka þátt í heilsumati sem vinnuveitandi þinn býður þér.
 1.2 Skilmálar þessir gilda um þína persónulegu notkun á þjónustunni. Þeir koma ekki í stað þeirra viðskiptaskilmála sem vinnuveitandi þinn hefur samþykkt við Lifeline Health.
 
 2. Starfsleyfi og hlutverk Lifeline Health

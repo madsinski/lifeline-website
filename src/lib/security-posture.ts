@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.0";
+export const SECURITY_POSTURE_VERSION = "v1.1";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-05-04";
 
 export function renderSecurityPosture(): string {
@@ -49,7 +49,7 @@ sínum.
 Ábyrgðaraðili (Data controller):
   Lifeline Health ehf.
   Kt. 590925-1440
-  Þrastarási 71, 221 Hafnarfjörður
+  Langholtsvegi 111, 104 Reykjavík
   Netfang: contact@lifelinehealth.is
   Vefsíða: https://www.lifelinehealth.is
 
@@ -442,7 +442,15 @@ Skipulagslegt:
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
 
-${SECURITY_POSTURE_VERSION} (${SECURITY_POSTURE_LAST_UPDATED})
+v1.1 (2026-05-04)
+  Lögheimili Lifeline Health ehf. uppfært í Langholtsveg 111, 104
+  Reykjavík (var áður Þrastarási 71, 221 Hafnarfjörður). Sömu uppfærslu
+  beitt í gegnum öll lagaleg skjöl: NDA, Lausráðningarsamningi,
+  Verktakasamningi, B2B þjónustuskilmálum, Platform TOS + Employee
+  TOS, Medalia samkomulagi, og PDF undirritunarskjölum. Útgáfa hvers
+  skjals bumpuð.
+
+v1.0 (2026-05-04)
   Initial release. Captures security + compliance posture as built
   through external audit + Sprint 0 / Sprint 1 / Sprint 2 work
   (Apr 21 — May 4, 2026): RLS hardening, audit log, DSR workflow,

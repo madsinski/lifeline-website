@@ -11,7 +11,7 @@
 // ─── 1.7  Medalia joint-controller arrangement (GDPR Art. 26) ──
 
 export const MEDALIA_JOINT_CONTROLLER_KEY = "medalia-joint-controller";
-export const MEDALIA_JOINT_CONTROLLER_VERSION = "v1.1";
+export const MEDALIA_JOINT_CONTROLLER_VERSION = "v1.2";
 
 export function renderMedaliaJointControllerArrangement(): string {
   return `SAMKOMULAG UM SAMEIGINLEGA ÁBYRGÐ Á VINNSLU SJÚKRASKRÁRGAGNA
@@ -20,7 +20,7 @@ Lifeline Health ehf. og Medalia ehf.
 Skv. 26. gr. reglugerðar (ESB) 2016/679 (GDPR) og laga nr. 90/2018 um persónuvernd.
 
 1. Aðilar
-1.1 Lifeline Health ehf., kt. 590925-1440, Þrastarási 71, 221 Hafnarfjörður
+1.1 Lifeline Health ehf., kt. 590925-1440, Langholtsvegi 111, 104 Reykjavík
     (hér eftir „Lifeline").
 1.2 Medalia ehf., kt. 530224-0230, Kirkjubraut 13, 170 Seltjarnarnes
     (hér eftir „Medalia"). Medalia rekur viðurkennt sjúkraskrárkerfi með leyfi

@@ -220,7 +220,7 @@ export async function POST(
       <li>Undirritað: ${new Date(agreement.signed_at).toLocaleString("is-IS")}</li>
     </ul>
     <p style="margin:0 0 8px;color:#4b5563;">Afrit er einnig varðveitt í Lifeline þjónustukerfinu.</p>
-    <p style="margin:18px 0 0;color:#9ca3af;font-size:12px;">Lifeline Health ehf. · kt. 590925-1440 · Þrastarási 71, 221 Hafnarfjörður</p>
+    <p style="margin:18px 0 0;color:#9ca3af;font-size:12px;">Lifeline Health ehf. · kt. 590925-1440 · Langholtsvegi 111, 104 Reykjavík</p>
   </div>
 </body></html>`;
       await sendEmail({

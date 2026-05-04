@@ -141,6 +141,19 @@ export async function POST(req: Request) {
     }
   }
 
+  // Some Supabase projects have a handle_new_user() trigger that auto-
+  // inserts a clients row whenever auth.users gains a row. For staff
+  // (especially external counsel) that's wrong — the new staff member
+  // shouldn't be a "client". Delete the auto-created clients row by id
+  // so we don't end up with a half-staff-half-client identity. Safe
+  // because we only delete the row whose id matches the auth user we
+  // just created — pre-existing clients with other ids are untouched.
+  if (authCreated) {
+    try {
+      await supabaseAdmin.from("clients").delete().eq("id", authUserId);
+    } catch { /* ignore — trigger may not exist in some envs */ }
+  }
+
   // Insert (or upsert) the staff row with id = auth user id.
   const { data: staffRow, error: insErr } = await supabaseAdmin
     .from("staff")
@@ -162,9 +175,11 @@ export async function POST(req: Request) {
     .single();
 
   if (insErr || !staffRow) {
-    // If we created an auth user but staff insert failed, roll back the auth user
-    // so we don't leave orphans.
+    // If we created an auth user but staff insert failed, roll back BOTH
+    // the auth user AND any auto-created clients row so we don't leave
+    // a half-state that blocks the next attempt.
     if (authCreated && authUserId) {
+      try { await supabaseAdmin.from("clients").delete().eq("id", authUserId); } catch {}
       try { await supabaseAdmin.auth.admin.deleteUser(authUserId); } catch {}
     }
     return NextResponse.json(

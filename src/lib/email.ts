@@ -443,7 +443,7 @@ Happy to answer anything — just hit reply.
           </td>
           <td style="vertical-align:middle;">
             <p style="margin:0 0 3px;color:#64748B;font-size:12.5px;">Questions? Hit reply — a real person reads everything.</p>
-            <p style="margin:0;color:#94A3B8;font-size:11.5px;">Lifeline Health ehf. · kt. 590925-1440 · Þrastarási 71, 221 Hafnarfjörður</p>
+            <p style="margin:0;color:#94A3B8;font-size:11.5px;">Lifeline Health ehf. · kt. 590925-1440 · Langholtsvegi 111, 104 Reykjavík</p>
           </td>
         </tr>
       </table>
