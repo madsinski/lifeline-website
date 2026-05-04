@@ -6,58 +6,99 @@
 -- inviteUserByEmail() was returning "Database error saving new
 -- user" (it was an SDK quirk — direct REST works). Each probe
 -- created an auth.users row, which fired the handle_new_user()
--- trigger and produced an orphan clients row. They never had
--- subscriptions, programs, or any other downstream data, so this
--- script just removes the auth + clients rows.
+-- trigger and produced a clients row + lifescore points + an
+-- activity-feed entry. Triggers downstream of clients (e.g.
+-- conversation auto-create) added more dependent rows, so a
+-- naive DELETE FROM clients hits FK violations.
 --
--- Run in the Supabase SQL editor. Idempotent (re-running is a
--- no-op once the rows are gone).
+-- Solution: walk pg_constraint and dynamically delete from every
+-- table whose FK points at clients(id) or auth.users(id) before
+-- removing the parent rows. Idempotent — re-running once the
+-- probes are gone is a no-op.
+--
+-- Run in the Supabase SQL editor.
 -- =============================================================
 
--- 1. Confirm what we're about to delete. Inspect this output before
---    running the deletes below.
-SELECT
-  u.id        AS auth_user_id,
-  u.email,
-  u.created_at AS auth_created_at,
-  c.id        AS clients_id,
-  c.created_at AS clients_created_at,
-  s.id        AS staff_id
-FROM auth.users u
-LEFT JOIN public.clients c ON c.id = u.id
-LEFT JOIN public.staff   s ON s.id = u.id
-WHERE u.email IN (
-  'ragnar+invite-probe@fosslogmenn.is',
-  'ragnar+probe@fosslogmenn.is'
-);
+DO $$
+DECLARE
+  probe_ids UUID[];
+  fk_record RECORD;
+  sql_text TEXT;
+  n_deleted INT;
+BEGIN
+  -- 1. Resolve the probe auth user ids.
+  SELECT ARRAY(
+    SELECT id FROM auth.users
+    WHERE email IN (
+      'ragnar+invite-probe@fosslogmenn.is',
+      'ragnar+probe@fosslogmenn.is'
+    )
+  ) INTO probe_ids;
 
--- 2. Drop any clients rows for those probes (children before parent).
-DELETE FROM public.clients
- WHERE email IN (
-   'ragnar+invite-probe@fosslogmenn.is',
-   'ragnar+probe@fosslogmenn.is'
- );
+  IF array_length(probe_ids, 1) IS NULL THEN
+    RAISE NOTICE 'No probe accounts found — nothing to do.';
+    RETURN;
+  END IF;
 
--- 3. Drop staff rows in case any leaked through (defensive — we
---    don't expect any).
-DELETE FROM public.staff
- WHERE email IN (
-   'ragnar+invite-probe@fosslogmenn.is',
-   'ragnar+probe@fosslogmenn.is'
- );
+  RAISE NOTICE 'Cleaning up probe ids: %', probe_ids;
 
--- 4. Drop the auth users themselves. This cascades to identities,
---    sessions, refresh tokens etc. via Supabase's built-in auth
---    schema FKs.
-DELETE FROM auth.users
- WHERE email IN (
-   'ragnar+invite-probe@fosslogmenn.is',
-   'ragnar+probe@fosslogmenn.is'
- );
+  -- 2. Cascade-delete from every table whose FK points at clients(id).
+  --    Run in a loop so we don't have to enumerate them by name.
+  FOR fk_record IN
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS table_name,
+      a.attname AS column_name
+    FROM pg_constraint con
+    JOIN pg_class c     ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = ANY(con.conkey)
+    WHERE con.confrelid = 'public.clients'::regclass
+      AND con.contype   = 'f'
+  LOOP
+    sql_text := format('DELETE FROM %I.%I WHERE %I = ANY($1)',
+                       fk_record.schema_name, fk_record.table_name, fk_record.column_name);
+    EXECUTE sql_text USING probe_ids;
+    GET DIAGNOSTICS n_deleted = ROW_COUNT;
+    IF n_deleted > 0 THEN
+      RAISE NOTICE '  % rows deleted from %.%', n_deleted, fk_record.schema_name, fk_record.table_name;
+    END IF;
+  END LOOP;
 
--- 5. Re-run the SELECT from step 1 to confirm zero rows remain.
-SELECT
-  u.id, u.email
+  -- 3. Same sweep for FKs that reference auth.users(id) directly
+  --    (e.g. legal_review_signoffs.reviewer_id, staff_agreement_acceptances).
+  FOR fk_record IN
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS table_name,
+      a.attname AS column_name
+    FROM pg_constraint con
+    JOIN pg_class c     ON c.oid = con.conrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = ANY(con.conkey)
+    WHERE con.confrelid = 'auth.users'::regclass
+      AND con.contype   = 'f'
+      AND n.nspname     = 'public'   -- skip auth-internal tables
+  LOOP
+    sql_text := format('DELETE FROM %I.%I WHERE %I = ANY($1)',
+                       fk_record.schema_name, fk_record.table_name, fk_record.column_name);
+    EXECUTE sql_text USING probe_ids;
+    GET DIAGNOSTICS n_deleted = ROW_COUNT;
+    IF n_deleted > 0 THEN
+      RAISE NOTICE '  % rows deleted from %.%', n_deleted, fk_record.schema_name, fk_record.table_name;
+    END IF;
+  END LOOP;
+
+  -- 4. Now the parents.
+  DELETE FROM public.clients WHERE id = ANY(probe_ids);
+  DELETE FROM public.staff   WHERE id = ANY(probe_ids);
+  DELETE FROM auth.users     WHERE id = ANY(probe_ids);
+
+  RAISE NOTICE 'Cleanup complete.';
+END $$;
+
+-- 5. Confirm zero rows remain.
+SELECT u.id, u.email
 FROM auth.users u
 WHERE u.email IN (
   'ragnar+invite-probe@fosslogmenn.is',
