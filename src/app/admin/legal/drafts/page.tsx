@@ -1,8 +1,19 @@
 // Server-rendered viewer for every legal document Lifeline maintains.
 // Pulls live text from the renderer libs so the page stays in sync.
 // Grouped into categories to make the lawyer's review quicker.
+//
+// Override path: if an admin has pasted a revised version into the
+// Edit field on a card, that revision is stored in
+// legal_document_drafts and shown here instead of the source-code
+// text. This is how the lawyer's redlines (delivered to admin out-
+// of-band as a .txt) flow back into the review pipeline.
 
 import Link from "next/link";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+
+// Force dynamic rendering — we hit the DB on every request to pick
+// up the latest admin-pasted draft for each document.
+export const dynamic = "force-dynamic";
 import {
   renderMedaliaJointControllerArrangement,
   MEDALIA_JOINT_CONTROLLER_VERSION,
@@ -75,6 +86,15 @@ interface DraftSection {
   text: { is: string | null; en: string | null };
 }
 
+export interface DraftMeta {
+  proposed_version: string;
+  edited_by_email: string;
+  edited_by_name: string | null;
+  created_at: string;
+  source_note: string | null;
+  text_hash: string;
+}
+
 interface DraftCategory {
   title: string;
   blurb: string;
@@ -102,7 +122,71 @@ const SAMPLE_PO = {
   endsAt: null,
 };
 
-export default function LegalDraftsPage() {
+interface LatestDraftRow {
+  document_key: string;
+  language: "is" | "en";
+  proposed_version: string;
+  text: string;
+  text_hash: string;
+  edited_by_email: string;
+  edited_by_name: string | null;
+  source_note: string | null;
+  created_at: string;
+}
+
+// Pull the most recent draft per (document_key, language). Postgres
+// DISTINCT ON does the heavy lifting — for each (key, lang) we keep
+// the row with the highest created_at.
+async function loadLatestDrafts(): Promise<Map<string, LatestDraftRow>> {
+  const map = new Map<string, LatestDraftRow>();
+  try {
+    // supabase-js doesn't expose DISTINCT ON cleanly, so we just pull
+    // ordered rows and let the loop pick the first per key.
+    const { data } = await supabaseAdmin
+      .from("legal_document_drafts")
+      .select("document_key, language, proposed_version, text, text_hash, edited_by_email, edited_by_name, source_note, created_at")
+      .order("created_at", { ascending: false });
+    for (const row of (data || []) as LatestDraftRow[]) {
+      const k = `${row.document_key}::${row.language}`;
+      if (!map.has(k)) map.set(k, row);
+    }
+  } catch {
+    // Table may not exist yet (migration not applied) — degrade
+    // gracefully: no overrides, source-code text is shown everywhere.
+  }
+  return map;
+}
+
+function applyDraft(
+  draftMap: Map<string, LatestDraftRow>,
+  documentKey: string,
+  source: { is: string | null; en: string | null },
+): { text: { is: string | null; en: string | null }; drafts: { is: DraftMeta | null; en: DraftMeta | null } } {
+  const overlay = (lang: "is" | "en"): { text: string | null; meta: DraftMeta | null } => {
+    const draft = draftMap.get(`${documentKey}::${lang}`);
+    if (!draft) return { text: source[lang], meta: null };
+    return {
+      text: draft.text,
+      meta: {
+        proposed_version: draft.proposed_version,
+        edited_by_email: draft.edited_by_email,
+        edited_by_name: draft.edited_by_name,
+        created_at: draft.created_at,
+        source_note: draft.source_note,
+        text_hash: draft.text_hash,
+      },
+    };
+  };
+  const isOverlay = overlay("is");
+  const enOverlay = overlay("en");
+  return {
+    text: { is: isOverlay.text, en: enOverlay.text },
+    drafts: { is: isOverlay.meta, en: enOverlay.meta },
+  };
+}
+
+export default async function LegalDraftsPage() {
+  const draftMap = await loadLatestDrafts();
   const categories: DraftCategory[] = [
     {
       title: "Audit-ready security & privacy posture",
@@ -406,18 +490,22 @@ export default function LegalDraftsPage() {
             <h2 className="text-lg font-semibold text-[#1F2937]">{cat.title}</h2>
             <p className="text-xs text-gray-500 mt-0.5 max-w-3xl">{cat.blurb}</p>
           </div>
-          {cat.drafts.map((d) => (
-            <DocCard
-              key={d.id}
-              id={d.id}
-              title={d.title}
-              version={d.version}
-              filenameBase={d.filenameBase}
-              description={d.description}
-              sourceLanguage={d.sourceLanguage}
-              text={d.text}
-            />
-          ))}
+          {cat.drafts.map((d) => {
+            const overlay = applyDraft(draftMap, d.id, d.text);
+            return (
+              <DocCard
+                key={d.id}
+                id={d.id}
+                title={d.title}
+                version={d.version}
+                filenameBase={d.filenameBase}
+                description={d.description}
+                sourceLanguage={d.sourceLanguage}
+                text={overlay.text}
+                drafts={overlay.drafts}
+              />
+            );
+          })}
         </div>
       ))}
     </div>
