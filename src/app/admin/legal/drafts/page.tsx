@@ -47,6 +47,7 @@ import {
   renderPurchaseOrder,
 } from "@/lib/agreement-templates";
 import CopyButton from "./CopyButton";
+import DocReviewPanel from "./DocReviewPanel";
 
 interface DraftSection {
   id: string;
@@ -370,6 +371,12 @@ export default function LegalDraftsPage() {
                 <pre className="px-5 py-4 text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed bg-gray-50/30 max-h-[420px] overflow-y-auto">
                   {d.text}
                 </pre>
+                <DocReviewPanel
+                  documentKey={d.id}
+                  documentVersion={d.version}
+                  documentTitle={d.title}
+                  documentText={d.text}
+                />
               </section>
             );
           })}

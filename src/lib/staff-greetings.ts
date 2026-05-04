@@ -3,7 +3,7 @@
 // generic "Welcome back" line. Picked at random per page load so the
 // greeting rotates without any persistence.
 
-export type GreetingRole = "admin" | "coach" | "doctor" | "nurse" | "psychologist";
+export type GreetingRole = "admin" | "coach" | "doctor" | "nurse" | "psychologist" | "lawyer";
 
 const ADMIN_GREETINGS = [
   "Wazzup boss man",
@@ -270,12 +270,66 @@ const PSYCHOLOGIST_GREETINGS = [
   "Nice to see you, cartographer of the psyche",
 ];
 
+const LAWYER_GREETINGS = [
+  "Counsel has entered the chambers",
+  "The objection-detector is online",
+  "Hello, defender of the comma",
+  "The semicolon whisperer has arrived",
+  "Brief in hand, coffee in the other",
+  "Your honour, the lawyer has logged in",
+  "Justice runs on caffeine and clauses",
+  "Ladies and gentlemen of the dashboard",
+  "The redline season opens now",
+  "Welcome, master of the indemnification clause",
+  "May your contracts be airtight and your weekends free",
+  "Counsel for the prudent",
+  "The fine print knows your name",
+  "Where there is paragraph 12(b)(iii), there is power",
+  "The case for your login is overwhelming",
+  "Sustained: your access",
+  "Welcome back, learned friend",
+  "Pro bono of nothing today — paid work only",
+  "The party of the first part has signed in",
+  "Whereas Counsel has logged in, therefore the day improves",
+  "GDPR Art. coffee-break is now in session",
+  "Your billable hours called — they want a hello",
+  "The drafter of doom (or salvation, depending on the deal)",
+  "Black-letter lawyer, white-knight energy",
+  "Reading the room AND the contract",
+  "The deposition can wait — read this first",
+  "Closing argument: another solid login",
+  "Order in the dashboard",
+  "Your honour, may I approach the documents",
+  "The brief is briefer than expected",
+  "Counsel: present, prompt, prepared",
+  "Where there's a will, you drafted it",
+  "Cross-examining the typos as we speak",
+  "The voice of reason has joined the call",
+  "Welcome, the calm in any deal-room storm",
+  "Reading between the lines is your default mode",
+  "The kind of lawyer your clients sleep better knowing about",
+  "Discovery has been made: you've logged in",
+  "The fine art of saying 'no, but in a nice way'",
+  "Beyond reasonable doubt: it's a great morning",
+  "Welcome back, slayer of vague language",
+  "Lifeline's secret weapon has arrived",
+  "Counselor, may we proceed?",
+  "The grown-up in the room (legally speaking)",
+  "Time to find what's missing — which is your specialty",
+  "The lawyer is present, the world is safer",
+  "Good morning, Ragnar — let's find what needs tightening",
+  "The Persónuvernd-shaped armour, ready to be polished",
+  "Drafting precision since [insert bar admission year]",
+  "Welcome, the one who reads it twice and knows what it says",
+];
+
 const GREETINGS: Record<GreetingRole, string[]> = {
   admin: ADMIN_GREETINGS,
   coach: COACH_GREETINGS,
   doctor: DOCTOR_GREETINGS,
   nurse: NURSE_GREETINGS,
   psychologist: PSYCHOLOGIST_GREETINGS,
+  lawyer: LAWYER_GREETINGS,
 };
 
 export function pickStaffGreeting(role: GreetingRole, firstName?: string | null): string {

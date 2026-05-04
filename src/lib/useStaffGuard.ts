@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
-export type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin";
+export type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin" | "lawyer";
 export type StaffPermission = "manage_clients" | "manage_programs" | "manage_team" | "view_analytics" | "send_messages";
 
 interface StaffProfile {

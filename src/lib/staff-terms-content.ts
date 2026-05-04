@@ -4,7 +4,7 @@
 // in staff_agreement_acceptances.text_hash. Any change — even
 // whitespace — MUST bump the version so existing staff get re-prompted.
 
-export type StaffRoleLabel = "admin" | "coach" | "doctor" | "nurse" | "psychologist";
+export type StaffRoleLabel = "admin" | "coach" | "doctor" | "nurse" | "psychologist" | "lawyer";
 
 // The employment form the staff member is on. Drives which contract
 // doc they sign at onboarding:
@@ -24,6 +24,7 @@ export type EmploymentType = "salaried" | "piece_rate" | "contractor";
 // explicitly picking one.
 export function defaultEmploymentType(role: StaffRoleLabel): EmploymentType {
   if (role === "admin" || role === "coach") return "salaried";
+  if (role === "lawyer") return "contractor";
   return "piece_rate";
 }
 
@@ -93,6 +94,11 @@ export type StaffAgreementKey =
 //   • salaried:   no additional click-through — the admin uploads a
 //                 bespoke ráðningarsamningur PDF to the staff's
 //                 documents vault because salary figures are per-person.
+//   • lawyer (external counsel): NDA + persónuverndarfræðsla only.
+//                 Skips operational checklist + acceptable-use (those
+//                 are written for staff who handle client data day-to-day);
+//                 the lawyer reviews documents, doesn't access clinical
+//                 systems.
 //
 // Backwards-compat: if employment_type is null/undefined the function
 // uses defaultEmploymentType(role).
@@ -100,6 +106,14 @@ export function requiredAgreementsForStaff(
   role: StaffRoleLabel,
   employmentType: EmploymentType | null | undefined,
 ): Array<{ key: StaffAgreementKey; version: string; title: string }> {
+  // Lawyer = external counsel. Narrow doc set, no employment contract.
+  if (role === "lawyer") {
+    return [
+      { key: STAFF_NDA_KEY, version: STAFF_NDA_VERSION, title: "Trúnaðarsamningur (NDA)" },
+      { key: STAFF_DATA_PROTECTION_KEY, version: STAFF_DATA_PROTECTION_VERSION, title: "Persónuverndarfræðsla" },
+    ];
+  }
+
   const emp = employmentType || defaultEmploymentType(role);
   const base: Array<{ key: StaffAgreementKey; version: string; title: string }> = [
     { key: STAFF_NDA_KEY, version: STAFF_NDA_VERSION, title: "Trúnaðarsamningur (NDA)" },

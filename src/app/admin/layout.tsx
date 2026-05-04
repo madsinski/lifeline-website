@@ -278,6 +278,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (data) {
         setUserRole(data.role || "coach");
         setUserPermissions((data.permissions as string[]) || []);
+        // External counsel ("lawyer") only ever sees the Legal section.
+        // If they land on anything else, bounce them to the drafts viewer.
+        if (data.role === "lawyer") {
+          setCoachingView(false);
+          try { localStorage.removeItem("admin_coaching_view"); } catch {}
+          if (typeof window !== "undefined" && pathname && !pathname.startsWith("/admin/legal") && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
+            router.replace("/admin/legal/drafts");
+          }
+          return;
+        }
         // Resolve the coaching-view preference:
         //   - Non-admins (no manage_team) are locked into coaching view
         //     and any stale localStorage value is cleared.
@@ -475,7 +485,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Nav Links */}
         <nav className="flex-1 py-4 space-y-1 px-2">
-          {(coachingView
+          {(userRole === "lawyer"
+            // External counsel: only Legal section visible. Everything else
+            // hidden — no clients, no messages, no scheduling, no business.
+            ? sidebarLinks.filter((l) => l.href === "/admin/legal" || l.href.startsWith("/admin/legal/"))
+            : coachingView
             ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/conversations", "/admin/scheduling", "/admin/content"].includes(l.href))
             : sidebarLinks
           ).filter((link) => {
