@@ -46,6 +46,11 @@ import {
   renderThjonustusamningur,
   renderPurchaseOrder,
 } from "@/lib/agreement-templates";
+import {
+  SECURITY_POSTURE_VERSION,
+  SECURITY_POSTURE_LAST_UPDATED,
+  renderSecurityPosture,
+} from "@/lib/security-posture";
 import CopyButton from "./CopyButton";
 import DocReviewPanel from "./DocReviewPanel";
 
@@ -87,6 +92,22 @@ const SAMPLE_PO = {
 
 export default function LegalDraftsPage() {
   const categories: DraftCategory[] = [
+    {
+      title: "Audit-ready security & privacy posture",
+      blurb:
+        "Comprehensive snapshot of every technical and organisational measure Lifeline has in place. Send this to Persónuvernd if there's an audit, to insurance underwriters, or to B2B procurement teams. Version-controlled — bump in source when you change it.",
+      drafts: [
+        {
+          id: "security-posture",
+          title: "Security & Privacy Posture Statement",
+          version: `${SECURITY_POSTURE_VERSION} · updated ${SECURITY_POSTURE_LAST_UPDATED}`,
+          filename: `lifeline-security-posture-${SECURITY_POSTURE_VERSION}.txt`,
+          description:
+            "Full inventory of legal basis, data categories, hosting, encryption, access controls, audit logging, DSR workflow, processors, breach response, DPIA, staff training, and the wellness/sjúkraskrá architecture. Maintained in src/lib/security-posture.ts — bump version + last_updated when content changes.",
+          text: renderSecurityPosture(),
+        },
+      ],
+    },
     {
       title: "Public-facing",
       blurb: "Visible to anyone on the website. Already published — counsel may suggest copy edits.",
