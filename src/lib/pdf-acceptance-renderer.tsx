@@ -37,7 +37,10 @@ const s = StyleSheet.create({
   docHeader: { fontSize: 14, fontWeight: "bold", marginBottom: 6 },
   docText: { fontSize: 9.5, lineHeight: 1.45, color: "#1F2937", textAlign: "justify" },
   footer: { position: "absolute", bottom: 24, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: "#9CA3AF" },
-  legalNote: { fontSize: 9, color: "#6B7280", marginTop: 12, lineHeight: 1.5, fontStyle: "italic" },
+  // Italic dropped — Noto Sans Italic isn't registered (would require
+  // shipping another font file for one footer line). Slightly smaller +
+  // muted colour conveys "footer note" cue without italics.
+  legalNote: { fontSize: 8.5, color: "#6B7280", marginTop: 12, lineHeight: 1.5 },
 });
 
 export interface AcceptancePdfProps {
