@@ -387,7 +387,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // data-protection briefing) they land on /admin/onboard until
         // all of them are signed at the current version. /admin/login
         // and /admin/onboard itself are exempt so we don't loop.
-        if (pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
+        // Lawyer = external counsel — they're the ones reviewing these
+        // documents, so they can't sign them as click-throughs (chicken-
+        // and-egg). Skip the gate entirely for them.
+        if (inlineRole !== "lawyer" && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
           try {
             const token = s.access_token;
             const res = await fetch("/api/admin/staff/me/agreements", {

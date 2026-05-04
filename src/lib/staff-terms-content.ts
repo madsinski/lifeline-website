@@ -106,12 +106,15 @@ export function requiredAgreementsForStaff(
   role: StaffRoleLabel,
   employmentType: EmploymentType | null | undefined,
 ): Array<{ key: StaffAgreementKey; version: string; title: string }> {
-  // Lawyer = external counsel. Narrow doc set, no employment contract.
+  // Lawyer = external counsel. They are the ones REVIEWING and signing
+  // off on the NDA / Persónuverndarfræðsla as legal documents — they
+  // don't separately accept them as staff click-throughs. Confidentiality
+  // and data-protection obligations for external counsel are covered by
+  // the engagement letter signed with the law firm itself, not by the
+  // in-app onboarding gate. So: zero required agreements at the
+  // app-level.
   if (role === "lawyer") {
-    return [
-      { key: STAFF_NDA_KEY, version: STAFF_NDA_VERSION, title: "Trúnaðarsamningur (NDA)" },
-      { key: STAFF_DATA_PROTECTION_KEY, version: STAFF_DATA_PROTECTION_VERSION, title: "Persónuverndarfræðsla" },
-    ];
+    return [];
   }
 
   const emp = employmentType || defaultEmploymentType(role);
