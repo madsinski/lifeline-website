@@ -53,6 +53,7 @@ import {
 } from "@/lib/security-posture";
 import CopyButton from "./CopyButton";
 import DocReviewPanel from "./DocReviewPanel";
+import LegalTabBar from "../LegalTabBar";
 
 interface DraftSection {
   id: string;
@@ -326,13 +327,15 @@ export default function LegalDraftsPage() {
 
   return (
     <div className="space-y-8">
+      <LegalTabBar />
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Legal drafts</h1>
+          <h1 className="text-2xl font-bold text-[#1F2937]">Documents</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-3xl leading-relaxed">
             Every legal document Lifeline maintains, organised by category. Send to counsel
-            for review using Copy or Download. Once signed, store executed PDFs under{" "}
-            <Link href="/admin/legal" className="underline underline-offset-2">Legal &amp; agreements</Link>.
+            for review using Copy or Download, or have them sign off in-app. Signed copies
+            of click-through acceptances live under the{" "}
+            <Link href="/admin/legal" className="underline underline-offset-2">Signed acceptances</Link> tab.
           </p>
         </div>
         <a

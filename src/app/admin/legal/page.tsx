@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import LegalTabBar from "./LegalTabBar";
 
 type Tab = "commercial" | "platform";
 
@@ -286,14 +286,10 @@ export default function AdminLegalPage() {
 
   return (
     <div className="space-y-4">
+      <LegalTabBar />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-semibold text-gray-900">Legal</h1>
-            <Link href="/admin/legal/drafts" className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 hover:bg-emerald-100">
-              Unsigned drafts →
-            </Link>
-          </div>
+          <h1 className="text-xl font-semibold text-gray-900">Signed acceptances</h1>
           <p className="text-sm text-gray-500 mt-1">
             {tab === "commercial"
               ? "Commercial B2B service agreements + purchase orders signed by contact persons."
@@ -324,36 +320,24 @@ export default function AdminLegalPage() {
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-          <button
-            onClick={() => setTab("commercial")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              tab === "commercial" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Commercial agreements ({rows.length})
-          </button>
-          <button
-            onClick={() => setTab("platform")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              tab === "platform" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Platform acceptances ({platformRows.length})
-          </button>
-        </div>
-        <Link
-          href="/admin/legal/templates"
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
-          title="Browse every templated legal document, download .txt for legal review"
+      {/* Sub-tabs within Acceptances */}
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setTab("commercial")}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            tab === "commercial" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Browse templates →
-        </Link>
+          Commercial agreements ({rows.length})
+        </button>
+        <button
+          onClick={() => setTab("platform")}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            tab === "platform" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Platform acceptances ({platformRows.length})
+        </button>
       </div>
 
       {/* Platform tab: document-type filter + CSV export. Counts reflect
