@@ -91,35 +91,52 @@ export async function POST(req: Request) {
   }
 
   if (!authUserId) {
-    // Create the auth user via admin API. This both creates the user
-    // and (if redirectTo is set) sends a magic link / invite email.
+    // Bypass supabase-js admin SDK and call the GoTrue REST API directly.
+    // The SDK's inviteUserByEmail was returning "Database error saving new
+    // user" in our environment despite identical-shaped curl POSTs to the
+    // same endpoint succeeding — likely a runtime/fetch quirk. Direct REST
+    // is more debuggable + doesn't rely on SDK internals.
+    const supabaseUrl = process.env.SUPABASE_URL || "https://cfnibfxzltxiriqxvvru.supabase.co";
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+      return NextResponse.json({ ok: false, error: "Server misconfigured: missing service role key" }, { status: 500 });
+    }
+    const headers: Record<string, string> = {
+      "apikey": serviceKey,
+      "Authorization": `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    };
     if (sendInvite) {
-      const { data: inv, error: invErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        data: { name, role },
-        redirectTo: `${ORIGIN}/admin/login`,
+      const url = `${supabaseUrl}/auth/v1/invite?redirect_to=${encodeURIComponent(`${ORIGIN}/admin/login`)}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ email, data: { name, role } }),
       });
-      if (invErr || !inv.user) {
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.id) {
         return NextResponse.json(
-          { ok: false, error: `Could not create auth user: ${invErr?.message || "no user returned"}` },
+          { ok: false, error: `Could not invite user: ${j?.msg || j?.error || j?.message || `HTTP ${res.status}`}` },
           { status: 500 },
         );
       }
-      authUserId = inv.user.id;
+      authUserId = j.id as string;
       authCreated = true;
     } else {
-      // No invite — still create the auth user shell so the staff.id matches.
-      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: { name, role },
+      const url = `${supabaseUrl}/auth/v1/admin/users`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ email, email_confirm: true, user_metadata: { name, role } }),
       });
-      if (createErr || !created.user) {
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.id) {
         return NextResponse.json(
-          { ok: false, error: `Could not create auth user: ${createErr?.message || "no user returned"}` },
+          { ok: false, error: `Could not create user: ${j?.msg || j?.error || j?.message || `HTTP ${res.status}`}` },
           { status: 500 },
         );
       }
-      authUserId = created.user.id;
+      authUserId = j.id as string;
       authCreated = true;
     }
   }
