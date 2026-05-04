@@ -63,6 +63,19 @@ and any changes are merged with version bumps.
 
 ## 2. Sign the Medalia joint-controller arrangement
 
+**2026-05-04 note:** Lifeline already has a signed *vinnslusamningur* (DPA / Art. 28 processor agreement) with Medalia. That document covers Medalia's processor obligations — Lifeline as controller, Medalia as processor.
+
+The joint-controller arrangement drafted in `processor-agreements.ts` is a *different* legal construct (GDPR Art. 26, joint controllership over sjúkraskrá). Two paths to choose from:
+
+- **(a) Treat Medalia as a pure processor** — your existing vinnslusamningur is enough. Skip the joint-controller arrangement. Update `/privacy` and the platform terms to reflect "Medalia is our processor for sjúkraskrá storage".
+- **(b) Joint-controller in addition** — keep the vinnslusamningur and *also* sign the Art. 26 arrangement, because Medalia has independent obligations under Lög 55/2009 (audit logging, retention) that arguably make them a co-controller for those purposes.
+
+Counsel call. Most clinical SaaS relationships use (a). (b) is more conservative and useful if you want to document the shared responsibilities very explicitly. Send both your existing vinnslusamningur AND the Art. 26 draft to counsel and ask which to keep.
+
+**Do upload the existing vinnslusamningur to admin** — go to `/admin/legal`, upload the signed PDF under `kind='dpa'` (or use the upload UI). That keeps everything in one auditable place.
+
+
+
 **Why:** GDPR Art. 26 requires a joint-controller arrangement to be
 written, signed, and have its essence available to data subjects.
 Without this on file, the joint-controller language in `/privacy` and
@@ -111,6 +124,36 @@ the platform terms is unsupported.
 ---
 
 ## 3. Sign the Biody DPA
+
+**Why this is needed even though Lifeline controls everything operationally:**
+
+You correctly note that Lifeline controls:
+- The Biody account
+- The patient records (we create them)
+- The API integration (we drive it)
+- The measurement workflow (our staff operates the device)
+
+What you do **not** control:
+- The Biody Manager *system* — Aminogram SAS owns and runs the servers
+- The infrastructure that holds your patients' raw measurement data
+- Their internal access controls, backup retention, breach response
+
+Under GDPR Art. 4(8), a "processor" is anyone who **processes personal data on behalf of the controller**. "Processing" includes *storage* — you don't have to be making decisions about the data to qualify.
+
+By that definition, every SaaS vendor whose servers hold your data is a processor. AWS, Vercel, Supabase, Resend, Biody — all the same legal pattern. Each requires an Art. 28 DPA spelling out:
+- They process only on your instructions
+- They keep the data secure
+- They notify you of breaches
+- They delete on request
+- They don't sub-process without permission
+
+You almost certainly already have DPAs with Vercel and Supabase (signed implicitly when you accepted their terms). Biody is the same — they probably have a standard DPA template their legal team can sign.
+
+**It's not that you don't trust them.** It's that GDPR makes the controller (Lifeline) accountable for everything that happens to the data, even at the processor's end — and the DPA is the legal instrument that lets you hold them to that.
+
+Step-by-step instructions below remain unchanged.
+
+
 
 **Why:** GDPR Art. 28 requires a written DPA with every processor of
 personal data. Biody Manager (Aminogram SAS) processes Art. 9 health
@@ -170,7 +213,7 @@ reminder is set for the next review.
 
 ---
 
-## 5. (Optional) Set the DPO_EMAIL env var
+## 5. (Optional) Set the DPO_EMAIL env var — ✅ checked off 2026-05-04
 
 **Why:** Privacy request emails default to `contact@lifelinehealth.is`
 as of 2026-05-03. If you eventually provision a dedicated mailbox
@@ -248,7 +291,16 @@ consent row or has been notified to re-consent on next login.
 
 ---
 
-## 7. Schedule the first quarterly staff access review
+## 7. Schedule the first quarterly staff access review — ✅ shipped in admin 2026-05-04
+
+The reminder lives **in the admin** now (`/admin/access-review`):
+- Sidebar nav has a number badge for staff overdue for review
+- Weekly cron emails `contact@lifelinehealth.is` Mondays 09:00 UTC if anyone is overdue
+- Reviews are recorded in `staff_access_reviews` with before/after permission snapshots
+
+No external calendar reminder needed — the system nags itself.
+
+(Full original instructions kept below for reference.)
 
 **Why:** Sprint 2.4 introduced the `staff_access_reviews` table.
 The whole point is that someone actually does the review every 90
