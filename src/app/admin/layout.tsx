@@ -191,6 +191,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [openDsrCount, setOpenDsrCount] = useState(0);
   const [overdueAccessReviewCount, setOverdueAccessReviewCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
+  // Medical advisor gets the full sidebar visibility but is read-only on
+  // everything except surveys. Treat them as "view-all" for sidebar
+  // filtering, but the strict isAdmin still blocks the coaching-view
+  // toggle and other admin-only affordances.
+  const canViewAllSections = isAdmin || userRole === "medical_advisor";
+  const isReadOnlyView = userRole === "medical_advisor";
 
   // Coaching-view preference is resolved inside loadStaffProfile once
   // the role is known — we used to read it here on mount, which made
@@ -306,15 +312,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           }
           return;
         }
-        // Medical advisor: only ever sees the Surveys section. Same
-        // narrow-route pattern as the lawyer.
+        // Medical advisor: read-everything view of the admin. They see
+        // the full sidebar (clients, conversations, scheduling, etc.) but
+        // the only writable surface is surveys (approval workflow). Reads
+        // are enforced by RLS — see migration-medical-advisor-readonly.sql;
+        // writes are blocked at both UI level (read-only banner + button
+        // gating) and DB level (UPDATE/INSERT/DELETE policies still
+        // exclude is_active_medical_advisor()).
         if (data.role === "medical_advisor") {
           setCoachingView(false);
           try { localStorage.removeItem("admin_coaching_view"); } catch {}
-          if (typeof window !== "undefined" && pathname && !pathname.startsWith("/admin/surveys") && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
-            router.replace("/admin/surveys");
-          }
-          return;
+          // No auto-redirect — they can navigate anywhere.
         }
         // Resolve the coaching-view preference:
         //   - Non-admins (no manage_team) are locked into coaching view
@@ -546,22 +554,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             // External counsel: only Legal section visible. Everything else
             // hidden — no clients, no messages, no scheduling, no business.
             ? sidebarLinks.filter((l) => l.href === "/admin/legal" || l.href.startsWith("/admin/legal/"))
-            : userRole === "medical_advisor"
-            // Medical advisor: only Surveys section visible.
-            ? sidebarLinks.filter((l) => l.href === "/admin/surveys" || l.href.startsWith("/admin/surveys/"))
             : coachingView
             ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/conversations", "/admin/scheduling", "/admin/content"].includes(l.href))
             : sidebarLinks
           ).filter((link) => {
-            // Permission-based filtering for admin-only sections
-            if (link.href === "/admin/settings" && !isAdmin) return false;
-            if (link.href === "/admin/business" && !isAdmin) return false;
-            if (link.href === "/admin/communication" && !isAdmin) return false;
-            if (link.href === "/admin/data-requests" && !isAdmin) return false;
-            if (link.href === "/admin/access-review" && !isAdmin) return false;
-            if (link.href === "/admin/errors" && !isAdmin) return false;
-            if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !isAdmin) return false;
-            if (link.href === "/admin/content" && !userPermissions.includes("manage_programs") && !isAdmin) return false;
+            // Admin-only sections are visible to admin OR medical_advisor
+            // (medical_advisor reads everywhere; writes are gated separately).
+            if (link.href === "/admin/settings" && !canViewAllSections) return false;
+            if (link.href === "/admin/business" && !canViewAllSections) return false;
+            if (link.href === "/admin/communication" && !canViewAllSections) return false;
+            if (link.href === "/admin/data-requests" && !canViewAllSections) return false;
+            if (link.href === "/admin/access-review" && !canViewAllSections) return false;
+            if (link.href === "/admin/errors" && !canViewAllSections) return false;
+            if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !canViewAllSections) return false;
+            if (link.href === "/admin/content" && !userPermissions.includes("manage_programs") && !canViewAllSections) return false;
             return true;
           }).map((link) => {
             const isActive =
@@ -702,6 +708,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           </div>
         </header>
+
+        {/* Read-only banner for medical_advisor */}
+        {isReadOnlyView && pathname && !pathname.startsWith("/admin/surveys") && (
+          <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 text-xs text-amber-900 flex items-center gap-2">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>
+              <strong>Read-only view.</strong> As medical advisor you can browse all admin sections but only edit content under <Link href="/admin/surveys" className="underline font-medium">/admin/surveys</Link>.
+            </span>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
