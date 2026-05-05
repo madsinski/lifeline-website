@@ -160,6 +160,15 @@ function Hero() {
               </svg>
             </a>
             <Link
+              href="/business/signup"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create company account
+            </Link>
+            <Link
               href="/business/login"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#3B82F6] text-[#3B82F6] bg-white text-sm font-semibold hover:bg-[#3B82F6] hover:text-white transition-colors shadow-sm"
             >
