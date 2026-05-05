@@ -11,13 +11,18 @@
 //     where the existing onboarding wizard handles their flow.
 //   - On completion (user reaches slide 8) we stamp
 //     clients.welcome_seen_at so they are not shown the deck again.
+//
+// QA bypasses (no clients-row redirect):
+//   - Logged in as staff (any active staff row) — useful for Mads
+//     spot-checking copy on his own admin account.
+//   - URL has ?preview=1 — handy for sharing a preview link.
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import WelcomeSlideshow from "../../components/WelcomeSlideshow";
 
-export default function AccountWelcomePage() {
+function AccountWelcomePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -25,9 +30,6 @@ export default function AccountWelcomePage() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [variant, setVariant] = useState<"b2b" | "b2c">("b2c");
 
-  // ?preview=1 lets staff (or anyone with the link) view the deck
-  // without the B2C-redirect-to-onboard logic kicking in. Useful for
-  // QA-ing copy + design without spinning up a fresh test client.
   const preview = searchParams.get("preview") === "1";
 
   useEffect(() => {
@@ -35,15 +37,32 @@ export default function AccountWelcomePage() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/account/login"); return; }
+
+      // Staff bypass — staff members don't have a clients row by
+      // design (handle_new_user trigger short-circuits for them),
+      // so the redirect logic below would fire even without their
+      // intent. Detect staff and skip the redirect.
+      let isStaffMember = false;
+      if (user.email) {
+        const { data: staffRow } = await supabase
+          .from("staff")
+          .select("id")
+          .eq("email", user.email)
+          .eq("active", true)
+          .maybeSingle();
+        isStaffMember = !!staffRow;
+      }
+
       const { data: client } = await supabase
         .from("clients_decrypted")
         .select("full_name, company_id")
         .eq("id", user.id)
         .maybeSingle();
+
       // B2C users without a company go through the onboarding wizard,
-      // not this welcome deck. The deck assumes assessment is already
-      // booked / company-scheduled. Skipped when ?preview=1 is set.
-      if (!preview && client && !client.company_id) {
+      // not this welcome deck. Skipped when ?preview=1 is set or
+      // when the user is a staff member.
+      if (!preview && !isStaffMember && client && !client.company_id) {
         router.replace("/account/onboard");
         return;
       }
@@ -60,7 +79,7 @@ export default function AccountWelcomePage() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [router]);
+  }, [router, preview]);
 
   const markSeen = async () => {
     try {
@@ -87,5 +106,13 @@ export default function AccountWelcomePage() {
       ctaLabel={variant === "b2b" ? "Halda áfram á mælaborðið" : "Halda áfram"}
       onComplete={markSeen}
     />
+  );
+}
+
+export default function AccountWelcomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Hleð kynningu…</div>}>
+      <AccountWelcomePageInner />
+    </Suspense>
   );
 }
