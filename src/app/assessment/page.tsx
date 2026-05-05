@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import MedaliaButton from "../components/MedaliaButton";
 import { PhoneMockup } from "../components/PhoneMockup";
 import ScrollPhone from "../components/ScrollPhone";
 import WaveSeparator from "../components/WaveSeparator";
@@ -194,7 +194,12 @@ export default function AssessmentPage() {
               {t('assessment.hero.subtitle', 'Get the health data that matters most. Our targeted screening packages focus on metabolic health markers that drive real change — no unnecessary tests, maximum value.')}
             </p>
             <div className="mt-8">
-              <MedaliaButton label={t('assessment.hero.cta', 'Book Assessment')} size="lg" />
+              <Link
+                href="/account/login?mode=signup"
+                className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25"
+              >
+                {t('assessment.hero.cta_signup', 'Create your Lifeline account')}
+              </Link>
             </div>
           </div>
         </div>
@@ -417,11 +422,12 @@ export default function AssessmentPage() {
                     </p>
                   </div>
                   <div className="mt-auto">
-                    <MedaliaButton
-                      label="Book Now"
-                      size="md"
-                      className="w-full"
-                    />
+                    <Link
+                      href="/account/login?mode=signup"
+                      className="inline-flex items-center justify-center w-full px-7 py-3 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25"
+                    >
+                      Create your Lifeline account
+                    </Link>
                   </div>
                 </div>
               );
@@ -569,9 +575,14 @@ export default function AssessmentPage() {
             Ready to know your numbers?
           </h2>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Book your health assessment today through our secure patient portal.
+            Create your Lifeline account — book your assessment from inside.
           </p>
-          <MedaliaButton label="Book Assessment" size="lg" />
+          <Link
+            href="/account/login?mode=signup"
+            className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25"
+          >
+            Create your Lifeline account
+          </Link>
         </div>
       </section>
     </div>

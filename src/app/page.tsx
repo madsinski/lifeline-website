@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import MedaliaButton from "./components/MedaliaButton";
 import PhoneMockup from "./components/PhoneMockup";
 import ScrollPhone from "./components/ScrollPhone";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "./components/PillarIcons";
@@ -184,7 +183,7 @@ function AppTextContent() {
         ))}
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/coaching#download" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">Download the App</Link>
+        <Link href="/coaching#download" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">Check out the app</Link>
         <Link href="/pricing" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200">View Subscriptions</Link>
       </div>
     </div>
@@ -207,12 +206,17 @@ export default function Home() {
               {t('home.hero.subtitle', 'Lifeline Health combines targeted health assessments with personalised daily coaching. Know your numbers, build better habits, track your progress.')}
             </p>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <MedaliaButton label={t('home.hero.cta_assessment', 'Book Health Assessment')} size="lg" />
+              <Link
+                href="/account/login?mode=signup"
+                className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25"
+              >
+                {t('home.hero.cta_signup', 'Create your Lifeline account')}
+              </Link>
               <Link
                 href="/coaching#download"
                 className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
               >
-                {t('home.hero.cta_app', 'Download the App')}
+                {t('home.hero.cta_app', 'Check out the app')}
               </Link>
             </div>
           </div>
@@ -383,7 +387,6 @@ export default function Home() {
                     >
                       View Packages
                     </Link>
-                    <MedaliaButton label="Patient Portal" size="sm" variant="outline" />
                   </div>
                 </div>
               </div>
@@ -537,12 +540,17 @@ export default function Home() {
             {t('home.cta.desc', 'Choose your path to better health. Get a comprehensive assessment or start coaching right away with the app.')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <MedaliaButton label={t('home.cta.assessment', 'Book Assessment')} size="lg" />
+            <Link
+              href="/account/login?mode=signup"
+              className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25"
+            >
+              {t('home.cta.signup', 'Create your Lifeline account')}
+            </Link>
             <Link
               href="/coaching#download"
               className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
             >
-              {t('home.cta.app', 'Download App')}
+              {t('home.cta.app', 'Check out the app')}
             </Link>
           </div>
         </div>

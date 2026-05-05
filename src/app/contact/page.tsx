@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import MedaliaButton from "../components/MedaliaButton";
 
 export default function ContactPage() {
   const { t } = useI18n();
@@ -249,7 +249,7 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              {/* Patient portal */}
+              {/* Sign in for existing clients */}
               <div className="mt-8 bg-[#f5f7fa] rounded-xl p-6 shadow-sm border border-[#10B981]/15">
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center flex-shrink-0" style={{ border: "2px solid rgba(32,200,88,0.15)" }}>
@@ -259,17 +259,17 @@ export default function ContactPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-[#1F2937] mb-1">
-                      {t('contact.portal.title', 'Access the Patient Portal')}
+                      {t('contact.account.title', 'Already a client?')}
                     </h3>
                     <p className="text-sm text-[#6B7280] mb-4">
-                      View your assessment results, book appointments, or complete
-                      questionnaires.
+                      Sign in to your Lifeline account to view results, book appointments, or message your team.
                     </p>
-                    <MedaliaButton
-                      label="Open Patient Portal"
-                      size="sm"
-                      className="w-full sm:w-auto"
-                    />
+                    <Link
+                      href="/account/login"
+                      className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-md shadow-green-500/25 w-full sm:w-auto"
+                    >
+                      Sign in
+                    </Link>
                   </div>
                 </div>
               </div>

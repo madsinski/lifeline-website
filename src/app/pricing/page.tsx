@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import MedaliaButton from "../components/MedaliaButton";
 
 const assessmentColors = [
   { accent: "border-t-4 border-t-[#3B82F6]", iconBg: "bg-blue-50 border border-blue-100", iconText: "text-[#3B82F6]", checkColor: "text-[#3B82F6]" },
@@ -243,7 +242,12 @@ export default function PricingPage() {
                       </li>
                     ))}
                   </ul>
-                  <MedaliaButton label="Book Now" size="md" className="w-full" />
+                  <Link
+                    href="/account/login?mode=signup"
+                    className="inline-flex items-center justify-center w-full px-7 py-3 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25"
+                  >
+                    Create your Lifeline account
+                  </Link>
                 </div>
               );
             })}
@@ -470,12 +474,11 @@ export default function PricingPage() {
             Get the health data that matters with our targeted assessments, or start building better habits with personalised coaching.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <MedaliaButton label="Book Assessment" size="lg" />
             <Link
-              href="/account/login"
-              className="px-8 py-3.5 rounded-full text-sm font-semibold bg-white text-[#1F2937] hover:bg-gray-100 transition-all duration-200 shadow-lg"
+              href="/account/login?mode=signup"
+              className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25"
             >
-              Create Account
+              Create your Lifeline account
             </Link>
           </div>
         </div>

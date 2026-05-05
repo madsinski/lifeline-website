@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LifelineLogo from "./LifelineLogo";
-import MedaliaButton from "./MedaliaButton";
 import { supabase } from "@/lib/supabase";
 import { LanguagePicker, useI18n } from "@/lib/i18n";
 
@@ -127,18 +126,17 @@ export default function Navbar() {
                 </Link>
               );
             })}
-            <MedaliaButton label="Patient Portal" size="sm" />
             <LanguagePicker />
             <Link
               href="/account"
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-colors whitespace-nowrap shadow-sm"
             >
               {userName ? (
                 <>
-                  <span className="w-7 h-7 rounded-full bg-[#10B981] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-white/25 text-white text-xs font-bold flex items-center justify-center shrink-0">
                     {userName.charAt(0).toUpperCase()}
                   </span>
-                  <span className="font-semibold text-[#1F2937]">{userName.split(' ')[0]}</span>
+                  <span>{userName.split(' ')[0]}</span>
                 </>
               ) : (
                 <>
@@ -155,7 +153,7 @@ export default function Navbar() {
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                  <span>{t('nav.my_account', 'Account')}</span>
+                  <span>{t('nav.my_account', 'My Account')}</span>
                 </>
               )}
             </Link>
@@ -228,11 +226,11 @@ export default function Navbar() {
               <Link
                 href="/account"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg text-white bg-[#10B981] hover:bg-[#047857] transition-colors"
               >
                 {userName ? (
                   <>
-                    <span className="w-6 h-6 rounded-full bg-[#10B981] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-white/25 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                       {userName.charAt(0).toUpperCase()}
                     </span>
                     <span className="truncate">{userName}</span>
@@ -246,13 +244,12 @@ export default function Navbar() {
                   </>
                 )}
               </Link>
-              <MedaliaButton label="Patient Portal" size="sm" className="w-full" />
               <Link
                 href="/coaching#download"
                 onClick={() => setMobileOpen(false)}
                 className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
               >
-                {t('nav.download_app', 'Download App')}
+                {t('nav.check_app', 'Check out the app')}
               </Link>
               <LanguagePicker className="w-full justify-center" />
             </div>
