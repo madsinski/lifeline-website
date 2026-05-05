@@ -66,8 +66,8 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     .select("id, role, name, active")
     .eq("email", userData.user.email)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "Admin role required" }, { status: 403 });
+  if (!staffRow || !staffRow.active || (staffRow.role !== "admin" && staffRow.role !== "medical_advisor")) {
+    return NextResponse.json({ ok: false, error: "Admin or medical_advisor role required" }, { status: 403 });
   }
 
   // Verify survey + status allows editing

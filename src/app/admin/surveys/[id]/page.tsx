@@ -46,7 +46,11 @@ export default function SurveyEditorPage() {
 
   const isAdmin = role === "admin";
   const isMedicalAdvisor = role === "medical_advisor";
-  const canEditStructure = isAdmin && (survey?.status === "draft" || survey?.status === "pending_approval");
+  // Both admin and medical advisor can edit content directly while a
+  // survey is in draft or pending_approval. Approval / submit / archive
+  // transitions stay role-gated below so the second-pair-of-eyes gate
+  // is preserved.
+  const canEditStructure = (isAdmin || isMedicalAdvisor) && (survey?.status === "draft" || survey?.status === "pending_approval");
 
   useEffect(() => {
     let cancelled = false;
@@ -420,8 +424,34 @@ export default function SurveyEditorPage() {
           </div>
         )}
 
+        {isMedicalAdvisor && survey.status === "draft" && (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-500">
+              You can edit content directly. Save as you go; admin still owns the &quot;Submit for approval&quot; transition.
+            </p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={saveAll}
+              className="px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50"
+            >
+              {busy ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        )}
         {isMedicalAdvisor && survey.status === "pending_approval" && (
           <div className="space-y-3">
+            <p className="text-xs text-gray-500">
+              You can edit the questions directly while reviewing — saves take effect immediately. When you&apos;re ready, approve below (or request changes if you&apos;d rather hand back to admin).
+            </p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={saveAll}
+              className="px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50"
+            >
+              {busy ? "Saving…" : "Save changes"}
+            </button>
             <textarea
               value={approvalNote}
               onChange={(e) => setApprovalNote(e.target.value)}
@@ -448,9 +478,6 @@ export default function SurveyEditorPage() {
               </button>
             </div>
           </div>
-        )}
-        {isMedicalAdvisor && survey.status === "draft" && (
-          <p className="text-xs text-gray-500">Waiting on admin to submit this survey for approval.</p>
         )}
         {isMedicalAdvisor && survey.status === "approved" && (
           <p className="text-xs text-gray-500">Approved by you on {survey.approved_at ? new Date(survey.approved_at).toLocaleDateString("en-GB") : "—"}.</p>
