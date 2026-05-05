@@ -717,16 +717,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {isReadOnlyView && pathname && !pathname.startsWith("/admin/surveys") && (
           <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 text-xs text-amber-900 flex items-center gap-2">
             <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" strokeWidth={2} />
             </svg>
             <span>
-              <strong>Read-only view.</strong> As medical advisor you can browse all admin sections but only edit content under <Link href="/admin/surveys" className="underline font-medium">/admin/surveys</Link>.
+              <strong>Read-only view.</strong> Edit affordances are disabled. You can browse every section but only edit content under <Link href="/admin/surveys" className="underline font-medium">/admin/surveys</Link>.
             </span>
           </div>
         )}
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        {/* Page content. The .readonly-locked class is picked up by
+            globals.css to disable every form-write affordance for
+            medical_advisor outside /admin/surveys — defense in depth
+            on top of the API-level isStaff() role check. */}
+        <main
+          className={`flex-1 overflow-y-auto p-6 ${
+            isReadOnlyView && pathname && !pathname.startsWith("/admin/surveys")
+              ? "readonly-locked"
+              : ""
+          }`}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

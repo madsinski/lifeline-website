@@ -254,3 +254,48 @@ select:focus-visible {
 .progress-bar-fill {
   animation: progressFill 1.5s ease-out both;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   medical_advisor read-only lockdown.
+   The admin layout adds .readonly-locked to <main> when the
+   logged-in user has role='medical_advisor' AND they are NOT
+   on a page under /admin/surveys (their one writable surface).
+   This visually disables every form-write affordance so a
+   compromised medical_advisor session can browse but cannot
+   click any escalation/edit button — defense in depth on top
+   of the API-level isStaff() role check.
+   ─────────────────────────────────────────────────────────── */
+main.readonly-locked button,
+main.readonly-locked input[type="submit"],
+main.readonly-locked input[type="checkbox"],
+main.readonly-locked input[type="radio"],
+main.readonly-locked input[type="file"],
+main.readonly-locked textarea,
+main.readonly-locked select {
+  pointer-events: none !important;
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(40%);
+}
+
+/* Re-enable text/search inputs so list filtering still works
+   (filtering doesn't write to the DB). */
+main.readonly-locked input[type="text"],
+main.readonly-locked input[type="search"],
+main.readonly-locked input[type="email"],
+main.readonly-locked input[type="number"],
+main.readonly-locked input[type="date"],
+main.readonly-locked input[type="time"],
+main.readonly-locked input[type="datetime-local"] {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: text !important;
+  filter: none;
+}
+
+/* Allow links — navigation between admin sections must keep
+   working so the read-only viewer can still browse. */
+main.readonly-locked a {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+}
