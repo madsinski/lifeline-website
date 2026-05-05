@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import SendSurveyButton from "./SendSurveyButton";
 
 const TIER_LABELS: Record<string, string> = {
   "free-trial": "Free Plan",
@@ -345,6 +346,7 @@ export default function ClientDetailPage() {
               <span className="text-xs text-gray-400">Member since {formatDate(client.created_at)}</span>
             </div>
           </div>
+          <SendSurveyButton clientId={client.id} clientEmail={client.email} />
         </div>
 
         {/* Contact details — editable */}

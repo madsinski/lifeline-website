@@ -835,6 +835,65 @@ Lifeline Health ehf.`;
   return { text, html, subject: `${companyName} — time for a health check-in` };
 }
 
+// ─── Þjónustukönnun (post-assessment feedback survey) ─────────
+// Sent by admin from /admin/clients/[id] using the survey-send API.
+// The link in the email is the assignment's completion_token —
+// it both authenticates and identifies the response, so the
+// recipient does NOT need to log in.
+export function renderSurveyInviteEmail(params: {
+  recipientName: string;
+  surveyTitleIs: string;
+  estimatedMinutes: number;
+  surveyUrl: string;          // https://www.lifelinehealth.is/survey/<token>
+  expiresAt: Date;
+}) {
+  const { recipientName, surveyTitleIs, estimatedMinutes, surveyUrl, expiresAt } = params;
+  const firstName = (recipientName || "").split(" ")[0] || "";
+  const greeting = firstName ? `Hæ ${firstName},` : "Hæ,";
+  const expiresStr = expiresAt.toLocaleDateString("is-IS", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  const text = `${greeting}
+
+Takk fyrir að taka þátt í heilsumati Lifeline Health.
+
+Við myndum gjarnan vilja heyra af reynslu þinni. Könnunin er nafnlaus,
+tekur um ${estimatedMinutes} mínútur, og hjálpar okkur að bæta þjónustuna
+fyrir þig og aðra.
+
+Smelltu á slóðina hér að neðan til að byrja:
+${surveyUrl}
+
+Slóðin er einkanýtt og virkar í eitt skipti — hún rennur út ${expiresStr}.
+
+Takk fyrir,
+— Lifeline Health teymið`;
+
+  const html = renderBrandedEmail({
+    title: "Hjálpaðu okkur að bæta þjónustuna",
+    accentLabel: "Þjónustukönnun",
+    accentTone: "emerald",
+    linkHref: surveyUrl,
+    bodyHtml: `
+      <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
+      <p style="margin:0 0 14px;">
+        Takk fyrir að taka þátt í <strong>${escapeHtml(surveyTitleIs)}</strong>.
+        Við viljum gjarnan heyra af reynslu þinni svo við getum þróað þjónustuna áfram.
+      </p>
+      <p style="margin:0 0 14px;">
+        Könnunin tekur um <strong>${estimatedMinutes} mínútur</strong>, og svörin þín hjálpa
+        okkur að gera Lifeline Health enn betri fyrir þig og aðra.
+      </p>
+    `,
+    ctaLabel: "Hefja könnun",
+    ctaUrl: surveyUrl,
+    footerNote: `Slóðin er einkanýtt og rennur út ${escapeHtml(expiresStr)}. Þú þarft ekki að skrá þig inn — slóðin er aðgangurinn þinn.`,
+  });
+
+  return { text, html, subject: `${surveyTitleIs} — ${estimatedMinutes} mín` };
+}
+
 function escapeHtml(s: string) {
   return s
     .replace(/&/g, "&amp;")
