@@ -90,7 +90,7 @@ function DoctorCard({ doctor, compact }: { doctor: Doctor; compact: boolean }) {
             alt={`${doctor.name}, ${doctor.fullTitle}`}
             fill
             sizes="(max-width: 640px) 50vw, 25vw"
-            className="object-cover"
+            className="object-cover object-top"
             onError={() => setImgError(true)}
           />
         ) : (
