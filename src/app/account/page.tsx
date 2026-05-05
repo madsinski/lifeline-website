@@ -4952,6 +4952,17 @@ function BiodyProfileModal({
           setError(typeof j.detail === "string" ? j.detail : j.error || "Activation failed. Please contact support.");
           return;
         }
+        // Even if the overall API call succeeds, Biody activation can
+        // soft-fail (biody-sync down, missing fields, etc.) — the API
+        // returns biody_activated=false in that case. Surface the
+        // underlying biody_error so the user knows to try again rather
+        // than seeing "Edit details" and then having it revert on
+        // refetch.
+        if (j.biody_activated === false) {
+          setSaving(false);
+          setError(typeof j.biody_error === "string" ? j.biody_error : "Biody activation failed. Please try again or contact support.");
+          return;
+        }
         setBiodyActive(true);
         if (onActivated) onActivated();
       } catch (err) {

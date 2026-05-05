@@ -155,6 +155,22 @@ export async function POST(req: NextRequest) {
     // + consent are still saved and the user can retry from the dashboard
     // via BiodyProfileModal. Surface a soft warning in the response.
     console.error("[account/onboard/complete] biody activation:", activation.error, activation.detail);
+  } else if (activation.biody_patient_id && !activation.existing) {
+    // Persist biody_patient_id ourselves rather than trusting the remote
+    // biody-sync Edge Function to do it. Writes the base `clients` table
+    // directly so the clients_decrypted view trigger is bypassed (no risk
+    // of incidentally blanking other columns). If activation.existing is
+    // true we already had a biody_patient_id, so nothing to write.
+    const { error: biodyWriteErr } = await supabaseAdmin
+      .from("clients")
+      .update({
+        biody_patient_id: activation.biody_patient_id,
+        biody_uuid: activation.biody_uuid ?? null,
+      })
+      .eq("id", user.id);
+    if (biodyWriteErr) {
+      console.error("[account/onboard/complete] biody_patient_id write:", biodyWriteErr.message);
+    }
   }
 
   // 4. Send B2C welcome email (non-blocking).
