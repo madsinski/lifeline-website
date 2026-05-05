@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import BusinessHeader from "@/app/business/BusinessHeader";
+import DoctorsTeam from "@/app/components/DoctorsTeam";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import {
@@ -348,20 +349,15 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
           </div>
         </div>
 
-        {/* Team greeting */}
-        <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row items-center gap-5">
-          <div className="sm:w-1/2 rounded-xl overflow-hidden">
-            <img src="/team-photo.png" alt="The Lifeline team" className="w-full h-auto object-cover rounded-xl" />
-          </div>
-          <div className="sm:w-1/2">
+        {/* Healthcare team */}
+        <div className="border-t border-gray-100 pt-6 space-y-4">
+          <div>
             <p className="text-sm text-gray-500 mb-1">{t("onboard.welcome.team.care", "Welcome aboard,")}</p>
-            <p className="text-xl text-gray-800 leading-tight" style={{ fontFamily: "'Caveat', 'Segoe Script', cursive" }}>
-              {t("onboard.welcome.team.signature", "— The Lifeline team")}
-            </p>
-            <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-              {t("onboard.welcome.team.note", "Medical doctors, nurses, and health coaches — working with you to improve your health.")}
+            <p className="text-base text-gray-800 leading-relaxed">
+              {t("onboard.welcome.team.note", "Læknarnir okkar — allir með starfsleyfi frá Embætti landlæknis.")}
             </p>
           </div>
+          <DoctorsTeam compact />
         </div>
 
         <div className="flex justify-end">

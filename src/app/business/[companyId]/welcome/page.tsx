@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import DoctorsTeam from "@/app/components/DoctorsTeam";
 
 export default function CompanyWelcomePage() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -56,29 +56,15 @@ export default function CompanyWelcomePage() {
           )}
         </div>
 
-        {/* Team photo + signature */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="aspect-[16/9] relative">
-            <Image
-              src="/team-photo.png"
-              alt={t("b2b.contact_welcome.team_alt", "The Lifeline team")}
-              fill
-              sizes="(max-width: 640px) 100vw, 640px"
-              className="object-cover"
-            />
-          </div>
-          <div className="p-6 space-y-3">
-            <p className="text-sm text-gray-500">{t("b2b.contact_welcome.care", "With care,")}</p>
-            <p
-              className="text-2xl text-gray-800 leading-tight -rotate-1 inline-block"
-              style={{ fontFamily: "'Caveat', 'Segoe Script', 'Lucida Handwriting', cursive" }}
-            >
-              {t("b2b.contact_welcome.signature", "— The Lifeline team")}
-            </p>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              {t("b2b.contact_welcome.note", "Physicians, coaches, and engineers — dedicated to making health at work measurable and meaningful.")}
+        {/* Healthcare team */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <div>
+            <p className="text-sm text-gray-500 mb-1">{t("b2b.contact_welcome.care", "With care,")}</p>
+            <p className="text-base text-gray-800 leading-relaxed">
+              {t("b2b.contact_welcome.note", "Læknarnir á bak við Lifeline — allir með starfsleyfi frá Embætti landlæknis.")}
             </p>
           </div>
+          <DoctorsTeam compact />
         </div>
 
         {/* What's next */}
