@@ -299,6 +299,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .eq("email", email)
         .eq("active", true)
         .maybeSingle();
+      // SECURITY: any auth'd user was previously falling through here
+      // when they had no staff row — they'd see the admin shell with
+      // empty sidebars and "coach" defaults. Sign them out and bounce
+      // to /admin/login.
+      if (!data && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
+        try { await supabase.auth.signOut(); } catch {}
+        router.replace("/admin/login?reason=not_staff");
+        return;
+      }
       if (data) {
         setUserRole(data.role || "coach");
         setUserPermissions((data.permissions as string[]) || []);

@@ -52,25 +52,20 @@ function AccountLoginContent() {
         return;
       }
       // First-time login — route based on B2B vs B2C and onboarding state:
-      //   • B2B (company_id set), not yet seen welcome → /account/welcome
-      //   • B2C, profile incomplete (no biody fields) → /account/onboard
-      //   • Everyone else → /account or the next path
+      //   • Anyone (B2B or B2C) without welcome_seen_at → /account/welcome
+      //     (the slideshow). Body composition + health consent are
+      //     collected later when the user activates Biody, not as a
+      //     gate to the dashboard.
+      //   • Everyone else → /account or the next path.
       if (signInData?.user?.id) {
         const { data: profile } = await supabase
           .from("clients_decrypted")
-          .select("welcome_seen_at, company_id, sex, date_of_birth, height_cm, weight_kg, activity_level")
+          .select("welcome_seen_at")
           .eq("id", signInData.user.id)
           .maybeSingle();
-        const needsProfile = !profile?.sex || !profile?.date_of_birth || !profile?.height_cm || !profile?.weight_kg || !profile?.activity_level;
         if (profile && !profile.welcome_seen_at) {
-          if (profile.company_id) {
-            router.push("/account/welcome");
-            return;
-          }
-          if (needsProfile) {
-            router.push("/account/onboard");
-            return;
-          }
+          router.push("/account/welcome");
+          return;
         }
       }
       router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
@@ -92,17 +87,18 @@ function AccountLoginContent() {
         marketing_opt_out: marketingOptOut,
         created_at: now,
       };
-      // Redirect confirmed users into the B2C onboarding wizard. /account
-      // and /account/onboard are both whitelisted by middleware.ts, so they
-      // bypass the coming-soon gate pre-launch and after launch. The wizard
-      // collects body-composition fields + health consent, activates Biody,
-      // stamps welcome_seen_at, then sends the user to /account.
+      // Redirect confirmed users into the welcome slideshow. The slideshow
+      // is the new "intro presentation" — it replaces the in-person/online
+      // PPT walkthrough. Body composition + health consent are collected
+      // later when the user actually activates Biody, not as a gate to
+      // the dashboard. /account and /account/welcome are whitelisted in
+      // middleware.ts so they bypass the coming-soon gate.
       const origin = typeof window !== "undefined" ? window.location.origin : "https://www.lifelinehealth.is";
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${origin}/account/onboard`,
+          emailRedirectTo: `${origin}/account/welcome`,
           data: {
             full_name: fullName,
             ...(refCode ? { referred_by: refCode } : {}),

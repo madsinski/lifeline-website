@@ -29,10 +29,9 @@ export default function AccountOnboardPage() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
 
-  // Consent
+  // Consent. Research/marketing opt-outs were already captured
+  // at signup (/account/login) — no need to re-prompt here.
   const [acceptHealth, setAcceptHealth] = useState(false);
-  const [researchOptOut, setResearchOptOut] = useState(false);
-  const [marketingOptOut, setMarketingOptOut] = useState(false);
 
   // Profile
   const [sex, setSex] = useState<"male" | "female" | "">("");
@@ -113,8 +112,7 @@ export default function AccountOnboardPage() {
           weight_kg: Number(weightKg),
           activity_level: activityLevel,
           accept_health_consent: true,
-          research_opt_out: researchOptOut,
-          marketing_opt_out: marketingOptOut,
+          // research_opt_out + marketing_opt_out captured at signup
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -169,8 +167,6 @@ export default function AccountOnboardPage() {
         {stage === "consent" && (
           <ConsentStage
             acceptHealth={acceptHealth} setAcceptHealth={setAcceptHealth}
-            researchOptOut={researchOptOut} setResearchOptOut={setResearchOptOut}
-            marketingOptOut={marketingOptOut} setMarketingOptOut={setMarketingOptOut}
             onBack={() => setStage("welcome")}
             onContinue={() => { setError(""); setStage("profile"); }}
           />
@@ -305,13 +301,9 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
 
 function ConsentStage({
   acceptHealth, setAcceptHealth,
-  researchOptOut, setResearchOptOut,
-  marketingOptOut, setMarketingOptOut,
   onBack, onContinue,
 }: {
   acceptHealth: boolean; setAcceptHealth: (v: boolean) => void;
-  researchOptOut: boolean; setResearchOptOut: (v: boolean) => void;
-  marketingOptOut: boolean; setMarketingOptOut: (v: boolean) => void;
   onBack: () => void; onContinue: () => void;
 }) {
   return (
@@ -336,18 +328,6 @@ function ConsentStage({
             Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
           </span>
         </label>
-      </div>
-
-      <div className="border-t border-gray-100 pt-5 space-y-3">
-        <p className="text-sm font-medium text-[#334155]">Val um frekari vinnslu (ekki nauðsynlegt):</p>
-        <Checkbox checked={researchOptOut} onChange={setResearchOptOut}>
-          <strong>Afþakka rannsóknanotkun.</strong>{" "}
-          <span className="text-[#64748B]">Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.</span>
-        </Checkbox>
-        <Checkbox checked={marketingOptOut} onChange={setMarketingOptOut}>
-          <strong>Afþakka markaðspóst.</strong>{" "}
-          <span className="text-[#64748B]">Ekki senda mér vörufréttir eða kynningar frá Lifeline.</span>
-        </Checkbox>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
@@ -535,11 +515,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
-  return (
-    <label className="flex items-start gap-2 cursor-pointer select-none">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1" />
-      <span className="text-sm text-[#334155]">{children}</span>
-    </label>
-  );
-}

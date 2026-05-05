@@ -138,7 +138,7 @@ export default function AdminLoginPage() {
     setError("");
     setLoading(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -147,6 +147,26 @@ export default function AdminLoginPage() {
       setError(signInError.message);
       setLoading(false);
       return;
+    }
+
+    // SECURITY: verify the authenticated user is on the active staff
+    // roster BEFORE handing them off to /admin. Otherwise any B2C
+    // client could authenticate here and the layout would render the
+    // admin shell with default-coach permissions.
+    const userEmail = signInData?.user?.email;
+    if (userEmail) {
+      const { data: staffRow } = await supabase
+        .from("staff")
+        .select("id")
+        .eq("email", userEmail)
+        .eq("active", true)
+        .maybeSingle();
+      if (!staffRow) {
+        try { await supabase.auth.signOut(); } catch {}
+        setError("This account is not on the Lifeline staff roster. Use the client login at /account/login instead.");
+        setLoading(false);
+        return;
+      }
     }
 
     router.push("/admin");
