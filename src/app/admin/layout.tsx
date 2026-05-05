@@ -319,10 +319,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // writes are blocked at both UI level (read-only banner + button
         // gating) and DB level (UPDATE/INSERT/DELETE policies still
         // exclude is_active_medical_advisor()).
+        //
+        // Early return — without it the coaching-view resolver below
+        // was treating them as a non-admin and locking them into the
+        // narrow coach sidebar.
         if (data.role === "medical_advisor") {
           setCoachingView(false);
           try { localStorage.removeItem("admin_coaching_view"); } catch {}
-          // No auto-redirect — they can navigate anywhere.
+          return;
         }
         // Resolve the coaching-view preference:
         //   - Non-admins (no manage_team) are locked into coaching view
