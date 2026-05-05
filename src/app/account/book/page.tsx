@@ -33,6 +33,14 @@ function BookAssessmentContent() {
   const [phone, setPhone] = useState<string | null>(null);
 
   const [stage, setStage] = useState<Stage>("package");
+
+  // Scroll to top whenever the user advances (or goes back) through the
+  // booking stages — otherwise long forms leave the next stage's heading
+  // off-screen and users miss it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [stage]);
   const [selectedPkg, setSelectedPkg] = useState<PackageKey | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [selectedSlotAt, setSelectedSlotAt] = useState<string | null>(null);
