@@ -17,6 +17,7 @@ import AvatarPicker from "../components/AvatarPicker";
 import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
 import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
+import SignedDocumentsList from "./SignedDocumentsList";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -1732,22 +1733,6 @@ function AccountPageInner() {
 
                 <WellnessFramingCard />
 
-                {/* Re-watch welcome presentation — same deck shown on
-                    first sign-in. Discoverable here for users who want
-                    to refresh on the four pillars + journey overview. */}
-                <div className="text-center pt-2">
-                  <Link
-                    href="/account/welcome?preview=1"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-[#10B981] hover:text-[#047857] transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Horfa á kynninguna aftur
-                  </Link>
-                </div>
-
               </>
             )}
 
@@ -2820,18 +2805,15 @@ function AccountPageInner() {
                   </div>
                 </div>
 
-                {/* Re-watch welcome presentation */}
+                {/* Your signed legal documents — TOS, DPA, employee TOS,
+                    health-assessment consent, etc. Download PDFs of
+                    each acceptance certificate. */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Welcome presentation</p>
-                      <p className="text-xs text-[#6B7280]">Re-watch the 8-slide intro to Lifeline</p>
-                    </div>
-                    <Link href="/account/welcome?preview=1"
-                      className="text-sm font-medium text-[#10B981] hover:underline">
-                      Watch
-                    </Link>
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-[#1F2937]">Lögleg samþykki</p>
+                    <p className="text-xs text-[#6B7280]">Skjöl sem þú hefur undirritað rafrænt — sækja PDF.</p>
                   </div>
+                  <SignedDocumentsList />
                 </div>
 
                 {/* Password */}
@@ -3632,6 +3614,7 @@ function JourneyTimeline({
     done: hasOnboarded,
     active: false,
     description: "Profile + consent complete.",
+    cta: { label: "Horfa á kynningu", href: "/account/welcome?preview=1" },
   };
   const bodyCompProfileStep: JourneyStep = {
     title: "Body composition profile",
