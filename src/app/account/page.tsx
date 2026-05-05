@@ -3643,20 +3643,18 @@ function JourneyTimeline({
     // a real button (not a text link) to switch to a different one.
     // Only shown for B2C — B2B packages are set by the company.
     customBody: onChangePackage ? (
-      <div className="mt-3 flex items-center gap-2 flex-wrap">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+      <div className="mt-3 flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+        <span>Pakki:</span>
+        <span className="inline-flex items-center gap-1.5 font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           Foundational
         </span>
         <button
           type="button"
           onClick={onChangePackage}
-          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          className="inline-flex items-center gap-1 font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors"
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Change package
+          Skipta um pakka
         </button>
       </div>
     ) : undefined,
@@ -3864,11 +3862,18 @@ function JourneyTimeline({
           const dotColor = s.done
             ? "bg-emerald-500 text-white"
             : s.active
-              ? "bg-blue-600 text-white"
+              ? "bg-blue-600 text-white ring-4 ring-blue-100"
               : "bg-gray-200 text-gray-400";
+          // CTAs styled by step state for visual hierarchy:
+          //   active step  → solid emerald (the "next thing to do")
+          //   done step    → subtle outline (an optional edit/revisit)
+          //   pending step → not rendered (no CTA)
+          const ctaClass = s.active
+            ? "inline-flex items-center justify-center text-sm font-semibold px-4 py-2 rounded-full bg-[#10B981] text-white hover:bg-[#047857] transition-colors shadow-sm shadow-emerald-500/25 shrink-0"
+            : "inline-flex items-center justify-center text-xs font-medium px-3 py-1.5 rounded-full bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors shrink-0";
           return (
             <li key={i} className="relative pl-6 pb-6 last:pb-0">
-              <span className={`absolute -left-[13px] top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${dotColor}`}>
+              <span className={`absolute -left-[13px] top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-shadow ${dotColor}`}>
                 {s.done ? (
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M5 13l4 4L19 7" />
@@ -3876,9 +3881,17 @@ function JourneyTimeline({
                 ) : i + 1}
               </span>
               <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <div className={`font-semibold ${s.done ? "text-gray-500" : s.active ? "text-gray-900" : "text-gray-400"}`}>
-                    {s.title}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`font-semibold ${s.done ? "text-gray-500" : s.active ? "text-gray-900" : "text-gray-400"}`}>
+                      {s.title}
+                    </span>
+                    {s.active && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                        <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+                        Næsta skref
+                      </span>
+                    )}
                   </div>
                   <div className={`text-sm ${s.active ? "text-gray-700" : "text-gray-500"} mt-0.5`}>{s.description}</div>
                   {"portal" in s && s.portal && (
@@ -3901,11 +3914,11 @@ function JourneyTimeline({
                 </div>
                 {"cta" in s && s.cta && (
                   s.cta.href ? (
-                    <Link href={s.cta.href} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
+                    <Link href={s.cta.href} className={ctaClass}>
                       {s.cta.label}
                     </Link>
                   ) : (
-                    <button onClick={s.cta.onClick} className="text-xs font-medium px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 shrink-0">
+                    <button onClick={s.cta.onClick} className={ctaClass}>
                       {s.cta.label}
                     </button>
                   )
