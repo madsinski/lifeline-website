@@ -8,14 +8,17 @@ import {
   renderHealthAssessmentConsent,
 } from "@/lib/platform-terms-content";
 
-// Post-signup B2C onboarding wizard. Collects the body-composition profile
-// fields the Biody activation requires (sex / DOB / height / weight /
-// activity_level), records the health-assessment informed consent, and
-// lands the user on the dashboard with welcome_seen_at set.
+// Legacy B2C onboarding wizard. The new canonical flow goes
+// signup → /account/welcome (slideshow) → /account; body-composition
+// profile + health-data consent are collected later via the
+// BiodyProfileModal on the dashboard, so this wizard is no longer
+// reached in the natural flow.
 //
-// Parallels the B2B wizard at /business/onboard/[token] but is simpler —
-// B2C users are already authed (just confirmed email) and already have a
-// password, so we skip the Password + Account stages.
+// We keep the page reachable in case an old link points here, and
+// redirect to /account if welcome_seen_at is already stamped (which
+// it is for anyone who has completed the slideshow). For users who
+// somehow ended up here without seeing the slideshow we still show
+// the wizard so they're not stuck.
 
 type Stage = "welcome" | "consent" | "profile" | "saving";
 type ActivityLevel = "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "";
@@ -65,11 +68,11 @@ export default function AccountOnboardPage() {
         router.replace("/account/welcome");
         return;
       }
-      // Already onboarded? Go straight to dashboard.
-      if (
-        data?.welcome_seen_at &&
-        data?.sex && data?.date_of_birth && data?.height_cm && data?.weight_kg && data?.activity_level
-      ) {
+      // The slideshow now stamps welcome_seen_at on completion. Once
+      // that's set, the canonical place for body-composition profile
+      // + health consent is the BiodyProfileModal on the dashboard,
+      // not this wizard. Bounce them home.
+      if (data?.welcome_seen_at) {
         router.replace("/account");
         return;
       }

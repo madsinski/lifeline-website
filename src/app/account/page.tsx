@@ -17,6 +17,7 @@ import AvatarPicker from "../components/AvatarPicker";
 import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
 import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
+import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
 import SignedDocumentsList from "./SignedDocumentsList";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
@@ -335,17 +336,17 @@ function AccountPageInner() {
           .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, height_cm, weight_kg, activity_level, welcome_seen_at, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at, journey_checks")
           .eq("id", currentUser.id)
           .single();
-        // Onboard gate: B2C users who haven't finished the onboarding
-        // wizard yet (missing any of the biody profile fields + never
-        // stamped welcome_seen_at) get routed to /account/onboard so
-        // they can't skip it and land on a half-configured dashboard.
+        // First-time gate: B2C users who haven't seen the welcome
+        // slideshow yet get bounced to /account/welcome. Body-composition
+        // profile + health consent are collected later via the
+        // BiodyProfileModal — they're no longer required to view the
+        // dashboard, so missingProfile is no longer part of the gate.
         if (clientData) {
           const cd = clientData as Record<string, unknown>;
           const companyId = cd.company_id as string | null;
           const welcomeSeen = cd.welcome_seen_at as string | null;
-          const missingProfile = !cd.sex || !cd.date_of_birth || !cd.height_cm || !cd.weight_kg || !cd.activity_level;
-          if (!companyId && !welcomeSeen && missingProfile) {
-            router.replace("/account/onboard");
+          if (!companyId && !welcomeSeen) {
+            router.replace("/account/welcome");
             setLoading(false);
             return;
           }
@@ -4869,6 +4870,12 @@ function BiodyProfileModal({
   const [weightKg, setWeightKg] = useState("");
   const [activityLevel, setActivityLevel] = useState<"sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "">("");
   const [dob, setDob] = useState("");
+  // First-time activation also captures the GDPR Art. 9(2)(a) explicit
+  // consent for processing health data. We intentionally collect it here
+  // (just before Biody activation = first health-data processing event)
+  // rather than at signup, so the user only consents when they actually
+  // commit to using the service.
+  const [acceptHealth, setAcceptHealth] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -4901,30 +4908,35 @@ function BiodyProfileModal({
       setError("Please fill in every field.");
       return;
     }
+    if (!biodyActive && !acceptHealth) {
+      setError("Please accept the health-data consent to activate.");
+      return;
+    }
     setSaving(true);
     setError("");
-    const { error: upErr } = await supabase.from("clients_decrypted").update({
-      sex,
-      height_cm: Number(heightCm),
-      weight_kg: Number(weightKg),
-      activity_level: activityLevel,
-      ...(dob ? { date_of_birth: dob } : {}),
-      updated_at: new Date().toISOString(),
-    }).eq("id", userId);
-    if (upErr) { setSaving(false); setError(upErr.message); return; }
 
-    // First-time activation: fields saved, now create the Biody patient.
+    // First-time activation: profile + health consent + Biody activation
+    // all happen in a single server call so the consent acceptance has
+    // an audit trail (PDF + IP + UA + sha256) and Biody activation is
+    // gated by it.
     if (!biodyActive) {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
-        const res = await fetch("/api/biody/activate", {
+        const res = await fetch("/api/account/onboard/complete", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({}),
+          body: JSON.stringify({
+            sex,
+            date_of_birth: dob,
+            height_cm: Number(heightCm),
+            weight_kg: Number(weightKg),
+            activity_level: activityLevel,
+            accept_health_consent: true,
+          }),
         });
         const j = await res.json().catch(() => ({}));
         if (!res.ok || !j.ok) {
@@ -4939,6 +4951,18 @@ function BiodyProfileModal({
         setError((err as Error).message || "Activation failed.");
         return;
       }
+    } else {
+      // Editing path — Biody already active. Plain profile update via
+      // direct Supabase write (RLS-gated).
+      const { error: upErr } = await supabase.from("clients_decrypted").update({
+        sex,
+        height_cm: Number(heightCm),
+        weight_kg: Number(weightKg),
+        activity_level: activityLevel,
+        ...(dob ? { date_of_birth: dob } : {}),
+        updated_at: new Date().toISOString(),
+      }).eq("id", userId);
+      if (upErr) { setSaving(false); setError(upErr.message); return; }
     }
 
     setSaving(false);
@@ -4994,11 +5018,37 @@ function BiodyProfileModal({
                 <DobFields value={dob} onChange={setDob} />
               </div>
             </div>
+
+            {/* Health-data consent — first activation only. Captured here
+                so it lives at the moment of first health-data processing,
+                and so users who never activate Biody never get nagged. */}
+            {!biodyActive && (
+              <div className="border-t border-gray-100 pt-4 space-y-2">
+                <div>
+                  <p className="text-xs font-semibold text-[#0F172A]">
+                    Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    9. gr. (2)(a) GDPR · krafa fyrir vinnslu heilsugagna
+                  </p>
+                </div>
+                <pre className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+{renderHealthAssessmentConsent()}
+                </pre>
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1" />
+                  <span className="text-xs text-[#334155]">
+                    Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
+                  </span>
+                </label>
+              </div>
+            )}
+
             {error && <div className="text-red-600 text-sm">{error}</div>}
             {saved && <div className="text-emerald-700 text-sm">Saved.</div>}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
               <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
-              <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
+              <button type="submit" disabled={saving || (!biodyActive && !acceptHealth)} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
                 {saving ? (biodyActive ? "Saving…" : "Activating…") : (biodyActive ? "Save changes" : "Save & activate")}
               </button>
             </div>
