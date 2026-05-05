@@ -1,17 +1,17 @@
 # Lifeline doctor headshots
 
-Drop image files here named after each doctor's slug:
+Image files used by `src/app/components/DoctorsTeam.tsx`:
 
-- victor.jpg
-- mads.jpg
-- vignir.jpg
-- dagbjort.jpg
+- victor.png
+- mads.png
+- vignir.png
+- dagbjort.png
 
-`.jpg` is preferred (`.webp` also works — adjust the import in
-`src/app/components/DoctorsTeam.tsx` if you switch format).
+Format: `.png`. To switch to `.jpg` or `.webp`, change the
+extension in DoctorsTeam.tsx (one line).
 
-Until a file exists for a slug the card renders an initials avatar
-on a gradient background — the page still looks finished.
+Until a file exists for a slug the card falls back to an initials
+avatar on a gradient — the page still looks finished.
 
 Recommended: square crop, ~600x600 minimum, eyes near the upper
 third, neutral background, healthcare-appropriate dress.

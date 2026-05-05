@@ -21,34 +21,30 @@ export interface Doctor {
   accent: "emerald" | "blue" | "violet" | "amber";
 }
 
-// Edit names + titles + bios here. Photos go in /public/team/.
+// Edit names + titles + bios here. Photos live at /public/team/{slug}.png.
 export const LIFELINE_DOCTORS: Doctor[] = [
   {
     slug: "victor",
-    name: "Victor",
-    fullTitle: "Læknir",
-    bio: "Heimilislæknir og hjartalæknir.",
+    name: "Victor Guðmundsson",
+    fullTitle: "Læknir, Stofnandi",
     accent: "blue",
   },
   {
     slug: "mads",
-    name: "Mads",
-    fullTitle: "Læknir og stofnandi",
-    bio: "Stofnandi Lifeline. Heildræn nálgun á heilsu.",
+    name: "Mads Christian Aanesen",
+    fullTitle: "Læknir, Stofnandi",
     accent: "emerald",
   },
   {
     slug: "vignir",
-    name: "Vignir",
-    fullTitle: "Læknir",
-    bio: "Sérfræðingur í forvörnum og heilsumati.",
+    name: "Vignir Sigurðsson",
+    fullTitle: "Sérfræðilæknir, Ráðgjafi, Stofnandi",
     accent: "violet",
   },
   {
     slug: "dagbjort",
-    name: "Dagbjört",
+    name: "Dagbjört Guðbrandsdóttir",
     fullTitle: "Læknir",
-    bio: "Klínísk reynsla af kvenheilsu og næringu.",
     accent: "amber",
   },
 ];
@@ -90,7 +86,7 @@ function DoctorCard({ doctor, compact }: { doctor: Doctor; compact: boolean }) {
       <div className="relative aspect-square w-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         {!imgError ? (
           <Image
-            src={`/team/${doctor.slug}.jpg`}
+            src={`/team/${doctor.slug}.png`}
             alt={`${doctor.name}, ${doctor.fullTitle}`}
             fill
             sizes="(max-width: 640px) 50vw, 25vw"
