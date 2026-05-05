@@ -54,14 +54,20 @@ function AccountWelcomePageInner() {
   }, [router]);
 
   const markSeen = async () => {
+    // Server-side endpoint that writes the base `clients` table
+    // directly, bypassing the clients_decrypted INSTEAD OF UPDATE
+    // trigger. The trigger was blanking biody_patient_id (and other
+    // non-encrypted columns) on a partial update, which made users
+    // who re-watched the slideshow lose their Biody activation
+    // state.
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("clients_decrypted")
-          .update({ welcome_seen_at: new Date().toISOString() })
-          .eq("id", user.id);
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      await fetch("/api/account/welcome/seen", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
     } catch { /* best-effort, don't block UX */ }
   };
 
