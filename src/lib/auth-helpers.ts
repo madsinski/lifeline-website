@@ -10,7 +10,39 @@ export async function getUserFromRequest(req: NextRequest) {
   return data.user || null;
 }
 
+/**
+ * Returns true if the user is an active staff member with WRITE
+ * authorization for general admin operations. Excludes the two
+ * read-only roles — `medical_advisor` and `lawyer` — who get
+ * view access to admin pages but must not be able to mutate
+ * client / business / clinical data through the admin APIs.
+ *
+ * Use this for any admin API that performs a write
+ * (POST/PUT/DELETE). For surfaces those roles legitimately own
+ * (surveys for medical_advisor, legal-doc drafts for lawyer)
+ * the route does its own explicit role check and can accept
+ * those roles independently.
+ *
+ * Use isAnyActiveStaff() if a route only reads and just needs
+ * to confirm the user is on staff.
+ */
 export async function isStaff(userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("staff")
+    .select("id, active, role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!data || data.active !== true) return false;
+  if (data.role === "medical_advisor" || data.role === "lawyer") return false;
+  return true;
+}
+
+/**
+ * Returns true if the user is any active staff member, including
+ * the read-only roles. Use only on routes that don't write — the
+ * caller is responsible for ensuring the response is read-only.
+ */
+export async function isAnyActiveStaff(userId: string): Promise<boolean> {
   const { data } = await supabaseAdmin
     .from("staff")
     .select("id, active")
