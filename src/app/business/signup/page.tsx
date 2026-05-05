@@ -18,12 +18,12 @@ import {
 
 const AGREEMENT_VERSION = "1.0"; // legacy column on companies — kept for backwards compat
 
-type Step = "auth" | "agreement" | "company" | "done";
+type Step = "agreement" | "company" | "done";
 
 export default function BusinessSignupPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const [step, setStep] = useState<Step>("auth");
+  const [step, setStep] = useState<Step>("agreement");
 
   useEffect(() => {
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -33,10 +33,6 @@ export default function BusinessSignupPage() {
   const [error, setError] = useState("");
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 
   const [tosChecked, setTosChecked] = useState(false);
   const [dpaChecked, setDpaChecked] = useState(false);
@@ -47,78 +43,37 @@ export default function BusinessSignupPage() {
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setUserId(data.user.id);
-        setEmail(data.user.email || "");
-        // If they already manage companies, send them to the picker instead
-        const { data: ownedCompanies } = await supabase
-          .from("companies")
-          .select("id")
-          .eq("contact_person_id", data.user.id)
-          .limit(1);
-        if (ownedCompanies && ownedCompanies.length > 0) {
-          router.replace("/business");
-          return;
-        }
-
-        // Skip the agreement step if they've already accepted both current
-        // versions (returning users creating an additional company).
-        const { data: accRows } = await supabase
-          .from("platform_agreement_acceptances")
-          .select("document_key, document_version")
-          .eq("user_id", data.user.id);
-        const accepted = new Set((accRows ?? []).map((r: { document_key: string; document_version: string }) => `${r.document_key}@${r.document_version}`));
-        const alreadyAccepted = accepted.has(`${TOS_KEY}@${TOS_VERSION}`) && accepted.has(`${DPA_KEY}@${DPA_VERSION}`);
-        setStep(alreadyAccepted ? "company" : "agreement");
+      // No session — bounce to the canonical login page (signup tab) and come
+      // back here once authenticated. /business/login is the single source of
+      // truth for auth UI.
+      if (!data.user) {
+        router.replace("/business/login?mode=signup&next=/business/signup");
+        return;
       }
+      setUserId(data.user.id);
+      // If they already manage companies, send them to the picker instead
+      const { data: ownedCompanies } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("contact_person_id", data.user.id)
+        .limit(1);
+      if (ownedCompanies && ownedCompanies.length > 0) {
+        router.replace("/business");
+        return;
+      }
+
+      // Skip the agreement step if they've already accepted both current
+      // versions (returning users creating an additional company).
+      const { data: accRows } = await supabase
+        .from("platform_agreement_acceptances")
+        .select("document_key, document_version")
+        .eq("user_id", data.user.id);
+      const accepted = new Set((accRows ?? []).map((r: { document_key: string; document_version: string }) => `${r.document_key}@${r.document_version}`));
+      const alreadyAccepted = accepted.has(`${TOS_KEY}@${TOS_VERSION}`) && accepted.has(`${DPA_KEY}@${DPA_VERSION}`);
+      setStep(alreadyAccepted ? "company" : "agreement");
       setLoading(false);
     })();
   }, [router]);
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSubmitting(true);
-    try {
-      if (authMode === "login") {
-        const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-        if (err) throw err;
-        if (data.user) {
-          setUserId(data.user.id);
-          setStep("agreement");
-        }
-      } else {
-        // Server-side create + auto-confirm so we can sign in immediately.
-        const res = await fetch("/api/business/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, full_name: fullName }),
-        });
-        const j = await res.json();
-        if (res.status === 409 && j.error === "email_already_registered") {
-          // Existing account — flip to login mode and tell the user to enter
-          // their existing password. Don't reveal anything more.
-          setAuthMode("login");
-          setPassword("");
-          setError(
-            "This email already has a Lifeline account. Sign in with your existing password to continue.",
-          );
-          return;
-        }
-        if (!res.ok) throw new Error(j.detail || j.error || "Signup failed");
-        const { data, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInErr) throw signInErr;
-        if (data.user) {
-          setUserId(data.user.id);
-          setStep("agreement");
-        }
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleAgreement = async () => {
     if (!tosChecked || !dpaChecked) return;
@@ -202,66 +157,10 @@ export default function BusinessSignupPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <BusinessHeader
         crumbs={[{ label: t("b2b.signup.header", "Business onboarding") }]}
-        minimal={step === "auth"}
       />
 
       <main className="max-w-xl mx-auto px-6 py-12">
         <Stepper step={step} />
-
-        {step === "auth" && (
-          <section className="bg-white rounded-2xl p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold mb-2">
-              {authMode === "login" ? "Sign in to continue" : "Create your account"}
-            </h1>
-            <p className="text-sm text-gray-600 mb-6">
-              You are the <strong>contact person</strong> for your company. You&apos;ll receive notifications
-              about employee registrations.
-            </p>
-            <form onSubmit={handleAuth} className="space-y-4">
-              {authMode === "signup" && (
-                <Field label="Your full name">
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="input"
-                  />
-                </Field>
-              )}
-              <Field label="Work email">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="Password">
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input"
-                />
-              </Field>
-              {error && <div className="text-red-600 text-sm">{error}</div>}
-              <button type="submit" disabled={submitting} className="btn-primary w-full">
-                {submitting ? "Working…" : authMode === "login" ? "Sign in" : "Create account"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")}
-                className="text-sm text-blue-600 hover:underline w-full text-center"
-              >
-                {authMode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-              </button>
-            </form>
-          </section>
-        )}
 
         {step === "agreement" && (
           <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
@@ -394,8 +293,11 @@ export default function BusinessSignupPage() {
 
 function Stepper({ step }: { step: Step }) {
   const { t } = useI18n();
-  const order: Step[] = ["auth", "agreement", "company"];
-  const idx = order.indexOf(step);
+  // Account is always shown as completed — this page only renders once the
+  // user is authenticated (auth happens on /business/login). Active step is
+  // either Agreement or Company.
+  const order = ["account", "agreement", "company"] as const;
+  const idx = order.indexOf(step === "done" ? "company" : step);
   const labels = [
     t("b2b.signup.stepper.account", "Account"),
     t("b2b.signup.stepper.agreement", "Agreement"),
