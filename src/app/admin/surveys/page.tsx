@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   type FeedbackSurvey,
@@ -15,10 +16,62 @@ import {
 } from "@/lib/feedback-survey-types";
 
 export default function SurveysHubPage() {
+  const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
   const [surveys, setSurveys] = useState<FeedbackSurvey[]>([]);
   const [counts, setCounts] = useState<Record<string, { sent: number; completed: number }>>({});
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
+  const [newKey, setNewKey] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newError, setNewError] = useState<string | null>(null);
+
+  const cloneSurvey = async (sourceId: string) => {
+    if (!confirm("Clone this survey into a new draft (next version)? You'll edit the new copy without affecting the current version.")) return;
+    setBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${sourceId}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || "Clone failed");
+      router.push(`/admin/surveys/${j.new_id}`);
+    } catch (e) {
+      alert((e as Error).message);
+      setBusy(false);
+    }
+  };
+
+  const createNewSurvey = async () => {
+    setNewError(null);
+    const key = newKey.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const title = newTitle.trim();
+    if (!key) { setNewError("Slug-style key required (e.g. follow-up-3m)."); return; }
+    if (!title) { setNewError("Title required."); return; }
+    setBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch("/api/admin/surveys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ key, title_is: title }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || "Create failed");
+      router.push(`/admin/surveys/${j.new_id}`);
+    } catch (e) {
+      setNewError((e as Error).message);
+      setBusy(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +133,15 @@ export default function SurveysHubPage() {
             survey to specific clients via email; results are aggregated here.
           </p>
         </div>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => { setNewOpen(true); setNewError(null); setNewKey(""); setNewTitle(""); }}
+            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+          >
+            + New survey
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -127,6 +189,16 @@ export default function SurveysHubPage() {
                     >
                       {canEdit ? "Edit" : "Review"}
                     </Link>
+                    {canEdit && (s.status === "approved" || s.status === "archived") && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => cloneSurvey(s.id)}
+                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                      >
+                        Clone &amp; edit
+                      </button>
+                    )}
                     {s.status === "approved" && (
                       <Link
                         href={`/admin/surveys/${s.id}/results`}
@@ -148,6 +220,67 @@ export default function SurveysHubPage() {
           <strong>Velkomin/n.</strong> Open any survey above to review the question structure. Use
           the action buttons at the bottom of the editor to <em>approve</em> or <em>request changes</em>.
           Once approved, results land at the <em>Results &amp; export</em> link on each survey card.
+        </div>
+      )}
+
+      {newOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setNewOpen(false); }}
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <header className="px-5 py-4 border-b border-gray-100">
+              <h4 className="text-base font-semibold text-[#1F2937]">New survey</h4>
+              <p className="text-xs text-gray-500 mt-1">
+                Creates an empty draft. You'll add questions on the next screen, then submit it for medical-advisor approval.
+              </p>
+            </header>
+            <div className="px-5 py-4 space-y-3">
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Key (slug)</span>
+                <input
+                  type="text"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  placeholder="e.g. follow-up-3m"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono text-gray-900"
+                />
+                <span className="block text-[11px] text-gray-400 mt-1">Lowercase letters, numbers, dashes. Becomes part of the URL and CSV filename.</span>
+              </label>
+              <label className="block">
+                <span className="block text-xs font-medium text-gray-700 mb-1">Title (íslenska)</span>
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Þjónustukönnun – 3 mánaða eftirfylgd"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                />
+              </label>
+              {newError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                  {newError}
+                </div>
+              )}
+            </div>
+            <footer className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setNewOpen(false)}
+                className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={createNewSurvey}
+                disabled={busy}
+                className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                {busy ? "Creating…" : "Create draft"}
+              </button>
+            </footer>
+          </div>
         </div>
       )}
     </div>

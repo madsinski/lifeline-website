@@ -189,6 +189,29 @@ export default function SurveyEditorPage() {
     }
   };
 
+  const cloneSurvey = async () => {
+    if (!survey) return;
+    if (!confirm(`Clone ${survey.key} v${survey.version} into a new draft? You'll edit the new copy without affecting the current ${survey.status} version.`)) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${survey.id}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || "Clone failed");
+      router.push(`/admin/surveys/${j.new_id}`);
+    } catch (e) {
+      setMsg({ type: "err", text: (e as Error).message });
+      setBusy(false);
+    }
+  };
+
   const transitionStatus = async (
     action: "submit_for_approval" | "approve" | "request_changes" | "archive" | "reset_to_draft",
   ) => {
@@ -364,7 +387,15 @@ export default function SurveyEditorPage() {
         )}
         {isAdmin && survey.status === "approved" && (
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs text-emerald-700">Approved — locked. To make changes, archive this version and clone it as a new draft.</p>
+            <p className="text-xs text-emerald-700">Approved — locked. To revise, clone into a new draft (the next version) and edit there.</p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={cloneSurvey}
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              Clone &amp; edit (new draft)
+            </button>
             <button
               type="button"
               disabled={busy}
@@ -372,6 +403,19 @@ export default function SurveyEditorPage() {
               className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
             >
               Archive
+            </button>
+          </div>
+        )}
+        {isAdmin && survey.status === "archived" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-gray-500">Archived. Clone if you want to start a fresh draft from this baseline.</p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={cloneSurvey}
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              Clone &amp; edit (new draft)
             </button>
           </div>
         )}
