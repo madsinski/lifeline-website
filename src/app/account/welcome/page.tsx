@@ -13,16 +13,22 @@
 //     clients.welcome_seen_at so they are not shown the deck again.
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import WelcomeSlideshow from "../../components/WelcomeSlideshow";
 
 export default function AccountWelcomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [variant, setVariant] = useState<"b2b" | "b2c">("b2c");
+
+  // ?preview=1 lets staff (or anyone with the link) view the deck
+  // without the B2C-redirect-to-onboard logic kicking in. Useful for
+  // QA-ing copy + design without spinning up a fresh test client.
+  const preview = searchParams.get("preview") === "1";
 
   useEffect(() => {
     let cancelled = false;
@@ -36,8 +42,8 @@ export default function AccountWelcomePage() {
         .maybeSingle();
       // B2C users without a company go through the onboarding wizard,
       // not this welcome deck. The deck assumes assessment is already
-      // booked / company-scheduled.
-      if (client && !client.company_id) {
+      // booked / company-scheduled. Skipped when ?preview=1 is set.
+      if (!preview && client && !client.company_id) {
         router.replace("/account/onboard");
         return;
       }
