@@ -3639,6 +3639,27 @@ function JourneyTimeline({
     cta: !hasBodyCompBooking
       ? { label: "Book at a station", href: "/account/book" }
       : undefined,
+    // Selected-package row: shows which package the user is on +
+    // a real button (not a text link) to switch to a different one.
+    // Only shown for B2C — B2B packages are set by the company.
+    customBody: onChangePackage ? (
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          Foundational
+        </span>
+        <button
+          type="button"
+          onClick={onChangePackage}
+          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Change package
+        </button>
+      </div>
+    ) : undefined,
   };
   const b2bMeasurementsStep: JourneyStep = {
     title: "Measurements — book your time slot",
@@ -3836,20 +3857,7 @@ function JourneyTimeline({
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-      <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
-        <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
-        {isB2C && onChangePackage ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
-              Change package
-            </button>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              Foundational
-            </span>
-          </div>
-        ) : null}
-      </div>
+      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Your journey</h3>
       <p className="text-sm text-[#6B7280] mb-6">Where you are in the Lifeline programme.</p>
       <ol className="relative border-l-2 border-gray-100 ml-4">
         {steps.map((s, i) => {
