@@ -6,6 +6,12 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
+import {
+  PUBLIC_PRIVACY_VERSION,
+  PUBLIC_TERMS_VERSION,
+  renderPublicPrivacyPolicy,
+  renderPublicTermsOfService,
+} from "@/lib/public-pages-content";
 
 export default function AccountLoginPage() {
   return (
@@ -20,7 +26,12 @@ function AccountLoginContent() {
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref") || "";
   const nextPath = searchParams.get("next") || "";
-  const [mode, setMode] = useState<"login" | "signup">(refCode ? "signup" : "login");
+  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
+  const [mode, setMode] = useState<"login" | "signup">(refCode ? "signup" : initialMode);
+  // Two-stage signup: collect name/email/password first, then take the
+  // user to a dedicated review page where they read + accept the TOS
+  // and Privacy Policy before the account is actually created.
+  const [signupStage, setSignupStage] = useState<"form" | "terms">("form");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -33,7 +44,11 @@ function AccountLoginContent() {
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const TERMS_VERSION = "1.2";
+  // Versioned together — when either text changes bump both. The
+  // public renderers (renderPublicTermsOfService /
+  // renderPublicPrivacyPolicy) are the legally binding text the user
+  // accepts here; we record the TOS version on the clients row.
+  const TERMS_VERSION = `tos-${PUBLIC_TERMS_VERSION}+priv-${PUBLIC_PRIVACY_VERSION}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +85,26 @@ function AccountLoginContent() {
       }
       router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
     } else {
+      // Stage 1 (form) → just validate + advance to the TOS+Privacy
+      // review page. The actual account creation happens after the
+      // user reads + accepts the legal documents on stage 2.
+      if (signupStage === "form") {
+        if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
+          setError("Please fill in name, email and password.");
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError("Password must be at least 6 characters.");
+          setLoading(false);
+          return;
+        }
+        setSignupStage("terms");
+        setError("");
+        setLoading(false);
+        return;
+      }
+      // Stage 2 (terms) — actually create the account.
       if (!acceptTerms) {
         setError("Please accept the Terms of Service and Privacy Policy to continue.");
         setLoading(false);
@@ -142,7 +177,9 @@ function AccountLoginContent() {
         "Account created! Check your email to confirm, then sign in."
       );
       setMode("login");
+      setSignupStage("form");
       setPassword("");
+      setAcceptTerms(false);
       setLoading(false);
       return;
     }
@@ -208,7 +245,7 @@ function AccountLoginContent() {
                   key={tab.key}
                   role="tab"
                   aria-selected={active}
-                  onClick={() => { setMode(tab.key); setError(""); setInfo(""); }}
+                  onClick={() => { setMode(tab.key); setSignupStage("form"); setError(""); setInfo(""); }}
                   className={`flex-1 py-4 text-sm font-semibold transition-colors relative ${
                     active ? "text-[#1F2937]" : "text-gray-400 hover:text-gray-600"
                   }`}
@@ -223,6 +260,23 @@ function AccountLoginContent() {
           </div>
 
           <div className="p-8">
+          {mode === "signup" && signupStage === "terms" ? (
+            <TermsConsentStage
+              firstName={firstName}
+              email={email}
+              acceptTerms={acceptTerms}
+              setAcceptTerms={setAcceptTerms}
+              researchOptOut={researchOptOut}
+              setResearchOptOut={setResearchOptOut}
+              marketingOptOut={marketingOptOut}
+              setMarketingOptOut={setMarketingOptOut}
+              loading={loading}
+              error={error}
+              info={info}
+              onBack={() => { setSignupStage("form"); setError(""); }}
+              onConfirm={handleSubmit}
+            />
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === "signup" && (
               <>
@@ -325,52 +379,6 @@ function AccountLoginContent() {
               />
             </div>
 
-            {mode === "signup" && (
-              <div className="border-t border-gray-100 pt-4 space-y-3">
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={acceptTerms}
-                    onChange={(e) => setAcceptTerms(e.target.checked)}
-                    required
-                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
-                  />
-                  <span className="text-xs text-gray-700 leading-snug">
-                    I accept the Lifeline Health{" "}
-                    <Link href="/terms" className="text-[#10B981] underline" target="_blank">Terms of Service</Link>
-                    {" "}and{" "}
-                    <Link href="/privacy" className="text-[#10B981] underline" target="_blank">Privacy Policy</Link>
-                    <span className="text-gray-400"> (v{TERMS_VERSION})</span>.
-                    <span className="text-red-500 ml-0.5">*</span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={researchOptOut}
-                    onChange={(e) => setResearchOptOut(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
-                  />
-                  <span className="text-xs text-gray-700 leading-snug">
-                    <strong>Opt out of research use.</strong>{" "}
-                    Don&apos;t use my anonymised data to improve Lifeline or for clinical research.
-                  </span>
-                </label>
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={marketingOptOut}
-                    onChange={(e) => setMarketingOptOut(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
-                  />
-                  <span className="text-xs text-gray-700 leading-snug">
-                    <strong>Opt out of marketing emails.</strong>{" "}
-                    Don&apos;t send me product news or promotions.
-                  </span>
-                </label>
-              </div>
-            )}
-
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -384,7 +392,7 @@ function AccountLoginContent() {
 
             <button
               type="submit"
-              disabled={loading || (mode === "signup" && !acceptTerms)}
+              disabled={loading}
               className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading
@@ -393,9 +401,10 @@ function AccountLoginContent() {
                   : "Creating account..."
                 : mode === "login"
                   ? "Sign In"
-                  : "Create Account"}
+                  : "Continue"}
             </button>
           </form>
+          )}
 
           {mode === "login" && (
             <button
@@ -415,5 +424,137 @@ function AccountLoginContent() {
         </p>
       </div>
     </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Stage 2 of signup: dedicated TOS + Privacy review page. The user
+// arrives here after entering name/email/password on stage 1.
+// They must read + accept before the account is created.
+
+function TermsConsentStage({
+  firstName, email, acceptTerms, setAcceptTerms,
+  researchOptOut, setResearchOptOut,
+  marketingOptOut, setMarketingOptOut,
+  loading, error, info, onBack, onConfirm,
+}: {
+  firstName: string;
+  email: string;
+  acceptTerms: boolean;
+  setAcceptTerms: (v: boolean) => void;
+  researchOptOut: boolean;
+  setResearchOptOut: (v: boolean) => void;
+  marketingOptOut: boolean;
+  setMarketingOptOut: (v: boolean) => void;
+  loading: boolean;
+  error: string;
+  info: string;
+  onBack: () => void;
+  onConfirm: (e: React.FormEvent) => void;
+}) {
+  return (
+    <form onSubmit={onConfirm} className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold text-[#0F172A]">
+          {firstName ? `Næstum þar, ${firstName}` : "Næstum þar"}
+        </h2>
+        <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+          Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja
+          notkunarskilmála og persónuverndarstefnu Lifeline Health.
+        </p>
+        {email && (
+          <p className="text-xs text-gray-400 mt-1">
+            Aðgangurinn verður stofnaður á <span className="font-medium text-gray-600">{email}</span>.
+          </p>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
+          Notkunarskilmálar ({PUBLIC_TERMS_VERSION})
+        </p>
+        <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
+{renderPublicTermsOfService("is")}
+        </pre>
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
+          Persónuverndarstefna ({PUBLIC_PRIVACY_VERSION})
+        </p>
+        <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
+{renderPublicPrivacyPolicy("is")}
+        </pre>
+      </div>
+
+      <div className="border-t border-gray-100 pt-4 space-y-3">
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            required
+            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
+          />
+          <span className="text-xs text-gray-700 leading-snug">
+            Ég hef lesið og samþykki <strong>notkunarskilmála</strong> Lifeline Health (v{PUBLIC_TERMS_VERSION})
+            og <strong>persónuverndarstefnu</strong> (v{PUBLIC_PRIVACY_VERSION}).
+            <span className="text-red-500 ml-0.5">*</span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={researchOptOut}
+            onChange={(e) => setResearchOptOut(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
+          />
+          <span className="text-xs text-gray-700 leading-snug">
+            <strong>Afþakka rannsóknanotkun.</strong>{" "}
+            Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.
+          </span>
+        </label>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={marketingOptOut}
+            onChange={(e) => setMarketingOptOut(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
+          />
+          <span className="text-xs text-gray-700 leading-snug">
+            <strong>Afþakka markaðspóst.</strong>{" "}
+            Ekki senda mér vörufréttir eða kynningar frá Lifeline.
+          </span>
+        </label>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+      {info && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+          {info}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+        >
+          ← Til baka
+        </button>
+        <button
+          type="submit"
+          disabled={loading || !acceptTerms}
+          className="flex-1 bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Stofnar aðgang..." : "Samþykkja og stofna aðgang"}
+        </button>
+      </div>
+    </form>
   );
 }
