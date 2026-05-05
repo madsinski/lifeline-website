@@ -13,7 +13,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
-const VALID_ROLES = ["coach", "doctor", "nurse", "psychologist", "admin", "lawyer"] as const;
+const VALID_ROLES = ["coach", "doctor", "nurse", "psychologist", "admin", "lawyer", "medical_advisor"] as const;
 type Role = (typeof VALID_ROLES)[number];
 
 const VALID_EMPLOYMENT = ["salaried", "piece_rate", "contractor", "shareholder"] as const;

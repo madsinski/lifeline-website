@@ -112,6 +112,15 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/surveys",
+    label: "Surveys",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/errors",
     label: "Error logs",
     icon: (
@@ -297,6 +306,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           }
           return;
         }
+        // Medical advisor: only ever sees the Surveys section. Same
+        // narrow-route pattern as the lawyer.
+        if (data.role === "medical_advisor") {
+          setCoachingView(false);
+          try { localStorage.removeItem("admin_coaching_view"); } catch {}
+          if (typeof window !== "undefined" && pathname && !pathname.startsWith("/admin/surveys") && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
+            router.replace("/admin/surveys");
+          }
+          return;
+        }
         // Resolve the coaching-view preference:
         //   - Non-admins (no manage_team) are locked into coaching view
         //     and any stale localStorage value is cleared.
@@ -359,6 +378,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // friction-free. Signoff non-repudiation comes from the
         // authenticated session + IP + sha256 + PDF certificate stored in
         // legal_review_signoffs, not from AAL2.
+        //
+        // Medical advisor still requires MFA — they read survey responses
+        // which can include identifying open-text quotes from clients.
         if (inlineRole !== "lawyer") {
           try {
             const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -390,7 +412,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // Lawyer = external counsel — they're the ones reviewing these
         // documents, so they can't sign them as click-throughs (chicken-
         // and-egg). Skip the gate entirely for them.
-        if (inlineRole !== "lawyer" && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
+        // Medical advisor obligations are handled in their engagement
+        // letter, similar to lawyer; skip the in-app gate.
+        if (inlineRole !== "lawyer" && inlineRole !== "medical_advisor" && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
           try {
             const token = s.access_token;
             const res = await fetch("/api/admin/staff/me/agreements", {
@@ -522,6 +546,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             // External counsel: only Legal section visible. Everything else
             // hidden — no clients, no messages, no scheduling, no business.
             ? sidebarLinks.filter((l) => l.href === "/admin/legal" || l.href.startsWith("/admin/legal/"))
+            : userRole === "medical_advisor"
+            // Medical advisor: only Surveys section visible.
+            ? sidebarLinks.filter((l) => l.href === "/admin/surveys" || l.href.startsWith("/admin/surveys/"))
             : coachingView
             ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/conversations", "/admin/scheduling", "/admin/content"].includes(l.href))
             : sidebarLinks

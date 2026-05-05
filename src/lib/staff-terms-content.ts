@@ -12,7 +12,7 @@
 
 export type DocumentLanguage = "is" | "en";
 
-export type StaffRoleLabel = "admin" | "coach" | "doctor" | "nurse" | "psychologist" | "lawyer";
+export type StaffRoleLabel = "admin" | "coach" | "doctor" | "nurse" | "psychologist" | "lawyer" | "medical_advisor";
 
 // The employment form the staff member is on. Drives which contract
 // doc they sign at onboarding:
@@ -32,7 +32,7 @@ export type EmploymentType = "salaried" | "piece_rate" | "contractor";
 // explicitly picking one.
 export function defaultEmploymentType(role: StaffRoleLabel): EmploymentType {
   if (role === "admin" || role === "coach") return "salaried";
-  if (role === "lawyer") return "contractor";
+  if (role === "lawyer" || role === "medical_advisor") return "contractor";
   return "piece_rate";
 }
 
@@ -121,7 +121,10 @@ export function requiredAgreementsForStaff(
   // the engagement letter signed with the law firm itself, not by the
   // in-app onboarding gate. So: zero required agreements at the
   // app-level.
-  if (role === "lawyer") {
+  //
+  // Medical advisor = external clinical/research advisor (same shape:
+  // narrow access, NDA + DPA covered by their engagement letter).
+  if (role === "lawyer" || role === "medical_advisor") {
     return [];
   }
 

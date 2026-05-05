@@ -41,7 +41,7 @@ async function getCroppedImg(imageSrc: string, crop: Area): Promise<Blob> {
 
 // ─── Types ───────────────────────────────────────────────────
 
-type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin" | "lawyer";
+type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin" | "lawyer" | "medical_advisor";
 type Permission = "manage_clients" | "manage_programs" | "manage_team" | "view_analytics" | "send_messages" | "app_user_access" | "view_legal";
 
 const allPermissions: { key: Permission; label: string; description: string }[] = [
@@ -61,6 +61,7 @@ const defaultPermissions: Record<StaffRole, Permission[]> = {
   nurse: ["manage_clients", "send_messages"],
   psychologist: ["manage_clients", "send_messages"],
   lawyer: ["view_legal"],
+  medical_advisor: [],
 };
 
 type EmploymentType = "salaried" | "piece_rate" | "contractor" | "shareholder";
@@ -98,7 +99,7 @@ const EMPLOYMENT_COLORS: Record<EmploymentType, string> = {
 
 function defaultEmploymentTypeFor(role: StaffRole): EmploymentType {
   if (role === "admin" || role === "coach") return "salaried";
-  if (role === "lawyer") return "contractor";
+  if (role === "lawyer" || role === "medical_advisor") return "contractor";
   return "piece_rate";
 }
 
@@ -109,6 +110,7 @@ const roleLabels: Record<StaffRole, string> = {
   psychologist: "Psychologist",
   admin: "Admin",
   lawyer: "External counsel (lawyer)",
+  medical_advisor: "Medical advisor",
 };
 
 const roleColors: Record<StaffRole, string> = {
@@ -118,9 +120,10 @@ const roleColors: Record<StaffRole, string> = {
   psychologist: "bg-amber-100 text-amber-700",
   admin: "bg-gray-100 text-gray-700",
   lawyer: "bg-indigo-100 text-indigo-700",
+  medical_advisor: "bg-rose-100 text-rose-700",
 };
 
-const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "admin", "lawyer"];
+const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "admin", "lawyer", "medical_advisor"];
 
 // ─── Fallback mock data ───────────────────────────────────────
 
