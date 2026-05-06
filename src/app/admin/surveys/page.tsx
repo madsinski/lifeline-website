@@ -189,6 +189,12 @@ export default function SurveysHubPage() {
                     >
                       {canEdit ? "Edit" : "Review"}
                     </Link>
+                    <Link
+                      href={`/admin/surveys/${s.id}/preview`}
+                      className="px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                    >
+                      Preview &amp; test
+                    </Link>
                     {canEdit && (s.status === "approved" || s.status === "archived") && (
                       <button
                         type="button"
@@ -232,7 +238,7 @@ export default function SurveysHubPage() {
             <header className="px-5 py-4 border-b border-gray-100">
               <h4 className="text-base font-semibold text-[#1F2937]">New survey</h4>
               <p className="text-xs text-gray-500 mt-1">
-                Creates an empty draft. You'll add questions on the next screen, then submit it for medical-advisor approval.
+                Creates an empty draft. You&apos;ll add questions on the next screen, then submit it for medical-advisor approval.
               </p>
             </header>
             <div className="px-5 py-4 space-y-3">
