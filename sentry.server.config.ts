@@ -35,7 +35,11 @@ const dsn = process.env.SENTRY_DSN;
 if (dsn) {
   Sentry.init({
     dsn,
-    tracesSampleRate: 0.1,
+    // 30% of traces — bumped from 10% so onboarding / signup paths
+    // produce enough span data to debug slowness without exploding
+    // the Sentry quota. Errors are unaffected (sampled 100% by
+    // default).
+    tracesSampleRate: 0.3,
     environment: process.env.VERCEL_ENV || "development",
     sendDefaultPii: false,
     beforeSend(event, hint) {

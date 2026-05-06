@@ -29,12 +29,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
   }
 
+  const seenAt = new Date().toISOString();
   const { error: updErr } = await supabaseAdmin
     .from("clients")
-    .update({ welcome_seen_at: new Date().toISOString() })
+    .update({ welcome_seen_at: seenAt })
     .eq("id", userData.user.id);
   if (updErr) {
     return NextResponse.json({ ok: false, error: updErr.message }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
+  // Return the canonical timestamp so the client can confirm the write
+  // succeeded (handles spotty connections where the response is delayed).
+  return NextResponse.json({ ok: true, welcome_seen_at: seenAt });
 }

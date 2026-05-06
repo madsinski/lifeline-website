@@ -25,13 +25,29 @@ export async function POST(req: NextRequest) {
   const companyIds = Array.from(new Set(members.map((m) => m.company_id)));
   const { data: companies } = await supabaseAdmin
     .from("companies")
-    .select("id, name, contact_person_id")
+    .select("id, name, contact_person_id, agreement_signed_at")
     .in("id", companyIds);
   const companyMap = new Map((companies || []).map((c) => [c.id, c]));
 
-  // Staff check
+  // Staff check (admin/coach can bypass the agreement gate below for
+  // QA / recovery flows).
   const { data: staff } = await supabaseAdmin.from("staff").select("id").eq("id", user.id).eq("active", true).maybeSingle();
   const isStaffMember = !!staff;
+
+  // Pre-check: every targeted company must have signed the platform
+  // agreement before invites go out. Refuse the whole batch (rather
+  // than partial-send) so the admin gets a clear error and can sign
+  // first.
+  if (!isStaffMember) {
+    const unsigned = (companies || []).filter((c) => !c.agreement_signed_at);
+    if (unsigned.length > 0) {
+      return NextResponse.json({
+        error: "agreement_not_signed",
+        detail: `Sign the platform agreement for ${unsigned.map((c) => c.name).join(", ")} before sending invites.`,
+        companies: unsigned.map((c) => ({ id: c.id, name: c.name })),
+      }, { status: 409 });
+    }
+  }
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get("origin") || "https://lifelinehealth.is";
   type InviteResult = { id: string; email: string; ok: boolean; error?: string };
