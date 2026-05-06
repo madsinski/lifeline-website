@@ -404,28 +404,58 @@ export default function SurveyEditorPage() {
               onClick={() => transitionStatus("submit_for_approval")}
               className="px-4 py-2 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
             >
-              Submit for medical-advisor approval
+              Submit for approval
             </button>
           </div>
         )}
         {isAdmin && survey.status === "pending_approval" && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={saveAll}
-              className="px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50"
-            >
-              {busy ? "Saving…" : "Save changes"}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => transitionStatus("reset_to_draft")}
-              className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              Move back to draft
-            </button>
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">
+              Edit while reviewing if needed; saves take effect immediately. Approve to publish, request changes to send back to draft, or move back to draft yourself.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={saveAll}
+                className="px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50"
+              >
+                {busy ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => transitionStatus("reset_to_draft")}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Move back to draft
+              </button>
+            </div>
+            <textarea
+              value={approvalNote}
+              onChange={(e) => setApprovalNote(e.target.value)}
+              placeholder="Note (optional for approve, required for request changes)"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 resize-y"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => transitionStatus("approve")}
+                className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                Approve &amp; publish
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => transitionStatus("request_changes")}
+                className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+              >
+                Request changes
+              </button>
+            </div>
           </div>
         )}
         {isAdmin && survey.status === "approved" && (

@@ -1,11 +1,11 @@
 // POST /api/admin/surveys/[id]/transition
 // Status transitions for a survey. Each transition has its own
-// allowed-from set and required role:
+// allowed-from set and allowed roles:
 //
 //   submit_for_approval  draft → pending_approval     (admin)
 //   reset_to_draft       pending_approval → draft     (admin)
-//   approve              pending_approval → approved  (medical_advisor)
-//   request_changes      pending_approval → draft     (medical_advisor)
+//   approve              pending_approval → approved  (admin OR medical_advisor)
+//   request_changes      pending_approval → draft     (admin OR medical_advisor)
 //   archive              approved → archived          (admin)
 
 import { NextResponse } from "next/server";
@@ -14,22 +14,23 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 export const runtime = "nodejs";
 
 type Action = "submit_for_approval" | "reset_to_draft" | "approve" | "request_changes" | "archive";
+type StaffRole = "admin" | "medical_advisor";
 
 const ACTIONS: Action[] = ["submit_for_approval", "reset_to_draft", "approve", "request_changes", "archive"];
 
 interface TransitionMatrix {
   from: ("draft" | "pending_approval" | "approved" | "archived")[];
   to: "draft" | "pending_approval" | "approved" | "archived";
-  role: "admin" | "medical_advisor";
+  roles: StaffRole[];
   noteRequired?: boolean;
 }
 
 const MATRIX: Record<Action, TransitionMatrix> = {
-  submit_for_approval: { from: ["draft"], to: "pending_approval", role: "admin" },
-  reset_to_draft:      { from: ["pending_approval"], to: "draft", role: "admin" },
-  approve:             { from: ["pending_approval"], to: "approved", role: "medical_advisor" },
-  request_changes:     { from: ["pending_approval"], to: "draft", role: "medical_advisor", noteRequired: true },
-  archive:             { from: ["approved"], to: "archived", role: "admin" },
+  submit_for_approval: { from: ["draft"], to: "pending_approval", roles: ["admin"] },
+  reset_to_draft:      { from: ["pending_approval"], to: "draft", roles: ["admin"] },
+  approve:             { from: ["pending_approval"], to: "approved", roles: ["admin", "medical_advisor"] },
+  request_changes:     { from: ["pending_approval"], to: "draft", roles: ["admin", "medical_advisor"], noteRequired: true },
+  archive:             { from: ["approved"], to: "archived", roles: ["admin"] },
 };
 
 interface RequestBody {
@@ -72,10 +73,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!staffRow || !staffRow.active) {
     return NextResponse.json({ ok: false, error: "No active staff record" }, { status: 403 });
   }
-  if (staffRow.role !== rule.role) {
+  if (!rule.roles.includes(staffRow.role as StaffRole)) {
     return NextResponse.json({
       ok: false,
-      error: `Action '${action}' requires role '${rule.role}', but you are '${staffRow.role}'.`,
+      error: `Action '${action}' requires role in [${rule.roles.join(", ")}], but you are '${staffRow.role}'.`,
     }, { status: 403 });
   }
 

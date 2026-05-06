@@ -94,8 +94,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   let responses: ResponseRow[] = [];
   if (assignments.length > 0) {
     const ids = assignments.map((a) => a.id);
+    // Read from the decrypted view — text_value is encrypted at rest.
     const { data: rRows } = await supabaseAdmin
-      .from("feedback_responses")
+      .from("feedback_responses_decrypted")
       .select("assignment_id, question_id, value, values_array, text_value, skipped")
       .in("assignment_id", ids);
     responses = (rRows || []) as ResponseRow[];
