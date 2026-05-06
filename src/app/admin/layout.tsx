@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -211,121 +211,150 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // the toggle "stick" for users whose role had changed (e.g. coach
   // promoted back to admin still saw the coach sidebar).
 
-  // Load unread message count and new clients count
-  useEffect(() => {
-    const loadCounts = async () => {
-      try {
-        const { count: msgCount, error: msgErr } = await supabase
-          .from("messages_decrypted")
-          .select("*", { count: "exact", head: true })
-          .eq("read", false)
-          .neq("sender_role", "coach");
-        if (!msgErr && msgCount !== null) setUnreadCount(msgCount);
-      } catch {}
-      try {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const { count: clientCount, error: clientErr } = await supabase
-          .from("clients_decrypted")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", sevenDaysAgo);
-        if (!clientErr && clientCount !== null) setNewClientsCount(clientCount);
-      } catch {}
-      try {
-        const { count: fbCount, error: fbErr } = await supabase
-          .from("beta_feedback")
-          .select("*", { count: "exact", head: true })
-          .eq("resolved", false);
-        if (!fbErr && fbCount !== null) setUnresolvedFeedbackCount(fbCount);
-      } catch {}
-      try {
-        const { count: rrCount, error: rrErr } = await supabase
-          .from("refund_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending");
-        if (!rrErr && rrCount !== null) setPendingRefundRequestsCount(rrCount);
-      } catch {}
-      try {
-        const { count: dsrCount, error: dsrErr } = await supabase
-          .from("dsr_requests")
-          .select("*", { count: "exact", head: true })
-          .in("status", ["received", "in_progress"]);
-        if (!dsrErr && dsrCount !== null) setOpenDsrCount(dsrCount);
-      } catch {}
-      // Open (unresolved) error events. Counted across the whole table —
-      // RLS is admin-only so the query returns 0 for non-admins. Anything
-      // > 0 lights up the green dot next to /admin/errors.
-      try {
-        const { count: errCount, error: errErr } = await supabase
-          .from("app_errors")
-          .select("*", { count: "exact", head: true })
-          .is("resolved_at", null);
-        if (!errErr && errCount !== null) setOpenErrorsCount(errCount);
-      } catch {}
-      // Surveys awaiting approval — admin or medical_advisor needs to
-      // review the question structure and either approve or send back
-      // for changes.
-      try {
-        const { count: srvCount, error: srvErr } = await supabase
-          .from("feedback_surveys")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending_approval");
-        if (!srvErr && srvCount !== null) setPendingSurveysCount(srvCount);
-      } catch {}
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      // New survey responses (assignments completed in the last 7 days).
-      try {
-        const { count: respCount, error: respErr } = await supabase
-          .from("feedback_assignments")
-          .select("*", { count: "exact", head: true })
-          .gte("completed_at", sevenDaysAgo);
-        if (!respErr && respCount !== null) setNewSurveyResponsesCount(respCount);
-      } catch {}
-      // New body-comp + blood-test bookings created in the last 7 days.
-      // Counted as a sum across both tables since the Bookings page
-      // surfaces them together.
-      try {
-        const [{ count: bcCount }, { count: btCount }] = await Promise.all([
-          supabase.from("body_comp_bookings").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
-          supabase.from("blood_test_bookings").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
-        ]);
-        setNewBookingsCount((bcCount || 0) + (btCount || 0));
-      } catch {}
-      // New company signups in the last 7 days.
-      try {
-        const { count: coCount, error: coErr } = await supabase
-          .from("companies")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", sevenDaysAgo);
-        if (!coErr && coCount !== null) setNewCompaniesCount(coCount);
-      } catch {}
-      // Overdue access reviews: active staff whose most recent review is
-      // older than 90 days (or who have never been reviewed and were
-      // created more than 90 days ago).
-      try {
-        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-        const { data: activeStaff } = await supabase
-          .from("staff")
-          .select("id, created_at")
-          .eq("active", true);
-        if (activeStaff && activeStaff.length > 0) {
-          const ids = activeStaff.map((s) => s.id);
-          const { data: reviews } = await supabase
-            .from("staff_access_reviews")
-            .select("reviewed_staff_id, reviewed_at")
-            .in("reviewed_staff_id", ids)
-            .order("reviewed_at", { ascending: false });
-          const lastReviewed: Record<string, string> = {};
-          for (const r of reviews || []) {
-            if (!lastReviewed[r.reviewed_staff_id]) lastReviewed[r.reviewed_staff_id] = r.reviewed_at;
-          }
-          const overdue = activeStaff.filter((s) => {
-            const ref = lastReviewed[s.id] || s.created_at;
-            return ref < ninetyDaysAgo;
-          }).length;
-          setOverdueAccessReviewCount(overdue);
+  // Per-tab "last visit" timestamps stored in localStorage. Used as
+  // the lower bound for the "new since you last looked" badges so they
+  // clear when the user opens the page and only re-grow as new
+  // activity arrives. Falls back to a 7-day floor so the count never
+  // includes ancient items if the tab has never been visited.
+  const cutoffFor = useCallback((key: string): string => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    if (typeof window === "undefined") return sevenDaysAgo;
+    try {
+      const stored = localStorage.getItem(key);
+      if (!stored) return sevenDaysAgo;
+      return stored > sevenDaysAgo ? stored : sevenDaysAgo;
+    } catch { return sevenDaysAgo; }
+  }, []);
+
+  const loadCounts = useCallback(async () => {
+    try {
+      const { count: msgCount, error: msgErr } = await supabase
+        .from("messages_decrypted")
+        .select("*", { count: "exact", head: true })
+        .eq("read", false)
+        .neq("sender_role", "coach");
+      if (!msgErr && msgCount !== null) setUnreadCount(msgCount);
+    } catch {}
+    try {
+      const { count: clientCount, error: clientErr } = await supabase
+        .from("clients_decrypted")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", cutoffFor("last_seen_clients"));
+      if (!clientErr && clientCount !== null) setNewClientsCount(clientCount);
+    } catch {}
+    try {
+      const { count: fbCount, error: fbErr } = await supabase
+        .from("beta_feedback")
+        .select("*", { count: "exact", head: true })
+        .eq("resolved", false);
+      if (!fbErr && fbCount !== null) setUnresolvedFeedbackCount(fbCount);
+    } catch {}
+    try {
+      const { count: rrCount, error: rrErr } = await supabase
+        .from("refund_requests")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (!rrErr && rrCount !== null) setPendingRefundRequestsCount(rrCount);
+    } catch {}
+    try {
+      const { count: dsrCount, error: dsrErr } = await supabase
+        .from("dsr_requests")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["received", "in_progress"]);
+      if (!dsrErr && dsrCount !== null) setOpenDsrCount(dsrCount);
+    } catch {}
+    // Open (unresolved) error events. Counted across the whole table —
+    // RLS is admin-only so the query returns 0 for non-admins.
+    try {
+      const { count: errCount, error: errErr } = await supabase
+        .from("app_errors")
+        .select("*", { count: "exact", head: true })
+        .is("resolved_at", null);
+      if (!errErr && errCount !== null) setOpenErrorsCount(errCount);
+    } catch {}
+    // Surveys awaiting approval — admin/medical_advisor needs to
+    // review the question structure. Always-on signal (kept for the
+    // hub's own status pills, not the sidebar badge).
+    try {
+      const { count: srvCount, error: srvErr } = await supabase
+        .from("feedback_surveys")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending_approval");
+      if (!srvErr && srvCount !== null) setPendingSurveysCount(srvCount);
+    } catch {}
+    // New survey responses since the user last visited /admin/surveys.
+    try {
+      const { count: respCount, error: respErr } = await supabase
+        .from("feedback_assignments")
+        .select("*", { count: "exact", head: true })
+        .gte("completed_at", cutoffFor("last_seen_surveys"));
+      if (!respErr && respCount !== null) setNewSurveyResponsesCount(respCount);
+    } catch {}
+    // New body-comp + blood-test bookings since last visit to /admin/bookings.
+    try {
+      const cutoff = cutoffFor("last_seen_bookings");
+      const [{ count: bcCount }, { count: btCount }] = await Promise.all([
+        supabase.from("body_comp_bookings").select("*", { count: "exact", head: true }).gte("created_at", cutoff),
+        supabase.from("blood_test_bookings").select("*", { count: "exact", head: true }).gte("created_at", cutoff),
+      ]);
+      setNewBookingsCount((bcCount || 0) + (btCount || 0));
+    } catch {}
+    // New company signups since last visit to /admin/business.
+    try {
+      const { count: coCount, error: coErr } = await supabase
+        .from("companies")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", cutoffFor("last_seen_business"));
+      if (!coErr && coCount !== null) setNewCompaniesCount(coCount);
+    } catch {}
+    // Overdue access reviews: active staff whose most recent review is
+    // older than 90 days (or never reviewed and created more than 90 days ago).
+    try {
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: activeStaff } = await supabase
+        .from("staff")
+        .select("id, created_at")
+        .eq("active", true);
+      if (activeStaff && activeStaff.length > 0) {
+        const ids = activeStaff.map((s) => s.id);
+        const { data: reviews } = await supabase
+          .from("staff_access_reviews")
+          .select("reviewed_staff_id, reviewed_at")
+          .in("reviewed_staff_id", ids)
+          .order("reviewed_at", { ascending: false });
+        const lastReviewed: Record<string, string> = {};
+        for (const r of reviews || []) {
+          if (!lastReviewed[r.reviewed_staff_id]) lastReviewed[r.reviewed_staff_id] = r.reviewed_at;
         }
-      } catch {}
+        const overdue = activeStaff.filter((s) => {
+          const ref = lastReviewed[s.id] || s.created_at;
+          return ref < ninetyDaysAgo;
+        }).length;
+        setOverdueAccessReviewCount(overdue);
+      }
+    } catch {}
+  }, [cutoffFor]);
+
+  // Stamp last_seen for the tracked tabs whenever the user lands on
+  // them, so the count clears immediately and only re-grows as new
+  // activity arrives. Maps prefix → localStorage key.
+  useEffect(() => {
+    const lastSeenMap: Record<string, string> = {
+      "/admin/clients": "last_seen_clients",
+      "/admin/bookings": "last_seen_bookings",
+      "/admin/surveys": "last_seen_surveys",
+      "/admin/business": "last_seen_business",
     };
+    let touched = false;
+    for (const [prefix, key] of Object.entries(lastSeenMap)) {
+      if (pathname.startsWith(prefix)) {
+        try { localStorage.setItem(key, new Date().toISOString()); touched = true; } catch {}
+      }
+    }
+    if (touched) loadCounts();
+  }, [pathname, loadCounts]);
+
+  useEffect(() => {
     loadCounts();
     const interval = setInterval(loadCounts, 30000);
 
@@ -344,7 +373,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadCounts]);
 
   const loadStaffProfile = async (email: string) => {
     try {
