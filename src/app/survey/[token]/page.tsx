@@ -2,16 +2,19 @@
 
 // Public survey page. The `token` in the URL is the auth — no
 // session is required. We fetch survey + questions via the public
-// /api/feedback/[token] endpoint, render the form, then POST back
-// to the same endpoint on submit. Server validates required
-// completeness against the canonical question list.
+// /api/feedback/[token] endpoint, render the form one chapter at a
+// time (questions are grouped by section_index), and POST the
+// combined answer set on the final chapter. Server validates
+// required completeness against the canonical question list.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   SurveyQuestionBlock,
+  groupSurveyChapters,
   type SurveyRenderQuestion as Question,
   type SurveyAnswerState as AnswerState,
+  type SurveyChapter as Chapter,
 } from "@/app/components/SurveyQuestionBlock";
 
 interface Survey {
@@ -22,6 +25,23 @@ interface Survey {
   estimated_minutes: number;
 }
 
+const isAnswered = (q: Question, a: AnswerState | undefined): boolean => {
+  if (!a) return false;
+  if (a.skipped) return true;
+  switch (q.question_type) {
+    case "likert5":
+    case "singleselect":
+    case "nps10":
+      return !!a.value;
+    case "multiselect":
+      return Array.isArray(a.values_array) && a.values_array.length > 0;
+    case "open":
+      return !!(a.text_value && a.text_value.trim());
+    case "consent_optional":
+      return !!a.value;
+  }
+};
+
 export default function PublicSurveyPage() {
   const params = useParams<{ token: string }>();
   const token = params?.token;
@@ -29,6 +49,7 @@ export default function PublicSurveyPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [recipientName, setRecipientName] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
+  const [chapterIdx, setChapterIdx] = useState(0); // 0-based index into chapters
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -60,6 +81,11 @@ export default function PublicSurveyPage() {
     return () => { cancelled = true; };
   }, [token]);
 
+  const chapters = useMemo<Chapter[]>(() => groupSurveyChapters(questions), [questions]);
+  const currentChapter = chapters[chapterIdx];
+  const isFirst = chapterIdx === 0;
+  const isLast = chapterIdx === chapters.length - 1;
+
   const setAnswer = (qid: string, patch: AnswerState) => {
     setAnswers((prev) => ({ ...prev, [qid]: { ...prev[qid], ...patch } }));
     setValidationErrors((prev) => {
@@ -69,35 +95,52 @@ export default function PublicSurveyPage() {
     });
   };
 
-  const handleSubmit = async () => {
-    setSubmitError(null);
-    // Client-side required check (server re-validates).
+  // Validate required questions in `qs`. Returns the missing ids; empty if
+  // everything required is answered (or skipped).
+  const findMissing = (qs: Question[]): Set<string> => {
     const missing = new Set<string>();
-    for (const q of questions) {
-      const a = answers[q.id];
+    for (const q of qs) {
       if (!q.required) continue;
-      const isAnswered = (() => {
-        if (!a) return false;
-        if (a.skipped) return true;
-        switch (q.question_type) {
-          case "likert5":
-          case "singleselect":
-          case "nps10":
-            return !!a.value;
-          case "multiselect":
-            return Array.isArray(a.values_array) && a.values_array.length > 0;
-          case "open":
-            return !!(a.text_value && a.text_value.trim());
-          case "consent_optional":
-            return !!a.value;
-        }
-      })();
-      if (!isAnswered) missing.add(q.id);
+      if (!isAnswered(q, answers[q.id])) missing.add(q.id);
     }
+    return missing;
+  };
+
+  const goToChapter = (next: number) => {
+    setValidationErrors(new Set());
+    setSubmitError(null);
+    setChapterIdx(next);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleContinue = () => {
+    if (!currentChapter) return;
+    const missing = findMissing(currentChapter.questions);
     if (missing.size > 0) {
       setValidationErrors(missing);
       const first = document.getElementById(`q-${Array.from(missing)[0]}`);
       if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    goToChapter(chapterIdx + 1);
+  };
+
+  const handleSubmit = async () => {
+    setSubmitError(null);
+    // Final pass: validate all required across every chapter (defence in depth).
+    const missing = findMissing(questions);
+    if (missing.size > 0) {
+      // Jump to the chapter holding the first missing question.
+      const firstMissingId = Array.from(missing)[0];
+      const idx = chapters.findIndex((c) => c.questions.some((q) => q.id === firstMissingId));
+      if (idx >= 0 && idx !== chapterIdx) {
+        setChapterIdx(idx);
+      }
+      setValidationErrors(missing);
+      setTimeout(() => {
+        const first = document.getElementById(`q-${firstMissingId}`);
+        if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
       return;
     }
 
@@ -161,29 +204,49 @@ export default function PublicSurveyPage() {
     );
   }
   if (!survey) return null;
+  if (!currentChapter || chapters.length === 0) {
+    return (
+      <CenteredCard>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">Engar spurningar</h1>
+        <p className="text-sm text-gray-600">Þessi könnun er tóm. Hafðu samband við Lifeline.</p>
+      </CenteredCard>
+    );
+  }
+
+  // Question numbers across the whole survey, regardless of chapter.
+  const questionNumberMap = new Map(questions.map((q, i) => [q.id, i] as const));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 py-10 px-4">
       <div className="max-w-2xl mx-auto">
-        <header className="mb-8">
+        <header className="mb-6">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700 mb-1">
             Lifeline Health · Þjónustukönnun
           </p>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{survey.title_is}</h1>
-          {survey.intro_is && (
-            <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{survey.intro_is}</div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{survey.title_is}</h1>
+          {isFirst && survey.intro_is && (
+            <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line mt-3">{survey.intro_is}</div>
           )}
-          {recipientName && (
+          {isFirst && recipientName && (
             <p className="text-xs text-gray-400 mt-3">Sent á {recipientName.split(" ")[0]}.</p>
           )}
         </header>
 
+        <ChapterProgress chapters={chapters} currentIdx={chapterIdx} />
+
+        <section className="mb-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700 mb-1">
+            Kafli {chapterIdx + 1} af {chapters.length}
+          </p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">{currentChapter.title}</h2>
+        </section>
+
         <div className="space-y-4">
-          {questions.map((q, idx) => (
+          {currentChapter.questions.map((q) => (
             <SurveyQuestionBlock
               key={q.id}
               q={q}
-              idx={idx}
+              idx={questionNumberMap.get(q.id) ?? 0}
               answer={answers[q.id]}
               hasError={validationErrors.has(q.id)}
               onChange={(patch) => setAnswer(q.id, patch)}
@@ -202,15 +265,33 @@ export default function PublicSurveyPage() {
           </div>
         )}
 
-        <div className="mt-8 flex items-center justify-end gap-3">
+        <div className="mt-8 flex items-center justify-between gap-3 flex-wrap">
           <button
             type="button"
-            disabled={submitting}
-            onClick={handleSubmit}
-            className="px-6 py-3 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            disabled={isFirst || submitting}
+            onClick={() => goToChapter(chapterIdx - 1)}
+            className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {submitting ? "Sendi..." : "Senda svör"}
+            ← Til baka
           </button>
+          {isLast ? (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={handleSubmit}
+              className="px-6 py-3 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            >
+              {submitting ? "Sendi..." : "Senda svör"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleContinue}
+              className="px-6 py-3 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              Áfram →
+            </button>
+          )}
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-12">
@@ -226,6 +307,24 @@ function CenteredCard({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full p-8">
         {children}
+      </div>
+    </div>
+  );
+}
+
+function ChapterProgress({ chapters, currentIdx }: { chapters: Chapter[]; currentIdx: number }) {
+  const pct = chapters.length === 0 ? 0 : Math.round(((currentIdx + 1) / chapters.length) * 100);
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between text-[11px] font-medium text-gray-500 mb-1.5">
+        <span>{currentIdx + 1} / {chapters.length}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-300"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

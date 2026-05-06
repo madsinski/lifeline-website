@@ -25,6 +25,10 @@ export type SurveyQuestionType =
 export interface SurveyRenderQuestion {
   id: string;
   order_index: number;
+  // Chapter index. Used by page-level pagination (SurveyQuestionBlock itself
+  // doesn't render headers — sections are grouped + headed at the page level).
+  section_index?: number;
+  section_title_is?: string | null;
   question_type: SurveyQuestionType;
   label_is: string;
   helper_is: string | null;
@@ -42,6 +46,27 @@ export interface SurveyAnswerState {
 }
 
 export const SURVEY_SKIP_VALUE = "__skipped__";
+
+export interface SurveyChapter {
+  index: number;
+  title: string;
+  questions: SurveyRenderQuestion[];
+}
+
+// Group questions into chapters by section_index, preserving original order.
+// Single-section / legacy surveys collapse to one unnamed chapter.
+export function groupSurveyChapters(qs: SurveyRenderQuestion[]): SurveyChapter[] {
+  if (qs.length === 0) return [];
+  const map = new Map<number, SurveyChapter>();
+  for (const q of qs) {
+    const key = q.section_index ?? 1;
+    if (!map.has(key)) {
+      map.set(key, { index: key, title: q.section_title_is || "", questions: [] });
+    }
+    map.get(key)!.questions.push(q);
+  }
+  return Array.from(map.values()).sort((a, b) => a.index - b.index);
+}
 
 export function SurveyQuestionBlock({
   q, idx, answer, hasError, onChange,

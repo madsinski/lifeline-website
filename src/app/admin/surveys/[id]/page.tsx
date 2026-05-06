@@ -114,10 +114,16 @@ export default function SurveyEditorPage() {
 
   const addQuestion = () => {
     if (!survey) return;
+    // Inherit the section from the last question so adding to an existing
+    // chapter is the default. New chapter? Edit the section_index field.
+    const last = questions[questions.length - 1];
     const blank: DraftQuestion = {
       id: `new-${Date.now()}`,
       survey_id: survey.id,
       order_index: questions.length + 1,
+      section_index: last?.section_index ?? 1,
+      section_title_is: last?.section_title_is ?? null,
+      section_title_en: last?.section_title_en ?? null,
       question_type: "likert5",
       label_is: "",
       label_en: null,
@@ -165,6 +171,9 @@ export default function SurveyEditorPage() {
           questions: questions.map((q) => ({
             id: q._new ? null : q.id,
             order_index: q.order_index,
+            section_index: q.section_index ?? 1,
+            section_title_is: q.section_title_is,
+            section_title_en: q.section_title_en,
             question_type: q.question_type,
             label_is: q.label_is,
             label_en: q.label_en,
@@ -325,6 +334,9 @@ export default function SurveyEditorPage() {
         <header className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
             Questions ({questions.length})
+            <span className="ml-2 font-normal text-gray-400">
+              · {new Set(questions.map((q) => q.section_index ?? 1)).size} chapter{new Set(questions.map((q) => q.section_index ?? 1)).size === 1 ? "" : "s"}
+            </span>
           </h2>
           {canEditStructure && (
             <button
@@ -337,18 +349,33 @@ export default function SurveyEditorPage() {
           )}
         </header>
         <div className="divide-y divide-gray-100">
-          {questions.map((q, idx) => (
-            <QuestionEditor
-              key={q.id}
-              question={q}
-              idx={idx}
-              total={questions.length}
-              canEdit={canEditStructure}
-              onChange={(patch) => updateQuestion(idx, patch)}
-              onMove={(dir) => moveQuestion(idx, dir)}
-              onRemove={() => removeQuestion(idx)}
-            />
-          ))}
+          {questions.map((q, idx) => {
+            const prev = idx === 0 ? null : questions[idx - 1];
+            const isChapterStart = !prev || (prev.section_index ?? 1) !== (q.section_index ?? 1);
+            return (
+              <div key={q.id}>
+                {isChapterStart && (
+                  <div className="bg-emerald-50/60 border-y border-emerald-100 px-5 py-2.5">
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-700">
+                      Kafli {q.section_index ?? 1}
+                    </div>
+                    <div className="text-sm font-semibold text-emerald-900">
+                      {q.section_title_is || <span className="italic text-emerald-700/60">(no chapter title)</span>}
+                    </div>
+                  </div>
+                )}
+                <QuestionEditor
+                  question={q}
+                  idx={idx}
+                  total={questions.length}
+                  canEdit={canEditStructure}
+                  onChange={(patch) => updateQuestion(idx, patch)}
+                  onMove={(dir) => moveQuestion(idx, dir)}
+                  onRemove={() => removeQuestion(idx)}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -636,6 +663,30 @@ function QuestionEditor({
               value={question.helper_is || ""}
               disabled={!canEdit}
               onChange={(v) => onChange({ helper_is: v || null })}
+            />
+          </div>
+
+          {/* Chapter / section assignment. The renderer paginates by
+              section_index; the title is taken from the first question
+              in each chapter. Edit on any question in the chapter to
+              keep the data denormalized but consistent. */}
+          <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-3">
+            <label className="block">
+              <span className="block text-xs font-medium text-gray-600 mb-1">Chapter #</span>
+              <input
+                type="number"
+                min={1}
+                value={question.section_index ?? 1}
+                disabled={!canEdit}
+                onChange={(e) => onChange({ section_index: Math.max(1, Math.floor(Number(e.target.value) || 1)) })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 disabled:bg-gray-50 disabled:text-gray-500"
+              />
+            </label>
+            <FieldText
+              label="Chapter title (íslenska)"
+              value={question.section_title_is || ""}
+              disabled={!canEdit}
+              onChange={(v) => onChange({ section_title_is: v || null })}
             />
           </div>
 

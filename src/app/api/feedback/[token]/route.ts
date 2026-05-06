@@ -58,8 +58,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   }
   const { data: questions } = await supabaseAdmin
     .from("feedback_questions")
-    .select("id, order_index, question_type, label_is, helper_is, options_jsonb, required, allow_skip, skip_label_is")
+    .select("id, order_index, section_index, section_title_is, question_type, label_is, helper_is, options_jsonb, required, allow_skip, skip_label_is")
     .eq("survey_id", assignment.survey_id)
+    .order("section_index", { ascending: true })
     .order("order_index", { ascending: true });
 
   return NextResponse.json({

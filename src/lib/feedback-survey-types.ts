@@ -43,6 +43,12 @@ export interface FeedbackQuestion {
   id: string;
   survey_id: string;
   order_index: number;
+  // Chapter / page index — questions with the same section_index render
+  // together on one page in the public form, with the section_title_is as
+  // the page header. Defaults to 1 (single-page survey).
+  section_index: number;
+  section_title_is: string | null;
+  section_title_en: string | null;
   question_type: QuestionType;
   label_is: string;
   label_en: string | null;
