@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
 import { sendEmail, renderWelcomeEmail } from "@/lib/email";
@@ -153,8 +154,15 @@ export async function POST(req: NextRequest) {
   if (!activation.ok) {
     // Don't fail the whole onboarding if Biody is temporarily down — profile
     // + consent are still saved and the user can retry from the dashboard
-    // via BiodyProfileModal. Surface a soft warning in the response.
+    // via BiodyProfileModal. Surface a soft warning in the response and
+    // page the team via Sentry — silent Biody failures left clients in
+    // limbo previously, with no signal to ops until a support ticket.
     console.error("[account/onboard/complete] biody activation:", activation.error, activation.detail);
+    Sentry.captureMessage("biody_activation_failed", {
+      level: "error",
+      tags: { surface: "b2c_onboarding", error: activation.error || "unknown" },
+      extra: { user_id: user.id, detail: activation.detail },
+    });
   } else if (activation.biody_patient_id && !activation.existing) {
     // Persist biody_patient_id ourselves rather than trusting the remote
     // biody-sync Edge Function to do it. Writes the base `clients` table

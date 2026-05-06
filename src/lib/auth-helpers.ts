@@ -11,6 +11,50 @@ export async function getUserFromRequest(req: NextRequest) {
 }
 
 /**
+ * Decode the `aal` (authenticator assurance level) claim from a Supabase
+ * access token without verifying its signature. The signature has already
+ * been verified by `supabaseAdmin.auth.getUser()`; we just need to read the
+ * AAL claim. Returns 'aal1' | 'aal2' | null.
+ *
+ * Use isAdminWithMFA() rather than this directly when gating admin APIs.
+ */
+export function aalFromToken(token: string): "aal1" | "aal2" | null {
+  if (!token) return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    // Standard base64url decode for JWT payloads.
+    const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/").padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), "=");
+    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+    const aal = payload?.aal;
+    return aal === "aal2" ? "aal2" : aal === "aal1" ? "aal1" : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Hard gate for admin mutation endpoints: requires (a) a valid session,
+ * (b) admin-write role, and (c) AAL2 (MFA-stepped-up) on the token.
+ *
+ * /admin layout enforces AAL2 in the UI, so any session reaching an admin
+ * API normally has it. This guard catches the case where a leaked AAL1
+ * session token is used to call admin APIs directly. Returns the user on
+ * success, or a string error code: 'unauthorized' | 'forbidden' | 'mfa_required'.
+ */
+export async function requireAdminAAL2(req: NextRequest): Promise<User | "unauthorized" | "forbidden" | "mfa_required"> {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "");
+  if (!token) return "unauthorized";
+  const { data } = await supabaseAdmin.auth.getUser(token);
+  if (!data.user) return "unauthorized";
+  const ok = await isStaff(data.user.id);
+  if (!ok) return "forbidden";
+  if (aalFromToken(token) !== "aal2") return "mfa_required";
+  return data.user;
+}
+
+/**
  * Returns true if the user is an active staff member with WRITE
  * authorization for general admin operations. Excludes the two
  * read-only roles — `medical_advisor` and `lawyer` — who get

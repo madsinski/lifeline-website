@@ -29,6 +29,31 @@ export async function POST(
     );
   }
 
+  // Pre-check token state before attempting password verification. This
+  // prevents expired or completed tokens from consuming verify_member_invite
+  // attempts (which would otherwise leak existence-of-token information
+  // through timing) and stops enumeration via long-lived leaked invites.
+  const { data: tokenRow } = await supabaseAdmin
+    .from("company_members")
+    .select("invite_token_expires_at, completed_at")
+    .eq("invite_token", token)
+    .maybeSingle();
+  if (!tokenRow) {
+    return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+  }
+  if (tokenRow.completed_at) {
+    return NextResponse.json(
+      { error: "This invite has already been used. Please sign in instead." },
+      { status: 410 },
+    );
+  }
+  if (tokenRow.invite_token_expires_at && new Date(tokenRow.invite_token_expires_at).getTime() < Date.now()) {
+    return NextResponse.json(
+      { error: "This invite has expired. Please ask your company admin to resend it." },
+      { status: 410 },
+    );
+  }
+
   const { data, error } = await supabaseAdmin.rpc("verify_member_invite", {
     p_token: token,
     p_password: password,

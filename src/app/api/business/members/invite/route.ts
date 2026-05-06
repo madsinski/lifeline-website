@@ -68,10 +68,16 @@ export async function POST(req: NextRequest) {
     });
     if (!send.ok) return { id: m.id, email: m.email, ok: false, error: send.error };
 
+    // Refresh token expiration on every (re)send — 30-day window. The
+    // verify endpoint rejects expired tokens before any password attempt
+    // so leaked / forwarded invites can no longer be used to enumerate
+    // kennitala indefinitely.
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     await supabaseAdmin
       .from("company_members")
       .update({
         invited_at: new Date().toISOString(),
+        invite_token_expires_at: expiresAt,
         invite_sent_count: (m.invite_sent_count || 0) + 1,
       })
       .eq("id", m.id);

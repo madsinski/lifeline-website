@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, renderWelcomeEmail } from "@/lib/email";
 import { findAuthUserByEmail } from "@/lib/auth-helpers";
@@ -289,11 +290,22 @@ async function handle(
       try { await supabaseAdmin.from("company_members").update({
         biody_activation_error: biodyOk ? null : JSON.stringify(biodyResult || "unknown"),
       }).eq("id", memberRow.id); } catch {}
+      if (!biodyOk) {
+        Sentry.captureMessage("biody_activation_failed", {
+          level: "error",
+          tags: { surface: "b2b_onboarding", status: String(bRes.status) },
+          extra: { member_id: memberRow.id, company_id: memberRow.company_id, detail: biodyResult },
+        });
+      }
     } catch (e) {
       biodyResult = { error: (e as Error).message };
       try { await supabaseAdmin.from("company_members").update({
         biody_activation_error: (e as Error).message,
       }).eq("id", memberRow.id); } catch {}
+      Sentry.captureException(e, {
+        tags: { surface: "b2b_onboarding", phase: "biody_activation" },
+        extra: { member_id: memberRow.id, company_id: memberRow.company_id },
+      });
     }
   }
 

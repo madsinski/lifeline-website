@@ -10,6 +10,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { aalFromToken } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -78,6 +79,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       ok: false,
       error: `Action '${action}' requires role in [${rule.roles.join(", ")}], but you are '${staffRow.role}'.`,
     }, { status: 403 });
+  }
+  // Defence in depth: the /admin UI already requires AAL2, so a leaked
+  // AAL1 token must not be able to flip a survey to approved or archive
+  // it via direct API.
+  if (aalFromToken(token) !== "aal2") {
+    return NextResponse.json(
+      { ok: false, error: "MFA step-up required for survey status changes." },
+      { status: 403 },
+    );
   }
 
   // Verify current status

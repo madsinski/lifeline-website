@@ -16,6 +16,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { aalFromToken } from "@/lib/auth-helpers";
 import { sendEmail, renderSurveyInviteEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -66,6 +67,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     .maybeSingle();
   if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
     return NextResponse.json({ ok: false, error: "Admin role required" }, { status: 403 });
+  }
+  // Defence in depth: the /admin UI already gates on AAL2, but a leaked
+  // AAL1 access token must not be able to fire mass-email assignments
+  // directly via the API.
+  if (aalFromToken(token) !== "aal2") {
+    return NextResponse.json(
+      { ok: false, error: "MFA step-up required to send surveys." },
+      { status: 403 },
+    );
   }
 
   // Verify survey is approved
