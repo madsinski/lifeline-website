@@ -15,6 +15,24 @@ import {
   STATUS_BADGE_CLASS,
 } from "@/lib/feedback-survey-types";
 
+interface SendClient {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  company_id: string | null;
+}
+interface SendCompany {
+  id: string;
+  name: string;
+  employee_count: number;
+}
+interface SendResultRow {
+  client_id: string;
+  email: string | null;
+  status: "sent" | "skipped" | "failed";
+  reason?: string;
+}
+
 export default function SurveysHubPage() {
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
@@ -26,6 +44,19 @@ export default function SurveysHubPage() {
   const [newKey, setNewKey] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newError, setNewError] = useState<string | null>(null);
+
+  // Send-survey modal state
+  const [sendSurvey, setSendSurvey] = useState<FeedbackSurvey | null>(null);
+  const [sendTab, setSendTab] = useState<"clients" | "companies">("clients");
+  const [sendClients, setSendClients] = useState<SendClient[]>([]);
+  const [sendCompanies, setSendCompanies] = useState<SendCompany[]>([]);
+  const [sendClientsLoaded, setSendClientsLoaded] = useState(false);
+  const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
+  const [clientSearch, setClientSearch] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sendSummary, setSendSummary] = useState<{ sent: number; skipped: number; failed: number; results: SendResultRow[] } | null>(null);
+  const [sending, setSending] = useState(false);
 
   const cloneSurvey = async (sourceId: string) => {
     if (!confirm("Clone this survey into a new draft (next version)? You'll edit the new copy without affecting the current version.")) return;
@@ -76,6 +107,122 @@ export default function SurveysHubPage() {
     } catch (e) {
       alert((e as Error).message);
       setBusy(false);
+    }
+  };
+
+  const openSend = async (s: FeedbackSurvey) => {
+    if (s.status !== "approved") {
+      alert("Only approved surveys can be sent. Get medical-advisor approval first.");
+      return;
+    }
+    setSendSurvey(s);
+    setSendTab("clients");
+    setClientSearch("");
+    setSelectedClientIds(new Set());
+    setSelectedCompanyIds(new Set());
+    setSendError(null);
+    setSendSummary(null);
+
+    if (sendClientsLoaded) return;
+    // Lazy-load clients + companies the first time the modal is opened.
+    try {
+      const [clientsRes, companiesRes] = await Promise.all([
+        supabase
+          .from("clients_decrypted")
+          .select("id, email, full_name, company_id")
+          .order("full_name", { ascending: true })
+          .limit(2000),
+        supabase
+          .from("companies")
+          .select("id, name")
+          .order("name", { ascending: true }),
+      ]);
+      const cs = (clientsRes.data || []) as SendClient[];
+      const co = ((companiesRes.data || []) as { id: string; name: string }[]).map((c) => ({
+        id: c.id,
+        name: c.name,
+        employee_count: cs.filter((cl) => cl.company_id === c.id && cl.email).length,
+      }));
+      setSendClients(cs);
+      setSendCompanies(co);
+      setSendClientsLoaded(true);
+    } catch (e) {
+      setSendError(`Could not load recipients: ${(e as Error).message}`);
+    }
+  };
+
+  const closeSend = () => {
+    setSendSurvey(null);
+    setSendError(null);
+    setSendSummary(null);
+  };
+
+  const toggleClient = (id: string) => {
+    setSelectedClientIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleCompany = (id: string) => {
+    setSelectedCompanyIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // Total recipient count (deduped: clients in selected companies are counted once
+  // even if also explicitly selected).
+  const recipientPreview = (() => {
+    const ids = new Set<string>();
+    for (const id of selectedClientIds) ids.add(id);
+    for (const c of sendClients) {
+      if (c.company_id && selectedCompanyIds.has(c.company_id) && c.email) ids.add(c.id);
+    }
+    return ids.size;
+  })();
+
+  const submitSend = async () => {
+    if (!sendSurvey) return;
+    if (selectedClientIds.size === 0 && selectedCompanyIds.size === 0) {
+      setSendError("Pick at least one client or company.");
+      return;
+    }
+    if (!confirm(`Send "${sendSurvey.title_is}" to ~${recipientPreview} recipient${recipientPreview === 1 ? "" : "s"} now?`)) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${sendSurvey.id}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          client_ids: Array.from(selectedClientIds),
+          company_ids: Array.from(selectedCompanyIds),
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok && !j.summary) throw new Error(j.error || "Send failed");
+      setSendSummary({
+        sent: j.summary?.sent ?? 0,
+        skipped: j.summary?.skipped ?? 0,
+        failed: j.summary?.failed ?? 0,
+        results: (j.results || []) as SendResultRow[],
+      });
+      // Refresh count tally so the row's "0/N svör" updates without a full reload.
+      setCounts((prev) => {
+        if (!sendSurvey) return prev;
+        const cur = prev[sendSurvey.id] || { sent: 0, completed: 0 };
+        return { ...prev, [sendSurvey.id]: { sent: cur.sent + (j.summary?.sent ?? 0), completed: cur.completed } };
+      });
+    } catch (e) {
+      setSendError((e as Error).message);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -236,6 +383,16 @@ export default function SurveysHubPage() {
                         Duplicate
                       </button>
                     )}
+                    {canEdit && s.status === "approved" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => openSend(s)}
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                      >
+                        Send to clients
+                      </button>
+                    )}
                     {canEdit && (s.status === "approved" || s.status === "archived") && (
                       <button
                         type="button"
@@ -330,6 +487,218 @@ export default function SurveysHubPage() {
                 {busy ? "Creating…" : "Create draft"}
               </button>
             </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Send-survey modal */}
+      {sendSurvey && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget && !sending) closeSend(); }}
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <header className="px-5 py-4 border-b border-gray-100">
+              <h4 className="text-base font-semibold text-[#1F2937]">
+                Send &ldquo;{sendSurvey.title_is}&rdquo;
+              </h4>
+              <p className="text-xs text-gray-500 mt-1">
+                Each recipient gets a unique link valid for 30 days. Clients with an active outstanding invite for this survey are skipped automatically.
+              </p>
+            </header>
+
+            {sendSummary ? (
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-center">
+                    <div className="text-2xl font-bold text-emerald-700">{sendSummary.sent}</div>
+                    <div className="text-[11px] uppercase tracking-wide text-emerald-700/80">Sent</div>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+                    <div className="text-2xl font-bold text-amber-700">{sendSummary.skipped}</div>
+                    <div className="text-[11px] uppercase tracking-wide text-amber-700/80">Skipped</div>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
+                    <div className="text-2xl font-bold text-red-700">{sendSummary.failed}</div>
+                    <div className="text-[11px] uppercase tracking-wide text-red-700/80">Failed</div>
+                  </div>
+                </div>
+                {sendSummary.results.some((r) => r.status !== "sent") && (
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                      Skipped / failed
+                    </div>
+                    <ul className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                      {sendSummary.results.filter((r) => r.status !== "sent").map((r) => (
+                        <li key={r.client_id} className="px-3 py-2 text-xs flex items-center justify-between gap-2">
+                          <span className="truncate text-gray-700">{r.email || r.client_id}</span>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            r.status === "failed" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {r.reason || r.status}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="border-b border-gray-100 px-5 pt-2 flex gap-1">
+                  {([
+                    { key: "clients", label: "Specific clients" },
+                    { key: "companies", label: "Whole companies" },
+                  ] as const).map((tab) => {
+                    const active = sendTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setSendTab(tab.key)}
+                        className={`px-3 py-2 text-xs font-semibold transition-colors relative ${
+                          active ? "text-emerald-700" : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {tab.label}
+                        {active && <span className="absolute left-3 right-3 -bottom-px h-0.5 bg-emerald-600" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-5 py-4">
+                  {!sendClientsLoaded ? (
+                    <div className="text-sm text-gray-400">Loading recipients…</div>
+                  ) : sendTab === "clients" ? (
+                    <div>
+                      <input
+                        type="search"
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                        placeholder="Search by name or email…"
+                        className="w-full px-3 py-2 mb-3 border border-gray-200 rounded-lg text-sm text-gray-900"
+                      />
+                      <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg max-h-80 overflow-y-auto">
+                        {sendClients
+                          .filter((c) => {
+                            if (!c.email) return false;
+                            const q = clientSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return (
+                              (c.full_name || "").toLowerCase().includes(q) ||
+                              (c.email || "").toLowerCase().includes(q)
+                            );
+                          })
+                          .slice(0, 250)
+                          .map((c) => {
+                            const checked = selectedClientIds.has(c.id);
+                            return (
+                              <li key={c.id}>
+                                <label className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleClient(c.id)}
+                                    className="w-4 h-4"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm text-gray-900 truncate">{c.full_name || "—"}</div>
+                                    <div className="text-[11px] text-gray-500 truncate">{c.email}</div>
+                                  </div>
+                                </label>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                      <p className="text-[11px] text-gray-400 mt-2">
+                        Showing first 250 matches. Refine the search if you don&apos;t see who you&apos;re looking for.
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg max-h-96 overflow-y-auto">
+                      {sendCompanies.length === 0 && (
+                        <li className="px-3 py-4 text-sm text-gray-400 text-center">No companies yet.</li>
+                      )}
+                      {sendCompanies.map((co) => {
+                        const checked = selectedCompanyIds.has(co.id);
+                        return (
+                          <li key={co.id}>
+                            <label className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleCompany(co.id)}
+                                className="w-4 h-4"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm text-gray-900 truncate">{co.name}</div>
+                                <div className="text-[11px] text-gray-500">
+                                  {co.employee_count} employee{co.employee_count === 1 ? "" : "s"} with email
+                                </div>
+                              </div>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+
+                {sendError && (
+                  <div className="mx-5 mb-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                    {sendError}
+                  </div>
+                )}
+
+                <footer className="px-5 py-3 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+                  <span className="text-xs text-gray-500">
+                    {selectedClientIds.size} client{selectedClientIds.size === 1 ? "" : "s"}
+                    {" · "}
+                    {selectedCompanyIds.size} compan{selectedCompanyIds.size === 1 ? "y" : "ies"}
+                    {" · "}
+                    <strong className="text-gray-700">≈ {recipientPreview} total recipient{recipientPreview === 1 ? "" : "s"}</strong>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={closeSend}
+                      disabled={sending}
+                      className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={submitSend}
+                      disabled={sending || (selectedClientIds.size === 0 && selectedCompanyIds.size === 0)}
+                      className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                    >
+                      {sending ? "Sending…" : `Send invites${recipientPreview > 0 ? ` (${recipientPreview})` : ""}`}
+                    </button>
+                  </div>
+                </footer>
+              </>
+            )}
+
+            {sendSummary && (
+              <footer className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setSendSummary(null); setSelectedClientIds(new Set()); setSelectedCompanyIds(new Set()); }}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Send another batch
+                </button>
+                <button
+                  type="button"
+                  onClick={closeSend}
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Done
+                </button>
+              </footer>
+            )}
           </div>
         </div>
       )}
