@@ -174,17 +174,19 @@ export default function ErrorsPage() {
     return { open, resolved, regression, all: groupedRaw.length };
   }, [groupedRaw]);
 
+  const resolverDisplayName = useCallback(async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return null;
+    const { data: staffRow } = await supabase.from("staff").select("name").eq("email", user.email).maybeSingle();
+    return staffRow?.name || user.email;
+  }, []);
+
   const markResolved = async (g: Group, resolved: boolean) => {
     const sample = g.sample;
     // Apply to every row matching the group signature so the resolution
     // sticks across all historical occurrences. Future arrivals default
     // to resolved_at = NULL, so a regression automatically reappears.
-    const { data: { user } } = await supabase.auth.getUser();
-    let resolverName = user?.email || null;
-    if (user?.email) {
-      const { data: staffRow } = await supabase.from("staff").select("name").eq("email", user.email).maybeSingle();
-      if (staffRow?.name) resolverName = staffRow.name;
-    }
+    const resolverName = resolved ? await resolverDisplayName() : null;
     let q = supabase
       .from("app_errors")
       .update({
@@ -198,6 +200,39 @@ export default function ErrorsPage() {
     const { error } = await q;
     if (error) { alert(`Could not update: ${error.message}`); return; }
     await load();
+  };
+
+  // Bulk-resolve every open OR regression group in the current view.
+  // Honors the active window / runtime / search / status filters — what
+  // you see is what you resolve. Done as parallel UPDATEs (one per
+  // signature) so a single huge query doesn't lock the whole table.
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const openGroupsCount = grouped.filter((g) => g.status !== "resolved").length;
+  const markAllOpenResolved = async () => {
+    const targets = grouped.filter((g) => g.status !== "resolved");
+    if (targets.length === 0) return;
+    if (!confirm(`Mark ${targets.length} open group${targets.length === 1 ? "" : "s"} as resolved? Regressions automatically re-open if the same error fires again.`)) return;
+    setBulkBusy(true);
+    try {
+      const resolverName = await resolverDisplayName();
+      const resolvedAt = new Date().toISOString();
+      await Promise.all(targets.map(async (g) => {
+        const sample = g.sample;
+        let q = supabase
+          .from("app_errors")
+          .update({ resolved_at: resolvedAt, resolved_by_name: resolverName })
+          .eq("message", sample.message)
+          .eq("runtime", sample.runtime || "");
+        if (sample.pathname) q = q.eq("pathname", sample.pathname);
+        else q = q.is("pathname", null);
+        await q;
+      }));
+      await load();
+    } catch (e) {
+      alert(`Bulk resolve failed: ${(e as Error).message}`);
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const deleteOne = async (id: string) => {
@@ -321,6 +356,14 @@ export default function ErrorsPage() {
           title="Copy a Claude-friendly digest of every group in the current window"
         >
           {copiedAll ? `Copied ${grouped.length} ✓` : `Copy all (${grouped.length})`}
+        </button>
+        <button
+          onClick={markAllOpenResolved}
+          disabled={openGroupsCount === 0 || bulkBusy}
+          className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Mark every Open or Regression group in the current view as resolved. Regressions auto-reopen if new events of the same signature arrive afterwards."
+        >
+          {bulkBusy ? "Resolving…" : `Mark ${openGroupsCount} as resolved`}
         </button>
         <button onClick={load} className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg">
           Refresh
