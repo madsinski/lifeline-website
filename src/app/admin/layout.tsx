@@ -114,6 +114,7 @@ const sidebarLinks = [
   {
     href: "/admin/surveys",
     label: "Surveys",
+    badgeType: "surveys",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
@@ -192,6 +193,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [openDsrCount, setOpenDsrCount] = useState(0);
   const [overdueAccessReviewCount, setOverdueAccessReviewCount] = useState(0);
   const [openErrorsCount, setOpenErrorsCount] = useState(0);
+  const [pendingSurveysCount, setPendingSurveysCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
   // Medical advisor gets the full sidebar visibility but is read-only on
   // everything except surveys. Treat them as "view-all" for sidebar
@@ -254,6 +256,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .select("*", { count: "exact", head: true })
           .is("resolved_at", null);
         if (!errErr && errCount !== null) setOpenErrorsCount(errCount);
+      } catch {}
+      // Surveys awaiting approval — admin or medical_advisor needs to
+      // review the question structure and either approve or send back
+      // for changes.
+      try {
+        const { count: srvCount, error: srvErr } = await supabase
+          .from("feedback_surveys")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending_approval");
+        if (!srvErr && srvCount !== null) setPendingSurveysCount(srvCount);
       } catch {}
       // Overdue access reviews: active staff whose most recent review is
       // older than 90 days (or who have never been reviewed and were
@@ -601,7 +613,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 : pathname.startsWith(link.href);
             const badgeType = (link as any).badgeType as string | undefined;
             const isMessageBadge = 'badge' in link && (link as any).badge;
-            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : badgeType === "access-review" ? overdueAccessReviewCount : badgeType === "errors" ? openErrorsCount : isMessageBadge ? unreadCount : 0;
+            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : badgeType === "access-review" ? overdueAccessReviewCount : badgeType === "errors" ? openErrorsCount : badgeType === "surveys" ? pendingSurveysCount : isMessageBadge ? unreadCount : 0;
             const hasBadge = badgeCount > 0;
             return (
               <Link
