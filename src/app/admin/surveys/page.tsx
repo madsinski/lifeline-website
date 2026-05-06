@@ -48,6 +48,37 @@ export default function SurveysHubPage() {
     }
   };
 
+  // Duplicate into a brand-new survey under a different key. Useful for
+  // building a new survey that starts from an existing one as a template
+  // rather than versioning the same key.
+  const duplicateSurvey = async (source: FeedbackSurvey) => {
+    const defaultKey = `${source.key}-copy`;
+    const newKeyRaw = prompt(
+      "New key (slug) for the duplicate. Leave blank to cancel.",
+      defaultKey,
+    );
+    if (newKeyRaw === null) return;
+    const newKeyClean = newKeyRaw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    if (!newKeyClean) { alert("Key required."); return; }
+    setBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${source.id}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ new_key: newKeyClean, new_version: 1 }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || "Duplicate failed");
+      router.push(`/admin/surveys/${j.new_id}`);
+    } catch (e) {
+      alert((e as Error).message);
+      setBusy(false);
+    }
+  };
+
   const createNewSurvey = async () => {
     setNewError(null);
     const key = newKey.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
@@ -195,6 +226,16 @@ export default function SurveysHubPage() {
                     >
                       Preview &amp; test
                     </Link>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => duplicateSurvey(s)}
+                        className="px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+                      >
+                        Duplicate
+                      </button>
+                    )}
                     {canEdit && (s.status === "approved" || s.status === "archived") && (
                       <button
                         type="button"
@@ -205,14 +246,17 @@ export default function SurveysHubPage() {
                         Clone &amp; edit
                       </button>
                     )}
-                    {s.status === "approved" && (
-                      <Link
-                        href={`/admin/surveys/${s.id}/results`}
-                        className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
-                      >
-                        Results &amp; export
-                      </Link>
-                    )}
+                    <Link
+                      href={`/admin/surveys/${s.id}/results`}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                        s.status === "approved"
+                          ? "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
+                          : "text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                      }`}
+                      title={s.status === "approved" ? "View aggregated results + CSV export" : "Results page (will show 0 responses until the survey is approved + sent)"}
+                    >
+                      Results &amp; export
+                    </Link>
                   </div>
                 </div>
               </div>

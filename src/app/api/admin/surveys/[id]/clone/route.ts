@@ -26,6 +26,9 @@ interface FeedbackQuestionRow {
   id: string;
   survey_id: string;
   order_index: number;
+  section_index: number;
+  section_title_is: string | null;
+  section_title_en: string | null;
   question_type: string;
   label_is: string;
   label_en: string | null;
@@ -148,6 +151,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       const rows = sourceList.map((q, i) => ({
         survey_id: cloned.id,
         order_index: i + 1,
+        section_index: q.section_index ?? 1,
+        section_title_is: q.section_title_is,
+        section_title_en: q.section_title_en,
         question_type: q.question_type,
         label_is: q.label_is,
         label_en: q.label_en,
