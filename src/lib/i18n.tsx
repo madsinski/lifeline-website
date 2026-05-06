@@ -23,19 +23,31 @@ const I18nContext = createContext<I18nContextType>({
   loading: true,
 });
 
-function getInitialLocale(): Locale {
-  if (typeof window === "undefined") return "is";
-  try {
-    const saved = localStorage.getItem("ll-locale");
-    if (saved === "en" || saved === "is") return saved;
-  } catch {}
-  return "is";
-}
+// Default locale used on both server and client during the first render.
+// The user's saved preference is applied in a post-mount effect — reading
+// localStorage inside the useState initializer caused a server/client
+// hydration mismatch (server returned "is", client returned the saved
+// value), surfacing as React error #418 on virtually every route.
+const DEFAULT_LOCALE: Locale = "is";
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(getInitialLocale);
+  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [translations, setTranslations] = useState<TranslationMap>({});
   const [loading, setLoading] = useState(true);
+
+  // Apply the saved locale only after first render so SSR and the
+  // initial hydration agree on `is`. If the user previously picked
+  // `en`, the page paints Icelandic for one frame then swaps — that's
+  // acceptable and far better than tearing the whole React tree.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ll-locale");
+      if (saved === "en" || saved === "is") {
+        setLocaleState(saved as Locale);
+        document.documentElement.lang = saved;
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);

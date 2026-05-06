@@ -42,6 +42,15 @@ if (dsn) {
     tracesSampleRate: 0.3,
     environment: process.env.VERCEL_ENV || "development",
     sendDefaultPii: false,
+    // Drop known-noise events that resolve themselves. Keep the React
+    // hydration errors (#418, #419, #422, #423, #425) visible so we can
+    // verify each SSR fix actually clears them.
+    ignoreErrors: [
+      // Supabase tab-locking messages — fire when multiple tabs share an
+      // auth client; Supabase recovers automatically.
+      /Lock .* was released because another request stole it/,
+      /Lock broken by another request with the 'steal' option/,
+    ],
     beforeSend(event, hint) {
       const req = event.request;
       if (req?.query_string) req.query_string = "[redacted]";

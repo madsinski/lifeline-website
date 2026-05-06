@@ -28,6 +28,13 @@ if (dsn) {
     environment: process.env.NEXT_PUBLIC_VERCEL_ENV || "development",
     // Never ship PII.
     sendDefaultPii: false,
+    // Drop self-resolving Supabase auth-lock chatter that fires when
+    // a user has the app open in two tabs. Auth still works; the
+    // message is informational. Hydration errors stay visible.
+    ignoreErrors: [
+      /Lock .* was released because another request stole it/,
+      /Lock broken by another request with the 'steal' option/,
+    ],
     beforeSend(event, hint) {
       const req = event.request;
       if (req?.query_string) req.query_string = "[redacted]";
