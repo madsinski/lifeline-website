@@ -78,6 +78,7 @@ const sidebarLinks = [
   {
     href: "/admin/business",
     label: "Business",
+    badgeType: "business",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
@@ -194,6 +195,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [overdueAccessReviewCount, setOverdueAccessReviewCount] = useState(0);
   const [openErrorsCount, setOpenErrorsCount] = useState(0);
   const [pendingSurveysCount, setPendingSurveysCount] = useState(0);
+  const [newSurveyResponsesCount, setNewSurveyResponsesCount] = useState(0);
+  const [newBookingsCount, setNewBookingsCount] = useState(0);
+  const [newCompaniesCount, setNewCompaniesCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
   // Medical advisor gets the full sidebar visibility but is read-only on
   // everything except surveys. Treat them as "view-all" for sidebar
@@ -266,6 +270,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .select("*", { count: "exact", head: true })
           .eq("status", "pending_approval");
         if (!srvErr && srvCount !== null) setPendingSurveysCount(srvCount);
+      } catch {}
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      // New survey responses (assignments completed in the last 7 days).
+      try {
+        const { count: respCount, error: respErr } = await supabase
+          .from("feedback_assignments")
+          .select("*", { count: "exact", head: true })
+          .gte("completed_at", sevenDaysAgo);
+        if (!respErr && respCount !== null) setNewSurveyResponsesCount(respCount);
+      } catch {}
+      // New body-comp + blood-test bookings created in the last 7 days.
+      // Counted as a sum across both tables since the Bookings page
+      // surfaces them together.
+      try {
+        const [{ count: bcCount }, { count: btCount }] = await Promise.all([
+          supabase.from("body_comp_bookings").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
+          supabase.from("blood_test_bookings").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
+        ]);
+        setNewBookingsCount((bcCount || 0) + (btCount || 0));
+      } catch {}
+      // New company signups in the last 7 days.
+      try {
+        const { count: coCount, error: coErr } = await supabase
+          .from("companies")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", sevenDaysAgo);
+        if (!coErr && coCount !== null) setNewCompaniesCount(coCount);
       } catch {}
       // Overdue access reviews: active staff whose most recent review is
       // older than 90 days (or who have never been reviewed and were
@@ -613,7 +644,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 : pathname.startsWith(link.href);
             const badgeType = (link as any).badgeType as string | undefined;
             const isMessageBadge = 'badge' in link && (link as any).badge;
-            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : badgeType === "access-review" ? overdueAccessReviewCount : badgeType === "errors" ? openErrorsCount : badgeType === "surveys" ? pendingSurveysCount : isMessageBadge ? unreadCount : 0;
+            const badgeCount =
+              badgeType === "clients" ? newClientsCount
+              : badgeType === "feedback" ? unresolvedFeedbackCount
+              // Bookings combines refund-requests + new bookings of any
+              // kind in the last 7 days, since both land on the same page.
+              : badgeType === "refund-requests" ? pendingRefundRequestsCount + newBookingsCount
+              : badgeType === "data-requests" ? openDsrCount
+              : badgeType === "access-review" ? overdueAccessReviewCount
+              : badgeType === "errors" ? openErrorsCount
+              // Surveys combines pending_approval + new responses in the
+              // last 7 days — both are 'something happened, take a look'.
+              : badgeType === "surveys" ? pendingSurveysCount + newSurveyResponsesCount
+              : badgeType === "business" ? newCompaniesCount
+              : isMessageBadge ? unreadCount
+              : 0;
             const hasBadge = badgeCount > 0;
             return (
               <Link
