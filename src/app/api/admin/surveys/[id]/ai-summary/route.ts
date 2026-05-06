@@ -9,23 +9,23 @@
 //
 // Admin + medical_advisor only.
 //
-// Uses the Vercel AI SDK v6 with the @ai-sdk/anthropic provider
-// directly (no gateway). Requires ANTHROPIC_API_KEY in env — set it
-// in Vercel → Project → Settings → Environment Variables. We
-// deliberately bypass the AI Gateway to reuse the Anthropic billing
-// account already in place; gateway would require a separate
-// payment method.
+// Uses the Vercel AI SDK v6 with the @ai-sdk/openai provider directly
+// (no gateway). gpt-5.4 is the current cheap-and-capable model for
+// structured summarisation; supersedes the gpt-4o family. Requires
+// OPENAI_API_KEY in env — set it in Vercel → Project → Settings →
+// Environment Variables (same key the app's macros function already
+// uses).
 
 import { NextResponse } from "next/server";
 import { generateText, Output } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "gpt-5.4";
 
 const insightSchema = z.object({
   summary_md: z.string(),
@@ -120,10 +120,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const staff = await loadStaff(token);
   if (!staff) return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({
       ok: false,
-      error: "ANTHROPIC_API_KEY not set in the environment. Add it in Vercel → Project → Settings → Environment Variables.",
+      error: "OPENAI_API_KEY not set in the environment. Add it in Vercel → Project → Settings → Environment Variables.",
     }, { status: 500 });
   }
 
@@ -283,7 +283,7 @@ ${dataBlock}
   let parsed: z.infer<typeof insightSchema>;
   try {
     const result = await generateText({
-      model: anthropic(MODEL),
+      model: openai(MODEL),
       output: Output.object({ schema: insightSchema }),
       system: systemPrompt,
       prompt: userPrompt,
