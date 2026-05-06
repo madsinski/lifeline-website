@@ -123,6 +123,45 @@ export default function ErrorsPage() {
     await load();
   };
 
+  // Copy every group currently rendered (respects window + runtime +
+  // search filters). Format is structured + Claude-friendly so the
+  // reply can paste straight into a triage prompt.
+  const [copiedAll, setCopiedAll] = useState(false);
+  const copyAll = async () => {
+    if (grouped.length === 0) return;
+    const header = [
+      `# Lifeline error log digest`,
+      `Window: ${WINDOW_LABELS[windowSel]} (${grouped.length} group${grouped.length === 1 ? "" : "s"}, ${filtered.length} event${filtered.length === 1 ? "" : "s"})`,
+      runtimeFilter !== "all" ? `Runtime filter: ${runtimeFilter}` : null,
+      search.trim() ? `Search: "${search.trim()}"` : null,
+      `Generated: ${new Date().toISOString()}`,
+    ].filter(Boolean).join("\n");
+
+    const blocks = grouped.map((g, i) => {
+      const e = g.sample;
+      return [
+        `## ${i + 1}. [${e.level || "error"}] ${e.message}`,
+        `Runtime: ${e.runtime || "—"} · Path: ${e.pathname || "—"} · Count: ${g.count} · Last seen: ${g.lastSeen}`,
+        e.fingerprint ? `Fingerprint: ${e.fingerprint}` : null,
+        e.url ? `URL: ${e.url}` : null,
+        e.user_email ? `User: ${e.user_email}` : null,
+        e.stack ? `\nStack:\n${e.stack}` : null,
+      ].filter(Boolean).join("\n");
+    }).join("\n\n");
+
+    try {
+      await navigator.clipboard.writeText(`${header}\n\n${blocks}\n`);
+      setCopiedAll(true);
+      setTimeout(() => setCopiedAll(false), 1800);
+    } catch {
+      // clipboard not available — fall back to opening a window with the text
+      const w = window.open("", "_blank");
+      if (w) {
+        w.document.write(`<pre style="white-space:pre-wrap;font:12px monospace;padding:1rem">${header}\n\n${blocks}</pre>`);
+      }
+    }
+  };
+
   if (guard.loading) return <div className="p-8 text-center text-gray-500">Loading…</div>;
   if (!guard.authorized) return <div className="p-8 text-center text-red-600 text-sm">Admin access required.</div>;
 
@@ -174,6 +213,14 @@ export default function ErrorsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="ml-auto px-3 py-1.5 border border-gray-200 rounded-lg text-sm w-72"
         />
+        <button
+          onClick={copyAll}
+          disabled={grouped.length === 0}
+          className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Copy a Claude-friendly digest of every group in the current window"
+        >
+          {copiedAll ? `Copied ${grouped.length} ✓` : `Copy all (${grouped.length})`}
+        </button>
         <button onClick={load} className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg">
           Refresh
         </button>
