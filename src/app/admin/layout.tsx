@@ -123,6 +123,7 @@ const sidebarLinks = [
   {
     href: "/admin/errors",
     label: "Error logs",
+    badgeType: "errors",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
@@ -190,6 +191,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingRefundRequestsCount, setPendingRefundRequestsCount] = useState(0);
   const [openDsrCount, setOpenDsrCount] = useState(0);
   const [overdueAccessReviewCount, setOverdueAccessReviewCount] = useState(0);
+  const [openErrorsCount, setOpenErrorsCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
   // Medical advisor gets the full sidebar visibility but is read-only on
   // everything except surveys. Treat them as "view-all" for sidebar
@@ -242,6 +244,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .select("*", { count: "exact", head: true })
           .in("status", ["received", "in_progress"]);
         if (!dsrErr && dsrCount !== null) setOpenDsrCount(dsrCount);
+      } catch {}
+      // Open (unresolved) error events. Counted across the whole table —
+      // RLS is admin-only so the query returns 0 for non-admins. Anything
+      // > 0 lights up the green dot next to /admin/errors.
+      try {
+        const { count: errCount, error: errErr } = await supabase
+          .from("app_errors")
+          .select("*", { count: "exact", head: true })
+          .is("resolved_at", null);
+        if (!errErr && errCount !== null) setOpenErrorsCount(errCount);
       } catch {}
       // Overdue access reviews: active staff whose most recent review is
       // older than 90 days (or who have never been reviewed and were
@@ -589,7 +601,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 : pathname.startsWith(link.href);
             const badgeType = (link as any).badgeType as string | undefined;
             const isMessageBadge = 'badge' in link && (link as any).badge;
-            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : badgeType === "access-review" ? overdueAccessReviewCount : isMessageBadge ? unreadCount : 0;
+            const badgeCount = badgeType === "clients" ? newClientsCount : badgeType === "feedback" ? unresolvedFeedbackCount : badgeType === "refund-requests" ? pendingRefundRequestsCount : badgeType === "data-requests" ? openDsrCount : badgeType === "access-review" ? overdueAccessReviewCount : badgeType === "errors" ? openErrorsCount : isMessageBadge ? unreadCount : 0;
             const hasBadge = badgeCount > 0;
             return (
               <Link
