@@ -653,9 +653,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               : badgeType === "data-requests" ? openDsrCount
               : badgeType === "access-review" ? overdueAccessReviewCount
               : badgeType === "errors" ? openErrorsCount
-              // Surveys combines pending_approval + new responses in the
-              // last 7 days — both are 'something happened, take a look'.
-              : badgeType === "surveys" ? pendingSurveysCount + newSurveyResponsesCount
+              // Surveys badge counts only new completed responses in
+              // the last 7 days. Pending-approval state is more of an
+              // editorial signal and gets its own treatment inside the
+              // surveys hub itself.
+              : badgeType === "surveys" ? newSurveyResponsesCount
               : badgeType === "business" ? newCompaniesCount
               : isMessageBadge ? unreadCount
               : 0;
