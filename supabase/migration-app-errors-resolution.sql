@@ -18,3 +18,21 @@ ALTER TABLE public.app_errors
 CREATE INDEX IF NOT EXISTS app_errors_resolved_idx
   ON public.app_errors (resolved_at)
   WHERE resolved_at IS NOT NULL;
+
+-- Admin UPDATE policy — required by the Mark resolved / Reopen
+-- buttons on /admin/errors. The original migration only had SELECT
+-- + DELETE policies, so UPDATE silently failed (RLS treated it as
+-- a 0-row change with no error). Adding here in the same idempotent
+-- DO block.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'app_errors'
+      AND policyname = 'Admin can update app errors'
+  ) THEN
+    CREATE POLICY "Admin can update app errors" ON public.app_errors
+      FOR UPDATE TO authenticated
+      USING (is_admin_staff())
+      WITH CHECK (is_admin_staff());
+  END IF;
+END $$;

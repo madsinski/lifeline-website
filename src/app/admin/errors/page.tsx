@@ -186,6 +186,8 @@ export default function ErrorsPage() {
     // Apply to every row matching the group signature so the resolution
     // sticks across all historical occurrences. Future arrivals default
     // to resolved_at = NULL, so a regression automatically reappears.
+    // .select() chained so we can count the affected rows — RLS without
+    // an UPDATE policy returns 0 rows with no error, which is silent.
     const resolverName = resolved ? await resolverDisplayName() : null;
     let q = supabase
       .from("app_errors")
@@ -197,8 +199,12 @@ export default function ErrorsPage() {
       .eq("runtime", sample.runtime || "");
     if (sample.pathname) q = q.eq("pathname", sample.pathname);
     else q = q.is("pathname", null);
-    const { error } = await q;
+    const { data, error } = await q.select("id");
     if (error) { alert(`Could not update: ${error.message}`); return; }
+    if (!data || data.length === 0) {
+      alert("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.");
+      return;
+    }
     await load();
   };
 
@@ -216,7 +222,7 @@ export default function ErrorsPage() {
     try {
       const resolverName = await resolverDisplayName();
       const resolvedAt = new Date().toISOString();
-      await Promise.all(targets.map(async (g) => {
+      const updates = await Promise.all(targets.map(async (g) => {
         const sample = g.sample;
         let q = supabase
           .from("app_errors")
@@ -225,8 +231,14 @@ export default function ErrorsPage() {
           .eq("runtime", sample.runtime || "");
         if (sample.pathname) q = q.eq("pathname", sample.pathname);
         else q = q.is("pathname", null);
-        await q;
+        const { data } = await q.select("id");
+        return data?.length || 0;
       }));
+      const totalUpdated = updates.reduce((a, b) => a + b, 0);
+      if (totalUpdated === 0) {
+        alert("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.");
+        return;
+      }
       await load();
     } catch (e) {
       alert(`Bulk resolve failed: ${(e as Error).message}`);
