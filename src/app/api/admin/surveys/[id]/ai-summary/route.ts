@@ -9,20 +9,23 @@
 //
 // Admin + medical_advisor only.
 //
-// Uses Vercel AI SDK v6 with a gateway-routed model ID
-// ('anthropic/claude-sonnet-4-6'). On Vercel, auth flows through the
-// AI Gateway via OIDC — no provider API key needed in env. For local
-// dev, run `vercel env pull` to populate the OIDC token.
+// Uses the Vercel AI SDK v6 with the @ai-sdk/anthropic provider
+// directly (no gateway). Requires ANTHROPIC_API_KEY in env — set it
+// in Vercel → Project → Settings → Environment Variables. We
+// deliberately bypass the AI Gateway to reuse the Anthropic billing
+// account already in place; gateway would require a separate
+// payment method.
 
 import { NextResponse } from "next/server";
 import { generateText, Output } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MODEL = "anthropic/claude-sonnet-4-6";
+const MODEL = "claude-sonnet-4-6";
 
 const insightSchema = z.object({
   summary_md: z.string(),
@@ -116,6 +119,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!token) return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
   const staff = await loadStaff(token);
   if (!staff) return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({
+      ok: false,
+      error: "ANTHROPIC_API_KEY not set in the environment. Add it in Vercel → Project → Settings → Environment Variables.",
+    }, { status: 500 });
+  }
 
   const { data: surveyRow } = await supabaseAdmin
     .from("feedback_surveys")
@@ -273,7 +283,7 @@ ${dataBlock}
   let parsed: z.infer<typeof insightSchema>;
   try {
     const result = await generateText({
-      model: MODEL,
+      model: anthropic(MODEL),
       output: Output.object({ schema: insightSchema }),
       system: systemPrompt,
       prompt: userPrompt,
