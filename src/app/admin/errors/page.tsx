@@ -23,6 +23,8 @@ interface AppError {
   metadata: Record<string, unknown> | null;
   occurred_at: string;
   created_at: string;
+  resolved_at: string | null;
+  resolved_by_name: string | null;
 }
 
 const LEVEL_STYLES: Record<NonNullable<AppError["level"]>, string> = {
@@ -65,6 +67,7 @@ export default function ErrorsPage() {
   const [loading, setLoading] = useState(true);
   const [windowSel, setWindowSel] = useState<Window>("24h");
   const [runtimeFilter, setRuntimeFilter] = useState<"all" | "browser" | "server" | "edge">("all");
+  const [statusFilter, setStatusFilter] = useState<"open" | "resolved" | "all">("open");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -102,20 +105,100 @@ export default function ErrorsPage() {
   }, [rows, runtimeFilter, search]);
 
   // Group by message+pathname so a recurring error doesn't drown the list.
-  const grouped = useMemo(() => {
-    const map = new Map<string, { sample: AppError; count: number; lastSeen: string }>();
+  // Also compute resolution status: a group is 'resolved' if every event in
+  // it has resolved_at set; 'regression' if some events are resolved but
+  // newer events aren't (i.e. the bug came back after we marked it fixed);
+  // 'open' otherwise.
+  type GroupStatus = "open" | "resolved" | "regression";
+  interface Group {
+    key: string;
+    sample: AppError;
+    count: number;
+    lastSeen: string;
+    status: GroupStatus;
+    resolvedCount: number;
+    resolvedBy: string | null;
+    lastResolvedAt: string | null;
+  }
+  const groupedRaw = useMemo(() => {
+    const map = new Map<string, Group>();
     for (const e of filtered) {
       const key = `${e.message.slice(0, 200)}::${e.pathname || ""}::${e.runtime || ""}`;
       const existing = map.get(key);
       if (!existing) {
-        map.set(key, { sample: e, count: 1, lastSeen: e.occurred_at });
+        map.set(key, {
+          key,
+          sample: e,
+          count: 1,
+          lastSeen: e.occurred_at,
+          status: e.resolved_at ? "resolved" : "open",
+          resolvedCount: e.resolved_at ? 1 : 0,
+          resolvedBy: e.resolved_by_name,
+          lastResolvedAt: e.resolved_at,
+        });
       } else {
         existing.count += 1;
         if (e.occurred_at > existing.lastSeen) existing.lastSeen = e.occurred_at;
+        if (e.resolved_at) {
+          existing.resolvedCount += 1;
+          if (!existing.lastResolvedAt || e.resolved_at > existing.lastResolvedAt) {
+            existing.lastResolvedAt = e.resolved_at;
+            existing.resolvedBy = e.resolved_by_name;
+          }
+        }
       }
+    }
+    for (const g of map.values()) {
+      if (g.resolvedCount === 0) g.status = "open";
+      else if (g.resolvedCount === g.count) g.status = "resolved";
+      else g.status = "regression";
     }
     return Array.from(map.values()).sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1));
   }, [filtered]);
+
+  const grouped = useMemo(() => {
+    if (statusFilter === "all") return groupedRaw;
+    if (statusFilter === "open") return groupedRaw.filter((g) => g.status !== "resolved");
+    return groupedRaw.filter((g) => g.status === "resolved");
+  }, [groupedRaw, statusFilter]);
+
+  // Counts for the filter pills — always reflect the unfiltered set so the
+  // user can see what they're filtering toward.
+  const statusCounts = useMemo(() => {
+    let open = 0, resolved = 0, regression = 0;
+    for (const g of groupedRaw) {
+      if (g.status === "open") open += 1;
+      else if (g.status === "resolved") resolved += 1;
+      else regression += 1;
+    }
+    return { open, resolved, regression, all: groupedRaw.length };
+  }, [groupedRaw]);
+
+  const markResolved = async (g: Group, resolved: boolean) => {
+    const sample = g.sample;
+    // Apply to every row matching the group signature so the resolution
+    // sticks across all historical occurrences. Future arrivals default
+    // to resolved_at = NULL, so a regression automatically reappears.
+    const { data: { user } } = await supabase.auth.getUser();
+    let resolverName = user?.email || null;
+    if (user?.email) {
+      const { data: staffRow } = await supabase.from("staff").select("name").eq("email", user.email).maybeSingle();
+      if (staffRow?.name) resolverName = staffRow.name;
+    }
+    let q = supabase
+      .from("app_errors")
+      .update({
+        resolved_at: resolved ? new Date().toISOString() : null,
+        resolved_by_name: resolved ? resolverName : null,
+      })
+      .eq("message", sample.message)
+      .eq("runtime", sample.runtime || "");
+    if (sample.pathname) q = q.eq("pathname", sample.pathname);
+    else q = q.is("pathname", null);
+    const { error } = await q;
+    if (error) { alert(`Could not update: ${error.message}`); return; }
+    await load();
+  };
 
   const deleteOne = async (id: string) => {
     if (!confirm("Delete this error row?")) return;
@@ -194,6 +277,24 @@ export default function ErrorsPage() {
         </div>
         <div className="h-5 w-px bg-gray-200" />
         <div className="flex items-center gap-1">
+          {([
+            { key: "open", label: `Open (${statusCounts.open + statusCounts.regression})` },
+            { key: "resolved", label: `Resolved (${statusCounts.resolved})` },
+            { key: "all", label: `All (${statusCounts.all})` },
+          ] as const).map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setStatusFilter(s.key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                statusFilter === s.key ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="h-5 w-px bg-gray-200" />
+        <div className="flex items-center gap-1">
           {(["all", "browser", "server", "edge"] as const).map((r) => (
             <button
               key={r}
@@ -238,6 +339,7 @@ export default function ErrorsPage() {
             <thead className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
                 <th className="text-left px-4 py-3 font-medium">Last seen</th>
+                <th className="text-left px-4 py-3 font-medium">Status</th>
                 <th className="text-left px-4 py-3 font-medium">Runtime</th>
                 <th className="text-left px-4 py-3 font-medium">Level</th>
                 <th className="text-left px-4 py-3 font-medium w-1/2">Message</th>
@@ -254,9 +356,26 @@ export default function ErrorsPage() {
                 const rt = e.runtime || "server";
                 return (
                   <Fragment key={e.id}>
-                    <tr className={`hover:bg-gray-50/50 ${expanded ? "bg-emerald-50/30" : ""}`}>
+                    <tr className={`hover:bg-gray-50/50 ${expanded ? "bg-emerald-50/30" : ""} ${g.status === "resolved" ? "opacity-60" : ""}`}>
                       <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                         {new Date(g.lastSeen).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="px-4 py-3">
+                        {g.status === "resolved" && (
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-100 text-emerald-800">
+                            Resolved
+                          </span>
+                        )}
+                        {g.status === "regression" && (
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-orange-100 text-orange-800" title="New events have arrived since this group was marked resolved.">
+                            Regression
+                          </span>
+                        )}
+                        {g.status === "open" && (
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-700">
+                            Open
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${RUNTIME_STYLES[rt]}`}>
@@ -290,7 +409,7 @@ export default function ErrorsPage() {
                     </tr>
                     {expanded && (
                       <tr className="bg-gray-50/50">
-                        <td colSpan={7} className="px-4 py-4">
+                        <td colSpan={8} className="px-4 py-4">
                           <div className="space-y-3 text-xs">
                             <div>
                               <div className="text-gray-400 uppercase font-semibold tracking-wide mb-1">Message</div>
@@ -324,7 +443,29 @@ export default function ErrorsPage() {
                                 <div className="text-gray-700">{new Date(e.occurred_at).toLocaleString("en-GB")}</div>
                               </div>
                             </div>
+                            {(g.status === "resolved" || g.status === "regression") && g.lastResolvedAt && (
+                              <div className="text-[11px] text-gray-500">
+                                Marked resolved {new Date(g.lastResolvedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                {g.resolvedBy && <> by {g.resolvedBy}</>}
+                                {g.status === "regression" && <> · {g.count - g.resolvedCount} new event{g.count - g.resolvedCount === 1 ? "" : "s"} since</>}
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                              {g.status === "resolved" ? (
+                                <button
+                                  onClick={() => markResolved(g, false)}
+                                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded hover:bg-gray-50"
+                                >
+                                  Reopen
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => markResolved(g, true)}
+                                  className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-emerald-200 rounded hover:bg-emerald-50"
+                                >
+                                  {g.status === "regression" ? "Mark resolved (again)" : "Mark resolved"}
+                                </button>
+                              )}
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(`${e.message}\n\n${e.stack || ""}\n\nPath: ${e.pathname}\nRuntime: ${e.runtime}\nWhen: ${e.occurred_at}`);
