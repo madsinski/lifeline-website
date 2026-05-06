@@ -41,7 +41,11 @@ function AccountLoginContent() {
   const [researchOptOut, setResearchOptOut] = useState(false);
   const [marketingOptOut, setMarketingOptOut] = useState(false);
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
+  const [info, setInfo] = useState(
+    searchParams.get("verify") === "1"
+      ? "Please confirm your email address before continuing. Check your inbox (and spam folder) for the link from Lifeline Health."
+      : "",
+  );
   const [loading, setLoading] = useState(false);
 
   // Versioned together — when either text changes bump both. The
@@ -94,8 +98,8 @@ function AccountLoginContent() {
           setLoading(false);
           return;
         }
-        if (password.length < 6) {
-          setError("Password must be at least 6 characters.");
+        if (password.length < 12) {
+          setError("Password must be at least 12 characters.");
           setLoading(false);
           return;
         }
@@ -372,10 +376,10 @@ function AccountLoginContent() {
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder={
                   mode === "signup"
-                    ? "Choose a password (min 6 characters)"
+                    ? "Choose a password (min 12 characters)"
                     : "Enter your password"
                 }
-                minLength={6}
+                minLength={mode === "signup" ? 12 : undefined}
               />
             </div>
 

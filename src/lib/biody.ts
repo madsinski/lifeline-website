@@ -7,11 +7,19 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const B2B_SIGNING_SECRET = process.env.B2B_BIODY_SIGNING_SECRET;
 
 /**
- * Build headers for a server-to-biody-sync call. If B2B_BIODY_SIGNING_SECRET
- * is set, use an HMAC signature bound to the request body + timestamp so a
- * SUPABASE_SERVICE_ROLE_KEY leak alone can't be used to forge calls into
- * biody-sync. Falls back to service-role bearer if the signing secret isn't
- * configured yet (transitional).
+ * Build headers for a server-to-biody-sync call.
+ *
+ * When B2B_BIODY_SIGNING_SECRET is set (production posture), we send only
+ * the HMAC signature — the service-role bearer is deliberately omitted so
+ * a leaked SUPABASE_SERVICE_ROLE_KEY alone cannot be used to forge calls
+ * into biody-sync. biody-sync still requires the service-role key on
+ * Supabase's edge transport (`apikey` header), which Supabase Edge
+ * Functions need for invocation routing — that's the only place the key
+ * is used.
+ *
+ * When the signing secret is NOT set (transitional / local dev), we fall
+ * back to service-role bearer auth on the Authorization header. This is
+ * less secure and should not be the production configuration.
  */
 export function signBiodyHeaders(bodyText: string): Record<string, string> {
   const h: Record<string, string> = {
@@ -23,8 +31,11 @@ export function signBiodyHeaders(bodyText: string): Record<string, string> {
       .update(`${ts}.${bodyText}`)
       .digest("hex");
     h["X-Lifeline-Signature"] = `t=${ts},v1=${mac}`;
-  }
-  if (SERVICE_ROLE_KEY) {
+    // Supabase edge function transport still requires the apikey header
+    // to route the request to the function — but Authorization is *not*
+    // sent. biody-sync validates the HMAC before trusting the body.
+    if (SERVICE_ROLE_KEY) h.apikey = SERVICE_ROLE_KEY;
+  } else if (SERVICE_ROLE_KEY) {
     h.Authorization = `Bearer ${SERVICE_ROLE_KEY}`;
     h.apikey = SERVICE_ROLE_KEY;
   }

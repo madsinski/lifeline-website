@@ -282,6 +282,16 @@ function AccountPageInner() {
         setLoading(false);
         return;
       }
+      // Email verification gate. GDPR Art. 9 health consent + Biody
+      // activation should not run against an unverified identity.
+      // Staff accounts are minted server-side with email_confirm:true
+      // so they pass this check; unverified B2C signups bounce to the
+      // login page with a "check your email" prompt.
+      if (!verifiedUser.email_confirmed_at) {
+        router.push("/account/login?verify=1");
+        setLoading(false);
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/account/login");

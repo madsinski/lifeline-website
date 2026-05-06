@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
   if (!email || !password) {
     return NextResponse.json({ error: "email and password required" }, { status: 400 });
   }
-  if (password.length < 8) {
-    return NextResponse.json({ error: "password must be at least 8 characters" }, { status: 400 });
+  if (password.length < 12) {
+    return NextResponse.json({ error: "password must be at least 12 characters" }, { status: 400 });
   }
 
   // Security: refuse to silently overwrite an existing account's password.

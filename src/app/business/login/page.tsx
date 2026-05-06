@@ -260,11 +260,11 @@ function BusinessLoginInner() {
                     id="signupPassword"
                     type="password"
                     required
-                    minLength={8}
+                    minLength={12}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                    placeholder={t("b2b.signup.password_placeholder", "At least 8 characters")}
+                    placeholder={t("b2b.signup.password_placeholder", "At least 12 characters")}
                   />
                 </div>
 
