@@ -28,12 +28,26 @@ if (dsn) {
     environment: process.env.NEXT_PUBLIC_VERCEL_ENV || "development",
     // Never ship PII.
     sendDefaultPii: false,
-    // Drop self-resolving Supabase auth-lock chatter that fires when
-    // a user has the app open in two tabs. Auth still works; the
-    // message is informational. Hydration errors stay visible.
+    // Drop noise that originates outside our code or self-resolves.
+    // Hydration errors stay visible so we can verify SSR fixes.
     ignoreErrors: [
+      // Supabase auth-lock chatter — multi-tab lock contention; auth
+      // recovers automatically.
       /Lock .* was released because another request stole it/,
       /Lock broken by another request with the 'steal' option/,
+      // Wallet / crypto browser extensions that inject into every page
+      // and throw inside their own scripts. Not our code, not our bug.
+      /Failed to connect to MetaMask/i,
+      /MetaMask extension not found/i,
+      /window\.ethereum/i,
+      /No Ethereum provider/i,
+      /chrome-extension:\/\//i,
+      /moz-extension:\/\//i,
+    ],
+    denyUrls: [
+      /chrome-extension:\/\//i,
+      /moz-extension:\/\//i,
+      /safari-extension:\/\//i,
     ],
     beforeSend(event, hint) {
       const req = event.request;
