@@ -1555,6 +1555,15 @@ export default function ProgramsCMSPage() {
     <div className="space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
+      <div className="flex items-center justify-end">
+        <a
+          href="/admin/programs/audit"
+          className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+        >
+          Action library audit →
+        </a>
+      </div>
+
       {/* Top-level tabs: Categories + Clients */}
       <div className="flex items-center gap-1 bg-white rounded-xl p-1.5 shadow-sm border border-gray-100 flex-wrap">
         {categories.map((cat) => {
