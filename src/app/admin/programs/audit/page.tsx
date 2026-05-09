@@ -53,6 +53,20 @@ export default function ActionAuditPage() {
   const [catFilter, setCatFilter] = useState<"all" | ActionRow["category"]>("all");
   const [statusFilter, setStatusFilter] = useState<"untagged" | "tagged" | "all">("untagged");
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  // AI suggestion drafts — keyed by action id. When an entry exists,
+  // the row's fields show the proposed values (with an "AI suggested"
+  // pill) but nothing has been written to the DB yet. User edits in
+  // place, then saves to commit.
+  const [drafts, setDrafts] = useState<Record<string, {
+    intensity: Intensity;
+    min_recovery_state: RecoveryFloor;
+    equipment_needed: string[];
+    appropriate_modes: Mode[] | null;
+    rationale: string;
+  }>>({});
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestProgress, setSuggestProgress] = useState<{ done: number; total: number } | null>(null);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -92,6 +106,91 @@ export default function ActionAuditPage() {
     untagged: rows.filter((r) => !r.audited_at).length,
     tagged: rows.filter((r) => r.audited_at).length,
   }), [rows]);
+
+  // Run AI tag suggestion against a set of action ids. Suggestions land
+  // in the drafts map — they're visible immediately but require an
+  // explicit save (per-row or "Save all suggested") to commit.
+  const runSuggest = async (actionIds: string[]) => {
+    if (actionIds.length === 0) return;
+    setSuggesting(true);
+    setSuggestError(null);
+    setSuggestProgress({ done: 0, total: actionIds.length });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      // Process in chunks of 100 ids per HTTP call so a network blip
+      // doesn't lose the whole job. Server further chunks for OpenAI.
+      const HTTP_CHUNK = 100;
+      const newDrafts: typeof drafts = {};
+      for (let i = 0; i < actionIds.length; i += HTTP_CHUNK) {
+        const slice = actionIds.slice(i, i + HTTP_CHUNK);
+        const res = await fetch("/api/admin/program-actions/suggest-tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action_ids: slice }),
+        });
+        const j = await res.json();
+        if (!res.ok || !j.ok) throw new Error(j.error || "AI suggest failed");
+        for (const s of (j.suggestions as Array<{
+          id: string;
+          intensity: Intensity;
+          min_recovery_state: RecoveryFloor;
+          equipment_needed: string[];
+          appropriate_modes: Mode[] | null;
+          rationale: string;
+        }>)) {
+          newDrafts[s.id] = {
+            intensity: s.intensity,
+            min_recovery_state: s.min_recovery_state,
+            equipment_needed: s.equipment_needed,
+            appropriate_modes: s.appropriate_modes,
+            rationale: s.rationale,
+          };
+        }
+        setSuggestProgress({ done: Math.min(i + HTTP_CHUNK, actionIds.length), total: actionIds.length });
+      }
+      setDrafts((prev) => ({ ...prev, ...newDrafts }));
+    } catch (e) {
+      setSuggestError((e as Error).message);
+    } finally {
+      setSuggesting(false);
+      setSuggestProgress(null);
+    }
+  };
+
+  const acceptDraft = async (id: string) => {
+    const d = drafts[id];
+    if (!d) return;
+    await patchRow(id, {
+      intensity: d.intensity,
+      min_recovery_state: d.min_recovery_state,
+      equipment_needed: d.equipment_needed.length > 0 ? d.equipment_needed : null,
+      appropriate_modes: d.appropriate_modes,
+    });
+    setDrafts((prev) => {
+      const n = { ...prev };
+      delete n[id];
+      return n;
+    });
+  };
+
+  const acceptAllDrafts = async () => {
+    const ids = Object.keys(drafts);
+    if (ids.length === 0) return;
+    if (!confirm(`Accept and save AI suggestions for ${ids.length} actions? You can still edit any after.`)) return;
+    for (const id of ids) {
+      await acceptDraft(id);
+    }
+  };
+
+  const dismissDraft = (id: string) => {
+    setDrafts((prev) => {
+      const n = { ...prev };
+      delete n[id];
+      return n;
+    });
+  };
 
   // Optimistic-but-resilient: update the row locally, push to Supabase,
   // refresh from server on success so audited_at + audited_by_name come
@@ -210,7 +309,32 @@ export default function ActionAuditPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="ml-auto px-3 py-1.5 border border-gray-200 rounded-lg text-sm w-72"
         />
+        <button
+          onClick={() => runSuggest(filtered.filter((r) => !r.audited_at && !drafts[r.id]).map((r) => r.id))}
+          disabled={suggesting || filtered.filter((r) => !r.audited_at && !drafts[r.id]).length === 0}
+          className="px-3 py-1.5 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Use AI to propose tags for every untagged action in the current view. Suggestions are drafts you can edit and accept."
+        >
+          {suggesting && suggestProgress
+            ? `Suggesting ${suggestProgress.done}/${suggestProgress.total}…`
+            : `✨ AI suggest (${filtered.filter((r) => !r.audited_at && !drafts[r.id]).length})`}
+        </button>
+        {Object.keys(drafts).length > 0 && (
+          <button
+            onClick={acceptAllDrafts}
+            disabled={suggesting}
+            className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50"
+          >
+            Accept all {Object.keys(drafts).length}
+          </button>
+        )}
       </div>
+
+      {suggestError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+          {suggestError}
+        </div>
+      )}
 
       {loading ? (
         <div className="p-12 text-center text-gray-500 text-sm">Loading actions…</div>
@@ -222,10 +346,22 @@ export default function ActionAuditPage() {
         <div className="space-y-3">
           {filtered.map((row) => {
             const saving = savingIds.has(row.id);
+            const draft = drafts[row.id];
+            // When a draft exists, the form fields show the proposed
+            // values — but they're not yet persisted. The "Accept" /
+            // "Dismiss" buttons commit or discard.
+            const intensityVal = draft?.intensity ?? row.intensity ?? "";
+            const recoveryVal = draft?.min_recovery_state ?? row.min_recovery_state ?? "";
+            const equipmentVal = draft?.equipment_needed ?? row.equipment_needed ?? [];
+            const modesVal = draft?.appropriate_modes ?? row.appropriate_modes ?? [];
             return (
               <article
                 key={row.id}
-                className={`bg-white rounded-xl border ${row.audited_at ? "border-gray-100" : "border-amber-200"} px-5 py-4 space-y-3 ${saving ? "opacity-70" : ""}`}
+                className={`bg-white rounded-xl border ${
+                  draft ? "border-violet-300 bg-violet-50/30"
+                  : row.audited_at ? "border-gray-100"
+                  : "border-amber-200"
+                } px-5 py-4 space-y-3 ${saving ? "opacity-70" : ""}`}
               >
                 <header className="flex items-start gap-3 flex-wrap">
                   <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${CAT_STYLE[row.category]}`}>
@@ -235,11 +371,26 @@ export default function ActionAuditPage() {
                     <h3 className="text-base font-semibold text-[#1F2937]">{row.label}</h3>
                     <p className="text-[11px] font-mono text-gray-400 mt-0.5">{row.action_key}</p>
                   </div>
-                  {row.audited_at && (
+                  {draft && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-800">
+                      ✨ AI suggested
+                    </span>
+                  )}
+                  {!draft && row.audited_at && (
                     <span className="text-[11px] text-gray-400">
                       Tagged {new Date(row.audited_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                       {row.audited_by_name && ` · ${row.audited_by_name}`}
                     </span>
+                  )}
+                  {!draft && (
+                    <button
+                      onClick={() => runSuggest([row.id])}
+                      disabled={suggesting || saving}
+                      className="text-[11px] font-medium text-violet-700 hover:text-violet-800 disabled:opacity-50"
+                      title="Ask AI to suggest tags for just this row"
+                    >
+                      ✨ AI suggest
+                    </button>
                   )}
                 </header>
 
@@ -250,28 +401,68 @@ export default function ActionAuditPage() {
                   </ul>
                 )}
 
+                {draft && (
+                  <p className="text-[11px] italic text-violet-800/80 bg-violet-100/40 px-3 py-1.5 rounded">
+                    AI rationale: {draft.rationale}
+                  </p>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
                   <FieldSelect
                     label="Intensity"
-                    value={row.intensity || ""}
-                    onChange={(v) => patchRow(row.id, { intensity: (v || null) as Intensity | null })}
+                    value={intensityVal}
+                    onChange={(v) =>
+                      draft
+                        ? setDrafts((prev) => ({ ...prev, [row.id]: { ...draft, intensity: v as Intensity } }))
+                        : patchRow(row.id, { intensity: (v || null) as Intensity | null })
+                    }
                     options={[{ v: "", label: "— not tagged —" }, ...INTENSITIES.map((i) => ({ v: i, label: i }))]}
                   />
                   <FieldSelect
                     label="Recovery floor"
-                    value={row.min_recovery_state || ""}
-                    onChange={(v) => patchRow(row.id, { min_recovery_state: (v || null) as RecoveryFloor | null })}
+                    value={recoveryVal}
+                    onChange={(v) =>
+                      draft
+                        ? setDrafts((prev) => ({ ...prev, [row.id]: { ...draft, min_recovery_state: v as RecoveryFloor } }))
+                        : patchRow(row.id, { min_recovery_state: (v || null) as RecoveryFloor | null })
+                    }
                     options={[{ v: "", label: "— not tagged —" }, ...RECOVERY.map((r) => ({ v: r, label: r }))]}
                   />
                   <FieldEquipment
-                    value={row.equipment_needed || []}
-                    onChange={(eq) => patchRow(row.id, { equipment_needed: eq.length > 0 ? eq : null })}
+                    value={equipmentVal}
+                    onChange={(eq) =>
+                      draft
+                        ? setDrafts((prev) => ({ ...prev, [row.id]: { ...draft, equipment_needed: eq } }))
+                        : patchRow(row.id, { equipment_needed: eq.length > 0 ? eq : null })
+                    }
                   />
                   <FieldModes
-                    value={row.appropriate_modes || []}
-                    onChange={(m) => patchRow(row.id, { appropriate_modes: m.length > 0 ? m : null })}
+                    value={modesVal}
+                    onChange={(m) =>
+                      draft
+                        ? setDrafts((prev) => ({ ...prev, [row.id]: { ...draft, appropriate_modes: m.length > 0 ? m : null } }))
+                        : patchRow(row.id, { appropriate_modes: m.length > 0 ? m : null })
+                    }
                   />
                 </div>
+
+                {draft && (
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-violet-100">
+                    <button
+                      onClick={() => dismissDraft(row.id)}
+                      className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      onClick={() => acceptDraft(row.id)}
+                      disabled={saving}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      Accept
+                    </button>
+                  </div>
+                )}
               </article>
             );
           })}
