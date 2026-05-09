@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lifeline — concept homepage</title>
+<style>
+  :root {
+    --primary: #10B981;
+    --primary-dark: #047857;
+    --ink-1: #1F2937;
+    --ink-2: #6B7280;
+    --ink-3: #9CA3AF;
+    --hairline: #E5E7EB;
+    --bg-cream: #FAFAFA;
+    /* Logo geometry — kept as CSS vars so the trail lines can align precisely
+       with the L's vertical strokes in the header. */
+    --logo-size: 56px;
+    --logo-left: 24px;
+    /* Vertical stroke X positions inside the L's 400-unit viewBox: 130, 162,
+       194, 226. We expose them in viewport coords below the logo so the trail
+       lines exit exactly from where the L's strokes "would continue". */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink-1);
+    background: #fff;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Header — white, sticky, logo on left */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--hairline);
+    height: 72px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--logo-left);
+  }
+  header .logo { display: flex; align-items: center; gap: 12px; }
+  header .logo-mark { width: var(--logo-size); height: var(--logo-size); }
+  header .logo-mark svg { width: 100%; height: 100%; display: block; }
+  header .wordmark {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ink-1);
+  }
+  header nav { margin-left: auto; display: flex; gap: 32px; align-items: center; }
+  header nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  header nav a:hover { color: var(--primary); }
+  header .cta {
+    padding: 10px 20px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  header .cta:hover { background: var(--primary-dark); }
+
+  /* Hero — gradient background + radial green wash, matching live site language */
+  .hero {
+    position: relative;
+    background: linear-gradient(180deg, #fff 0%, #f0f3f6 70%, #ecf0f3 100%);
+    overflow: hidden;
+    padding: 120px 24px 200px;
+    text-align: center;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.12), transparent);
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    max-width: 880px;
+    margin: 0 auto 24px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--primary);
+  }
+  .hero p.lead {
+    font-size: 19px;
+    color: var(--ink-2);
+    max-width: 620px;
+    margin: 0 auto 36px;
+    line-height: 1.6;
+  }
+  .hero .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    padding: 14px 28px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-outline {
+    border: 2px solid var(--primary);
+    color: var(--primary);
+  }
+  .btn-outline:hover { background: var(--primary); color: #fff; }
+
+  /* Trails SVG — absolute, scrolls with page. Sits on top of content,
+     pointer-events: none so the page is fully clickable. The 4 ribbons
+     drop from below the header (aligned with the L's vertical strokes)
+     and turn right at the y-coord of each section heading. */
+  .trails {
+    position: absolute;
+    top: 72px;          /* directly below header */
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* Sections */
+  section.pillar {
+    position: relative;
+    padding: 120px 24px 80px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  section.pillar h2 {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    /* Indent slightly so the heading lines up with where the trail's
+       horizontal turn lands (visual association). */
+    padding-left: 120px;
+  }
+  section.pillar p.label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--primary);
+    margin-bottom: 12px;
+    padding-left: 120px;
+    text-transform: uppercase;
+  }
+  section.pillar p.body {
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    max-width: 640px;
+    padding-left: 120px;
+  }
+  section.pillar .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    padding-left: 120px;
+    margin-top: 32px;
+    max-width: 880px;
+  }
+  section.pillar .feature {
+    background: #fff;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  section.pillar .feature h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  section.pillar .feature p {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 80px;
+    padding: 60px 24px 40px;
+    background: var(--bg-cream);
+    border-top: 1px solid var(--hairline);
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+
+  @media (max-width: 720px) {
+    section.pillar h2,
+    section.pillar p.label,
+    section.pillar p.body,
+    section.pillar .features { padding-left: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <!-- New L mark: emerald lines on white. Same geometry as the existing
+           L (concentric arcs at the elbow, rounded caps), no green canvas. -->
+      <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none" stroke="#10B981" stroke-width="26" stroke-linecap="round">
+          <path d="M 130 80 V 220 A 120 120 0 0 0 250 340 H 320"/>
+          <path d="M 162 80 V 220 A 88 88 0 0 0 250 308 H 320"/>
+          <path d="M 194 80 V 220 A 56 56 0 0 0 250 276 H 320"/>
+          <path d="M 226 80 V 220 A 24 24 0 0 0 250 244 H 320"/>
+        </g>
+      </svg>
+    </div>
+    <span class="wordmark">Lifeline</span>
+  </div>
+  <nav>
+    <a href="#sleep">Sleep</a>
+    <a href="#exercise">Exercise</a>
+    <a href="#nutrition">Nutrition</a>
+    <a href="#mental">Mental</a>
+    <a href="#" class="cta">Get the app</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <h1>Real health change, <em>made simple</em>.</h1>
+  <p class="lead">
+    Diagnostics, body composition, and daily coaching across the four
+    pillars that actually move the needle. One mark. One trajectory.
+  </p>
+  <div class="actions">
+    <a href="#" class="btn btn-primary">Start free assessment</a>
+    <a href="#" class="btn btn-outline">View pricing</a>
+  </div>
+</section>
+
+<!-- 4-pillar narrative. Each section reads like a chapter; the trail SVG
+     turns its corresponding line into the section's accent line. -->
+<section class="pillar" id="sleep">
+  <p class="label">Pillar 01 / Sleep</p>
+  <h2>Rest the body actually recovers from.</h2>
+  <p class="body">
+    Sleep is where adaptation happens — without it, training is just
+    fatigue. We track stages, heart rate, and consistency, and coach
+    bedtime habits that turn nights into actual recovery.
+  </p>
+  <div class="features">
+    <div class="feature"><h3>Stage tracking</h3><p>Deep, REM, light — see where your nights actually go.</p></div>
+    <div class="feature"><h3>Wind-down rituals</h3><p>Daily prompts that keep your bedtime under control.</p></div>
+    <div class="feature"><h3>Recovery score</h3><p>Single number that says "today, train hard or take it easy."</p></div>
+  </div>
+</section>
+
+<section class="pillar" id="exercise">
+  <p class="label">Pillar 02 / Exercise</p>
+  <h2>Daily movement that fits your time.</h2>
+  <p class="body">
+    Strength, mobility, cardio. Programs that adapt to your equipment,
+    your schedule, and how you feel today. Looping video demos so you
+    never wonder if you're doing it right.
+  </p>
+  <div class="features">
+    <div class="feature"><h3>Adaptive programs</h3><p>Same plan, scaled to your time today — 5 min to 90.</p></div>
+    <div class="feature"><h3>Equipment-aware</h3><p>Home, gym, hybrid — the prescription matches what you have.</p></div>
+    <div class="feature"><h3>Progressive overload</h3><p>Sets logged, PRs tracked, intensity meter steady.</p></div>
+  </div>
+</section>
+
+<section class="pillar" id="nutrition">
+  <p class="label">Pillar 03 / Nutrition</p>
+  <h2>Fuel that matches your goals.</h2>
+  <p class="body">
+    Macro targets that adapt to your training load and body
+    composition trends. No scolding, no calorie-counting punishment —
+    just clear, doable daily ranges and meal templates that fit.
+  </p>
+  <div class="features">
+    <div class="feature"><h3>Adaptive macros</h3><p>Targets shift with your training and weight trend.</p></div>
+    <div class="feature"><h3>Meal logging</h3><p>Quick photo logs and quick-add favorites.</p></div>
+    <div class="feature"><h3>Hydration</h3><p>Habits, not rules.</p></div>
+  </div>
+</section>
+
+<section class="pillar" id="mental">
+  <p class="label">Pillar 04 / Mental wellness</p>
+  <h2>Mind, mood, stress — the foundation.</h2>
+  <p class="body">
+    The pillar that holds the other three up. Daily check-ins,
+    breath-work, and stress reset techniques you'll actually use.
+    Tracked alongside your physical metrics so the picture stays
+    whole.
+  </p>
+  <div class="features">
+    <div class="feature"><h3>Daily readiness</h3><p>One-tap mood + energy check.</p></div>
+    <div class="feature"><h3>Stress reset</h3><p>Three-minute breathing protocols.</p></div>
+    <div class="feature"><h3>Coach support</h3><p>A real human to message when life gets heavy.</p></div>
+  </div>
+</section>
+
+<footer>
+  Concept · Lifeline brand · scroll-driven prototype<br>
+  © 2026 Lifeline Health
+</footer>
+
+<!-- Trails SVG: 4 emerald ribbons that "extend" the L's vertical strokes
+     down the page, with each one turning right to anchor a section. -->
+<svg class="trails" id="trails" preserveAspectRatio="none"></svg>
+
+<script>
+(function () {
+  const trails = document.getElementById('trails');
+  const sections = ['sleep', 'exercise', 'nutrition', 'mental']
+    .map((id) => document.getElementById(id));
+
+  // Compute trail geometry once layout settles, and on resize/scroll.
+  // The 4 line X positions match where the L's vertical strokes appear
+  // in the header logo, so the eye reads the trails as the L continuing.
+  function rebuild() {
+    const header = document.querySelector('header');
+    const logoMark = document.querySelector('.logo-mark');
+    if (!logoMark) return;
+
+    const headerH = header.getBoundingClientRect().height;
+    const markRect = logoMark.getBoundingClientRect();
+
+    // L's vertical strokes are at viewBox x = 130, 162, 194, 226 of 400.
+    // Convert to viewport coordinates using the rendered logo box.
+    const verticalsViewBox = [130, 162, 194, 226];
+    const xs = verticalsViewBox.map(
+      (vbx) => markRect.left + (vbx / 400) * markRect.width
+    );
+    // Stroke width: same proportion as the logo's strokes (26/400 of size).
+    const sw = (26 / 400) * markRect.width;
+
+    // SVG dimensions: span from below header to bottom of page.
+    const totalH = document.documentElement.scrollHeight - headerH;
+    const totalW = document.documentElement.clientWidth;
+    trails.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+    trails.setAttribute('width', totalW);
+    trails.setAttribute('height', totalH);
+    trails.style.height = totalH + 'px';
+
+    // Map: line at xs[3] (rightmost vertical) turns first → Sleep (top).
+    //      line at xs[2] turns next → Exercise.
+    //      line at xs[1] → Nutrition.
+    //      line at xs[0] (leftmost) → Mental (bottom).
+    // Right-to-left ordering avoids any line ever crossing another.
+    const lineForSection = [3, 2, 1, 0]; // section index → x index (Sleep uses xs[3])
+
+    const paths = [];
+    for (let s = 0; s < 4; s++) {
+      const xIdx = lineForSection[s];
+      const x = xs[xIdx];
+      const sec = sections[s];
+      const secRect = sec.getBoundingClientRect();
+      // Section heading top in trails-svg coords (page-scroll-aware via
+      // adding scrollY offset since secRect is viewport-relative).
+      const secTopAbs = secRect.top + window.scrollY;
+      // The line turns right ~36px down from the top of the section so
+      // the horizontal lands roughly under the "Pillar 0X" label line.
+      const turnY = (secTopAbs - headerH) + 60;
+
+      // Soft elbow: quarter-arc with radius 28, mirroring the L's elbow.
+      // After the turn, the horizontal extends to the right margin.
+      const r = 28;
+      const horizontalEndX = totalW - 24;
+
+      const d = [
+        `M ${x} 0`,
+        `V ${turnY - r}`,
+        `A ${r} ${r} 0 0 0 ${x + r} ${turnY}`,
+        `H ${horizontalEndX}`,
+      ].join(' ');
+
+      paths.push(
+        `<path d="${d}" data-section="${s}" fill="none" stroke="#10B981" stroke-width="${sw}" stroke-linecap="round" />`
+      );
+    }
+    trails.innerHTML = paths.join('');
+
+    // Cache lengths for the scroll-driven draw-in.
+    trails.querySelectorAll('path').forEach((p) => {
+      const L = p.getTotalLength();
+      p.setAttribute('data-len', String(L));
+      p.style.strokeDasharray = String(L);
+      p.style.strokeDashoffset = String(L);
+    });
+
+    update();
+  }
+
+  function update() {
+    // Each line draws progressively as the user scrolls. The trigger
+    // window for each line is "from when its section starts approaching
+    // the viewport bottom, until its top reaches the viewport top".
+    // ease-out cubic gives the soft, no-abrupt feel.
+    const headerH = document.querySelector('header').getBoundingClientRect().height;
+    trails.querySelectorAll('path').forEach((p, idx) => {
+      const sec = sections[idx];
+      const r = sec.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // Progress: 0 when section is fully below viewport;
+      //           1 when section's heading line has reached top edge of viewport.
+      const start = vh;          // section top still below viewport
+      const end = headerH + 80;  // section top has scrolled past header
+      const span = start - end;
+      const pos = r.top;
+      let t = (start - pos) / span;
+      t = Math.max(0, Math.min(1, t));
+      // Ease-out cubic.
+      const eased = 1 - Math.pow(1 - t, 3);
+      const L = parseFloat(p.getAttribute('data-len'));
+      p.style.strokeDashoffset = String(L * (1 - eased));
+    });
+  }
+
+  let raf = 0;
+  function onScroll() {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      update();
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', () => requestAnimationFrame(rebuild));
+  // Wait for fonts so heading positions don't shift after first paint.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => requestAnimationFrame(rebuild));
+  } else {
+    requestAnimationFrame(rebuild);
+  }
+})();
+</script>
+
+</body>
+</html>
