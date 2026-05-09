@@ -70,16 +70,30 @@ export default function ActionAuditPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("program_actions")
-      .select("id, program_id, action_key, label, category, details, intensity, min_recovery_state, equipment_needed, appropriate_modes, audited_at, audited_by_name")
-      .order("category", { ascending: true })
-      .order("label", { ascending: true })
-      .limit(2000);
-    setRows(((data || []) as ActionRow[]).map((r) => ({
-      ...r,
-      details: Array.isArray(r.details) ? r.details : [],
-    })));
+    // Page through the full catalog — Supabase caps a single query at
+    // 1,000 rows by default and we have 2,000+ in production. Paginate
+    // until exhausted so the page can show every row regardless of
+    // catalog size.
+    const PAGE_SIZE = 1000;
+    const all: ActionRow[] = [];
+    let from = 0;
+    // Hard upper bound to avoid infinite loops if something goes weird.
+    while (from < 50000) {
+      const { data } = await supabase
+        .from("program_actions")
+        .select("id, program_id, action_key, label, category, details, intensity, min_recovery_state, equipment_needed, appropriate_modes, audited_at, audited_by_name")
+        .order("category", { ascending: true })
+        .order("label", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (!data || data.length === 0) break;
+      all.push(...((data as ActionRow[]).map((r) => ({
+        ...r,
+        details: Array.isArray(r.details) ? r.details : [],
+      }))));
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    setRows(all);
     setLoading(false);
   };
 
