@@ -69,6 +69,7 @@ const sidebarLinks = [
   {
     href: "/admin/content",
     label: "Content",
+    badgeType: "audit",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -198,6 +199,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newSurveyResponsesCount, setNewSurveyResponsesCount] = useState(0);
   const [newBookingsCount, setNewBookingsCount] = useState(0);
   const [newCompaniesCount, setNewCompaniesCount] = useState(0);
+  const [untaggedActionsCount, setUntaggedActionsCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
   // Medical advisor gets the full sidebar visibility but is read-only on
   // everything except surveys. Treat them as "view-all" for sidebar
@@ -306,6 +308,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .select("*", { count: "exact", head: true })
         .gte("created_at", cutoffFor("last_seen_business"));
       if (!coErr && coCount !== null) setNewCompaniesCount(coCount);
+    } catch {}
+    // Untagged action library rows — drives /admin/programs/audit
+    // attention. Persistent (not last-visit-based): the count only
+    // drops when staff actually tag rows. Surfaces under Content
+    // since /admin/programs/audit lives under that section.
+    try {
+      const { count: untaggedCount, error: untaggedErr } = await supabase
+        .from("program_actions")
+        .select("*", { count: "exact", head: true })
+        .is("audited_at", null);
+      if (!untaggedErr && untaggedCount !== null) setUntaggedActionsCount(untaggedCount);
     } catch {}
     // Overdue access reviews: active staff whose most recent review is
     // older than 90 days (or never reviewed and created more than 90 days ago).
@@ -688,6 +701,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               // surveys hub itself.
               : badgeType === "surveys" ? newSurveyResponsesCount
               : badgeType === "business" ? newCompaniesCount
+              : badgeType === "audit" ? untaggedActionsCount
               : isMessageBadge ? unreadCount
               : 0;
             const hasBadge = badgeCount > 0;
