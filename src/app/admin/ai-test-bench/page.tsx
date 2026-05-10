@@ -328,16 +328,19 @@ export default function AiTestBenchPage() {
     }
   }, [guard.authorized, loadCatalog, loadExerciseLib]);
 
-  // Sample candidates: pillar filter + dedupe by action_key + cap at
-  // 60 to keep the prompt size sane. Real production callers will pass
-  // the user's actual day-plan set, which is similarly bounded.
+  // Sample candidates: pillar filter + dedupe by (category, label)
+  // + cap at 60 to keep the prompt size sane.
+  //
+  // Dedup key is label, NOT action_key — multiple programs share the
+  // same habit ("Caffeine cutoff & movement" exists in several sleep
+  // programs with distinct action_keys). Without label-dedup the AI
+  // saw 6 copies of the same habit and ranked them all, producing
+  // a list of "yield 5/5: Caffeine cutoff & movement" repeated.
   //
   // Sort: keystones first, then items with intensity tagged (i.e.
   // tier-2/3 actionable sessions), then everything else. This pushes
   // the actionable workouts to the front of the cap so the AI ranks
-  // those instead of educational topics ("Active Recovery Days",
-  // "Autoregulation", etc. — they live in the same program_actions
-  // table but aren't daily-action material).
+  // those instead of educational topics.
   const candidates = useMemo(() => {
     const sorted = [...allActions].sort((a, b) => {
       const aScore = (a.is_keystone ? 2 : 0) + (a.intensity ? 1 : 0);
@@ -349,8 +352,9 @@ export default function AiTestBenchPage() {
     const out: ActionRow[] = [];
     for (const a of sorted) {
       if (pillarFocus !== "all" && a.category !== pillarFocus) continue;
-      if (seen.has(a.action_key)) continue;
-      seen.add(a.action_key);
+      const key = `${a.category}::${a.label}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       out.push(a);
       if (out.length >= 60) break;
     }
