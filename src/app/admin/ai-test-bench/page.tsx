@@ -887,19 +887,33 @@ export default function AiTestBenchPage() {
                   value={pickedExerciseId || ""}
                   onChange={(e) => setPickedExerciseId(e.target.value || null)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                  size={6}
+                  size={8}
                 >
                   <option value="">— pick an exercise —</option>
-                  {exerciseLib
-                    .filter((ex) => !exerciseSearch || ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()))
-                    .slice(0, 100)
-                    .map((ex) => (
+                  {(() => {
+                    const q = exerciseSearch.toLowerCase().trim();
+                    const filtered = q
+                      ? exerciseLib.filter((ex) =>
+                          ex.name.toLowerCase().includes(q)
+                          || ex.category.toLowerCase().includes(q)
+                          || ex.equipment.toLowerCase().includes(q),
+                        )
+                      : exerciseLib;
+                    // Render at most 200 matches — without a search query that
+                    // means the first 200 alphabetical, but with a query the cap
+                    // applies AFTER filtering so typing always reaches results.
+                    return filtered.slice(0, 200).map((ex) => (
                       <option key={ex.id} value={ex.id}>
                         {ex.name} ({ex.category}, {ex.equipment}, {ex.difficulty})
                       </option>
-                    ))}
+                    ));
+                  })()}
                 </select>
-                <p className="text-[10px] text-gray-400 mt-1">Showing first 100 matches. Type to narrow.</p>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  {exerciseSearch.trim()
+                    ? `Filtered: search applies across name + category + equipment`
+                    : `Showing first 200 alphabetically — type to filter the full ${exerciseLib.length}`}
+                </p>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Alternatives count</label>

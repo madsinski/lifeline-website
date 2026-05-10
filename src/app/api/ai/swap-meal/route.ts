@@ -133,7 +133,8 @@ export async function POST(req: Request) {
       calories: m.calories,
       dietary_tags: m.dietary_tags || [],
       ingredients,
-      is_high_protein_keystone: ((m.dietary_tags || []).includes("high-protein")) || (m.protein !== null && m.protein >= 25),
+      is_high_protein_keystone: ((m.dietary_tags || []).includes("high-protein"))
+        || (m.protein !== null && m.protein >= (m.category === "snack" ? 20 : 35)),
     };
     if (!mealAppropriateForMode(c, mode).ok) continue;
     candidates.push(c);
