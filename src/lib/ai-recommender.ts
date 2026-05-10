@@ -220,6 +220,108 @@ export function attestationsBlock(a: Attestations | null): string {
   return lines.join("\n");
 }
 
+// ─── Meals (nutrition recommendation source) ────────────────
+// Nutrition-pillar recommendations come from the dedicated `meals`
+// table, not from program_actions (which only has educational topics
+// for nutrition). The AI receives a server-pre-filtered candidate
+// list — allergens dropped before the model ever sees them.
+
+export interface CandidateMeal {
+  id: string;
+  name: string;
+  slot: "breakfast" | "lunch" | "dinner" | "snack";
+  difficulty: "easy" | "medium" | "hard";
+  prep_min: number;
+  cook_min: number;
+  protein_g: number | null;
+  calories: number | null;
+  dietary_tags: string[];
+  ingredients: string[];
+  is_high_protein_keystone: boolean;
+}
+
+// Allergen → ingredient-name patterns. Case-insensitive substring
+// match. Conservative on purpose: better to drop a safe meal than
+// surface a risky one. The user's notes_other field (free-text) is
+// passed to the model separately so it can apply context-specific
+// caution that we can't pattern-match here.
+const ALLERGEN_PATTERNS: Record<string, RegExp> = {
+  nuts: /\b(nuts?|peanuts?|almonds?|cashews?|walnuts?|pecans?|pistachios?|macadamias?|hazelnuts?|brazil[ -]nuts?|pine[ -]nuts?|nut[ -]butter)\b/i,
+  dairy: /\b(milk|cheese|cheddar|mozzarella|parmesan|feta|butter|cream|yog[h]?urt|whey|casein|kefir|ricotta|cottage[ -]cheese)\b/i,
+  gluten: /\b(wheat|flour|bread|pasta|noodles?|couscous|bulgur|seitan|barley|rye|spelt|farro|soy[ -]sauce|panko|breadcrumb|croutons?)\b/i,
+  shellfish: /\b(shrimp|prawn|crab|lobster|oyster|mussel|clam|scallop|crayfish|squid|calamari|crawfish)\b/i,
+};
+
+// Returns the list of allergens that match this ingredient set, or
+// an empty array if the meal is safe. Pass the result to the caller
+// to decide whether to drop the meal or surface it with a warning
+// (we drop, server-side).
+export function detectAllergenConflicts(ingredients: string[], allergies: { nuts: boolean; dairy: boolean; gluten: boolean; shellfish: boolean }): string[] {
+  const conflicts: string[] = [];
+  const blob = ingredients.join(" | ");
+  for (const [key, pattern] of Object.entries(ALLERGEN_PATTERNS)) {
+    if (allergies[key as keyof typeof allergies] && pattern.test(blob)) {
+      conflicts.push(key);
+    }
+  }
+  return conflicts;
+}
+
+// Mode-appropriateness for meals. Mirrors the philosophy of
+// applyModeFilter for program_actions but tuned to the meal shape.
+export function mealAppropriateForMode(meal: CandidateMeal, mode: string): { ok: true } | { ok: false; reason: string } {
+  if (mode === "sick") {
+    // Sick → only easy + no-cook OR very short cook times. The body
+    // shouldn't be standing over a stove for 40 min when it should
+    // be sleeping.
+    const isNoCook = meal.dietary_tags.includes("no-cook");
+    const totalMin = (meal.prep_min || 0) + (meal.cook_min || 0);
+    if (!isNoCook && totalMin > 15) return { ok: false, reason: "Sick mode: total time > 15 min (need no-cook or very short)" };
+    if (meal.difficulty === "hard") return { ok: false, reason: "Sick mode: difficulty too high" };
+  }
+  if (mode === "tired") {
+    if (meal.difficulty === "hard") return { ok: false, reason: "Tired mode: difficulty too high" };
+    const totalMin = (meal.prep_min || 0) + (meal.cook_min || 0);
+    if (totalMin > 30) return { ok: false, reason: "Tired mode: total time > 30 min" };
+  }
+  if (mode === "vacation") {
+    // Vacation → kitchen access uncertain. Prefer no-cook + easy.
+    if (meal.difficulty === "hard") return { ok: false, reason: "Vacation mode: difficulty too high (kitchen access uncertain)" };
+  }
+  return { ok: true };
+}
+
+export const mealRecSchema = z.object({
+  ordered_meals: z.array(z.object({
+    id: z.string(),
+    rank: z.number().int(),
+    yield_score: z.number().int().min(1).max(5),
+    rationale: z.string(),
+  })),
+  dropped_meals: z.array(z.object({
+    id: z.string(),
+    reason: z.string(),
+  })),
+  overall_rationale: z.string(),
+});
+
+export type MealRecommendation = z.infer<typeof mealRecSchema>;
+
+export function mealsBlock(meals: CandidateMeal[]): string {
+  if (meals.length === 0) return "(no candidate meals — likely all dropped by allergen filter)";
+  return meals.map((m, i) => {
+    const tags: string[] = [];
+    if (m.is_high_protein_keystone) tags.push("KEYSTONE-PROTEIN");
+    tags.push(`slot=${m.slot}`);
+    tags.push(`difficulty=${m.difficulty}`);
+    tags.push(`time=${(m.prep_min || 0) + (m.cook_min || 0)}min`);
+    if (m.protein_g !== null) tags.push(`protein=${m.protein_g}g`);
+    if (m.calories !== null) tags.push(`kcal=${m.calories}`);
+    if (m.dietary_tags.length > 0) tags.push(`tags=[${m.dietary_tags.join(",")}]`);
+    return `${i + 1}. id=${m.id} — ${m.name} (${tags.join(", ")})\n   ingredients: ${m.ingredients.slice(0, 8).join(", ")}${m.ingredients.length > 8 ? `, +${m.ingredients.length - 8} more` : ""}`;
+  }).join("\n");
+}
+
 export function actionListBlock(actions: CandidateAction[]): string {
   if (actions.length === 0) return "(no candidate actions)";
   return actions.map((a, i) => {

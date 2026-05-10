@@ -97,6 +97,31 @@ interface ActionRec {
   overall_rationale: string;
 }
 
+interface OrderedMeal {
+  id: string;
+  rank: number;
+  yield_score: number;
+  rationale: string;
+  name?: string;
+  slot?: "breakfast" | "lunch" | "dinner" | "snack";
+  protein_g?: number | null;
+  calories?: number | null;
+  is_high_protein_keystone?: boolean;
+}
+
+interface MealRec {
+  ordered_meals: OrderedMeal[];
+  dropped_meals: { id: string; name: string; reason: string }[];
+  overall_rationale: string;
+}
+
+const SLOT_CHIP: Record<string, string> = {
+  breakfast: "bg-amber-100 text-amber-800",
+  lunch: "bg-emerald-100 text-emerald-800",
+  dinner: "bg-violet-100 text-violet-800",
+  snack: "bg-pink-100 text-pink-800",
+};
+
 const MODE_CHIP: Record<Mode, string> = {
   vacation: "bg-sky-100 text-sky-800",
   normal: "bg-gray-100 text-gray-800",
@@ -142,6 +167,15 @@ export default function AiTestBenchPage() {
   const [actionsBusy, setActionsBusy] = useState(false);
   const [actionRec, setActionRec] = useState<ActionRec | null>(null);
   const [actionsError, setActionsError] = useState<string | null>(null);
+
+  // Meals (separate AI path — pulls from the meals table, not
+  // program_actions). Server-side allergen filter runs before the
+  // model sees any candidate.
+  const [mealSlot, setMealSlot] = useState<"breakfast" | "lunch" | "dinner" | "snack" | "all">("all");
+  const [mealsBusy, setMealsBusy] = useState(false);
+  const [mealRec, setMealRec] = useState<MealRec | null>(null);
+  const [mealsError, setMealsError] = useState<string | null>(null);
+  const [mealsCounts, setMealsCounts] = useState<{ candidate: number; total: number } | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -223,6 +257,35 @@ export default function AiTestBenchPage() {
       setModeError((e as Error).message);
     } finally {
       setModeBusy(false);
+    }
+  };
+
+  const runMealsRecommend = async () => {
+    setMealsBusy(true);
+    setMealsError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setMealsError("Not authenticated"); return; }
+      const res = await fetch("/api/ai/recommend-meals", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          clientId: session.user.id,
+          mode,
+          attestations: att,
+          meal_slot: mealSlot,
+          target_count: targetCount,
+          dryRun: true,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) { setMealsError(j?.error || "Meals recommendation failed"); return; }
+      setMealRec(j.recommendation);
+      setMealsCounts({ candidate: j.candidate_count, total: j.total_count });
+    } catch (e) {
+      setMealsError((e as Error).message);
+    } finally {
+      setMealsBusy(false);
     }
   };
 
@@ -518,6 +581,102 @@ export default function AiTestBenchPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Meals recommender — separate AI path from program_actions.
+              Pulls candidates from meals table; allergen filter runs
+              server-side before the model sees anything. */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Nutrition (meals library)</h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={mealSlot}
+                  onChange={(e) => setMealSlot(e.target.value as typeof mealSlot)}
+                  className="px-2 py-1 border border-gray-200 rounded text-xs bg-gray-50"
+                >
+                  <option value="all">All slots</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="snack">Snack</option>
+                </select>
+                <button
+                  onClick={runMealsRecommend}
+                  disabled={mealsBusy}
+                  className="px-3 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg disabled:opacity-50"
+                >
+                  {mealsBusy ? "Ranking…" : "AI rank meals"}
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Allergens are filtered server-side using the user&apos;s attestations vs ingredient names — the model never sees an unsafe meal. Mode also gates: sick = no-cook only, tired/vacation = no hard difficulty.
+            </p>
+
+            {mealsError && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3 mb-3">{mealsError}</div>}
+
+            {mealsCounts && (
+              <div className="text-xs text-gray-500 mb-3">
+                Server filter: <span className="font-semibold text-gray-800">{mealsCounts.candidate}</span> safe candidates from <span className="font-semibold text-gray-800">{mealsCounts.total}</span> total meals
+                {mealsCounts.candidate < mealsCounts.total && (
+                  <span className="text-amber-700"> · {mealsCounts.total - mealsCounts.candidate} dropped pre-AI (allergen or mode)</span>
+                )}
+              </div>
+            )}
+
+            {mealRec ? (
+              <div className="space-y-3">
+                {mealRec.overall_rationale && (
+                  <div className="bg-violet-50 border border-violet-200 rounded p-2 text-xs text-violet-900">
+                    <span className="font-semibold">Day shape: </span>{mealRec.overall_rationale}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  {mealRec.ordered_meals.map((m) => (
+                    <div key={m.id} className="border border-violet-200 rounded p-2 bg-violet-50/30">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[11px] font-bold text-violet-800">#{m.rank}</span>
+                        {m.slot && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${SLOT_CHIP[m.slot] || "bg-gray-100 text-gray-700"}`}>
+                            {m.slot}
+                          </span>
+                        )}
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {m.yield_score}/5</span>
+                        {m.is_high_protein_keystone && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
+                        )}
+                        {m.protein_g !== null && m.protein_g !== undefined && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.protein_g}g protein</span>
+                        )}
+                        {m.calories !== null && m.calories !== undefined && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.calories} kcal</span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-800">{m.name || m.id}</div>
+                      <div className="text-xs text-gray-600 italic mt-0.5">{m.rationale}</div>
+                    </div>
+                  ))}
+                </div>
+                {mealRec.dropped_meals.length > 0 && (
+                  <div>
+                    <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide mb-1 mt-2">
+                      Dropped ({mealRec.dropped_meals.length})
+                    </div>
+                    <div className="space-y-1">
+                      {mealRec.dropped_meals.map((d) => (
+                        <div key={d.id} className="border border-gray-200 rounded p-2 opacity-70">
+                          <div className="text-xs text-gray-700">{d.name}</div>
+                          <div className="text-[10px] text-gray-500 italic">{d.reason}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-400 italic">Click &quot;AI rank meals&quot; to see ranked nutrition picks.</div>
+            )}
           </div>
         </div>
       </div>
