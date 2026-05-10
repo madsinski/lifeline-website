@@ -177,6 +177,47 @@ export default function AiTestBenchPage() {
   const [mealsError, setMealsError] = useState<string | null>(null);
   const [mealsCounts, setMealsCounts] = useState<{ candidate: number; total: number } | null>(null);
 
+  // Swap state — keyed by source meal id. Stores the AI's alternatives
+  // alongside the meal that triggered the swap so we can render
+  // inline expanders.
+  const [swapBusyId, setSwapBusyId] = useState<string | null>(null);
+  const [swapsByMealId, setSwapsByMealId] = useState<Record<string, {
+    alternatives: { id: string; rank: number; rationale: string; name?: string; protein_g?: number | null; calories?: number | null; is_high_protein_keystone?: boolean }[];
+    overall: string;
+    error?: string;
+  }>>({});
+
+  const runMealSwap = async (mealId: string, count: number = 3) => {
+    setSwapBusyId(mealId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setSwapsByMealId((s) => ({ ...s, [mealId]: { alternatives: [], overall: "", error: "Not authenticated" } })); return; }
+      const res = await fetch("/api/ai/swap-meal", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          clientId: session.user.id,
+          current_meal_id: mealId,
+          alternatives_count: count,
+          mode,
+          attestations: att,
+          same_slot: true,
+          dryRun: true,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) {
+        setSwapsByMealId((s) => ({ ...s, [mealId]: { alternatives: [], overall: "", error: j?.error || "Swap failed" } }));
+        return;
+      }
+      setSwapsByMealId((s) => ({ ...s, [mealId]: { alternatives: j.alternatives, overall: j.overall_rationale } }));
+    } catch (e) {
+      setSwapsByMealId((s) => ({ ...s, [mealId]: { alternatives: [], overall: "", error: (e as Error).message } }));
+    } finally {
+      setSwapBusyId(null);
+    }
+  };
+
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
     const all: ActionRow[] = [];
@@ -303,7 +344,10 @@ export default function AiTestBenchPage() {
         metrics,
         attestations: att,
         target_count: targetCount,
-        candidate_actions: determFiltered.map((a) => ({
+        // Cap to 25 to keep the prompt + structured-output token budget
+        // sane. Real production callers will pass the user's actual day
+        // plan which is similarly bounded; the bench is a stress test.
+        candidate_actions: determFiltered.slice(0, 25).map((a) => ({
           key: a.action_key,
           label: a.label,
           category: a.category,
@@ -633,30 +677,64 @@ export default function AiTestBenchPage() {
                   </div>
                 )}
                 <div className="space-y-1">
-                  {mealRec.ordered_meals.map((m) => (
-                    <div key={m.id} className="border border-violet-200 rounded p-2 bg-violet-50/30">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-[11px] font-bold text-violet-800">#{m.rank}</span>
-                        {m.slot && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${SLOT_CHIP[m.slot] || "bg-gray-100 text-gray-700"}`}>
-                            {m.slot}
-                          </span>
-                        )}
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {m.yield_score}/5</span>
-                        {m.is_high_protein_keystone && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
-                        )}
-                        {m.protein_g !== null && m.protein_g !== undefined && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.protein_g}g protein</span>
-                        )}
-                        {m.calories !== null && m.calories !== undefined && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.calories} kcal</span>
+                  {mealRec.ordered_meals.map((m) => {
+                    const swap = swapsByMealId[m.id];
+                    return (
+                      <div key={m.id} className="border border-violet-200 rounded p-2 bg-violet-50/30">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-[11px] font-bold text-violet-800">#{m.rank}</span>
+                          {m.slot && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${SLOT_CHIP[m.slot] || "bg-gray-100 text-gray-700"}`}>
+                              {m.slot}
+                            </span>
+                          )}
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {m.yield_score}/5</span>
+                          {m.is_high_protein_keystone && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
+                          )}
+                          {m.protein_g !== null && m.protein_g !== undefined && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.protein_g}g protein</span>
+                          )}
+                          {m.calories !== null && m.calories !== undefined && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.calories} kcal</span>
+                          )}
+                          <button
+                            onClick={() => runMealSwap(m.id, 3)}
+                            disabled={swapBusyId === m.id}
+                            className="ml-auto text-[10px] px-2 py-0.5 rounded border border-violet-300 text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+                            title="Get 3 alternatives for this meal"
+                          >
+                            {swapBusyId === m.id ? "…" : "Swap (3)"}
+                          </button>
+                        </div>
+                        <div className="text-sm text-gray-800">{m.name || m.id}</div>
+                        <div className="text-xs text-gray-600 italic mt-0.5">{m.rationale}</div>
+                        {swap && (
+                          <div className="mt-2 pt-2 border-t border-violet-200">
+                            {swap.error && <div className="text-xs text-red-700 italic">{swap.error}</div>}
+                            {swap.overall && <div className="text-[11px] text-violet-900 italic mb-1">↳ {swap.overall}</div>}
+                            <div className="space-y-1">
+                              {swap.alternatives.map((alt) => (
+                                <div key={alt.id} className="border border-gray-200 rounded p-1.5 bg-white">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] font-semibold text-gray-600">#{alt.rank}</span>
+                                    {alt.is_high_protein_keystone && (
+                                      <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEY</span>
+                                    )}
+                                    <span className="text-xs text-gray-800">{alt.name || alt.id}</span>
+                                    {alt.protein_g !== null && alt.protein_g !== undefined && (
+                                      <span className="text-[10px] text-gray-500">{alt.protein_g}g protein</span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-gray-500 italic mt-0.5">{alt.rationale}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <div className="text-sm text-gray-800">{m.name || m.id}</div>
-                      <div className="text-xs text-gray-600 italic mt-0.5">{m.rationale}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {mealRec.dropped_meals.length > 0 && (
                   <div>

@@ -10,9 +10,10 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
-  AI_MODEL,
+  MODELS,
   attestationsBlock,
   callRecommender,
   logRecommendation,
@@ -122,8 +123,9 @@ Apply the high-yield policy: only suggest beast when the data clearly supports i
 
   let rec;
   try {
-    rec = await callRecommender(modeRecSchema, userPrompt, 800);
+    rec = await callRecommender(modeRecSchema, userPrompt, 800, "mode");
   } catch (e) {
+    Sentry.captureException(e, { tags: { route: "/api/ai/recommend-mode" } });
     return NextResponse.json({ ok: false, error: `AI generation failed: ${(e as Error).message}` }, { status: 502 });
   }
 
@@ -145,7 +147,7 @@ Apply the high-yield policy: only suggest beast when the data clearly supports i
     ok: true,
     recommendation: rec,
     log_id: logId,
-    model: AI_MODEL,
+    model: MODELS.mode,
     dry_run: dryRun,
   });
 }

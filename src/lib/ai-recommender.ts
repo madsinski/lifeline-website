@@ -17,38 +17,45 @@
 import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "./supabase-admin";
 
-export const AI_MODEL = "gpt-5.4";
+// Per-task model defaults. Mode picks need a touch more reasoning
+// than ranking; meal/action ranking + swap can use the lighter
+// model. Falls back to AI_MODEL if a task is missing. Override via
+// OPENAI_MODEL_<TASK> env if you need to A/B without a redeploy
+// (e.g. OPENAI_MODEL_MODE=gpt-5.4 to test with the bigger model).
+export const AI_MODEL = "gpt-5.4-mini";
+export const MODELS: Record<string, string> = {
+  mode: process.env.OPENAI_MODEL_MODE || "gpt-5.4",            // small data, reasoning-heavier
+  actions: process.env.OPENAI_MODEL_ACTIONS || AI_MODEL,        // ranking
+  meals: process.env.OPENAI_MODEL_MEALS || AI_MODEL,            // ranking
+  swap: process.env.OPENAI_MODEL_SWAP || AI_MODEL,              // narrow output
+};
+export type AiTask = "mode" | "actions" | "meals" | "swap";
 
-export const SYSTEM_PROMPT = `You are the recommendation engine for Lifeline Health, an Icelandic medical-grade digital health app. Lifeline runs evidence-based programs across four pillars (Exercise, Nutrition, Sleep, Mental wellness) — clinician-led, coach-delivered, free of medical-record data at boot (we pull from Medalia case-by-case six months in).
+// Compressed system prompt (~600 tokens vs ~1500 originally).
+// Every clause earns its place — verbose policy framing was
+// burning input tokens on every call.
+export const SYSTEM_PROMPT = `You are the recommendation engine for Lifeline Health (Icelandic medical-grade digital health, four pillars: Exercise/Nutrition/Sleep/Mental, clinician-led, no medical-record data at boot).
 
-OUR HIGH-YIELD POLICY (this is the lens for every choice):
-- Every recommendation must produce maximum behavior change for minimum time and effort.
-- Prefer one keystone habit that compounds over five small ones that fragment attention.
-- First-order health levers in priority: sleep > nutrition > movement > supplements.
-- Skip the recommendation when the marginal gain doesn't justify the time cost.
-- Consistency beats intensity. A 10-minute habit done 6x a week beats a 60-minute session done once.
-- When a candidate carries the KEYSTONE tag, it has been pre-vetted by the clinical team as the highest-yield item in its pillar. Strongly prefer keystones — only drop one when a safety rule forces it or when the user's mode genuinely makes it inappropriate.
-
-USER CONTEXT YOU RECEIVE:
-- Mode: vacation / normal / beast / sick / tired (the user's declared state today)
-- Attestations: self-declared physical limitations + dietary allergies. These are HARD CONSTRAINTS — you must never recommend against them.
-- Recent metrics (when available): sleep hours, HRV trend, RHR baseline + today, soreness self-rating
-- Available action library, each tagged with intensity, recovery requirements, mode-appropriateness, equipment, and pillar (exercise/nutrition/sleep/mental)
+HIGH-YIELD POLICY (lens for every choice):
+- Max behavior change for min time/effort. Consistency > intensity.
+- Priority order: sleep > nutrition > movement > supplements.
+- Drop a recommendation when marginal gain ≤ time cost.
+- KEYSTONE-tagged items are clinically pre-vetted as highest yield in their pillar — strongly prefer them; only drop for safety or mode mismatch.
 
 SAFETY RULES (non-negotiable):
-- Never recommend an action that conflicts with a stated limitation. Knee flagged → no high-impact / deep flexion. Back flagged → no heavy spinal loading. Cardio flagged → cap at moderate.
-- Never recommend foods containing a flagged allergen.
-- Never recommend Beast or vigorous exercise when sick or tired.
-- When sick, only sleep + hydration + breathwork.
-- When tired, cap exercise at gentle intensity (light strength / cardio / mobility OK; moderate sessions are not).
-- When in doubt about safety, drop the item. Empty list is better than unsafe list.
+- Never recommend against a stated limitation. Knee → no high-impact / deep flexion. Back → no heavy spinal load. Shoulder → no overhead. Wrist → no push-ups/planks. Cardio → cap at moderate.
+- Never recommend a flagged allergen.
+- Sick: only sleep + hydration + breathwork.
+- Tired: cap exercise at gentle (light strength/cardio/mobility OK; moderate sessions not).
+- When in doubt, drop the item. Empty > unsafe.
 
-OUTPUT REQUIREMENTS:
-- One short rationale per recommendation (≤ 20 words), grounded in the data you saw. No filler.
-- Yield score 1-5 where 5 = highest-yield given user's state.
-- English (this is internal logging).`;
+OUTPUT:
+- Per-item rationale ≤ 15 words, grounded in the data you saw. No filler.
+- Yield 1-5 (5 = highest-yield for this user today).
+- English (internal logging).`;
 
 // ─── Mode recommendation ─────────────────────────────────────
 
@@ -127,25 +134,44 @@ export interface CandidateAction {
 
 // Wraps generateText + Output.object so callers don't repeat the
 // boilerplate. Throws on failure with a useful error message.
+//
+// task lets callers opt into the per-task model default (gpt-5.4 for
+// "mode", mini for everything else — see MODELS). Caller can also
+// pass an explicit modelOverride to force a model at the call site.
+//
+// On failure, the exception is captured to Sentry with structured
+// context so /admin/errors picks it up — wraps the AI calls with
+// the same observability the rest of the app routes get.
 export async function callRecommender<T>(
   schema: z.ZodSchema<T>,
   userPrompt: string,
   maxOutputTokens = 1500,
+  task: AiTask = "actions",
+  modelOverride?: string,
 ): Promise<T> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY not set");
   }
-  const result = await generateText({
-    model: openai(AI_MODEL),
-    output: Output.object({ schema }),
-    system: SYSTEM_PROMPT,
-    prompt: userPrompt,
-    maxOutputTokens,
-  });
-  if (!result.experimental_output) {
-    throw new Error("Model returned no structured output");
+  const model = modelOverride || MODELS[task] || AI_MODEL;
+  try {
+    const result = await generateText({
+      model: openai(model),
+      output: Output.object({ schema }),
+      system: SYSTEM_PROMPT,
+      prompt: userPrompt,
+      maxOutputTokens,
+    });
+    if (!result.experimental_output) {
+      throw new Error("Model returned no structured output");
+    }
+    return result.experimental_output as T;
+  } catch (e) {
+    Sentry.captureException(e, {
+      tags: { component: "ai-recommender", task, model },
+      contexts: { ai: { promptLength: userPrompt.length, maxOutputTokens } },
+    });
+    throw e;
   }
-  return result.experimental_output as T;
 }
 
 // Writes a row to ai_recommendation_log via service role. Returns the
@@ -319,6 +345,61 @@ export function mealsBlock(meals: CandidateMeal[]): string {
     if (m.calories !== null) tags.push(`kcal=${m.calories}`);
     if (m.dietary_tags.length > 0) tags.push(`tags=[${m.dietary_tags.join(",")}]`);
     return `${i + 1}. id=${m.id} — ${m.name} (${tags.join(", ")})\n   ingredients: ${m.ingredients.slice(0, 8).join(", ")}${m.ingredients.length > 8 ? `, +${m.ingredients.length - 8} more` : ""}`;
+  }).join("\n");
+}
+
+// ─── Exercises (exercise library swap source) ───────────────
+// The 869-entry `exercises` table (free-exercise-db with MP4 loops).
+// Used for swap recommendations — when the user wants to replace
+// a single move within a session, we surface N alternatives that
+// match equipment + muscle group + difficulty.
+
+export interface CandidateExercise {
+  id: string;
+  name: string;
+  category: string;             // chest / back / legs / core / etc.
+  equipment: string;
+  difficulty: string;           // beginner / intermediate / advanced
+  muscles_targeted: string[];
+  has_video: boolean;
+}
+
+// Equipment groups for swap matching: bodyweight, free-weights,
+// cables/machines, accessories. The AI gets the explicit equipment
+// string; this constant is here for server-side filtering when the
+// caller wants a strict equipment match.
+export const EQUIPMENT_GROUPS: Record<string, string[]> = {
+  none: ["none", "bodyweight"],
+  bodyweight: ["none", "bodyweight"],
+  dumbbells: ["dumbbells", "kettlebell"],
+  kettlebell: ["kettlebell", "dumbbells"],
+  barbell: ["barbell"],
+  machine: ["machine", "cables"],
+  cables: ["cables", "machine"],
+  bands: ["bands"],
+  other: [],
+};
+
+export const swapRecSchema = z.object({
+  alternatives: z.array(z.object({
+    id: z.string(),
+    rank: z.number().int(),
+    rationale: z.string(),
+  })),
+  overall_rationale: z.string(),
+});
+
+export type SwapRecommendation = z.infer<typeof swapRecSchema>;
+
+export function exerciseListBlock(exercises: CandidateExercise[]): string {
+  if (exercises.length === 0) return "(no candidate exercises)";
+  return exercises.map((e, i) => {
+    const tags: string[] = [];
+    tags.push(`equipment=${e.equipment}`);
+    tags.push(`difficulty=${e.difficulty}`);
+    tags.push(`muscles=[${e.muscles_targeted.slice(0, 4).join(",")}]`);
+    if (e.has_video) tags.push("video");
+    return `${i + 1}. id=${e.id} — ${e.name} (${e.category}, ${tags.join(", ")})`;
   }).join("\n");
 }
 

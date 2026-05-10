@@ -13,9 +13,10 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
-  AI_MODEL,
+  MODELS,
   actionListBlock,
   actionRecSchema,
   attestationsBlock,
@@ -125,7 +126,7 @@ export async function POST(req: Request) {
       ok: true,
       recommendation: { ordered_actions: [], dropped_actions: [], overall_rationale: "No candidate actions provided." },
       log_id: null,
-      model: AI_MODEL,
+      model: MODELS.actions,
       dry_run: dryRun,
     });
   }
@@ -147,20 +148,21 @@ ${attestationsBlock(attestations as Attestations | null)}
 CANDIDATE ACTIONS:
 ${actionListBlock(candidate_actions as CandidateAction[])}
 
-For each action you keep:
-- Provide rank (1 = highest priority)
+For each action you KEEP (return at most ${target_count || 8} in ordered_actions):
+- rank (1 = highest priority)
 - yield_score 1-5 grounded in the high-yield policy and the user's state
-- One-line rationale (max 20 words) — say WHY this matters for THIS user TODAY
+- One-line rationale (max 15 words) — say WHY this matters for THIS user TODAY
 
-For each action you drop:
-- Reason (safety conflict, low yield, redundant with a higher-ranked item, etc.)
+For each action you DROP (return ONE WORD reasons to keep output compact):
+- reason: one of "low_yield", "redundant", "safety", "mode_mismatch", "over_budget"
 
-Return overall_rationale (1-2 sentences) summarising the day's shape.`;
+Return overall_rationale (1 sentence, max 25 words) summarising the day's shape.`;
 
   let rec;
   try {
-    rec = await callRecommender(actionRecSchema, userPrompt, 2500);
+    rec = await callRecommender(actionRecSchema, userPrompt, 5000, "actions");
   } catch (e) {
+    Sentry.captureException(e, { tags: { route: "/api/ai/recommend-actions" } });
     return NextResponse.json({ ok: false, error: `AI generation failed: ${(e as Error).message}` }, { status: 502 });
   }
 
@@ -185,7 +187,7 @@ Return overall_rationale (1-2 sentences) summarising the day's shape.`;
     ok: true,
     recommendation: rec,
     log_id: logId,
-    model: AI_MODEL,
+    model: MODELS.actions,
     dry_run: dryRun,
   });
 }

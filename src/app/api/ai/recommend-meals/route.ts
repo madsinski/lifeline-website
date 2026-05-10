@@ -16,9 +16,10 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
-  AI_MODEL,
+  MODELS,
   attestationsBlock,
   callRecommender,
   detectAllergenConflicts,
@@ -170,7 +171,7 @@ export async function POST(req: Request) {
       candidate_count: 0,
       total_count: allMeals.length,
       log_id: null,
-      model: AI_MODEL,
+      model: MODELS.meals,
       dry_run: dryRun,
     });
   }
@@ -199,8 +200,9 @@ Return overall_rationale (1-2 sentences) summarising the day's nutrition shape.`
 
   let rec;
   try {
-    rec = await callRecommender(mealRecSchema, userPrompt, 2000);
+    rec = await callRecommender(mealRecSchema, userPrompt, 2000, "meals");
   } catch (e) {
+    Sentry.captureException(e, { tags: { route: "/api/ai/recommend-meals" } });
     return NextResponse.json({ ok: false, error: `AI generation failed: ${(e as Error).message}` }, { status: 502 });
   }
 
@@ -259,7 +261,7 @@ Return overall_rationale (1-2 sentences) summarising the day's nutrition shape.`
     candidate_count: candidates.length,
     total_count: allMeals.length,
     log_id: logId,
-    model: AI_MODEL,
+    model: MODELS.meals,
     dry_run: dryRun,
   });
 }
