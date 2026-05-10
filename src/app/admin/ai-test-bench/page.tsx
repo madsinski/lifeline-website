@@ -206,6 +206,146 @@ export default function AiTestBenchPage() {
     error?: string;
   } | null>(null);
 
+  // Session swap. Pulls distinct (action_key, program_key, week, day)
+  // tuples from action_exercises that have at least 2 exercises
+  // mapped — those are real workout sessions worth testing
+  // environment swap on.
+  interface SessionLite {
+    action_key: string;
+    program_key: string;
+    week_range: number;
+    day_of_week: number;
+    exercise_count: number;
+    label: string;
+  }
+  const [sessionList, setSessionList] = useState<SessionLite[]>([]);
+  const [sessionListLoading, setSessionListLoading] = useState(false);
+  const [pickedSessionKey, setPickedSessionKey] = useState<string | null>(null);
+  const [targetEnv, setTargetEnv] = useState<"home" | "gym" | "hybrid">("home");
+  const [sessionSwapBusy, setSessionSwapBusy] = useState(false);
+  const [sessionSwapResult, setSessionSwapResult] = useState<{
+    session_label: string | null;
+    target_environment: string;
+    substitutions: {
+      current: { id: string; name: string; equipment: string; difficulty: string } | null;
+      alternative: { id: string; name: string; equipment: string; difficulty: string; has_video: boolean; muscles_targeted: string[] } | null;
+      rationale: string;
+    }[];
+    no_alternative_for: { id: string; name: string; reason: string }[];
+    overall_rationale: string;
+    error?: string;
+  } | null>(null);
+
+  const loadSessionList = useCallback(async () => {
+    if (sessionList.length > 0) return;
+    setSessionListLoading(true);
+    try {
+      // Pull all action_exercises rows in chunks, then group client-side.
+      // Production scale is bounded (~thousands), and Supabase's count
+      // aggregations across distinct grouped keys are awkward so this
+      // is the simplest path.
+      const { data: junctionRows } = await supabase
+        .from("action_exercises")
+        .select("action_key, program_key, week_range, day_of_week, exercise_name")
+        .order("program_key")
+        .order("week_range")
+        .order("day_of_week")
+        .limit(5000);
+      if (!junctionRows) { setSessionList([]); return; }
+
+      // Group by (action_key, program_key, week, day) and count.
+      const map = new Map<string, SessionLite & { actionKey: string }>();
+      for (const r of junctionRows as Array<{ action_key: string; program_key: string; week_range: number; day_of_week: number; exercise_name: string }>) {
+        const key = `${r.action_key}::${r.program_key}::${r.week_range}::${r.day_of_week}`;
+        const existing = map.get(key);
+        if (existing) {
+          existing.exercise_count += 1;
+        } else {
+          map.set(key, {
+            actionKey: r.action_key,
+            action_key: r.action_key,
+            program_key: r.program_key,
+            week_range: r.week_range,
+            day_of_week: r.day_of_week,
+            exercise_count: 1,
+            label: "",
+          });
+        }
+      }
+
+      // Filter to sessions with >=2 exercises (real workouts) + look up
+      // labels via program_actions for nicer display.
+      const candidates = Array.from(map.values()).filter((s) => s.exercise_count >= 2);
+      const actionKeys = Array.from(new Set(candidates.map((s) => s.actionKey)));
+      const labels = new Map<string, string>();
+      if (actionKeys.length > 0) {
+        const { data: actionRows } = await supabase
+          .from("program_actions")
+          .select("action_key, label")
+          .in("action_key", actionKeys.slice(0, 500));
+        for (const r of (actionRows || []) as Array<{ action_key: string; label: string }>) {
+          if (!labels.has(r.action_key)) labels.set(r.action_key, r.label);
+        }
+      }
+      for (const c of candidates) c.label = labels.get(c.actionKey) || c.action_key;
+
+      // Sort: longest sessions first, then alphabetically.
+      candidates.sort((a, b) => b.exercise_count - a.exercise_count || a.label.localeCompare(b.label));
+      setSessionList(candidates.slice(0, 200));
+    } finally {
+      setSessionListLoading(false);
+    }
+  }, [sessionList.length]);
+
+  const runSessionSwap = async () => {
+    if (!pickedSessionKey) return;
+    const session = sessionList.find((s) => `${s.action_key}::${s.program_key}::${s.week_range}::${s.day_of_week}` === pickedSessionKey);
+    if (!session) return;
+    setSessionSwapBusy(true);
+    setSessionSwapResult(null);
+    try {
+      const { data: { session: auth } } = await supabase.auth.getSession();
+      if (!auth?.access_token) {
+        setSessionSwapResult({ session_label: session.label, target_environment: targetEnv, substitutions: [], no_alternative_for: [], overall_rationale: "", error: "Not authenticated" });
+        return;
+      }
+      const res = await fetch("/api/ai/swap-session", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${auth.access_token}` },
+        body: JSON.stringify({
+          clientId: auth.user.id,
+          source: {
+            mode: "from_session",
+            action_key: session.action_key,
+            program_key: session.program_key,
+            week_range: session.week_range,
+            day_of_week: session.day_of_week,
+          },
+          target_environment: targetEnv,
+          user_mode: mode,
+          attestations: att,
+          dryRun: true,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) {
+        setSessionSwapResult({ session_label: session.label, target_environment: targetEnv, substitutions: [], no_alternative_for: [], overall_rationale: "", error: j?.error || "Swap failed" });
+        return;
+      }
+      setSessionSwapResult({
+        session_label: j.session_label,
+        target_environment: j.target_environment,
+        substitutions: j.substitutions,
+        no_alternative_for: j.no_alternative_for,
+        overall_rationale: j.overall_rationale,
+      });
+    } catch (e) {
+      setSessionSwapResult({ session_label: session.label, target_environment: targetEnv, substitutions: [], no_alternative_for: [], overall_rationale: "", error: (e as Error).message });
+    } finally {
+      setSessionSwapBusy(false);
+    }
+  };
+
   const loadExerciseLib = useCallback(async () => {
     if (exerciseLib.length > 0) return;
     setExerciseLibLoading(true);
@@ -325,8 +465,9 @@ export default function AiTestBenchPage() {
     if (guard.authorized) {
       loadCatalog();
       loadExerciseLib();
+      loadSessionList();
     }
-  }, [guard.authorized, loadCatalog, loadExerciseLib]);
+  }, [guard.authorized, loadCatalog, loadExerciseLib, loadSessionList]);
 
   // Sample candidates: pillar filter + dedupe by (category, label)
   // + cap at 60 to keep the prompt size sane.
@@ -968,6 +1109,121 @@ export default function AiTestBenchPage() {
                         <div className="text-xs text-gray-600 italic mt-0.5">{alt.rationale}</div>
                       </div>
                     ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Session swap. Take a whole workout (action_key + program +
+              week + day) and rebuild for a different environment.
+              Pulls candidate sessions from action_exercises (>=2
+              exercises mapped) and lets the AI substitute each
+              constituent exercise. */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Session swap (gym ↔ home)</h2>
+              <span className="text-xs text-gray-500">
+                {sessionListLoading ? "loading sessions…" : `${sessionList.length} mapped sessions`}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Take a whole workout session (e.g. &quot;Full Body A — Push focus&quot; with 5 gym exercises) and rebuild it for a different environment. Each exercise gets a same-muscle alternative compatible with the target environment, with limitation safety enforced server-side.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Pick a session</label>
+                <select
+                  value={pickedSessionKey || ""}
+                  onChange={(e) => setPickedSessionKey(e.target.value || null)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  size={6}
+                >
+                  <option value="">— pick a session —</option>
+                  {sessionList.map((s) => {
+                    const key = `${s.action_key}::${s.program_key}::${s.week_range}::${s.day_of_week}`;
+                    return (
+                      <option key={key} value={key}>
+                        {s.label} · {s.exercise_count}ex · {s.program_key} · w{s.week_range}d{s.day_of_week}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[10px] text-gray-400 mt-1">Showing top {sessionList.length} sessions by exercise count.</p>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Target environment</label>
+                <select
+                  value={targetEnv}
+                  onChange={(e) => setTargetEnv(e.target.value as typeof targetEnv)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2"
+                >
+                  <option value="home">Home (bodyweight + dumbbells + bands)</option>
+                  <option value="gym">Gym (barbell + machines + cables)</option>
+                  <option value="hybrid">Hybrid (anything goes)</option>
+                </select>
+                <button
+                  onClick={runSessionSwap}
+                  disabled={!pickedSessionKey || sessionSwapBusy}
+                  className="w-full px-3 py-2 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg disabled:opacity-50"
+                >
+                  {sessionSwapBusy ? "Swapping…" : "Swap session"}
+                </button>
+              </div>
+            </div>
+
+            {sessionSwapResult && (
+              <div className="space-y-3">
+                {sessionSwapResult.error && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">{sessionSwapResult.error}</div>}
+                {!sessionSwapResult.error && (
+                  <>
+                    {sessionSwapResult.session_label && (
+                      <div className="text-xs text-gray-500">
+                        Session: <span className="font-semibold text-gray-800">{sessionSwapResult.session_label}</span> →
+                        <span className="font-semibold text-violet-700"> {sessionSwapResult.target_environment}</span>
+                      </div>
+                    )}
+                    {sessionSwapResult.overall_rationale && (
+                      <div className="bg-violet-50 border border-violet-200 rounded p-2 text-xs text-violet-900">
+                        <span className="font-semibold">Swap shape: </span>{sessionSwapResult.overall_rationale}
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      {sessionSwapResult.substitutions.map((sub, i) => (
+                        <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-2 border border-gray-200 rounded p-2 bg-white">
+                          <div>
+                            <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">From</div>
+                            <div className="text-sm text-gray-800">{sub.current?.name || "?"}</div>
+                            <div className="text-[10px] text-gray-500">{sub.current?.equipment} · {sub.current?.difficulty}</div>
+                          </div>
+                          <div className="border-l border-gray-100 md:pl-3">
+                            <div className="text-[10px] text-violet-700 uppercase font-semibold mb-1 flex items-center gap-1">
+                              <span>→ To</span>
+                              {sub.alternative?.has_video && <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-800">video</span>}
+                            </div>
+                            <div className="text-sm text-gray-800">{sub.alternative?.name || "?"}</div>
+                            <div className="text-[10px] text-gray-500">{sub.alternative?.equipment} · {sub.alternative?.difficulty}</div>
+                            <div className="text-[11px] text-gray-600 italic mt-1">{sub.rationale}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {sessionSwapResult.no_alternative_for.length > 0 && (
+                      <div>
+                        <div className="text-[10px] text-amber-700 uppercase font-semibold mb-1">
+                          No safe alternative ({sessionSwapResult.no_alternative_for.length})
+                        </div>
+                        <div className="space-y-1">
+                          {sessionSwapResult.no_alternative_for.map((d) => (
+                            <div key={d.id} className="border border-amber-200 rounded p-2 bg-amber-50/40">
+                              <div className="text-xs text-gray-700">{d.name}</div>
+                              <div className="text-[10px] text-amber-700 italic">{d.reason}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
