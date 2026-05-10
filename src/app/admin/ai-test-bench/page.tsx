@@ -33,6 +33,7 @@ interface ActionRow {
   appropriate_modes: Mode[] | null;
   equipment_needed: string[] | null;
   is_keystone: boolean | null;
+  is_actionable: boolean | null;
 }
 
 interface Metrics {
@@ -187,6 +188,85 @@ export default function AiTestBenchPage() {
     error?: string;
   }>>({});
 
+  // Exercise library swap. The exercises table has 869 entries
+  // (free-exercise-db). User picks one + count, server filters by
+  // equipment/limitation/mode + AI ranks N alternatives.
+  interface ExerciseLite { id: string; name: string; category: string; equipment: string; difficulty: string }
+  const [exerciseLib, setExerciseLib] = useState<ExerciseLite[]>([]);
+  const [exerciseLibLoading, setExerciseLibLoading] = useState(false);
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [pickedExerciseId, setPickedExerciseId] = useState<string | null>(null);
+  const [exerciseSwapCount, setExerciseSwapCount] = useState(3);
+  const [exerciseSwapBusy, setExerciseSwapBusy] = useState(false);
+  const [exerciseSwapResult, setExerciseSwapResult] = useState<{
+    current: { id: string; name: string; category: string; equipment: string; difficulty: string };
+    alternatives: { id: string; rank: number; rationale: string; name?: string; category?: string; equipment?: string; difficulty?: string; muscles_targeted?: string[]; has_video?: boolean }[];
+    overall: string;
+    candidate_count: number;
+    error?: string;
+  } | null>(null);
+
+  const loadExerciseLib = useCallback(async () => {
+    if (exerciseLib.length > 0) return;
+    setExerciseLibLoading(true);
+    const all: ExerciseLite[] = [];
+    let from = 0;
+    while (from < 2000) {
+      const { data } = await supabase
+        .from("exercises")
+        .select("id, name, category, equipment, difficulty")
+        .order("name")
+        .range(from, from + 999);
+      if (!data || data.length === 0) break;
+      all.push(...(data as ExerciseLite[]));
+      if (data.length < 1000) break;
+      from += 1000;
+    }
+    setExerciseLib(all);
+    setExerciseLibLoading(false);
+  }, [exerciseLib.length]);
+
+  const runExerciseSwap = async () => {
+    if (!pickedExerciseId) return;
+    setExerciseSwapBusy(true);
+    setExerciseSwapResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setExerciseSwapResult({ current: { id: "", name: "", category: "", equipment: "", difficulty: "" }, alternatives: [], overall: "", candidate_count: 0, error: "Not authenticated" });
+        return;
+      }
+      const res = await fetch("/api/ai/swap-exercise", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          clientId: session.user.id,
+          current_exercise_id: pickedExerciseId,
+          alternatives_count: exerciseSwapCount,
+          mode,
+          attestations: att,
+          same_category: true,
+          dryRun: true,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) {
+        setExerciseSwapResult({ current: { id: "", name: "", category: "", equipment: "", difficulty: "" }, alternatives: [], overall: "", candidate_count: 0, error: j?.error || "Swap failed" });
+        return;
+      }
+      setExerciseSwapResult({
+        current: j.current_exercise,
+        alternatives: j.alternatives,
+        overall: j.overall_rationale,
+        candidate_count: j.candidate_count,
+      });
+    } catch (e) {
+      setExerciseSwapResult({ current: { id: "", name: "", category: "", equipment: "", difficulty: "" }, alternatives: [], overall: "", candidate_count: 0, error: (e as Error).message });
+    } finally {
+      setExerciseSwapBusy(false);
+    }
+  };
+
   const runMealSwap = async (mealId: string, count: number = 3) => {
     setSwapBusyId(mealId);
     try {
@@ -226,8 +306,9 @@ export default function AiTestBenchPage() {
     while (from < 20000) {
       const { data } = await supabase
         .from("program_actions")
-        .select("id, action_key, label, category, intensity, min_recovery_state, appropriate_modes, equipment_needed, is_keystone, audited_at")
+        .select("id, action_key, label, category, intensity, min_recovery_state, appropriate_modes, equipment_needed, is_keystone, is_actionable, audited_at")
         .not("audited_at", "is", null)
+        .eq("is_actionable", true)
         .order("category", { ascending: true })
         .order("label", { ascending: true })
         .range(from, from + PAGE - 1);
@@ -241,8 +322,11 @@ export default function AiTestBenchPage() {
   }, []);
 
   useEffect(() => {
-    if (guard.authorized) loadCatalog();
-  }, [guard.authorized, loadCatalog]);
+    if (guard.authorized) {
+      loadCatalog();
+      loadExerciseLib();
+    }
+  }, [guard.authorized, loadCatalog, loadExerciseLib]);
 
   // Sample candidates: pillar filter + dedupe by action_key + cap at
   // 60 to keep the prompt size sane. Real production callers will pass
@@ -767,6 +851,108 @@ export default function AiTestBenchPage() {
               </div>
             ) : (
               <div className="text-xs text-gray-400 italic">Click &quot;AI rank meals&quot; to see ranked nutrition picks.</div>
+            )}
+          </div>
+
+          {/* Exercise library swap. Pick any exercise from the 869-entry
+              library + count → AI returns N alternatives that match
+              equipment + muscle group + difficulty, with limitation
+              safety enforced server-side. */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Exercise library swap</h2>
+              <span className="text-xs text-gray-500">
+                Library: {exerciseLibLoading ? "loading…" : `${exerciseLib.length} exercises`}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Pick any exercise from the library — the AI returns alternatives in the same category, filtered server-side by equipment compat + your attestation limitations + mode caps.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Search & pick exercise</label>
+                <input
+                  type="text"
+                  placeholder="Type to filter (squat, push, row…)"
+                  value={exerciseSearch}
+                  onChange={(e) => setExerciseSearch(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2"
+                />
+                <select
+                  value={pickedExerciseId || ""}
+                  onChange={(e) => setPickedExerciseId(e.target.value || null)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  size={6}
+                >
+                  <option value="">— pick an exercise —</option>
+                  {exerciseLib
+                    .filter((ex) => !exerciseSearch || ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()))
+                    .slice(0, 100)
+                    .map((ex) => (
+                      <option key={ex.id} value={ex.id}>
+                        {ex.name} ({ex.category}, {ex.equipment}, {ex.difficulty})
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[10px] text-gray-400 mt-1">Showing first 100 matches. Type to narrow.</p>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Alternatives count</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={exerciseSwapCount}
+                  onChange={(e) => setExerciseSwapCount(Math.max(1, Math.min(8, parseInt(e.target.value || "3", 10))))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2"
+                />
+                <button
+                  onClick={runExerciseSwap}
+                  disabled={!pickedExerciseId || exerciseSwapBusy}
+                  className="w-full px-3 py-2 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg disabled:opacity-50"
+                >
+                  {exerciseSwapBusy ? "Ranking…" : "Get alternatives"}
+                </button>
+              </div>
+            </div>
+
+            {exerciseSwapResult && (
+              <div className="space-y-2">
+                {exerciseSwapResult.error && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">{exerciseSwapResult.error}</div>}
+                {!exerciseSwapResult.error && (
+                  <>
+                    <div className="text-xs text-gray-500">
+                      Server filter: <span className="font-semibold text-gray-800">{exerciseSwapResult.candidate_count}</span> safe candidates
+                    </div>
+                    {exerciseSwapResult.overall && (
+                      <div className="bg-violet-50 border border-violet-200 rounded p-2 text-xs text-violet-900">
+                        <span className="font-semibold">Swap shape: </span>{exerciseSwapResult.overall}
+                      </div>
+                    )}
+                    <div className="bg-gray-50 border border-gray-200 rounded p-2">
+                      <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">Original</div>
+                      <div className="text-sm text-gray-800">{exerciseSwapResult.current.name}</div>
+                      <div className="text-[10px] text-gray-500">{exerciseSwapResult.current.category} · {exerciseSwapResult.current.equipment} · {exerciseSwapResult.current.difficulty}</div>
+                    </div>
+                    {exerciseSwapResult.alternatives.map((alt) => (
+                      <div key={alt.id} className="border border-violet-200 rounded p-2 bg-violet-50/30">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-[11px] font-bold text-violet-800">#{alt.rank}</span>
+                          {alt.equipment && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{alt.equipment}</span>}
+                          {alt.difficulty && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{alt.difficulty}</span>}
+                          {alt.has_video && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">video</span>}
+                        </div>
+                        <div className="text-sm text-gray-800">{alt.name || alt.id}</div>
+                        {alt.muscles_targeted && alt.muscles_targeted.length > 0 && (
+                          <div className="text-[10px] text-gray-500">muscles: {alt.muscles_targeted.slice(0, 5).join(", ")}</div>
+                        )}
+                        <div className="text-xs text-gray-600 italic mt-0.5">{alt.rationale}</div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
