@@ -124,6 +124,16 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/ai-feedback",
+    label: "AI feedback",
+    badgeType: "ai-feedback",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/errors",
     label: "Error logs",
     badgeType: "errors",
@@ -195,6 +205,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [openDsrCount, setOpenDsrCount] = useState(0);
   const [overdueAccessReviewCount, setOverdueAccessReviewCount] = useState(0);
   const [openErrorsCount, setOpenErrorsCount] = useState(0);
+  const [openAiFeedbackCount, setOpenAiFeedbackCount] = useState(0);
   const [pendingSurveysCount, setPendingSurveysCount] = useState(0);
   const [newSurveyResponsesCount, setNewSurveyResponsesCount] = useState(0);
   const [newBookingsCount, setNewBookingsCount] = useState(0);
@@ -273,6 +284,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .select("*", { count: "exact", head: true })
         .is("resolved_at", null);
       if (!errErr && errCount !== null) setOpenErrorsCount(errCount);
+    } catch {}
+    // Open AI recommendation feedback ("doesn't feel right" reports
+    // from the app). Counts open + reviewed (i.e. anything not yet
+    // applied or dismissed) so escalated patterns stay visible until
+    // the prompt/filter is actually tuned.
+    try {
+      const { count: aifbCount, error: aifbErr } = await supabase
+        .from("ai_recommendation_feedback")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["open", "reviewed"]);
+      if (!aifbErr && aifbCount !== null) setOpenAiFeedbackCount(aifbCount);
     } catch {}
     // Surveys awaiting approval — admin/medical_advisor needs to
     // review the question structure. Always-on signal (kept for the
@@ -676,6 +698,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/data-requests" && !canViewAllSections) return false;
             if (link.href === "/admin/access-review" && !canViewAllSections) return false;
             if (link.href === "/admin/errors" && !canViewAllSections) return false;
+            if (link.href === "/admin/ai-feedback" && !canViewAllSections) return false;
             if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !canViewAllSections) return false;
             if (link.href === "/admin/content" && !userPermissions.includes("manage_programs") && !canViewAllSections) return false;
             return true;
@@ -695,6 +718,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               : badgeType === "data-requests" ? openDsrCount
               : badgeType === "access-review" ? overdueAccessReviewCount
               : badgeType === "errors" ? openErrorsCount
+              : badgeType === "ai-feedback" ? openAiFeedbackCount
               // Surveys badge counts only new completed responses in
               // the last 7 days. Pending-approval state is more of an
               // editorial signal and gets its own treatment inside the
