@@ -262,7 +262,7 @@ export async function POST(req: Request) {
       if (c.has_video) tags.push("video");
       return `   ${j + 1}. id=${c.id} — ${c.name} (${tags.join(", ")})`;
     }).join("\n");
-    return `EXERCISE ${i + 1}: ${p.current.name} (current equipment: ${p.current.equipment}, difficulty: ${p.current.difficulty})
+    return `EXERCISE ${i + 1} (current_exercise_id=${p.current.id}): ${p.current.name} (current equipment: ${p.current.equipment}, difficulty: ${p.current.difficulty})
 Candidate alternatives:
 ${candList}`;
   }).join("\n\n");
@@ -276,7 +276,9 @@ USER MODE: ${user_mode}
 USER ATTESTATIONS (informational — limitations + cardio caps already filtered):
 ${attestationsBlock(attestations as Attestations | null)}
 
-For each EXERCISE listed below, pick exactly ONE chosen_alternative_id from its candidate list that:
+For EACH exercise below, return one substitution object. Echo the current_exercise_id EXACTLY as given (it's in parentheses on the EXERCISE line) and pick exactly one chosen_alternative_id from that exercise's candidate list.
+
+Selection criteria for the alternative:
 - Hits the same muscle group / movement pattern.
 - Matches the difficulty within one tier.
 - Prefers items with video.
@@ -297,9 +299,18 @@ Return overall_rationale (1-2 sentences) summarising how the session translates 
   }
 
   // Hydrate the substitutions with names + metadata for the response.
-  const substitutions = rec.substitutions.map((s) => {
-    const pair = swappable.find((p) => p.current.id === s.current_exercise_id);
-    const altMeta = pair?.candidates.find((c) => c.id === s.chosen_alternative_id);
+  // Fallback chain for matching the "current" side: exact id match
+  // first; if the AI hallucinated an id, fall back to position-based
+  // matching against the swappable list (one substitution per current
+  // exercise in the prompt order). The "alternative" side has the
+  // same fallback against that current's candidate list.
+  const substitutions = rec.substitutions.map((s, idx) => {
+    let pair = swappable.find((p) => p.current.id === s.current_exercise_id);
+    if (!pair && idx < swappable.length) pair = swappable[idx];
+    let altMeta = pair?.candidates.find((c) => c.id === s.chosen_alternative_id);
+    // If the AI returned an unrecognised alt id, default to the first
+    // candidate (the server already pre-sorted by beginner-first).
+    if (!altMeta && pair && pair.candidates.length > 0) altMeta = pair.candidates[0];
     return {
       current: pair ? { id: pair.current.id, name: pair.current.name, equipment: pair.current.equipment, difficulty: pair.current.difficulty } : null,
       alternative: altMeta ? { id: altMeta.id, name: altMeta.name, equipment: altMeta.equipment, difficulty: altMeta.difficulty, has_video: altMeta.has_video, muscles_targeted: altMeta.muscles_targeted } : null,
