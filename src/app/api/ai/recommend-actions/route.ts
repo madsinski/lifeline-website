@@ -40,6 +40,7 @@ const actionSchema = z.object({
   equipment_needed: z.array(z.string()).nullable(),
   estimated_minutes: z.number().nullable(),
   is_priority: z.boolean().optional(),
+  is_keystone: z.boolean().optional(),
 });
 
 const requestSchema = z.object({

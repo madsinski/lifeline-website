@@ -32,6 +32,7 @@ interface ActionRow {
   min_recovery_state: RecoveryFloor | null;
   appropriate_modes: Mode[] | null;
   equipment_needed: string[] | null;
+  is_keystone: boolean | null;
 }
 
 interface Metrics {
@@ -150,7 +151,7 @@ export default function AiTestBenchPage() {
     while (from < 20000) {
       const { data } = await supabase
         .from("program_actions")
-        .select("id, action_key, label, category, intensity, min_recovery_state, appropriate_modes, equipment_needed, audited_at")
+        .select("id, action_key, label, category, intensity, min_recovery_state, appropriate_modes, equipment_needed, is_keystone, audited_at")
         .not("audited_at", "is", null)
         .order("category", { ascending: true })
         .order("label", { ascending: true })
@@ -249,6 +250,7 @@ export default function AiTestBenchPage() {
           equipment_needed: a.equipment_needed,
           estimated_minutes: null,
           is_priority: false,
+          is_keystone: !!a.is_keystone,
         })),
         dryRun: true,
       };
@@ -429,11 +431,16 @@ export default function AiTestBenchPage() {
                   {determFiltered.map((a) => {
                     const aiRank = aiOrderByKey.get(a.action_key);
                     return (
-                      <div key={a.id} className="border border-gray-200 rounded p-2">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div key={a.id} className={`border rounded p-2 ${a.is_keystone ? "border-emerald-300 bg-emerald-50/40" : "border-gray-200"}`}>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[a.category] || PILLAR_CHIP.general}`}>
                             {a.category}
                           </span>
+                          {a.is_keystone && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold" title="Pre-vetted as highest-yield in pillar">
+                              KEYSTONE
+                            </span>
+                          )}
                           {a.intensity && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{a.intensity}</span>}
                           {aiRank !== undefined && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 font-bold">

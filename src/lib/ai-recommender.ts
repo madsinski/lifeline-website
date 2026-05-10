@@ -29,6 +29,7 @@ OUR HIGH-YIELD POLICY (this is the lens for every choice):
 - First-order health levers in priority: sleep > nutrition > movement > supplements.
 - Skip the recommendation when the marginal gain doesn't justify the time cost.
 - Consistency beats intensity. A 10-minute habit done 6x a week beats a 60-minute session done once.
+- When a candidate carries the KEYSTONE tag, it has been pre-vetted by the clinical team as the highest-yield item in its pillar. Strongly prefer keystones — only drop one when a safety rule forces it or when the user's mode genuinely makes it inappropriate.
 
 USER CONTEXT YOU RECEIVE:
 - Mode: vacation / normal / beast / sick / tired (the user's declared state today)
@@ -114,6 +115,12 @@ export interface CandidateAction {
   equipment_needed: string[] | null;
   estimated_minutes: number | null;
   is_priority?: boolean;
+  // Keystone habits are pre-vetted as the highest-yield items in
+  // their pillar (sleep regularity, protein anchoring at breakfast,
+  // morning calm/gratitude, daily step count). The model is
+  // instructed to strongly prefer keystones — they encode clinical
+  // judgement we don't want to keep re-deriving from the prompt.
+  is_keystone?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -217,6 +224,8 @@ export function actionListBlock(actions: CandidateAction[]): string {
   if (actions.length === 0) return "(no candidate actions)";
   return actions.map((a, i) => {
     const tags: string[] = [];
+    // Keystone first so it's the most visible signal on each line.
+    if (a.is_keystone) tags.push("KEYSTONE");
     if (a.intensity) tags.push(`intensity=${a.intensity}`);
     if (a.min_recovery_state) tags.push(`recovery=${a.min_recovery_state}`);
     if (a.appropriate_modes && a.appropriate_modes.length > 0) tags.push(`modes=[${a.appropriate_modes.join(",")}]`);
