@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   // Truncate large fields defensively.
   const trunc = (s: string | undefined, n: number) => s ? s.slice(0, n) : null;
 
-  await supabaseAdmin.from("app_errors").insert({
+  const { error: insertErr } = await supabaseAdmin.from("app_errors").insert({
     message: trunc(redact(body.message), 2000),
     stack: trunc(redact(body.stack), 8000),
     url: trunc(body.url, 1000),
@@ -69,5 +69,11 @@ export async function POST(req: Request) {
     metadata: body.metadata || null,
   });
 
+  // The original capture endpoint silently swallowed insert errors —
+  // returning {ok:true} even when the row didn't land. Surface the
+  // error now so the migration off Sentry is verifiable.
+  if (insertErr) {
+    return NextResponse.json({ ok: false, error: insertErr.message, code: insertErr.code, details: insertErr.details }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }
