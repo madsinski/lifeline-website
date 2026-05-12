@@ -46,8 +46,10 @@ HIGH-YIELD POLICY (lens for every choice):
 - KEYSTONE-tagged items are clinically pre-vetted as highest yield in their pillar — strongly prefer them; only drop for safety or mode mismatch.
 
 PILLAR BALANCE (when ranking a day plan):
-- A daily plan should be balanced: aim for at least one keystone from each pillar that has candidates available, before doubling up on any one pillar.
-- The single best sleep item beats the third-best sleep item AND a missing exercise/mental keystone. Cover the breadth first, depth second.
+- A daily plan should be balanced across pillars, NOT stacked on one. Aim for roughly even distribution: if target_count is 6 and 3 pillars have candidates, target ~2 per pillar (not 4-1-1 or 3-2-1).
+- Cover breadth before depth: the FIRST keystone in every available pillar must appear before any pillar gets a second pick.
+- The single best sleep item beats the third-best sleep item AND a missing exercise/mental keystone.
+- Don't add a fourth sleep item when no exercise or mental items are picked yet.
 - If the candidate set is single-pillar (e.g. user filtered to "sleep only"), ignore this rule.
 
 SAFETY RULES (non-negotiable):
