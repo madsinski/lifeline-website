@@ -82,6 +82,16 @@ const requestSchema = z.object({
   // Whether to include meals in the candidate set. Defaults true.
   // RN callers can flip false if they only want non-nutrition ranking.
   include_meals: z.boolean().default(true),
+  // Program awareness — where the user is in their multi-week program.
+  // Used by the AI to respect the prescribed shape (e.g. week 3 push
+  // day shouldn't be replaced with a sleep-only plan because metrics
+  // are mid). All three are optional; the AI falls back to "no program
+  // context" when omitted.
+  program_context: z.object({
+    week_number: z.number().int().min(1).optional(),
+    day_of_week: z.number().int().min(0).max(6).optional(),
+    program_duration_weeks: z.number().int().min(1).optional(),
+  }).optional(),
   dryRun: z.boolean().optional(),
 });
 
@@ -150,10 +160,34 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: `Invalid body: ${parsed.error.message}` }, { status: 400 });
   }
-  const { mode, metrics, attestations, candidate_actions, target_count, include_meals, dryRun = false } = parsed.data;
+  const { mode, metrics, attestations, candidate_actions, target_count, include_meals, program_context, dryRun = false } = parsed.data;
 
   const auth = await resolveAuth(req, parsed.data.clientId, dryRun);
   if (!auth.ok) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+
+  // ─── Pull recent picks from ai_recommendation_log ──────────
+  // The last 3 days of accepted/overridden recommendations help the
+  // AI avoid back-to-back muscle groups + complete the program over
+  // a week. Server-side pull (caller doesn't pass them) so the data
+  // stays within the user's authenticated scope. Service-role read.
+  type RecentPick = { date: string; mode: string; output: Record<string, unknown> };
+  const cutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentRows } = await supabaseAdmin
+    .from("ai_recommendation_log")
+    .select("created_at, type, input_snapshot, output, user_action")
+    .eq("client_id", auth.clientId)
+    .gte("created_at", cutoff)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const recentPicks: RecentPick[] = ((recentRows || []) as Array<{ created_at: string; input_snapshot: Record<string, unknown> | null; output: Record<string, unknown> | null; user_action: string | null }>)
+    // Skip rows the user explicitly overrode or dismissed; AI shouldn't
+    // count an overridden suggestion as "what the user did".
+    .filter((r) => r.user_action !== "overridden" && r.user_action !== "dismissed")
+    .map((r) => ({
+      date: r.created_at.slice(0, 10),
+      mode: String((r.input_snapshot as Record<string, unknown>)?.mode || "unknown"),
+      output: r.output || {},
+    }));
 
   // ─── Pull meal candidates if requested ──────────────────────
   // Server-side allergen + mode filter — never let the model see a
@@ -249,10 +283,22 @@ export async function POST(req: Request) {
     return `${candidate_actions.length + i + 1}. source=meal category=nutrition key=${m.id} — ${m.name} (${tags.join(", ")})`;
   }).join("\n");
 
+  // Format program-context + recent-picks blocks (omitted entirely
+  // when no data, so the prompt stays compact for early-onboarding
+  // users with no history yet).
+  const programContextBlock = program_context
+    ? `\nPROGRAM CONTEXT:\n- Week ${program_context.week_number ?? "?"} of ${program_context.program_duration_weeks ?? "?"}, day ${program_context.day_of_week ?? "?"} of 7.`
+    : "";
+
+  const recentPicksBlock = recentPicks.length > 0
+    ? `\nRECENT PICKS (last 3 days, accepted only):\n${recentPicks.map((p) => `- ${p.date} (mode=${p.mode}): ${JSON.stringify(p.output).slice(0, 240)}`).join("\n")}`
+    : "";
+
   const userPrompt = `TASK: Build a balanced daily plan from candidate items across four pillars.
 
 USER MODE: ${mode}
 TARGET COUNT: ${target_count} items
+${programContextBlock}${recentPicksBlock}
 
 USER METRICS:
 ${metricsBlock((metrics as UserMetrics) || {
@@ -268,7 +314,10 @@ ${actionLines}
 ${mealLines ? `\n${mealLines}` : ""}
 
 Build a daily plan with these rules:
-- Pillar balance is the primary directive. Across exercise / nutrition / sleep / mental, distribute roughly evenly. With target_count=6 spanning 4 pillars, aim for ~1-2 per pillar.
+- PROGRAM SCHEDULE TAKES PRIORITY. The candidate list reflects what the user's multi-week program prescribes for today. Respect that shape. Don't replace a prescribed strength session with a different pillar's keystone just because today's metrics dipped — the program already accounts for ebb/flow. If a candidate is in today's prescribed plan, treat it as a strong default unless safety blocks it.
+- AVOID BACK-TO-BACK MUSCLE GROUPS. If RECENT PICKS shows yesterday was push/pull/legs, don't pick the same group today. Look at output.ordered_keys for hints about what the user trained recently.
+- COMPLETE THE WEEK. If a pillar's keystone hasn't been touched in the last 3 days per RECENT PICKS, prefer it today even when metrics are mid.
+- Pillar balance is the secondary directive. Across exercise / nutrition / sleep / mental, distribute roughly evenly. With target_count=6 spanning 4 pillars, aim for ~1-2 per pillar.
 - Cover breadth before depth: the FIRST keystone in every available pillar must appear before any pillar gets a second pick.
 - Keystone-tagged items are clinically pre-vetted as highest yield — prefer them.
 - MEAL SLOT COVERAGE: when nutrition has 2+ picks, cover different slots — pick one breakfast + one lunch OR dinner + optionally one snack. Never pick two breakfasts or two snacks on the same day.
