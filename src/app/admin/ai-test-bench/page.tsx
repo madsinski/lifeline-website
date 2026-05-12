@@ -475,29 +475,52 @@ export default function AiTestBenchPage() {
   // Dedup key is label, NOT action_key — multiple programs share the
   // same habit ("Caffeine cutoff & movement" exists in several sleep
   // programs with distinct action_keys). Without label-dedup the AI
-  // saw 6 copies of the same habit and ranked them all, producing
-  // a list of "yield 5/5: Caffeine cutoff & movement" repeated.
+  // saw 6 copies of the same habit and ranked them all.
   //
-  // Sort: keystones first, then items with intensity tagged (i.e.
-  // tier-2/3 actionable sessions), then everything else. This pushes
-  // the actionable workouts to the front of the cap so the AI ranks
-  // those instead of educational topics.
+  // When pillarFocus is "all", we interleave by pillar AFTER the
+  // keystone-tier sort. Previously the candidate list was dominated
+  // by sleep + mental keystones (which carry both is_keystone AND
+  // intensity tags, scoring 3) so the first 25 had no exercise items
+  // and the AI returned a sleep-heavy plan. Round-robin sampling
+  // ensures each pillar contributes proportionally to the cap.
   const candidates = useMemo(() => {
+    const scoreOf = (a: ActionRow) => (a.is_keystone ? 2 : 0) + (a.intensity ? 1 : 0);
     const sorted = [...allActions].sort((a, b) => {
-      const aScore = (a.is_keystone ? 2 : 0) + (a.intensity ? 1 : 0);
-      const bScore = (b.is_keystone ? 2 : 0) + (b.intensity ? 1 : 0);
+      const aScore = scoreOf(a);
+      const bScore = scoreOf(b);
       if (aScore !== bScore) return bScore - aScore;
       return a.label.localeCompare(b.label);
     });
     const seen = new Set<string>();
-    const out: ActionRow[] = [];
+    const dedup: ActionRow[] = [];
     for (const a of sorted) {
       if (pillarFocus !== "all" && a.category !== pillarFocus) continue;
       const key = `${a.category}::${a.label}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push(a);
-      if (out.length >= 60) break;
+      dedup.push(a);
+    }
+    if (pillarFocus !== "all") return dedup.slice(0, 60);
+    // Round-robin across pillars so each gets representation in the cap.
+    const buckets = new Map<string, ActionRow[]>();
+    for (const a of dedup) {
+      const arr = buckets.get(a.category) || [];
+      arr.push(a);
+      buckets.set(a.category, arr);
+    }
+    const pillarOrder = ["exercise", "nutrition", "sleep", "mental", "general"];
+    const out: ActionRow[] = [];
+    let pulledThisRound = true;
+    while (out.length < 60 && pulledThisRound) {
+      pulledThisRound = false;
+      for (const p of pillarOrder) {
+        const arr = buckets.get(p);
+        if (arr && arr.length > 0) {
+          out.push(arr.shift()!);
+          pulledThisRound = true;
+          if (out.length >= 60) break;
+        }
+      }
     }
     return out;
   }, [allActions, pillarFocus]);
