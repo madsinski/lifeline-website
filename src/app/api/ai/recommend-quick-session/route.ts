@@ -88,6 +88,7 @@ interface ExerciseRow {
   difficulty: string;
   muscles_targeted: string[] | null;
   video_url: string | null;
+  illustration_url: string | null;
 }
 
 // Maps each session type to:
@@ -252,7 +253,7 @@ export async function POST(req: Request) {
   // Build the candidate query.
   let q = supabaseAdmin
     .from("exercises")
-    .select("id, name, category, equipment, difficulty, muscles_targeted, video_url");
+    .select("id, name, category, equipment, difficulty, muscles_targeted, video_url, illustration_url");
   if (profile.categoryFilter !== "any") {
     q = q.in("category", profile.categoryFilter);
   }
@@ -362,6 +363,8 @@ Return:
       equipment: ex?.equipment,
       difficulty: ex?.difficulty,
       muscles_targeted: ex?.muscles_targeted,
+      video_url: ex?.video_url || null,
+      illustration_url: ex?.illustration_url || null,
       has_video: !!ex?.video_url,
     };
   });
