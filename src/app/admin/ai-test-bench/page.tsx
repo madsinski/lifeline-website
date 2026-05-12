@@ -169,6 +169,22 @@ export default function AiTestBenchPage() {
   const [actionRec, setActionRec] = useState<ActionRec | null>(null);
   const [actionsError, setActionsError] = useState<string | null>(null);
 
+  // Day plan (unified). Returns ordered items across all 4 pillars
+  // merged with meal candidates pulled server-side. The eventual
+  // HomeScreen surface in production.
+  interface DayPlanItem {
+    key: string;
+    category: string;
+    source: "program_action" | "meal";
+    rank: number;
+    yield_score: number;
+    rationale: string;
+    meal?: { name: string; slot: "breakfast" | "lunch" | "dinner" | "snack"; protein_g: number | null; calories: number | null; is_high_protein_keystone: boolean } | null;
+  }
+  const [dayBusy, setDayBusy] = useState(false);
+  const [dayRec, setDayRec] = useState<{ ordered_items: DayPlanItem[]; overall_rationale: string } | null>(null);
+  const [dayError, setDayError] = useState<string | null>(null);
+
   // Meals (separate AI path — pulls from the meals table, not
   // program_actions). Server-side allergen filter runs before the
   // model sees any candidate.
@@ -595,6 +611,49 @@ export default function AiTestBenchPage() {
     }
   };
 
+  const runDayRecommend = async () => {
+    setDayBusy(true);
+    setDayError(null);
+    setDayRec(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setDayError("Not authenticated"); return; }
+      const payload = {
+        clientId: session.user.id,
+        mode,
+        metrics,
+        attestations: att,
+        target_count: targetCount,
+        include_meals: true,
+        candidate_actions: determFiltered.slice(0, 25).map((a) => ({
+          key: a.action_key,
+          label: a.label,
+          category: a.category,
+          intensity: a.intensity,
+          min_recovery_state: a.min_recovery_state,
+          appropriate_modes: a.appropriate_modes,
+          equipment_needed: a.equipment_needed,
+          estimated_minutes: null,
+          is_priority: false,
+          is_keystone: !!a.is_keystone,
+        })),
+        dryRun: true,
+      };
+      const res = await fetch("/api/ai/recommend-day", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify(payload),
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.ok) { setDayError(j?.error || "Day plan failed"); return; }
+      setDayRec(j.recommendation);
+    } catch (e) {
+      setDayError((e as Error).message);
+    } finally {
+      setDayBusy(false);
+    }
+  };
+
   const runActionRecommend = async () => {
     setActionsBusy(true);
     setActionsError(null);
@@ -770,6 +829,64 @@ export default function AiTestBenchPage() {
                   <div className="text-xs text-gray-500 italic">Runner-up rationale: {modeRec.runner_up.rationale}</div>
                 )}
               </div>
+            )}
+          </div>
+
+          {/* Unified day plan — runs /api/ai/recommend-day which
+              merges program_actions (exercise/sleep/mental) with
+              meals (nutrition) in a single pillar-balanced rank.
+              This is what HomeScreen will eventually call. */}
+          <div className="bg-white rounded-xl border-2 border-violet-200 p-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="text-sm font-semibold text-violet-800 uppercase tracking-wide">Unified day plan (cross-pillar)</h2>
+              <button
+                onClick={runDayRecommend}
+                disabled={dayBusy || determFiltered.length === 0}
+                className="px-3 py-1.5 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg disabled:opacity-50"
+              >
+                {dayBusy ? "Ranking day…" : "Recommend day"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              The endpoint HomeScreen will use. Same prompt as action ranking + meals merged in as nutrition candidates. Server enforces allergen + mode safety on meals before the model sees them.
+            </p>
+            {dayError && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3 mb-3">{dayError}</div>}
+            {dayRec ? (
+              <div className="space-y-3">
+                {dayRec.overall_rationale && (
+                  <div className="bg-violet-50 border border-violet-200 rounded p-2 text-xs text-violet-900">
+                    <span className="font-semibold">Day shape: </span>{dayRec.overall_rationale}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  {dayRec.ordered_items.map((r) => (
+                    <div key={`${r.source}::${r.key}`} className="border border-violet-200 rounded p-2 bg-violet-50/30">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[11px] font-bold text-violet-800">#{r.rank}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[r.category] || PILLAR_CHIP.general}`}>{r.category}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{r.source === "meal" ? "meal" : "habit"}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {r.yield_score}/5</span>
+                        {r.meal?.is_high_protein_keystone && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-800">
+                        {r.source === "meal" ? (r.meal?.name || r.key) : (
+                          determFiltered.find((a) => a.action_key === r.key)?.label || r.key
+                        )}
+                        {r.meal && (
+                          <span className="text-[10px] text-gray-500 ml-2">
+                            {r.meal.slot} · {r.meal.protein_g}g protein · {r.meal.calories} kcal
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-600 italic mt-0.5">{r.rationale}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-400 italic">Click &quot;Recommend day&quot; to see a unified plan across all 4 pillars.</div>
             )}
           </div>
 
