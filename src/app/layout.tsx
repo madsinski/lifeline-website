@@ -8,6 +8,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import ScrollDebug from "./components/ScrollDebug";
 import AuthSync from "./components/AuthSync";
 import BetaFeedback from "./components/BetaFeedback";
+import ErrorHandlerClient from "./components/ErrorHandlerClient";
 import { I18nProvider } from "@/lib/i18n";
 
 const inter = Inter({
@@ -48,6 +49,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <I18nProvider>
+        <ErrorHandlerClient />
         <ScrollToTop />
         <ScrollDebug />
         <AuthSync />
