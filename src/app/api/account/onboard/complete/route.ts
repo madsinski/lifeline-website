@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@/lib/error-reporter";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
 import { sendEmail, renderWelcomeEmail } from "@/lib/email";

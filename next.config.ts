@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   // Ensure the Noto Sans TTFs used by the server-side PDF renderer are
@@ -20,20 +19,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Wrap with Sentry. This is what bundles instrumentation-client.ts
-// into the browser build and (optionally) uploads source maps.
-// Without this wrapper, none of the Sentry init runs in the browser
-// and `typeof Sentry === 'undefined'` in DevTools — which is exactly
-// what we hit before this commit.
-export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  silent: !process.env.CI,
-  // Don't fail the build if source-map upload fails — the runtime
-  // SDK still works fine without uploaded source maps.
-  errorHandler: (err: Error) => {
-    console.warn("[sentry build]", err.message);
-  },
-  telemetry: false,
-});
+// Migrated off @sentry/nextjs after the trial expired and the free
+// plan's 5K/mo quota started cutting events off. Error capture now
+// happens directly via instrumentation-client.ts (browser) +
+// instrumentation.ts onRequestError (server) writing to
+// public.app_errors. /admin/errors triages from there.
+export default nextConfig;

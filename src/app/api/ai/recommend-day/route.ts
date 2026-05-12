@@ -23,7 +23,7 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@/lib/error-reporter";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   MODELS,

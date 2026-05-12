@@ -17,7 +17,7 @@
 import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@/lib/error-reporter";
 import { supabaseAdmin } from "./supabase-admin";
 
 // Per-task model defaults. Mode picks need a touch more reasoning
