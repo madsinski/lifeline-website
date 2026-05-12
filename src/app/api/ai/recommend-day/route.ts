@@ -201,12 +201,36 @@ export async function POST(req: Request) {
   }
 
   // ─── Build the prompt ───────────────────────────────────────
-  // Cap meal candidates at 12 (3 per slot avg) to keep prompt size
-  // reasonable; prefer high-protein keystones first.
+  // Cap meal candidates at 12 — but interleave by slot so each of
+  // breakfast/lunch/dinner/snack gets ~3 candidates in the pool.
+  // Earlier sort-by-keystone-then-alphabetical biased toward
+  // breakfast/lunch/snack labels and starved dinner candidates,
+  // so the AI rarely had a dinner option to pick.
   const mealCap = 12;
-  const mealsForPrompt = [...mealCandidates]
-    .sort((a, b) => (b.is_high_protein_keystone ? 1 : 0) - (a.is_high_protein_keystone ? 1 : 0))
-    .slice(0, mealCap);
+  const slotBuckets = new Map<string, CandidateMeal[]>();
+  for (const m of mealCandidates) {
+    const arr = slotBuckets.get(m.slot) || [];
+    arr.push(m);
+    slotBuckets.set(m.slot, arr);
+  }
+  // Within each slot, keystone-first then leave natural order.
+  for (const arr of slotBuckets.values()) {
+    arr.sort((a, b) => (b.is_high_protein_keystone ? 1 : 0) - (a.is_high_protein_keystone ? 1 : 0));
+  }
+  const slotOrder: Array<"breakfast" | "lunch" | "dinner" | "snack"> = ["breakfast", "lunch", "dinner", "snack"];
+  const mealsForPrompt: CandidateMeal[] = [];
+  let pulled = true;
+  while (mealsForPrompt.length < mealCap && pulled) {
+    pulled = false;
+    for (const slot of slotOrder) {
+      const arr = slotBuckets.get(slot);
+      if (arr && arr.length > 0) {
+        mealsForPrompt.push(arr.shift()!);
+        pulled = true;
+        if (mealsForPrompt.length >= mealCap) break;
+      }
+    }
+  }
 
   const actionLines = candidate_actions.map((a, i) => {
     const tags: string[] = [];
@@ -247,7 +271,8 @@ Build a daily plan with these rules:
 - Pillar balance is the primary directive. Across exercise / nutrition / sleep / mental, distribute roughly evenly. With target_count=6 spanning 4 pillars, aim for ~1-2 per pillar.
 - Cover breadth before depth: the FIRST keystone in every available pillar must appear before any pillar gets a second pick.
 - Keystone-tagged items are clinically pre-vetted as highest yield — prefer them.
-- Meal slot coverage: when nutrition gets multiple picks, prefer one breakfast + one lunch/dinner + one snack over three of the same slot.
+- MEAL SLOT COVERAGE: when nutrition has 2+ picks, cover different slots — pick one breakfast + one lunch OR dinner + optionally one snack. Never pick two breakfasts or two snacks on the same day.
+- EXERCISE MUSCLE BALANCE: when 2+ exercise items are picked, vary the muscle group focus. Don't pick two push (chest/shoulders/triceps) sessions or two pull (back/biceps) sessions on the same day. A push session pairs with legs or a conditioning session, never with another push. Same for pull. Full-body sessions are flexible — pair freely.
 - Honor safety: never recommend against limitations or allergies. Sick → only sleep + hydration + breathwork. Tired → cap exercise at gentle.
 
 For each kept item return: key (echo exactly), category, source ('program_action' or 'meal'), rank (1 = highest), yield_score 1-5, one-line rationale (≤ 15 words).
