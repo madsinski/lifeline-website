@@ -14,7 +14,7 @@ interface AppError {
   stack: string | null;
   url: string | null;
   pathname: string | null;
-  runtime: "browser" | "server" | "edge" | null;
+  runtime: "browser" | "server" | "edge" | "mobile" | null;
   user_agent: string | null;
   user_id: string | null;
   user_email: string | null;
@@ -38,6 +38,7 @@ const RUNTIME_STYLES: Record<NonNullable<AppError["runtime"]>, string> = {
   browser: "bg-purple-100 text-purple-700",
   server: "bg-emerald-100 text-emerald-700",
   edge: "bg-cyan-100 text-cyan-700",
+  mobile: "bg-orange-100 text-orange-700",
 };
 
 type Window = "1h" | "24h" | "7d" | "30d" | "all";
@@ -66,7 +67,7 @@ export default function ErrorsPage() {
   const [rows, setRows] = useState<AppError[]>([]);
   const [loading, setLoading] = useState(true);
   const [windowSel, setWindowSel] = useState<Window>("24h");
-  const [runtimeFilter, setRuntimeFilter] = useState<"all" | "browser" | "server" | "edge">("all");
+  const [runtimeFilter, setRuntimeFilter] = useState<"all" | "browser" | "server" | "edge" | "mobile">("all");
   const [statusFilter, setStatusFilter] = useState<"open" | "resolved" | "all">("open");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -342,7 +343,7 @@ export default function ErrorsPage() {
         </div>
         <div className="h-5 w-px bg-gray-200" />
         <div className="flex items-center gap-1">
-          {(["all", "browser", "server", "edge"] as const).map((r) => (
+          {(["all", "browser", "server", "edge", "mobile"] as const).map((r) => (
             <button
               key={r}
               onClick={() => setRuntimeFilter(r)}
