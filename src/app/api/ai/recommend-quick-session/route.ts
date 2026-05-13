@@ -262,15 +262,36 @@ export async function POST(req: Request) {
   if (poolErr) return NextResponse.json({ ok: false, error: `exercises fetch failed: ${poolErr.message}` }, { status: 500 });
 
   // Filter pool by equipment + name pattern + limitations + mode.
+  // We apply filters progressively: start strict, then drop the
+  // optional name regex (cosmetic — "run/jog/sprint" etc.) if 0 rows
+  // come back. Limitations + mode (sick/tired safety) are NEVER
+  // dropped — those reflect real safety constraints.
   const acceptAnyEquipment = equipmentSet.has("*");
-  const filtered: ExerciseRow[] = [];
-  for (const ex of (poolRows || []) as ExerciseRow[]) {
-    if (!acceptAnyEquipment && !equipmentSet.has(ex.equipment)) continue;
-    if (profile.nameRegexInclude && !profile.nameRegexInclude.test(ex.name)) continue;
-    if (profile.nameRegexExclude && profile.nameRegexExclude.test(ex.name)) continue;
-    if (attestations?.limitations && violatesLimitation(ex, attestations.limitations)) continue;
-    if ((mode === "sick" || mode === "tired") && /sprint|hiit|burpee|jump/i.test(ex.name)) continue;
-    filtered.push(ex);
+
+  const filterCandidates = (relaxed: { dropNameRegex: boolean; dropEquipment: boolean }): ExerciseRow[] => {
+    const out: ExerciseRow[] = [];
+    for (const ex of (poolRows || []) as ExerciseRow[]) {
+      if (!relaxed.dropEquipment && !acceptAnyEquipment && !equipmentSet.has(ex.equipment)) continue;
+      if (!relaxed.dropNameRegex) {
+        if (profile.nameRegexInclude && !profile.nameRegexInclude.test(ex.name)) continue;
+        if (profile.nameRegexExclude && profile.nameRegexExclude.test(ex.name)) continue;
+      }
+      if (attestations?.limitations && violatesLimitation(ex, attestations.limitations)) continue;
+      if ((mode === "sick" || mode === "tired") && /sprint|hiit|burpee|jump/i.test(ex.name)) continue;
+      out.push(ex);
+    }
+    return out;
+  };
+
+  let filtered = filterCandidates({ dropNameRegex: false, dropEquipment: false });
+  let relaxedReason: string | null = null;
+  if (filtered.length === 0 && (profile.nameRegexInclude || profile.nameRegexExclude)) {
+    filtered = filterCandidates({ dropNameRegex: true, dropEquipment: false });
+    if (filtered.length > 0) relaxedReason = "Widened beyond strict name match";
+  }
+  if (filtered.length === 0 && !acceptAnyEquipment) {
+    filtered = filterCandidates({ dropNameRegex: true, dropEquipment: true });
+    if (filtered.length > 0) relaxedReason = "Widened beyond strict equipment match";
   }
 
   // Cap candidates for the prompt — 25 keeps the prompt + structured
@@ -282,11 +303,17 @@ export async function POST(req: Request) {
   }).slice(0, 25);
 
   if (ordered.length === 0) {
+    // Diagnostic: count what's in the table for this category so the
+    // client error message tells the user the actual problem rather
+    // than the generic "no safe session".
+    const totalInPool = (poolRows || []).length;
     return NextResponse.json({
       ok: true,
       session: null,
       candidate_count: 0,
-      reason: `No safe ${session_type} exercises available for this user's equipment + limitations + mode.`,
+      reason: totalInPool === 0
+        ? `No exercises in library for ${session_type} (categories: ${profile.categoryFilter === "any" ? "any" : profile.categoryFilter.join(", ")}). Seed more exercises in the admin.`
+        : `No safe ${session_type} exercises matched your filters — ${totalInPool} candidates in category but none passed equipment + limitations + mode.`,
       log_id: null,
       model: MODELS.actions,
       dry_run: dryRun,
@@ -409,6 +436,7 @@ Return:
       estimated_total_minutes: rec.estimated_total_minutes,
     },
     candidate_count: ordered.length,
+    relaxed: relaxedReason,
     log_id: logId,
     model: MODELS.actions,
     dry_run: dryRun,
