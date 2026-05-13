@@ -424,6 +424,10 @@ Rules:
 - For zone2: keep intensity low; reject anything tagged as sprint/HIIT.
 - Difficulty within one tier of the user's apparent level (default intermediate). Easier OK; harder requires good RECENT PICKS history.
 
+WARM-UP NAMING (improves match against the library so the user sees a video):
+- Prefer exercise names that appear in the CANDIDATE EXERCISES list or are otherwise canonical (e.g. "Jumping Jacks", "Band Pull-Apart", "Hip Hinge", "World's Greatest Stretch", "Cat-Cow Stretch").
+- Title-Case the name. Avoid creative spellings.
+
 WARM-UP REQUIREMENTS (mandatory, two sections):
 - general (1-2 entries): pulse-raising work — easy jog/bike/jumping jacks / arm swings. Goal is to raise heart rate and core temperature. Each entry has a duration_seconds (60-180) and a one-line cue.
 - specific (1-3 entries): primes the exact joints/muscle groups the main lifts will load. Examples:
@@ -466,6 +470,44 @@ Return:
     };
   });
 
+  // Attach video + illustration to warm-up entries by matching name
+  // against the exercises library. Pass-through if no match — UI
+  // tolerates missing assets. One pooled query keeps this cheap.
+  //
+  // Match strategy: fetch any row whose name matches one of the AI's
+  // warm-up names exactly (case-sensitive in() is fine — names in the
+  // library are title-cased and the prompt asks the AI to mirror that
+  // convention). Then in JS we do a case-insensitive fuzzy lookup so
+  // small casing/punctuation differences still resolve.
+  const allWarmUpNames = Array.from(new Set([
+    ...rec.warm_up.general.map((w) => w.name),
+    ...rec.warm_up.specific.map((w) => w.name),
+  ]));
+  const warmUpAssetMap = new Map<string, { video_url: string | null; illustration_url: string | null }>();
+  if (allWarmUpNames.length > 0) {
+    const { data: warmUpRows } = await supabaseAdmin
+      .from("exercises")
+      .select("name, video_url, illustration_url")
+      .in("name", allWarmUpNames);
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const byNorm = new Map<string, { video_url: string | null; illustration_url: string | null }>();
+    for (const r of (warmUpRows || []) as Array<{ name: string; video_url: string | null; illustration_url: string | null }>) {
+      byNorm.set(normalize(r.name), { video_url: r.video_url, illustration_url: r.illustration_url });
+    }
+    for (const wantName of allWarmUpNames) {
+      const hit = byNorm.get(normalize(wantName));
+      if (hit) warmUpAssetMap.set(wantName, hit);
+    }
+  }
+  const enrichWarmUp = <T extends { name: string }>(w: T) => {
+    const assets = warmUpAssetMap.get(w.name);
+    return { ...w, video_url: assets?.video_url ?? null, illustration_url: assets?.illustration_url ?? null };
+  };
+  const enrichedWarmUp = {
+    general: rec.warm_up.general.map(enrichWarmUp),
+    specific: rec.warm_up.specific.map(enrichWarmUp),
+  };
+
   let logId: string | null = null;
   try {
     if (!dryRun) {
@@ -501,7 +543,7 @@ Return:
     session: {
       summary: rec.session_summary,
       ordered_exercises: enrichedExercises,
-      warm_up: rec.warm_up,
+      warm_up: enrichedWarmUp,
       cool_down_note: rec.cool_down_note,
       estimated_total_minutes: rec.estimated_total_minutes,
     },
