@@ -11,6 +11,7 @@ interface CompanyRow {
   name: string;
   contact_person_id: string;
   contact_email: string | null;
+  contact_full_name: string | null;
   created_at: string;
   member_count: number;
   invited_count: number;
@@ -1333,12 +1334,30 @@ export default function AdminCompaniesPage() {
 
                   {/* Data row: contact, progress, tier */}
                   <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.4fr_auto] gap-x-6 gap-y-2 items-start`}>
-                    {/* Contact */}
+                    {/* Contact — show person's name with email beneath. Falls
+                        back to the draft name/email when the contact hasn't
+                        been claimed yet (status='draft' / 'contact_invited'). */}
                     <div className="min-w-0">
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Contact</div>
-                      <div className="text-[13px] text-gray-800 truncate" title={c.contact_email || ""}>
-                        {c.contact_email || <span className="text-gray-300">—</span>}
-                      </div>
+                      {(() => {
+                        const name = c.contact_full_name || c.contact_draft_name || null;
+                        const email = c.contact_email || c.contact_draft_email || null;
+                        if (!name && !email) return <span className="text-gray-300 text-[13px]">—</span>;
+                        return (
+                          <>
+                            {name && (
+                              <div className="text-[13px] font-medium text-gray-800 truncate" title={name}>
+                                {name}
+                              </div>
+                            )}
+                            {email && (
+                              <div className={`text-[11px] text-gray-500 truncate ${name ? 'mt-0.5' : ''}`} title={email}>
+                                {email}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     {/* Progress */}
                     <div>
