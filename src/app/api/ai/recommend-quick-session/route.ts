@@ -77,6 +77,11 @@ const requestSchema = z.object({
     }),
   }).nullable(),
   available_equipment: z.array(z.string()).optional(),
+  // When true, the candidate pool is filtered to compound movements
+  // only — used by the "Short on time" branch where the user has less
+  // time and wants max training effect per rep. Isolation exercises
+  // (biceps curl, lateral raise, leg extension, etc.) are excluded.
+  compound_only: z.boolean().optional().default(false),
   dryRun: z.boolean().optional(),
 });
 
@@ -205,6 +210,28 @@ async function resolveAuth(req: Request, requestedClientId: string | undefined, 
   return { ok: true, clientId: userData.user.id, isAdmin: false };
 }
 
+// Compound vs. isolation classifier. Compound = multi-joint, recruits
+// multiple muscle groups; gives the most training stimulus per minute.
+// Used by the "Short on time" path to bias toward squat/deadlift/bench/
+// row/press over curl/extension/raise.
+//
+// Heuristic, in order of precedence:
+//   1. Name matches a known compound pattern → compound (even if it
+//      also matches isolation regex — e.g. "front squat" beats "lat raise")
+//   2. Name matches a known isolation pattern → isolation
+//   3. muscles_targeted has ≥ 3 entries → compound
+//   4. Otherwise → isolation (conservative — bias toward known
+//      compounds rather than guessing)
+const COMPOUND_NAME_PATTERN = /\b(squat|deadlift|bench(?:\s*press)?|row|overhead\s*press|military\s*press|push[\s-]?press|push[\s-]?up|pull[\s-]?up|chin[\s-]?up|dip|lunge|step[\s-]?up|clean|snatch|jerk|swing|thruster|burpee|farmer'?s?\s*(?:walk|carry)|loaded\s*carry|hip\s*thrust|good\s*morning|sumo|romanian|stiff[\s-]?leg)\b/i;
+const ISOLATION_NAME_PATTERN = /\b(curl|fly|flye|extension|raise|kickback|shrug|pullover|crunch|sit[\s-]?up|leg\s*press|calf\s*raise|adductor|abductor|reverse\s*fly|cable\s*cross|wrist\s*curl|preacher|concentration|hammer\s*curl)\b/i;
+
+function isCompound(ex: ExerciseRow): boolean {
+  if (COMPOUND_NAME_PATTERN.test(ex.name)) return true;
+  if (ISOLATION_NAME_PATTERN.test(ex.name)) return false;
+  if ((ex.muscles_targeted?.length ?? 0) >= 3) return true;
+  return false;
+}
+
 // Same limitation check pattern as the swap endpoints — pulled
 // inline to keep this route self-contained.
 function violatesLimitation(ex: ExerciseRow, limits: { knee: boolean; back: boolean; shoulder: boolean; wrist: boolean; cardio: boolean }): string | null {
@@ -223,7 +250,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ ok: false, error: `Invalid body: ${parsed.error.message}` }, { status: 400 });
-  const { session_type, duration_minutes, mode, attestations, available_equipment, dryRun = false } = parsed.data;
+  const { session_type, duration_minutes, mode, attestations, available_equipment, compound_only, dryRun = false } = parsed.data;
 
   const auth = await resolveAuth(req, parsed.data.clientId, dryRun);
   if (!auth.ok) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
@@ -268,7 +295,12 @@ export async function POST(req: Request) {
   // dropped — those reflect real safety constraints.
   const acceptAnyEquipment = equipmentSet.has("*");
 
-  const filterCandidates = (relaxed: { dropNameRegex: boolean; dropEquipment: boolean }): ExerciseRow[] => {
+  // compound_only only makes sense for strength session types — cardio
+  // and mobility don't have a compound/isolation distinction the same
+  // way. We still respect the flag silently if the caller mis-sets it.
+  const compoundOnlyActive = compound_only && (session_type === "strength_gym" || session_type === "strength_home");
+
+  const filterCandidates = (relaxed: { dropNameRegex: boolean; dropEquipment: boolean; dropCompoundOnly: boolean }): ExerciseRow[] => {
     const out: ExerciseRow[] = [];
     for (const ex of (poolRows || []) as ExerciseRow[]) {
       if (!relaxed.dropEquipment && !acceptAnyEquipment && !equipmentSet.has(ex.equipment)) continue;
@@ -276,6 +308,7 @@ export async function POST(req: Request) {
         if (profile.nameRegexInclude && !profile.nameRegexInclude.test(ex.name)) continue;
         if (profile.nameRegexExclude && profile.nameRegexExclude.test(ex.name)) continue;
       }
+      if (!relaxed.dropCompoundOnly && compoundOnlyActive && !isCompound(ex)) continue;
       if (attestations?.limitations && violatesLimitation(ex, attestations.limitations)) continue;
       if ((mode === "sick" || mode === "tired") && /sprint|hiit|burpee|jump/i.test(ex.name)) continue;
       out.push(ex);
@@ -283,15 +316,22 @@ export async function POST(req: Request) {
     return out;
   };
 
-  let filtered = filterCandidates({ dropNameRegex: false, dropEquipment: false });
+  let filtered = filterCandidates({ dropNameRegex: false, dropEquipment: false, dropCompoundOnly: false });
   let relaxedReason: string | null = null;
   if (filtered.length === 0 && (profile.nameRegexInclude || profile.nameRegexExclude)) {
-    filtered = filterCandidates({ dropNameRegex: true, dropEquipment: false });
+    filtered = filterCandidates({ dropNameRegex: true, dropEquipment: false, dropCompoundOnly: false });
     if (filtered.length > 0) relaxedReason = "Widened beyond strict name match";
   }
   if (filtered.length === 0 && !acceptAnyEquipment) {
-    filtered = filterCandidates({ dropNameRegex: true, dropEquipment: true });
+    filtered = filterCandidates({ dropNameRegex: true, dropEquipment: true, dropCompoundOnly: false });
     if (filtered.length > 0) relaxedReason = "Widened beyond strict equipment match";
+  }
+  // Last resort: drop compound-only if no candidates pass — better to
+  // offer an isolation session than an empty one. The user gets a
+  // note in `relaxed` so the UI can surface it.
+  if (filtered.length === 0 && compoundOnlyActive) {
+    filtered = filterCandidates({ dropNameRegex: true, dropEquipment: true, dropCompoundOnly: true });
+    if (filtered.length > 0) relaxedReason = "No compound exercises in setup — fell back to isolation";
   }
 
   // Cap candidates for the prompt — 25 keeps the prompt + structured
@@ -348,7 +388,7 @@ SESSION TYPE: ${session_type}
 DURATION BUDGET: ${duration_minutes} minutes
 MODE: ${mode}
 SHAPE: ${profile.shape}
-
+${compoundOnlyActive ? "TIME-EFFICIENCY: Compound-only mode is active. The candidate list has already been filtered to compound, multi-joint movements (squat, deadlift, bench, row, press, pull-up, lunge, etc.). Pick the highest-yield 3-4 lifts for the budget. Skip anything that looks like an isolation accessory. Prioritize movements that hit multiple muscle groups so the user maximises stimulus per minute of training.\n" : ""}
 USER ATTESTATIONS (informational — limitations + mode caps already filtered):
 ${attestationsBlock(attestations as Attestations | null)}
 
