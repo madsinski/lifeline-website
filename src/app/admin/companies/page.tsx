@@ -28,6 +28,7 @@ interface CompanyRow {
   status?: "draft" | "contact_invited" | "active" | "archived" | null;
   contact_draft_email?: string | null;
   contact_draft_name?: string | null;
+  contact_draft_phone?: string | null;
   parent_company_id?: string | null;
   parent_name?: string | null;
 }
@@ -1110,11 +1111,11 @@ export default function AdminCompaniesPage() {
     setLoading(true);
     const [rpcRes, tiersRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
-      supabase.from("companies").select("id, name, default_tier, status, contact_draft_email, contact_draft_name, parent_company_id"),
+      supabase.from("companies").select("id, name, default_tier, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id"),
     ]);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
-      type ExtraRow = { id: string; name: string; default_tier: string | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; parent_company_id: string | null };
+      type ExtraRow = { id: string; name: string; default_tier: string | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null };
       const extraMap = new Map<string, ExtraRow>((tiersRes.data || []).map((t: ExtraRow) => [t.id, t]));
       const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => {
         const extra = extraMap.get(c.id);
@@ -1126,6 +1127,7 @@ export default function AdminCompaniesPage() {
           status: extra?.status || "active",
           contact_draft_email: extra?.contact_draft_email || null,
           contact_draft_name: extra?.contact_draft_name || null,
+          contact_draft_phone: extra?.contact_draft_phone || null,
           parent_company_id: parentId,
           parent_name: parentName,
         };
@@ -1344,7 +1346,10 @@ export default function AdminCompaniesPage() {
                       {(() => {
                         const name = c.contact_full_name || c.contact_draft_name || null;
                         const email = c.contact_email || c.contact_draft_email || null;
-                        const phone = c.contact_phone || null;
+                        // Phone source order: decrypted clients.phone_enc
+                        // (claimed contact), then admin-entered
+                        // contact_draft_phone (still in draft state).
+                        const phone = c.contact_phone || c.contact_draft_phone || null;
                         if (!name && !email && !phone) return <span className="text-gray-300 text-[13px]">—</span>;
                         return (
                           <>
