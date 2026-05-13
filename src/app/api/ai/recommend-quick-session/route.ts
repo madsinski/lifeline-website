@@ -166,6 +166,26 @@ const SESSION_PROFILES: Record<QuickSessionType, {
   },
 };
 
+// Warm-up is intentionally two-section. "general" raises the pulse
+// and prepares connective tissue; "specific" primes the exact joints
+// and movement patterns the main work will load (shoulder-heavy
+// sessions need band pull-aparts, leg-heavy need hip openers, etc.).
+// Skipping either half is a common cause of overuse injury.
+const warmUpSchema = z.object({
+  general: z.array(z.object({
+    name: z.string(),                        // e.g. "Easy bike spin"
+    duration_seconds: z.number().int(),      // typically 60-300
+    cue: z.string(),                         // short coaching note (≤ 14 words)
+  })).min(1).max(4),
+  specific: z.array(z.object({
+    name: z.string(),                        // e.g. "Band pull-aparts"
+    sets: z.number().int().nullable(),
+    reps: z.string().nullable(),
+    duration_seconds: z.number().int().nullable(),
+    cue: z.string(),                         // why this primes the main work
+  })).min(1).max(4),
+});
+
 const quickSessionSchema = z.object({
   session_summary: z.string(),
   ordered_exercises: z.array(z.object({
@@ -177,7 +197,7 @@ const quickSessionSchema = z.object({
     rest_seconds: z.number().int().nullable(),
     note: z.string(),
   })),
-  warm_up_note: z.string(),
+  warm_up: warmUpSchema,
   cool_down_note: z.string(),
   estimated_total_minutes: z.number().int(),
 });
@@ -397,17 +417,27 @@ CANDIDATE EXERCISES:
 ${candList}
 
 Rules:
-- The session must fit within DURATION BUDGET total time including 3-5 min warm-up + cool-down.
+- The session must fit within DURATION BUDGET total time including warm-up + cool-down. Reserve roughly 4-6 min for the warm-up (2-3 min general + 2-3 min specific) and 2-3 min for cool-down.
 - Avoid back-to-back muscle groups. If RECENT PICKS shows yesterday hit push/legs/back, today should target something different.
 - For strength sessions: pick 3-5 exercises that cover different movement patterns (push / pull / hinge / squat / carry). Don't pick 3 chest exercises in a row.
 - For cardio: usually a single primary exercise with stated duration + intensity. Pick one main piece, not five.
 - For zone2: keep intensity low; reject anything tagged as sprint/HIIT.
 - Difficulty within one tier of the user's apparent level (default intermediate). Easier OK; harder requires good RECENT PICKS history.
 
+WARM-UP REQUIREMENTS (mandatory, two sections):
+- general (1-2 entries): pulse-raising work — easy jog/bike/jumping jacks / arm swings. Goal is to raise heart rate and core temperature. Each entry has a duration_seconds (60-180) and a one-line cue.
+- specific (1-3 entries): primes the exact joints/muscle groups the main lifts will load. Examples:
+  * shoulder-heavy day → band pull-aparts, scapular wall slides, light face pulls
+  * leg-heavy day → hip openers, bodyweight squats, glute bridges
+  * push day → push-up to down-dog, light bench press warm-up sets
+  * pull day → dead hangs, scapular pulls, light row sets
+  Each specific entry gets sets/reps OR duration_seconds, plus a short cue explaining what it primes.
+- The specific section MUST match the muscle groups of the main session. Inspect the chosen exercises' muscles_targeted and pick warm-ups accordingly.
+
 Return:
 - session_summary (1 sentence, ≤ 20 words)
 - ordered_exercises with exercise_id (echo EXACTLY from candidate list), rank (1 = first to do), sets/reps OR duration_seconds, rest_seconds, one-line note
-- warm_up_note (≤ 15 words)
+- warm_up: { general: [{name, duration_seconds, cue}], specific: [{name, sets|null, reps|null, duration_seconds|null, cue}] }
 - cool_down_note (≤ 15 words)
 - estimated_total_minutes`;
 
@@ -471,7 +501,7 @@ Return:
     session: {
       summary: rec.session_summary,
       ordered_exercises: enrichedExercises,
-      warm_up_note: rec.warm_up_note,
+      warm_up: rec.warm_up,
       cool_down_note: rec.cool_down_note,
       estimated_total_minutes: rec.estimated_total_minutes,
     },
