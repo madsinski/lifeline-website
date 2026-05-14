@@ -153,6 +153,19 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/wearable-issues",
+    label: "Wearable issues",
+    badgeType: "wearable-issues",
+    icon: (
+      // Smartwatch: rounded face with strap nubs top/bottom and a side button.
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <rect x="6" y="6" width="12" height="12" rx="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 3h6M9 21h6M18.75 10.5v3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75V12l1.5 1.5" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/access-review",
     label: "Access review",
     icon: (
@@ -220,6 +233,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newBookingsCount, setNewBookingsCount] = useState(0);
   const [newCompaniesCount, setNewCompaniesCount] = useState(0);
   const [untaggedActionsCount, setUntaggedActionsCount] = useState(0);
+  const [openWearableIssuesCount, setOpenWearableIssuesCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
   // Medical advisor gets the full sidebar visibility but is read-only on
   // everything except surveys. Treat them as "view-all" for sidebar
@@ -350,6 +364,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .select("*", { count: "exact", head: true })
         .is("audited_at", null);
       if (!untaggedErr && untaggedCount !== null) setUntaggedActionsCount(untaggedCount);
+    } catch {}
+    // Open wearable-setup troubleshooting reports submitted from the
+    // in-app "Stuck?" form. Counts open + in_progress so triage stays
+    // visible until staff resolve or dismiss the row.
+    try {
+      const { count: wiCount, error: wiErr } = await supabase
+        .from("wearable_setup_issues")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["open", "in_progress"]);
+      if (!wiErr && wiCount !== null) setOpenWearableIssuesCount(wiCount);
     } catch {}
     // Overdue access reviews: active staff whose most recent review is
     // older than 90 days (or never reviewed and created more than 90 days ago).
@@ -707,6 +731,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/data-requests" && !canViewAllSections) return false;
             if (link.href === "/admin/access-review" && !canViewAllSections) return false;
             if (link.href === "/admin/errors" && !canViewAllSections) return false;
+            if (link.href === "/admin/wearable-issues" && !canViewAllSections) return false;
             if (link.href === "/admin/ai-feedback" && !canViewAllSections) return false;
             if (link.href === "/admin/ai-test-bench" && !canViewAllSections) return false;
             if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !canViewAllSections) return false;
@@ -736,6 +761,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               : badgeType === "surveys" ? newSurveyResponsesCount
               : badgeType === "business" ? newCompaniesCount
               : badgeType === "audit" ? untaggedActionsCount
+              : badgeType === "wearable-issues" ? openWearableIssuesCount
               : isMessageBadge ? unreadCount
               : 0;
             const hasBadge = badgeCount > 0;
