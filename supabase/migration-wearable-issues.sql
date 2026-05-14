@@ -39,9 +39,12 @@ DROP POLICY IF EXISTS "users read own issues" ON public.wearable_setup_issues;
 CREATE POLICY "users read own issues" ON public.wearable_setup_issues
   FOR SELECT USING (auth.uid() = client_id);
 
--- Staff have full access (read + update).
+-- Staff have full access (read + update). Use the SECURITY DEFINER
+-- helper instead of inlining a staff EXISTS — the inline form would
+-- recurse through staff's own RLS if a self-referencing policy is
+-- ever added there. See migration-fix-staff-rls-recursion.sql.
 DROP POLICY IF EXISTS "staff manage issues" ON public.wearable_setup_issues;
 CREATE POLICY "staff manage issues" ON public.wearable_setup_issues
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.staff s WHERE s.id = auth.uid() AND s.active = true)
-  );
+  FOR ALL TO authenticated
+  USING (is_active_staff())
+  WITH CHECK (is_active_staff());
