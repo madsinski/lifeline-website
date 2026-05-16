@@ -30,7 +30,10 @@ Til að þróa þjónustuna áfram og gera hana enn betri fyrir þig og aðra, b
 
 Við þökkum kærlega fyrir þátttökuna!
 
-Svörin þín eru geymd dulkóðuð og notuð til að bæta þjónustuna okkar. Þú getur óskað eftir afriti eða eyðingu hvenær sem er á contact@lifelinehealth.is. Persónuverndarstefna: https://lifelinehealth.is/privacy',
+Svörin þín eru geymd dulkóðuð og notuð til að bæta þjónustuna okkar. Þú getur óskað eftir afriti eða eyðingu hvenær sem er á contact@lifelinehealth.is.
+
+Persónuverndarstefna:
+https://lifelinehealth.is/privacy',
     updated_at = now()
 WHERE key = 'post-assessment' AND version = 1;
 
