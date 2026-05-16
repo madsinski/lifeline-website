@@ -41,6 +41,12 @@ SELECT * FROM appointments         WHERE client_id = :uid;
 SELECT * FROM checkin_log          WHERE client_id = :uid;
 SELECT * FROM event_checkins       WHERE client_id = :uid;
 SELECT * FROM health_audit_log WHERE actor_id = :uid OR row_id = :uid::text;
+-- Service-feedback surveys (read from the decrypted view for text_value).
+SELECT * FROM feedback_assignments WHERE client_id = :uid;
+SELECT r.*
+  FROM feedback_responses_decrypted r
+  JOIN feedback_assignments a ON a.id = r.assignment_id
+  WHERE a.client_id = :uid;
 ```
 
 Export each as CSV/JSON. Bundle into a zip. Email to the user from a
@@ -61,7 +67,12 @@ changed.
 2. Trigger the deletion edge function with their `userId`. It now
    covers all health-adjacent tables (Sprint 1.9).
 3. Coordinate with Medalia for sjúkraskrá redaction where lawful.
-4. Reply to the user when both sides are complete.
+4. Delete service-feedback responses by removing their assignments
+   (responses cascade):
+   ```sql
+   DELETE FROM feedback_assignments WHERE client_id = :uid;
+   ```
+5. Reply to the user when both sides are complete.
 
 ### 4. Restriction (Art. 18)
 

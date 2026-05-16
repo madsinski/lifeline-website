@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.2";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-05-04";
+export const SECURITY_POSTURE_VERSION = "v1.3";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-05-16";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -449,6 +449,19 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.3 (2026-05-16)
+  Þjónustukönnun (post-assessment service feedback) gerð klár fyrir
+  útsendingu. Lagaheimild: lögmætir hagsmunir (GDPR Art. 6(1)(f)) —
+  ekki sérstaks flokks gögn að jafnaði, en frjáls texti er dulkóðaður
+  með pgcrypto sem var lagt fyrir áður. Gegnsæishlekkur bætt í
+  inngangstexta könnunarinnar (Persónuverndarstefna, dulkóðun,
+  réttur til afrits/eyðingar). Hvati settur á opin svið um að deila
+  ekki viðkvæmum heilsuupplýsingum. Varðveislutími 3 ár settur á
+  feedback_assignments með purge_expired_feedback_assignments() falli
+  fyrir reglulega hreinsun. DSR runbook uppfærður til að ná yfir
+  feedback_assignments + feedback_responses bæði í aðgangs- og
+  eyðingarferli.
 
 v1.2 (2026-05-04)
   Ytri lögmaður (role='lawyer') er undanþeginn AAL2 / TOTP MFA. Hann
