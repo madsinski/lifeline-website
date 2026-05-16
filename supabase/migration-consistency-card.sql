@@ -60,7 +60,12 @@ GRANT EXECUTE ON FUNCTION public.get_consistency_grid(uuid) TO authenticated;
 -- ─── 3. refresh_user_meters — extended with depth ────────────────
 -- depth_score = total_done_in_28d / (28 × peak_done_in_any_day_28d)
 -- Capped to 100. NULL when no completions in the window.
-CREATE OR REPLACE FUNCTION public.refresh_user_meters(p_client_id uuid)
+--
+-- The return signature gains a `depth` column, so we have to DROP the
+-- existing function before recreating — Postgres won't let
+-- CREATE OR REPLACE change the OUT-parameter row type.
+DROP FUNCTION IF EXISTS public.refresh_user_meters(uuid);
+CREATE FUNCTION public.refresh_user_meters(p_client_id uuid)
 RETURNS TABLE (consistency smallint, intensity smallint, depth smallint)
 LANGUAGE plpgsql
 SECURITY DEFINER
