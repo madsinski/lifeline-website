@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 
-const STEP_CATALOG_VERIFIED = "2026-05-16";
+const STEP_CATALOG_VERIFIED = "2026-05-16";  // Phase 2-6 onboarding additions
 
 interface CatalogStep {
   step: number;
@@ -75,23 +75,47 @@ const ONBOARDING_CATALOG: CatalogStep[] = [
   },
   {
     step: 3,
-    name: "Connections",
+    name: "Health limitations",
     fields: [
-      { key: "googleCalendarConnected", label: "Google Calendar", type: "boolean", required: false },
-      { key: "healthConnectConnected", label: "Health Connect", type: "boolean", required: false },
+      { key: "allergies", label: "Food allergies", type: "multi", required: false, notes: "9 common allergens + dairy/lactose, gluten, soy, fish, sesame" },
+      { key: "chronicConditions", label: "Dietary prefs + chronic conditions", type: "multi", required: false, notes: "Vegan / Vegetarian / Halal / Kosher + Asthma, Diabetes, Pregnancy, Recent surgery, Heart condition" },
+      { key: "mskIssues", label: "Joint / movement limitations", type: "multi", required: false, notes: "Knees, lower back, shoulders, hips, wrists, ankles, etc. Drives program filtering." },
+      { key: "limitationsNotes", label: "Anything else", type: "text", required: false, notes: "Free-text — fed to AI recommendation" },
     ],
+    notes: "All fields optional. Persisted to clients.onboarding_data.limitations.",
   },
   {
     step: 4,
-    name: "Friends & invites",
-    fields: [],
-    notes: "Search Lifeline users + send invites. No persisted data on this step.",
+    name: "Connections + optional lab import",
+    fields: [
+      { key: "googleCalendarConnected", label: "Google Calendar", type: "boolean", required: false },
+      { key: "healthConnectConnected", label: "Health Connect", type: "boolean", required: false },
+      { key: "importedPanels", label: "Lab panels imported (intl only)", type: "scale", required: false, notes: "AI photo import via /api/health/parse-lab-report — international users only, saves to local SQLite" },
+    ],
+    notes: "International users see an extra 'Have recent lab results?' card. AI imports save locally on device, never to Supabase.",
   },
   {
     step: 5,
+    name: "AI program recommendation",
+    fields: [
+      { key: "programPicks.exercise", label: "Exercise program pick", type: "select", required: false, notes: "AI suggests + 2 alternatives. User can override per pillar." },
+      { key: "programPicks.nutrition", label: "Nutrition program pick", type: "select", required: false },
+      { key: "programPicks.sleep", label: "Sleep program pick", type: "select", required: false },
+      { key: "programPicks.mental", label: "Mental program pick", type: "select", required: false },
+    ],
+    notes: "Auto-fetches /api/onboarding/recommend-programs on arrival. User taps 'Use this plan' OR skips for manual selection later. Picks land on onboarding_data.programPicks.",
+  },
+  {
+    step: 6,
+    name: "Friends — share-sheet primary",
+    fields: [],
+    notes: "Native share-sheet (primary) → copy-link (secondary) → search existing Lifeline users (tertiary). No email-invite form, no Facebook. No persisted data here.",
+  },
+  {
+    step: 7,
     name: "Finishing",
     fields: [],
-    notes: "CTA to complete. On submit: clients row upsert, exercise_profile, onboarding_data, country, pillar levels seeded.",
+    notes: "CTA to complete. On submit: clients row upsert, exercise_profile, onboarding_data (incl. limitations + programPicks), country, pillar levels seeded.",
   },
 ];
 
