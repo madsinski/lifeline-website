@@ -166,6 +166,17 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/action-feedback",
+    label: "Action feedback",
+    badgeType: "action-feedback",
+    icon: (
+      // Circle with a slash — "removed from plan" feedback.
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 1 0 5.636 5.636a9 9 0 0 0 12.728 12.728zM5.636 5.636L18.364 18.364" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/onboarding-bench",
     label: "Onboarding bench",
     icon: (
@@ -245,6 +256,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newCompaniesCount, setNewCompaniesCount] = useState(0);
   const [untaggedActionsCount, setUntaggedActionsCount] = useState(0);
   const [openWearableIssuesCount, setOpenWearableIssuesCount] = useState(0);
+  const [newActionFeedbackCount, setNewActionFeedbackCount] = useState(0);
   const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
   // Medical advisor gets the full sidebar visibility but is read-only on
   // everything except surveys. Treat them as "view-all" for sidebar
@@ -386,6 +398,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .in("status", ["open", "in_progress"]);
       if (!wiErr && wiCount !== null) setOpenWearableIssuesCount(wiCount);
     } catch {}
+    // Action-feedback inbox: count "Not for me" dismissals submitted
+    // since the staff member last opened the page. Falls back to a
+    // 7-day floor (handled inside cutoffFor) so a stale tab doesn't
+    // show ancient items.
+    try {
+      const { count: afCount, error: afErr } = await supabase
+        .from("client_action_dismissals")
+        .select("*", { count: "exact", head: true })
+        .gte("dismissed_at", cutoffFor("last_seen_action_feedback"));
+      if (!afErr && afCount !== null) setNewActionFeedbackCount(afCount);
+    } catch {}
     // Overdue access reviews: active staff whose most recent review is
     // older than 90 days (or never reviewed and created more than 90 days ago).
     try {
@@ -423,6 +446,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       "/admin/bookings": "last_seen_bookings",
       "/admin/surveys": "last_seen_surveys",
       "/admin/business": "last_seen_business",
+      "/admin/action-feedback": "last_seen_action_feedback",
     };
     let touched = false;
     for (const [prefix, key] of Object.entries(lastSeenMap)) {
@@ -743,6 +767,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/access-review" && !canViewAllSections) return false;
             if (link.href === "/admin/errors" && !canViewAllSections) return false;
             if (link.href === "/admin/wearable-issues" && !canViewAllSections) return false;
+            if (link.href === "/admin/action-feedback" && !canViewAllSections) return false;
             if (link.href === "/admin/onboarding-bench" && !canViewAllSections) return false;
             if (link.href === "/admin/ai-feedback" && !canViewAllSections) return false;
             if (link.href === "/admin/ai-test-bench" && !canViewAllSections) return false;
@@ -774,6 +799,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               : badgeType === "business" ? newCompaniesCount
               : badgeType === "audit" ? untaggedActionsCount
               : badgeType === "wearable-issues" ? openWearableIssuesCount
+              : badgeType === "action-feedback" ? newActionFeedbackCount
               : isMessageBadge ? unreadCount
               : 0;
             const hasBadge = badgeCount > 0;

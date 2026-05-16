@@ -49,6 +49,11 @@ const requestSchema = z.object({
     chronicConditions: z.array(z.string()).optional(),
     notes: z.string().optional(),
   }).optional(),
+  preferences: z.object({
+    activityStyles: z.array(z.string()).optional(),
+    recoveryStyles: z.array(z.string()).optional(),
+    foodStyles: z.array(z.string()).optional(),
+  }).optional(),
 });
 
 const PILLARS = ['exercise', 'nutrition', 'sleep', 'mental'] as const;
@@ -88,6 +93,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: `Bad body: ${parsed.error.message}` }, { status: 400 });
   }
   const input = parsed.data;
+
+  // Pull the user's "Not for me" dismissals (Phase 3 AI awareness).
+  // The model uses these as a soft preference signal — programs that
+  // would re-introduce a dismissed action are ranked down with a
+  // rationale that references the user's stated reason.
+  // Wrap in try/catch so the route still works before the migration
+  // is applied to every env.
+  let dismissedSummary: { label: string; reason: string }[] = [];
+  try {
+    const { data: dRows } = await supabaseAdmin
+      .from('client_action_dismissals')
+      .select('lib_key, reason_category')
+      .eq('client_id', user.id);
+    if (dRows && dRows.length > 0) {
+      const keys = Array.from(new Set(dRows.map((r) => r.lib_key as string)));
+      const { data: libRows } = await supabaseAdmin
+        .from('action_library')
+        .select('lib_key, label')
+        .in('lib_key', keys);
+      const labelByKey: Record<string, string> = {};
+      for (const r of libRows ?? []) labelByKey[r.lib_key as string] = (r.label as string) ?? r.lib_key as string;
+      dismissedSummary = dRows.map((r) => ({
+        label: labelByKey[r.lib_key as string] ?? (r.lib_key as string),
+        reason: r.reason_category as string,
+      }));
+    }
+  } catch { /* table not yet created — no-op */ }
 
   // Pull the program catalog so the model can only propose valid keys.
   const { data: catalog, error: catErr } = await supabaseAdmin
@@ -136,6 +168,22 @@ RULES
       home setting → home-equipment-friendly exercise programs
       gym setting → gym-based
       hybrid → either is fine
+  • Respect preferences (input.preferences). These are soft signals:
+      activityStyles → bias exercise pick toward matching modalities
+        (e.g. "Yoga / pilates" → prefer mobility/flexibility plans;
+         "Strength training" → resistance-based plans;
+         "Walking"/"Hiking" → low-impact aerobic plans)
+      recoveryStyles → bias mental pick toward matching practices
+        (e.g. "Meditation" → meditation-based plans;
+         "Breathwork" → breath-led plans; "Journaling" → reflection plans)
+      foodStyles → bias nutrition pick toward matching approach
+        (e.g. "Mediterranean" → Mediterranean plan if available;
+         "High-protein" → protein-forward plan;
+         "Plant-forward" → plant-based plan;
+         "Quick / easy meals" → simpler/lower-prep plan)
+      An empty preferences array means "no signal" — fall back to the
+      level-based default. Reference the matching preference in the
+      rationale when one is the load-bearing reason for the pick.
   • Rationale is ONE sentence (≤ 22 words), plain language, references the user's answer that drove the pick.
       Good: "Beginner home plan that fits your 30-min, 3-day budget — no jumping given your knees."
       Bad:  "Based on your selected preferences and lifestyle factors this represents an appropriate starting point."
@@ -143,7 +191,10 @@ RULES
 CATALOG
 ${catalogText}
 
-USER ANSWERS
+${dismissedSummary.length > 0 ? `USER HAS PREVIOUSLY DISMISSED THESE ACTIONS — DO NOT pick programs that lean heavily on them. Mention the swap in the rationale only if it's the load-bearing reason.
+${dismissedSummary.map((d) => `  - "${d.label}" (reason: ${d.reason})`).join('\n')}
+
+` : ''}USER ANSWERS
 ${JSON.stringify(input, null, 2)}`;
 
   let result;
