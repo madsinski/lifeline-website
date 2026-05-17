@@ -112,6 +112,22 @@ export async function POST(req: Request) {
   const startedAt = Date.now();
   const since = new Date(Date.now() - ACTIVE_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
 
+  // Rotating focus angle so consecutive narratives don't sound the
+  // same. The cron-run-of-the-day index picks which lens the prompt
+  // emphasizes. Per-user fingerprint adds drift so two users on the
+  // same day don't always get the same angle.
+  const FOCUS_ANGLES = [
+    'weekday-vs-weekend pattern',
+    'pillar balance — which pillar is leaning and which is starving',
+    'time-of-day pattern (morning / midday / evening completions)',
+    'recent 7-day trend vs the prior 7',
+    'specific pillar with biggest gap',
+    'specific pillar where they are strongest',
+    'effort/intensity vs prescription',
+    'streak / showing-up rhythm',
+  ];
+  const cronDayIdx = Math.floor(Date.now() / 86400000);
+
   // Active users: had at least one done completion in the last 14 days.
   const { data: activeRows, error: activeErr } = await supabaseAdmin
     .from("action_completions")
@@ -142,15 +158,19 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Gather inputs: grid + scores. Grid call uses the SECURITY DEFINER
-      // RPC, so service-role context here is fine.
+      // Gather inputs: grid + scores + per-pillar mix. Grid call uses
+      // the SECURITY DEFINER RPC, so service-role context here is fine.
       const { data: grid } = await supabaseAdmin.rpc("get_consistency_grid", { p_client_id: clientId });
       const gridRows = (grid ?? []) as Array<{ date: string; done_count: number }>;
 
       const daysCompleted28 = gridRows.filter((r) => r.done_count > 0).length;
       const peakDay = gridRows.reduce((m, r) => Math.max(m, r.done_count), 0);
       const last14 = gridRows.slice(-14);
+      const last7 = gridRows.slice(-7);
+      const prior7 = gridRows.slice(-14, -7);
       const last14Completions = last14.reduce((s, r) => s + r.done_count, 0);
+      const last7Completions = last7.reduce((s, r) => s + r.done_count, 0);
+      const prior7Completions = prior7.reduce((s, r) => s + r.done_count, 0);
       const last14Weekend = last14
         .filter((r) => {
           const dow = new Date(r.date).getDay();
@@ -161,22 +181,64 @@ export async function POST(req: Request) {
       const consistencyScore = (existing as any)?.consistency_score ?? null;
       const depthScore = (existing as any)?.consistency_depth_score ?? null;
 
-      // Build a compact prompt.
+      // Per-pillar action counts over the last 14 days, so the model
+      // can suggest specific pillar nudges by name.
+      const last14Start = last14[0]?.date ?? since;
+      const { data: pillarRows } = await supabaseAdmin
+        .from("action_completions")
+        .select("action_key, perceived_intensity, prescribed_intensity")
+        .eq("client_id", clientId)
+        .eq("status", "done")
+        .gte("date", last14Start);
+      const pillarTotals = { exercise: 0, nutrition: 0, sleep: 0, mental: 0 };
+      let intensityActualSum = 0;
+      let intensityPrescribedSum = 0;
+      for (const r of pillarRows ?? []) {
+        const k = (r as any).action_key as string;
+        if (k.startsWith("exercise-") || k.includes("quick-session") || k === "steps") pillarTotals.exercise += 1;
+        else if (k.startsWith("nutrition-") || k.startsWith("meal-")) pillarTotals.nutrition += 1;
+        else if (k.startsWith("sleep-")) pillarTotals.sleep += 1;
+        else if (k.startsWith("mental-")) pillarTotals.mental += 1;
+        const ai = (r as any).perceived_intensity;
+        const pi = (r as any).prescribed_intensity;
+        if (typeof ai === "number") intensityActualSum += ai;
+        if (typeof pi === "number") intensityPrescribedSum += pi;
+      }
+
+      // Rotating focus angle: combine the day index with a per-user
+      // fingerprint so different users on the same day get different
+      // angles, and the same user on consecutive days drifts.
+      const userSeed = Array.from(clientId).reduce((a, c) => a + c.charCodeAt(0), 0);
+      const focusIdx = (cronDayIdx + userSeed) % FOCUS_ANGLES.length;
+      const focusAngle = FOCUS_ANGLES[focusIdx];
+
+      // Build a compact, next-step-oriented prompt with a rotating lens.
       const prompt =
-        `Generate a one-line OBSERVATION + one-line NUDGE for a user's 28-day consistency.\n\n` +
+        `Write a ONE-LINE observation about the user's 28-day activity and ONE concrete NEXT STEP. ` +
+        `The advice must be actionable tomorrow — name a specific pillar (Exercise / Nutrition / Sleep / Mental) when possible, ` +
+        `and reference the data so it doesn't sound generic.\n\n` +
+        `Today's lens (rotate the angle, don't force every angle): ${focusAngle}.\n\n` +
         `Inputs:\n` +
         `- days_with_completion_28d: ${daysCompleted28}/28\n` +
-        `- consistency_days_score: ${consistencyScore ?? "n/a"} (% days with ≥1 action)\n` +
-        `- consistency_depth_score: ${depthScore ?? "n/a"} (% of peak-day intensity)\n` +
+        `- consistency_days_score: ${consistencyScore ?? "n/a"}% (days with ≥1 done)\n` +
+        `- consistency_depth_score: ${depthScore ?? "n/a"}% (vs peak-day intensity)\n` +
         `- peak_completions_in_a_day: ${peakDay}\n` +
+        `- last_7d_completions_total: ${last7Completions}\n` +
+        `- prior_7d_completions_total: ${prior7Completions}\n` +
         `- last_14d_completions_total: ${last14Completions}\n` +
         `- last_14d_weekend_share: ${(weekendShare * 100).toFixed(0)}%\n` +
+        `- per_pillar_completions_14d: exercise ${pillarTotals.exercise}, nutrition ${pillarTotals.nutrition}, sleep ${pillarTotals.sleep}, mental ${pillarTotals.mental}\n` +
+        `- intensity_actual_sum_14d: ${intensityActualSum}\n` +
+        `- intensity_prescribed_sum_14d: ${intensityPrescribedSum}\n` +
         `- per_day_grid (oldest first): ${gridRows.map((r) => r.done_count).join(",")}\n\n` +
-        `Tone: warm, concrete, no fluff. Reference the data plainly. Don't moralize. ` +
-        `Observation: surface ONE notable pattern in <=160 chars. ` +
-        `Nudge: ONE actionable tomorrow-suggestion in <=120 chars. ` +
-        `If the user has zero completions in the window, encourage starting tiny. ` +
-        `If the user is strong (>75% days), suggest leveling up.`;
+        `Rules:\n` +
+        `- Observation (<=140 chars): describe ONE specific pattern from the lens above. Reference numbers when natural.\n` +
+        `- Nudge (<=120 chars): ONE specific next step. Prefer naming a pillar and a tiny commitment (e.g. "Add a 10-min mental session before bed"). ` +
+        `Never say "more actions" — name the pillar.\n` +
+        `- Avoid clichés ("crush it", "keep it up", "you got this", "small wins"). ` +
+        `Avoid generic openings ("Great job", "Nice work").\n` +
+        `- If zero completions: encourage one tiny start in the pillar that's most foundational (sleep > nutrition > mental > exercise).\n` +
+        `- If consistently strong (>75% days), suggest a stretch — earlier wake, longer session, harder pillar.`;
 
       let narrative: { observation: string; nudge: string };
       try {
