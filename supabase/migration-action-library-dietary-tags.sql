@@ -75,6 +75,9 @@ BEGIN
     tag     := tag_rules[i][1];
     pattern := tag_rules[i][2];
 
+    -- details is jsonb (array of strings in practice but treated
+    -- opaquely here). Cast to text so the regex scans the whole
+    -- serialized blob without assuming its structure.
     UPDATE public.action_library a
     SET    contraindications =
              (SELECT ARRAY(SELECT DISTINCT unnest(COALESCE(a.contraindications, ARRAY[]::text[]) || ARRAY[tag])))
@@ -82,11 +85,7 @@ BEGIN
       AND  NOT (COALESCE(a.contraindications, ARRAY[]::text[]) @> ARRAY[tag])
       AND  (
         a.label ~* pattern
-        OR EXISTS (
-          SELECT 1
-          FROM unnest(COALESCE(a.details, ARRAY[]::text[])) AS d
-          WHERE d ~* pattern
-        )
+        OR a.details::text ~* pattern
       );
 
     GET DIAGNOSTICS affected = ROW_COUNT;
