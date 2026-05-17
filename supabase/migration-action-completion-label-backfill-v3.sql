@@ -56,14 +56,25 @@ WHERE ac.id = m.id
   AND m.label <> '';
 
 -- Action-override custom_title path: action_key of shape "custom:<lib_key>:<dow>".
--- PK is (client_id, lib_key, original_dow) so join on client_id too.
-UPDATE public.action_completions ac
-SET label = ao.custom_title
-FROM public.action_overrides ao
-WHERE (ac.label IS NULL OR ac.label = '')
-  AND ac.action_key ~ '^custom:'
-  AND ao.client_id = ac.client_id
-  AND ao.lib_key = split_part(substring(ac.action_key from 8), ':', 1)
-  AND ao.original_dow::text = split_part(ac.action_key, ':', 3)
-  AND ao.custom_title IS NOT NULL
-  AND ao.custom_title <> '';
+-- Guarded — the action_overrides table is only created in environments
+-- where the rename-action feature has been deployed.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'action_overrides'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE public.action_completions ac
+      SET label = ao.custom_title
+      FROM public.action_overrides ao
+      WHERE (ac.label IS NULL OR ac.label = '')
+        AND ac.action_key ~ '^custom:'
+        AND ao.client_id = ac.client_id
+        AND ao.lib_key = split_part(substring(ac.action_key from 8), ':', 1)
+        AND ao.original_dow::text = split_part(ac.action_key, ':', 3)
+        AND ao.custom_title IS NOT NULL
+        AND ao.custom_title <> ''
+    $sql$;
+  END IF;
+END $$;
