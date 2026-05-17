@@ -83,6 +83,21 @@ const intentSchema = z.union([
     scope: z.enum(['this_week', 'recurring']),
     rationale: z.string(),
   }),
+  // Rebalance the user's weekly modality mix toward their program's
+  // target. Always proposes adding a single zone 2 or HIIT slot —
+  // implemented as a custom action under the hood, but with explicit
+  // modality so the badge surfaces correctly and the AI can reason
+  // about the target ratio. Pillar is locked to 'exercise'.
+  z.object({
+    kind: z.literal('propose_modality_rebalance'),
+    target_modality: z.enum(['zone2', 'hiit', 'mixed_strength_cardio', 'mobility']),
+    original_lib_key: z.string(), // slot to replace (typically a rest day's adjacent strength slot, or the lowest-priority day)
+    original_dow: z.number().int().min(0).max(6),
+    title: z.string().min(1),       // e.g. "45-min zone 2 walk"
+    duration_min: z.number().int().nullable(),
+    scope: z.enum(['this_week', 'recurring']),
+    rationale: z.string(),
+  }),
   z.object({
     kind: z.literal('none'),
   }),
@@ -136,6 +151,15 @@ export async function POST(req: Request) {
   const catalog = (catalogRes.data ?? []) as Array<{ key: string; name: string; description: string | null; category_id: string; level: string | null }>;
   const limitations = (clientRes.data as any)?.onboarding_data?.limitations ?? null;
   const preferences = (clientRes.data as any)?.onboarding_data?.preferences ?? null;
+  // Exercise modality preferences — captured in onboarding step 2.
+  // Used to make rebalance proposals concrete (we know they like
+  // cycling and have no equipment for swimming, etc.). Saved as
+  // camelCase by the app, snake_case by the legacy CMS path; accept
+  // both.
+  const exercisePrefs =
+    (clientRes.data as any)?.onboarding_data?.exercisePreferences
+    ?? (clientRes.data as any)?.onboarding_data?.exercise_preferences
+    ?? null;
   const dismissalRows = (dismissalsRes.data ?? []) as Array<{ lib_key: string; reason_category: string }>;
   const dismissedKeys = new Set(dismissalRows.map((r) => r.lib_key));
 
@@ -214,6 +238,7 @@ export async function POST(req: Request) {
   • change_level — promote or demote the user's pillar level
   • move_action_day — reschedule an action from one weekday to another (e.g. "move leg day to Tuesday"). Use original_dow + new_dow with Mon=0..Sun=6. Pick scope='this_week' for one-off ("I'm travelling Thursday") or 'recurring' for a permanent move.
   • add_custom_action — replace a slot with a user-defined activity (e.g. "I'm doing a group class Tuesdays instead of cardio"). original_lib_key + original_dow identify the slot being replaced; title is the new activity. scope works the same way.
+  • propose_modality_rebalance — add a zone 2 / HIIT / mixed-class / mobility session to fill a gap against the program's weekly modality target (Lifeline policy: a healthy week mixes strength + zone 2 + HIIT). Use the user's EXERCISE PREFERENCES below to pick a realistic modality (don't prescribe swimming if they don't have a pool). Respect contraindications (no HIIT running if knees are flagged; no HIIT at all if baseline is sedentary). Honors scope = this_week / recurring like the others.
   • none — clarifying question, or no action needed
 
 RULES
@@ -237,7 +262,24 @@ ${levels.map((l) => `    ${l.pillar}: ${l.level}`).join('\n') || '    (defaults)
 ${dismissedSummary.length > 0 ? `  Previously dismissed actions (DO NOT propose a swap_action whose to_lib_key reintroduces any of these; for swap_program, avoid programs built around them):
 ${dismissedSummary.map((d) => `    - "${d.label}" (reason: ${d.reason})`).join('\n')}
 
-` : ''}CATALOG
+` : ''}EXERCISE PREFERENCES (from onboarding — drives rebalance proposals)
+  Cardio baseline: ${exercisePrefs?.cardio_baseline ?? '(not set)'}
+  Cardio modalities they'd actually do: ${(exercisePrefs?.cardio_picks ?? []).join(', ') || '(none picked)'}
+  HIIT styles they'd consider: ${(exercisePrefs?.hiit_picks ?? []).join(', ') || '(none picked)'}
+  Regular classes they attend: ${(exercisePrefs?.regular_classes ?? []).join(', ') || '(none)'}
+
+LIFELINE EXERCISE POLICY (use to motivate rebalance proposals)
+  A healthy week mixes:
+    • Strength — 2-4x per week (resistance training, 48hr between same muscle groups)
+    • Zone 2 cardio — 2-4x per week, 30-60 min, conversational pace (RPE 3-4 / 60-70% HRmax)
+    • HIIT — 1-2x per week (4x4 protocol, sprint intervals, classes count if they hit ~85% HRmax)
+    • Mixed classes (kettlebell / F45 / CrossFit / HotFit) count as BOTH strength and HIIT — don't stack additional HIIT on a class day
+  Recovery spacing rules:
+    • Don't schedule HIIT the day before heavy lower-body strength
+    • At least 1 full rest day per week
+    • Zone 2 is regenerative — can be done daily without recovery cost
+
+CATALOG
 ${catalogText}
 
 THIS WEEK'S SCHEDULE (use these lib_keys + dow values for move_action_day / add_custom_action; today is ${dayLabels[todayMonIdx]} dow=${todayMonIdx})
@@ -282,6 +324,16 @@ ${scheduleText}`;
   }
   // Defensive: a no-op move (original_dow === new_dow) is invalid.
   if (out.proposed_action.kind === 'move_action_day' && out.proposed_action.original_dow === out.proposed_action.new_dow) {
+    out.proposed_action = { kind: 'none' };
+  }
+
+  // Defensive: never propose HIIT when the user's cardio baseline is
+  // sedentary — even if the model misses the policy line in the prompt.
+  if (
+    out.proposed_action.kind === 'propose_modality_rebalance'
+    && out.proposed_action.target_modality === 'hiit'
+    && exercisePrefs?.cardio_baseline === 'sedentary'
+  ) {
     out.proposed_action = { kind: 'none' };
   }
 

@@ -45,6 +45,7 @@ const requestSchema = z.object({
   existingPractice: z.boolean().optional(),
   limitations: z.object({
     allergies: z.array(z.string()).optional(),
+    dietaryPreferences: z.array(z.string()).optional(),
     mskIssues: z.array(z.string()).optional(),
     chronicConditions: z.array(z.string()).optional(),
     notes: z.string().optional(),
@@ -143,13 +144,41 @@ export async function POST(req: Request) {
     catalogByPillar.set(pillar, arr as any);
   }
 
-  // Compact catalog text for the prompt.
+  // Pull a sample of action labels per program so the model can do
+  // content-aware matching ("this program contains running → bad for
+  // knee user") instead of name-guessing. Capped at 8 distinct labels
+  // per program to keep prompt size sane. Falls through silently if
+  // the program_actions query fails — model still gets program metadata.
+  const programKeys = catalog.map((c) => (c as any).key as string);
+  const actionLabelsByProgram = new Map<string, string[]>();
+  if (programKeys.length > 0) {
+    try {
+      const { data: actionRows } = await supabaseAdmin
+        .from('program_actions')
+        .select('program_key, label')
+        .in('program_key', programKeys);
+      for (const row of (actionRows ?? []) as Array<{ program_key: string; label: string | null }>) {
+        if (!row.label) continue;
+        const arr = actionLabelsByProgram.get(row.program_key) ?? [];
+        if (arr.length < 8 && !arr.includes(row.label)) arr.push(row.label);
+        actionLabelsByProgram.set(row.program_key, arr);
+      }
+    } catch { /* no-op — program_actions optional for the prompt */ }
+  }
+
+  // Compact catalog text for the prompt. Each program lists key, name,
+  // level, description, plus a sample of actions inside the program
+  // (when available) so the model picks content-aware.
   const catalogText = PILLARS.map((p) => {
     const items = (catalogByPillar.get(p) ?? []).filter((x) => x);
     if (!items.length) return `${p.toUpperCase()}: (no programs available)`;
-    return `${p.toUpperCase()}:\n` + items.map((x: any) =>
-      `  - key: ${x.key}\n    name: ${x.name}\n    level: ${x.level || 'unspecified'}\n    description: ${x.description ?? ''}`
-    ).join('\n');
+    return `${p.toUpperCase()}:\n` + items.map((x: any) => {
+      const sample = actionLabelsByProgram.get(x.key);
+      const sampleLine = sample && sample.length > 0
+        ? `\n    sample_actions: ${sample.join(' · ')}`
+        : '';
+      return `  - key: ${x.key}\n    name: ${x.name}\n    level: ${x.level || 'unspecified'}\n    description: ${x.description ?? ''}${sampleLine}`;
+    }).join('\n');
   }).join('\n\n');
 
   const systemPrompt = `You recommend ONE program per health pillar (exercise, nutrition, sleep, mental) for a new Lifeline Health user, based on their onboarding answers. You also list two alternative programs per pillar so the user can override.
@@ -157,6 +186,10 @@ export async function POST(req: Request) {
 RULES
   • Use only program_key values that appear in the CATALOG below. Never invent a key.
   • The program_name must match the catalog exactly.
+  • Use sample_actions (when present) to verify content fit BEFORE picking. The program name and description can be misleading — sample_actions is the source of truth for what the user will actually do day-to-day:
+      - User has mskIssues:"Knees" and a program's sample_actions include "Running intervals" → pick a different program even if the name says "low-impact"
+      - User picked dietaryPreferences:"Vegan" and a program's sample_actions include "Grilled chicken" → pick a plant-forward alternative
+      - User picked recoveryStyles:"Breathwork" and a program's sample_actions are all sleep-hygiene tips with zero breathwork → pick a different mental program
   • Match level to the user's signal:
       activityLevel:beginner / sleepQuality:<6 / stressScore:<4 / eatingPattern:fast_food → prefer "beginner" programs
       activityLevel:advanced / sleepQuality:>8 / stressScore:>7 / eatingPattern:tracks_macros → may suggest "intermediate"
@@ -164,6 +197,10 @@ RULES
       mskIssues with "Knees" / "Lower back" → prefer low-impact / mobility programs over running
       chronicConditions with "Pregnancy" / "Recent surgery" → flag in rationale and prefer gentlest option
       allergies → only affects nutrition (suggest broader plans that the user can adapt rather than specific cuisines)
+      dietaryPreferences (Vegan / Vegetarian / Pescatarian / Halal / Kosher) → HARD constraint for nutrition:
+        - Vegan → pick a plant-forward / plant-based program. NEVER suggest a meat-centric program (e.g. "performance-fuel-pro" if it leans high-meat). If only meat-centric plans exist in the catalog, prefer the most adaptable one and CALL OUT the constraint in the rationale.
+        - Vegetarian / Pescatarian → avoid programs whose name or description leans heavily on red meat / poultry.
+        - Halal / Kosher → no pork-centric plans; otherwise broad nutrition plans are fine.
   • Respect setting + days + minutes:
       home setting → home-equipment-friendly exercise programs
       gym setting → gym-based
