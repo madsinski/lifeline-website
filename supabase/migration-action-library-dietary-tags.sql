@@ -28,12 +28,9 @@
 -- mobility drill" as contains_eggs.
 -- =============================================================
 
--- 0) Ensure the contraindications column exists on both tables.
---    Both are text[] (Postgres array of free-form tag strings).
+-- 0) Ensure the contraindications column exists on action_library.
+--    text[] = Postgres array of free-form tag strings.
 ALTER TABLE public.action_library
-  ADD COLUMN IF NOT EXISTS contraindications text[];
-
-ALTER TABLE public.program_actions
   ADD COLUMN IF NOT EXISTS contraindications text[];
 
 -- 1) Tag action_library rows whose label/details match the keyword rules.
@@ -96,22 +93,20 @@ BEGIN
   RAISE NOTICE 'Done tagging action_library. % total tag-applications.', total;
 END $$;
 
--- 2) Denormalize the tagged set onto program_actions so the read-time
---    contraindication filter (applyClientContraindications) actually
---    sees them. Merges with any existing tags on program_actions.
-UPDATE public.program_actions pa
-SET    contraindications =
-         (SELECT ARRAY(SELECT DISTINCT unnest(
-            COALESCE(pa.contraindications, ARRAY[]::text[])
-            || COALESCE(al.contraindications, ARRAY[]::text[])
-         )))
-FROM   public.action_library al
-WHERE  pa.lib_key IS NOT NULL
-  AND  pa.lib_key = al.lib_key
-  AND  al.contraindications IS NOT NULL
-  AND  array_length(al.contraindications, 1) > 0
-  -- Only touch rows whose tag set would actually change
-  AND  NOT (COALESCE(pa.contraindications, ARRAY[]::text[]) @> al.contraindications);
+-- 2) Read-path note (no SQL change required if the view already does this)
+--
+-- applyClientContraindications in src/services/api.ts filters the
+-- rows returned by the program_actions_resolved view. That view
+-- should expose action_library.contraindications so the filter sees
+-- the tags we just authored above. Verify with:
+--
+--   \d+ public.program_actions_resolved
+--
+-- If 'contraindications' isn't in its SELECT list, update the view
+-- (in the Supabase SQL editor) to include
+--   al.contraindications AS contraindications
+-- joined from the corresponding action_library row. Without this
+-- step the tags exist but never reach the client filter.
 
 -- =============================================================
 -- Sanity check view (read-only). Run as staff:
