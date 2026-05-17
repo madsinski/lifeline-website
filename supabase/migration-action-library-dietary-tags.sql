@@ -1,10 +1,10 @@
 -- =============================================================
--- action_library: dietary + allergen contraindication backfill
+-- action_library + program_actions: dietary + allergen
+-- contraindication column + backfill
 --
--- Populates action_library.contraindications (text[]) with the
--- contains_<food> tags that getUserContraindications() in
--- src/services/api.ts adds when a user has the matching dietary
--- preference or allergy:
+-- Populates contraindications (text[]) with the contains_<food>
+-- tags that getUserContraindications() in src/services/api.ts adds
+-- when a user has the matching dietary preference or allergy:
 --
 --   Vegan          → contains_meat, contains_fish, contains_dairy, contains_eggs
 --   Vegetarian     → contains_meat, contains_fish
@@ -12,10 +12,15 @@
 --   Halal / Kosher → contains_pork
 --   Allergies      → contains_<allergen>
 --
+-- The read filter (applyClientContraindications) reads from
+-- program_actions rows, so we denormalize: tag action_library, then
+-- propagate the tag set to every program_actions row whose lib_key
+-- points at it. This mirrors how label is already denormalized.
+--
 -- Heuristics scan label + details for keyword matches. Conservative
 -- by design: under-tagging means a vegan sees a stray chicken recipe
 -- (annoying but recoverable via "Not for me"); over-tagging hides
--- content the user wanted. We only tag on unambiguous keywords.
+-- content the user wanted.
 --
 -- Idempotent: only ADDS the tag if not already present. Re-runnable
 -- safely after the action library grows. Scoped to nutrition pillar
@@ -23,6 +28,15 @@
 -- mobility drill" as contains_eggs.
 -- =============================================================
 
+-- 0) Ensure the contraindications column exists on both tables.
+--    Both are text[] (Postgres array of free-form tag strings).
+ALTER TABLE public.action_library
+  ADD COLUMN IF NOT EXISTS contraindications text[];
+
+ALTER TABLE public.program_actions
+  ADD COLUMN IF NOT EXISTS contraindications text[];
+
+-- 1) Tag action_library rows whose label/details match the keyword rules.
 DO $$
 DECLARE
   -- Each tuple: tag, regex (case-insensitive, applied to label+details)
@@ -52,11 +66,8 @@ DECLARE
     -- Sesame
     ARRAY['contains_sesame',    '\m(sesame|tahini|halva|hummus)\M']
   ];
-  r            text[];
   tag          text;
   pattern      text;
-  scope_text   text;
-  affected_id  uuid;
   affected     integer;
   total        integer := 0;
 BEGIN
@@ -83,8 +94,25 @@ BEGIN
     RAISE NOTICE 'tagged % rows with %', affected, tag;
   END LOOP;
 
-  RAISE NOTICE 'Done. % total tag-applications.', total;
+  RAISE NOTICE 'Done tagging action_library. % total tag-applications.', total;
 END $$;
+
+-- 2) Denormalize the tagged set onto program_actions so the read-time
+--    contraindication filter (applyClientContraindications) actually
+--    sees them. Merges with any existing tags on program_actions.
+UPDATE public.program_actions pa
+SET    contraindications =
+         (SELECT ARRAY(SELECT DISTINCT unnest(
+            COALESCE(pa.contraindications, ARRAY[]::text[])
+            || COALESCE(al.contraindications, ARRAY[]::text[])
+         )))
+FROM   public.action_library al
+WHERE  pa.lib_key IS NOT NULL
+  AND  pa.lib_key = al.lib_key
+  AND  al.contraindications IS NOT NULL
+  AND  array_length(al.contraindications, 1) > 0
+  -- Only touch rows whose tag set would actually change
+  AND  NOT (COALESCE(pa.contraindications, ARRAY[]::text[]) @> al.contraindications);
 
 -- =============================================================
 -- Sanity check view (read-only). Run as staff:
