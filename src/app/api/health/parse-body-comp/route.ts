@@ -100,10 +100,21 @@ const responseSchema = z.object({
   warnings: z.array(z.string()),
 });
 
-const requestSchema = z.object({
+// Accept either:
+//   • Legacy single-image form { image_base64, mime_type }
+//   • New multi-page form { images: [{ image_base64, mime_type }, ...] }
+// DEXA / Bod Pod reports can span multiple pages; smart-scale screenshots
+// are usually single-page.
+const imagePartSchema = z.object({
   image_base64: z.string().min(100).max(20_000_000),
   mime_type: z.enum(['image/jpeg', 'image/png', 'image/heic', 'image/webp']),
 });
+const requestSchema = z.union([
+  imagePartSchema,
+  z.object({
+    images: z.array(imagePartSchema).min(1).max(8),
+  }),
+]);
 
 async function checkRateLimit(clientId: string, tier: string | null): Promise<boolean> {
   if (tier === 'premium' || tier === 'self-maintained') return true;
@@ -151,11 +162,18 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: `Bad body: ${parsed.error.message}` }, { status: 400 });
   }
-  const { image_base64, mime_type } = parsed.data;
+  // Normalize legacy single-image and new multi-image shapes into one
+  // array — downstream code only deals with `images`.
+  const images: Array<{ image_base64: string; mime_type: string }> =
+    'images' in parsed.data
+      ? parsed.data.images
+      : [{ image_base64: parsed.data.image_base64, mime_type: parsed.data.mime_type }];
 
-  const approxBytes = (image_base64.length * 3) / 4;
-  if (approxBytes > MAX_IMAGE_BYTES) {
-    return NextResponse.json({ ok: false, error: 'Image too large (10 MB max)' }, { status: 413 });
+  for (const img of images) {
+    const approxBytes = (img.image_base64.length * 3) / 4;
+    if (approxBytes > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ ok: false, error: 'One of the images is too large (10 MB per page max)' }, { status: 413 });
+    }
   }
 
   let tier: string | null = null;
@@ -217,8 +235,16 @@ WARNINGS
       messages: [{
         role: 'user',
         content: [
-          { type: 'text', text: 'Extract body-composition data from this image.' },
-          { type: 'image', image: `data:${mime_type};base64,${image_base64}` } as any,
+          {
+            type: 'text',
+            text: images.length > 1
+              ? `Extract body-composition data from these ${images.length} pages (attached in order). Merge values from across pages, preferring the clearest reading.`
+              : 'Extract body-composition data from this image.',
+          },
+          ...images.map((img) => ({
+            type: 'image' as const,
+            image: `data:${img.mime_type};base64,${img.image_base64}`,
+          })),
         ],
       } as any],
       maxOutputTokens: 2500,

@@ -138,10 +138,24 @@ const responseSchema = z.object({
   warnings: z.array(z.string()),
 });
 
-const requestSchema = z.object({
+// Accept either:
+//   • Legacy single-image form { image_base64, mime_type }
+//   • New multi-page form { images: [{ image_base64, mime_type }, ...] }
+//
+// Multi-page is preferred for typical clinical lab reports that span
+// 2-4 pages — the model receives all pages in one message and can
+// correlate values across them (e.g. a TC/HDL ratio printed on page 1
+// using values listed on page 2).
+const imagePartSchema = z.object({
   image_base64: z.string().min(100).max(20_000_000),
   mime_type: z.enum(['image/jpeg', 'image/png', 'image/heic', 'image/webp']),
 });
+const requestSchema = z.union([
+  imagePartSchema,
+  z.object({
+    images: z.array(imagePartSchema).min(1).max(8),
+  }),
+]);
 
 async function checkRateLimit(clientId: string, tier: string | null): Promise<boolean> {
   if (tier === 'premium' || tier === 'self-maintained') return true;
@@ -187,12 +201,20 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: `Bad body: ${parsed.error.message}` }, { status: 400 });
   }
-  const { image_base64, mime_type } = parsed.data;
+  // Normalize legacy single-image and new multi-image shapes into one
+  // array. Every downstream step deals only with `images`.
+  const images: Array<{ image_base64: string; mime_type: string }> =
+    'images' in parsed.data
+      ? parsed.data.images
+      : [{ image_base64: parsed.data.image_base64, mime_type: parsed.data.mime_type }];
 
-  // 10 MB cap on the decoded image
-  const approxBytes = (image_base64.length * 3) / 4;
-  if (approxBytes > MAX_IMAGE_BYTES) {
-    return NextResponse.json({ ok: false, error: 'Image too large (10 MB max)' }, { status: 413 });
+  // 10 MB cap per page — multi-page requests can exceed this in
+  // aggregate but no single page should.
+  for (const img of images) {
+    const approxBytes = (img.image_base64.length * 3) / 4;
+    if (approxBytes > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ ok: false, error: 'One of the images is too large (10 MB per page max)' }, { status: 413 });
+    }
   }
 
   // Tier + rate limit
@@ -256,8 +278,16 @@ ${catalogText}`;
       messages: [{
         role: 'user',
         content: [
-          { type: 'text', text: 'Extract all blood-test markers from this report image. Follow the rules in the system prompt.' },
-          { type: 'image', image: `data:${mime_type};base64,${image_base64}` },
+          {
+            type: 'text',
+            text: images.length > 1
+              ? `Extract all blood-test markers from this ${images.length}-page lab report (pages attached in order). De-duplicate markers that appear on more than one page (use the most legible reading). Follow the rules in the system prompt.`
+              : 'Extract all blood-test markers from this report image. Follow the rules in the system prompt.',
+          },
+          ...images.map((img) => ({
+            type: 'image' as const,
+            image: `data:${img.mime_type};base64,${img.image_base64}`,
+          })),
         ],
       }],
       maxOutputTokens: 4000,
