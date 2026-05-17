@@ -6,17 +6,22 @@
 -- is NULL/empty contribute nothing to the prompt — the model goes
 -- back to name-only guessing.
 --
--- This migration fills program_actions.label from action_library.label
--- (joined by lib_key) for any row that is missing it. Idempotent.
--- Rows without a lib_key (legacy / custom programs) are untouched —
--- those need to be hand-authored anyway.
+-- Fills program_actions.label from action_library.label via the
+-- library_action_id FK (UUID → action_library.id) for any row that
+-- is missing a label. program_actions identifies its library row by
+-- library_action_id, not by lib_key directly — lib_key lives on
+-- action_library and surfaces to the read path through the
+-- program_actions_resolved view.
+--
+-- Rows without library_action_id (legacy / custom programs) are
+-- untouched; those need hand-authored labels anyway.
 -- =============================================================
 
 UPDATE public.program_actions pa
 SET    label = al.label
 FROM   public.action_library al
-WHERE  pa.lib_key IS NOT NULL
-  AND  pa.lib_key = al.lib_key
+WHERE  pa.library_action_id IS NOT NULL
+  AND  pa.library_action_id = al.id
   AND  (pa.label IS NULL OR pa.label = '')
   AND  al.label IS NOT NULL
   AND  al.label <> '';
