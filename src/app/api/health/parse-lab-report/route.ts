@@ -249,9 +249,10 @@ export async function POST(req: Request) {
 
 OUTPUT RULES
   • Return a single JSON object matching the supplied schema.
-  • If a field is not visible or you cannot read it confidently, return null. Never invent numeric values.
+  • COMPLETENESS IS THE TOP PRIORITY. Return EVERY measurable row you can read on the report. Do not skip a row because the label is unfamiliar, the unit is missing, the reference range is absent, or the mapping is uncertain. A row with matched_code=null, missing unit, and missing range is still useful — the user can edit it before save.
+  • If a numeric value is not visible or you can't read it confidently, only then omit the row. Never invent numeric values.
   • Reference ranges: extract the low/high pair when shown. If only one bound is shown (e.g. "< 5.0"), set the unspecified side to null. If no range is shown, return null for both.
-  • Units: extract verbatim from the report (e.g. "mg/dL", "mmol/L", "ng/mL"). Do not convert.
+  • Units: extract verbatim from the report (e.g. "mg/dL", "mmol/L", "ng/mL"). Do not convert. If a row has no unit visible, return an empty string.
   • Confidence per marker:
       "high"   — clear value + unit + label, no ambiguity
       "medium" — value clear, unit slightly cropped or label abbreviated
@@ -261,11 +262,11 @@ MAPPING
   • Map each row's label to a Lifeline marker code from the catalog below, using the alias list. Case-insensitive. Partial matches OK.
   • IMPORTANT: strip plasma/serum/blood prefixes ("P-", "S-", "B-") before matching. "P-Glúkósi" → match against "glúkósi" → GLU-F. "S-Kreatínín" → match against "kreatinín" → CREA. "p-hómócystein" → match against "hómócystein" → HCY.
   • Be aggressive about matching Icelandic labels — most aliases include Icelandic spellings (with and without accents). If the label is clearly the Icelandic form of a marker in the catalog, MATCH it, don't return null.
-  • If you genuinely can't map confidently, set matched_code = null AND translate raw_label to clinical English. Examples:
+  • If you can't map confidently, set matched_code = null and PREFER an English raw_label. Examples:
       "p-hómócystein"   → raw_label: "Homocysteine"
       "blóðrauði"       → raw_label: "Hemoglobin"
       "járn í blóði"    → raw_label: "Serum iron"
-    Never return the Icelandic label verbatim — the app displays English everywhere. If you genuinely don't know the English term, transliterate to a clean ASCII spelling.
+    If you can't translate confidently, return the Icelandic label verbatim or transliterated — DON'T DROP THE ROW. A user can re-label in the next step, but they can't recover a row you didn't return.
 
 PANEL FIELDS
   • date_iso: ISO date (YYYY-MM-DD) if a collection or report date is shown. Otherwise null.
@@ -292,8 +293,8 @@ ${catalogText}`;
           {
             type: 'text',
             text: images.length > 1
-              ? `Extract all blood-test markers from this ${images.length}-page lab report (pages attached in order). De-duplicate markers that appear on more than one page (use the most legible reading). Follow the rules in the system prompt.`
-              : 'Extract all blood-test markers from this report image. Follow the rules in the system prompt.',
+              ? `Extract ALL blood-test markers from this ${images.length}-page lab report (pages attached in order). Be exhaustive — do not skip rows you can read. If the SAME marker (same lab code/name + same value) appears on more than one page, keep just one copy using the clearest reading. But DIFFERENT markers across pages must each have their own row. Follow the rules in the system prompt.`
+              : 'Extract ALL blood-test markers from this report image. Be exhaustive — do not skip rows you can read. Follow the rules in the system prompt.',
           },
           ...images.map((img) => ({
             type: 'image' as const,
@@ -301,7 +302,10 @@ ${catalogText}`;
           })),
         ],
       }],
-      maxOutputTokens: 4000,
+      // Bumped from 4000 — a 3-page lab report can carry 40+ markers
+      // with units, ranges, and labels, and we want to be sure the
+      // model never truncates a row mid-response.
+      maxOutputTokens: 8000,
     });
   } catch (e) {
     const msg = (e as Error).message || 'model call failed';
