@@ -57,12 +57,17 @@ import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import * as Sentry from "@/lib/error-reporter";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { isAnyActiveStaff } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MODEL = "gpt-5.4";
-const FREE_DAILY_LIMIT = 5;
+// Free-tier daily import cap. Bumped from 5 to 25 — a real user
+// might re-scan the same multi-page report a few times while fixing
+// up rows, so 5 was unrealistically tight. Staff accounts bypass
+// the cap entirely (see isAnyActiveStaff() check below).
+const FREE_DAILY_LIMIT = 25;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB after base64 decode
 
 // ── Lifeline marker catalog (kept in sync with src/lib/bloodMarkers.ts
@@ -162,7 +167,11 @@ const requestSchema = z.union([
   }),
 ]);
 
-async function checkRateLimit(clientId: string, tier: string | null): Promise<boolean> {
+async function checkRateLimit(clientId: string, tier: string | null, isStaff: boolean): Promise<boolean> {
+  // Staff and paying users have no daily cap. Staff bypass is here
+  // so testers / clinicians / founders can scan reports freely
+  // without bumping into the same gate as free-tier users.
+  if (isStaff) return true;
   if (tier === 'premium' || tier === 'self-maintained') return true;
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { count } = await supabaseAdmin
@@ -222,7 +231,9 @@ export async function POST(req: Request) {
     }
   }
 
-  // Tier + rate limit
+  // Tier + rate limit. Staff bypass the cap entirely so the team can
+  // test scans against their own panels without burning through the
+  // user-facing daily quota.
   let tier: string | null = null;
   try {
     const { data: client } = await supabaseAdmin
@@ -232,7 +243,8 @@ export async function POST(req: Request) {
       .maybeSingle();
     tier = (client as any)?.coaching_tier ?? null;
   } catch { /* default to free */ }
-  const allowed = await checkRateLimit(userId, tier);
+  const staff = await isAnyActiveStaff(userId).catch(() => false);
+  const allowed = await checkRateLimit(userId, tier, staff);
   if (!allowed) {
     return NextResponse.json({
       ok: false,
