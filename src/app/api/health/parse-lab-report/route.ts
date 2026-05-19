@@ -70,51 +70,56 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB after base64 decode
 //    form label ("LDL-c", "Cholesterol LDL", etc.) to our canonical
 //    code. Mismatched markers come back with matched_code=null and
 //    raw_label populated — the UI lets the user accept-as-custom.
+// Catalog includes Icelandic aliases — Lifeline's primary market.
+// Lab.is, Klínikin, and Hjartavernd reports use these spellings. The
+// model is told to strip p-/s-/b- prefixes (plasma/serum/blood) before
+// matching, and to look past accents.
 const KNOWN_MARKERS = [
   { code: 'LDL-C',  aliases: ['ldl', 'ldl-c', 'ldl cholesterol', 'ldl-kolesteról'] },
-  { code: 'HDL-C',  aliases: ['hdl', 'hdl-c', 'hdl cholesterol'] },
-  { code: 'TC',     aliases: ['total cholesterol', 'cholesterol', 'tc'] },
-  { code: 'TG',     aliases: ['triglycerides', 'tg', 'triglycerid'] },
-  { code: 'APO-B',  aliases: ['apo b', 'apolipoprotein b', 'apo-b'] },
-  { code: 'LP(a)',  aliases: ['lp(a)', 'lipoprotein a', 'lipoprotein(a)'] },
-  { code: 'GLU-F',  aliases: ['fasting glucose', 'glucose', 'fbg', 'glu', 'glúkósi'] },
+  { code: 'HDL-C',  aliases: ['hdl', 'hdl-c', 'hdl cholesterol', 'hdl-kolesteról'] },
+  { code: 'TC',     aliases: ['total cholesterol', 'cholesterol', 'tc', 'kolesteról', 'heildarkolesteról'] },
+  { code: 'TG',     aliases: ['triglycerides', 'tg', 'triglycerid', 'thríglyseríd', 'thríglýseríðar'] },
+  { code: 'APO-B',  aliases: ['apo b', 'apolipoprotein b', 'apo-b', 'apó-b', 'apolípóprótín b'] },
+  { code: 'LP(a)',  aliases: ['lp(a)', 'lipoprotein a', 'lipoprotein(a)', 'lp-a', 'lípóprótín a'] },
+  { code: 'GLU-F',  aliases: ['fasting glucose', 'glucose', 'fbg', 'glu', 'glúkósi', 'blóðsykur', 'fastandi glúkósi'] },
   { code: 'HBA1C',  aliases: ['hba1c', 'a1c', 'glycated hemoglobin'] },
-  { code: 'INS-F',  aliases: ['fasting insulin', 'insulin'] },
+  { code: 'INS-F',  aliases: ['fasting insulin', 'insulin', 'insúlín'] },
   { code: 'HOMA-IR',aliases: ['homa-ir', 'homa ir'] },
-  { code: 'ALT',    aliases: ['alt', 'sgpt'] },
-  { code: 'AST',    aliases: ['ast', 'sgot'] },
-  { code: 'GGT',    aliases: ['ggt', 'gamma gt'] },
-  { code: 'ALP',    aliases: ['alp', 'alkaline phosphatase'] },
-  { code: 'BILT',   aliases: ['total bilirubin', 'bilirubin', 'bilirubin total'] },
-  { code: 'ALB',    aliases: ['albumin'] },
-  { code: 'CREA',   aliases: ['creatinine', 'creat', 'kreatinin'] },
+  { code: 'ALT',    aliases: ['alt', 'sgpt', 'alat'] },
+  { code: 'AST',    aliases: ['ast', 'sgot', 'asat'] },
+  { code: 'GGT',    aliases: ['ggt', 'gamma gt', 'gt', 'gamma-gt'] },
+  { code: 'ALP',    aliases: ['alp', 'alkaline phosphatase', 'alkalískur fosfatasi'] },
+  { code: 'BILT',   aliases: ['total bilirubin', 'bilirubin', 'bilirubin total', 'bílirúbín'] },
+  { code: 'ALB',    aliases: ['albumin', 'albúmín'] },
+  { code: 'CREA',   aliases: ['creatinine', 'creat', 'kreatinin', 'kreatínín'] },
   { code: 'EGFR',   aliases: ['egfr', 'estimated gfr', 'gfr'] },
-  { code: 'BUN',    aliases: ['urea', 'bun', 'blood urea nitrogen'] },
+  { code: 'BUN',    aliases: ['urea', 'bun', 'blood urea nitrogen', 'þvagefni'] },
   { code: 'URIC',   aliases: ['uric acid', 'urate', 'þvagsýra'] },
   { code: 'TSH',    aliases: ['tsh', 'thyroid stimulating hormone'] },
-  { code: 'FT4',    aliases: ['free t4', 'ft4', 'thyroxine free'] },
-  { code: 'FT3',    aliases: ['free t3', 'ft3'] },
-  { code: 'HGB',    aliases: ['hemoglobin', 'hgb', 'haemoglobin', 'hb'] },
-  { code: 'HCT',    aliases: ['hematocrit', 'hct'] },
+  { code: 'FT4',    aliases: ['free t4', 'ft4', 'thyroxine free', 'frítt t4'] },
+  { code: 'FT3',    aliases: ['free t3', 'ft3', 'frítt t3'] },
+  { code: 'HGB',    aliases: ['hemoglobin', 'hgb', 'haemoglobin', 'hb', 'hemóglóbín', 'blóðrauði'] },
+  { code: 'HCT',    aliases: ['hematocrit', 'hct', 'hkr', 'hematókrít'] },
   { code: 'RBC',    aliases: ['rbc', 'red blood cells', 'red cell count'] },
   { code: 'WBC',    aliases: ['wbc', 'white blood cells', 'white cell count', 'leukocytes'] },
-  { code: 'PLT',    aliases: ['plt', 'platelets', 'platelet count'] },
+  { code: 'PLT',    aliases: ['plt', 'platelets', 'platelet count', 'blóðflögur'] },
   { code: 'MCV',    aliases: ['mcv', 'mean cell volume'] },
-  { code: 'HSCRP',  aliases: ['hscrp', 'hs-crp', 'high sensitivity crp'] },
-  { code: 'ESR',    aliases: ['esr', 'erythrocyte sedimentation rate'] },
-  { code: '25OHD',  aliases: ['25-oh d', 'vitamin d', '25(oh)d', 'd-vítamín'] },
-  { code: 'B12',    aliases: ['b12', 'vitamin b12', 'cobalamin'] },
-  { code: 'FOL',    aliases: ['folate', 'folic acid', 'folate serum'] },
-  { code: 'FERR',   aliases: ['ferritin'] },
-  { code: 'FE',     aliases: ['iron', 'serum iron'] },
+  { code: 'HSCRP',  aliases: ['hscrp', 'hs-crp', 'high sensitivity crp', 'crp'] },
+  { code: 'ESR',    aliases: ['esr', 'erythrocyte sedimentation rate', 'sökk'] },
+  { code: '25OHD',  aliases: ['25-oh d', 'vitamin d', '25(oh)d', 'd-vítamín', 'd vítamín'] },
+  { code: 'B12',    aliases: ['b12', 'vitamin b12', 'cobalamin', 'kóbalamín', 'b12-vítamín'] },
+  { code: 'FOL',    aliases: ['folate', 'folic acid', 'folate serum', 'fólat'] },
+  { code: 'FERR',   aliases: ['ferritin', 'ferrítín'] },
+  { code: 'FE',     aliases: ['iron', 'serum iron', 'járn'] },
   { code: 'TIBC',   aliases: ['tibc', 'total iron binding capacity'] },
-  { code: 'MG',     aliases: ['magnesium', 'mg'] },
-  { code: 'ZN',     aliases: ['zinc', 'zn'] },
-  { code: 'TST-T',  aliases: ['total testosterone', 'testosterone total'] },
+  { code: 'MG',     aliases: ['magnesium', 'mg', 'magnesíum'] },
+  { code: 'ZN',     aliases: ['zinc', 'zn', 'sink'] },
+  { code: 'TST-T',  aliases: ['total testosterone', 'testosterone total', 'testósterón'] },
   { code: 'TST-F',  aliases: ['free testosterone'] },
   { code: 'SHBG',   aliases: ['shbg', 'sex hormone binding globulin'] },
-  { code: 'CORT',   aliases: ['cortisol', 'morning cortisol'] },
+  { code: 'CORT',   aliases: ['cortisol', 'morning cortisol', 'kortísól'] },
   { code: 'EST',    aliases: ['estradiol', 'e2'] },
+  { code: 'HCY',    aliases: ['homocysteine', 'hómócystein', 'homocystein'] },
 ];
 
 // ── Zod schema for the structured AI output. The model is forced to
@@ -254,7 +259,13 @@ OUTPUT RULES
 
 MAPPING
   • Map each row's label to a Lifeline marker code from the catalog below, using the alias list. Case-insensitive. Partial matches OK.
-  • If you can't map confidently, set matched_code = null and put the report's label verbatim in raw_label. The user gets a chance to map it manually in the next step.
+  • IMPORTANT: strip plasma/serum/blood prefixes ("P-", "S-", "B-") before matching. "P-Glúkósi" → match against "glúkósi" → GLU-F. "S-Kreatínín" → match against "kreatinín" → CREA. "p-hómócystein" → match against "hómócystein" → HCY.
+  • Be aggressive about matching Icelandic labels — most aliases include Icelandic spellings (with and without accents). If the label is clearly the Icelandic form of a marker in the catalog, MATCH it, don't return null.
+  • If you genuinely can't map confidently, set matched_code = null AND translate raw_label to clinical English. Examples:
+      "p-hómócystein"   → raw_label: "Homocysteine"
+      "blóðrauði"       → raw_label: "Hemoglobin"
+      "járn í blóði"    → raw_label: "Serum iron"
+    Never return the Icelandic label verbatim — the app displays English everywhere. If you genuinely don't know the English term, transliterate to a clean ASCII spelling.
 
 PANEL FIELDS
   • date_iso: ISO date (YYYY-MM-DD) if a collection or report date is shown. Otherwise null.
