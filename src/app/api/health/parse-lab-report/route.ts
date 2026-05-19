@@ -114,11 +114,11 @@ const KNOWN_MARKERS = [
   { code: 'TIBC',   aliases: ['tibc', 'total iron binding capacity'] },
   { code: 'MG',     aliases: ['magnesium', 'mg', 'magnesíum'] },
   { code: 'ZN',     aliases: ['zinc', 'zn', 'sink'] },
-  { code: 'TST-T',  aliases: ['total testosterone', 'testosterone total', 'testósterón'] },
-  { code: 'TST-F',  aliases: ['free testosterone'] },
-  { code: 'SHBG',   aliases: ['shbg', 'sex hormone binding globulin'] },
+  { code: 'TST-T',  aliases: ['total testosterone', 'testosterone total', 'testósterón', 'heildartestósterón', 'testosteron'] },
+  { code: 'TST-F',  aliases: ['free testosterone', 'free t', 'frítt testósterón', 'fritt testosteron'] },
+  { code: 'SHBG',   aliases: ['shbg', 'sex hormone binding globulin', 'kynhormóna-bindandi glóbúlín'] },
   { code: 'CORT',   aliases: ['cortisol', 'morning cortisol', 'kortísól'] },
-  { code: 'EST',    aliases: ['estradiol', 'e2'] },
+  { code: 'EST',    aliases: ['estradiol', 'e2', 'estradíól', 'östradíól'] },
   { code: 'HCY',    aliases: ['homocysteine', 'hómócystein', 'homocystein'] },
 ];
 
