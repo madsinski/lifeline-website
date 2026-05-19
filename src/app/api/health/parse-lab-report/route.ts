@@ -252,7 +252,7 @@ OUTPUT RULES
   • COMPLETENESS IS THE TOP PRIORITY. Return EVERY measurable row you can read on the report. Do not skip a row because the label is unfamiliar, the unit is missing, the reference range is absent, or the mapping is uncertain. A row with matched_code=null, missing unit, and missing range is still useful — the user can edit it before save.
   • If a numeric value is not visible or you can't read it confidently, only then omit the row. Never invent numeric values.
   • Reference ranges: extract the low/high pair when shown. If only one bound is shown (e.g. "< 5.0"), set the unspecified side to null. If no range is shown, return null for both.
-  • Units: extract verbatim from the report (e.g. "mg/dL", "mmol/L", "ng/mL"). Do not convert. If a row has no unit visible, return an empty string.
+  • Units: extract VERBATIM from the report (e.g. "mg/dL", "mmol/L", "ng/mL", "mmol/mol", "g/dL", "L/L", "%"). Do not convert — the app handles US ↔ SI conversion (mg/dL ↔ mmol/L for lipids and glucose, % ↔ mmol/mol for HbA1c, fraction ↔ % for hematocrit, etc.). Returning the raw unit + raw value is always correct. If a row has no unit visible, return an empty string.
   • Confidence per marker:
       "high"   — clear value + unit + label, no ambiguity
       "medium" — value clear, unit slightly cropped or label abbreviated
