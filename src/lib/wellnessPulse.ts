@@ -319,5 +319,47 @@ export function pulseBandColor(band: PulseBand): string {
   return band === 'gott' ? '#10B981' : band === 'saemilegt' ? '#3B82F6' : '#EF4444';
 }
 
+// ── Program activation recommendations ──────────────────────────────
+// Pillars at or below this score trigger a foundational program in
+// HealthCoach. Mirror of the RN-side helper.
+export const PULSE_ACTIVATION_THRESHOLD = 5;
+
+export const PILLAR_TO_PROGRAM: Record<Pillar, { category: string; programKey: string; programName: string }> = {
+  sleep:     { category: 'sleep',     programKey: 'sleep-reset',         programName: 'Sleep reset' },
+  exercise:  { category: 'exercise',  programKey: 'essential-strength',  programName: 'Essential strength' },
+  nutrition: { category: 'nutrition', programKey: 'foundational-eating', programName: 'Foundational eating' },
+  mental:    { category: 'mental',    programKey: 'stress-reset',        programName: 'Stress reset' },
+  addictive: { category: 'mental',    programKey: 'stress-reset',        programName: 'Stress reset' },
+};
+
+export interface PulseActivation {
+  pillar: Pillar;
+  category: string;
+  programKey: string;
+  programName: string;
+  score: number;
+}
+
+export function recommendedActivationsForResult(result: LifestyleScoreResult): PulseActivation[] {
+  const seen = new Set<string>();
+  const out: PulseActivation[] = [];
+  for (const p of result.pillarScores) {
+    if (p.score >= PULSE_ACTIVATION_THRESHOLD) continue;
+    if (p.questionCount === 0) continue;
+    const mapping = PILLAR_TO_PROGRAM[p.pillar];
+    const key = `${mapping.category}:${mapping.programKey}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      pillar: p.pillar,
+      category: mapping.category,
+      programKey: mapping.programKey,
+      programName: mapping.programName,
+      score: p.score,
+    });
+  }
+  return out;
+}
+
 function round1(n: number): number { return Math.round(n * 10) / 10; }
 function clamp01_10(n: number): number { return Math.max(0, Math.min(10, n)); }
