@@ -188,6 +188,17 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/wellness-pulse-bench",
+    label: "Wellness pulse bench",
+    icon: (
+      // Heartbeat / sparkline — wellness pulse self-assessment
+      // preview. Staff-only test surface; never collects user data.
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h3l3-9 4.5 18 3-9h3.75" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/access-review",
     label: "Access review",
     icon: (
@@ -769,6 +780,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/wearable-issues" && !canViewAllSections) return false;
             if (link.href === "/admin/action-feedback" && !canViewAllSections) return false;
             if (link.href === "/admin/onboarding-bench" && !canViewAllSections) return false;
+            if (link.href === "/admin/wellness-pulse-bench" && !canViewAllSections) return false;
             if (link.href === "/admin/ai-feedback" && !canViewAllSections) return false;
             if (link.href === "/admin/ai-test-bench" && !canViewAllSections) return false;
             if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !canViewAllSections) return false;
