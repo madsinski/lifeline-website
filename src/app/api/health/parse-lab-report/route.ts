@@ -264,7 +264,14 @@ OUTPUT RULES
   • COMPLETENESS IS THE TOP PRIORITY. Return EVERY measurable row you can read on the report. Do not skip a row because the label is unfamiliar, the unit is missing, the reference range is absent, or the mapping is uncertain. A row with matched_code=null, missing unit, and missing range is still useful — the user can edit it before save.
   • If a numeric value is not visible or you can't read it confidently, only then omit the row. Never invent numeric values.
   • Reference ranges: extract the low/high pair when shown. If only one bound is shown (e.g. "< 5.0"), set the unspecified side to null. If no range is shown, return null for both.
-  • Units: extract VERBATIM from the report (e.g. "mg/dL", "mmol/L", "ng/mL", "mmol/mol", "g/dL", "L/L", "%"). Do not convert — the app handles US ↔ SI conversion (mg/dL ↔ mmol/L for lipids and glucose, % ↔ mmol/mol for HbA1c, fraction ↔ % for hematocrit, etc.). Returning the raw unit + raw value is always correct. If a row has no unit visible, return an empty string.
+  • Units: extract VERBATIM from the report, but TRANSLITERATE Icelandic-spelled units to their international form so the app can normalize:
+      "nmól/L"    → "nmol/L"
+      "μmól/L"    → "μmol/L"
+      "mmól/L"    → "mmol/L"
+      "mmól/mól"  → "mmol/mol"
+      "míg/dL"    → "mg/dL"
+      "míkróg/L"  → "μg/L"
+    Strip Icelandic acute accents (á, é, í, ó, ú, ý) from unit cells. The numeric VALUE stays verbatim — do not convert units (the app handles mg/dL↔mmol/L, %↔mmol/mol, fraction↔% for hematocrit, nmol/L↔pmol/L for free testosterone, etc.). If a row has no unit visible, return an empty string.
   • Confidence per marker:
       "high"   — clear value + unit + label, no ambiguity
       "medium" — value clear, unit slightly cropped or label abbreviated
@@ -278,7 +285,15 @@ MAPPING
       "p-hómócystein"   → raw_label: "Homocysteine"
       "blóðrauði"       → raw_label: "Hemoglobin"
       "járn í blóði"    → raw_label: "Serum iron"
+      "fólat"           → raw_label: "Folate"
+      "fólínsýra"       → raw_label: "Folate"
     If you can't translate confidently, return the Icelandic label verbatim or transliterated — DON'T DROP THE ROW. A user can re-label in the next step, but they can't recover a row you didn't return.
+
+ROW INTEGRITY (CRITICAL)
+  • The label and value for each row MUST come from the SAME printed line on the report. Never carry a value from one row into another marker's label.
+  • In multi-column tables, lock onto the label column first. Read the value, unit, and reference range from cells aligned with that exact label row.
+  • If you can't confidently associate a label with its value (table is skewed, value cell is empty, etc.), OMIT the row entirely rather than guessing. A missing row is recoverable; a misaligned row corrupts the user's record.
+  • Common Icelandic vitamin/mineral panel rows you should look for explicitly: B12, fólat (Folate), járn (Iron), ferrítín (Ferritin), TIBC, 25-OH D (Vitamin D), magnesíum, sink (Zinc). If you see them, return them. If you can read a label but the value cell is blank, omit the row — don't pull a number from a neighbour.
 
 PANEL FIELDS
   • date_iso: ISO date (YYYY-MM-DD) if a collection or report date is shown. Otherwise null.
