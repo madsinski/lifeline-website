@@ -55,6 +55,16 @@ const requestSchema = z.object({
     recoveryStyles: z.array(z.string()).optional(),
     foodStyles: z.array(z.string()).optional(),
   }).optional(),
+  // Granular equipment owned at home — drives exercise filtering.
+  // Without this the AI was defaulting to barbell-heavy programs
+  // for home users.
+  homeEquipment: z.array(z.string()).optional(),
+  exercise_preferences: z.object({
+    cardio_baseline: z.string().nullable().optional(),
+    cardio_picks: z.array(z.string()).optional(),
+    hiit_picks: z.array(z.string()).optional(),
+    regular_classes: z.array(z.string()).optional(),
+  }).optional(),
 });
 
 const PILLARS = ['exercise', 'nutrition', 'sleep', 'mental'] as const;
@@ -201,10 +211,23 @@ RULES
         - Vegan → pick a plant-forward / plant-based program. NEVER suggest a meat-centric program (e.g. "performance-fuel-pro" if it leans high-meat). If only meat-centric plans exist in the catalog, prefer the most adaptable one and CALL OUT the constraint in the rationale.
         - Vegetarian / Pescatarian → avoid programs whose name or description leans heavily on red meat / poultry.
         - Halal / Kosher → no pork-centric plans; otherwise broad nutrition plans are fine.
-  • Respect setting + days + minutes:
+  • Respect setting + days + minutes + homeEquipment:
       home setting → home-equipment-friendly exercise programs
       gym setting → gym-based
       hybrid → either is fine
+      homeEquipment is the GRANULAR truth: when present, NEVER pick a
+        program that needs equipment NOT in the list. If only
+        'dumbbells' is listed, do NOT pick a barbell-required program;
+        prefer dumbbell / bodyweight / kettlebell-friendly options.
+        If 'cardio-machine' is absent, do NOT pick a program built
+        around treadmill / bike intervals; prefer outdoor or
+        bodyweight-cardio alternatives.
+        If the catalog has NO matching home-equipment program, pick
+        the closest bodyweight-friendly option and CALL OUT the
+        constraint in the rationale.
+  • Respect exercise_preferences (cardio_picks, hiit_picks,
+    regular_classes) as soft signals — bias toward programs that
+    match what the user has said they enjoy doing.
   • Respect preferences (input.preferences). These are soft signals:
       activityStyles → bias exercise pick toward matching modalities
         (e.g. "Yoga / pilates" → prefer mobility/flexibility plans;
