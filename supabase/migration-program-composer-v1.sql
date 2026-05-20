@@ -262,7 +262,7 @@ VALUES
    'Daily Mobility Flow',
    '15-min full-body mobility for desk workers + returning athletes.',
    15, 2, ARRAY['bodyweight','mat'], ARRAY[]::text[],
-   '{"warmup_general":[{"name":"Cat-cow","duration_min":2}],"warmup_specific":[]::jsonb,"main":[{"name":"World''s greatest stretch","sets":2,"reps":"5/side"},{"name":"90/90 hip switch","sets":2,"reps":"6/side"},{"name":"T-spine windmill","sets":2,"reps":"5/side"},{"name":"Scapular wall slide","sets":2,"reps":"10"}],"finisher":[{"name":"Child''s pose hold","duration_min":2}]}'::jsonb),
+   '{"warmup_general":[{"name":"Cat-cow","duration_min":2}],"warmup_specific":[],"main":[{"name":"World''s greatest stretch","sets":2,"reps":"5/side"},{"name":"90/90 hip switch","sets":2,"reps":"6/side"},{"name":"T-spine windmill","sets":2,"reps":"5/side"},{"name":"Scapular wall slide","sets":2,"reps":"10"}],"finisher":[{"name":"Child''s pose hold","duration_min":2}]}'::jsonb),
 
   ('mobility-build-yoga', 'exercise', 'mobility', 'build',
    'Yoga Flow',
