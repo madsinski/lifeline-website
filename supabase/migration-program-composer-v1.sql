@@ -25,7 +25,7 @@
 -- Atomic units. Exercise rows carry the 5-block structure
 -- (warmup_general / warmup_specific / main / finisher / cooldown)
 -- in the `blocks` jsonb field. Non-exercise rows leave blocks NULL.
-CREATE TABLE IF NOT EXISTS action_library (
+CREATE TABLE IF NOT EXISTS session_library (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   key           text NOT NULL UNIQUE,
   category      text NOT NULL,
@@ -45,32 +45,32 @@ CREATE TABLE IF NOT EXISTS action_library (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now(),
 
-  CONSTRAINT action_library_category_chk CHECK (category IN ('exercise','nutrition','sleep','mental','recovery')),
-  CONSTRAINT action_library_modality_chk CHECK (
+  CONSTRAINT session_library_category_chk CHECK (category IN ('exercise','nutrition','sleep','mental','recovery')),
+  CONSTRAINT session_library_modality_chk CHECK (
     modality IS NULL OR modality IN (
       'strength','zone2','hiit','mobility','breathwork','meditation',
       'meal','hydration','sleep_routine','social','nature'
     )
   ),
-  CONSTRAINT action_library_level_chk CHECK (
+  CONSTRAINT session_library_level_chk CHECK (
     level IS NULL OR level IN ('foundation','build','performance')
   )
 );
 
-CREATE INDEX IF NOT EXISTS action_library_lookup_idx
-  ON action_library (category, modality, level)
+CREATE INDEX IF NOT EXISTS session_library_lookup_idx
+  ON session_library (category, modality, level)
   WHERE active = true;
 
 -- Open read for authenticated users; only staff write (via the
 -- existing isAnyActiveStaff helper would normally apply, but
 -- action_library is reference data so we keep RLS simple).
-ALTER TABLE action_library ENABLE ROW LEVEL SECURITY;
+ALTER TABLE session_library ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY action_library_select ON action_library
+CREATE POLICY session_library_select ON session_library
   FOR SELECT TO authenticated
   USING (active = true);
 
-CREATE POLICY action_library_staff_write ON action_library
+CREATE POLICY session_library_staff_write ON session_library
   FOR ALL TO authenticated
   USING (
     EXISTS (SELECT 1 FROM staff WHERE id = auth.uid() AND active = true)
@@ -184,7 +184,7 @@ CREATE POLICY cwp_self ON client_weekly_plan
 -- iterates from here in the admin UI.
 -- Exercise sessions carry the 5-block structure in `blocks`.
 
-INSERT INTO action_library (key, category, modality, level, name, description, duration_min, intensity_rpe, equipment, contraindications, blocks)
+INSERT INTO session_library (key, category, modality, level, name, description, duration_min, intensity_rpe, equipment, contraindications, blocks)
 VALUES
   -- ─── Strength · foundation ────────────────────────────────────
   ('strength-foundation-fullbody-a', 'exercise', 'strength', 'foundation',
