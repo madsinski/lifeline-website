@@ -207,6 +207,17 @@ export default function Footer() {
           <p className="text-sm text-gray-400">
             {t('footer.copyright', '© 2026 Lifeline Health ehf. All rights reserved.')}
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-400">
+            <Link href="/soluskilmalar" className="hover:text-white transition-colors duration-200">
+              {t('footer.sales_terms', 'Söluskilmálar')}
+            </Link>
+            <Link href="/terms" className="hover:text-white transition-colors duration-200">
+              {t('footer.terms', 'Terms')}
+            </Link>
+            <Link href="/privacy" className="hover:text-white transition-colors duration-200">
+              {t('footer.privacy', 'Privacy')}
+            </Link>
+          </div>
           <div className="flex items-center gap-4">
             <a href="/admin" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-300 border border-gray-600 rounded-full hover:bg-gray-700 hover:text-white transition-all duration-200">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

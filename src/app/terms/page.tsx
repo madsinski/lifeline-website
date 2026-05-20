@@ -7,8 +7,8 @@ export const metadata = {
   description: "Lifeline Health terms of service, data processing, and privacy policy.",
 };
 
-const VERSION = "1.2";
-const LAST_UPDATED = "17 April 2026";
+const VERSION = "1.3";
+const LAST_UPDATED = "20 May 2026";
 
 export default function TermsPage() {
   return (
@@ -144,9 +144,15 @@ export default function TermsPage() {
 
         <h2>12. Payment and subscriptions</h2>
         <p>
-          Paid subscriptions are billed in advance, non-refundable except where required by Icelandic
-          consumer law, and automatically renew. You can cancel anytime from your account settings.
-          For B2B, billing is governed by your separate service agreement.
+          Consumer purchases — one-off health assessments and Lifeline app subscriptions — are
+          governed by the dedicated <Link href="/sales-terms">Sales &amp; Subscription Terms</Link>{" "}
+          (<Link href="/soluskilmalar">Söluskilmálar</Link> in Icelandic), which set out pricing,
+          auto-renewal, the 14-day right of withdrawal, refunds and the role of our payment
+          processor. The Icelandic version is the legally binding original.
+        </p>
+        <p>
+          For B2B customers, billing is governed by your separate service agreement and the
+          platform terms accepted by your organisation.
         </p>
 
         <h2>13. Medical disclaimer</h2>
