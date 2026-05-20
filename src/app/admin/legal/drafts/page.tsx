@@ -62,8 +62,11 @@ import {
   PUBLIC_PRIVACY_LAST_UPDATED,
   PUBLIC_TERMS_VERSION,
   PUBLIC_TERMS_LAST_UPDATED,
+  PUBLIC_SALES_TERMS_VERSION,
+  PUBLIC_SALES_TERMS_LAST_UPDATED,
   renderPublicPrivacyPolicy,
   renderPublicTermsOfService,
+  renderPublicSalesTerms,
 } from "@/lib/public-pages-content";
 import {
   SECURITY_POSTURE_VERSION,
@@ -232,6 +235,16 @@ export default async function LegalDraftsPage() {
             "Public terms at lifelinehealth.is/terms. Plain-text mirror — styled version is at the live URL.",
           sourceLanguage: "en",
           text: { is: renderPublicTermsOfService("is"), en: renderPublicTermsOfService("en") },
+        },
+        {
+          id: "sales-terms",
+          title: "Söluskilmálar / Sales & Subscription Terms (B2C)",
+          version: `${PUBLIC_SALES_TERMS_VERSION} · updated ${PUBLIC_SALES_TERMS_LAST_UPDATED}`,
+          filenameBase: `sales-terms-${PUBLIC_SALES_TERMS_VERSION}`,
+          description:
+            "B2C purchase + subscription terms required by Straumur (payment processor) and Icelandic consumer law. Live at lifelinehealth.is/soluskilmalar (IS, legally binding) and lifelinehealth.is/sales-terms (EN). Covers seller identity, VAT-exempt pricing, auto-renewal, 14-day cooling-off with the digital-service exception (Act 16/2016 §18(1)(d)), refunds and complaint escalation.",
+          sourceLanguage: "is",
+          text: { is: renderPublicSalesTerms("is"), en: renderPublicSalesTerms("en") },
         },
       ],
     },

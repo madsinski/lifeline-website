@@ -18,8 +18,10 @@ export type DocumentLanguage = "is" | "en";
 
 export const PUBLIC_PRIVACY_VERSION = "v1.4";
 export const PUBLIC_PRIVACY_LAST_UPDATED = "2026-04-29";
-export const PUBLIC_TERMS_VERSION = "v1.2";
-export const PUBLIC_TERMS_LAST_UPDATED = "2026-04-17";
+export const PUBLIC_TERMS_VERSION = "v1.3";
+export const PUBLIC_TERMS_LAST_UPDATED = "2026-05-20";
+export const PUBLIC_SALES_TERMS_VERSION = "v1.0";
+export const PUBLIC_SALES_TERMS_LAST_UPDATED = "2026-05-20";
 
 export function renderPublicPrivacyPolicy(language: DocumentLanguage = "en"): string {
   if (language === "is") {
@@ -514,11 +516,15 @@ eftirfarandi til viðbótar:
   nema þar sem varðveisla er lagaskylt.
 
 12. GREIÐSLUR OG ÁSKRIFTIR
-Greiddar áskriftir eru reikningsfærðar fyrirfram, óendurgreiðanlegar
-nema að íslenskri neytendaverndar-lögum sé skylt, og endurnýjast
-sjálfvirkt. Þú getur sagt upp hvenær sem er úr aðgangsstillingum þínum.
-Fyrir B2B er reikningsfærsla stjórnað af aðskildum þjónustusamningi
-þínum.
+Kaup neytenda — stök heilsumatskaup og áskrift að Lifeline appinu —
+falla undir sérstaka söluskilmála (Söluskilmálar) sem birtir eru á
+lifelinehealth.is/soluskilmalar og lifelinehealth.is/sales-terms (EN).
+Þar er kveðið nánar á um verðlagningu, sjálfvirka endurnýjun, 14 daga
+afturköllunarrétt, endurgreiðslur og hlutverk greiðslumiðlara okkar.
+Íslenska útgáfan er hin bindandi.
+
+Fyrir B2B-viðskiptavini gildir aðskilinn þjónustusamningur og þeir
+notendaskilmálar sem fyrirtækið hefur samþykkt.
 
 13. LÆKNISFRÆÐILEGUR FYRIRVARI
 Lifeline er heilsuþjálfunar- og velferðarþjónusta, ekki staðgöngull
@@ -662,10 +668,15 @@ applies in addition:
   except where retention is legally required.
 
 12. PAYMENT AND SUBSCRIPTIONS
-Paid subscriptions are billed in advance, non-refundable except where
-required by Icelandic consumer law, and automatically renew. You can
-cancel anytime from your account settings. For B2B, billing is
-governed by your separate service agreement.
+Consumer purchases — one-off health assessments and Lifeline app
+subscriptions — are governed by the dedicated Sales & Subscription
+Terms published at lifelinehealth.is/sales-terms (and the legally
+binding Icelandic original at lifelinehealth.is/soluskilmalar). Those
+terms set out pricing, auto-renewal, the 14-day right of withdrawal,
+refunds and the role of our payment processor.
+
+For B2B customers, billing is governed by your separate service
+agreement and the platform terms accepted by your organisation.
 
 13. MEDICAL DISCLAIMER
 Lifeline is a health coaching and wellness service, not a substitute
@@ -691,4 +702,376 @@ protection law provides otherwise.
 - Security: contact@lifelinehealth.is
 
 — Lifeline Health ehf. · Reykjavík, Iceland`;
+}
+
+export function renderPublicSalesTerms(language: DocumentLanguage = "is"): string {
+  if (language === "is") {
+    return `LIFELINE HEALTH — SÖLUSKILMÁLAR
+Heilsumat og áskrift að Lifeline appinu
+Útgáfa ${PUBLIC_SALES_TERMS_VERSION}  ·  Síðast uppfært ${PUBLIC_SALES_TERMS_LAST_UPDATED}
+Birt á: lifelinehealth.is/soluskilmalar
+
+Söluskilmálar þessir gilda um kaup einstaklinga (hér eftir „neytandi"
+eða „þú") á þjónustum Lifeline Health ehf. í gegnum lifelinehealth.is
+og Lifeline snjallforritið. Skilmálarnir bætast við og takmarka ekki
+almenna notkunarskilmála og persónuverndaryfirlýsingu Lifeline
+(lifelinehealth.is/terms). Komi til ósamræmis gilda söluskilmálar
+þessir um öll atriði er varða greiðslur, áskrift og endurgreiðslur.
+
+1. SELJANDI
+   - Lifeline Health ehf.
+   - Kennitala: 590925-1440
+   - Lögheimili: Langholtsvegi 111, 104 Reykjavík
+   - Netfang: contact@lifelinehealth.is
+   - Vefsíða: lifelinehealth.is
+
+2. GILDISSVIÐ OG SAMÞYKKI
+   Með því að ljúka greiðslu á vefsíðu Lifeline eða innan Lifeline
+   snjallforritsins staðfestir neytandi að hann hafi lesið, skilji og
+   samþykki skilmála þessa. Þjónustan er einungis seld einstaklingum 18
+   ára og eldri sem hafa lögheimili á Íslandi eða innan EES.
+
+3. ÞJÓNUSTUR SEM Í BOÐI ERU
+
+   3.1 Heilsumat (stök kaup)
+   Heildstætt klínískt heilsumat sem felur í sér spurningalista,
+   lífsstílsmat, líkamssamsetningarmælingu á samstarfsstöð og túlkun
+   læknis. Verðlagt sem stök kaup og afhent stafrænt í aðgangi neytanda
+   í snjallforritinu og á vef.
+
+   3.2 Áskrift að Lifeline appinu
+   Áframhaldandi aðgangur að persónulegri heilsuþjálfun, daglegri
+   leiðsögn, næringaráætlunum, eftirfylgni og samskiptum við
+   heilsuráðgjafa Lifeline. Áskrift er seld í mánaðarlegum eða árlegum
+   tímabilum eins og fram kemur á söluskjá.
+
+   Nákvæmt verð, innifaldir eiginleikar og tímabil eru ávallt birt á
+   söluskjá áður en greiðsla er staðfest.
+
+4. VERÐ, MYNT OG VIRÐISAUKASKATTUR
+   Öll verð eru birt í íslenskum krónum (ISK). Heilbrigðisþjónusta
+   Lifeline Health er undanþegin virðisaukaskatti samkvæmt 2. mgr. 2.
+   gr. laga nr. 50/1988 um virðisaukaskatt, og því er ENGINN VSK lagður
+   á verð heilsumats eða áskriftar að heilsuþjálfun.
+
+   Lifeline áskilur sér rétt til að breyta verðlagi. Verðbreytingar
+   gilda ekki um þegar greiddar þjónustur eða yfirstandandi
+   áskriftartímabil. Breytingar á verði áskriftar eru tilkynntar með
+   að lágmarki 30 daga fyrirvara í tölvupósti eða í forritinu áður en
+   næsta endurnýjun á sér stað.
+
+5. GREIÐSLUR OG GREIÐSLUMIÐLUN
+   Greiðslur með greiðslukortum (Visa, Mastercard) eru meðhöndlaðar af
+   samstarfsaðila okkar í greiðslumiðlun, Straumur greiðslumiðlun ehf.
+   Lifeline geymir aldrei númer greiðslukorts á eigin þjónum. Aðeins
+   eru geymdar dulkóðaðar tilvísanir („token") sem nauðsynlegar eru
+   fyrir áskriftarendurnýjun.
+
+   Greiðsla er heimiluð á greiðslustundu og bókuð þegar þjónustan er
+   afhent eða áskriftartímabilið hefst. Reikningur er sendur í
+   tölvupósti eftir hverja heppnaða greiðslu og er einnig aðgengilegur
+   í aðgangi neytanda.
+
+6. ÁSKRIFT, SJÁLFVIRK ENDURNÝJUN OG UPPSÖGN
+   Áskrift endurnýjast sjálfkrafa við lok hvers tímabils á þágildandi
+   verði þar til neytandi segir henni upp. Áminning um komandi
+   endurnýjun árlegrar áskriftar er send í tölvupósti með að lágmarki
+   7 daga fyrirvara.
+
+   Neytandi getur sagt áskrift upp hvenær sem er án skýringa í gegnum
+   stillingar í forritinu, á lifelinehealth.is/account eða með
+   tölvupósti á contact@lifelinehealth.is. Uppsögn tekur gildi við lok
+   yfirstandandi greidds tímabils — aðgangur helst óbreyttur til þess
+   tíma. Hlutfallsleg endurgreiðsla á ónotuðum hluta tímabils er ekki
+   veitt nema lög kveði á um annað.
+
+7. AFHENDING ÞJÓNUSTU
+   Stafræn þjónusta hefst um leið og greiðsla er staðfest:
+   - Heilsumat (stök kaup): aðgangur að bókunarflæði og spurningalista
+     opnast strax. Líkamssamsetningarmæling fer fram á samstarfsstöð á
+     þeim tíma sem neytandi bókar.
+   - Áskrift: fullur aðgangur að áskriftareiginleikum opnast strax og
+     áskriftartímabilið hefst á greiðsludegi.
+
+8. RÉTTUR TIL AÐ FALLA FRÁ SAMNINGI (14 DAGA AFTURKÖLLUNARRÉTTUR)
+   Samkvæmt lögum nr. 16/2016 um neytendasamninga hefur neytandi að
+   jafnaði 14 daga frest til að falla frá samningi sem gerður er með
+   fjarsölu, án skýringa, frá og með þeim degi sem samningur var gerður.
+
+   MIKILVÆG UNDANTEKNING FYRIR STAFRÆNA HEILBRIGÐISÞJÓNUSTU: Þar sem
+   þjónustur Lifeline eru afhentar stafrænt strax eftir greiðslu og að
+   beiðni neytanda, þá samþykkir neytandi á söluskjá:
+   (a) að óska eftir því að afhending þjónustunnar hefjist INNAN 14
+       daga afturköllunarfrestsins; og
+   (b) að hann staðfesti að rétturinn til að falla frá samningi FALLI
+       NIÐUR um leið og þjónustan hefur að fullu verið innt af hendi
+       (sbr. d-lið 1. mgr. 18. gr. laga nr. 16/2016).
+
+   Í reynd þýðir þetta:
+   - Heilsumat (stök kaup): neytandi getur fallið frá samningi án
+     skýringa þar til mat hefur farið fram. Eftir að mat hefur að fullu
+     verið innt af hendi fellur afturköllunarrétturinn niður. Hafi
+     neytandi þegar nýtt sér hluta þjónustunnar áður en hann fellur frá
+     samningi, þá ber honum að greiða hlutfallslega fyrir þann hluta sem
+     þegar hefur verið afhentur.
+   - Áskrift: neytandi getur fallið frá samningi innan 14 daga frá
+     stofnun áskriftar. Hafi áskriftin þegar veitt aðgang að efni er
+     heimilt að draga hlutfallslegan kostnað af endurgreiðslunni
+     samkvæmt 2. mgr. 21. gr. laga nr. 16/2016. Sjálfvirk endurnýjun
+     stofnar ekki nýjan afturköllunarrétt — uppsögn áskriftar fer fram
+     skv. gr. 6.
+
+   Til að nýta sér afturköllunarréttinn skal neytandi senda skýra
+   yfirlýsingu þar að lútandi á contact@lifelinehealth.is fyrir lok
+   frestsins. Eyðublað fyrir afturköllun má finna í viðauka I við lög
+   nr. 16/2016.
+
+9. ENDURGREIÐSLUR
+   Endurgreiðslur sem heimilar eru samkvæmt skilmálum þessum eða
+   ófrávíkjanlegum lögum eru lagðar inn á sama greiðslumáta og notaður
+   var við upphaflega greiðslu, eigi síðar en innan 14 DAGA frá því að
+   beiðni telst gild. Engin umsýslugjöld eru lögð á endurgreiðslur.
+
+10. MISTEKIST GREIÐSLA OG ENDURNÝJUN
+    Mistakist sjálfvirk endurnýjun (t.d. vegna útrunnins korts eða
+    ófullnægjandi innstæðu) reynir Lifeline aftur að innheimta í allt
+    að 7 daga og lætur neytanda vita í tölvupósti. Hafi greiðsla ekki
+    borist innan þess tíma stöðvast aðgangur að áskriftareiginleikum
+    sjálfkrafa. Aðgangur er endurvirkjaður um leið og greiðsla berst.
+
+11. ENDURGREIÐSLUKRÖFUR (CHARGEBACK) OG UMDEILDAR GREIÐSLUR
+    Telji neytandi sig hafa verið ranglega rukkaðan er hann beðinn um
+    að hafa samband beint við Lifeline á contact@lifelinehealth.is áður
+    en endurgreiðslukrafa er lögð fram hjá útgáfubanka. Þetta auðveldar
+    skjóta og rétta úrlausn. Lifeline svarar slíkum erindum innan 5
+    virkra daga.
+
+12. LÆKNISFRÆÐILEGUR FYRIRVARI
+    Þjónustur Lifeline eru viðbót við — en koma ekki í stað —
+    læknisþjónustu þíns heimilislæknis eða sérfræðings. Í
+    neyðartilfellum skal alltaf hringja í 112. Hætta skal eða breyta
+    lyfjameðferð eingöngu í samráði við lækni. Nánari ákvæði um
+    ábyrgðartakmarkanir er að finna í almennum notkunarskilmálum
+    (lifelinehealth.is/terms).
+
+13. PERSÓNUVERND
+    Vinnsla persónuupplýsinga við greiðslu og veitingu þjónustu er
+    framkvæmd í samræmi við persónuverndaryfirlýsingu Lifeline
+    (lifelinehealth.is/privacy) og lög nr. 90/2018 um persónuvernd og
+    vinnslu persónuupplýsinga, ásamt reglugerð (ESB) 2016/679 (GDPR).
+    Straumur greiðslumiðlun ehf. starfar sem sjálfstæður ábyrgðaraðili
+    um vinnslu greiðsluupplýsinga.
+
+14. KVARTANIR
+    Kvartanir varðandi greiðslur, þjónustu eða framkvæmd skilmálanna
+    skal senda á contact@lifelinehealth.is. Lifeline svarar formlega
+    innan 14 daga frá móttöku. Náist ekki samkomulag getur neytandi
+    vísað málinu til:
+    - Neytendastofu — www.neytendastofa.is
+    - Kærunefndar vöru- og þjónustukaupa —
+      www.neytendastofa.is/kaerunefnd-voru-og-thjonustukaupa/
+    - Persónuverndar (ef kvörtun varðar meðferð persónuupplýsinga) —
+      www.personuvernd.is
+
+15. BREYTINGAR Á SKILMÁLUM
+    Lifeline áskilur sér rétt til að uppfæra skilmálana. Verulegar
+    breytingar verða tilkynntar í tölvupósti eða innan forritsins með
+    að lágmarki 30 daga fyrirvara áður en þær taka gildi. Ávallt gildir
+    nýjasta útgáfa sem birt er á lifelinehealth.is/soluskilmalar.
+
+16. LÖGSAGA OG VARNARÞING
+    Um skilmála þessa gilda íslensk lög. Rísi ágreiningur skal hann
+    rekinn fyrir Héraðsdómi Reykjavíkur, með fyrirvara um ófrávíkjanleg
+    ákvæði laga til verndar neytendum, þar með talin réttur neytanda
+    til að höfða mál fyrir dómstóli í eigin lögsögu.
+
+17. TENGILIÐUR
+    - Almennar fyrirspurnir og kvartanir: contact@lifelinehealth.is
+    - Persónuvernd: contact@lifelinehealth.is
+
+— Lifeline Health ehf. · kt. 590925-1440 · Langholtsvegi 111, 104 Reykjavík`;
+  }
+  return `LIFELINE HEALTH — SALES & SUBSCRIPTION TERMS
+Health assessment and Lifeline app subscription
+Version ${PUBLIC_SALES_TERMS_VERSION}  ·  Last updated ${PUBLIC_SALES_TERMS_LAST_UPDATED}
+Published at: lifelinehealth.is/sales-terms
+
+These sales terms govern consumer purchases (the "consumer", "you") of
+Lifeline Health ehf. services through lifelinehealth.is and the Lifeline
+mobile app. They supplement, and do not limit, Lifeline's general Terms
+of Service and Privacy Policy (lifelinehealth.is/terms). In case of
+conflict, these sales terms control for all matters concerning payment,
+subscription and refunds. The legally binding version is the Icelandic
+original (lifelinehealth.is/soluskilmalar); this English text is
+provided for convenience.
+
+1. SELLER
+   - Lifeline Health ehf.
+   - Reg. no. (kennitala): 590925-1440
+   - Registered address: Langholtsvegi 111, 104 Reykjavík, Iceland
+   - Email: contact@lifelinehealth.is
+   - Website: lifelinehealth.is
+
+2. SCOPE AND ACCEPTANCE
+   By completing a payment on the Lifeline website or inside the
+   Lifeline app you confirm that you have read, understood and accepted
+   these terms. Services are sold only to individuals aged 18 or over
+   who reside in Iceland or the EEA.
+
+3. SERVICES OFFERED
+
+   3.1 Health assessment (one-off purchase)
+   A comprehensive clinical health assessment comprising questionnaires,
+   lifestyle evaluation, a body-composition measurement at a partner
+   station, and physician interpretation. Sold as a one-off purchase and
+   delivered digitally inside your account in the app and on the web.
+
+   3.2 Lifeline app subscription
+   Ongoing access to personalised health coaching, daily guidance,
+   nutrition plans, follow-up, and messaging with Lifeline coaches.
+   Subscriptions are sold on monthly or annual billing cycles as shown
+   on the checkout screen.
+
+   The exact price, included features and billing period are always
+   shown on the checkout screen before payment is confirmed.
+
+4. PRICE, CURRENCY AND VAT
+   All prices are displayed in Icelandic króna (ISK). Lifeline Health's
+   services qualify as healthcare services exempt from value-added tax
+   under Article 2(2) of Act no. 50/1988 on Value Added Tax, and
+   therefore NO VAT is added to the price of health assessments or
+   health-coaching subscriptions.
+
+   Lifeline reserves the right to change prices. Price changes do not
+   apply to services already paid for or to the current billing period
+   of an existing subscription. Subscription price changes are notified
+   at least 30 days before the next renewal by email or in-app.
+
+5. PAYMENT AND PAYMENT PROCESSING
+   Card payments (Visa, Mastercard) are processed by our payment
+   partner Straumur greiðslumiðlun ehf. Lifeline never stores full card
+   numbers on its servers — only encrypted tokens necessary for
+   subscription renewal.
+
+   Payment is authorised at checkout and captured when the service is
+   delivered or the subscription period begins. A receipt is sent by
+   email after every successful payment and is also available inside
+   your account.
+
+6. SUBSCRIPTIONS, AUTO-RENEWAL AND CANCELLATION
+   Subscriptions automatically renew at the end of each billing period
+   at the then-current price until you cancel. A reminder for upcoming
+   renewal of an annual subscription is sent by email at least 7 days
+   in advance.
+
+   You may cancel at any time, without reason, through the settings in
+   the app, at lifelinehealth.is/account, or by email to
+   contact@lifelinehealth.is. Cancellation takes effect at the end of
+   the current paid period — your access remains unchanged until then.
+   Pro-rated refunds of unused portions of a billing period are not
+   provided unless required by mandatory law.
+
+7. DELIVERY OF THE SERVICE
+   Digital services begin as soon as payment is confirmed:
+   - Health assessment (one-off): the booking flow and questionnaires
+     open immediately. The body-composition measurement is performed at
+     a partner station at the time you book.
+   - Subscription: full access to subscription features opens
+     immediately and the subscription period starts on the payment date.
+
+8. RIGHT OF WITHDRAWAL (14-DAY COOLING-OFF)
+   Under Act no. 16/2016 on Consumer Contracts the consumer generally
+   has 14 days to withdraw from a distance contract, without giving any
+   reason, from the date the contract was concluded.
+
+   IMPORTANT EXCEPTION FOR DIGITAL HEALTH SERVICES: because Lifeline's
+   services are delivered digitally and immediately at your request,
+   you expressly agree on the checkout screen:
+   (a) to ask Lifeline to begin performance of the service WITHIN the
+       14-day cooling-off period; and
+   (b) to acknowledge that your right of withdrawal LAPSES once the
+       service has been fully performed (Art. 18(1)(d) of Act no.
+       16/2016).
+
+   In practice this means:
+   - Health assessment (one-off): you may withdraw without reason until
+     the assessment has been performed. Once the assessment has been
+     fully performed the right of withdrawal lapses. If you have used
+     part of the service before withdrawing you must pay a proportionate
+     amount for the portion already delivered.
+   - Subscription: you may withdraw within 14 days of starting a new
+     subscription. If the subscription has already given you access to
+     content, a proportionate amount may be deducted from the refund
+     pursuant to Art. 21(2) of Act no. 16/2016. Automatic renewal does
+     not create a new withdrawal right — cancel under section 6.
+
+   To exercise the right of withdrawal, send a clear statement to
+   contact@lifelinehealth.is before the period expires. A withdrawal
+   form is set out in Annex I to Act no. 16/2016.
+
+9. REFUNDS
+   Refunds payable under these terms or mandatory law are credited to
+   the same payment method used for the original payment, no later than
+   14 DAYS from the date the request is considered valid. No
+   administrative fee is charged on refunds.
+
+10. FAILED PAYMENT AND RENEWAL
+    If automatic renewal fails (e.g. expired card or insufficient
+    funds), Lifeline will retry the charge for up to 7 days and notify
+    you by email. If payment is not received within that period, access
+    to subscription features is automatically suspended. Access is
+    restored as soon as payment is successful.
+
+11. CHARGEBACKS AND DISPUTED CHARGES
+    If you believe you have been wrongly charged, please contact
+    Lifeline at contact@lifelinehealth.is before filing a chargeback
+    with your card issuer. This allows a faster and correct resolution.
+    Lifeline responds to such requests within 5 business days.
+
+12. MEDICAL DISCLAIMER
+    Lifeline's services complement — they do not replace — care
+    provided by your GP or specialist. In an emergency always call 112.
+    Discontinue or change medication only in consultation with a
+    physician. Further limitation-of-liability provisions are set out
+    in the general Terms of Service (lifelinehealth.is/terms).
+
+13. PRIVACY
+    Processing of personal data in connection with payment and service
+    provision is carried out in accordance with the Lifeline Privacy
+    Policy (lifelinehealth.is/privacy), Act no. 90/2018 on Data
+    Protection and the Processing of Personal Data, and Regulation (EU)
+    2016/679 (GDPR). Straumur greiðslumiðlun ehf. acts as an independent
+    data controller for processing of payment data.
+
+14. COMPLAINTS
+    Complaints regarding payment, service or the operation of these
+    terms should be sent to contact@lifelinehealth.is. Lifeline will
+    respond formally within 14 days of receipt. If a resolution cannot
+    be reached, the consumer may refer the matter to:
+    - The Icelandic Consumer Agency (Neytendastofa) —
+      www.neytendastofa.is
+    - The Appeals Committee for Goods and Services Purchases —
+      www.neytendastofa.is/kaerunefnd-voru-og-thjonustukaupa/
+    - The Icelandic Data Protection Authority (Persónuvernd) for
+      complaints regarding the processing of personal data —
+      www.personuvernd.is
+
+15. CHANGES TO THESE TERMS
+    Lifeline may update these terms. Material changes will be notified
+    by email or in-app at least 30 days before they take effect. The
+    current version is always available at
+    lifelinehealth.is/sales-terms.
+
+16. GOVERNING LAW AND JURISDICTION
+    These terms are governed by Icelandic law. Disputes shall be
+    brought before the District Court of Reykjavík, subject to mandatory
+    consumer-protection law, including the consumer's right to bring
+    proceedings in the courts of his or her own jurisdiction.
+
+17. CONTACT
+    - General enquiries and complaints: contact@lifelinehealth.is
+    - Privacy: contact@lifelinehealth.is
+
+— Lifeline Health ehf. · reg. no. 590925-1440 · Langholtsvegi 111,
+  104 Reykjavík, Iceland`;
 }
