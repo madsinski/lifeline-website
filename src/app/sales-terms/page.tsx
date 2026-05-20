@@ -40,7 +40,11 @@ export default function SalesTermsPage() {
           for convenience.
         </p>
 
-        <h2>1. Seller</h2>
+        <h2>1. Seller and corporate structure</h2>
+        <p>
+          <strong>1.1</strong> The seller of the services described in these terms, as the
+          business is operated today, is:
+        </p>
         <ul>
           <li>Lifeline Health ehf.</li>
           <li>Reg. no. (kennitala): 590925-1440</li>
@@ -48,6 +52,22 @@ export default function SalesTermsPage() {
           <li>Email: <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a></li>
           <li>Website: <a href="https://lifelinehealth.is">lifelinehealth.is</a></li>
         </ul>
+        <p>
+          Lifeline Health ehf. is a licensed healthcare provider operating under Act no.
+          40/2007 on Healthcare Services and is registered as such with the Directorate of
+          Health (Embætti landlæknis).
+        </p>
+        <p>
+          <strong>1.2</strong> Lifeline Health ehf. is in the process of incorporating a
+          separate daughter company to operate the health-coaching and lifestyle-guidance
+          offering (the subscription service described in section 3.2) as a standalone
+          entity. The purpose is to keep Lifeline Health ehf.&apos;s healthcare operating
+          licence cleanly separated from activity that does not constitute regulated
+          healthcare under Act no. 40/2007. Until that daughter company is operational,
+          Lifeline Health ehf. is the seller of both services listed in section 3. These
+          terms will be updated with at least 30 days&apos; notice when the daughter
+          company assumes responsibility for the subscription service.
+        </p>
 
         <h2>2. Scope and acceptance</h2>
         <p>
@@ -58,19 +78,27 @@ export default function SalesTermsPage() {
 
         <h2>3. Services offered</h2>
 
-        <h3>3.1 Health assessment (one-off purchase)</h3>
+        <h3>3.1 Health assessment (one-off purchase) — regulated healthcare</h3>
         <p>
           A comprehensive clinical health assessment comprising questionnaires, lifestyle
-          evaluation, a body-composition measurement at a partner station, and physician
-          interpretation. Sold as a one-off purchase and delivered digitally inside your
-          account in the app and on the web.
+          evaluation, a body-composition measurement at a partner station, laboratory
+          results where applicable, and interpretation by a Lifeline Health ehf. physician.
+          The health assessment is <strong>regulated healthcare</strong>{" "}
+          (heilbrigðisþjónusta) within the meaning of Act no. 40/2007, provided by Lifeline
+          Health ehf. under its healthcare operating licence. Sold as a one-off purchase and
+          delivered digitally inside your account in the app and on the web.
         </p>
 
-        <h3>3.2 Lifeline app subscription</h3>
+        <h3>3.2 Lifeline app subscription — health coaching and lifestyle guidance</h3>
         <p>
           Ongoing access to personalised health coaching, daily guidance, nutrition plans,
-          follow-up, and messaging with Lifeline coaches. Subscriptions are sold on monthly
-          or annual billing cycles as shown on the checkout screen.
+          follow-up, and messaging with Lifeline coaches. The subscription service is{" "}
+          <strong>health coaching and lifestyle guidance</strong> — it does not constitute
+          regulated healthcare under Act no. 40/2007, and it does not replace medical care,
+          clinical diagnosis or treatment. Subscriptions are sold on monthly or annual
+          billing cycles as shown on the checkout screen. As noted in section 1.2,
+          operation of this service will transfer to a Lifeline Health daughter company
+          when that company becomes operational.
         </p>
         <p>
           The exact price, included features and billing period are always shown on the
@@ -202,10 +230,19 @@ export default function SalesTermsPage() {
 
         <h2>12. Medical disclaimer</h2>
         <p>
-          Lifeline&apos;s services complement — they do not replace — care provided by your
-          GP or specialist. In an emergency always call 112. Discontinue or change
-          medication only in consultation with a physician. Further limitation-of-liability
-          provisions are set out in the general <Link href="/terms">Terms of Service</Link>.
+          <strong>The health assessment (section 3.1)</strong> is a regulated healthcare
+          service and is not a substitute for the care of your GP or specialist.
+        </p>
+        <p>
+          <strong>The subscription service (section 3.2)</strong> is health coaching and
+          lifestyle guidance — not regulated healthcare. It complements, but does not
+          replace, medical diagnosis or treatment. Subscription content must not be used to
+          make clinical decisions.
+        </p>
+        <p>
+          In an emergency always call 112. Discontinue or change medication only in
+          consultation with a physician. Further limitation-of-liability provisions are set
+          out in the general <Link href="/terms">Terms of Service</Link>.
         </p>
 
         <h2>13. Privacy</h2>

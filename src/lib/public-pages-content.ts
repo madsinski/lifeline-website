@@ -718,12 +718,28 @@ almenna notkunarskilmála og persónuverndaryfirlýsingu Lifeline
 (lifelinehealth.is/terms). Komi til ósamræmis gilda söluskilmálar
 þessir um öll atriði er varða greiðslur, áskrift og endurgreiðslur.
 
-1. SELJANDI
+1. SELJANDI OG REKSTRARFYRIRKOMULAG
+
+   1.1 Seljandi þjónustanna, eins og rekstrinum er háttað í dag, er:
    - Lifeline Health ehf.
    - Kennitala: 590925-1440
    - Lögheimili: Langholtsvegi 111, 104 Reykjavík
    - Netfang: contact@lifelinehealth.is
    - Vefsíða: lifelinehealth.is
+
+   Lifeline Health ehf. starfar sem heilbrigðisstofnun samkvæmt lögum nr.
+   40/2007 um heilbrigðisþjónustu og er skráð sem slík hjá Embætti
+   landlæknis.
+
+   1.2 Lifeline Health ehf. vinnur að stofnun sérstaks dótturfélags sem
+   mun reka heilsuþjálfun og lífsstílsráðgjöf (áskriftarþjónustuna sem
+   lýst er í gr. 3.2) sem sjálfstæða einingu. Tilgangurinn er að halda
+   heilbrigðisstarfsleyfi Lifeline Health skýrt aðgreindu frá þeirri
+   starfsemi sem ekki fellur undir heilbrigðisþjónustu samkvæmt lögum
+   nr. 40/2007. Þar til dótturfélagið hefur starfsemi er Lifeline Health
+   ehf. seljandi beggja þjónusta sem taldar eru í gr. 3. Skilmálum
+   þessum verður breytt með að lágmarki 30 daga fyrirvara þegar
+   dótturfélagið tekur við sölu áskriftarþjónustunnar.
 
 2. GILDISSVIÐ OG SAMÞYKKI
    Með því að ljúka greiðslu á vefsíðu Lifeline eða innan Lifeline
@@ -733,17 +749,25 @@ almenna notkunarskilmála og persónuverndaryfirlýsingu Lifeline
 
 3. ÞJÓNUSTUR SEM Í BOÐI ERU
 
-   3.1 Heilsumat (stök kaup)
+   3.1 Heilsumat (stök kaup) — heilbrigðisþjónusta
    Heildstætt klínískt heilsumat sem felur í sér spurningalista,
-   lífsstílsmat, líkamssamsetningarmælingu á samstarfsstöð og túlkun
-   læknis. Verðlagt sem stök kaup og afhent stafrænt í aðgangi neytanda
-   í snjallforritinu og á vef.
+   lífsstílsmat, líkamssamsetningarmælingu á samstarfsstöð,
+   rannsóknarniðurstöður þar sem við á, og túlkun læknis á vegum Lifeline
+   Health ehf. Heilsumat er heilbrigðisþjónusta í skilningi laga nr.
+   40/2007 og er veitt af Lifeline Health ehf. samkvæmt starfsleyfi þess
+   félags. Verðlagt sem stök kaup og afhent stafrænt í aðgangi neytanda í
+   snjallforritinu og á vef.
 
-   3.2 Áskrift að Lifeline appinu
+   3.2 Áskrift að Lifeline appinu — heilsuþjálfun og lífsstílsráðgjöf
    Áframhaldandi aðgangur að persónulegri heilsuþjálfun, daglegri
    leiðsögn, næringaráætlunum, eftirfylgni og samskiptum við
-   heilsuráðgjafa Lifeline. Áskrift er seld í mánaðarlegum eða árlegum
-   tímabilum eins og fram kemur á söluskjá.
+   heilsuráðgjafa Lifeline. Áskriftarþjónustan er heilsu- og
+   lífsstílsráðgjöf og er ekki heilbrigðisþjónusta í skilningi laga nr.
+   40/2007 — hún kemur ekki í stað læknisþjónustu, klínískrar greiningar
+   eða meðferðar. Áskrift er seld í mánaðarlegum eða árlegum tímabilum
+   eins og fram kemur á söluskjá. Eins og fram kemur í gr. 1.2 mun
+   rekstur þessarar þjónustu færast yfir til dótturfélags Lifeline Health
+   þegar það félag tekur til starfa.
 
    Nákvæmt verð, innifaldir eiginleikar og tímabil eru ávallt birt á
    söluskjá áður en greiðsla er staðfest.
@@ -847,9 +871,15 @@ almenna notkunarskilmála og persónuverndaryfirlýsingu Lifeline
     virkra daga.
 
 12. LÆKNISFRÆÐILEGUR FYRIRVARI
-    Þjónustur Lifeline eru viðbót við — en koma ekki í stað —
-    læknisþjónustu þíns heimilislæknis eða sérfræðings. Í
-    neyðartilfellum skal alltaf hringja í 112. Hætta skal eða breyta
+    Heilsumat (gr. 3.1) er heilbrigðisþjónusta og kemur ekki í stað
+    sambands þíns við heimilislækni eða sérfræðing.
+
+    Áskriftarþjónustan (gr. 3.2) er heilsuþjálfun og lífsstílsráðgjöf —
+    ekki heilbrigðisþjónusta. Hún er viðbót við, en ekki staðganga,
+    læknisfræðilega greiningu og meðferð. Innihald áskriftarinnar skal
+    ekki nýtt til að taka klínískar ákvarðanir.
+
+    Í neyðartilfellum skal alltaf hringja í 112. Hætta skal eða breyta
     lyfjameðferð eingöngu í samráði við lækni. Nánari ákvæði um
     ábyrgðartakmarkanir er að finna í almennum notkunarskilmálum
     (lifelinehealth.is/terms).
@@ -905,12 +935,30 @@ subscription and refunds. The legally binding version is the Icelandic
 original (lifelinehealth.is/soluskilmalar); this English text is
 provided for convenience.
 
-1. SELLER
+1. SELLER AND CORPORATE STRUCTURE
+
+   1.1 The seller of the services described in these terms, as the
+   business is operated today, is:
    - Lifeline Health ehf.
    - Reg. no. (kennitala): 590925-1440
    - Registered address: Langholtsvegi 111, 104 Reykjavík, Iceland
    - Email: contact@lifelinehealth.is
    - Website: lifelinehealth.is
+
+   Lifeline Health ehf. is a licensed healthcare provider operating
+   under Act no. 40/2007 on Healthcare Services and is registered as
+   such with the Directorate of Health (Embætti landlæknis).
+
+   1.2 Lifeline Health ehf. is in the process of incorporating a
+   separate daughter company to operate the health-coaching and
+   lifestyle-guidance offering (the subscription service described in
+   section 3.2) as a standalone entity. The purpose is to keep Lifeline
+   Health ehf.'s healthcare operating licence cleanly separated from
+   activity that does not constitute regulated healthcare under Act no.
+   40/2007. Until that daughter company is operational, Lifeline Health
+   ehf. is the seller of both services listed in section 3. These terms
+   will be updated with at least 30 days' notice when the daughter
+   company assumes responsibility for the subscription service.
 
 2. SCOPE AND ACCEPTANCE
    By completing a payment on the Lifeline website or inside the
@@ -920,17 +968,26 @@ provided for convenience.
 
 3. SERVICES OFFERED
 
-   3.1 Health assessment (one-off purchase)
+   3.1 Health assessment (one-off purchase) — regulated healthcare
    A comprehensive clinical health assessment comprising questionnaires,
    lifestyle evaluation, a body-composition measurement at a partner
-   station, and physician interpretation. Sold as a one-off purchase and
-   delivered digitally inside your account in the app and on the web.
+   station, laboratory results where applicable, and interpretation by
+   a Lifeline Health ehf. physician. The health assessment is regulated
+   healthcare (heilbrigðisþjónusta) within the meaning of Act no.
+   40/2007, provided by Lifeline Health ehf. under its healthcare
+   operating licence. Sold as a one-off purchase and delivered digitally
+   inside your account in the app and on the web.
 
-   3.2 Lifeline app subscription
+   3.2 Lifeline app subscription — health coaching and lifestyle guidance
    Ongoing access to personalised health coaching, daily guidance,
-   nutrition plans, follow-up, and messaging with Lifeline coaches.
+   nutrition plans, follow-up, and messaging with Lifeline coaches. The
+   subscription service is health coaching and lifestyle guidance — it
+   does not constitute regulated healthcare under Act no. 40/2007, and
+   it does not replace medical care, clinical diagnosis or treatment.
    Subscriptions are sold on monthly or annual billing cycles as shown
-   on the checkout screen.
+   on the checkout screen. As noted in section 1.2, operation of this
+   service will transfer to a Lifeline Health daughter company when that
+   company becomes operational.
 
    The exact price, included features and billing period are always
    shown on the checkout screen before payment is confirmed.
@@ -1029,11 +1086,19 @@ provided for convenience.
     Lifeline responds to such requests within 5 business days.
 
 12. MEDICAL DISCLAIMER
-    Lifeline's services complement — they do not replace — care
-    provided by your GP or specialist. In an emergency always call 112.
-    Discontinue or change medication only in consultation with a
-    physician. Further limitation-of-liability provisions are set out
-    in the general Terms of Service (lifelinehealth.is/terms).
+    The health assessment (section 3.1) is a regulated healthcare
+    service and is not a substitute for the care of your GP or
+    specialist.
+
+    The subscription service (section 3.2) is health coaching and
+    lifestyle guidance — not regulated healthcare. It complements, but
+    does not replace, medical diagnosis or treatment. Subscription
+    content must not be used to make clinical decisions.
+
+    In an emergency always call 112. Discontinue or change medication
+    only in consultation with a physician. Further limitation-of-
+    liability provisions are set out in the general Terms of Service
+    (lifelinehealth.is/terms).
 
 13. PRIVACY
     Processing of personal data in connection with payment and service

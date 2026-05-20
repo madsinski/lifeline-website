@@ -38,7 +38,10 @@ export default function SoluskilmalarPage() {
           áskrift og endurgreiðslur.
         </p>
 
-        <h2>1. Seljandi</h2>
+        <h2>1. Seljandi og rekstrarfyrirkomulag</h2>
+        <p>
+          <strong>1.1</strong> Seljandi þjónustanna, eins og rekstrinum er háttað í dag, er:
+        </p>
         <ul>
           <li>Lifeline Health ehf.</li>
           <li>Kennitala: 590925-1440</li>
@@ -46,6 +49,20 @@ export default function SoluskilmalarPage() {
           <li>Netfang: <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a></li>
           <li>Vefsíða: <a href="https://lifelinehealth.is">lifelinehealth.is</a></li>
         </ul>
+        <p>
+          Lifeline Health ehf. starfar sem heilbrigðisstofnun samkvæmt lögum nr. 40/2007
+          um heilbrigðisþjónustu og er skráð sem slík hjá Embætti landlæknis.
+        </p>
+        <p>
+          <strong>1.2</strong> Lifeline Health ehf. vinnur að stofnun sérstaks dótturfélags
+          sem mun reka heilsuþjálfun og lífsstílsráðgjöf (áskriftarþjónustuna sem lýst er
+          í gr. 3.2) sem sjálfstæða einingu. Tilgangurinn er að halda heilbrigðisstarfsleyfi
+          Lifeline Health skýrt aðgreindu frá þeirri starfsemi sem ekki fellur undir
+          heilbrigðisþjónustu samkvæmt lögum nr. 40/2007. Þar til dótturfélagið hefur
+          starfsemi er Lifeline Health ehf. seljandi beggja þjónusta sem taldar eru í
+          gr. 3. Skilmálum þessum verður breytt með að lágmarki 30 daga fyrirvara þegar
+          dótturfélagið tekur við sölu áskriftarþjónustunnar.
+        </p>
 
         <h2>2. Gildissvið og samþykki</h2>
         <p>
@@ -57,18 +74,26 @@ export default function SoluskilmalarPage() {
 
         <h2>3. Þjónustur sem í boði eru</h2>
 
-        <h3>3.1 Heilsumat (stök kaup)</h3>
+        <h3>3.1 Heilsumat (stök kaup) — heilbrigðisþjónusta</h3>
         <p>
           Heildstætt klínískt heilsumat sem felur í sér spurningalista, lífsstílsmat,
-          líkamssamsetningarmælingu á samstarfsstöð og túlkun læknis. Verðlagt sem stök kaup
-          og afhent stafrænt í aðgangi neytanda í snjallforritinu og á vef.
+          líkamssamsetningarmælingu á samstarfsstöð, rannsóknarniðurstöður þar sem við á,
+          og túlkun læknis á vegum Lifeline Health ehf. Heilsumat er{" "}
+          <strong>heilbrigðisþjónusta</strong> í skilningi laga nr. 40/2007 og er veitt af
+          Lifeline Health ehf. samkvæmt starfsleyfi þess félags. Verðlagt sem stök kaup og
+          afhent stafrænt í aðgangi neytanda í snjallforritinu og á vef.
         </p>
 
-        <h3>3.2 Áskrift að Lifeline appinu</h3>
+        <h3>3.2 Áskrift að Lifeline appinu — heilsuþjálfun og lífsstílsráðgjöf</h3>
         <p>
           Áframhaldandi aðgangur að persónulegri heilsuþjálfun, daglegri leiðsögn,
-          næringaráætlunum, eftirfylgni og samskiptum við heilsuráðgjafa Lifeline. Áskrift
-          er seld í mánaðarlegum eða árlegum tímabilum eins og fram kemur á söluskjá.
+          næringaráætlunum, eftirfylgni og samskiptum við heilsuráðgjafa Lifeline.
+          Áskriftarþjónustan er <strong>heilsu- og lífsstílsráðgjöf</strong> og er ekki
+          heilbrigðisþjónusta í skilningi laga nr. 40/2007 — hún kemur ekki í stað
+          læknisþjónustu, klínískrar greiningar eða meðferðar. Áskrift er seld í
+          mánaðarlegum eða árlegum tímabilum eins og fram kemur á söluskjá. Eins og fram
+          kemur í gr. 1.2 mun rekstur þessarar þjónustu færast yfir til dótturfélags
+          Lifeline Health þegar það félag tekur til starfa.
         </p>
         <p>
           Nákvæmt verð, innifaldir eiginleikar og tímabil eru ávallt birt á söluskjá áður en
@@ -209,11 +234,19 @@ export default function SoluskilmalarPage() {
 
         <h2>12. Læknisfræðilegur fyrirvari</h2>
         <p>
-          Þjónustur Lifeline eru viðbót við — en koma ekki í stað — læknisþjónustu þíns
-          heimilislæknis eða sérfræðings. Í neyðartilfellum skal alltaf hringja í 112.
-          Hætta skal eða breyta lyfjameðferð eingöngu í samráði við lækni. Nánari ákvæði um
-          ábyrgðartakmarkanir er að finna í almennum{" "}
-          <Link href="/terms">notkunarskilmálum</Link>.
+          <strong>Heilsumat (gr. 3.1)</strong> er heilbrigðisþjónusta og kemur ekki í stað
+          sambands þíns við heimilislækni eða sérfræðing.
+        </p>
+        <p>
+          <strong>Áskriftarþjónustan (gr. 3.2)</strong> er heilsuþjálfun og lífsstílsráðgjöf —
+          ekki heilbrigðisþjónusta. Hún er viðbót við, en ekki staðganga, læknisfræðilega
+          greiningu og meðferð. Innihald áskriftarinnar skal ekki nýtt til að taka klínískar
+          ákvarðanir.
+        </p>
+        <p>
+          Í neyðartilfellum skal alltaf hringja í 112. Hætta skal eða breyta lyfjameðferð
+          eingöngu í samráði við lækni. Nánari ákvæði um ábyrgðartakmarkanir er að finna í
+          almennum <Link href="/terms">notkunarskilmálum</Link>.
         </p>
 
         <h2>13. Persónuvernd</h2>
