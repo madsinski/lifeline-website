@@ -51,20 +51,52 @@ export function useStaffGuard(opts?: { role?: StaffRole; permission?: StaffPermi
           return;
         }
 
-        const { data } = await supabase
-          .from("staff")
-          .select("role, permissions")
-          .eq("email", user.email)
-          .eq("active", true)
-          .maybeSingle();
+        // RPC a SECURITY DEFINER function instead of selecting from
+        // public.staff directly. The staff table's RLS uses
+        // id = auth.uid(), which fails for invited admins whose
+        // staff.id was generated independently of their auth.users.id
+        // (see migration-staff-helpers-email-match.sql). The function
+        // does the email-match join under definer rights and returns
+        // exactly one row when the current user is staff.
+        const { data: profileRaw, error: rpcErr } = await supabase
+          .rpc("get_my_staff_profile")
+          .single();
+        const profile = profileRaw as {
+          role: string | null;
+          permissions: string[] | null;
+          active: boolean | null;
+          email: string | null;
+        } | null;
 
-        if (!data) {
-          setState((s) => ({ ...s, loading: false, authorized: false }));
+        if (rpcErr || !profile || !profile.active) {
+          // Backwards compat: fall back to the legacy direct select.
+          // After the migration ships everywhere the RPC path is the
+          // only one used, but this keeps us from locking everyone
+          // out during a migration window.
+          const { data } = await supabase
+            .from("staff")
+            .select("role, permissions")
+            .eq("email", user.email)
+            .eq("active", true)
+            .maybeSingle();
+
+          if (!data) {
+            setState((s) => ({ ...s, loading: false, authorized: false }));
+            return;
+          }
+          const role = (data.role as StaffRole) || "coach";
+          const permissions = (data.permissions as StaffPermission[]) || [];
+          const isAdmin = role === "admin";
+          const isMedicalAdvisor = role === "medical_advisor";
+          let authorized = true;
+          if (opts?.role && role !== opts.role && !isAdmin && !isMedicalAdvisor) authorized = false;
+          if (opts?.permission && !permissions.includes(opts.permission) && !isAdmin && !isMedicalAdvisor) authorized = false;
+          setState({ role, permissions, isAdmin, isMedicalAdvisor, loading: false, authorized });
           return;
         }
 
-        const role = (data.role as StaffRole) || "coach";
-        const permissions = (data.permissions as StaffPermission[]) || [];
+        const role = (profile.role as StaffRole) || "coach";
+        const permissions = (profile.permissions as StaffPermission[]) || [];
         const isAdmin = role === "admin";
         const isMedicalAdvisor = role === "medical_advisor";
 
