@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
+import { withErrorReporting } from "@/lib/with-error-reporting";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -39,7 +40,7 @@ async function requireAdmin(req: NextRequest) {
   return user;
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withErrorReporting(async (req: NextRequest) => {
   const user = await requireAdmin(req);
   if (!user) {
     return NextResponse.json({ error: "admin_access_required" }, { status: 403 });
@@ -152,9 +153,9 @@ export async function POST(req: NextRequest) {
     sbom_storage_path: sbomStoragePath,
     sbom_sha256: sbomSha256,
   });
-}
+}, { route: "POST /api/admin/releases" });
 
-export async function GET(req: NextRequest) {
+export const GET = withErrorReporting(async (req: NextRequest) => {
   const user = await requireAdmin(req);
   if (!user) {
     return NextResponse.json({ error: "admin_access_required" }, { status: 403 });
@@ -175,4 +176,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "list_failed", detail: error.message }, { status: 500 });
   }
   return NextResponse.json({ releases: data ?? [] });
-}
+}, { route: "GET /api/admin/releases" });

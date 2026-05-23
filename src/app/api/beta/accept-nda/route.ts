@@ -9,6 +9,7 @@ import {
   renderBetaNda,
 } from "@/lib/beta-nda-content";
 import { renderAcceptancePdf } from "@/lib/pdf-acceptance-renderer";
+import { withErrorReporting } from "@/lib/with-error-reporting";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -35,7 +36,7 @@ function getClientIp(req: NextRequest): string | null {
   return null;
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withErrorReporting(async (req: NextRequest) => {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -176,12 +177,12 @@ export async function POST(req: NextRequest) {
     existing: false,
     pdf_storage_path: pdfStoragePath,
   });
-}
+}, { route: "POST /api/beta/accept-nda" });
 
 // GET: returns whether the current user has accepted the current
 // version. Used by the RN modal so existing testers don't see the
 // signature step again after a fresh install.
-export async function GET(req: NextRequest) {
+export const GET = withErrorReporting(async (req: NextRequest) => {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -199,4 +200,4 @@ export async function GET(req: NextRequest) {
     acceptance: data ?? null,
     current_version: BETA_NDA_VERSION,
   });
-}
+}, { route: "GET /api/beta/accept-nda" });
