@@ -25,6 +25,44 @@ interface AppError {
   created_at: string;
   resolved_at: string | null;
   resolved_by_name: string | null;
+  // MDR triage upgrade
+  resolution_note: string | null;
+  resolved_in_version: string | null;
+  resolved_in_commit_sha: string | null;
+  resolved_in_release_id: string | null;
+  risk_register_ids: string[] | null;
+  triage_status: "dev_noise" | "wontfix" | "duplicate" | null;
+  triage_severity: "cosmetic" | "low" | "medium" | "high" | "critical" | null;
+  triage_category: string | null;
+}
+
+interface AppRelease {
+  id: string;
+  repo: string;
+  version: string;
+  build_number: string | null;
+  channel: string;
+  git_sha: string;
+  released_at: string;
+}
+
+interface ErrorHistoryRow {
+  id: string;
+  changed_at: string;
+  changed_by_name: string | null;
+  changed_by_email: string | null;
+  prev_resolved_at: string | null;
+  new_resolved_at: string | null;
+  prev_resolution_note: string | null;
+  new_resolution_note: string | null;
+  prev_resolved_in_version: string | null;
+  new_resolved_in_version: string | null;
+  prev_resolved_in_commit_sha: string | null;
+  new_resolved_in_commit_sha: string | null;
+  prev_triage_status: string | null;
+  new_triage_status: string | null;
+  prev_triage_severity: string | null;
+  new_triage_severity: string | null;
 }
 
 const LEVEL_STYLES: Record<NonNullable<AppError["level"]>, string> = {
@@ -71,6 +109,19 @@ export default function ErrorsPage() {
   const [statusFilter, setStatusFilter] = useState<"open" | "resolved" | "all">("open");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  // MDR-grade resolve dialog state.
+  const [resolveTarget, setResolveTarget] = useState<{ sample: AppError; count: number } | null>(null);
+  const [resolveNote, setResolveNote] = useState("");
+  const [resolveVersion, setResolveVersion] = useState("");
+  const [resolveCommit, setResolveCommit] = useState("");
+  const [resolveSeverity, setResolveSeverity] = useState<AppError["triage_severity"]>(null);
+  const [resolveCategory, setResolveCategory] = useState<string>("");
+  const [resolveBusy, setResolveBusy] = useState(false);
+  const [latestRelease, setLatestRelease] = useState<AppRelease | null>(null);
+  // History viewer state (per-row, lazy fetch).
+  const [historyFor, setHistoryFor] = useState<string | null>(null);
+  const [historyRows, setHistoryRows] = useState<ErrorHistoryRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,6 +143,22 @@ export default function ErrorsPage() {
   useEffect(() => {
     if (guard.authorized) load();
   }, [guard.authorized, load]);
+
+  // Fetch the latest release once so the resolve modal can pre-fill
+  // version + commit. Best-effort — if no releases registered yet,
+  // user types manually.
+  useEffect(() => {
+    if (!guard.authorized) return;
+    (async () => {
+      const { data } = await supabase
+        .from("app_releases")
+        .select("id, repo, version, build_number, channel, git_sha, released_at")
+        .order("released_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) setLatestRelease(data as AppRelease);
+    })();
+  }, [guard.authorized]);
 
   const filtered = useMemo(() => {
     let r = rows;
@@ -182,19 +249,20 @@ export default function ErrorsPage() {
     return staffRow?.name || user.email;
   }, []);
 
-  const markResolved = async (g: Group, resolved: boolean) => {
+  // Reopen → straight update, no modal. Resolve → opens the modal
+  // so the admin captures a note + version + commit, which writes a
+  // history row via the trigger.
+  const reopenGroup = async (g: Group) => {
     const sample = g.sample;
-    // Apply to every row matching the group signature so the resolution
-    // sticks across all historical occurrences. Future arrivals default
-    // to resolved_at = NULL, so a regression automatically reappears.
-    // .select() chained so we can count the affected rows — RLS without
-    // an UPDATE policy returns 0 rows with no error, which is silent.
-    const resolverName = resolved ? await resolverDisplayName() : null;
     let q = supabase
       .from("app_errors")
       .update({
-        resolved_at: resolved ? new Date().toISOString() : null,
-        resolved_by_name: resolved ? resolverName : null,
+        resolved_at: null,
+        resolved_by_name: null,
+        // Intentionally leave resolution_note + version + commit in
+        // place — the history table preserves the timeline, and the
+        // most-recent resolution context stays visible for the next
+        // resolve cycle. Re-resolving overwrites them.
       })
       .eq("message", sample.message)
       .eq("runtime", sample.runtime || "");
@@ -209,6 +277,90 @@ export default function ErrorsPage() {
     await load();
   };
 
+  const openResolveDialog = (g: Group) => {
+    const sample = g.sample;
+    setResolveTarget({ sample, count: g.count });
+    // Seed with the previous resolution's values if this is a
+    // regression re-resolve (so the admin doesn't retype).
+    setResolveNote(sample.resolution_note ?? "");
+    setResolveVersion(sample.resolved_in_version ?? latestRelease?.version ?? "");
+    setResolveCommit(sample.resolved_in_commit_sha ?? latestRelease?.git_sha ?? "");
+    setResolveSeverity(sample.triage_severity ?? null);
+    setResolveCategory(sample.triage_category ?? "");
+  };
+
+  const confirmResolve = async () => {
+    if (!resolveTarget) return;
+    if (!resolveNote.trim()) {
+      alert("Resolution note is required — capture the why / fix / commit for the MDR audit trail.");
+      return;
+    }
+    setResolveBusy(true);
+    try {
+      const resolverName = await resolverDisplayName();
+      const sample = resolveTarget.sample;
+      let q = supabase
+        .from("app_errors")
+        .update({
+          resolved_at: new Date().toISOString(),
+          resolved_by_name: resolverName,
+          resolution_note: resolveNote.trim(),
+          resolved_in_version: resolveVersion.trim() || null,
+          resolved_in_commit_sha: resolveCommit.trim() || null,
+          resolved_in_release_id: latestRelease?.id ?? null,
+          triage_severity: resolveSeverity,
+          triage_category: resolveCategory || null,
+        })
+        .eq("message", sample.message)
+        .eq("runtime", sample.runtime || "");
+      if (sample.pathname) q = q.eq("pathname", sample.pathname);
+      else q = q.is("pathname", null);
+      const { data, error } = await q.select("id");
+      if (error) { alert(`Could not update: ${error.message}`); return; }
+      if (!data || data.length === 0) {
+        alert("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.");
+        return;
+      }
+      setResolveTarget(null);
+      await load();
+    } finally {
+      setResolveBusy(false);
+    }
+  };
+
+  // Mark a group as triage_status = 'dev_noise' or similar without
+  // closing it as "resolved". Lets us clear HMR junk without
+  // destroying rows.
+  const setTriageStatus = async (g: Group, status: AppError["triage_status"]) => {
+    const sample = g.sample;
+    let q = supabase
+      .from("app_errors")
+      .update({ triage_status: status })
+      .eq("message", sample.message)
+      .eq("runtime", sample.runtime || "");
+    if (sample.pathname) q = q.eq("pathname", sample.pathname);
+    else q = q.is("pathname", null);
+    const { error } = await q;
+    if (error) { alert(`Could not update: ${error.message}`); return; }
+    await load();
+  };
+
+  // Lazy-load the history rows when the user expands the timeline.
+  const loadHistory = async (errorId: string) => {
+    setHistoryLoading(true);
+    setHistoryFor(errorId);
+    try {
+      const { data } = await supabase
+        .from("app_errors_status_history")
+        .select("*")
+        .eq("app_error_id", errorId)
+        .order("changed_at", { ascending: false });
+      setHistoryRows((data as ErrorHistoryRow[]) ?? []);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   // Bulk-resolve every open OR regression group in the current view.
   // Honors the active window / runtime / search / status filters — what
   // you see is what you resolve. Done as parallel UPDATEs (one per
@@ -218,16 +370,30 @@ export default function ErrorsPage() {
   const markAllOpenResolved = async () => {
     const targets = grouped.filter((g) => g.status !== "resolved");
     if (targets.length === 0) return;
-    if (!confirm(`Mark ${targets.length} open group${targets.length === 1 ? "" : "s"} as resolved? Regressions automatically re-open if the same error fires again.`)) return;
+    // Shared note is required even for bulk — the history trigger
+    // captures it per row so the audit trail stays defensible.
+    const note = prompt(`Mark ${targets.length} open group${targets.length === 1 ? "" : "s"} as resolved.\n\nShared resolution note (required — pasted into every row's resolution_note for MDR audit):`);
+    if (note === null) return;
+    if (!note.trim()) { alert("Resolution note is required."); return; }
     setBulkBusy(true);
     try {
       const resolverName = await resolverDisplayName();
       const resolvedAt = new Date().toISOString();
+      const sharedVersion = latestRelease?.version ?? null;
+      const sharedCommit = latestRelease?.git_sha ?? null;
+      const sharedReleaseId = latestRelease?.id ?? null;
       const updates = await Promise.all(targets.map(async (g) => {
         const sample = g.sample;
         let q = supabase
           .from("app_errors")
-          .update({ resolved_at: resolvedAt, resolved_by_name: resolverName })
+          .update({
+            resolved_at: resolvedAt,
+            resolved_by_name: resolverName,
+            resolution_note: note.trim(),
+            resolved_in_version: sharedVersion,
+            resolved_in_commit_sha: sharedCommit,
+            resolved_in_release_id: sharedReleaseId,
+          })
           .eq("message", sample.message)
           .eq("runtime", sample.runtime || "");
         if (sample.pathname) q = q.eq("pathname", sample.pathname);
@@ -506,22 +672,111 @@ export default function ErrorsPage() {
                                 {g.status === "regression" && <> · {g.count - g.resolvedCount} new event{g.count - g.resolvedCount === 1 ? "" : "s"} since</>}
                               </div>
                             )}
-                            <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                            {/* Existing resolution context — shown when previously
+                                resolved so the admin can see the note + version + commit
+                                before deciding whether to re-resolve. */}
+                            {(g.status === "resolved" || g.status === "regression") && (e.resolution_note || e.resolved_in_version) && (
+                              <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-[11px] text-emerald-900">
+                                <div className="font-semibold mb-1">Last resolution</div>
+                                {e.resolution_note && <div className="whitespace-pre-wrap mb-1">{e.resolution_note}</div>}
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-emerald-700">
+                                  {e.resolved_in_version && <span>Version: <span className="font-mono">{e.resolved_in_version}</span></span>}
+                                  {e.resolved_in_commit_sha && <span>Commit: <span className="font-mono">{e.resolved_in_commit_sha.slice(0, 12)}</span></span>}
+                                  {e.triage_severity && <span>Severity: {e.triage_severity}</span>}
+                                  {e.triage_category && <span>Category: {e.triage_category}</span>}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Timeline / status history (lazy-loaded). The
+                                history trigger captures every triage change so
+                                we can replay resolved → reopened → re-resolved. */}
+                            <div>
+                              {historyFor === e.id ? (
+                                <div className="rounded border border-gray-200 bg-white p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="text-[11px] uppercase font-semibold text-gray-500 tracking-wide">Status history</div>
+                                    <button
+                                      onClick={() => { setHistoryFor(null); setHistoryRows([]); }}
+                                      className="text-[11px] text-gray-500 hover:text-gray-700"
+                                    >Hide</button>
+                                  </div>
+                                  {historyLoading ? (
+                                    <div className="text-[11px] text-gray-400">Loading…</div>
+                                  ) : historyRows.length === 0 ? (
+                                    <div className="text-[11px] text-gray-400">No prior changes recorded.</div>
+                                  ) : (
+                                    <ul className="space-y-2">
+                                      {historyRows.map((h) => {
+                                        const wasResolved = !!h.prev_resolved_at;
+                                        const isResolved = !!h.new_resolved_at;
+                                        const verb = !wasResolved && isResolved ? "Resolved"
+                                                   : wasResolved && !isResolved ? "Reopened"
+                                                   : "Updated";
+                                        return (
+                                          <li key={h.id} className="text-[11px] text-gray-700">
+                                            <span className="font-semibold">{verb}</span>
+                                            {" "}
+                                            <span className="text-gray-500">
+                                              {new Date(h.changed_at).toLocaleString("en-GB")}
+                                              {h.changed_by_name && <> · {h.changed_by_name}</>}
+                                            </span>
+                                            {h.new_resolution_note && h.new_resolution_note !== h.prev_resolution_note && (
+                                              <div className="mt-1 pl-3 border-l-2 border-gray-200 whitespace-pre-wrap text-gray-600">
+                                                {h.new_resolution_note}
+                                              </div>
+                                            )}
+                                            {h.new_resolved_in_version && (
+                                              <div className="text-[10px] text-gray-500 mt-0.5 pl-3">
+                                                Fixed in <span className="font-mono">v{h.new_resolved_in_version}</span>
+                                                {h.new_resolved_in_commit_sha && <> · <span className="font-mono">{h.new_resolved_in_commit_sha.slice(0, 7)}</span></>}
+                                              </div>
+                                            )}
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  )}
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => loadHistory(e.id)}
+                                  className="text-[11px] text-blue-700 hover:underline"
+                                >
+                                  Show status history
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-2 border-t border-gray-200 flex-wrap">
                               {g.status === "resolved" ? (
                                 <button
-                                  onClick={() => markResolved(g, false)}
+                                  onClick={() => reopenGroup(g)}
                                   className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded hover:bg-gray-50"
                                 >
                                   Reopen
                                 </button>
                               ) : (
                                 <button
-                                  onClick={() => markResolved(g, true)}
+                                  onClick={() => openResolveDialog(g)}
                                   className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-emerald-200 rounded hover:bg-emerald-50"
                                 >
-                                  {g.status === "regression" ? "Mark resolved (again)" : "Mark resolved"}
+                                  {g.status === "regression" ? "Mark resolved (again)…" : "Mark resolved…"}
                                 </button>
                               )}
+                              <button
+                                onClick={() => setTriageStatus(g, "dev_noise")}
+                                className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-white border border-amber-200 rounded hover:bg-amber-50"
+                                title="Tag as dev-only HMR / React Refresh artifact. Preserves the row but flags it as not real."
+                              >
+                                Tag dev noise
+                              </button>
+                              <button
+                                onClick={() => setTriageStatus(g, "wontfix")}
+                                className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded hover:bg-gray-50"
+                              >
+                                Wontfix
+                              </button>
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(`${e.message}\n\n${e.stack || ""}\n\nPath: ${e.pathname}\nRuntime: ${e.runtime}\nWhen: ${e.occurred_at}`);
@@ -532,9 +787,10 @@ export default function ErrorsPage() {
                               </button>
                               <button
                                 onClick={() => deleteOne(e.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded hover:bg-red-50"
+                                className="ml-auto px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded hover:bg-red-50"
+                                title="Hard delete — the row and its status history disappear. Prefer 'Wontfix' or 'Tag dev noise' to preserve the audit trail."
                               >
-                                Delete this row
+                                Delete
                               </button>
                             </div>
                           </div>
@@ -546,6 +802,116 @@ export default function ErrorsPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Resolution modal — captures the MDR-grade fields (note,
+          version, commit, severity, category). Required note;
+          version + commit pre-filled from the most recent
+          app_releases row. */}
+      {resolveTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !resolveBusy && setResolveTarget(null)}>
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 max-w-xl w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3">
+              <h3 className="text-base font-semibold text-gray-900">Resolve error group</h3>
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{resolveTarget.sample.message}</p>
+              <p className="text-[11px] text-gray-400 mt-1">
+                {resolveTarget.count} event{resolveTarget.count === 1 ? "" : "s"} · {resolveTarget.sample.runtime} · {resolveTarget.sample.pathname || "no path"}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">
+                  Resolution note <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={resolveNote}
+                  onChange={(e) => setResolveNote(e.target.value)}
+                  rows={3}
+                  placeholder="What was the root cause + the fix. e.g. 'Null guard at ConsistencyCard:212; deeper fix tracked in R-2026-007.'"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Becomes the audit-trail entry. Searchable by other admins + auditors.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">Fixed in version</label>
+                  <input
+                    type="text"
+                    value={resolveVersion}
+                    onChange={(e) => setResolveVersion(e.target.value)}
+                    placeholder="0.1.1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">Commit sha</label>
+                  <input
+                    type="text"
+                    value={resolveCommit}
+                    onChange={(e) => setResolveCommit(e.target.value)}
+                    placeholder="e273aa64f3ba…"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono"
+                  />
+                </div>
+              </div>
+              {latestRelease && (
+                <div className="text-[10px] text-gray-500 -mt-1">
+                  Pre-filled from latest release: v{latestRelease.version} · {latestRelease.git_sha.slice(0, 12)}. Override if you've cut a newer one.
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">Triage severity</label>
+                  <select
+                    value={resolveSeverity ?? ""}
+                    onChange={(e) => setResolveSeverity((e.target.value || null) as AppError["triage_severity"])}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="">—</option>
+                    <option value="cosmetic">cosmetic</option>
+                    <option value="low">low</option>
+                    <option value="medium">medium</option>
+                    <option value="high">high</option>
+                    <option value="critical">critical</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">Category</label>
+                  <select
+                    value={resolveCategory}
+                    onChange={(e) => setResolveCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="">—</option>
+                    {["data-integrity","clinical","privacy","security","availability","usability","regression","infra","other"].map((c) =>
+                      <option key={c} value={c}>{c}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setResolveTarget(null)}
+                disabled={resolveBusy}
+                className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmResolve}
+                disabled={resolveBusy || !resolveNote.trim()}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded disabled:opacity-50"
+              >
+                {resolveBusy ? "Saving…" : "Resolve + audit"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

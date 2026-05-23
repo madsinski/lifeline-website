@@ -3,6 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 
+interface RecentErrorSig {
+  id?: string;
+  fingerprint?: string | null;
+  message?: string;
+  occurred_at?: string;
+  runtime?: string | null;
+  level?: string | null;
+}
+
 interface FeedbackRow {
   id: string;
   created_at: string;
@@ -17,6 +26,10 @@ interface FeedbackRow {
   resolved_by: string | null;
   resolution_note: string | null;
   viewed_by_user_at: string | null;
+  // MDR linkage to errors
+  linked_error_ids: string[] | null;
+  app_version: string | null;
+  recent_error_signatures: RecentErrorSig[] | null;
 }
 
 const TYPE_PILL: Record<FeedbackRow["feedback_type"], { label: string; cls: string }> = {
@@ -206,8 +219,45 @@ export default function FeedbackTab() {
                       {item.user_email && <span>Email: {item.user_email}</span>}
                       <span>Screen: {item.page_url}</span>
                       <span>Submitted: {new Date(item.created_at).toLocaleString("en-GB")}</span>
+                      {item.app_version && <span>App: <span className="font-mono">v{item.app_version}</span></span>}
                       {item.user_agent && <span>UA: {item.user_agent}</span>}
                     </div>
+
+                    {/* Auto-attached recent errors. The RN BetaFeedback
+                        component snapshots up to 5 of the user's most
+                        recent app_errors at submit time and embeds them
+                        here so the admin sees the bug + the technical
+                        context without an extra DB hop. */}
+                    {item.recent_error_signatures && item.recent_error_signatures.length > 0 && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                        <div className="text-[11px] uppercase font-semibold text-red-700 tracking-wide mb-2">
+                          {item.recent_error_signatures.length} recent error{item.recent_error_signatures.length === 1 ? "" : "s"} from this user
+                        </div>
+                        <ul className="space-y-2">
+                          {item.recent_error_signatures.map((sig, idx) => (
+                            <li key={sig.id ?? `${idx}-${sig.message}`} className="text-[11px] text-red-900">
+                              <div className="font-mono break-all">{sig.message}</div>
+                              <div className="text-red-700 text-[10px] mt-0.5">
+                                {sig.runtime && <>{sig.runtime} · </>}
+                                {sig.level && <>{sig.level} · </>}
+                                {sig.occurred_at && new Date(sig.occurred_at).toLocaleString("en-GB")}
+                                {sig.id && (
+                                  <> · <a
+                                    href={`/admin/errors?focus=${sig.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline hover:text-red-900"
+                                  >Open in error log →</a></>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="text-[10px] text-red-600 mt-2 italic">
+                          Captured at submit time. Use this to triage whether the user's complaint matches a known error pattern.
+                        </div>
+                      </div>
+                    )}
 
                     {isResolved && (
                       <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
