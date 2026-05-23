@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminAppendNote from "../components/AdminAppendNote";
 
 interface ReleaseRow {
   id: string;
@@ -20,6 +21,7 @@ interface ReleaseRow {
   build_artifact_url: string | null;
   released_at: string;
   released_by_email: string | null;
+  release_addendum: string | null;
 }
 
 const REPO_PILL: Record<ReleaseRow["repo"], string> = {
@@ -209,6 +211,20 @@ export default function ReleasesTab() {
                             </div>
                           )}
                         </div>
+                      </div>
+                      {/* Post-launch addendum — kept separate from
+                          the immutable release_notes so the original
+                          ship-time content stays untouched, while
+                          field observations accumulate over time. */}
+                      <div className="mt-4 border-t border-gray-200 pt-3">
+                        <AdminAppendNote
+                          table="app_releases"
+                          rowId={r.id}
+                          column="release_addendum"
+                          currentValue={r.release_addendum}
+                          label="Post-launch addendum (regressions, hotfix refs, field reports — most recent first)"
+                          onSaved={load}
+                        />
                       </div>
                     </td>
                   </tr>

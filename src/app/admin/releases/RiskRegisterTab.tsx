@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminAppendNote from "../components/AdminAppendNote";
 
 type Severity = "low" | "medium" | "high" | "critical";
 type Likelihood = "rare" | "unlikely" | "possible" | "likely" | "almost_certain";
@@ -361,6 +362,16 @@ export default function RiskRegisterTab() {
                             </>
                           )}
                         </div>
+                      </div>
+                      <div className="mt-4 border-t border-gray-200 pt-3">
+                        <AdminAppendNote
+                          table="risk_register"
+                          rowId={r.id}
+                          column="notes"
+                          currentValue={r.notes}
+                          label="Notes (audit trail — most recent first)"
+                          onSaved={load}
+                        />
                       </div>
                       <div className="mt-4 flex items-center gap-2 border-t border-gray-200 pt-3">
                         <label className="text-[11px] uppercase font-semibold text-gray-500 tracking-wide">Status</label>

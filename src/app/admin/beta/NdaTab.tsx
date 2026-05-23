@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminAppendNote from "../components/AdminAppendNote";
 
 interface BetaNdaRow {
   id: string;
@@ -20,6 +21,7 @@ interface BetaNdaRow {
   accepted_at: string;
   revoked_at: string | null;
   revoke_reason: string | null;
+  admin_notes: string | null;
 }
 
 export default function NdaTab() {
@@ -28,6 +30,7 @@ export default function NdaTab() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showRevoked, setShowRevoked] = useState(false);
 
   const load = useCallback(async () => {
@@ -143,47 +146,70 @@ export default function NdaTab() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No signed agreements yet.</td></tr>
             ) : filtered.map((r) => (
-              <tr key={r.id} className={`border-b border-gray-100 hover:bg-gray-50 ${r.revoked_at ? "opacity-60" : ""}`}>
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-900">{r.typed_signature}</div>
-                  <div className="text-xs text-gray-500">{r.user_email ?? "(no email)"}</div>
-                  {r.revoked_at && (
-                    <div className="text-xs text-red-600 mt-1">
-                      Revoked {new Date(r.revoked_at).toLocaleDateString()}
-                      {r.revoke_reason ? ` — ${r.revoke_reason}` : ""}
-                    </div>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-gray-700">
-                  {new Date(r.accepted_at).toLocaleString("en-GB", {
-                    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-                  })}
-                </td>
-                <td className="px-4 py-3 text-gray-700">v{r.document_version}</td>
-                <td className="px-4 py-3 text-gray-700">{r.app_platform ?? "—"}</td>
-                <td className="px-4 py-3 text-gray-700">{r.app_version ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-gray-500 font-mono">{r.ip ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-gray-500 font-mono" title={r.text_hash}>
-                  {r.text_hash.slice(0, 10)}…
-                </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <button
-                    onClick={() => download(r)}
-                    disabled={!r.pdf_storage_path || downloadingId === r.id}
-                    className="px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {downloadingId === r.id ? "…" : "PDF"}
-                  </button>
-                  {!r.revoked_at && (
+              <>
+                <tr key={r.id} className={`border-b border-gray-100 hover:bg-gray-50 ${r.revoked_at ? "opacity-60" : ""}`}>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{r.typed_signature}</div>
+                    <div className="text-xs text-gray-500">{r.user_email ?? "(no email)"}</div>
+                    {r.revoked_at && (
+                      <div className="text-xs text-red-600 mt-1">
+                        Revoked {new Date(r.revoked_at).toLocaleDateString()}
+                        {r.revoke_reason ? ` — ${r.revoke_reason}` : ""}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">
+                    {new Date(r.accepted_at).toLocaleString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">v{r.document_version}</td>
+                  <td className="px-4 py-3 text-gray-700">{r.app_platform ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">{r.app_version ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 font-mono">{r.ip ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 font-mono" title={r.text_hash}>
+                    {r.text_hash.slice(0, 10)}…
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
-                      onClick={() => revoke(r)}
-                      className="px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 rounded ml-1"
+                      onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+                      className="px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded"
+                      title="Show admin notes"
                     >
-                      Revoke
+                      {expandedId === r.id ? "Hide" : "Notes"}
                     </button>
-                  )}
-                </td>
-              </tr>
+                    <button
+                      onClick={() => download(r)}
+                      disabled={!r.pdf_storage_path || downloadingId === r.id}
+                      className="px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 rounded disabled:opacity-40 disabled:cursor-not-allowed ml-1"
+                    >
+                      {downloadingId === r.id ? "…" : "PDF"}
+                    </button>
+                    {!r.revoked_at && (
+                      <button
+                        onClick={() => revoke(r)}
+                        className="px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 rounded ml-1"
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </td>
+                </tr>
+                {expandedId === r.id && (
+                  <tr className="bg-gray-50/60">
+                    <td colSpan={8} className="px-4 py-4">
+                      <AdminAppendNote
+                        table="beta_nda_acceptances"
+                        rowId={r.id}
+                        column="admin_notes"
+                        currentValue={r.admin_notes}
+                        label="Admin notes (out-of-band conversations, data-deletion requests, escalations — most recent first)"
+                        onSaved={load}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </>
             ))}
           </tbody>
         </table>
