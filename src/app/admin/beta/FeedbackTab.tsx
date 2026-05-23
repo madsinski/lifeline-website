@@ -30,6 +30,7 @@ interface FeedbackRow {
   linked_error_ids: string[] | null;
   app_version: string | null;
   recent_error_signatures: RecentErrorSig[] | null;
+  screenshot_storage_path: string | null;
 }
 
 const TYPE_PILL: Record<FeedbackRow["feedback_type"], { label: string; cls: string }> = {
@@ -47,6 +48,21 @@ export default function FeedbackTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [replyNote, setReplyNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Map of feedback id → signed URL for its screenshot. Lazy-loaded
+  // when a row is expanded; URLs expire after 5 min and re-fetch is
+  // automatic on the next expand.
+  const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
+
+  const loadScreenshot = useCallback(async (item: FeedbackRow) => {
+    if (!item.screenshot_storage_path) return;
+    if (screenshotUrls[item.id]) return;
+    try {
+      const { data } = await supabase.storage
+        .from("beta-feedback-screenshots")
+        .createSignedUrl(item.screenshot_storage_path, 300);
+      if (data?.signedUrl) setScreenshotUrls((m) => ({ ...m, [item.id]: data.signedUrl }));
+    } catch {}
+  }, [screenshotUrls]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,6 +84,9 @@ export default function FeedbackTab() {
     }
     setExpandedId(id);
     setReplyNote(current.resolution_note ?? "");
+    // Lazy-fetch the signed URL for the screenshot (if any) so the
+    // <img> renders without an extra round-trip on click.
+    loadScreenshot(current);
   };
 
   const resolveWithNote = async (id: string) => {
@@ -211,9 +230,37 @@ export default function FeedbackTab() {
 
                 {isExpanded && (
                   <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50/40">
-                    <div>
-                      <h4 className="text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">From tester</h4>
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{item.message}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+                      <div>
+                        <h4 className="text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">From tester</h4>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{item.message}</p>
+                      </div>
+                      {item.screenshot_storage_path && (
+                        <div className="md:w-40">
+                          <h4 className="text-[11px] uppercase font-semibold text-gray-500 tracking-wide mb-1">Screenshot</h4>
+                          {screenshotUrls[item.id] ? (
+                            <a
+                              href={screenshotUrls[item.id]}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block border border-gray-200 rounded overflow-hidden hover:border-gray-400 transition-colors"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={screenshotUrls[item.id]}
+                                alt="Tester screenshot"
+                                className="w-full h-auto bg-black"
+                                style={{ maxHeight: 220, objectFit: "contain" }}
+                              />
+                            </a>
+                          ) : (
+                            <div className="w-full h-32 border border-gray-200 rounded flex items-center justify-center text-xs text-gray-400">
+                              Loading…
+                            </div>
+                          )}
+                          <p className="text-[10px] text-gray-400 mt-1">Click for full size · signed URL expires in 5 min</p>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-gray-500">
                       {item.user_email && <span>Email: {item.user_email}</span>}
