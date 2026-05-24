@@ -36,6 +36,14 @@ const requestSchema = z.object({
   })).optional(),
 });
 
+// OpenAI strict structured outputs reject several Zod features:
+//  • .default(...) — rejected outright
+//  • .min/.max on numbers — produces minimum/maximum in JSON Schema
+//    which is also rejected in strict mode
+//  • .min on strings — same (minLength)
+//  • .optional() — strict mode requires ALL fields in the required array
+// Constraints we used to enforce in the schema are now enforced in
+// the server-side defensive guards below the model call instead.
 const intentSchema = z.union([
   z.object({
     kind: z.literal('swap_program'),
@@ -58,43 +66,38 @@ const intentSchema = z.union([
     to_level: z.enum(['beginner', 'intermediate', 'advanced']),
     rationale: z.string(),
   }),
-  // Move an action from one weekday to another. dow uses 0=Mon..6=Sun.
-  // scope='this_week' bounds the override to the current calendar week;
-  // 'recurring' makes it the user's new default for that slot.
+  // Move an action from one weekday to another. dow uses 0=Mon..6=Sun
+  // (range enforced server-side after parse).
   z.object({
     kind: z.literal('move_action_day'),
     lib_key: z.string(),
-    original_dow: z.number().int().min(0).max(6),
-    new_dow: z.number().int().min(0).max(6),
+    original_dow: z.number(),
+    new_dow: z.number(),
     scope: z.enum(['this_week', 'recurring']),
     rationale: z.string(),
   }),
-  // Replace a scheduled action with a user-defined custom item
-  // ("Group class at the gym"). original_lib_key + original_dow
-  // identify the slot being replaced.
+  // Replace a scheduled action with a user-defined custom item.
+  // original_lib_key + original_dow identify the slot being replaced.
   z.object({
     kind: z.literal('add_custom_action'),
     original_lib_key: z.string(),
-    original_dow: z.number().int().min(0).max(6),
-    title: z.string().min(1),
-    details: z.array(z.string()).default([]),
+    original_dow: z.number(),
+    title: z.string(),
+    details: z.array(z.string()),
     pillar: z.enum(['exercise', 'nutrition', 'sleep', 'mental']).nullable(),
-    duration_min: z.number().int().nullable(),
+    duration_min: z.number().nullable(),
     scope: z.enum(['this_week', 'recurring']),
     rationale: z.string(),
   }),
   // Rebalance the user's weekly modality mix toward their program's
-  // target. Always proposes adding a single zone 2 or HIIT slot —
-  // implemented as a custom action under the hood, but with explicit
-  // modality so the badge surfaces correctly and the AI can reason
-  // about the target ratio. Pillar is locked to 'exercise'.
+  // target. Pillar is locked to 'exercise' in the client apply path.
   z.object({
     kind: z.literal('propose_modality_rebalance'),
     target_modality: z.enum(['zone2', 'hiit', 'mixed_strength_cardio', 'mobility']),
-    original_lib_key: z.string(), // slot to replace (typically a rest day's adjacent strength slot, or the lowest-priority day)
-    original_dow: z.number().int().min(0).max(6),
-    title: z.string().min(1),       // e.g. "45-min zone 2 walk"
-    duration_min: z.number().int().nullable(),
+    original_lib_key: z.string(),
+    original_dow: z.number(),
+    title: z.string(),
+    duration_min: z.number().nullable(),
     scope: z.enum(['this_week', 'recurring']),
     rationale: z.string(),
   }),
@@ -129,7 +132,7 @@ export async function POST(req: Request) {
   }
 
   // Pull user context in parallel
-  const [currentProgsRes, levelsRes, catalogRes, categoriesRes, clientRes, dismissalsRes] = await Promise.all([
+  const [currentProgsRes, levelsRes, catalogRes, categoriesRes, clientRes, dismissalsRes, scoresRes] = await Promise.all([
     supabaseAdmin.from('client_programs').select('category_key, program_key').eq('client_id', user.id),
     supabaseAdmin.from('client_pillar_levels').select('pillar, level').eq('client_id', user.id),
     supabaseAdmin.from('programs').select('key, name, description, category_id, level'),
@@ -141,6 +144,14 @@ export async function POST(req: Request) {
     supabaseAdmin.from('client_action_dismissals').select('lib_key, reason_category').eq('client_id', user.id).then(
       (r) => r,
       () => ({ data: [] as Array<{ lib_key: string; reason_category: string }>, error: null as any }),
+    ),
+    // Adherence + completion meters so the coach can reference the
+    // user's actual habit trajectory ("you're up 4pp this week" /
+    // "sleep is your weakest pillar at 34%") instead of giving generic
+    // advice. Wrapped — these columns might not exist in older envs.
+    supabaseAdmin.from('clients').select('consistency_score, completion_score, intensity_score').eq('id', user.id).maybeSingle().then(
+      (r) => r,
+      () => ({ data: null as any, error: null as any }),
     ),
   ]);
 
@@ -160,6 +171,33 @@ export async function POST(req: Request) {
     (clientRes.data as any)?.onboarding_data?.exercisePreferences
     ?? (clientRes.data as any)?.onboarding_data?.exercise_preferences
     ?? null;
+
+  // Adherence snapshot — for coach to reason about trajectory and
+  // pillar focus. Per-pillar adherence comes from the pillar_adherence
+  // RPC (14d window) which is cheaper than computing here, but we read
+  // the global scores synchronously to keep the prompt one fetch.
+  const scoreRow = (scoresRes.data as any) ?? {};
+  const consistencyScore = typeof scoreRow.consistency_score === 'number' ? Math.round(scoreRow.consistency_score) : null;
+  const completionScore  = typeof scoreRow.completion_score  === 'number' ? Math.round(scoreRow.completion_score)  : null;
+  const intensityScore   = typeof scoreRow.intensity_score   === 'number' ? Math.round(scoreRow.intensity_score)   : null;
+
+  // Per-pillar adherence to identify the user's weakest pillar.
+  // pillar_adherence RPC returns [{ pillar, adherence_pct }]. Fallbacks
+  // gracefully if the RPC isn't available in this env.
+  let weakestPillar: { pillar: string; adherence: number } | null = null;
+  let strongestPillar: { pillar: string; adherence: number } | null = null;
+  let allAdherence: Array<{ pillar: string; adherence: number }> = [];
+  try {
+    const { data: adherenceRows } = await supabaseAdmin.rpc('pillar_adherence', { p_client_id: user.id });
+    if (Array.isArray(adherenceRows) && adherenceRows.length > 0) {
+      allAdherence = (adherenceRows as Array<{ pillar: string; adherence_pct: number }>).map((r) => ({
+        pillar: r.pillar, adherence: Math.round(r.adherence_pct ?? 0),
+      }));
+      const sorted = [...allAdherence].sort((a, b) => a.adherence - b.adherence);
+      weakestPillar = sorted[0] ?? null;
+      strongestPillar = sorted[sorted.length - 1] ?? null;
+    }
+  } catch { /* no-op */ }
   const dismissalRows = (dismissalsRes.data ?? []) as Array<{ lib_key: string; reason_category: string }>;
   const dismissedKeys = new Set(dismissalRows.map((r) => r.lib_key));
 
@@ -262,7 +300,22 @@ ${levels.map((l) => `    ${l.pillar}: ${l.level}`).join('\n') || '    (defaults)
 ${dismissedSummary.length > 0 ? `  Previously dismissed actions (DO NOT propose a swap_action whose to_lib_key reintroduces any of these; for swap_program, avoid programs built around them):
 ${dismissedSummary.map((d) => `    - "${d.label}" (reason: ${d.reason})`).join('\n')}
 
-` : ''}EXERCISE PREFERENCES (from onboarding — drives rebalance proposals)
+` : ''}ADHERENCE SNAPSHOT (last 28d unless noted) — reference these in advice when relevant
+  Consistency score (days with ≥1 action ÷ 28): ${consistencyScore !== null ? `${consistencyScore}%` : '(not yet computed)'}
+  Completion score (done ÷ touched): ${completionScore !== null ? `${completionScore}%` : '(not yet computed)'}
+  Intensity score (actual vs prescribed effort, 7d): ${intensityScore !== null ? `${intensityScore}%` : '(not yet computed)'}
+  Per-pillar adherence (14d window):
+${allAdherence.length > 0 ? allAdherence.map((p) => `    ${p.pillar}: ${p.adherence}%`).join('\n') : '    (not yet computed)'}
+${weakestPillar ? `  Weakest pillar right now: ${weakestPillar.pillar} (${weakestPillar.adherence}%)${strongestPillar && strongestPillar.pillar !== weakestPillar.pillar ? ` · strongest: ${strongestPillar.pillar} (${strongestPillar.adherence}%)` : ''}` : ''}
+
+ADHERENCE RULES (read before forming any reply)
+  • If the user asks "how am I doing?" or similar, ANCHOR the answer in the adherence snapshot above. Don't be generic.
+  • If a pillar is below 40% adherence, the user is slipping. Prioritise advice that LOWERS friction (smaller actions, easier scope) over advice that adds more (don't pile on).
+  • If a pillar is above 80%, the user is ready for harder content — bias toward change_level promotions or harder swap_program picks.
+  • If consistency_score < 50%, don't propose a complex multi-step plan — recommend one keystone habit instead.
+  • Don't surface the numbers verbatim unless the user asks (no "your 28d completion score is 73%"); paraphrase ("you've been showing up most days lately").
+
+EXERCISE PREFERENCES (from onboarding — drives rebalance proposals)
   Cardio baseline: ${exercisePrefs?.cardio_baseline ?? '(not set)'}
   Cardio modalities they'd actually do: ${(exercisePrefs?.cardio_picks ?? []).join(', ') || '(none picked)'}
   HIIT styles they'd consider: ${(exercisePrefs?.hiit_picks ?? []).join(', ') || '(none picked)'}

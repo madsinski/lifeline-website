@@ -275,6 +275,35 @@ export async function POST(req: Request) {
   const auth = await resolveAuth(req, parsed.data.clientId, dryRun);
   if (!auth.ok) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
 
+  // Pull onboarding_data for safety gating that the simplified
+  // attestations don't cover — specifically: sedentary cardio baseline
+  // must not get a HIIT prescription, regardless of what the user
+  // requested in the sheet. The app-side applyClientContraindications
+  // handles the scheduled-action path; this is the quick-session
+  // equivalent.
+  if (auth.clientId) {
+    try {
+      const { data: client } = await supabaseAdmin
+        .from("clients")
+        .select("onboarding_data")
+        .eq("id", auth.clientId)
+        .maybeSingle();
+      const ob = (client?.onboarding_data ?? {}) as any;
+      const prefs = ob.exercisePreferences ?? ob.exercise_preferences ?? {};
+      const baseline = (prefs.cardio_baseline as string | undefined)?.toLowerCase();
+      const isHiit = session_type === "hiit_run" || session_type === "hiit_bike" || session_type === "hiit_other";
+      if (isHiit && baseline === "sedentary") {
+        return NextResponse.json({
+          ok: false,
+          error: "Your cardio baseline is set to sedentary — try a zone 2 walk or easy bike first. You can update your baseline in onboarding once you've built up.",
+          downgrade_suggestion: { session_type: "zone2" },
+        }, { status: 400 });
+      }
+    } catch {
+      // Best-effort safety check — don't block the request if we can't read.
+    }
+  }
+
   const profile = SESSION_PROFILES[session_type];
 
   // Expand the equipment filter via EQUIPMENT_GROUPS so e.g.

@@ -135,7 +135,7 @@ export async function POST(req: Request) {
   // Pull the program catalog so the model can only propose valid keys.
   const { data: catalog, error: catErr } = await supabaseAdmin
     .from('programs')
-    .select('key, name, description, category_id, level, target_audience')
+    .select('id, key, name, description, category_id, level, target_audience, weekly_modality_target')
     .order('sort_order', { ascending: true });
   if (catErr || !catalog) {
     return NextResponse.json({ ok: false, error: `Catalog load failed: ${catErr?.message}` }, { status: 500 });
@@ -160,18 +160,27 @@ export async function POST(req: Request) {
   // per program to keep prompt size sane. Falls through silently if
   // the program_actions query fails — model still gets program metadata.
   const programKeys = catalog.map((c) => (c as any).key as string);
+  const programIdToKey = new Map<string, string>(
+    (catalog ?? []).map((c) => [(c as any).id as string, (c as any).key as string])
+  );
   const actionLabelsByProgram = new Map<string, string[]>();
   if (programKeys.length > 0) {
     try {
+      // NB: program_actions joins programs by program_id (uuid), not by
+      // the program key string. Earlier version used program_key which
+      // doesn't exist on this table and silently returned no rows.
+      const programIds = Array.from(programIdToKey.keys());
       const { data: actionRows } = await supabaseAdmin
         .from('program_actions')
-        .select('program_key, label')
-        .in('program_key', programKeys);
-      for (const row of (actionRows ?? []) as Array<{ program_key: string; label: string | null }>) {
+        .select('program_id, label')
+        .in('program_id', programIds);
+      for (const row of (actionRows ?? []) as Array<{ program_id: string; label: string | null }>) {
         if (!row.label) continue;
-        const arr = actionLabelsByProgram.get(row.program_key) ?? [];
+        const key = programIdToKey.get(row.program_id);
+        if (!key) continue;
+        const arr = actionLabelsByProgram.get(key) ?? [];
         if (arr.length < 8 && !arr.includes(row.label)) arr.push(row.label);
-        actionLabelsByProgram.set(row.program_key, arr);
+        actionLabelsByProgram.set(key, arr);
       }
     } catch { /* no-op — program_actions optional for the prompt */ }
   }
@@ -187,7 +196,11 @@ export async function POST(req: Request) {
       const sampleLine = sample && sample.length > 0
         ? `\n    sample_actions: ${sample.join(' · ')}`
         : '';
-      return `  - key: ${x.key}\n    name: ${x.name}\n    level: ${x.level || 'unspecified'}\n    description: ${x.description ?? ''}${sampleLine}`;
+      const target = x.weekly_modality_target as Record<string, number> | null;
+      const mixLine = target && Object.keys(target).length > 0
+        ? `\n    weekly_mix: ${Object.entries(target).filter(([, v]) => (v as number) > 0).map(([k, v]) => `${k}=${v}`).join(' · ')}`
+        : '';
+      return `  - key: ${x.key}\n    name: ${x.name}\n    level: ${x.level || 'unspecified'}\n    description: ${x.description ?? ''}${mixLine}${sampleLine}`;
     }).join('\n');
   }).join('\n\n');
 
@@ -225,9 +238,44 @@ RULES
         If the catalog has NO matching home-equipment program, pick
         the closest bodyweight-friendly option and CALL OUT the
         constraint in the rationale.
-  • Respect exercise_preferences (cardio_picks, hiit_picks,
-    regular_classes) as soft signals — bias toward programs that
-    match what the user has said they enjoy doing.
+  • exercise_preferences are LOAD-BEARING for the exercise pillar pick — read input.exercise_preferences below and apply:
+      cardio_baseline = "sedentary" → HARD: prefer a strength-only program
+        like essential-strength or a foundation hybrid (balanced-foundation).
+        NEVER pick a program with weekly_mix.hiit > 0. Call this out in the rationale.
+      cardio_baseline = "recreational" → moderate hybrid (balanced-foundation
+        or balanced-athletic). Avoid endurance-priority unless user
+        explicitly picked run/cycle/swim in cardio_picks.
+      cardio_baseline = "fit" → balanced-athletic, push-pull-legs, upper-lower-split, or endurance-priority all viable.
+      cardio_baseline = "athlete" → endurance-priority or push-pull-legs.
+      cardio_picks is what the user said they'd actually do for zone 2:
+        Empty array AND no regular_classes → user dislikes cardio →
+          prefer pure strength programs (essential-strength,
+          upper-lower-split, push-pull-legs) over hybrid programs that
+          schedule zone 2 days. Call it out in the rationale.
+        Includes "run" → ok to suggest endurance-priority.
+        Includes only "walk"/"hike" → balanced-foundation; don't
+          suggest endurance-priority (it expects bike/run volume).
+        Includes "swim" only → balanced-foundation; mention they'll
+          need to slot swim into the zone 2 days themselves.
+      hiit_picks empty AND cardio_baseline != "sedentary" → suggest a
+        program with weekly_mix.hiit = 0 OR call out that the HIIT slot
+        is optional. Don't FORCE a HIIT-required program on someone who
+        said they wouldn't do HIIT.
+      regular_classes non-empty → STRONG signal for class-warrior. If
+        user attends kettlebell/F45/HotFit/CrossFit/spin/OTF/bootcamp,
+        prefer class-warrior so their classes count toward their plan.
+        If only yoga/pilates → soft signal, not strong enough alone.
+  • primaryGoals weighting (multi-select, prioritize earliest entries):
+      "strength" or "muscle" first → pick essential-strength /
+        upper-lower-split / push-pull-legs depending on level. Don't pick
+        endurance-priority.
+      "stamina" first → endurance-priority or balanced-athletic.
+      "fat-loss" first → balanced-athletic or balanced-foundation
+        (high training-volume hybrids work well for fat-loss recomp).
+      "mobility" first → still pick a strength program but mention in
+        rationale that mobility actions are scheduled across all programs.
+      "health" or "sport" → match to level + activity profile, no goal-
+        specific bias.
   • Respect preferences (input.preferences). These are soft signals:
       activityStyles → bias exercise pick toward matching modalities
         (e.g. "Yoga / pilates" → prefer mobility/flexibility plans;
