@@ -14,7 +14,7 @@ export default function LifelineLogo({
   className = "",
   variant = "default",
 }: LifelineLogoProps) {
-  const height = size === "lg" ? 80 : 50;
+  const height = size === "lg" ? 60 : 38;
   const width = Math.round(height * ASPECT);
   const src = variant === "white" ? "/lifeline-logo-rebrand-white.svg" : "/lifeline-logo-rebrand.svg";
 
