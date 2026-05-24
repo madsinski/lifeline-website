@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 interface LifelineLogoProps {
   size?: "sm" | "lg";
   className?: string;
@@ -16,20 +14,22 @@ export default function LifelineLogo({
 }: LifelineLogoProps) {
   const height = size === "lg" ? 60 : 38;
   const width = Math.round(height * ASPECT);
-  // PNG (not SVG) is intentional. At small display sizes the SVG's
-  // sub-pixel strokes on the mark produced visible aliasing that only
-  // smoothed out on browser zoom. next/image converts the PNG to a
-  // size-appropriate webp per viewport + DPR, which renders cleaner.
-  const src = variant === "white" ? "/lifeline-logo-rebrand-white.png" : "/lifeline-logo-rebrand.png";
+  const src = variant === "white" ? "/lifeline-logo-rebrand-white.svg" : "/lifeline-logo-rebrand.svg";
 
+  // Plain <img> on purpose: the logo is an SVG so we want the browser
+  // to render it as a true vector at every zoom level. next/image was
+  // either rasterizing it to webp (jagged at small sizes) or wrapping
+  // it in a way that introduced sub-pixel artefacts. Source SVG was
+  // also cleaned of the duplicate stroked overlay paths that the design
+  // tool exported, which were causing the small-size aliasing.
+  // eslint-disable-next-line @next/next/no-img-element
   return (
-    <Image
+    <img
       src={src}
       alt="Lifeline Health"
       width={width}
       height={height}
       className={className}
-      priority
       style={{ width, height }}
     />
   );
