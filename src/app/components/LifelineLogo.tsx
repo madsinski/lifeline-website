@@ -16,7 +16,11 @@ export default function LifelineLogo({
 }: LifelineLogoProps) {
   const height = size === "lg" ? 60 : 38;
   const width = Math.round(height * ASPECT);
-  const src = variant === "white" ? "/lifeline-logo-rebrand-white.svg" : "/lifeline-logo-rebrand.svg";
+  // PNG (not SVG) is intentional. At small display sizes the SVG's
+  // sub-pixel strokes on the mark produced visible aliasing that only
+  // smoothed out on browser zoom. next/image converts the PNG to a
+  // size-appropriate webp per viewport + DPR, which renders cleaner.
+  const src = variant === "white" ? "/lifeline-logo-rebrand-white.png" : "/lifeline-logo-rebrand.png";
 
   return (
     <Image
@@ -26,7 +30,6 @@ export default function LifelineLogo({
       height={height}
       className={className}
       priority
-      unoptimized
       style={{ width, height }}
     />
   );
