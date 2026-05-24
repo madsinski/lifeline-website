@@ -87,27 +87,59 @@ function isVercelCron(req: Request): boolean {
   return false;
 }
 
-async function authorize(req: Request): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  if (isVercelCron(req)) return { ok: true };
+type AuthResult =
+  | { ok: true; mode: "cron-or-admin" }
+  | { ok: true; mode: "self"; userId: string }
+  | { ok: false; status: number; error: string };
+
+/**
+ * Three auth modes:
+ *   • Vercel cron — x-vercel-cron header or CRON_SECRET. Full batch run.
+ *   • Admin staff JWT — full batch run.
+ *   • Self mode — any authenticated client JWT, but only allowed to
+ *     refresh THEIR OWN narrative. Caller passes `clientId` in body that
+ *     must match the token's user.id. Used by the app's AI-suggest
+ *     button so the insight line refreshes immediately rather than
+ *     waiting for the next nightly cron.
+ */
+async function authorize(req: Request, bodyClientId: string | null): Promise<AuthResult> {
+  if (isVercelCron(req)) return { ok: true, mode: "cron-or-admin" };
   const auth = req.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return { ok: false, status: 401, error: "Not authenticated" };
   const token = auth.slice("Bearer ".length);
   const { data } = await supabaseAdmin.auth.getUser(token);
-  if (!data.user?.email) return { ok: false, status: 401, error: "Invalid token" };
-  const { data: staff } = await supabaseAdmin
-    .from("staff")
-    .select("role, active")
-    .eq("email", data.user.email)
-    .maybeSingle();
-  if (!staff || !staff.active || staff.role !== "admin") {
-    return { ok: false, status: 403, error: "Admin only" };
+  if (!data.user) return { ok: false, status: 401, error: "Invalid token" };
+  // Admin staff → full batch.
+  if (data.user.email) {
+    const { data: staff } = await supabaseAdmin
+      .from("staff")
+      .select("role, active")
+      .eq("email", data.user.email)
+      .maybeSingle();
+    if (staff && staff.active && staff.role === "admin") {
+      return { ok: true, mode: "cron-or-admin" };
+    }
   }
-  return { ok: true };
+  // Self mode — user authenticated, wants their own narrative refreshed.
+  if (bodyClientId && bodyClientId === data.user.id) {
+    return { ok: true, mode: "self", userId: data.user.id };
+  }
+  return { ok: false, status: 403, error: "Admin only (or pass your own clientId in body for self-refresh)" };
 }
 
 export async function POST(req: Request) {
-  const auth = await authorize(req);
+  // Parse body once so authorize() can read clientId for self-mode.
+  let body: { clientId?: string } = {};
+  try { body = (await req.json()) ?? {}; } catch { /* empty body is fine for cron */ }
+  const bodyClientId = typeof body.clientId === "string" ? body.clientId : null;
+
+  const auth = await authorize(req, bodyClientId);
   if (!auth.ok) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+
+  // Self-mode bypasses the freshness cache — the user just tapped the
+  // refresh-AI button and expects the insight line to update on the
+  // next pull, not in 20 hours.
+  const isSelfMode = auth.mode === "self";
 
   const startedAt = Date.now();
   const since = new Date(Date.now() - ACTIVE_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
@@ -129,18 +161,24 @@ export async function POST(req: Request) {
   const cronDayIdx = Math.floor(Date.now() / 86400000);
 
   // Active users: had at least one done completion in the last 14 days.
-  const { data: activeRows, error: activeErr } = await supabaseAdmin
-    .from("action_completions")
-    .select("client_id")
-    .eq("status", "done")
-    .gte("date", since);
-  if (activeErr) {
-    Sentry.captureException(activeErr, {
-      tags: { component: "refresh-consistency-narratives", stage: "fetch-active" },
-    });
-    return NextResponse.json({ ok: false, error: activeErr.message }, { status: 500 });
+  // In self-mode we skip this query and just process the single caller.
+  let activeIds: string[];
+  if (isSelfMode) {
+    activeIds = [auth.userId];
+  } else {
+    const { data: activeRows, error: activeErr } = await supabaseAdmin
+      .from("action_completions")
+      .select("client_id")
+      .eq("status", "done")
+      .gte("date", since);
+    if (activeErr) {
+      Sentry.captureException(activeErr, {
+        tags: { component: "refresh-consistency-narratives", stage: "fetch-active" },
+      });
+      return NextResponse.json({ ok: false, error: activeErr.message }, { status: 500 });
+    }
+    activeIds = Array.from(new Set((activeRows ?? []).map((r) => (r as any).client_id as string)));
   }
-  const activeIds = Array.from(new Set((activeRows ?? []).map((r) => (r as any).client_id as string)));
 
   const summary = { considered: activeIds.length, ai_calls: 0, fallbacks: 0, skipped_fresh: 0, errors: 0 };
 
@@ -153,7 +191,8 @@ export async function POST(req: Request) {
         .eq("id", clientId)
         .maybeSingle();
       const lastAt = (existing as any)?.consistency_narrative_at as string | null;
-      if (lastAt && Date.now() - new Date(lastAt).getTime() < FRESHNESS_HOURS * 3600_000) {
+      // Self-mode is an explicit user request — always regenerate.
+      if (!isSelfMode && lastAt && Date.now() - new Date(lastAt).getTime() < FRESHNESS_HOURS * 3600_000) {
         summary.skipped_fresh += 1;
         continue;
       }
@@ -267,6 +306,28 @@ export async function POST(req: Request) {
     }
   }
 
-  console.log("[refresh-consistency-narratives] done", { ...summary, ms: Date.now() - startedAt });
+  console.log("[refresh-consistency-narratives] done", {
+    mode: isSelfMode ? "self" : "batch",
+    ...summary,
+    ms: Date.now() - startedAt,
+  });
+
+  // In self-mode echo back the new narrative so the app can render it
+  // immediately without a second read round-trip.
+  if (isSelfMode) {
+    const { data: row } = await supabaseAdmin
+      .from("clients")
+      .select("consistency_narrative, consistency_narrative_at")
+      .eq("id", auth.userId)
+      .maybeSingle();
+    return NextResponse.json({
+      ok: true,
+      mode: "self",
+      narrative: (row as any)?.consistency_narrative ?? null,
+      narrative_at: (row as any)?.consistency_narrative_at ?? null,
+      ms: Date.now() - startedAt,
+      ...summary,
+    });
+  }
   return NextResponse.json({ ok: true, ms: Date.now() - startedAt, ...summary });
 }
