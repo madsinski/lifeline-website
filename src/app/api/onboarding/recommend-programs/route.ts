@@ -73,6 +73,10 @@ type Pillar = typeof PILLARS[number];
 const recSchema = z.object({
   recommendations: z.array(z.object({
     pillar: z.enum(PILLARS),
+    // Slot is required for the exercise pillar (one rec per slot,
+    // 3 in total: strength + zone2 + hiit). Other pillars set slot
+    // to null. The model must always emit the field.
+    slot: z.enum(['strength','zone2','hiit','mobility']).nullable(),
     program_key: z.string(),
     program_name: z.string(),
     rationale: z.string(),
@@ -135,7 +139,7 @@ export async function POST(req: Request) {
   // Pull the program catalog so the model can only propose valid keys.
   const { data: catalog, error: catErr } = await supabaseAdmin
     .from('programs')
-    .select('id, key, name, description, category_id, level, target_audience, weekly_modality_target')
+    .select('id, key, name, description, category_id, level, target_audience, weekly_modality_target, slot')
     .order('sort_order', { ascending: true });
   if (catErr || !catalog) {
     return NextResponse.json({ ok: false, error: `Catalog load failed: ${catErr?.message}` }, { status: 500 });
@@ -200,11 +204,31 @@ export async function POST(req: Request) {
       const mixLine = target && Object.keys(target).length > 0
         ? `\n    weekly_mix: ${Object.entries(target).filter(([, v]) => (v as number) > 0).map(([k, v]) => `${k}=${v}`).join(' · ')}`
         : '';
-      return `  - key: ${x.key}\n    name: ${x.name}\n    level: ${x.level || 'unspecified'}\n    description: ${x.description ?? ''}${mixLine}${sampleLine}`;
+      // Slot is the load-bearing field for the new multi-pick exercise
+      // mix — the model picks ONE program per slot (strength / zone2
+      // / hiit) instead of one global program for the pillar.
+      const slotLine = x.slot ? `\n    slot: ${x.slot}` : '';
+      return `  - key: ${x.key}\n    name: ${x.name}\n    level: ${x.level || 'unspecified'}${slotLine}\n    description: ${x.description ?? ''}${mixLine}${sampleLine}`;
     }).join('\n');
   }).join('\n\n');
 
-  const systemPrompt = `You recommend ONE program per health pillar (exercise, nutrition, sleep, mental) for a new Lifeline Health user, based on their onboarding answers. You also list two alternative programs per pillar so the user can override.
+  const systemPrompt = `You recommend programs for a new Lifeline Health user, based on their onboarding answers.
+
+OUTPUT SHAPE — read carefully, this is non-negotiable:
+  • For the EXERCISE pillar you MUST return THREE recommendations — one per slot:
+      - slot: "strength" → pick from programs with slot=strength
+      - slot: "zone2"    → pick from programs with slot=zone2
+      - slot: "hiit"     → pick from programs with slot=hiit
+    Lifeline policy: every user mixes strength + zone 2 + HIIT. There is no
+    "skip HIIT" option here — for users who can't do hard intervals yet
+    (cardio_baseline = sedentary), still pick the gentlest HIIT program
+    (hiit-bodyweight-track) and call out in the rationale that they
+    should ease into it.
+    DO NOT pick preset slot programs (balanced-* / endurance-priority
+    / class-warrior) here — those are legacy multi-program bundles only
+    surfaced when the user explicitly opts into a "preset mix".
+  • For NUTRITION / SLEEP / MENTAL — return ONE recommendation. Set slot=null.
+  • Two alternatives per recommendation so the user can override.
 
 RULES
   • Use only program_key values that appear in the CATALOG below. Never invent a key.
@@ -324,13 +348,53 @@ ${JSON.stringify(input, null, 2)}`;
   }
   const out = result.experimental_output as z.infer<typeof recSchema>;
 
-  // Defensive: drop any picks whose key isn't actually in the catalog.
+  // Defensive: drop any picks whose key isn't in the catalog AND
+  // enforce slot integrity for the exercise pillar. The model is told
+  // to emit slot=strength/zone2/hiit for exercise — if it returns a
+  // mismatch (e.g. a strength program in the zone2 slot) we coerce
+  // to the first catalog entry matching the requested slot.
   const validKeys = new Set(catalog.map((c) => (c as any).key as string));
-  const safe = out.recommendations.map((r) => ({
-    ...r,
-    program_key: validKeys.has(r.program_key) ? r.program_key : (catalogByPillar.get(r.pillar)?.[0] as any)?.key ?? null,
-    alternatives: r.alternatives.filter((a) => validKeys.has(a.program_key)).slice(0, 3),
-  })).filter((r) => !!r.program_key);
+  const keyToSlot = new Map<string, string | null>(
+    catalog.map((c) => [(c as any).key as string, ((c as any).slot as string | null) ?? null])
+  );
+  const programsBySlot = new Map<string, any[]>();
+  for (const p of catalog) {
+    const s = (p as any).slot as string | null;
+    if (!s) continue;
+    const arr = programsBySlot.get(s) ?? [];
+    arr.push(p);
+    programsBySlot.set(s, arr);
+  }
+
+  const safe = out.recommendations.map((r) => {
+    // 1) Validate the key is in the catalog.
+    let chosen = validKeys.has(r.program_key) ? r.program_key : null;
+
+    // 2) Enforce slot integrity for exercise. Non-exercise pillars
+    //    don't care about slot.
+    if (r.pillar === 'exercise') {
+      // Block preset programs from showing up as a slot pick — they
+      // belong on the explicit "use a preset mix" path only.
+      if (chosen && keyToSlot.get(chosen) === 'preset') chosen = null;
+      // If a slot was requested, the picked program's slot must match.
+      if (r.slot && chosen && keyToSlot.get(chosen) !== r.slot) chosen = null;
+      // Fallback: first catalog program in the requested slot.
+      if (!chosen && r.slot) {
+        chosen = (programsBySlot.get(r.slot)?.[0] as any)?.key ?? null;
+      }
+    } else if (!chosen) {
+      chosen = (catalogByPillar.get(r.pillar)?.[0] as any)?.key ?? null;
+    }
+
+    // Filter alternatives the same way — keep slot-matching ones for
+    // exercise, anything-in-pillar for the other pillars.
+    const altsValid = r.alternatives.filter((a) => validKeys.has(a.program_key));
+    const alts = r.pillar === 'exercise' && r.slot
+      ? altsValid.filter((a) => keyToSlot.get(a.program_key) === r.slot)
+      : altsValid;
+
+    return { ...r, program_key: chosen, alternatives: alts.slice(0, 3) };
+  }).filter((r) => !!r.program_key);
 
   return NextResponse.json({ ok: true, recommendations: safe });
 }
