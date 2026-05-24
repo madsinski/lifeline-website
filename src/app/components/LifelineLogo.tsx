@@ -26,6 +26,7 @@ export default function LifelineLogo({
       height={height}
       className={className}
       priority
+      unoptimized
       style={{ width, height }}
     />
   );
