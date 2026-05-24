@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Caveat } from "next/font/google";
+import { Inter, Caveat, Nunito_Sans } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import Navbar from "./components/Navbar";
@@ -24,6 +24,16 @@ const signature = Caveat({
   display: "swap",
 });
 
+// Used by the Lifeline wordmark logo (200 = ExtraLight for "health",
+// 800 = ExtraBold for "lifeline"). Loaded once at the root so the
+// logo renders identically across every page without a font-flash.
+const nunitoSans = Nunito_Sans({
+  variable: "--font-nunito-sans",
+  subsets: ["latin"],
+  weight: ["200", "800"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Lifeline Health",
   description:
@@ -36,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${signature.variable} antialiased`} style={{ overflow: "auto" }}>
+    <html lang="en" className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} antialiased`} style={{ overflow: "auto" }}>
       <body className="min-h-screen flex flex-col font-sans" style={{ overflow: "auto" }}>
         <script
           dangerouslySetInnerHTML={{
