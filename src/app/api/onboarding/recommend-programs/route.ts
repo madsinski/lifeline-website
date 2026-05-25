@@ -64,6 +64,15 @@ const requestSchema = z.object({
     cardio_picks: z.array(z.string()).optional(),
     hiit_picks: z.array(z.string()).optional(),
     regular_classes: z.array(z.string()).optional(),
+    // Per-modality experience added 2026-05. Replaces the previous
+    // global `activityLevel` proxy for strength + HIIT level selection.
+    // ACSM/NSCA-style frequency-over-time anchors.
+    strength_experience: z.enum([
+      'never', 'sporadic', '1_to_2_per_week', '3plus_per_week_6mo', '3plus_per_week_1yr',
+    ]).nullable().optional(),
+    hiit_experience: z.enum([
+      'never', 'tried_a_few', 'occasional_monthly', 'weekly_plus',
+    ]).nullable().optional(),
   }).optional(),
 });
 
@@ -85,6 +94,11 @@ const recSchema = z.object({
     slot: z.enum(['strength','zone2','hiit','mobility']).nullable(),
     program_key: z.string(),
     program_name: z.string(),
+    // Program description from the catalog. The server overwrites
+    // whatever the model returns with the live catalog row, so this
+    // is always the canonical description — used for the big
+    // "chosen program" card in onboarding step 5.
+    program_description: z.string().nullable(),
     // Catalog level — beginner/intermediate/advanced. May be null
     // when the catalog doesn't tag the program. The server re-derives
     // this from the live catalog after the model returns, so even if
@@ -94,6 +108,7 @@ const recSchema = z.object({
     alternatives: z.array(z.object({
       program_key: z.string(),
       program_name: z.string(),
+      program_description: z.string().nullable(),
       level: z.enum(LEVELS).nullable(),
       rationale: z.string(),
     })),
@@ -275,14 +290,43 @@ RULES
         the closest bodyweight-friendly option and CALL OUT the
         constraint in the rationale.
   • exercise_preferences are LOAD-BEARING for the exercise pillar pick — read input.exercise_preferences below and apply:
-      cardio_baseline = "sedentary" → HARD: prefer a strength-only program
-        like essential-strength or a foundation hybrid (balanced-foundation).
-        NEVER pick a program with weekly_mix.hiit > 0. Call this out in the rationale.
-      cardio_baseline = "recreational" → moderate hybrid (balanced-foundation
-        or balanced-athletic). Avoid endurance-priority unless user
-        explicitly picked run/cycle/swim in cardio_picks.
-      cardio_baseline = "fit" → balanced-athletic, push-pull-legs, upper-lower-split, or endurance-priority all viable.
-      cardio_baseline = "athlete" → endurance-priority or push-pull-legs.
+      strength_experience drives the level pick for the STRENGTH slot
+        (this is the primary signal — more reliable than activityLevel
+        because it's modality-specific). Map:
+          "never" or "sporadic" → ALWAYS pick a BEGINNER strength
+            program (essential-strength). NEVER an intermediate or
+            advanced one, even if cardioBaseline is high — strength
+            and cardio are independent.
+          "1_to_2_per_week" → INTERMEDIATE strength program
+            (upper-lower-split). Beginner program is too easy and the
+            user will plateau; advanced is too much volume too fast.
+          "3plus_per_week_6mo" → INTERMEDIATE or ADVANCED strength
+            (upper-lower-split or push-pull-legs).
+          "3plus_per_week_1yr" → ADVANCED strength
+            (push-pull-legs). The user can handle the volume.
+        When strength_experience is null/missing, fall back to
+        activityLevel as the level signal for strength.
+      hiit_experience drives the level pick for the HIIT slot —
+        DIFFERENT from cardio_baseline which is zone-2 capacity.
+        A jogger may have cardio_baseline=fit but
+        hiit_experience=never. Map:
+          "never" or "tried_a_few" → ALWAYS pick the gentlest
+            HIIT program (hiit-bodyweight-track if it exists,
+            otherwise the program with the smallest weekly_mix.hiit
+            volume). Call out in the rationale that they should ease
+            in. NEVER an advanced/sprint program.
+          "occasional_monthly" → INTERMEDIATE HIIT program.
+          "weekly_plus" → ADVANCED HIIT (sprint-based / SIT
+            programs if available).
+      cardio_baseline drives the ZONE 2 slot pick + gates HIIT options:
+        cardio_baseline = "sedentary" → HARD: prefer a strength-only program
+          like essential-strength or a foundation hybrid (balanced-foundation).
+          NEVER pick a program with weekly_mix.hiit > 0. Call this out in the rationale.
+        cardio_baseline = "recreational" → moderate hybrid (balanced-foundation
+          or balanced-athletic). Avoid endurance-priority unless user
+          explicitly picked run/cycle/swim in cardio_picks.
+        cardio_baseline = "fit" → balanced-athletic, push-pull-legs, upper-lower-split, or endurance-priority all viable.
+        cardio_baseline = "athlete" → endurance-priority or push-pull-legs.
       cardio_picks is what the user said they'd actually do for zone 2:
         Empty array AND no regular_classes → user dislikes cardio →
           prefer pure strength programs (essential-strength,
@@ -391,6 +435,16 @@ ${JSON.stringify(input, null, 2)}`;
       return [(c as any).key as string, normalized];
     })
   );
+  // Catalog-truth description — same defensive overwrite. Names + keys
+  // come from the model but the description text always reflects the
+  // catalog row so we never ship a hallucinated program description
+  // into the big "chosen program" card in the onboarding UI.
+  const keyToDescription = new Map<string, string | null>(
+    catalog.map((c) => [(c as any).key as string, ((c as any).description as string | null) ?? null])
+  );
+  const keyToName = new Map<string, string>(
+    catalog.map((c) => [(c as any).key as string, ((c as any).name as string) ?? ((c as any).key as string)])
+  );
   const programsBySlot = new Map<string, any[]>();
   for (const p of catalog) {
     const s = (p as any).slot as string | null;
@@ -427,17 +481,29 @@ ${JSON.stringify(input, null, 2)}`;
       ? altsValid.filter((a) => keyToSlot.get(a.program_key) === r.slot)
       : altsValid;
 
-    // Overwrite level on every program with the catalog truth — the
-    // model can hallucinate level even when the schema asks for it,
-    // and the UI surfaces this as a badge so we cannot trust the
+    // Overwrite name/level/description on every program with catalog
+    // truth — the model can hallucinate any of these even when the
+    // schema asks for them, and the UI surfaces all three (badge,
+    // big card title, big card description) so we can't trust the
     // model output here.
     const safeAlts = alts.slice(0, 3).map((a) => ({
       ...a,
-      level: chosen && a.program_key ? (keyToLevel.get(a.program_key) ?? null) : null,
+      program_name:        keyToName.get(a.program_key) ?? a.program_name,
+      program_description: keyToDescription.get(a.program_key) ?? null,
+      level:               keyToLevel.get(a.program_key) ?? null,
     }));
     const chosenLevel = chosen ? (keyToLevel.get(chosen) ?? null) : null;
+    const chosenName  = chosen ? (keyToName.get(chosen) ?? r.program_name) : r.program_name;
+    const chosenDesc  = chosen ? (keyToDescription.get(chosen) ?? null)    : null;
 
-    return { ...r, program_key: chosen, level: chosenLevel, alternatives: safeAlts };
+    return {
+      ...r,
+      program_key: chosen,
+      program_name: chosenName,
+      program_description: chosenDesc,
+      level: chosenLevel,
+      alternatives: safeAlts,
+    };
   }).filter((r) => !!r.program_key);
 
   return NextResponse.json({ ok: true, recommendations: safe });
