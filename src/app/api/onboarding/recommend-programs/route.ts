@@ -319,14 +319,50 @@ RULES
         DIFFERENT from cardio_baseline which is zone-2 capacity.
         A jogger may have cardio_baseline=fit but
         hiit_experience=never. Map:
-          "never" or "tried_a_few" → ALWAYS pick the gentlest
-            HIIT program (hiit-bodyweight-track if it exists,
-            otherwise the program with the smallest weekly_mix.hiit
-            volume). Call out in the rationale that they should ease
-            in. NEVER an advanced/sprint program.
-          "occasional_monthly" → INTERMEDIATE HIIT program.
-          "weekly_plus" → ADVANCED HIIT (sprint-based / SIT
-            programs if available).
+          "never" or "tried_a_few" → BEGINNER-LEVEL HIIT, but READ
+            THE STRENGTH-OVERLAP RULE BELOW before picking the actual
+            program key. Call out in the rationale that they should
+            ease in. NEVER an advanced/sprint program.
+          "occasional_monthly" → INTERMEDIATE HIIT program (still
+            apply strength-overlap rule).
+          "weekly_plus" → ADVANCED HIIT (sprint-based programs if
+            available; strength-overlap rule less critical because
+            user already tolerates the combined load).
+
+      STRENGTH-OVERLAP RULE for the HIIT slot (CRITICAL — Lifeline
+        users always run a strength program in parallel, so HIIT
+        programs that hit the same muscles double-up the volume
+        and tip into overtraining):
+
+        • hiit-bodyweight-track uses bodyweight tabata + bodyweight
+          circuits — these recruit the SAME muscles the strength
+          program already loads. Paired with a 3-4 day strength
+          program this is too much weekly stress on legs and core.
+        • hiit-intervals uses bike or rower 4×4 — almost zero
+          overlap with strength because the load is cardiovascular,
+          not muscular. SAFEST default for any user who can spin a
+          bike or pull a rower.
+        • hiit-runner uses run intervals + hill sprints — moderate
+          overlap (eccentric leg load) but acceptable for users with
+          an established run base and no knee/hip issues.
+
+        Decision rule for picking the HIIT program key:
+          1. If user has cardio equipment available (homeEquipment
+             includes 'bike', 'rower', or 'treadmill', OR setting=gym)
+             → PICK hiit-intervals regardless of hiit_experience.
+             It's the safest pairing with any strength program. The
+             "beginner" version of hiit-intervals is the user doing
+             fewer rounds — not a different program. Call this out
+             in the rationale.
+          2. Else if user is a runner (cardio_picks includes 'run',
+             hiit_experience >= occasional, no knee/hip issues in
+             mskIssues) → hiit-runner is fine.
+          3. Else (home-only, no cardio gear, bodyweight-only setup)
+             → hiit-bodyweight-track is the only viable option, but
+             the rationale MUST tell the user to start with one
+             session per week instead of two and skip when their
+             strength sessions feel heavy. Phrase it as a heads-up,
+             not a warning.
       cardio_baseline drives the ZONE 2 slot pick + gates HIIT options:
         cardio_baseline = "sedentary" → HARD: prefer a strength-only program
           like essential-strength or a foundation hybrid (balanced-foundation).
