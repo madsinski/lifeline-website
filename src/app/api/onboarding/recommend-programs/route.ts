@@ -70,6 +70,12 @@ const requestSchema = z.object({
 const PILLARS = ['exercise', 'nutrition', 'sleep', 'mental'] as const;
 type Pillar = typeof PILLARS[number];
 
+// Level the program is calibrated for. Surfaced in the UI so the
+// user sees which option matches their experience before they
+// commit. We trust the catalog's `level` column — the model is told
+// to copy it verbatim, never invent.
+const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+
 const recSchema = z.object({
   recommendations: z.array(z.object({
     pillar: z.enum(PILLARS),
@@ -79,10 +85,16 @@ const recSchema = z.object({
     slot: z.enum(['strength','zone2','hiit','mobility']).nullable(),
     program_key: z.string(),
     program_name: z.string(),
+    // Catalog level — beginner/intermediate/advanced. May be null
+    // when the catalog doesn't tag the program. The server re-derives
+    // this from the live catalog after the model returns, so even if
+    // the model hallucinates we end up with the truth.
+    level: z.enum(LEVELS).nullable(),
     rationale: z.string(),
     alternatives: z.array(z.object({
       program_key: z.string(),
       program_name: z.string(),
+      level: z.enum(LEVELS).nullable(),
       rationale: z.string(),
     })),
   })),
@@ -290,16 +302,28 @@ RULES
         prefer class-warrior so their classes count toward their plan.
         If only yoga/pilates → soft signal, not strong enough alone.
   • primaryGoals weighting (multi-select, prioritize earliest entries):
-      "strength" or "muscle" first → pick essential-strength /
-        upper-lower-split / push-pull-legs depending on level. Don't pick
-        endurance-priority.
-      "stamina" first → endurance-priority or balanced-athletic.
-      "fat-loss" first → balanced-athletic or balanced-foundation
-        (high training-volume hybrids work well for fat-loss recomp).
-      "mobility" first → still pick a strength program but mention in
-        rationale that mobility actions are scheduled across all programs.
-      "health" or "sport" → match to level + activity profile, no goal-
-        specific bias.
+      EXERCISE pillar:
+        "strength" or "muscle" first → pick essential-strength /
+          upper-lower-split / push-pull-legs depending on level. Don't pick
+          endurance-priority.
+        "stamina" first → endurance-priority or balanced-athletic.
+        "fat-loss" first → balanced-athletic or balanced-foundation
+          (high training-volume hybrids work well for fat-loss recomp).
+        "mobility" first → still pick a strength program but mention in
+          rationale that mobility actions are scheduled across all programs.
+        "health" or "sport" → match to level + activity profile, no goal-
+          specific bias.
+      NUTRITION pillar (CRITICAL — primaryGoal directly drives nutrition pick):
+        "muscle" or "strength" first → pick performance-fuel-pro (or any
+          high-protein, surplus-friendly plan). NEVER pick fat-loss-essentials
+          for a muscle-building goal — it's a calorie-deficit plan that will
+          actively work against muscle gain.
+        "fat-loss" first → pick fat-loss-essentials.
+        "sport" or "stamina" first → pick performance-fuel-pro
+          (carb-forward, fuels training volume).
+        "health" / "mobility" / no clear goal → pick foundational-eating
+          (the gentlest broad plan that fits any goal).
+        Tie-break by activityLevel only when primaryGoal gives no signal.
   • Respect preferences (input.preferences). These are soft signals:
       activityStyles → bias exercise pick toward matching modalities
         (e.g. "Yoga / pilates" → prefer mobility/flexibility plans;
@@ -357,6 +381,16 @@ ${JSON.stringify(input, null, 2)}`;
   const keyToSlot = new Map<string, string | null>(
     catalog.map((c) => [(c as any).key as string, ((c as any).slot as string | null) ?? null])
   );
+  // Catalog-truth level lookup — used to overwrite whatever the model
+  // returns so the UI badge always reflects the actual program record,
+  // never a hallucinated tag.
+  const keyToLevel = new Map<string, 'beginner' | 'intermediate' | 'advanced' | null>(
+    catalog.map((c) => {
+      const lvl = ((c as any).level as string | null) ?? null;
+      const normalized = lvl === 'beginner' || lvl === 'intermediate' || lvl === 'advanced' ? lvl : null;
+      return [(c as any).key as string, normalized];
+    })
+  );
   const programsBySlot = new Map<string, any[]>();
   for (const p of catalog) {
     const s = (p as any).slot as string | null;
@@ -393,7 +427,17 @@ ${JSON.stringify(input, null, 2)}`;
       ? altsValid.filter((a) => keyToSlot.get(a.program_key) === r.slot)
       : altsValid;
 
-    return { ...r, program_key: chosen, alternatives: alts.slice(0, 3) };
+    // Overwrite level on every program with the catalog truth — the
+    // model can hallucinate level even when the schema asks for it,
+    // and the UI surfaces this as a badge so we cannot trust the
+    // model output here.
+    const safeAlts = alts.slice(0, 3).map((a) => ({
+      ...a,
+      level: chosen && a.program_key ? (keyToLevel.get(a.program_key) ?? null) : null,
+    }));
+    const chosenLevel = chosen ? (keyToLevel.get(chosen) ?? null) : null;
+
+    return { ...r, program_key: chosen, level: chosenLevel, alternatives: safeAlts };
   }).filter((r) => !!r.program_key);
 
   return NextResponse.json({ ok: true, recommendations: safe });
