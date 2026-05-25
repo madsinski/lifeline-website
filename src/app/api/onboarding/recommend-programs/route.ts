@@ -7,8 +7,14 @@
 //
 // Request body (no image, no PII beyond what's already in clients):
 //   { country, exerciseSetting, daysPerWeek, sessionMinutes,
-//     primaryGoals, sleepQuality, eatingPattern, stressScore,
-//     limitations: { allergies, mskIssues, chronicConditions } }
+//     primaryGoals, activityLevel,
+//     limitations: { allergies, mskIssues, chronicConditions },
+//     preferences, homeEquipment, exercise_preferences }
+//
+// sleepQuality / eatingPattern / stressScore / shiftWork / existingPractice
+// were dropped from the onboarding flow in the 2026-05 audit (one-shot
+// pillar-level seeds with no other consumer). Schema still accepts
+// them as nullable optional so older app builds keep working.
 //
 // Response:
 //   { ok: true, recommendations: [
@@ -265,8 +271,11 @@ RULES
       - User picked dietaryPreferences:"Vegan" and a program's sample_actions include "Grilled chicken" → pick a plant-forward alternative
       - User picked recoveryStyles:"Breathwork" and a program's sample_actions are all sleep-hygiene tips with zero breathwork → pick a different mental program
   • Match level to the user's signal:
-      activityLevel:beginner / sleepQuality:<6 / stressScore:<4 / eatingPattern:fast_food → prefer "beginner" programs
-      activityLevel:advanced / sleepQuality:>8 / stressScore:>7 / eatingPattern:tracks_macros → may suggest "intermediate"
+      activityLevel:beginner → prefer "beginner" programs
+      activityLevel:advanced → may suggest "intermediate"
+      (Per-modality level is dominated by exercise_preferences.strength_experience
+       and exercise_preferences.hiit_experience — see rules below.
+       activityLevel is a coarse fallback derived from those answers.)
   • Respect limitations:
       mskIssues with "Knees" / "Lower back" → prefer low-impact / mobility programs over running
       chronicConditions with "Pregnancy" / "Recent surgery" → flag in rationale and prefer gentlest option
