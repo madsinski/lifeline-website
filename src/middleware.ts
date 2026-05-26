@@ -5,15 +5,20 @@ const BYPASS_KEY = 'lifelinepreview2026';
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Allow auth callbacks, admin, API routes, and static assets through
+  // Allow auth callbacks, admin, API routes, and static assets through.
+  // /research/* serves unlisted internal documents (e.g. the clinical
+  // advisor protocol summary) — those are still gated by the URL being
+  // unguessable + a noindex meta tag, but they bypass the coming-soon
+  // splash so the link works for the advisor.
   if (
     pathname.startsWith('/auth') ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/account') ||
     pathname.startsWith('/api') ||
+    pathname.startsWith('/research') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname.match(/\.(svg|png|jpg|jpeg|ico|css|js)$/)
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|html|pdf|txt|woff|woff2|ttf)$/)
   ) {
     return NextResponse.next();
   }
