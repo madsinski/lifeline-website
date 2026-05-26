@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lifeline Health · Real-World Effectiveness Study — Protocol Summary v0.2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ink: #111827;
+    --ink-2: #374151;
+    --ink-3: #6B7280;
+    --ink-4: #9CA3AF;
+    --rule: #E5E7EB;
+    --rule-soft: #F3F4F6;
+    --accent: #10B981;
+    --accent-bg: #ECFDF5;
+    --warn-bg: #FFF7ED;
+    --warn-ink: #92400E;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: #fff;
+    line-height: 1.55;
+    font-size: 14px;
+  }
+  .page { max-width: 820px; margin: 0 auto; padding: 56px 48px 80px 48px; }
+
+  /* Title block */
+  .title-block { border-bottom: 2px solid var(--accent); padding-bottom: 18px; margin-bottom: 28px; }
+  .title-kicker {
+    text-transform: uppercase; letter-spacing: 0.12em;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent);
+  }
+  .title-block h1 {
+    margin: 6px 0 4px 0;
+    font-size: 28px; line-height: 1.18; letter-spacing: -0.012em;
+    color: var(--ink);
+  }
+  .title-block .subtitle {
+    color: var(--ink-2); font-size: 14px; margin-bottom: 4px;
+  }
+  .title-block .meta {
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 12px; display: flex; gap: 22px; flex-wrap: wrap;
+  }
+  .title-block .meta strong { color: var(--ink-2); font-weight: 600; }
+
+  /* Section headers */
+  h2 {
+    font-size: 17px; margin: 32px 0 8px 0; padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink); letter-spacing: -0.005em;
+  }
+  h2 .num { color: var(--accent); margin-right: 8px; font-weight: 700; }
+  h3 { font-size: 14px; margin: 18px 0 6px 0; color: var(--ink-2); }
+  h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin: 14px 0 4px 0; }
+
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  strong { color: var(--ink); }
+
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--rule-soft); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+  /* Tables */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 10px 0 16px 0; font-size: 12.5px;
+  }
+  th, td { border-bottom: 1px solid var(--rule); padding: 7px 8px; text-align: left; vertical-align: top; }
+  th {
+    background: var(--rule-soft);
+    font-weight: 600; color: var(--ink-2);
+    border-bottom: 1px solid var(--rule); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  /* Callout boxes */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout h4 { margin-top: 0; color: var(--accent); }
+  .callout-warn {
+    border-left-color: #F59E0B;
+    background: var(--warn-bg);
+  }
+  .callout-warn h4 { color: var(--warn-ink); }
+
+  .small { font-size: 12px; color: var(--ink-3); }
+  .meta-row { display: flex; gap: 22px; flex-wrap: wrap; }
+
+  /* Print */
+  @media print {
+    body { font-size: 11.5px; }
+    .page { padding: 16mm 18mm 18mm 18mm; max-width: none; }
+    h2 { page-break-after: avoid; }
+    table, tr, td, th { page-break-inside: avoid; }
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    a { color: var(--ink); text-decoration: none; }
+  }
+
+  /* Tools / print button */
+  .toolbar {
+    position: fixed; top: 16px; right: 16px;
+    background: var(--ink); color: #fff;
+    padding: 8px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    border: none; cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  }
+  .toolbar:hover { background: #000; }
+
+  .footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 11px; color: var(--ink-4); }
+</style>
+</head>
+<body>
+<button class="toolbar no-print" onclick="window.print()">Print / Export PDF</button>
+<div class="page">
+
+  <!-- Title -->
+  <header class="title-block">
+    <div class="title-kicker">Lifeline Health · Real-World Effectiveness Study</div>
+    <h1>Protocol summary for clinical advisor review</h1>
+    <div class="subtitle">A prospective observational real-world evidence study of a digital lifestyle programme, with a regulatory pathway aligned to MDR Class I post-market clinical follow-up</div>
+    <div class="meta">
+      <span><strong>Version:</strong> v0.2 draft</span>
+      <span><strong>Sponsor:</strong> Lifeline Health ehf</span>
+      <span><strong>Status:</strong> Not yet submitted to ethics</span>
+      <span><strong>Author:</strong> Lifeline Product &amp; Clinical Team</span>
+    </div>
+  </header>
+
+  <!-- Executive summary -->
+  <section>
+    <h2><span class="num">§</span>Executive summary</h2>
+    <p>
+      Lifeline Health is preparing a prospective, observational, two-track real-world evidence study to characterise the effectiveness of the Lifeline digital lifestyle programme on body weight, wellbeing, sleep, physical activity, and quality of life over twelve months. Findings will be compared descriptively — not causally — with the established efficacy of GLP-1 receptor agonists (semaglutide / tirzepatide) reported in the STEP and SURMOUNT trial programmes. The dataset is engineered so that, if Lifeline later seeks registration as an MDR Class I medical device, the same infrastructure becomes the Post-Market Clinical Follow-up (PMCF) evidence base without redesign.
+    </p>
+    <p>
+      The study has two parallel data tracks. <strong>Track A — the Wellness Pulse</strong> is short, frequent, and runs across the entire consenting user base. Its content is deliberately wellness-framed and is <em>locked at v1.0</em> for the duration of enrolment and follow-up so longitudinal signal stays comparable. <strong>Track B — the Research Module</strong> is opt-in only and uses positively-framed validated instruments (WHO-5, SWEMWBS, PSS-4, IWQOL-Lite-CT, IPAQ-Short, EQ-5D-5L) at fixed milestones for clinical-grade evidence.
+    </p>
+    <div class="callout">
+      <h4>Regulatory posture</h4>
+      <p style="margin:0">The Wellness Pulse is positioned as a wellness self-reflection tool. <strong>It does not use clinical screening instruments such as PHQ-9 or GAD-7</strong>, and it does not apply diagnostic thresholds or in-app clinical decision support. This keeps the live app inside the lifestyle/wellness exemption under MDCG 2019-11 software qualification guidance. The Research Module data is collected for research purposes only and is not surfaced to the user as a clinical output.</p>
+    </div>
+  </section>
+
+  <!-- Section 1 -->
+  <section>
+    <h2><span class="num">1</span>Background and rationale</h2>
+    <ul>
+      <li>GLP-1 receptor agonists have re-set weight-loss expectations: STEP-1 reported a mean body-weight reduction of approximately 14.9% at 68 weeks with semaglutide 2.4 mg, versus 2.4% with placebo; SURMOUNT-1 reported up to 22.5% with tirzepatide.</li>
+      <li>Lifestyle interventions delivered via app are widely deployed but real-world effectiveness data — particularly head-to-head with pharmacotherapy — remains scarce, fragmented, and rarely published using validated instruments or pre-registered analysis plans.</li>
+      <li>There is regulatory and commercial value in being able to describe — without causal claim — the change observed in users following Lifeline alone, users combining Lifeline with a GLP-1 agonist, and users transitioning between the two. The data accumulated here forms the clinical-evaluation evidence base required for MDR Class I PMCF should Lifeline pursue registration in the future.</li>
+      <li>An ethics application to the Icelandic Vísindasiðanefnd (National Bioethics Committee) is anticipated prior to publication-grade analysis.</li>
+    </ul>
+  </section>
+
+  <!-- Section 2 -->
+  <section>
+    <h2><span class="num">2</span>Study objectives</h2>
+
+    <h3>Primary objective</h3>
+    <p>To characterise the change in body weight, wellbeing, sleep, physical activity, and weight-related quality of life among adult Lifeline app users over 12 months, and to describe how outcomes differ across four pre-specified strata:</p>
+    <ul>
+      <li>Lifeline only (no concurrent pharmacotherapy)</li>
+      <li>Lifeline used concurrently with a GLP-1 agonist</li>
+      <li>Prior GLP-1 user who has now discontinued and uses Lifeline</li>
+      <li>GLP-1 only — small comparator arm recruited via partner clinics or self-identification</li>
+    </ul>
+
+    <h3>Secondary objectives</h3>
+    <ol>
+      <li>Quantify within-subject change in validated patient-reported outcomes (IWQOL-Lite-CT, WHO-5, SWEMWBS, PSS-4, EQ-5D-5L) over 12 months.</li>
+      <li>Quantify objective adherence (in-app action-completion and engagement metrics) and its association with weight change.</li>
+      <li>Identify subgroups (by baseline BMI category, sex, age band, baseline cardio self-report) that experience differential benefit.</li>
+      <li>Generate hypotheses for a subsequent confirmatory randomised controlled trial.</li>
+    </ol>
+
+    <h3>Exploratory</h3>
+    <ul>
+      <li>Cost-utility modelling against pharmacotherapy using EQ-5D-5L utility weights.</li>
+      <li>Predictors of dropout and disengagement.</li>
+    </ul>
+  </section>
+
+  <!-- Section 3 -->
+  <section>
+    <h2><span class="num">3</span>Study design</h2>
+    <p><strong>Prospective, observational, open-cohort, real-world evidence study with two parallel data tracks.</strong></p>
+    <table>
+      <thead>
+        <tr><th>Track</th><th>Population</th><th>User burden</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>A. Wellness Pulse</strong></td>
+          <td>All consenting users</td>
+          <td>~30 s daily + ~60 s weekly</td>
+          <td>Broad longitudinal signal · subjective wellbeing trend · cohort denominator</td>
+        </tr>
+        <tr>
+          <td><strong>B. Research Module</strong></td>
+          <td>Opt-in subset (target n ≥ 400)</td>
+          <td>~15 minutes per deep-check milestone</td>
+          <td>Validated instruments · MDR-grade clinical evaluation evidence</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Tracks share pseudonymised user identifiers; objective endpoints (weight log, body composition, step count, sleep, in-app adherence) are collected continuously and shared by both. Participants enrolled in Track B contribute to Track A by default.</p>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="page-break">
+    <h2><span class="num">4</span>Population</h2>
+
+    <h3>Inclusion criteria</h3>
+    <ul>
+      <li>Age ≥ 18 years</li>
+      <li>Resident in Iceland (Phase 1) or the EU / EEA (Phase 2)</li>
+      <li>Active Lifeline account for at least 7 days at the time of consent</li>
+      <li>Provided informed digital consent for research processing</li>
+      <li>Self-reported BMI ≥ 25 for the weight-loss primary analysis; participants with BMI &lt; 25 may participate but are followed for the wellbeing, sleep, and quality-of-life secondary outcomes only</li>
+    </ul>
+
+    <h3>Exclusion criteria — designed to limit bias from external factors</h3>
+    <p>A user is excluded from the <strong>Research Module (Track B)</strong> if any of the following apply at enrolment. They may still contribute to Track A.</p>
+    <ol>
+      <li>Bariatric or metabolic surgery within the previous 12 months, or planned within the follow-up period.</li>
+      <li>Active eating disorder under clinical care (anorexia nervosa, bulimia nervosa, or binge-eating disorder).</li>
+      <li>Pregnant, breastfeeding, or planning pregnancy during the 12-month follow-up — gestational weight change confounds the primary endpoint.</li>
+      <li>Active cancer treatment within the previous 12 months.</li>
+      <li>Psychiatric inpatient admission within the previous 12 months.</li>
+      <li>Active substance-use disorder under treatment.</li>
+      <li>Concurrent enrolment in another interventional clinical trial.</li>
+      <li>Cognitive impairment precluding informed consent.</li>
+      <li>Major life event in the 90 days prior to consent — defined as bereavement of an immediate family member, marital separation / divorce, job loss, or serious illness diagnosis. Re-screen is permitted after a 90-day wash-out. <em>(Advisor input requested — see §14.)</em></li>
+      <li>Use of corticosteroids, antipsychotics, or other medications with known significant effect on body weight, unless dose has been stable for ≥ 6 months and is expected to remain stable.</li>
+    </ol>
+
+    <h3>Stratification variables (captured, not exclusions)</h3>
+    <p>These are captured at baseline and updated monthly via the comparator probe. They are used in the analysis plan as covariates — excluding them would defeat the comparative purpose of the study.</p>
+    <ul>
+      <li>GLP-1 agonist use: never · past · current · starting concurrently</li>
+      <li>Other prescribed weight-loss medication (e.g. phentermine, orlistat, bupropion-naltrexone)</li>
+      <li>Self-reported pre-existing exercise routine (sedentary · recreational · fit · athlete)</li>
+      <li>Baseline BMI category (25–30 · 30–35 · 35–40 · ≥ 40)</li>
+      <li>Sex, age band, country of residence</li>
+      <li>Coaching tier (free-trial · self-maintained · premium)</li>
+    </ul>
+  </section>
+
+  <!-- Section 5 -->
+  <section>
+    <h2><span class="num">5</span>Sample size justification</h2>
+    <h3>Primary endpoint</h3>
+    <p>Mean percentage body weight change from baseline to 12 months.</p>
+
+    <h3>Assumptions</h3>
+    <ul>
+      <li>Lifeline-only expected effect at 12 months: 5% body-weight loss (positioned at the conservative end of real-world digital lifestyle programmes, which typically report 3–7%).</li>
+      <li>Population SD of % weight change: 10 percentage points (consistent with STEP and real-world meta-analyses).</li>
+      <li>Minimum clinically important difference (MCID) to detect between strata: 5 percentage points.</li>
+      <li>α = 0.05, two-sided; power = 0.80; equal allocation.</li>
+      <li>Dropout assumption: 35% over 12 months for digital cohorts.</li>
+    </ul>
+
+    <h3>Calculation</h3>
+    <p>Two-sample comparison, normal approximation:</p>
+    <p><code>n per arm ≈ 2 × (1.96 + 0.84)² × (SD / Δ)² = 2 × 7.84 × 4 ≈ 63</code></p>
+    <p>With a 35% dropout buffer this rounds to <strong>100 per arm</strong>.</p>
+
+    <h3>Target enrolment</h3>
+    <table>
+      <thead>
+        <tr><th>Cohort</th><th>Track</th><th>Target n</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Lifeline only</td><td>B</td><td>100</td></tr>
+        <tr><td>Lifeline + concurrent GLP-1</td><td>B</td><td>100</td></tr>
+        <tr><td>Prior GLP-1, now on Lifeline</td><td>B</td><td>100</td></tr>
+        <tr><td>GLP-1 only (external comparator)</td><td>B</td><td>100</td></tr>
+        <tr><td><strong>Total — Track B (deep cohort)</strong></td><td>B</td><td><strong>400</strong></td></tr>
+        <tr><td><strong>Track A — Wellness Pulse (broad cohort)</strong></td><td>A</td><td><strong>≥ 1,000</strong></td></tr>
+      </tbody>
+    </table>
+    <p class="small">Delivery risk: the GLP-1-only arm depends on partner-clinic recruitment. If n = 100 is not feasible, the comparator analysis becomes literature-anchored (descriptive) rather than a powered within-study head-to-head.</p>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="page-break">
+    <h2><span class="num">6</span>Outcome measures</h2>
+
+    <h3>Objective endpoints</h3>
+    <p>Continuous, low burden — captured from app data or partner-clinic measurements.</p>
+    <table>
+      <thead>
+        <tr><th>Endpoint</th><th>Source</th><th>Cadence</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Body weight</td><td>In-app weight log</td><td>Weekly nudge; user-driven</td></tr>
+        <tr><td>Body composition (FFM, FM, visceral, %fat)</td><td>Biody scan at affiliated clinics, where available</td><td>Quarterly when available</td></tr>
+        <tr><td>Step count</td><td>Health Connect / Google Fit</td><td>Continuous</td></tr>
+        <tr><td>Sleep duration and efficiency</td><td>Health Connect / Google Fit</td><td>Continuous</td></tr>
+        <tr><td>Action completion rate</td><td>In-app <code>action_completions</code> table</td><td>Continuous</td></tr>
+        <tr><td>Engagement (sessions / week; retention)</td><td>App telemetry</td><td>Continuous</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Subjective endpoints — Research Module (Track B only)</h3>
+    <p>All instruments below are validated and positioned outside of clinical screening territory. Diagnostic screening tools such as PHQ-9 and GAD-7 are intentionally not used.</p>
+    <table>
+      <thead>
+        <tr><th>Instrument</th><th>Domain</th><th>Items</th><th>Cadence</th><th>Licence</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>WHO-5 Wellbeing Index</strong></td><td>Positive mental wellbeing</td><td>5</td><td>0 · monthly</td><td>Free, no permission required</td></tr>
+        <tr><td><strong>SWEMWBS</strong> (Short Warwick-Edinburgh Mental Wellbeing Scale)</td><td>Positive mental wellbeing</td><td>7</td><td>0 · 3 · 6 · 12 mo</td><td>Free, attribution required</td></tr>
+        <tr><td><strong>PSS-4</strong> (Perceived Stress Scale, short)</td><td>Perceived stress</td><td>4</td><td>0 · monthly</td><td>Free</td></tr>
+        <tr><td><strong>IWQOL-Lite-CT</strong></td><td>Weight-related quality of life</td><td>20</td><td>0 · 3 · 6 · 12 mo</td><td>Academic, via Pearson Clinical</td></tr>
+        <tr><td><strong>IPAQ-Short</strong></td><td>Physical activity behaviour</td><td>7</td><td>0 · quarterly</td><td>Free</td></tr>
+        <tr><td><strong>EQ-5D-5L</strong></td><td>Generic health-related quality of life + utility</td><td>5 + VAS</td><td>0 · 3 · 6 · 12 mo</td><td>EuroQol, free for academic use</td></tr>
+        <tr><td>Sleep wellbeing items (custom, extending Wellness Pulse)</td><td>Subjective sleep quality</td><td>4</td><td>0 · quarterly</td><td>Author-developed; non-diagnostic</td></tr>
+        <tr><td>Comparator probe (custom)</td><td>Concurrent / prior weight-management modalities</td><td>~6</td><td>0 · monthly</td><td>Author-developed</td></tr>
+        <tr><td>Treatment satisfaction (custom; NPS + 3 items)</td><td>App satisfaction</td><td>4</td><td>3 · 6 · 12 mo</td><td>Author-developed</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <h4>Why not PHQ-9 and GAD-7?</h4>
+      <p style="margin:0">PHQ-9 and GAD-7 are widely used research instruments, but they are also clinical screening tools and most software that scores them and surfaces interpretation crosses into medical-device territory under MDR Annex VIII Rule 11. To preserve the app's current lifestyle classification — and to avoid creating an unintended diagnostic experience for participants — we have replaced them with WHO-5 and PSS-4. Both are validated, multilingual, free to use, and are framed in terms of <em>positive wellbeing</em> and <em>perceived experience</em> rather than symptom inventory.</p>
+    </div>
+
+    <h3>Subjective endpoint — Wellness Pulse (Track A, all users)</h3>
+    <p>A short, frequent, in-app wellbeing self-reflection — see §7.</p>
+  </section>
+
+  <!-- Section 7 -->
+  <section>
+    <h2><span class="num">7</span>The Wellness Pulse — locked content and MDR boundary</h2>
+
+    <h3>Purpose</h3>
+    <p>A short, frequent in-app self-check intended for user-facing reflection and engagement. It is <strong>not a clinical assessment</strong>. It is locked at v1.0 from the start of study enrolment to the close of follow-up so longitudinal data is comparable across the entire enrolment window. It also serves as the broad cohort denominator (Track A).</p>
+
+    <h3>MDR boundary commitment</h3>
+    <ul>
+      <li>All items are phrased as <em>reflective self-rating</em> ("How are you feeling?") rather than symptom inventory ("Do you experience…?").</li>
+      <li>No item is scored against a clinical threshold inside the app.</li>
+      <li>No automated clinical decision support is provided. The app does not say "you may have depression"; it says "your mood has been a bit lower than usual this week."</li>
+      <li>No diagnostic, treatment, or monitoring claim is attached to the Pulse output.</li>
+      <li>The Wellness Pulse remains within the lifestyle / wellness exemption under MDCG 2019-11 software qualification guidance. Any future change to claim or function will be a deliberate decision recorded as a protocol amendment.</li>
+      <li>Validated clinical screening instruments (PHQ-9, GAD-7, PSQI, and similar) are deliberately not used in the Wellness Pulse or in the app's user-facing output.</li>
+    </ul>
+
+    <h3>Locked content — Wellness Pulse v1.0</h3>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Item (locked text)</th><th>Response</th><th>Cadence</th><th>Mapped wellness domain</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>"How was your energy today?"</td><td>1 (very low) – 5 (very high)</td><td>Daily</td><td>Vitality</td></tr>
+        <tr><td>2</td><td>"How was your mood today?"</td><td>1 (low) – 5 (great)</td><td>Daily</td><td>Affect (self-rating, not symptom)</td></tr>
+        <tr><td>3</td><td>"How rested do you feel this morning?"</td><td>1 (not at all) – 5 (very)</td><td>Daily</td><td>Sleep self-rating</td></tr>
+        <tr><td>4</td><td>"How stressed have you felt today?"</td><td>1 (calm) – 5 (very stressed)</td><td>Daily</td><td>Stress perception</td></tr>
+        <tr><td>5</td><td>"How happy are you with your movement this week?"</td><td>1–5</td><td>Weekly</td><td>Activity satisfaction</td></tr>
+        <tr><td>6</td><td>"How happy are you with your eating this week?"</td><td>1–5</td><td>Weekly</td><td>Nutrition satisfaction</td></tr>
+        <tr><td>7</td><td>"How connected do you feel to others?"</td><td>1–5</td><td>Weekly</td><td>Social wellbeing</td></tr>
+        <tr><td>8</td><td>"Anything you want to note?" (optional)</td><td>Free text, max 280 chars</td><td>Weekly</td><td>Qualitative</td></tr>
+      </tbody>
+    </table>
+    <p class="small">Approximate burden: ~30 seconds daily for items 1–4; ~60 seconds weekly for items 5–8.</p>
+
+    <h3>Locking commitment</h3>
+    <p>Wellness Pulse v1.0 content, response scales, and cadence must not change during the enrolment + follow-up window. Any change after follow-up close is recorded as a protocol amendment with a new version number; responses are version-stamped so analysis can stratify if a future amendment occurs.</p>
+  </section>
+
+  <!-- Section 8 -->
+  <section class="page-break">
+    <h2><span class="num">8</span>Schedule of assessments</h2>
+    <table>
+      <thead>
+        <tr><th>Time point</th><th>Track A — Wellness Pulse</th><th>Track B — Research Module</th><th>Objective data</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Onboarding / consent</td>
+          <td>Consent · first Pulse</td>
+          <td>Baseline survey: demographics, height, weight, medical history (eligibility check), comparator status, IWQOL-Lite-CT, WHO-5, SWEMWBS, PSS-4, IPAQ-Short, EQ-5D-5L, sleep items</td>
+          <td>Initial weight log</td>
+        </tr>
+        <tr><td>Day 7</td><td>Pulse continues</td><td>—</td><td>Telemetry continuous from here</td></tr>
+        <tr><td>Weekly</td><td>Pulse</td><td>—</td><td>—</td></tr>
+        <tr><td>Day 30</td><td>Pulse</td><td>WHO-5, PSS-4, comparator probe</td><td>Weight log prompt</td></tr>
+        <tr><td>Day 90</td><td>Pulse</td><td>IWQOL-Lite-CT, SWEMWBS, WHO-5, PSS-4, IPAQ-Short, EQ-5D-5L, satisfaction (NPS + 3), comparator probe</td><td>Weight + body composition prompt</td></tr>
+        <tr><td>Day 180</td><td>Pulse</td><td>Full battery</td><td>Weight + body composition</td></tr>
+        <tr><td>Day 365</td><td>Pulse</td><td>Full battery + AE probe</td><td>Weight + body composition</td></tr>
+        <tr><td>Exit (any time)</td><td>—</td><td>Reason for withdrawal · short feedback</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Section 9 -->
+  <section>
+    <h2><span class="num">9</span>Statistical analysis plan — summary</h2>
+    <ul>
+      <li><strong>Primary analysis:</strong> intention to treat (ITT) — all consented Track B participants with a baseline + at least one follow-up assessment.</li>
+      <li><strong>Secondary analysis:</strong> per-protocol — defined as completion of ≥ 75% of scheduled assessments and ≥ 12 months of follow-up.</li>
+      <li>Mixed-effects models for repeated measures, assuming missingness MAR; multiple imputation as a sensitivity analysis.</li>
+      <li>Stratification by GLP-1 status as a fixed effect.</li>
+      <li>Pre-specified covariates: baseline BMI, age, sex, baseline cardio self-report, coaching tier.</li>
+      <li>Effect sizes reported with 95% confidence intervals; no causal language; comparator stratum differences are described, not formally tested for non-inferiority (the study is not powered for that).</li>
+      <li>Pre-registration on the Open Science Framework prior to opening enrolment.</li>
+      <li>A formal statistical analysis plan will be authored separately and signed off by the clinical advisor and an independent biostatistician before unblinding.</li>
+    </ul>
+  </section>
+
+  <!-- Section 10 -->
+  <section>
+    <h2><span class="num">10</span>Data management and privacy</h2>
+    <ul>
+      <li>All research data is pseudonymised at write time; PII does not enter the research dataset.</li>
+      <li>Linking key (<code>user_id</code> ↔ <code>research_id</code>) is held in a separate row-level-security-restricted table accessible only to a tightly-scoped admin role; every read is audit-logged.</li>
+      <li>Processing basis: GDPR Article 9(2)(j) — scientific research with appropriate safeguards. Lawful basis: explicit, granular, withdrawable consent.</li>
+      <li>Compliance frameworks: GDPR, Icelandic Data Protection Act, ISO 13485 (audit trail and retention).</li>
+      <li>Retention: 10 years post-publication.</li>
+      <li>Right of withdrawal: one-tap from Profile. Consent record is soft-deleted; responses are anonymised but retained in the analysis set per the pre-registered protocol.</li>
+      <li>A Data Protection Impact Assessment (DPIA) is being prepared and will be reviewed prior to enrolment opening.</li>
+    </ul>
+  </section>
+
+  <!-- Section 11 -->
+  <section>
+    <h2><span class="num">11</span>Ethical and regulatory considerations</h2>
+    <ul>
+      <li><strong>Iceland</strong>: a research-protocol application to the Vísindasiðanefnd (National Bioethics Committee) is planned for Q3 2026, prior to enrolment. The study is anticipated to fall within the low-risk observational category — no intervention beyond what users would do anyway.</li>
+      <li><strong>EU expansion</strong>: ethics applications in additional countries will be filed before Phase 2 enrolment in those jurisdictions.</li>
+      <li><strong>MDR positioning</strong>: at the time of writing, the Lifeline app does not make claims that would trigger Medical Device Regulation classification. The Wellness Pulse is deliberately framed within the wellness exemption and does not use clinical screening instruments. Should Lifeline later seek MDR Class I registration, the dataset accumulated here is designed to satisfy the PMCF evidence requirement without redesign. Any change to claim or function that would re-classify the app will be recorded as a protocol amendment.</li>
+      <li><strong>Funding and conflict of interest</strong>: Lifeline Health ehf-funded; no pharmaceutical company involvement; conflict-of-interest declarations will appear on any publication.</li>
+    </ul>
+    <div class="callout callout-warn">
+      <h4>What would trigger MDR re-classification</h4>
+      <p style="margin:0">The following changes would push Lifeline from wellness exemption into MDR scope and would each require a deliberate decision and a separate regulatory workstream: (a) marketing or in-app claims about diagnosing, monitoring, or treating a specific disease; (b) introducing clinical decision support that recommends or initiates medical action; (c) using validated screening instruments (e.g. PHQ-9) inside the app with threshold-based interpretation surfaced to the user; (d) integrating physiological measurement intended for clinical use. None of these are part of v0.2 of this protocol.</p>
+    </div>
+  </section>
+
+  <!-- Section 12 -->
+  <section class="page-break">
+    <h2><span class="num">12</span>Adverse event handling</h2>
+    <ul>
+      <li>A free-text reporting channel is available within the app at every survey burst ("Tell us if anything bad happened.").</li>
+      <li>A structured adverse-event prompt is presented at Day 30, 90, 180, and 365: <em>"Have you experienced any of the following: significant unintended weight change, severe fatigue, persistent low mood, eating-disorder symptoms, other?"</em></li>
+      <li>Reports are routed to a triage queue surfaced to the clinical advisor and the product safety lead within 72 hours.</li>
+      <li>Serious adverse-event definitions and reporting timelines per ISO 14155 will be applied should the app later fall under MDR scope.</li>
+      <li>A named clinical responsible person and an escalation pathway are required prior to enrolment opening — see §14 Q6.</li>
+    </ul>
+  </section>
+
+  <!-- Section 13 -->
+  <section>
+    <h2><span class="num">13</span>Indicative timeline</h2>
+    <table>
+      <thead>
+        <tr><th>Quarter</th><th>Milestone</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Q3 2026</td><td>Protocol finalisation · ethics application · DPIA · OSF pre-registration · Wellness Pulse locks at v1.0</td></tr>
+        <tr><td>Q4 2026</td><td>Soft enrolment opens (Iceland)</td></tr>
+        <tr><td>Q1 2027</td><td>n = 100 (Track B) milestone · 3-month interim descriptive analysis</td></tr>
+        <tr><td>Q3 2027</td><td>6-month interim analysis</td></tr>
+        <tr><td>Q1 2028</td><td>12-month primary analysis · manuscript drafting</td></tr>
+        <tr><td>Q3 2028</td><td>Publication submission</td></tr>
+        <tr><td>Q4 2028</td><td>MDR Class I gap analysis as a separate workstream; the dataset supports PMCF</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Section 14 -->
+  <section>
+    <h2><span class="num">14</span>Open methodological questions for advisor input</h2>
+    <p>These are the decisions where clinical judgement is needed before the protocol is finalised. Advisor sign-off on each is requested.</p>
+    <ol>
+      <li><strong>Major life event exclusion (criterion 9)</strong> — is a 90-day wash-out the right call, or is real-world ecological validity better served by capturing life events as a covariate without excluding?</li>
+      <li><strong>Wellness Pulse content</strong> — do any of the 8 items in §7 cross the wellness / clinical-screening boundary as currently worded? Confirmation requested.</li>
+      <li><strong>Instrument battery for Track B</strong> — is the WHO-5 + SWEMWBS + PSS-4 + IWQOL-Lite-CT + IPAQ-Short + EQ-5D-5L combination acceptable as a substitute for the more conventional PHQ-9 / GAD-7 battery, given our MDR posture?</li>
+      <li><strong>Sample size assumptions</strong> — is a 5 pp MCID and a 10 pp SD defensible for our population? Alternative assumptions can be modelled.</li>
+      <li><strong>GLP-1-only comparator recruitment</strong> — if a within-study n = 100 GLP-1-only arm is not achievable, is a literature-anchored descriptive comparator acceptable? Or should we partner with an obesity clinic for direct recruitment?</li>
+      <li><strong>Clinical responsible person</strong> — who is the named clinician responsible for adverse-event review, and what is their response SLA? Could the advisor reviewing this protocol serve in that role?</li>
+      <li><strong>Licensing path for IWQOL-Lite-CT</strong> — recommendation requested between Pearson Clinical academic licence and direct contact with the original developer.</li>
+      <li><strong>Ethics committee strategy</strong> — Iceland-first, or pursue parallel ethics approval in another EU jurisdiction to smooth Phase 2 expansion?</li>
+      <li><strong>Pre-registration platform</strong> — Open Science Framework as the default; would ClinicalTrials.gov or the EU PAS register be preferable (note: ClinicalTrials.gov registration carries clinical-trial implications)?</li>
+      <li><strong>Adverse event definition list</strong> — please add or remove items from the §12 list as appropriate for the population.</li>
+    </ol>
+  </section>
+
+  <footer class="footer">
+    <p>Document prepared by the Lifeline Health product and clinical team for medical advisor review. This is a draft protocol summary. No participant has been enrolled at the date of this draft. Comments and tracked changes welcomed.</p>
+    <p>v0.2 draft · Lifeline Health ehf · For internal advisor review only · Not for distribution.</p>
+  </footer>
+
+</div>
+</body>
+</html>
