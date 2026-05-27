@@ -18,6 +18,74 @@ const tabs = [
   { key: "payments", label: "Payments" },
 ];
 
+interface PaydayTestResult {
+  ok: boolean;
+  baseUrl?: string;
+  environment?: "production" | "sandbox" | "unknown";
+  clientIdSet?: boolean;
+  clientSecretSet?: boolean;
+  clientIdPreview?: string | null;
+  tokenIssued?: boolean;
+  httpStatus?: number;
+  error?: string;
+}
+
+// Staff diagnostic — confirms which Payday env the deployed server is
+// pointed at and whether the configured client_id/secret can mint a
+// real OAuth token. Use this after switching env vars to verify the
+// production credentials before issuing real invoices.
+function PaydayDiagButton() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<PaydayTestResult | null>(null);
+
+  const run = async () => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/payday/test-connection", { method: "POST" });
+      const json = await res.json();
+      setResult(json);
+    } catch (e) {
+      setResult({ ok: false, error: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      <button
+        type="button"
+        onClick={run}
+        disabled={busy}
+        className="text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      >
+        {busy ? "Testing…" : "Test Payday connection"}
+      </button>
+      {result ? (
+        <div
+          className={`text-[11px] rounded-md px-2 py-1.5 border max-w-xs leading-snug ${
+            result.ok
+              ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+              : "bg-amber-50 border-amber-200 text-amber-900"
+          }`}
+        >
+          <div className="font-semibold">
+            {result.ok ? "Connected" : "Failed"}
+            {result.environment ? ` · ${result.environment}` : ""}
+            {typeof result.httpStatus === "number" ? ` · HTTP ${result.httpStatus}` : ""}
+          </div>
+          {result.baseUrl ? <div className="opacity-80">{result.baseUrl}</div> : null}
+          {result.clientIdPreview ? (
+            <div className="opacity-80">client: {result.clientIdPreview}</div>
+          ) : null}
+          {result.error ? <div className="opacity-80 break-words">{result.error}</div> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function BusinessPage() {
   const [tab, setTab] = useState("companies");
 
@@ -29,12 +97,15 @@ export default function BusinessPage() {
             <h1 className="text-xl font-bold text-gray-900 mb-1">Business</h1>
             <p className="text-sm text-gray-500">Companies and billing</p>
           </div>
-          <Link
-            href="/admin/legal"
-            className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
-          >
-            Legal documents &amp; agreements →
-          </Link>
+          <div className="flex items-start gap-4">
+            <PaydayDiagButton />
+            <Link
+              href="/admin/legal"
+              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2 mt-1.5"
+            >
+              Legal documents &amp; agreements →
+            </Link>
+          </div>
         </div>
         <AdminTabs tabs={tabs} active={tab} onChange={setTab} />
       </div>
