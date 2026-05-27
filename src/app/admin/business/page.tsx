@@ -107,12 +107,20 @@ export default function BusinessPage() {
           </div>
           <div className="flex items-start gap-4">
             <PaydayDiagButton />
-            <Link
-              href="/admin/legal"
-              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2 mt-1.5"
-            >
-              Legal documents &amp; agreements →
-            </Link>
+            <div className="flex flex-col items-end gap-1 mt-1.5">
+              <Link
+                href="/admin/legal"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+              >
+                Legal documents &amp; agreements →
+              </Link>
+              <Link
+                href="/admin/signatures"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+              >
+                Email signatures →
+              </Link>
+            </div>
           </div>
         </div>
         <AdminTabs tabs={tabs} active={tab} onChange={setTab} />
