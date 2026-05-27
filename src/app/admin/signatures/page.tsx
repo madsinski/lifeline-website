@@ -23,15 +23,47 @@ interface SignatureFields {
 }
 
 const LOGO_URL = "https://lifelinehealth.is/lifeline-logo-rebrand.png";
+const MARK_URL = "https://lifelinehealth.is/lifeline-logo-mark.svg";
 
-// Single source of truth for the rendered HTML. Inline styles only so
-// it survives a Gmail signature-editor paste.
-function buildSignatureHtml(s: SignatureFields): string {
-  const telHref = s.phone.replace(/\s+/g, "");
+type DesignKey = "stacked" | "compact" | "card";
+
+const DESIGN_LABELS: Record<DesignKey, string> = {
+  stacked: "Stacked",
+  compact: "Compact",
+  card:    "Card",
+};
+
+const DESIGN_BLURBS: Record<DesignKey, string> = {
+  stacked: "Full wordmark on top with an emerald accent line under the name. Best for first-impression emails.",
+  compact: "Mark on the left, info on the right. Smaller footprint — great for replies and threads.",
+  card:    "Logo + contact info inside a soft emerald-tinted card. More designy / pitch-flavored.",
+};
+
+// Gmail re-applies its own underline to raw <a> tags even when
+// text-decoration:none is set on the anchor. Wrapping the visible
+// text in an inner <span> with explicit color + text-decoration:none
+// suppresses that — the technique used by Apple, Stripe, etc. in
+// their transactional emails.
+function noUnderlineLink(href: string, text: string, color: string, extraSpanStyle = ""): string {
+  return (
+    `<a href="${href}" style="color:${color};text-decoration:none;border-bottom:0;">` +
+      `<span style="color:${color};text-decoration:none;border-bottom:0;${extraSpanStyle}">${escapeHtml(text)}</span>` +
+    `</a>`
+  );
+}
+
+function telHref(phone: string): string {
+  return `tel:${phone.replace(/\s+/g, "")}`;
+}
+
+// ─── Design 1: Stacked (current) ────────────────────────────────────
+// Full wordmark on top, name + title with emerald accent line under,
+// contact row below.
+function buildStacked(s: SignatureFields): string {
   return [
     `<table cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1F2937;line-height:1.4;">`,
     `<tr><td style="padding-bottom:10px;">`,
-    `<a href="https://lifelinehealth.is" style="text-decoration:none;">`,
+    `<a href="https://lifelinehealth.is" style="text-decoration:none;border-bottom:0;">`,
     `<img src="${LOGO_URL}" alt="Lifeline Health" width="200" style="display:block;border:0;outline:none;width:200px;height:auto;">`,
     `</a></td></tr>`,
     `<tr><td style="padding-bottom:8px;border-bottom:2px solid #10B981;">`,
@@ -39,15 +71,77 @@ function buildSignatureHtml(s: SignatureFields): string {
     `<span style="font-size:12px;color:#6B7280;letter-spacing:0.2px;">${escapeHtml(s.title)}</span>`,
     `</td></tr>`,
     `<tr><td style="padding-top:8px;font-size:12px;color:#4B5563;">`,
-    `<a href="tel:${telHref}" style="color:#4B5563;text-decoration:none;">${escapeHtml(s.phone)}</a>`,
+    noUnderlineLink(telHref(s.phone), s.phone, "#4B5563"),
     ` &middot; `,
-    `<a href="mailto:${s.email}" style="color:#4B5563;text-decoration:none;">${escapeHtml(s.email)}</a>`,
+    noUnderlineLink(`mailto:${s.email}`, s.email, "#4B5563"),
     ` &middot; `,
-    `<a href="https://lifelinehealth.is" style="color:#10B981;text-decoration:none;font-weight:600;">lifelinehealth.is</a>`,
+    noUnderlineLink("https://lifelinehealth.is", "lifelinehealth.is", "#10B981", "font-weight:600;"),
     `</td></tr>`,
     `</table>`,
   ].join("");
 }
+
+// ─── Design 2: Compact ──────────────────────────────────────────────
+// Mark on the left (40px square), text on the right with a hairline
+// divider between. Tighter typography. Best for reply signatures.
+function buildCompact(s: SignatureFields): string {
+  return [
+    `<table cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1F2937;line-height:1.35;">`,
+    `<tr>`,
+    `<td valign="top" style="padding-right:12px;border-right:1px solid #E5E7EB;">`,
+    `<a href="https://lifelinehealth.is" style="text-decoration:none;border-bottom:0;">`,
+    `<img src="${MARK_URL}" alt="Lifeline Health" width="44" height="44" style="display:block;border:0;outline:none;width:44px;height:44px;">`,
+    `</a>`,
+    `</td>`,
+    `<td valign="top" style="padding-left:12px;">`,
+    `<div style="font-size:14px;font-weight:700;color:#111827;">${escapeHtml(s.name)}</div>`,
+    `<div style="font-size:11.5px;color:#6B7280;padding-bottom:4px;">${escapeHtml(s.title)}</div>`,
+    `<div style="font-size:11.5px;color:#4B5563;">`,
+    noUnderlineLink(telHref(s.phone), s.phone, "#4B5563"),
+    ` &middot; `,
+    noUnderlineLink(`mailto:${s.email}`, s.email, "#4B5563"),
+    `</div>`,
+    `<div style="font-size:11.5px;padding-top:1px;">`,
+    noUnderlineLink("https://lifelinehealth.is", "lifelinehealth.is", "#10B981", "font-weight:600;"),
+    `</div>`,
+    `</td>`,
+    `</tr>`,
+    `</table>`,
+  ].join("");
+}
+
+// ─── Design 3: Card ─────────────────────────────────────────────────
+// Logo and info inside a soft emerald-tinted rounded card. Strongest
+// brand presence — for outreach / pitch emails.
+function buildCard(s: SignatureFields): string {
+  return [
+    `<table cellpadding="0" cellspacing="0" border="0" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1F2937;line-height:1.4;">`,
+    `<tr><td style="background-color:#F0FDF9;border:1px solid #A7F3D0;border-radius:12px;padding:16px 18px;">`,
+    // Logo
+    `<a href="https://lifelinehealth.is" style="text-decoration:none;border-bottom:0;">`,
+    `<img src="${LOGO_URL}" alt="Lifeline Health" width="180" style="display:block;border:0;outline:none;width:180px;height:auto;margin-bottom:12px;">`,
+    `</a>`,
+    // Name + title
+    `<div style="font-size:15px;font-weight:700;color:#064E3B;">${escapeHtml(s.name)}</div>`,
+    `<div style="font-size:12px;color:#047857;padding-bottom:10px;">${escapeHtml(s.title)}</div>`,
+    // Contact rows
+    `<div style="font-size:12px;color:#065F46;line-height:1.7;">`,
+    noUnderlineLink(telHref(s.phone), s.phone, "#065F46"),
+    ` &middot; `,
+    noUnderlineLink(`mailto:${s.email}`, s.email, "#065F46"),
+    ` &middot; `,
+    noUnderlineLink("https://lifelinehealth.is", "lifelinehealth.is", "#10B981", "font-weight:700;"),
+    `</div>`,
+    `</td></tr>`,
+    `</table>`,
+  ].join("");
+}
+
+const DESIGN_BUILDERS: Record<DesignKey, (s: SignatureFields) => string> = {
+  stacked: buildStacked,
+  compact: buildCompact,
+  card:    buildCard,
+};
 
 function escapeHtml(s: string): string {
   return s
@@ -184,7 +278,8 @@ function SignatureCard({
   onChange: (field: keyof SignatureFields, value: string) => void;
   onBlur: () => void;
 }) {
-  const html = useMemo(() => buildSignatureHtml(sig), [sig]);
+  const [design, setDesign] = useState<DesignKey>("stacked");
+  const html = useMemo(() => DESIGN_BUILDERS[design](sig), [design, sig]);
   const [copiedType, setCopiedType] = useState<"html" | "formatted" | null>(null);
 
   const copyHtml = async () => {
@@ -255,16 +350,37 @@ function SignatureCard({
           </p>
         </div>
 
-        {/* Live preview — sandboxed in an iframe so styles never bleed
-            into the admin page. */}
+        {/* Live preview with design tabs. Iframe sandboxes the
+            signature's inline styles so they can't bleed into the
+            admin page. */}
         <div className="p-5 bg-gray-50">
-          <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold mb-2">Live preview</div>
+          <div className="flex items-center justify-between mb-2 gap-2">
+            <div className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">Live preview</div>
+            <div className="flex gap-1 rounded-md border border-gray-200 bg-white p-0.5">
+              {(Object.keys(DESIGN_LABELS) as DesignKey[]).map((k) => {
+                const active = design === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setDesign(k)}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded ${
+                      active ? "bg-emerald-600 text-white" : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {DESIGN_LABELS[k]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mb-2 leading-snug">{DESIGN_BLURBS[design]}</p>
           <div className="rounded-md border border-gray-200 bg-white p-4">
             <iframe
               title={`${sig.name} signature preview`}
               srcDoc={`<!doctype html><html><body style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">${html}</body></html>`}
               className="w-full"
-              style={{ height: 170, border: 0 }}
+              style={{ height: 200, border: 0 }}
             />
           </div>
         </div>
