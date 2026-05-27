@@ -8,6 +8,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { supabase } from "@/lib/supabase";
 import AdminTabs from "../components/AdminTabs";
 
 const CompaniesContent = dynamic(() => import("../companies/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
@@ -42,7 +43,14 @@ function PaydayDiagButton() {
     setBusy(true);
     setResult(null);
     try {
-      const res = await fetch("/api/admin/payday/test-connection", { method: "POST" });
+      // Admin API routes authenticate via Authorization: Bearer; without
+      // it getUserFromRequest returns null and the route 403s.
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch("/api/admin/payday/test-connection", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const json = await res.json();
       setResult(json);
     } catch (e) {
