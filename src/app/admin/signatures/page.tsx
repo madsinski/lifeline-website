@@ -6,10 +6,13 @@
 // payload that Gmail picks up directly when pasted into the signature
 // editor).
 //
-// Edits persist to localStorage — no DB schema, no API surface. Reset
-// per-card via the "Reset" button.
+// Edits persist to the Supabase email_signatures table via
+// /api/admin/signatures (PUT) so every staff member sees the same
+// values regardless of browser/device. Auto-saves on blur (and on
+// debounce) without a manual Save button.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface SignatureFields {
   key: string;
@@ -19,38 +22,6 @@ interface SignatureFields {
   email: string;
 }
 
-const DEFAULTS: SignatureFields[] = [
-  {
-    key: "mads",
-    name: "Mads Christian Aanesen",
-    title: "Medical doctor · Co-founder, Lifeline Health ehf.",
-    phone: "+354 767 4393",
-    email: "mads@lifelinehealth.is",
-  },
-  {
-    key: "victor",
-    name: "Victor Guðmundsson",
-    title: "Medical doctor · Founder & CEO, Lifeline Health ehf.",
-    phone: "+354 ",
-    email: "victor@lifelinehealth.is",
-  },
-  {
-    key: "vignir",
-    name: "Vignir Sigurðsson",
-    title: "Chief Medical Advisor · Pediatrician · Ass. Prof. HA, Lifeline Health ehf.",
-    phone: "+354 ",
-    email: "vignir@lifelinehealth.is",
-  },
-  {
-    key: "elvar",
-    name: "Elvar",
-    title: "Lifeline Health ehf.",
-    phone: "+354 ",
-    email: "elvar@lifelinehealth.is",
-  },
-];
-
-const STORAGE_KEY = "admin.signatures.v1";
 const LOGO_URL = "https://lifelinehealth.is/lifeline-logo-rebrand.png";
 
 // Single source of truth for the rendered HTML. Inline styles only so
@@ -87,51 +58,101 @@ function escapeHtml(s: string): string {
 }
 
 export default function SignaturesPage() {
-  const [sigs, setSigs] = useState<SignatureFields[]>(DEFAULTS);
-  const [hydrated, setHydrated] = useState(false);
+  const [sigs, setSigs] = useState<SignatureFields[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Per-key save state for the small "saved / saving / error" indicator.
+  const [saveState, setSaveState] = useState<Record<string, "idle" | "saving" | "saved" | "error">>({});
+  // Debounce timers per key so rapid typing only fires one PUT.
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // Hydrate edits from localStorage on mount. Avoids the SSR mismatch
-  // by gating render on `hydrated`.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as SignatureFields[];
-        // Merge: start from DEFAULTS so new people added later show up,
-        // overlay any saved edits by key.
-        const merged = DEFAULTS.map((d) => {
-          const stored = parsed.find((p) => p.key === d.key);
-          return stored ? { ...d, ...stored } : d;
-        });
-        setSigs(merged);
-      }
-    } catch {}
-    setHydrated(true);
+  const authHeader = useCallback(async (): Promise<Record<string, string>> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
   }, []);
 
-  // Persist on every change. Cheap, debounce not needed.
+  // Initial load from /api/admin/signatures.
   useEffect(() => {
-    if (!hydrated) return;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sigs)); } catch {}
-  }, [sigs, hydrated]);
+    (async () => {
+      try {
+        const headers = await authHeader();
+        const res = await fetch("/api/admin/signatures", { headers });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error || `HTTP ${res.status}`);
+        }
+        const j = await res.json();
+        setSigs((j.signatures || []) as SignatureFields[]);
+      } catch (e) {
+        setLoadError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [authHeader]);
+
+  const persist = useCallback(async (next: SignatureFields) => {
+    setSaveState((prev) => ({ ...prev, [next.key]: "saving" }));
+    try {
+      const headers = { "Content-Type": "application/json", ...(await authHeader()) };
+      const res = await fetch("/api/admin/signatures", {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(next),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${res.status}`);
+      }
+      setSaveState((prev) => ({ ...prev, [next.key]: "saved" }));
+      setTimeout(() => {
+        setSaveState((prev) => (prev[next.key] === "saved" ? { ...prev, [next.key]: "idle" } : prev));
+      }, 1600);
+    } catch {
+      setSaveState((prev) => ({ ...prev, [next.key]: "error" }));
+    }
+  }, [authHeader]);
 
   const updateField = (key: string, field: keyof SignatureFields, value: string) => {
-    setSigs((prev) => prev.map((s) => (s.key === key ? { ...s, [field]: value } : s)));
+    setSigs((prev) => {
+      const next = prev.map((s) => (s.key === key ? { ...s, [field]: value } : s));
+      const updated = next.find((s) => s.key === key);
+      if (updated) {
+        // Debounced auto-save: cancel pending PUT, schedule a new one.
+        clearTimeout(saveTimers.current[key]);
+        saveTimers.current[key] = setTimeout(() => persist(updated), 600);
+      }
+      return next;
+    });
   };
 
-  const reset = (key: string) => {
-    const fresh = DEFAULTS.find((d) => d.key === key);
-    if (!fresh) return;
-    setSigs((prev) => prev.map((s) => (s.key === key ? fresh : s)));
+  const saveNow = (key: string) => {
+    clearTimeout(saveTimers.current[key]);
+    const cur = sigs.find((s) => s.key === key);
+    if (cur) persist(cur);
   };
+
+  if (loading) {
+    return <div className="px-8 py-6 text-sm text-gray-500">Loading signatures…</div>;
+  }
+  if (loadError) {
+    return (
+      <div className="px-8 py-6 max-w-2xl">
+        <h1 className="text-xl font-bold text-gray-900 mb-2">Email signatures</h1>
+        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">
+          Couldn't load signatures: {loadError}. The migration <code className="bg-white px-1.5 py-0.5 rounded border border-amber-200">migration-email-signatures.sql</code> may not have been applied yet.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-8 py-6 max-w-5xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900 mb-1">Email signatures</h1>
         <p className="text-sm text-gray-500">
-          Edit the details, copy the formatted signature, and paste it into Gmail Workspace → Settings → Signature. "Copy formatted"
-          puts a rich HTML payload on your clipboard so Gmail preserves the logo and styling on paste.
+          Edit the details — changes save automatically to a shared table so every founder sees the same values.
+          Use "Copy formatted (for Gmail)" then paste into Gmail Workspace → Settings → Signature.
         </p>
       </div>
 
@@ -140,8 +161,9 @@ export default function SignaturesPage() {
           <SignatureCard
             key={s.key}
             sig={s}
+            saveState={saveState[s.key] ?? "idle"}
             onChange={(field, value) => updateField(s.key, field, value)}
-            onReset={() => reset(s.key)}
+            onBlur={() => saveNow(s.key)}
           />
         ))}
       </div>
@@ -153,12 +175,14 @@ export default function SignaturesPage() {
 
 function SignatureCard({
   sig,
+  saveState,
   onChange,
-  onReset,
+  onBlur,
 }: {
   sig: SignatureFields;
+  saveState: "idle" | "saving" | "saved" | "error";
   onChange: (field: keyof SignatureFields, value: string) => void;
-  onReset: () => void;
+  onBlur: () => void;
 }) {
   const html = useMemo(() => buildSignatureHtml(sig), [sig]);
   const [copiedType, setCopiedType] = useState<"html" | "formatted" | null>(null);
@@ -195,22 +219,20 @@ function SignatureCard({
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <div className="text-sm font-semibold text-gray-700">{sig.name || "(unnamed)"}</div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="text-xs text-gray-500 hover:text-gray-700"
-        >
-          Reset
-        </button>
+        <div className="text-[11px] text-gray-400 min-h-[14px]">
+          {saveState === "saving" && "Saving…"}
+          {saveState === "saved" && <span className="text-emerald-600">Saved</span>}
+          {saveState === "error" && <span className="text-amber-600">Save failed</span>}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
         {/* Edit fields */}
         <div className="p-5 space-y-3">
-          <Field label="Name" value={sig.name} onChange={(v) => onChange("name", v)} placeholder="Full name" />
-          <Field label="Title / role" value={sig.title} onChange={(v) => onChange("title", v)} placeholder="e.g. Medical doctor · Co-founder, Lifeline Health ehf." />
-          <Field label="Phone" value={sig.phone} onChange={(v) => onChange("phone", v)} placeholder="+354 000 0000" />
-          <Field label="Email" value={sig.email} onChange={(v) => onChange("email", v)} placeholder="name@lifelinehealth.is" />
+          <Field label="Name" value={sig.name} onChange={(v) => onChange("name", v)} onBlur={onBlur} placeholder="Full name" />
+          <Field label="Title / role" value={sig.title} onChange={(v) => onChange("title", v)} onBlur={onBlur} placeholder="e.g. Medical doctor · Co-founder, Lifeline Health ehf." />
+          <Field label="Phone" value={sig.phone} onChange={(v) => onChange("phone", v)} onBlur={onBlur} placeholder="+354 000 0000" />
+          <Field label="Email" value={sig.email} onChange={(v) => onChange("email", v)} onBlur={onBlur} placeholder="name@lifelinehealth.is" />
 
           <div className="flex flex-wrap gap-2 pt-2">
             <button
@@ -255,11 +277,13 @@ function Field({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
 }) {
   return (
@@ -269,6 +293,7 @@ function Field({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         placeholder={placeholder}
         className="w-full px-3 py-2 text-sm rounded-md border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
       />
