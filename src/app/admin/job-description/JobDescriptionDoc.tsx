@@ -1,28 +1,53 @@
-// Shared recruiting document for the Framkvæmdastjóri role. Rendered by
-// both the admin editor (/admin/job-description, editable) and the public
-// password-gated mirror (/verkefnalysing, read-only). Keeping the body in
-// one component means the two views never drift apart.
+// Shared recruiting document for the Framkvæmdastjóri role. Rendered by both
+// the admin editor (/admin/job-description, editable) and the public
+// password-gated mirror (/verkefnalysing, read-only). Keeping the body in one
+// component means the two views never drift apart.
 //
-// In editable mode the parent passes `set`; in read-only mode it omits it
-// and every field renders as plain text.
+// Every text field is editable: in editable mode the parent passes `set`; in
+// read-only mode it omits it and each field renders as plain text. The numeric
+// business-plan tables are reference data and stay code-defined.
 
 import type { ReactNode } from "react";
 
 export interface DocFields {
+  // Header + meta
   starfsheiti: string;
+  subtitle: string;
+  draftDate: string;
   yfirmadur: string;
   stadsetning: string;
   starfshlutfall: string;
   applicantName: string;
-  draftDate: string;
-  // Compensation — proposal column (also drives the headline cards)
+  // Section titles
+  aboutTitle: string;
+  tasksTitle: string;
+  kjorTitle: string;
+  bpTitle: string;
+  samantektTitle: string;
+  // Prose
+  about: string;
+  tasks: string;           // one task per line, "Title — description"
+  compStructure: string;   // amber callout
+  forsenda: string;        // emerald callout
+  equityBulletsTitle: string;
+  equityBullets: string;   // one bullet per line
+  bpIntro: string;
+  bpEquityIntro: string;
+  bpFootnote: string;
+  athugasemd: string;
+  footerLeft: string;
+  footerRight: string;
+  // Compensation — headline cards (value + note)
   salary: string;
+  salaryNote: string;
   bonus: string;
+  bonusNote: string;
   equity: string;
+  equityNote: string;
+  // Compensation — summary table (proposal + agreed)
   vesting: string;
   salaryStart: string;
   startDate: string;
-  // Compensation — agreed column
   salaryAgreed: string;
   bonusAgreed: string;
   equityAgreed: string;
@@ -33,14 +58,67 @@ export interface DocFields {
 
 export const DEFAULTS: DocFields = {
   starfsheiti: "Framkvæmdastjóri",
+  subtitle: "Starfslýsing og kjör",
+  draftDate: "28. maí 2026",
   yfirmadur: "Stofnendur / stjórn",
   stadsetning: "Reykjavík / fjarvinna",
   starfshlutfall: "30–50% (í fyrstu)",
   applicantName: "Elvar Páll Sigursson",
-  draftDate: "28. maí 2026",
+
+  aboutTitle: "Um starfið",
+  tasksTitle: "Helstu verkefni",
+  kjorTitle: "Kjör — tillaga",
+  bpTitle: "Forsendur — rekstraráætlun",
+  samantektTitle: "Samantekt kjara",
+
+  about:
+    "Lifeline leitar að framkvæmdastjóra til að leiða daglegan rekstur og halda utan um vöxt fyrirtækisins. Þú vinnur náið með stofnendum og teyminu, ert tengiliður við skjólstæðinga og samstarfsaðila, og berð ábyrgð á því að reksturinn gangi snurðulaust á meðan þjónustan stækkar.",
+
+  tasks: [
+    "Daglegur rekstur — skipulag, ferlar og samhæfing teymisins frá degi til dags.",
+    "Sala til fyrirtækja (B2B) — byggja upp sölupípu, ná samningum við vinnuveitendur, tryggingafélög og samstarfsaðila í heilbrigðisgeira, fylgja sölumarkmiðum eftir.",
+    "Launatengd mál — útreikningur og afgreiðsla launa, samskipti við launakerfi (Payday), staðgreiðslu, lífeyrissjóði og stéttarfélög.",
+    "Reikningar og bókhald — útgáfa reikninga, eftirfylgni krafna, samskipti við bókara/endurskoðanda, innsýn í sjóðstreymi.",
+    "Stuðningur við vöruþróun — aðstoða stofnenda og þróunarteymi við forgangsröðun og prófanir á vef og appi; miðla ábendingum skjólstæðinga inn í þróunarferlið.",
+    "Þýðingar og efnisframleiðsla — yfirferð og þýðing texta á íslensku/ensku þegar við á (markaðsefni, vörutextar, samningar, samskipti).",
+    "Tengiliður skjólstæðinga — fyrsta línan fyrir lykilskjólstæðinga og samstarfsaðila; tryggja framúrskarandi upplifun og endurgjöf til teymisins.",
+    "Markaðsmál — halda utan um markaðsáætlun, samfélagsmiðla, herferðir og samstarf, í samvinnu við stofnendur.",
+  ].join("\n"),
+
+  compStructure:
+    "Uppbygging launakjara. Fyrstu 6–12 mánuði fær framkvæmdastjóri hlutafé í stað launa á meðan fyrstu heilsutékkar (Health Check) eru seldir og fyrirtækið byggir upp tekjur. Þegar nægt fjármagn hefur skilað sér samþykkir stjórn að hefja launagreiðslur. Starfshlutfall er 30–50% til að byrja með og getur aukist eftir umfangi og tekjum.",
+
+  forsenda:
+    "Forsenda: ~3,2 ma. ISK er framtíðarmarkmið (heildar-EBITDA × 10 árið 2031, sjá rekstraráætlun hér að neðan), ekki verðmat í dag. Verðmat félagsins núna er mun lægra. Því á prósentan að vera hærri (starfsmaðurinn tekur áhættu snemma) og krónutalan er „upside“-sagan — næst aðeins ef áætlanir ganga eftir.",
+
+  equityBulletsTitle: "Eignarhlutur við undirritun:",
+  equityBullets: [
+    "Hlutafé í stað launa fyrstu 6–12 mánuði — endurgjald fyrir vinnu á meðan tekjur byggjast upp. Laun bætast við þegar stjórn samþykkir.",
+    "Framtíðarupphæð (rekstraráætlun 2031): 1% ≈ 32 m.kr., 2% ≈ 65 m.kr., 3% ≈ 97 m.kr. — aðeins ef áætlanir ganga eftir (sjá töflu hér að neðan).",
+    "Virði í dag er mun lægra (núverandi verðmat), sem er einmitt ástæðan fyrir hærri prósentu.",
+    "„Við undirritun“ þýðir úthlutun (grant) með vesting, ekki að hluturinn skipti um hendur samdægurs: 2 ára vesting, enginn cliff (1/24 á mánuði), good/bad-leaver ákvæði, og skoða má kaupréttarsamning (options) í stað beinnar úthlutunar.",
+  ].join("\n"),
+
+  bpIntro:
+    "Tillagan byggir á eftirfarandi tölum úr rekstraráætlun (allar fjárhæðir í ISK). Verðmat miðast við heildar-EBITDA margfaldað með 10.",
+  bpEquityIntro:
+    "Virði eignarhlutar eftir hlutfalli og ári (= verðmat × hlutfall). Tillagða bilið 1,5%–3% er auðkennt.",
+  bpFootnote:
+    "Tölur eru áætlanir, ekki loforð. Raunvirði ræðst af rekstri og markaðsaðstæðum og getur orðið hærra eða lægra.",
+
+  athugasemd:
+    "Þetta eru viðmið — endanleg laun og hlutur ráðast af reynslu viðkomandi og samkomulagi við aðra hluthafa. Mælt er sterklega með að bera vesting-fyrirkomulag og skattalega meðferð undir endurskoðanda og lögmann áður en samningur er undirritaður — sérstaklega muninn á beinni hlutaúthlutun, kaupréttarsamningi og phantom shares, sem getur skipt tugum milljóna í skatti fyrir starfsmanninn.",
+
+  footerLeft: "Lifeline — Verkefnalýsing framkvæmdastjóra",
+  footerRight: "Trúnaðarmál · Drög",
+
   salary: "1.300.000 – 1.700.000 kr.",
+  salaryNote: "hefst v. samþykki stjórnar",
   bonus: "10–20% af árslaunum",
+  bonusNote: "árangurstengt",
   equity: "1,5% – 3%",
+  equityNote: "vesting 2 ár, enginn cliff",
+
   vesting: "2 ár, enginn cliff",
   salaryStart: "Við samþykki stjórnar (eftir 6–12 mán.)",
   startDate: "",
@@ -52,20 +130,8 @@ export const DEFAULTS: DocFields = {
   startAgreed: "",
 };
 
-const TASKS: [string, string][] = [
-  ["Daglegur rekstur", "skipulag, ferlar og samhæfing teymisins frá degi til dags."],
-  ["Sala til fyrirtækja (B2B)", "byggja upp sölupípu, ná samningum við vinnuveitendur, tryggingafélög og samstarfsaðila í heilbrigðisgeira, fylgja sölumarkmiðum eftir."],
-  ["Launatengd mál", "útreikningur og afgreiðsla launa, samskipti við launakerfi (Payday), staðgreiðslu, lífeyrissjóði og stéttarfélög."],
-  ["Reikningar og bókhald", "útgáfa reikninga, eftirfylgni krafna, samskipti við bókara/endurskoðanda, innsýn í sjóðstreymi."],
-  ["Stuðningur við vöruþróun", "aðstoða stofnenda og þróunarteymi við forgangsröðun og prófanir á vef og appi; miðla ábendingum skjólstæðinga inn í þróunarferlið."],
-  ["Þýðingar og efnisframleiðsla", "yfirferð og þýðing texta á íslensku/ensku þegar við á (markaðsefni, vörutextar, samningar, samskipti)."],
-  ["Tengiliður skjólstæðinga", "fyrsta línan fyrir lykilskjólstæðinga og samstarfsaðila; tryggja framúrskarandi upplifun og endurgjöf til teymisins."],
-  ["Markaðsmál", "halda utan um markaðsáætlun, samfélagsmiðla, herferðir og samstarf, í samvinnu við stofnendur."],
-];
-
-// ─── Business-plan projections (reference figures the proposal is based
-// on). Static — these come from the plan. Enterprise value = Total EBITDA
-// × 10. Equity values are derived from EV so they always reconcile.
+// ─── Business-plan projections (reference figures). Static — Enterprise
+// value = Total EBITDA × 10; equity values derived from EV so they reconcile.
 const BP_YEARS = ["2027", "2028", "2029", "2030", "2031"] as const;
 
 const BP_EBITDA: { label: string; vals: number[]; total?: boolean }[] = [
@@ -78,12 +144,25 @@ const BP_EV = [188088274, 604823716, 1320014903, 2093133409, 3227518257];
 
 const BP_PCTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-// Icelandic thousands grouping with "." separator, e.g. 1880883 -> "1.880.883".
 function fmtISK(n: number): string {
   const neg = n < 0;
   const s = Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return (neg ? "-" : "") + s;
 }
+
+// Bold the lead phrase of a list line up to the first " — " separator.
+function leadBold(line: string): ReactNode {
+  const idx = line.indexOf(" — ");
+  if (idx === -1) return line;
+  return (
+    <>
+      <strong className="text-gray-900">{line.slice(0, idx)}</strong>
+      {line.slice(idx)}
+    </>
+  );
+}
+
+const splitLines = (s: string) => s.split("\n").filter((l) => l.trim().length > 0);
 
 export function JobDescriptionDoc({
   fields,
@@ -94,10 +173,9 @@ export function JobDescriptionDoc({
   set?: (k: keyof DocFields) => (v: string) => void;
   readOnly?: boolean;
 }) {
-  // Returns an onChange handler in editable mode, undefined in read-only —
-  // the building blocks render plain text when handed undefined.
   const on = (k: keyof DocFields): ((v: string) => void) | undefined =>
     readOnly || !set ? undefined : set(k);
+  const editing = !readOnly && !!set;
 
   return (
     <>
@@ -105,12 +183,15 @@ export function JobDescriptionDoc({
         .jd-input { background: transparent; border: 0; border-bottom: 1px dashed #cbd5e1; padding: 1px 2px; font: inherit; color: inherit; width: 100%; outline: none; }
         .jd-input:focus { border-bottom-color: #10b981; background: #ecfdf5; }
         .jd-input::placeholder { color: #9ca3af; }
+        .jd-area { display: block; width: 100%; background: transparent; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 6px 8px; font: inherit; color: inherit; outline: none; resize: vertical; field-sizing: content; }
+        .jd-area:focus { border-color: #10b981; background: #ecfdf5; }
+        .jd-hint { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
         @media print {
           body * { visibility: hidden !important; }
           #jobdoc, #jobdoc * { visibility: visible !important; }
           #jobdoc { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: 0 !important; margin: 0 !important; }
           .jd-noprint { display: none !important; }
-          .jd-input { border: 0 !important; background: transparent !important; }
+          .jd-input, .jd-area { border: 0 !important; background: transparent !important; }
           @page { margin: 16mm; }
         }
       `}</style>
@@ -126,7 +207,7 @@ export function JobDescriptionDoc({
           <h2 className="text-3xl font-bold text-gray-900 leading-tight">
             Verkefnalýsing — <EditInline value={fields.starfsheiti} onChange={on("starfsheiti")} className="inline-block min-w-[180px] align-baseline" />
           </h2>
-          <p className="text-gray-500 mt-1">Starfslýsing og kjör</p>
+          <p className="text-gray-500 mt-1"><EditInline value={fields.subtitle} onChange={on("subtitle")} className="inline-block min-w-[160px]" /></p>
           <span className="inline-block mt-4 text-[12.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
             Drög til yfirferðar · <EditInline value={fields.draftDate} onChange={on("draftDate")} className="inline-block min-w-[90px]" />
           </span>
@@ -143,68 +224,70 @@ export function JobDescriptionDoc({
         </div>
 
         {/* Um starfið */}
-        <Section title="Um starfið">
-          <p>
-            Lifeline leitar að framkvæmdastjóra til að leiða daglegan rekstur og halda utan um vöxt
-            fyrirtækisins. Þú vinnur náið með stofnendum og teyminu, ert tengiliður við skjólstæðinga
-            og samstarfsaðila, og berð ábyrgð á því að reksturinn gangi snurðulaust á meðan þjónustan stækkar.
-          </p>
+        <Section title={fields.aboutTitle} onTitleChange={on("aboutTitle")}>
+          <EditBlock value={fields.about} onChange={on("about")} rows={3} />
         </Section>
 
         {/* Helstu verkefni */}
-        <Section title="Helstu verkefni">
-          <ul className="space-y-0">
-            {TASKS.map(([t, d]) => (
-              <li key={t} className="relative pl-6 py-2.5 border-b border-gray-100 last:border-0">
-                <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
-                <strong className="text-gray-900">{t}</strong> — {d}
-              </li>
-            ))}
-          </ul>
+        <Section title={fields.tasksTitle} onTitleChange={on("tasksTitle")}>
+          {editing ? (
+            <>
+              <p className="jd-hint">Ein lína = eitt atriði. Texti á undan „ — “ verður feitletraður.</p>
+              <EditBlock value={fields.tasks} onChange={on("tasks")} rows={9} />
+            </>
+          ) : (
+            <ul className="space-y-0">
+              {splitLines(fields.tasks).map((line, i) => (
+                <li key={i} className="relative pl-6 py-2.5 border-b border-gray-100 last:border-0">
+                  <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
+                  {leadBold(line)}
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
 
         {/* Kjör */}
-        <Section title="Kjör — tillaga">
-          {/* Comp structure: equity-first, salary deferred until board approval */}
-          <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-5 py-4 mb-5">
-            <strong className="text-amber-800">Uppbygging launakjara.</strong> Fyrstu{" "}
-            <strong>6–12 mánuði</strong> fær framkvæmdastjóri <strong>hlutafé í stað launa</strong> á meðan
-            fyrstu heilsutékkar (Health Check) eru seldir og fyrirtækið byggir upp tekjur. Þegar nægt fjármagn
-            hefur skilað sér <strong>samþykkir stjórn að hefja launagreiðslur</strong>. Starfshlutfall er{" "}
-            <strong>30–50%</strong> til að byrja með og getur aukist eftir umfangi og tekjum.
+        <Section title={fields.kjorTitle} onTitleChange={on("kjorTitle")}>
+          <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-5 py-4 mb-5 text-amber-900">
+            <EditBlock value={fields.compStructure} onChange={on("compStructure")} rows={4} />
           </div>
 
           <div className="bg-emerald-50 border-l-4 border-emerald-600 rounded-r-lg px-5 py-4 mb-5">
-            <strong className="text-emerald-700">Forsenda:</strong> ~3,2 ma. ISK er <em>framtíðarmarkmið</em>{" "}
-            (heildar-EBITDA × 10 árið 2031, sjá rekstraráætlun hér að neðan), <strong>ekki verðmat í dag</strong>.
-            Verðmat félagsins núna er mun lægra. Því á prósentan að vera hærri (starfsmaðurinn tekur áhættu snemma)
-            og krónutalan er „upside“-sagan — næst aðeins ef áætlanir ganga eftir.
+            <EditBlock value={fields.forsenda} onChange={on("forsenda")} rows={4} />
           </div>
 
           {/* Headline cards */}
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <Card label="Grunnlaun / mán." value={fields.salary} onChange={on("salary")} note="hefst v. samþykki stjórnar" />
-            <Card label="Bónus" value={fields.bonus} onChange={on("bonus")} note="árangurstengt" />
-            <Card label="Eignarhlutur" value={fields.equity} onChange={on("equity")} note="vesting 2 ár, enginn cliff" />
+            <Card label="Grunnlaun / mán." value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
+            <Card label="Bónus" value={fields.bonus} onChange={on("bonus")} note={fields.bonusNote} onNoteChange={on("bonusNote")} />
+            <Card label="Eignarhlutur" value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
           </div>
 
-          <p className="mb-2"><strong>Eignarhlutur við undirritun:</strong></p>
-          <ul className="list-disc pl-5 space-y-1.5 mb-2">
-            <li><strong>Hlutafé í stað launa fyrstu 6–12 mánuði</strong> — endurgjald fyrir vinnu á meðan tekjur byggjast upp. Laun bætast við þegar stjórn samþykkir.</li>
-            <li><strong>Framtíðarupphæð (rekstraráætlun 2031):</strong> 1% ≈ 32 m.kr., 2% ≈ 65 m.kr., 3% ≈ 97 m.kr. — aðeins ef áætlanir ganga eftir (sjá töflu hér að neðan).</li>
-            <li><strong>Virði í dag er mun lægra</strong> (núverandi verðmat), sem er einmitt ástæðan fyrir hærri prósentu.</li>
-            <li>„Við undirritun“ þýðir <strong>úthlutun (grant) með vesting</strong>, ekki að hluturinn skipti um hendur samdægurs: <strong>2 ára vesting, enginn cliff</strong> (1/24 á mánuði), good/bad-leaver ákvæði, og skoða má kaupréttarsamning (options) í stað beinnar úthlutunar.</li>
-          </ul>
+          <p className="mb-2 font-semibold">
+            <EditInline value={fields.equityBulletsTitle} onChange={on("equityBulletsTitle")} className="inline-block min-w-[200px]" />
+          </p>
+          {editing ? (
+            <>
+              <p className="jd-hint">Ein lína = einn punktur. Texti á undan „ — “ verður feitletraður.</p>
+              <EditBlock value={fields.equityBullets} onChange={on("equityBullets")} rows={7} />
+            </>
+          ) : (
+            <ul className="list-disc pl-5 space-y-1.5 mb-2">
+              {splitLines(fields.equityBullets).map((line, i) => (
+                <li key={i}>{leadBold(line)}</li>
+              ))}
+            </ul>
+          )}
         </Section>
 
         {/* Forsendur úr rekstraráætlun */}
-        <Section title="Forsendur — rekstraráætlun">
-          <p className="mb-3 text-gray-600">
-            Tillagan byggir á eftirfarandi tölum úr rekstraráætlun (allar fjárhæðir í ISK). Verðmat miðast við
-            heildar-EBITDA margfaldað með 10.
-          </p>
+        <Section title={fields.bpTitle} onTitleChange={on("bpTitle")}>
+          <div className="mb-3 text-gray-600">
+            <EditBlock value={fields.bpIntro} onChange={on("bpIntro")} rows={2} />
+          </div>
 
-          {/* EBITDA + enterprise value */}
+          {/* EBITDA + enterprise value (reference numbers, not editable) */}
           <table className="w-full border-collapse text-[12px] tabular-nums mb-6">
             <thead>
               <tr className="bg-gray-900 text-white">
@@ -238,10 +321,9 @@ export function JobDescriptionDoc({
             </tbody>
           </table>
 
-          <p className="mb-3 text-gray-600">
-            Virði eignarhlutar eftir hlutfalli og ári (= verðmat × hlutfall). Tillagða bilið
-            <strong> 1,5%–3%</strong> er auðkennt.
-          </p>
+          <div className="mb-3 text-gray-600">
+            <EditBlock value={fields.bpEquityIntro} onChange={on("bpEquityIntro")} rows={2} />
+          </div>
 
           {/* Equity value by percentage */}
           <table className="w-full border-collapse text-[11px] tabular-nums">
@@ -267,13 +349,13 @@ export function JobDescriptionDoc({
               })}
             </tbody>
           </table>
-          <p className="mt-2 text-[12px] text-gray-400">
-            Tölur eru áætlanir, ekki loforð. Raunvirði ræðst af rekstri og markaðsaðstæðum og getur orðið hærra eða lægra.
-          </p>
+          <div className="mt-2 text-[12px] text-gray-400">
+            <EditBlock value={fields.bpFootnote} onChange={on("bpFootnote")} rows={2} />
+          </div>
         </Section>
 
         {/* Samantekt kjara */}
-        <Section title="Samantekt kjara">
+        <Section title={fields.samantektTitle} onTitleChange={on("samantektTitle")}>
           <table className="w-full border-collapse text-[14px]">
             <thead>
               <tr className="bg-gray-900 text-white text-left">
@@ -295,16 +377,13 @@ export function JobDescriptionDoc({
 
         {/* Athugasemd */}
         <div className="mt-8 bg-[#fbf7f0] border border-[#efe3cf] rounded-lg px-6 py-5 text-[14px] text-[#5b4f3a]">
-          <strong className="text-[#7a5c1e]">Athugasemd.</strong> Þetta eru viðmið — endanleg laun og hlutur
-          ráðast af reynslu viðkomandi og samkomulagi við aðra hluthafa. Mælt er sterklega með að bera
-          vesting-fyrirkomulag og skattalega meðferð undir endurskoðanda og lögmann áður en samningur er
-          undirritaður — sérstaklega muninn á beinni hlutaúthlutun, kaupréttarsamningi og phantom shares,
-          sem getur skipt tugum milljóna í skatti fyrir starfsmanninn.
+          <strong className="text-[#7a5c1e]">Athugasemd.</strong>{" "}
+          <EditBlock value={fields.athugasemd} onChange={on("athugasemd")} rows={4} className="inline-block align-top" />
         </div>
 
-        <div className="mt-8 pt-4 border-t border-gray-200 flex justify-between text-[12.5px] text-gray-400">
-          <span>Lifeline — Verkefnalýsing framkvæmdastjóra</span>
-          <span>Trúnaðarmál · Drög</span>
+        <div className="mt-8 pt-4 border-t border-gray-200 flex justify-between gap-4 text-[12.5px] text-gray-400">
+          <EditInline value={fields.footerLeft} onChange={on("footerLeft")} className="min-w-[180px]" />
+          <EditInline value={fields.footerRight} onChange={on("footerRight")} className="min-w-[100px] text-right" />
         </div>
       </div>
     </>
@@ -313,11 +392,19 @@ export function JobDescriptionDoc({
 
 // ─── Building blocks ────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title, onTitleChange, children,
+}: {
+  title: string; onTitleChange?: (v: string) => void; children: ReactNode;
+}) {
   return (
     <section className="mb-7">
       <h3 className="text-[13px] font-bold uppercase tracking-wider text-emerald-700 border-b border-gray-200 pb-2 mb-4">
-        {title}
+        {onTitleChange ? (
+          <input className="jd-input uppercase" value={title} onChange={(e) => onTitleChange(e.target.value)} />
+        ) : (
+          title
+        )}
       </h3>
       {children}
     </section>
@@ -342,9 +429,9 @@ function MetaCell({
 }
 
 function Card({
-  label, value, onChange, note,
+  label, value, onChange, note, onNoteChange,
 }: {
-  label: string; value: string; onChange?: (v: string) => void; note: string;
+  label: string; value: string; onChange?: (v: string) => void; note: string; onNoteChange?: (v: string) => void;
 }) {
   return (
     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
@@ -358,7 +445,11 @@ function Card({
       ) : (
         <div className="text-[18px] font-bold text-emerald-700 mt-1.5">{value}</div>
       )}
-      <div className="text-[12px] text-gray-500 mt-1">{note}</div>
+      {onNoteChange ? (
+        <input className="jd-input text-center text-[12px] text-gray-500 mt-1" value={note} onChange={(e) => onNoteChange(e.target.value)} />
+      ) : (
+        <div className="text-[12px] text-gray-500 mt-1">{note}</div>
+      )}
     </div>
   );
 }
@@ -404,6 +495,22 @@ function EditInline({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       style={{ width: `${Math.max(value.length + 1, 6)}ch` }}
+    />
+  );
+}
+
+function EditBlock({
+  value, onChange, rows = 3, className = "",
+}: {
+  value: string; onChange?: (v: string) => void; rows?: number; className?: string;
+}) {
+  if (!onChange) return <span className={`whitespace-pre-wrap ${className}`}>{value}</span>;
+  return (
+    <textarea
+      className={`jd-area ${className}`}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={rows}
     />
   );
 }
