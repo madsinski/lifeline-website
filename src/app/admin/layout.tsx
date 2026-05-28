@@ -610,6 +610,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           } catch { /* fall through */ }
         }
 
+        // Admins get the coming-soon bypass cookie so they can browse the
+        // public marketing site without the splash. The gate is cosmetic
+        // (see src/middleware.ts) — this reuses its existing `site_preview`
+        // bypass, so production stays gated for everyone except logged-in
+        // admins. 30-day cookie; refreshed on every admin page load.
+        if (inlineRole === "admin") {
+          document.cookie = `site_preview=lifelinepreview2026; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`;
+        }
+
         // MFA gate. Admins/clinicians/coaches handle patient data — they
         // need a TOTP-verified session (AAL2). External counsel (lawyer)
         // only ever sees /admin/legal/*, which contains zero patient data,
