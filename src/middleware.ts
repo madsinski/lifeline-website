@@ -5,6 +5,13 @@ const BYPASS_KEY = 'lifelinepreview2026';
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
+  // On Vercel preview deployments, skip the coming-soon gate entirely so the
+  // team/admins can browse the whole site on the preview URL. Production
+  // (VERCEL_ENV === 'production') stays gated, so this is safe to merge.
+  if (process.env.VERCEL_ENV === 'preview') {
+    return NextResponse.next();
+  }
+
   // Allow auth callbacks, admin, API routes, and static assets through.
   // /research/* serves unlisted internal documents (e.g. the clinical
   // advisor protocol summary) — those are still gated by the URL being
