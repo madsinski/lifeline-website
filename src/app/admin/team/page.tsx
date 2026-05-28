@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Fragment } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
@@ -556,6 +557,20 @@ export default function TeamPage() {
           <p className="text-sm text-gray-500 mt-1">
             Manage staff members who can be assigned to clients
           </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
+            <Link
+              href="/admin/signatures"
+              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+            >
+              Email signatures →
+            </Link>
+            <Link
+              href="/admin/job-description"
+              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+            >
+              Verkefnalýsing (framkvæmdastjóri) →
+            </Link>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button

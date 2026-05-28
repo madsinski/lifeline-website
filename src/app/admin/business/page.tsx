@@ -114,12 +114,6 @@ export default function BusinessPage() {
               >
                 Legal documents &amp; agreements →
               </Link>
-              <Link
-                href="/admin/signatures"
-                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
-              >
-                Email signatures →
-              </Link>
             </div>
           </div>
         </div>
