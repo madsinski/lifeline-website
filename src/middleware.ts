@@ -16,6 +16,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/account') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/research') ||
+    pathname.startsWith('/survey') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|html|pdf|txt|woff|woff2|ttf)$/)

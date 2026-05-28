@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import LifelineLogo from "./LifelineLogo";
 import { useI18n } from "@/lib/i18n";
 
@@ -11,6 +12,12 @@ export default function Footer() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useI18n();
+  const pathname = usePathname();
+
+  // Match Navbar — survey respondent pages + research docs are chrome-free.
+  if (pathname.startsWith("/survey") || pathname.startsWith("/research")) {
+    return null;
+  }
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

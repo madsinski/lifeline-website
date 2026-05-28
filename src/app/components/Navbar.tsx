@@ -88,6 +88,13 @@ export default function Navbar() {
     });
   }, [pathname]);
 
+  // Survey respondent pages and unlisted research documents render
+  // chrome-free — no marketing nav. Placed after all hooks so the
+  // rules of hooks are respected.
+  if (pathname.startsWith("/survey") || pathname.startsWith("/research")) {
+    return null;
+  }
+
   return (
     <>
     <nav
