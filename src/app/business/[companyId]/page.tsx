@@ -506,7 +506,7 @@ export default function BusinessDashboardPage() {
               <div className="font-semibold mb-1">You&apos;ll need to provide on the day:</div>
               <ul className="list-disc list-inside space-y-0.5">
                 <li>A private room at your office</li>
-                <li>A computer with two screens</li>
+                <li>One computer screen</li>
                 <li>A quiet environment — each 5-minute measurement is private</li>
               </ul>
             </div>

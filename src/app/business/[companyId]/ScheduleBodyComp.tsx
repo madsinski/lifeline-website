@@ -146,7 +146,7 @@ export default function ScheduleBodyComp({ companyId, onClose, onCreated }: Prop
             </div>
             <ul className="list-disc list-inside space-y-0.5 text-amber-900">
               <li>{t("b2b.sched_bc.req1", "A private room")}</li>
-              <li>{t("b2b.sched_bc.req2", "A computer with two screens")}</li>
+              <li>{t("b2b.sched_bc.req2", "One computer screen")}</li>
               <li>{t("b2b.sched_bc.req3", "An employee roster already added here")}</li>
               <li>{t("b2b.sched_bc.req4", "Quiet environment — each measurement is private")}</li>
             </ul>

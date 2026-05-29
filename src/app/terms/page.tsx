@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
+import { TOS_VERSION, DPA_VERSION } from "@/lib/platform-terms-content";
 
 export const metadata = {
   title: "Terms & Privacy — Lifeline Health",
@@ -141,6 +142,20 @@ export default function TermsPage() {
           <li>Your organisation represents that it has a lawful basis (employment contract, occupational-health programme, or employee consent) to share employee contact information with Lifeline.</li>
           <li>Lifeline will delete employee records at your written request, except where retention is legally required.</li>
         </ul>
+        <p>
+          When a company is created in the Lifeline portal, the authorised contact person separately
+          accepts two dedicated agreements, each maintained and versioned on its own:
+        </p>
+        <ul>
+          <li>the <strong>Platform Terms of Service (Notkunarskilmálar, {TOS_VERSION})</strong> governing portal access, and</li>
+          <li>the <strong>Data Processing Agreement (Vinnslusamningur, {DPA_VERSION})</strong> under GDPR Art. 28.</li>
+        </ul>
+        <p>
+          Those documents — together with the company&apos;s separately signed service agreement and
+          purchase order — are the binding instruments for B2B customers. This page is the general
+          consumer-facing terms and privacy policy; its version number is independent of the B2B
+          platform agreements above.
+        </p>
 
         <h2>12. Payment and subscriptions</h2>
         <p>
