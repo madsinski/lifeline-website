@@ -49,6 +49,21 @@ function contact(text: string, color: string, extraStyle = ""): string {
   return `<span style="color:${color};text-decoration:none;${extraStyle}">${escapeHtml(text)}</span>`;
 }
 
+// Gmail and Apple Mail auto-linkify any text that looks like an email or
+// URL — recolouring it blue and underlining it, even inside a styled
+// span. Inserting a zero-width space breaks the pattern so the auto-linker
+// no longer matches; it is invisible to the reader.
+const ZWSP = "​";
+function noAutoLinkUrl(text: string): string {
+  // Break just before the TLD dot, e.g. lifelinehealth<zwsp>.is
+  return text.replace(/\.([a-z]{2,})(?=$|\/|\b)/i, `${ZWSP}.$1`);
+}
+function noAutoLinkEmail(email: string): string {
+  // Break after the @ and before the TLD so neither the email nor its
+  // domain is auto-detected.
+  return noAutoLinkUrl(email.replace("@", `@${ZWSP}`));
+}
+
 // ─── Design 1: Stacked (current) ────────────────────────────────────
 // Full wordmark on top, name + title with emerald accent line under,
 // contact row below.
@@ -66,9 +81,9 @@ function buildStacked(s: SignatureFields): string {
     `<tr><td style="padding-top:8px;font-size:12px;color:#4B5563;">`,
     contact(s.phone, "#4B5563"),
     ` &middot; `,
-    contact(s.email, "#4B5563"),
+    contact(noAutoLinkEmail(s.email), "#4B5563"),
     ` &middot; `,
-    contact("lifelinehealth.is", "#10B981", "font-weight:600;"),
+    contact(noAutoLinkUrl("lifelinehealth.is"), "#10B981", "font-weight:600;"),
     `</td></tr>`,
     `</table>`,
   ].join("");
@@ -92,10 +107,10 @@ function buildCompact(s: SignatureFields): string {
     `<div style="font-size:11.5px;color:#4B5563;">`,
     contact(s.phone, "#4B5563"),
     ` &middot; `,
-    contact(s.email, "#4B5563"),
+    contact(noAutoLinkEmail(s.email), "#4B5563"),
     `</div>`,
     `<div style="font-size:11.5px;padding-top:1px;">`,
-    contact("lifelinehealth.is", "#10B981", "font-weight:600;"),
+    contact(noAutoLinkUrl("lifelinehealth.is"), "#10B981", "font-weight:600;"),
     `</div>`,
     `</td>`,
     `</tr>`,
@@ -121,9 +136,9 @@ function buildCard(s: SignatureFields): string {
     `<div style="font-size:12px;color:#065F46;line-height:1.7;">`,
     contact(s.phone, "#065F46"),
     ` &middot; `,
-    contact(s.email, "#065F46"),
+    contact(noAutoLinkEmail(s.email), "#065F46"),
     ` &middot; `,
-    contact("lifelinehealth.is", "#10B981", "font-weight:700;"),
+    contact(noAutoLinkUrl("lifelinehealth.is"), "#10B981", "font-weight:700;"),
     `</div>`,
     `</td></tr>`,
     `</table>`,
@@ -219,6 +234,41 @@ export default function SignaturesPage() {
     if (cur) persist(cur);
   };
 
+  const [adding, setAdding] = useState(false);
+
+  const addSignature = async () => {
+    setAdding(true);
+    try {
+      const headers = { "Content-Type": "application/json", ...(await authHeader()) };
+      const res = await fetch("/api/admin/signatures", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ name: "New signature", title: "Lifeline Health ehf." }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const j = await res.json();
+      if (j.signature) setSigs((prev) => [...prev, j.signature as SignatureFields]);
+    } catch {
+      alert("Could not add signature.");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const removeSignature = async (key: string) => {
+    if (!confirm("Remove this signature? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/admin/signatures?key=${encodeURIComponent(key)}`, {
+        method: "DELETE",
+        headers: await authHeader(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setSigs((prev) => prev.filter((s) => s.key !== key));
+    } catch {
+      alert("Could not remove signature.");
+    }
+  };
+
   if (loading) {
     return <div className="px-8 py-6 text-sm text-gray-500">Loading signatures…</div>;
   }
@@ -237,12 +287,25 @@ export default function SignaturesPage() {
   return (
     <div className="px-8 py-6 max-w-5xl">
       <BackButton fallback="/admin/settings" label="Back to Settings" className="mb-4 -ml-3" />
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Email signatures</h1>
-        <p className="text-sm text-gray-500">
-          Edit the details — changes save automatically to a shared table so every founder sees the same values.
-          Use "Copy formatted (for Gmail)" then paste into Gmail Workspace → Settings → Signature.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 mb-1">Email signatures</h1>
+          <p className="text-sm text-gray-500">
+            Edit the details — changes save automatically to a shared table so every founder sees the same values.
+            Use "Copy formatted (for Gmail)" then paste into Gmail Workspace → Settings → Signature.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={addSignature}
+          disabled={adding}
+          className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {adding ? "Adding…" : "Add signature"}
+        </button>
       </div>
 
       <div className="space-y-6">
@@ -253,6 +316,7 @@ export default function SignaturesPage() {
             saveState={saveState[s.key] ?? "idle"}
             onChange={(field, value) => updateField(s.key, field, value)}
             onBlur={() => saveNow(s.key)}
+            onRemove={() => removeSignature(s.key)}
           />
         ))}
       </div>
@@ -267,11 +331,13 @@ function SignatureCard({
   saveState,
   onChange,
   onBlur,
+  onRemove,
 }: {
   sig: SignatureFields;
   saveState: "idle" | "saving" | "saved" | "error";
   onChange: (field: keyof SignatureFields, value: string) => void;
   onBlur: () => void;
+  onRemove: () => void;
 }) {
   const [design, setDesign] = useState<DesignKey>("stacked");
   const html = useMemo(() => DESIGN_BUILDERS[design](sig), [design, sig]);
@@ -309,10 +375,19 @@ function SignatureCard({
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <div className="text-sm font-semibold text-gray-700">{sig.name || "(unnamed)"}</div>
-        <div className="text-[11px] text-gray-400 min-h-[14px]">
-          {saveState === "saving" && "Saving…"}
-          {saveState === "saved" && <span className="text-emerald-600">Saved</span>}
-          {saveState === "error" && <span className="text-amber-600">Save failed</span>}
+        <div className="flex items-center gap-3">
+          <div className="text-[11px] text-gray-400 min-h-[14px]">
+            {saveState === "saving" && "Saving…"}
+            {saveState === "saved" && <span className="text-emerald-600">Saved</span>}
+            {saveState === "error" && <span className="text-amber-600">Save failed</span>}
+          </div>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-[11px] font-medium text-red-600 hover:text-red-700 hover:underline"
+          >
+            Remove
+          </button>
         </div>
       </div>
 
