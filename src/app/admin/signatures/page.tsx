@@ -40,21 +40,13 @@ const DESIGN_BLURBS: Record<DesignKey, string> = {
   card:    "Logo + contact info inside a soft emerald-tinted card. More designy / pitch-flavored.",
 };
 
-// Gmail re-applies its own underline to raw <a> tags even when
-// text-decoration:none is set on the anchor. Wrapping the visible
-// text in an inner <span> with explicit color + text-decoration:none
-// suppresses that — the technique used by Apple, Stripe, etc. in
-// their transactional emails.
-function noUnderlineLink(href: string, text: string, color: string, extraSpanStyle = ""): string {
-  return (
-    `<a href="${href}" style="color:${color};text-decoration:none;border-bottom:0;">` +
-      `<span style="color:${color};text-decoration:none;border-bottom:0;${extraSpanStyle}">${escapeHtml(text)}</span>` +
-    `</a>`
-  );
-}
-
-function telHref(phone: string): string {
-  return `tel:${phone.replace(/\s+/g, "")}`;
+// Contact details (phone, email, web) are rendered as plain styled text
+// rather than <a> links. Email clients (notably Gmail and Apple Mail)
+// force their own underline onto anchors regardless of text-decoration:none,
+// so the only reliable way to keep the signature clean is to not use links
+// for these — the address is still copy/selectable.
+function contact(text: string, color: string, extraStyle = ""): string {
+  return `<span style="color:${color};text-decoration:none;${extraStyle}">${escapeHtml(text)}</span>`;
 }
 
 // ─── Design 1: Stacked (current) ────────────────────────────────────
@@ -72,11 +64,11 @@ function buildStacked(s: SignatureFields): string {
     `<span style="font-size:12px;color:#6B7280;letter-spacing:0.2px;">${escapeHtml(s.title)}</span>`,
     `</td></tr>`,
     `<tr><td style="padding-top:8px;font-size:12px;color:#4B5563;">`,
-    noUnderlineLink(telHref(s.phone), s.phone, "#4B5563"),
+    contact(s.phone, "#4B5563"),
     ` &middot; `,
-    noUnderlineLink(`mailto:${s.email}`, s.email, "#4B5563"),
+    contact(s.email, "#4B5563"),
     ` &middot; `,
-    noUnderlineLink("https://lifelinehealth.is", "lifelinehealth.is", "#10B981", "font-weight:600;"),
+    contact("lifelinehealth.is", "#10B981", "font-weight:600;"),
     `</td></tr>`,
     `</table>`,
   ].join("");
@@ -98,12 +90,12 @@ function buildCompact(s: SignatureFields): string {
     `<div style="font-size:14px;font-weight:700;color:#111827;">${escapeHtml(s.name)}</div>`,
     `<div style="font-size:11.5px;color:#6B7280;padding-bottom:4px;">${escapeHtml(s.title)}</div>`,
     `<div style="font-size:11.5px;color:#4B5563;">`,
-    noUnderlineLink(telHref(s.phone), s.phone, "#4B5563"),
+    contact(s.phone, "#4B5563"),
     ` &middot; `,
-    noUnderlineLink(`mailto:${s.email}`, s.email, "#4B5563"),
+    contact(s.email, "#4B5563"),
     `</div>`,
     `<div style="font-size:11.5px;padding-top:1px;">`,
-    noUnderlineLink("https://lifelinehealth.is", "lifelinehealth.is", "#10B981", "font-weight:600;"),
+    contact("lifelinehealth.is", "#10B981", "font-weight:600;"),
     `</div>`,
     `</td>`,
     `</tr>`,
@@ -127,11 +119,11 @@ function buildCard(s: SignatureFields): string {
     `<div style="font-size:12px;color:#047857;padding-bottom:10px;">${escapeHtml(s.title)}</div>`,
     // Contact rows
     `<div style="font-size:12px;color:#065F46;line-height:1.7;">`,
-    noUnderlineLink(telHref(s.phone), s.phone, "#065F46"),
+    contact(s.phone, "#065F46"),
     ` &middot; `,
-    noUnderlineLink(`mailto:${s.email}`, s.email, "#065F46"),
+    contact(s.email, "#065F46"),
     ` &middot; `,
-    noUnderlineLink("https://lifelinehealth.is", "lifelinehealth.is", "#10B981", "font-weight:700;"),
+    contact("lifelinehealth.is", "#10B981", "font-weight:700;"),
     `</div>`,
     `</td></tr>`,
     `</table>`,
