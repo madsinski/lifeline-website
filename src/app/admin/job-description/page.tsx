@@ -12,7 +12,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { DEFAULTS, JobDescriptionDoc, type DocFields } from "./JobDescriptionDoc";
 
-const VIEW_KEY = "lifeline";
 const DEFAULT_DOC_ID = "framkvaemdastjori";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -281,9 +280,146 @@ export default function JobDescriptionWorkspace() {
             </div>
 
             <JobDescriptionDoc fields={fields} set={set} />
+
+            <ContractPanel
+              jobId={activeId}
+              candidateName={meta.candidate_name || fields.applicantName}
+              candidateEmail={meta.candidate_email}
+              onChanged={() => loadList(activeId)}
+            />
           </>
         )}
       </main>
+    </div>
+  );
+}
+
+// ── Phase 2: employment-contract send + status ────────────────────────
+interface ContractRow {
+  id: string;
+  status: string;
+  candidate_name: string;
+  signed_at: string | null;
+  created_at: string;
+  pdf_storage_path: string | null;
+}
+
+const CONTRACT_STATUS_LABEL: Record<string, string> = {
+  sent: "Sendur — bíður undirritunar",
+  signed: "Undirritað",
+  void: "Felldur úr gildi",
+};
+const CONTRACT_STATUS_COLOR: Record<string, string> = {
+  sent: "bg-blue-50 text-blue-700",
+  signed: "bg-emerald-50 text-emerald-700",
+  void: "bg-gray-100 text-gray-400",
+};
+
+function ContractPanel({
+  jobId, candidateName, candidateEmail, onChanged,
+}: {
+  jobId: string; candidateName: string; candidateEmail: string; onChanged: () => void;
+}) {
+  const [contracts, setContracts] = useState<ContractRow[]>([]);
+  const [sending, setSending] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/employment-contract?job_description_id=${encodeURIComponent(jobId)}`, { headers: await authHeaders() });
+      if (res.ok) { const j = await res.json(); setContracts(j.contracts ?? []); }
+    } catch { /* keep current */ }
+  }, [jobId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const send = async () => {
+    if (!candidateEmail.trim()) { setErr("Skráðu netfang umsækjanda að ofan fyrst."); return; }
+    if (!confirm(`Senda ráðningarsamning á ${candidateEmail}? Samningurinn byggir á samþykktu dálkunum í samantekt kjara.`)) return;
+    setSending(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/employment-contract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ job_description_id: jobId }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const map: Record<string, string> = {
+          candidate_email_required: "Skráðu netfang umsækjanda fyrst.",
+          candidate_name_required: "Skráðu nafn umsækjanda fyrst.",
+          mfa_required: "Tveggja þátta auðkenning þarf til að senda samning.",
+        };
+        setErr(map[j.error] ?? "Tókst ekki að senda samning.");
+        return;
+      }
+      await load();
+      onChanged();
+    } catch {
+      setErr("Tókst ekki að senda samning.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const downloadPdf = async (id: string) => {
+    try {
+      const res = await fetch(`/api/employment-contract?id=${encodeURIComponent(id)}`, { headers: await authHeaders() });
+      if (!res.ok) return;
+      const j = await res.json();
+      if (j.pdf_url) window.open(j.pdf_url, "_blank", "noopener");
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div className="jd-noprint max-w-3xl mx-auto mt-6 bg-white rounded-lg border border-gray-200 p-6">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <h3 className="text-sm font-bold text-gray-900">Ráðningarsamningur</h3>
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending}
+          className="text-sm font-semibold px-4 py-2 rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40"
+        >
+          {sending ? "Sendi…" : "Senda samning til undirritunar"}
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        Byggir á samþykktu dálkunum í „Samantekt kjara“ og umsækjanda{candidateName ? ` (${candidateName})` : ""}.
+        Sendur á <code className="bg-gray-100 px-1 py-0.5 rounded">{candidateEmail || "— vantar netfang —"}</code>.
+      </p>
+      {err && <p className="text-red-600 text-sm mb-3">{err}</p>}
+
+      {contracts.length === 0 ? (
+        <p className="text-xs text-gray-400">Enginn samningur sendur enn.</p>
+      ) : (
+        <ul className="space-y-2">
+          {contracts.map((c) => (
+            <li key={c.id} className="flex items-center justify-between gap-3 border border-gray-100 rounded-md px-3 py-2">
+              <div className="min-w-0">
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${CONTRACT_STATUS_COLOR[c.status] ?? "bg-gray-100 text-gray-500"}`}>
+                  {CONTRACT_STATUS_LABEL[c.status] ?? c.status}
+                </span>
+                <span className="block text-[11px] text-gray-500 mt-1">
+                  {c.signed_at
+                    ? `Undirritað ${new Date(c.signed_at).toLocaleString("is-IS")}`
+                    : `Sendur ${new Date(c.created_at).toLocaleString("is-IS")}`}
+                </span>
+              </div>
+              {c.pdf_storage_path && (
+                <button
+                  type="button"
+                  onClick={() => downloadPdf(c.id)}
+                  className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50"
+                >
+                  Sækja PDF
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
