@@ -32,14 +32,18 @@ export default function PublicJobDescriptionPage() {
     };
   }, []);
 
-  // Once unlocked, pull the admin-saved version. Falls back to the built-in
-  // DEFAULTS if the document hasn't been saved yet or the fetch fails.
+  // Once unlocked, pull the admin-saved version. A ?id=<docId> in the URL
+  // selects a specific proposal (so each one has its own shareable link);
+  // without it, the default Framkvæmdastjóri document is shown. Falls back
+  // to the built-in DEFAULTS if nothing is saved yet or the fetch fails.
   useEffect(() => {
     if (!unlocked) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/job-description?key=${PASSWORD}`);
+        const id = new URLSearchParams(window.location.search).get("id");
+        const url = `/api/job-description?key=${PASSWORD}${id ? `&id=${encodeURIComponent(id)}` : ""}`;
+        const res = await fetch(url);
         if (res.ok) {
           const j = await res.json();
           if (!cancelled && j?.fields && Object.keys(j.fields).length > 0) {

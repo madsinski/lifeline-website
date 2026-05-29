@@ -200,11 +200,10 @@ export function JobDescriptionDoc({
           .jd-print-portal .jd-doc { box-shadow: none !important; border: 0 !important; margin: 0 auto !important; }
           @page { margin: 16mm; }
 
-          /* Keep a whole chapter together on one page when it fits; a
-             chapter taller than a page (the projection tables) falls back
-             to the row-level rules below so it still breaks cleanly. */
-          .jd-print-portal section { break-inside: avoid; }
-          /* Keep discrete blocks from being sliced across a page break. */
+          /* Keep discrete blocks from being sliced across a page break.
+             (We deliberately do NOT avoid breaks on whole <section>
+             chapters — that left half-page gaps. Sharing the online link
+             is the recommended way to send this; print is a fallback.) */
           .jd-print-portal .jd-block { break-inside: avoid; }
           /* A heading must stay with the content that follows it. */
           .jd-print-portal h2, .jd-print-portal h3 { break-after: avoid; }

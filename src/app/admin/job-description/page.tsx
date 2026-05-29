@@ -59,6 +59,7 @@ export default function JobDescriptionWorkspace() {
   const [save, setSave] = useState<SaveState>("idle");
   const [loadingDoc, setLoadingDoc] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Load the document list once.
@@ -174,6 +175,20 @@ export default function JobDescriptionWorkspace() {
     } catch { alert("Gat ekki eytt skjali."); }
   };
 
+  // Copy a password-gated online link to this specific proposal — the
+  // recommended way to share (no PDF pagination, always up to date).
+  const shareLink = async () => {
+    if (!activeId) return;
+    const url = `${window.location.origin}/verkefnalysing?id=${encodeURIComponent(activeId)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareNote("Hlekkur afritaður · aðgangsorð: lifeline");
+    } catch {
+      setShareNote(url);
+    }
+    setTimeout(() => setShareNote(null), 6000);
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* ── Left rail: document list ─────────────────────────── */}
@@ -256,12 +271,15 @@ export default function JobDescriptionWorkspace() {
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Smelltu á <strong>Forskoða</strong> til að sjá útgáfu umsækjanda.
+                    <strong>Deila hlekk</strong> sendir lykilorðsvarinn vefhlekk (mælt með) · <strong>Forskoða</strong> sýnir útgáfu umsækjanda.
                     {save === "saving" && <span className="text-gray-400"> · Vista…</span>}
                     {save === "saved" && <span className="text-emerald-600 font-medium"> · Vistað</span>}
                     {save === "error" && <span className="text-amber-600 font-medium"> · Vistun mistókst</span>}
                     {loadingDoc && <span className="text-gray-400"> · Hleð…</span>}
                   </p>
+                  {shareNote && (
+                    <p className="text-xs text-emerald-700 font-medium mt-1 break-all">{shareNote}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {activeId !== DEFAULT_DOC_ID && (
@@ -282,8 +300,16 @@ export default function JobDescriptionWorkspace() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={shareLink}
                     className="text-sm font-semibold px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    Deila hlekk
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="text-sm font-medium px-4 py-2 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    title="Prentun er varaleið — mælt er með að deila hlekk."
                   >
                     Prenta / PDF
                   </button>
