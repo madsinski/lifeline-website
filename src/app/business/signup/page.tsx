@@ -33,12 +33,24 @@ export default function BusinessSignupPage() {
   const [error, setError] = useState("");
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+
+  // Email-confirmation gate (#13): an unconfirmed user must not be able to
+  // sign agreements or create a company.
+  const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const [tosChecked, setTosChecked] = useState(false);
   const [dpaChecked, setDpaChecked] = useState(false);
 
   const [companyName, setCompanyName] = useState("");
   const [companyKennitala, setCompanyKennitala] = useState("");
+
+  // Contact-person details (#14) — captured so the signing contact is
+  // identifiable, not just whoever happens to hold the account.
+  const [contactKennitala, setContactKennitala] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactPosition, setContactPosition] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -51,6 +63,16 @@ export default function BusinessSignupPage() {
         return;
       }
       setUserId(data.user.id);
+      setUserEmail(data.user.email || "");
+
+      // Email-confirmation gate (#13). Supabase sets email_confirmed_at
+      // only once the user has clicked the confirmation link. Block the
+      // whole onboarding flow until then.
+      if (!data.user.email_confirmed_at) {
+        setNeedsEmailConfirm(true);
+        setLoading(false);
+        return;
+      }
       // If they already manage companies, send them to the picker instead
       const { data: ownedCompanies } = await supabase
         .from("companies")
@@ -110,15 +132,28 @@ export default function BusinessSignupPage() {
     }
   };
 
+  const resendConfirmation = async () => {
+    if (!userEmail) return;
+    setResendStatus("sending");
+    const { error: e } = await supabase.auth.resend({ type: "signup", email: userEmail });
+    setResendStatus(e ? "error" : "sent");
+  };
+
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!userId) return;
     if (!companyName.trim()) { setError("Please enter a company name."); return; }
     if (!isValidKennitala(companyKennitala)) {
-      setError("Kennitala must be 10 digits and pass the Icelandic checksum.");
+      setError("Company kennitala must be 10 digits and pass the Icelandic checksum.");
       return;
     }
+    if (!isValidKennitala(contactKennitala)) {
+      setError("Your kennitala must be 10 digits and pass the Icelandic checksum.");
+      return;
+    }
+    if (!contactPhone.trim()) { setError("Please enter your phone number."); return; }
+    if (!contactPosition.trim()) { setError("Please enter your position at the company."); return; }
     setSubmitting(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -132,6 +167,9 @@ export default function BusinessSignupPage() {
         body: JSON.stringify({
           name: companyName.trim(),
           kennitala: cleanKennitala(companyKennitala),
+          contact_kennitala: cleanKennitala(contactKennitala),
+          contact_phone: contactPhone.trim(),
+          contact_position: contactPosition.trim(),
           agreement_version: AGREEMENT_VERSION,
         }),
       });
@@ -160,6 +198,36 @@ export default function BusinessSignupPage() {
       />
 
       <main className="max-w-xl mx-auto px-6 py-12">
+        {needsEmailConfirm ? (
+          <section className="bg-white rounded-2xl p-8 shadow-sm space-y-5 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-semibold">Confirm your email first</h1>
+            <p className="text-sm text-gray-600 max-w-md mx-auto">
+              For your company&apos;s security, you must confirm your email address before you can
+              accept the platform terms, create the company, or sign any agreement. We sent a
+              confirmation link to <span className="font-semibold text-gray-900">{userEmail}</span>.
+              Click it, then reload this page.
+            </p>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={resendConfirmation}
+                disabled={resendStatus === "sending" || resendStatus === "sent"}
+                className="btn-primary"
+              >
+                {resendStatus === "sending" ? "Sending…" : resendStatus === "sent" ? "Confirmation sent ✓" : "Resend confirmation email"}
+              </button>
+              {resendStatus === "error" && <p className="text-xs text-red-600">Could not resend — try again shortly.</p>}
+              <button onClick={() => window.location.reload()} className="text-sm text-blue-600 hover:underline mt-1">
+                I&apos;ve confirmed — reload
+              </button>
+            </div>
+          </section>
+        ) : (
+        <>
         <Stepper step={step} />
 
         {step === "agreement" && (
@@ -258,12 +326,53 @@ export default function BusinessSignupPage() {
                   className="input"
                 />
               </Field>
+
+              <div className="pt-2 mt-2 border-t border-gray-100">
+                <p className="text-sm font-semibold text-gray-900">About you (authorised contact)</p>
+                <p className="text-xs text-gray-500 mt-0.5 mb-3">
+                  Confirms who is binding the company. Your kennitala is stored encrypted.
+                </p>
+              </div>
+              <Field label="Your kennitala (10 digits)">
+                <input
+                  type="text"
+                  required
+                  inputMode="numeric"
+                  value={contactKennitala}
+                  onChange={(e) => setContactKennitala(e.target.value)}
+                  onBlur={() => setContactKennitala((v) => formatKennitala(v))}
+                  placeholder="123456-7890"
+                  className="input"
+                />
+              </Field>
+              <Field label="Your phone">
+                <input
+                  type="tel"
+                  required
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  placeholder="6XX XXXX"
+                  className="input"
+                />
+              </Field>
+              <Field label="Your position at the company">
+                <input
+                  type="text"
+                  required
+                  value={contactPosition}
+                  onChange={(e) => setContactPosition(e.target.value)}
+                  placeholder="e.g. HR Manager, CEO"
+                  className="input"
+                />
+              </Field>
               {error && <div className="text-red-600 text-sm">{error}</div>}
               <button type="submit" disabled={submitting} className="btn-primary w-full">
                 {submitting ? "Creating…" : "Create company"}
               </button>
             </form>
           </section>
+        )}
+        </>
         )}
       </main>
 
