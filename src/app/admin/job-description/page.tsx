@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import BackButton from "@/app/components/BackButton";
 import { DEFAULTS, JobDescriptionDoc, type DocFields } from "./JobDescriptionDoc";
 
 const DEFAULT_DOC_ID = "framkvaemdastjori";
@@ -177,6 +178,9 @@ export default function JobDescriptionWorkspace() {
     <div className="flex min-h-screen bg-gray-50">
       {/* ── Left rail: document list ─────────────────────────── */}
       <aside className="jd-noprint w-72 shrink-0 border-r border-gray-200 bg-white flex flex-col">
+        <div className="px-3 pt-3">
+          <BackButton fallback="/admin/settings" label="Back to Settings" />
+        </div>
         <div className="px-4 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-900">Verkefnalýsingar</h2>
           <button
@@ -299,7 +303,7 @@ export default function JobDescriptionWorkspace() {
             {previewOpen && (
               <Modal title="Forskoðun — útgáfa umsækjanda" onClose={() => setPreviewOpen(false)} wide>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <JobDescriptionDoc fields={fields} readOnly />
+                  <JobDescriptionDoc fields={fields} readOnly embedded />
                 </div>
               </Modal>
             )}

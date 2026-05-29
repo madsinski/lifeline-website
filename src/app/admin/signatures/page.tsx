@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import BackButton from "@/app/components/BackButton";
 
 interface SignatureFields {
   key: string;
@@ -232,6 +233,7 @@ export default function SignaturesPage() {
   if (loadError) {
     return (
       <div className="px-8 py-6 max-w-2xl">
+        <BackButton fallback="/admin/settings" label="Back to Settings" className="mb-4 -ml-3" />
         <h1 className="text-xl font-bold text-gray-900 mb-2">Email signatures</h1>
         <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">
           Couldn't load signatures: {loadError}. The migration <code className="bg-white px-1.5 py-0.5 rounded border border-amber-200">migration-email-signatures.sql</code> may not have been applied yet.
@@ -242,6 +244,7 @@ export default function SignaturesPage() {
 
   return (
     <div className="px-8 py-6 max-w-5xl">
+      <BackButton fallback="/admin/settings" label="Back to Settings" className="mb-4 -ml-3" />
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900 mb-1">Email signatures</h1>
         <p className="text-sm text-gray-500">

@@ -8,6 +8,7 @@
 // business-plan tables are reference data and stay code-defined.
 
 import type { ReactNode } from "react";
+import PrintPortal from "./PrintPortal";
 
 export interface DocFields {
   // Header + meta
@@ -164,10 +165,14 @@ export function JobDescriptionDoc({
   fields,
   set,
   readOnly = false,
+  embedded = false,
 }: {
   fields: DocFields;
   set?: (k: keyof DocFields) => (v: string) => void;
   readOnly?: boolean;
+  // Rendered inside another container (the print portal or an on-screen
+  // preview modal): don't emit the global <style> or a nested print portal.
+  embedded?: boolean;
 }) {
   const on = (k: keyof DocFields): ((v: string) => void) | undefined =>
     readOnly || !set ? undefined : set(k);
@@ -175,7 +180,7 @@ export function JobDescriptionDoc({
 
   return (
     <>
-      <style>{`
+      {!embedded && <style>{`
         .jd-input { background: transparent; border: 0; border-bottom: 1px dashed #cbd5e1; padding: 1px 2px; font: inherit; color: inherit; width: 100%; outline: none; }
         .jd-input:focus { border-bottom-color: #10b981; background: #ecfdf5; }
         .jd-input::placeholder { color: #9ca3af; }
@@ -183,33 +188,32 @@ export function JobDescriptionDoc({
         .jd-area:focus { border-color: #10b981; background: #ecfdf5; }
         .jd-hint { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
         /* The clean read-only copy used for printing is hidden on screen. */
-        .jd-printonly { display: none; }
+        .jd-print-portal { display: none; }
         @media print {
-          body * { visibility: hidden !important; }
-          /* Print the read-only copy, not the editable form: textareas/inputs
-             are replaced elements that get clipped at a page break, whereas
-             plain text/lists/tables paginate cleanly. */
-          .jd-editable { display: none !important; }
-          .jd-printonly { display: block !important; }
-          .jd-printdoc, .jd-printdoc * { visibility: visible !important; }
-          .jd-noprint { display: none !important; }
-          .jd-printdoc { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: 0 !important; margin: 0 !important; }
+          /* Print only the portal copy. It is a direct <body> child in
+             normal flow, so it paginates naturally — unlike an absolutely
+             positioned block, which Chrome clips after the first page. We
+             also print plain text/lists/tables (not the editable form,
+             whose textareas get clipped at page breaks). */
+          body > *:not(.jd-print-portal) { display: none !important; }
+          .jd-print-portal { display: block !important; }
+          .jd-print-portal .jd-doc { box-shadow: none !important; border: 0 !important; margin: 0 auto !important; }
           @page { margin: 16mm; }
 
           /* Keep discrete blocks from being sliced across a page break. */
-          .jd-printdoc .jd-block { break-inside: avoid; }
+          .jd-print-portal .jd-block { break-inside: avoid; }
           /* A heading must stay with the content that follows it. */
-          .jd-printdoc h2, .jd-printdoc h3 { break-after: avoid; }
+          .jd-print-portal h2, .jd-print-portal h3 { break-after: avoid; }
           /* Tables may span pages, but never split a row, and repeat the
              header row at the top of each continuation page. */
-          .jd-printdoc table { break-inside: auto; }
-          .jd-printdoc thead { display: table-header-group; }
-          .jd-printdoc tr, .jd-printdoc li { break-inside: avoid; }
+          .jd-print-portal table { break-inside: auto; }
+          .jd-print-portal thead { display: table-header-group; }
+          .jd-print-portal tr, .jd-print-portal li { break-inside: avoid; }
         }
-      `}</style>
+      `}</style>}
 
       <div
-        className={`jd-doc ${editing ? "jd-editable" : "jd-printdoc"} max-w-3xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 px-12 py-10 text-[15px] leading-relaxed text-gray-800`}
+        className="jd-doc max-w-3xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 px-12 py-10 text-[15px] leading-relaxed text-gray-800"
       >
         {/* Header */}
         <div className="jd-block border-b-[3px] border-emerald-600 pb-5 mb-7">
@@ -397,13 +401,14 @@ export function JobDescriptionDoc({
         </div>
       </div>
 
-      {/* When editing, also emit a clean read-only copy used only for
-          printing. The editable form (textareas/inputs) gets clipped at
-          page breaks; this static render paginates properly. */}
-      {editing && (
-        <div className="jd-printonly">
-          <JobDescriptionDoc fields={fields} readOnly />
-        </div>
+      {/* A clean read-only copy, portalled to <body>, used only for
+          printing. Plain text/lists/tables paginate properly, unlike the
+          editable form's textareas. Rendered for every top-level instance
+          (editor and public mirror) so both print cleanly. */}
+      {!embedded && (
+        <PrintPortal>
+          <JobDescriptionDoc fields={fields} readOnly embedded />
+        </PrintPortal>
       )}
     </>
   );
