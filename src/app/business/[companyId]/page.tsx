@@ -359,6 +359,44 @@ export default function BusinessDashboardPage() {
           </section>
         )}
 
+        {/* What's next — employee journey overview, shown once the
+            company has finalized registration. */}
+        {finalized && (
+          <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">What happens next</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Here&apos;s the journey your team goes through from here. The Lifeline team drives
+              every step — you can sit back and watch your people get healthier.
+            </p>
+            <ol className="mt-6 space-y-5">
+              {[
+                { t: "Employees get their invite", d: "Each employee receives an invite email and self-onboards to their own Lifeline account." },
+                { t: "Health questionnaire", d: "The Lifeline team sends an SMS/email invite to the health questionnaire, which employees answer in the secure patient portal." },
+                { t: "Measurement & blood-test days", d: "On the scheduled days, employees complete their on-site body-composition measurement and blood test." },
+                { t: "Full report delivered", d: "Each employee receives their complete health report from the Lifeline team." },
+                { t: "Book the doctor interview", d: "Employees get an SMS/email to book their doctor interview appointment in the patient portal." },
+                { t: "3-month follow-up", d: "After three months, employees get an SMS/email to book a doctor follow-up interview in the patient portal." },
+                { t: "Download the coaching app", d: "Employees download the Lifeline Health Coaching app and start their journey as part of the Lifeline community — a tool to manage their health changes." },
+                { t: "Healthier, happier team", d: "You, as the company contact, get to enjoy the benefit of healthier and happier employees — the whole goal of Lifeline's service." },
+                { t: "Next check-in", d: "Book another check-in after 6–12 months to keep the momentum going." },
+              ].map((step, i) => (
+                <li key={i} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 text-sm font-bold flex items-center justify-center shrink-0">
+                      {i + 1}
+                    </div>
+                    {i < 8 && <div className="w-px flex-1 bg-gray-200 mt-1" />}
+                  </div>
+                  <div className="pb-1">
+                    <p className="text-sm font-semibold text-gray-900">{step.t}</p>
+                    <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{step.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         {/* Progress bar (hidden after finalize) */}
         {!finalized && (
           <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
