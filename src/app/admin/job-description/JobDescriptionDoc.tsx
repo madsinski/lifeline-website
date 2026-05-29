@@ -182,22 +182,37 @@ export function JobDescriptionDoc({
         .jd-area { display: block; width: 100%; background: transparent; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 6px 8px; font: inherit; color: inherit; outline: none; resize: vertical; field-sizing: content; }
         .jd-area:focus { border-color: #10b981; background: #ecfdf5; }
         .jd-hint { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
+        /* The clean read-only copy used for printing is hidden on screen. */
+        .jd-printonly { display: none; }
         @media print {
           body * { visibility: hidden !important; }
-          #jobdoc, #jobdoc * { visibility: visible !important; }
-          #jobdoc { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: 0 !important; margin: 0 !important; }
+          /* Print the read-only copy, not the editable form: textareas/inputs
+             are replaced elements that get clipped at a page break, whereas
+             plain text/lists/tables paginate cleanly. */
+          .jd-editable { display: none !important; }
+          .jd-printonly { display: block !important; }
+          .jd-printdoc, .jd-printdoc * { visibility: visible !important; }
           .jd-noprint { display: none !important; }
-          .jd-input, .jd-area { border: 0 !important; background: transparent !important; }
+          .jd-printdoc { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: 0 !important; margin: 0 !important; }
           @page { margin: 16mm; }
+
+          /* Keep discrete blocks from being sliced across a page break. */
+          .jd-printdoc .jd-block { break-inside: avoid; }
+          /* A heading must stay with the content that follows it. */
+          .jd-printdoc h2, .jd-printdoc h3 { break-after: avoid; }
+          /* Tables may span pages, but never split a row, and repeat the
+             header row at the top of each continuation page. */
+          .jd-printdoc table { break-inside: auto; }
+          .jd-printdoc thead { display: table-header-group; }
+          .jd-printdoc tr, .jd-printdoc li { break-inside: avoid; }
         }
       `}</style>
 
       <div
-        id="jobdoc"
-        className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 px-12 py-10 text-[15px] leading-relaxed text-gray-800"
+        className={`jd-doc ${editing ? "jd-editable" : "jd-printdoc"} max-w-3xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 px-12 py-10 text-[15px] leading-relaxed text-gray-800`}
       >
         {/* Header */}
-        <div className="border-b-[3px] border-emerald-600 pb-5 mb-7">
+        <div className="jd-block border-b-[3px] border-emerald-600 pb-5 mb-7">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lifeline-logo-rebrand.svg" alt="Lifeline" className="h-7 w-auto mb-5" />
           <h2 className="text-3xl font-bold text-gray-900 leading-tight">
@@ -210,7 +225,7 @@ export function JobDescriptionDoc({
         </div>
 
         {/* Meta grid */}
-        <div className="grid grid-cols-2 border border-gray-200 rounded-lg overflow-hidden mb-9">
+        <div className="jd-block grid grid-cols-2 border border-gray-200 rounded-lg overflow-hidden mb-9">
           <MetaCell label="Starfsheiti" value={fields.starfsheiti} onChange={on("starfsheiti")} br />
           <MetaCell label="Fyrirtæki" value={fields.fyrirtaeki} onChange={on("fyrirtaeki")} br />
           <MetaCell label="Yfirmaður" value={fields.yfirmadur} onChange={on("yfirmadur")} br />
@@ -245,17 +260,17 @@ export function JobDescriptionDoc({
 
         {/* Kjör */}
         <Section title={fields.kjorTitle} onTitleChange={on("kjorTitle")}>
-          <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-5 py-4 mb-5 text-amber-900">
+          <div className="jd-block bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-5 py-4 mb-5 text-amber-900">
             <EditBlock value={fields.compStructure} onChange={on("compStructure")} rows={4} />
           </div>
 
-          <div className="bg-emerald-50 border-l-4 border-emerald-600 rounded-r-lg px-5 py-4 mb-5">
+          <div className="jd-block bg-emerald-50 border-l-4 border-emerald-600 rounded-r-lg px-5 py-4 mb-5">
             <EditBlock value={fields.forsenda} onChange={on("forsenda")} rows={4} />
           </div>
 
           {/* Headline cards — two-up now that Bónus is gone, so they
               fill the row instead of leaving a third empty column. */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="jd-block grid grid-cols-2 gap-3 mb-6">
             <Card label="Grunnlaun / mán." value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
             <Card label="Eignarhlutur" value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
           </div>
@@ -371,7 +386,7 @@ export function JobDescriptionDoc({
         </Section>
 
         {/* Athugasemd */}
-        <div className="mt-8 bg-[#fbf7f0] border border-[#efe3cf] rounded-lg px-6 py-5 text-[14px] text-[#5b4f3a]">
+        <div className="jd-block mt-8 bg-[#fbf7f0] border border-[#efe3cf] rounded-lg px-6 py-5 text-[14px] text-[#5b4f3a]">
           <strong className="text-[#7a5c1e]">Athugasemd.</strong>{" "}
           <EditBlock value={fields.athugasemd} onChange={on("athugasemd")} rows={4} className="inline-block align-top" />
         </div>
@@ -381,6 +396,15 @@ export function JobDescriptionDoc({
           <EditInline value={fields.footerRight} onChange={on("footerRight")} className="min-w-[100px] text-right" />
         </div>
       </div>
+
+      {/* When editing, also emit a clean read-only copy used only for
+          printing. The editable form (textareas/inputs) gets clipped at
+          page breaks; this static render paginates properly. */}
+      {editing && (
+        <div className="jd-printonly">
+          <JobDescriptionDoc fields={fields} readOnly />
+        </div>
+      )}
     </>
   );
 }
