@@ -14,6 +14,7 @@ export interface DocFields {
   starfsheiti: string;
   subtitle: string;
   draftDate: string;
+  fyrirtaeki: string;
   yfirmadur: string;
   stadsetning: string;
   starfshlutfall: string;
@@ -57,6 +58,7 @@ export const DEFAULTS: DocFields = {
   starfsheiti: "Framkvæmdastjóri",
   subtitle: "Starfslýsing og kjör",
   draftDate: "28. maí 2026",
+  fyrirtaeki: "Lifeline",
   yfirmadur: "Stofnendur / stjórn",
   stadsetning: "Reykjavík / fjarvinna",
   starfshlutfall: "30–50% (í fyrstu)",
@@ -210,7 +212,7 @@ export function JobDescriptionDoc({
         {/* Meta grid */}
         <div className="grid grid-cols-2 border border-gray-200 rounded-lg overflow-hidden mb-9">
           <MetaCell label="Starfsheiti" value={fields.starfsheiti} onChange={on("starfsheiti")} br />
-          <MetaCell label="Fyrirtæki" value="Lifeline" br />
+          <MetaCell label="Fyrirtæki" value={fields.fyrirtaeki} onChange={on("fyrirtaeki")} br />
           <MetaCell label="Yfirmaður" value={fields.yfirmadur} onChange={on("yfirmadur")} br />
           <MetaCell label="Staðsetning" value={fields.stadsetning} onChange={on("stadsetning")} br />
           <MetaCell label="Starfshlutfall" value={fields.starfshlutfall} onChange={on("starfshlutfall")} />
