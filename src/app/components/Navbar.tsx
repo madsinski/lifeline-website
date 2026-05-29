@@ -89,10 +89,12 @@ export default function Navbar() {
     });
   }, [pathname]);
 
-  // Survey respondent pages and unlisted research documents render
-  // chrome-free — no marketing nav. Placed after all hooks so the
-  // rules of hooks are respected.
-  if (pathname.startsWith("/survey") || pathname.startsWith("/research") || pathname.startsWith("/verkefnalysing")) {
+  // Survey/research/contract pages and the standalone legal pages each
+  // render their own self-contained header (logo + back button), so the
+  // marketing nav must not also render — otherwise the header doubles up.
+  // Placed after all hooks so the rules of hooks are respected.
+  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/privacy", "/terms", "/sales-terms", "/soluskilmalar"];
+  if (chromeFree.some((p) => pathname.startsWith(p))) {
     return null;
   }
 
