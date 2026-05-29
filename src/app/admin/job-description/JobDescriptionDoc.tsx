@@ -40,8 +40,6 @@ export interface DocFields {
   // Compensation — headline cards (value + note)
   salary: string;
   salaryNote: string;
-  bonus: string;
-  bonusNote: string;
   equity: string;
   equityNote: string;
   // Compensation — summary table (proposal + agreed)
@@ -49,7 +47,6 @@ export interface DocFields {
   salaryStart: string;
   startDate: string;
   salaryAgreed: string;
-  bonusAgreed: string;
   equityAgreed: string;
   vestingAgreed: string;
   salaryStartAgreed: string;
@@ -114,8 +111,6 @@ export const DEFAULTS: DocFields = {
 
   salary: "1.300.000 – 1.700.000 kr.",
   salaryNote: "hefst v. samþykki stjórnar",
-  bonus: "10–20% af árslaunum",
-  bonusNote: "árangurstengt",
   equity: "1,5% – 3%",
   equityNote: "vesting 2 ár, enginn cliff",
 
@@ -123,7 +118,6 @@ export const DEFAULTS: DocFields = {
   salaryStart: "Við samþykki stjórnar (eftir 6–12 mán.)",
   startDate: "",
   salaryAgreed: "",
-  bonusAgreed: "",
   equityAgreed: "",
   vestingAgreed: "",
   salaryStartAgreed: "",
@@ -260,7 +254,6 @@ export function JobDescriptionDoc({
           {/* Headline cards */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <Card label="Grunnlaun / mán." value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
-            <Card label="Bónus" value={fields.bonus} onChange={on("bonus")} note={fields.bonusNote} onNoteChange={on("bonusNote")} />
             <Card label="Eignarhlutur" value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
           </div>
 
@@ -367,7 +360,6 @@ export function JobDescriptionDoc({
             <tbody>
               <SummaryRow label="Grunnlaun (mán.)" proposal={fields.salary} onProposal={on("salary")} agreed={fields.salaryAgreed} onAgreed={on("salaryAgreed")} />
               <SummaryRow label="Launakjör hefjast" proposal={fields.salaryStart} onProposal={on("salaryStart")} agreed={fields.salaryStartAgreed} onAgreed={on("salaryStartAgreed")} />
-              <SummaryRow label="Bónus" proposal={fields.bonus} onProposal={on("bonus")} agreed={fields.bonusAgreed} onAgreed={on("bonusAgreed")} />
               <SummaryRow label="Eignarhlutur" proposal={fields.equity} onProposal={on("equity")} agreed={fields.equityAgreed} onAgreed={on("equityAgreed")} />
               <SummaryRow label="Vesting" proposal={fields.vesting} onProposal={on("vesting")} agreed={fields.vestingAgreed} onAgreed={on("vestingAgreed")} />
               <SummaryRow label="Upphafsdagur" proposal={fields.startDate} onProposal={on("startDate")} agreed={fields.startAgreed} onAgreed={on("startAgreed")} proposalPlaceholder="—" />
