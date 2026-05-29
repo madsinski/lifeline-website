@@ -23,6 +23,8 @@ interface SignPayload {
   subtotal_isk: number;
   vat_isk: number;
   total_isk: number;
+  discount_code: string | null;
+  discount_isk: number;
   billing_cadence: string;
   starts_at: string | null;
   ends_at: string | null;
@@ -83,6 +85,33 @@ export async function POST(
   }
   const poNumber = poNumData as string;
 
+  // ─── Redeem discount code (atomic, re-validated server-side) ─
+  // Trust the code identity, not the client's discount_isk — re-derive
+  // the discount from the validated code against the server subtotal.
+  let discountCode: string | null = null;
+  let discountIsk = 0;
+  if (body.discount_code) {
+    const code = body.discount_code.trim().toUpperCase();
+    const { data: vData } = await supabaseAdmin.rpc("validate_discount_code", { p_code: code });
+    const v = Array.isArray(vData) ? vData[0] : vData;
+    if (!v || !v.valid) {
+      return NextResponse.json({ error: "invalid_discount_code", detail: v?.error }, { status: 400 });
+    }
+    discountIsk = v.kind === "percent"
+      ? Math.min(Math.round(body.subtotal_isk * (Number(v.value) / 100)), body.subtotal_isk)
+      : Math.min(Math.round(Number(v.value)), body.subtotal_isk);
+    const { data: redeemed } = await supabaseAdmin.rpc("redeem_discount_code", { p_code: code });
+    if (!redeemed) {
+      return NextResponse.json({ error: "discount_code_exhausted" }, { status: 409 });
+    }
+    discountCode = code;
+  }
+  // Recompute totals server-side so a tampered client payload can't
+  // under-charge: total = (subtotal − discount) + vat (vat on net).
+  const netSubtotal = Math.max(0, body.subtotal_isk - discountIsk);
+  const vatIsk = body.vat_isk; // health service is VAT-exempt; client sends 0
+  const totalIsk = netSubtotal + vatIsk;
+
   // ─── Canonical hash of the terms text ───────────────────────
   const canonicalText = renderFullAgreementForSigning(
     { companyName: company.name, companyKennitala },
@@ -92,8 +121,10 @@ export async function POST(
       poNumber,
       lineItems: body.line_items,
       subtotalIsk: body.subtotal_isk,
-      vatIsk: body.vat_isk,
-      totalIsk: body.total_isk,
+      vatIsk,
+      totalIsk,
+      discountCode,
+      discountIsk,
       billingCadence: body.billing_cadence,
       startsAt: body.starts_at,
       endsAt: body.ends_at,
@@ -134,8 +165,10 @@ export async function POST(
       po_number: poNumber,
       line_items: body.line_items,
       subtotal_isk: body.subtotal_isk,
-      vat_isk: body.vat_isk,
-      total_isk: body.total_isk,
+      vat_isk: vatIsk,
+      total_isk: totalIsk,
+      discount_code: discountCode,
+      discount_isk: discountIsk,
       billing_cadence: body.billing_cadence,
       starts_at: body.starts_at,
       ends_at: body.ends_at,
@@ -155,8 +188,10 @@ export async function POST(
       poNumber,
       lineItems: body.line_items,
       subtotalIsk: body.subtotal_isk,
-      vatIsk: body.vat_isk,
-      totalIsk: body.total_isk,
+      vatIsk,
+      totalIsk,
+      discountCode,
+      discountIsk,
       billingCadence: body.billing_cadence,
       startsAt: body.starts_at,
       endsAt: body.ends_at,

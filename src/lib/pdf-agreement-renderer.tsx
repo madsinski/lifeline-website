@@ -76,6 +76,8 @@ export interface AgreementPdfProps {
   subtotalIsk: number;
   vatIsk: number;
   totalIsk: number;
+  discountCode?: string | null;
+  discountIsk?: number;
   billingCadence: string;
   startsAt: string | null;
   endsAt: string | null;
@@ -339,6 +341,12 @@ function AgreementDocument(p: AgreementPdfProps) {
           <Text style={s.totalsLabel}>Samtals án vsk.:</Text>
           <Text style={s.totalsValue}>{fmtIsk(p.subtotalIsk)}</Text>
         </View>
+        {p.discountIsk != null && p.discountIsk > 0 && (
+          <View style={s.totalsRow}>
+            <Text style={s.totalsLabel}>Afsláttur (kóði {p.discountCode}):</Text>
+            <Text style={s.totalsValue}>{"−"}{fmtIsk(p.discountIsk)}</Text>
+          </View>
+        )}
         <View style={s.totalsRow}>
           <Text style={s.totalsLabel}>Virðisaukaskattur:</Text>
           <Text style={s.totalsValue}>{fmtIsk(p.vatIsk)}</Text>

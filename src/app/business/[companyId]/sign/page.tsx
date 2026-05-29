@@ -73,12 +73,63 @@ export default function SignAgreementPage() {
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
 
+  // Discount code (afsláttarkóði) — validated against discount_codes via RPC.
+  const [discountInput, setDiscountInput] = useState("");
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
+  const [discountKind, setDiscountKind] = useState<"percent" | "fixed" | null>(null);
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [discountStatus, setDiscountStatus] = useState<"idle" | "checking" | "applied" | "error">("idle");
+  const [discountError, setDiscountError] = useState("");
+
   const subtotal = useMemo(
     () => lineItems.reduce((s, li) => s + (li.qty * li.unit_price_isk), 0),
     [lineItems],
   );
-  const vat = Math.round(subtotal * (vatRate / 100));
-  const total = subtotal + vat;
+  const discountIsk = useMemo(() => {
+    if (!appliedCode || !discountKind) return 0;
+    const raw = discountKind === "percent"
+      ? Math.round(subtotal * (discountValue / 100))
+      : Math.round(discountValue);
+    return Math.min(raw, subtotal); // never below zero
+  }, [appliedCode, discountKind, discountValue, subtotal]);
+  const discountedSubtotal = Math.max(0, subtotal - discountIsk);
+  const vat = Math.round(discountedSubtotal * (vatRate / 100));
+  const total = discountedSubtotal + vat;
+
+  const applyDiscount = async () => {
+    const code = discountInput.trim();
+    if (!code) return;
+    setDiscountStatus("checking");
+    setDiscountError("");
+    const { data, error: e } = await supabase.rpc("validate_discount_code", { p_code: code });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (e || !row || !row.valid) {
+      setAppliedCode(null);
+      setDiscountKind(null);
+      setDiscountStatus("error");
+      const reason = row?.error;
+      setDiscountError(
+        reason === "expired" ? "Kóðinn er útrunninn."
+        : reason === "exhausted" ? "Kóðinn er fullnýttur."
+        : reason === "inactive" ? "Kóðinn er óvirkur."
+        : "Kóðinn fannst ekki.",
+      );
+      return;
+    }
+    setAppliedCode(code.toUpperCase());
+    setDiscountKind(row.kind);
+    setDiscountValue(Number(row.value));
+    setDiscountStatus("applied");
+  };
+
+  const clearDiscount = () => {
+    setAppliedCode(null);
+    setDiscountKind(null);
+    setDiscountValue(0);
+    setDiscountInput("");
+    setDiscountStatus("idle");
+    setDiscountError("");
+  };
 
   const loadCompany = useCallback(async () => {
     if (!companyId) return;
@@ -181,6 +232,8 @@ export default function SignAgreementPage() {
           subtotal_isk: subtotal,
           vat_isk: vat,
           total_isk: total,
+          discount_code: appliedCode,
+          discount_isk: discountIsk,
           billing_cadence: billingCadence,
           starts_at: startsAt || null,
           ends_at: endsAt || null,
@@ -243,6 +296,8 @@ export default function SignAgreementPage() {
     billingCadence,
     startsAt: startsAt || null,
     endsAt: endsAt || null,
+    discountCode: appliedCode,
+    discountIsk,
   };
 
   return (
@@ -334,8 +389,40 @@ export default function SignAgreementPage() {
           </label>
         </div>
 
+        {/* Afsláttarkóði */}
+        <div className="pt-2 border-t border-gray-100">
+          <label className="text-xs text-gray-500">Afsláttarkóði</label>
+          {appliedCode ? (
+            <div className="mt-1 flex items-center gap-3 text-sm">
+              <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold">{appliedCode}</span>
+              <span className="text-gray-600">−{fmtIsk(discountIsk)}</span>
+              <button type="button" onClick={clearDiscount} className="text-xs text-red-500 hover:underline">Fjarlægja</button>
+            </div>
+          ) : (
+            <div className="mt-1 flex gap-2">
+              <input
+                type="text"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+                placeholder="Sláðu inn kóða"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 uppercase"
+              />
+              <button
+                type="button"
+                onClick={applyDiscount}
+                disabled={discountStatus === "checking" || !discountInput.trim()}
+                className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40"
+              >
+                {discountStatus === "checking" ? "…" : "Virkja"}
+              </button>
+            </div>
+          )}
+          {discountError && <p className="text-xs text-red-600 mt-1">{discountError}</p>}
+        </div>
+
         <div className="flex justify-end gap-6 pt-2 border-t border-gray-100 text-sm">
           <div>Samtals án vsk.: <strong>{fmtIsk(subtotal)}</strong></div>
+          {discountIsk > 0 && <div>Afsláttur: <strong>−{fmtIsk(discountIsk)}</strong></div>}
           <div>Vsk.: <strong>{fmtIsk(vat)}</strong></div>
           <div className="text-base">Heildar: <strong className="text-emerald-700">{fmtIsk(total)}</strong></div>
         </div>

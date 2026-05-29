@@ -207,6 +207,8 @@ export interface PurchaseOrderParams {
   billingCadence: string;
   startsAt: string | null;
   endsAt: string | null;
+  discountCode?: string | null;
+  discountIsk?: number;
 }
 
 export function renderPurchaseOrder(p: PurchaseOrderParams, language: DocumentLanguage = "is"): string {
@@ -237,7 +239,7 @@ Service provider: Lifeline Health ehf. (reg. no. 590925-1440)
 Service items:
 ${linesEn}
 
-Subtotal (excl. VAT): ${fmtEn(p.subtotalIsk)}
+Subtotal (excl. VAT): ${fmtEn(p.subtotalIsk)}${p.discountIsk && p.discountIsk > 0 ? `\nDiscount (code ${p.discountCode}): −${fmtEn(p.discountIsk)}` : ""}
 VAT: ${fmtEn(p.vatIsk)}
 Total payable: ${fmtEn(p.totalIsk)}
 
@@ -261,7 +263,7 @@ Kaupandi: ${p.companyName} (kt. ${p.companyKennitala})
 Þjónustuliðir:
 ${linesIs}
 
-Samtals án vsk.: ${fmt(p.subtotalIsk)}
+Samtals án vsk.: ${fmt(p.subtotalIsk)}${p.discountIsk && p.discountIsk > 0 ? `\nAfsláttur (kóði ${p.discountCode}): −${fmt(p.discountIsk)}` : ""}
 Virðisaukaskattur: ${fmt(p.vatIsk)}
 Samtals til greiðslu: ${fmt(p.totalIsk)}
 

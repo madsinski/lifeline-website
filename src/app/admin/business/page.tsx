@@ -13,10 +13,12 @@ import AdminTabs from "../components/AdminTabs";
 
 const CompaniesContent = dynamic(() => import("../companies/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const PaymentsContent = dynamic(() => import("../payments/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const DiscountCodesContent = dynamic(() => import("./DiscountCodes"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 
 const tabs = [
   { key: "companies", label: "Companies" },
   { key: "payments", label: "Payments" },
+  { key: "discounts", label: "Discount codes" },
 ];
 
 interface PaydayTestResult {
@@ -121,6 +123,7 @@ export default function BusinessPage() {
       </div>
       {tab === "companies" && <CompaniesContent />}
       {tab === "payments" && <PaymentsContent />}
+      {tab === "discounts" && <DiscountCodesContent />}
     </div>
   );
 }
