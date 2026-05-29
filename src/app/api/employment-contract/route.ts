@@ -41,6 +41,37 @@ function siteUrl(req: NextRequest): string {
   return origin.replace(/\/$/, "");
 }
 
+// Email the candidate their signing link. Shared by create (POST) and
+// resend (PATCH) so the message stays identical.
+async function sendSignLinkEmail(candidateName: string, candidateEmail: string, signUrl: string) {
+  const firstName = candidateName.split(" ")[0] || candidateName;
+  const html = `
+<!doctype html>
+<html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;padding:32px 0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:12px;padding:28px;">
+    <h2 style="margin:0 0 8px;color:#111827;">Sæl/sæll ${firstName},</h2>
+    <p style="margin:0 0 16px;color:#4b5563;">
+      Meðfylgjandi er ráðningarsamningur þinn við <strong>${COMPANY_NAME}</strong> til rafrænnar undirritunar.
+      Smelltu á hnappinn til að skoða og undirrita.
+    </p>
+    <p style="margin:24px 0;text-align:center;">
+      <a href="${signUrl}" style="background:#059669;color:white;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px;display:inline-block;">
+        Skoða og undirrita samning
+      </a>
+    </p>
+    <p style="margin:0 0 8px;color:#9ca3af;font-size:12px;">Ef hnappurinn virkar ekki, afritaðu þessa slóð: ${signUrl}</p>
+    <p style="margin:18px 0 0;color:#9ca3af;font-size:12px;">${COMPANY_NAME} · kt. ${COMPANY_KENNITALA} · Langholtsvegi 111, 104 Reykjavík</p>
+  </div>
+</body></html>`;
+  await sendEmail({
+    to: candidateEmail,
+    bcc: ["contact@lifelinehealth.is"],
+    subject: `Ráðningarsamningur til undirritunar — ${COMPANY_NAME}`,
+    html,
+    text: `Sæl/sæll ${firstName}, meðfylgjandi er ráðningarsamningur þinn við ${COMPANY_NAME} til rafrænnar undirritunar: ${signUrl}`,
+  });
+}
+
 // Build the agreed-terms snapshot from a job description's saved fields.
 // The "agreed" column wins; otherwise we fall back to the proposal.
 function agreedTermsFromFields(f: Record<string, unknown>): AgreedTerms {
@@ -100,6 +131,32 @@ export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user || !(await isAnyActiveStaff(user.id))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // Preview: render the contract from a job description's current agreed
+  // terms WITHOUT creating a contract row, so the admin can review the
+  // exact text before sending.
+  const previewJobId = req.nextUrl.searchParams.get("preview_job_id");
+  if (previewJobId) {
+    const { data: jd, error: jdErr } = await supabaseAdmin
+      .from("job_descriptions")
+      .select("candidate_name, candidate_email, fields")
+      .eq("id", previewJobId)
+      .maybeSingle();
+    if (jdErr) return NextResponse.json({ error: jdErr.message }, { status: 500 });
+    if (!jd) return NextResponse.json({ error: "job_description_not_found" }, { status: 404 });
+    const fields = (jd.fields as Record<string, unknown>) ?? {};
+    const candidateName = (jd.candidate_name || (fields.applicantName as string) || "").trim();
+    const terms = agreedTermsFromFields(fields);
+    return NextResponse.json({
+      preview: {
+        candidate_name: candidateName,
+        candidate_email: (jd.candidate_email || "").trim().toLowerCase(),
+        contract_version: EMPLOYMENT_CONTRACT_VERSION,
+        agreed_terms: terms,
+        contract_text: canonicalText(candidateName || "[Nafn umsækjanda]", terms),
+      },
+    });
   }
 
   if (id) {
@@ -194,35 +251,50 @@ export async function POST(req: NextRequest) {
   // Email the candidate the signing link.
   const signUrl = `${siteUrl(req)}/radningarsamningur/${token}`;
   try {
-    const firstName = candidateName.split(" ")[0];
-    const html = `
-<!doctype html>
-<html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;padding:32px 0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:12px;padding:28px;">
-    <h2 style="margin:0 0 8px;color:#111827;">Sæl/sæll ${firstName},</h2>
-    <p style="margin:0 0 16px;color:#4b5563;">
-      Meðfylgjandi er ráðningarsamningur þinn við <strong>${COMPANY_NAME}</strong> til rafrænnar undirritunar.
-      Smelltu á hnappinn til að skoða og undirrita.
-    </p>
-    <p style="margin:24px 0;text-align:center;">
-      <a href="${signUrl}" style="background:#059669;color:white;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px;display:inline-block;">
-        Skoða og undirrita samning
-      </a>
-    </p>
-    <p style="margin:0 0 8px;color:#9ca3af;font-size:12px;">Ef hnappurinn virkar ekki, afritaðu þessa slóð: ${signUrl}</p>
-    <p style="margin:18px 0 0;color:#9ca3af;font-size:12px;">${COMPANY_NAME} · kt. ${COMPANY_KENNITALA} · Langholtsvegi 111, 104 Reykjavík</p>
-  </div>
-</body></html>`;
-    await sendEmail({
-      to: candidateEmail,
-      bcc: ["contact@lifelinehealth.is"],
-      subject: `Ráðningarsamningur til undirritunar — ${COMPANY_NAME}`,
-      html,
-      text: `Sæl/sæll ${firstName}, meðfylgjandi er ráðningarsamningur þinn við ${COMPANY_NAME} til rafrænnar undirritunar: ${signUrl}`,
-    });
+    await sendSignLinkEmail(candidateName, candidateEmail, signUrl);
   } catch (e) {
     console.error("[employment-contract] send email failed:", (e as Error).message);
   }
 
   return NextResponse.json({ contract, sign_url: signUrl }, { status: 201 });
+}
+
+// PATCH { id, action: "resend" | "void" } — admin AAL2.
+//   resend → re-email the existing signing link (still 'sent').
+//   void   → invalidate the link; an unsigned contract becomes 'void'.
+export async function PATCH(req: NextRequest) {
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") {
+    return NextResponse.json({ error: user }, { status: user === "unauthorized" ? 401 : 403 });
+  }
+  let body: { id?: string; action?: string };
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "invalid_body" }, { status: 400 }); }
+  const { id, action } = body;
+  if (!id || !action) return NextResponse.json({ error: "id_and_action_required" }, { status: 400 });
+
+  const { data: c, error } = await supabaseAdmin
+    .from("employment_contracts")
+    .select("id, token, candidate_name, candidate_email, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!c) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  if (action === "void") {
+    if (c.status === "signed") return NextResponse.json({ error: "already_signed" }, { status: 409 });
+    const { error: upErr } = await supabaseAdmin
+      .from("employment_contracts").update({ status: "void" }).eq("id", id);
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "resend") {
+    if (c.status !== "sent") return NextResponse.json({ error: "not_resendable" }, { status: 409 });
+    const signUrl = `${siteUrl(req)}/radningarsamningur/${c.token}`;
+    try { await sendSignLinkEmail(c.candidate_name, c.candidate_email, signUrl); }
+    catch (e) { return NextResponse.json({ error: "email_failed", detail: (e as Error).message }, { status: 500 }); }
+    return NextResponse.json({ ok: true, sign_url: signUrl });
+  }
+
+  return NextResponse.json({ error: "invalid_action" }, { status: 400 });
 }

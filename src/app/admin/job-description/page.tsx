@@ -57,6 +57,7 @@ export default function JobDescriptionWorkspace() {
   });
   const [save, setSave] = useState<SaveState>("idle");
   const [loadingDoc, setLoadingDoc] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Load the document list once.
@@ -251,7 +252,7 @@ export default function JobDescriptionWorkspace() {
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Birtist á <code className="text-[12px] bg-gray-100 px-1 py-0.5 rounded">/verkefnalysing</code> (aðgangsorð).
+                    Smelltu á <strong>Forskoða</strong> til að sjá útgáfu umsækjanda.
                     {save === "saving" && <span className="text-gray-400"> · Vista…</span>}
                     {save === "saved" && <span className="text-emerald-600 font-medium"> · Vistað</span>}
                     {save === "error" && <span className="text-amber-600 font-medium"> · Vistun mistókst</span>}
@@ -268,6 +269,13 @@ export default function JobDescriptionWorkspace() {
                       Eyða
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewOpen(true)}
+                    className="text-sm font-medium px-4 py-2 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  >
+                    Forskoða
+                  </button>
                   <button
                     type="button"
                     onClick={() => window.print()}
@@ -287,9 +295,39 @@ export default function JobDescriptionWorkspace() {
               candidateEmail={meta.candidate_email}
               onChanged={() => loadList(activeId)}
             />
+
+            {previewOpen && (
+              <Modal title="Forskoðun — útgáfa umsækjanda" onClose={() => setPreviewOpen(false)} wide>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <JobDescriptionDoc fields={fields} readOnly />
+                </div>
+              </Modal>
+            )}
           </>
         )}
       </main>
+    </div>
+  );
+}
+
+// ── Shared modal overlay ──────────────────────────────────────────────
+function Modal({
+  title, onClose, children, wide,
+}: {
+  title: string; onClose: () => void; children: React.ReactNode; wide?: boolean;
+}) {
+  return (
+    <div className="jd-noprint fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8" onClick={onClose}>
+      <div
+        className={`my-4 w-full ${wide ? "max-w-4xl" : "max-w-2xl"} rounded-xl bg-white shadow-2xl`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3 sticky top-0 bg-white rounded-t-xl">
+          <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none px-2">&times;</button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
     </div>
   );
 }
@@ -322,7 +360,11 @@ function ContractPanel({
 }) {
   const [contracts, setContracts] = useState<ContractRow[]>([]);
   const [sending, setSending] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [previewText, setPreviewText] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -332,6 +374,31 @@ function ContractPanel({
   }, [jobId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const errMap: Record<string, string> = {
+    candidate_email_required: "Skráðu netfang umsækjanda fyrst.",
+    candidate_name_required: "Skráðu nafn umsækjanda fyrst.",
+    mfa_required: "Tveggja þátta auðkenning þarf til að senda samning.",
+    already_signed: "Samningurinn er þegar undirritaður.",
+    not_resendable: "Aðeins er hægt að endursenda samning sem bíður undirritunar.",
+  };
+
+  const flash = (m: string) => { setNote(m); setTimeout(() => setNote((n) => (n === m ? null : n)), 2500); };
+
+  const preview = async () => {
+    setPreviewLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/employment-contract?preview_job_id=${encodeURIComponent(jobId)}`, { headers: await authHeaders() });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setErr(errMap[j.error] ?? "Gat ekki forskoðað samning."); return; }
+      setPreviewText(j.preview?.contract_text ?? "");
+    } catch {
+      setErr("Gat ekki forskoðað samning.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const send = async () => {
     if (!candidateEmail.trim()) { setErr("Skráðu netfang umsækjanda að ofan fyrst."); return; }
@@ -345,17 +412,10 @@ function ContractPanel({
         body: JSON.stringify({ job_description_id: jobId }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const map: Record<string, string> = {
-          candidate_email_required: "Skráðu netfang umsækjanda fyrst.",
-          candidate_name_required: "Skráðu nafn umsækjanda fyrst.",
-          mfa_required: "Tveggja þátta auðkenning þarf til að senda samning.",
-        };
-        setErr(map[j.error] ?? "Tókst ekki að senda samning.");
-        return;
-      }
+      if (!res.ok) { setErr(errMap[j.error] ?? "Tókst ekki að senda samning."); return; }
       await load();
       onChanged();
+      flash("Samningur sendur.");
     } catch {
       setErr("Tókst ekki að senda samning.");
     } finally {
@@ -363,40 +423,95 @@ function ContractPanel({
     }
   };
 
+  const patch = async (id: string, action: "resend" | "void") => {
+    if (action === "void" && !confirm("Fella þennan samning úr gildi? Hlekkurinn hættir að virka.")) return;
+    setBusyId(id);
+    setErr(null);
+    try {
+      const res = await fetch("/api/employment-contract", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ id, action }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setErr(errMap[j.error] ?? "Aðgerð mistókst."); return; }
+      await load();
+      onChanged();
+      flash(action === "resend" ? "Tölvupóstur endursendur." : "Samningur felldur úr gildi.");
+    } catch {
+      setErr("Aðgerð mistókst.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const copyLink = async (id: string) => {
+    setBusyId(id);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/employment-contract?id=${encodeURIComponent(id)}`, { headers: await authHeaders() });
+      const j = await res.json().catch(() => ({}));
+      const token = j.contract?.token;
+      if (!token) { setErr("Fann ekki hlekk."); return; }
+      const url = `${window.location.origin}/radningarsamningur/${token}`;
+      await navigator.clipboard.writeText(url);
+      flash("Undirritunarhlekkur afritaður.");
+    } catch {
+      setErr("Gat ekki afritað hlekk.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const downloadPdf = async (id: string) => {
+    setBusyId(id);
     try {
       const res = await fetch(`/api/employment-contract?id=${encodeURIComponent(id)}`, { headers: await authHeaders() });
       if (!res.ok) return;
       const j = await res.json();
       if (j.pdf_url) window.open(j.pdf_url, "_blank", "noopener");
     } catch { /* ignore */ }
+    finally { setBusyId(null); }
   };
+
+  const actionBtn = "shrink-0 text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-40";
 
   return (
     <div className="jd-noprint max-w-3xl mx-auto mt-6 bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center justify-between gap-3 mb-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h3 className="text-sm font-bold text-gray-900">Ráðningarsamningur</h3>
-        <button
-          type="button"
-          onClick={send}
-          disabled={sending}
-          className="text-sm font-semibold px-4 py-2 rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40"
-        >
-          {sending ? "Sendi…" : "Senda samning til undirritunar"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={preview}
+            disabled={previewLoading}
+            className="text-sm font-medium px-4 py-2 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+          >
+            {previewLoading ? "Hleð…" : "Forskoða samning"}
+          </button>
+          <button
+            type="button"
+            onClick={send}
+            disabled={sending}
+            className="text-sm font-semibold px-4 py-2 rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40"
+          >
+            {sending ? "Sendi…" : "Senda til undirritunar"}
+          </button>
+        </div>
       </div>
       <p className="text-xs text-gray-500 mb-4">
         Byggir á samþykktu dálkunum í „Samantekt kjara“ og umsækjanda{candidateName ? ` (${candidateName})` : ""}.
         Sendur á <code className="bg-gray-100 px-1 py-0.5 rounded">{candidateEmail || "— vantar netfang —"}</code>.
       </p>
       {err && <p className="text-red-600 text-sm mb-3">{err}</p>}
+      {note && <p className="text-emerald-600 text-sm mb-3">{note}</p>}
 
       {contracts.length === 0 ? (
         <p className="text-xs text-gray-400">Enginn samningur sendur enn.</p>
       ) : (
         <ul className="space-y-2">
           {contracts.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-3 border border-gray-100 rounded-md px-3 py-2">
+            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 border border-gray-100 rounded-md px-3 py-2">
               <div className="min-w-0">
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${CONTRACT_STATUS_COLOR[c.status] ?? "bg-gray-100 text-gray-500"}`}>
                   {CONTRACT_STATUS_LABEL[c.status] ?? c.status}
@@ -407,18 +522,30 @@ function ContractPanel({
                     : `Sendur ${new Date(c.created_at).toLocaleString("is-IS")}`}
                 </span>
               </div>
-              {c.pdf_storage_path && (
-                <button
-                  type="button"
-                  onClick={() => downloadPdf(c.id)}
-                  className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50"
-                >
-                  Sækja PDF
-                </button>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {c.status === "sent" && (
+                  <>
+                    <button type="button" disabled={busyId === c.id} onClick={() => copyLink(c.id)} className={actionBtn}>Afrita hlekk</button>
+                    <button type="button" disabled={busyId === c.id} onClick={() => patch(c.id, "resend")} className={actionBtn}>Endursenda</button>
+                    <button type="button" disabled={busyId === c.id} onClick={() => patch(c.id, "void")} className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40">Ógilda</button>
+                  </>
+                )}
+                {c.pdf_storage_path && (
+                  <button type="button" disabled={busyId === c.id} onClick={() => downloadPdf(c.id)} className={actionBtn}>Sækja PDF</button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {previewText !== null && (
+        <Modal title="Forskoðun ráðningarsamnings" onClose={() => setPreviewText(null)}>
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-3">
+            Drög — lögfræðitexti merktur <code>[LÖGFRÆÐITEXTI]</code> er enn til útfyllingar.
+          </p>
+          <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-gray-800">{previewText}</pre>
+        </Modal>
       )}
     </div>
   );
