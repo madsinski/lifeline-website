@@ -251,8 +251,9 @@ export function JobDescriptionDoc({
             <EditBlock value={fields.forsenda} onChange={on("forsenda")} rows={4} />
           </div>
 
-          {/* Headline cards */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          {/* Headline cards — two-up now that Bónus is gone, so they
+              fill the row instead of leaving a third empty column. */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
             <Card label="Grunnlaun / mán." value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
             <Card label="Eignarhlutur" value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
           </div>
