@@ -557,20 +557,6 @@ export default function TeamPage() {
           <p className="text-sm text-gray-500 mt-1">
             Manage staff members who can be assigned to clients
           </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
-            <Link
-              href="/admin/signatures"
-              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
-            >
-              Email signatures →
-            </Link>
-            <Link
-              href="/admin/job-description"
-              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
-            >
-              Verkefnalýsing (framkvæmdastjóri) →
-            </Link>
-          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
