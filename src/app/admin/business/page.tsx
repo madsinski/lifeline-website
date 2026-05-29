@@ -14,9 +14,11 @@ import AdminTabs from "../components/AdminTabs";
 const CompaniesContent = dynamic(() => import("../companies/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const PaymentsContent = dynamic(() => import("../payments/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const DiscountCodesContent = dynamic(() => import("./DiscountCodes"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const ApprovalsContent = dynamic(() => import("./Approvals"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 
 const tabs = [
   { key: "companies", label: "Companies" },
+  { key: "approvals", label: "Approvals" },
   { key: "payments", label: "Payments" },
   { key: "discounts", label: "Discount codes" },
 ];
@@ -122,6 +124,7 @@ export default function BusinessPage() {
         <AdminTabs tabs={tabs} active={tab} onChange={setTab} />
       </div>
       {tab === "companies" && <CompaniesContent />}
+      {tab === "approvals" && <ApprovalsContent />}
       {tab === "payments" && <PaymentsContent />}
       {tab === "discounts" && <DiscountCodesContent />}
     </div>

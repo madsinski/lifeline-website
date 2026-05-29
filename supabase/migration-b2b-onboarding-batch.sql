@@ -90,4 +90,55 @@ $$;
 grant execute on function public.validate_discount_code(text) to authenticated;
 grant execute on function public.redeem_discount_code(text) to authenticated;
 
+-- ── #16 — Measurement-day approval workflow ──────────────────────────
+-- A company-proposed measurement day starts as 'requested'; Lifeline
+-- staff approve it in /admin/business before employees are invited.
+alter table public.body_comp_events
+  add column if not exists approval_status text not null default 'requested'
+    check (approval_status in ('requested','approved','rejected')),
+  add column if not exists approved_at timestamptz,
+  add column if not exists approved_by uuid references auth.users(id),
+  add column if not exists admin_note text;
+
+create index if not exists idx_body_comp_events_pending
+  on public.body_comp_events (approval_status)
+  where approval_status = 'requested';
+
+-- ── #17 — Doctor-interview proposals (employees self-book the slots) ──
+-- The company proposes day(s) + a mode (on-site / video|phone); staff
+-- approve and generate the 30-min doctor_slots reserved for the company;
+-- employees then self-book via the existing book_doctor_slot RPC.
+create table if not exists public.doctor_interview_proposals (
+  id              uuid primary key default gen_random_uuid(),
+  company_id      uuid not null references public.companies(id) on delete cascade,
+  proposed_date   date not null,
+  start_time      time not null,
+  end_time        time not null,
+  mode            text not null check (mode in ('onsite','video')),
+  room_notes      text,
+  approval_status text not null default 'requested'
+    check (approval_status in ('requested','approved','rejected')),
+  approved_at     timestamptz,
+  approved_by     uuid references auth.users(id),
+  admin_note      text,
+  created_by      uuid references auth.users(id),
+  created_at      timestamptz not null default now()
+);
+
+alter table public.doctor_interview_proposals enable row level security;
+
+drop policy if exists dip_staff_all on public.doctor_interview_proposals;
+create policy dip_staff_all on public.doctor_interview_proposals
+  for all using (public.is_active_staff()) with check (public.is_active_staff());
+
+-- The company's own contact/co-admins can see + create their proposals.
+drop policy if exists dip_company_read on public.doctor_interview_proposals;
+create policy dip_company_read on public.doctor_interview_proposals
+  for select using (
+    exists (select 1 from public.companies c
+            where c.id = company_id and c.contact_person_id = auth.uid())
+    or exists (select 1 from public.company_admins ca
+            where ca.company_id = doctor_interview_proposals.company_id and ca.user_id = auth.uid())
+  );
+
 commit;

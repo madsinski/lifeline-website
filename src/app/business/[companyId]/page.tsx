@@ -8,6 +8,7 @@ import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 import ScheduleBodyComp from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
+import DoctorInterviews from "./DoctorInterviews";
 import BillingPanel from "@/app/components/BillingPanel";
 
 interface Company {
@@ -55,6 +56,7 @@ interface BodyCompEvent {
   slot_minutes: number;
   slot_capacity: number;
   status: string;
+  approval_status: string;
 }
 
 interface BloodDay {
@@ -99,7 +101,7 @@ export default function BusinessDashboardPage() {
       supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
-        .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status")
+        .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status, approval_status")
         .eq("company_id", companyId).gte("event_date", today).order("event_date"),
       supabase.from("blood_test_days")
         .select("id, day, notes")
@@ -401,6 +403,10 @@ export default function BusinessDashboardPage() {
           </section>
         )}
 
+        {/* Doctor interviews — propose day(s) + mode; employees self-book
+            the 30-min slots in the patient portal after Lifeline approves. */}
+        {finalized && <DoctorInterviews companyId={companyId!} />}
+
         {/* Progress bar (hidden after finalize) */}
         {!finalized && (
           <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
@@ -596,7 +602,13 @@ export default function BusinessDashboardPage() {
                       {e.location && ` · ${e.location}`}
                     </div>
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Scheduled</span>
+                  {e.approval_status === "approved" ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Approved</span>
+                  ) : e.approval_status === "rejected" ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Rejected — pick another day</span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Lifeline approval</span>
+                  )}
                 </div>
               ))}
             </div>

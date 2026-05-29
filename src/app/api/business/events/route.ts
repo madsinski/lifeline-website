@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
-import { sendEmail, renderEventScheduledEmail } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 
 export const maxDuration = 60;
 
@@ -46,6 +46,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  // Staff-created days are auto-approved; company-proposed days start as
+  // 'requested' and wait for Lifeline approval before employees are
+  // invited (#16).
+  const approvalStatus = staff ? "approved" : "requested";
   const { data: inserted, error: insErr } = await supabaseAdmin
     .from("body_comp_events")
     .insert({
@@ -56,6 +60,9 @@ export async function POST(req: NextRequest) {
       location: (location || "").trim() || null,
       room_notes: (room_notes || "").trim() || null,
       created_by: user.id,
+      approval_status: approvalStatus,
+      approved_at: staff ? new Date().toISOString() : null,
+      approved_by: staff ? user.id : null,
     })
     .select("id")
     .single();
@@ -64,43 +71,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "event_create_failed" }, { status: 500 });
   }
 
-  // Broadcast to every employee of the company who has completed onboarding
-  const { data: members } = await supabaseAdmin
-    .from("company_members")
-    .select("id, full_name, email, completed_at")
-    .eq("company_id", company_id)
-    .not("completed_at", "is", null);
-
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get("origin") || "https://lifelinehealth.is";
-  const bookUrl = `${origin.replace(/\/$/, "")}/account/login?next=${encodeURIComponent("/account/welcome")}`;
   const dateLabel = new Date(event_date + "T00:00:00").toLocaleDateString("en-GB", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
-  let sent = 0, failed = 0;
-  const CONCURRENCY = 5;
-  const list = (members || []) as Array<{ full_name: string; email: string }>;
-  for (let i = 0; i < list.length; i += CONCURRENCY) {
-    const slice = list.slice(i, i + CONCURRENCY);
-    await Promise.all(slice.map(async (m) => {
-      const { text, html } = renderEventScheduledEmail({
-        recipientName: (m.full_name || "").split(" ")[0] || "there",
-        companyName: company.name,
-        eventDateLabel: dateLabel,
-        startTime: String(start_time).slice(0, 5),
-        endTime: String(end_time).slice(0, 5),
-        location,
-        roomNotes: room_notes,
-        bookUrl,
+  // Employees are NOT emailed here — that happens once a staff member
+  // approves the day (see /api/admin/business/events/[eventId]/approve).
+  // Notify ops that a day needs approval.
+  if (approvalStatus === "requested") {
+    try {
+      await sendEmail({
+        to: "contact@lifelinehealth.is",
+        subject: `Measurement day needs approval — ${company.name}`,
+        text: `${company.name} requested a measurement day on ${dateLabel}, ${String(start_time).slice(0,5)}–${String(end_time).slice(0,5)}${location ? ` at ${location}` : ""}. Approve it in /admin/business → Approvals.`,
+        html: `<p><strong>${company.name}</strong> requested a measurement day:</p><ul><li>${dateLabel}</li><li>${String(start_time).slice(0,5)}–${String(end_time).slice(0,5)}</li>${location ? `<li>${location}</li>` : ""}</ul><p>Approve it in <a href="https://www.lifelinehealth.is/admin/business">/admin/business → Approvals</a>.</p>`,
       });
-      const r = await sendEmail({
-        to: m.email,
-        subject: `Your Lifeline measurement at ${company.name} — pick a time`,
-        text, html,
-      });
-      if (r.ok) sent++; else failed++;
-    }));
+    } catch (e) {
+      console.error("[events] ops notify failed", (e as Error).message);
+    }
   }
 
-  return NextResponse.json({ ok: true, event_id: inserted.id, recipients: list.length, sent, failed });
+  return NextResponse.json({ ok: true, event_id: inserted.id, approval_status: approvalStatus });
 }
