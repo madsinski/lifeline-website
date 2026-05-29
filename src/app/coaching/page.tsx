@@ -544,20 +544,27 @@ export default function CoachingPage() {
                   </p>
                 </div>
                 <div className="mb-6">
-                  <span
-                    className={`text-4xl font-bold ${
-                      plan.popular ? "text-white" : "text-[#1F2937]"
-                    }`}
-                  >
-                    {plan.price === "0" ? "0" : plan.price}
-                  </span>
-                  <span
-                    className={`text-sm ml-2 ${
-                      plan.popular ? "text-gray-300" : "text-[#6B7280]"
-                    }`}
-                  >
-                    {plan.price === "0" ? "ISK / month" : `ISK / ${plan.period}`}
-                  </span>
+                  {/* Prices hidden until plans are finalised. Free tier
+                      still shows "Free"; paid tiers show "Coming soon"
+                      so the feature comparison stays useful without
+                      committing to a number. */}
+                  {plan.price === "0" ? (
+                    <span
+                      className={`text-4xl font-bold ${
+                        plan.popular ? "text-white" : "text-[#1F2937]"
+                      }`}
+                    >
+                      {t("coaching.plans.free", "Free")}
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-2xl font-bold ${
+                        plan.popular ? "text-white" : "text-[#1F2937]"
+                      }`}
+                    >
+                      {t("coaching.plans.price_soon", "Pricing coming soon")}
+                    </span>
+                  )}
                 </div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((feature) => (

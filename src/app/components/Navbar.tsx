@@ -10,7 +10,8 @@ import { LanguagePicker, useI18n } from "@/lib/i18n";
 const navLinkDefs = [
   { href: "/assessment", key: "nav.assessment", fallback: "Assessment" },
   { href: "/coaching", key: "nav.coaching", fallback: "Coaching" },
-  { href: "/pricing", key: "nav.pricing", fallback: "Pricing" },
+  // Pricing hidden until plans are finalised — /pricing renders a
+  // coming-soon placeholder, but we don't surface it in the nav.
   { href: "/business", key: "nav.companies", fallback: "Companies" },
   { href: "/contact", key: "nav.contact", fallback: "Contact" },
 ];

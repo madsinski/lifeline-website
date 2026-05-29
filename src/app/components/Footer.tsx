@@ -120,7 +120,6 @@ export default function Footer() {
                 { href: "/", key: "footer.home", fallback: "Home" },
                 { href: "/assessment", key: "footer.health_assessment", fallback: "Health Assessment" },
                 { href: "/coaching", key: "footer.coaching", fallback: "Coaching" },
-                { href: "/pricing", key: "footer.pricing", fallback: "Pricing" },
                 { href: "/contact", key: "footer.contact_link", fallback: "Contact" },
               ].map((link) => (
                 <li key={link.href}>

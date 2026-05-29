@@ -81,7 +81,9 @@ export default function WelcomeSlideshow({
   const finalHref = ctaHref || (
     variant === "b2c" ? "/account/onboard" :
     variant === "b2b" ? "/account" :
-    "/pricing"
+    // Public fallback points to the assessment funnel — pricing is
+    // not public yet (/pricing renders a coming-soon placeholder).
+    "/assessment"
   );
   const finalLabel = ctaLabel || (
     variant === "public" ? "Skoða leiðir til þátttöku" : "Halda áfram"

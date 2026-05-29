@@ -184,7 +184,7 @@ function AppTextContent() {
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
         <Link href="/coaching#download" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">Check out the app</Link>
-        <Link href="/pricing" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200">View Subscriptions</Link>
+        <Link href="/coaching" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200">Explore coaching</Link>
       </div>
     </div>
   );
