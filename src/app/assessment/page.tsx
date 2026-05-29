@@ -381,11 +381,17 @@ export default function AssessmentPage() {
                   </h3>
                   <p className="text-sm text-[#6B7280] mb-4">{pkg.description}</p>
                   <div className="mb-6">
-                    <span className="text-3xl font-bold text-[#1F2937]">
-                      {pkg.price}
-                    </span>
-                    {pkg.price !== "Free" && (
-                      <span className="text-sm text-[#6B7280] ml-2">ISK</span>
+                    {/* Prices hidden until finalised. Free package still
+                        shows "Free"; paid packages show "Pricing coming
+                        soon" so the package comparison stays useful. */}
+                    {pkg.price === "Free" ? (
+                      <span className="text-3xl font-bold text-[#1F2937]">
+                        {t("assessment.price.free", "Free")}
+                      </span>
+                    ) : (
+                      <span className="text-xl font-bold text-[#1F2937]">
+                        {t("assessment.price.soon", "Pricing coming soon")}
+                      </span>
                     )}
                   </div>
                   <div className="mb-4">

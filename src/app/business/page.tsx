@@ -149,6 +149,13 @@ function Hero() {
           <p className="text-lg sm:text-xl text-[#475569] mt-6 leading-relaxed max-w-2xl">
             Lifeline combines medical-grade health assessments, on-location measurements, intuitive reports and ongoing coaching — so your team can build real, measurable change with the least amount of effort.
           </p>
+          <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0F766E] bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Available to companies anywhere in Iceland — capital area and around the country.
+          </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a
               href="#inquiry"
@@ -179,7 +186,7 @@ function Hero() {
             </Link>
           </div>
           <p className="text-xs text-[#64748B] mt-5">
-            Medical doctors in the team · On-location scans · Confidential reporting · GDPR &amp; HIPAA-aligned
+            Medical doctors in the team · On-location scans · Confidential reporting · GDPR-aligned
           </p>
         </div>
       </div>
@@ -373,7 +380,7 @@ function Packages() {
           <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-2">Assessment packages</div>
           <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] tracking-tight">Three packages. Mix and match for your team.</h2>
           <p className="text-base text-[#475569] mt-4 leading-relaxed">
-            Every Lifeline programme is priced per employee, and only for what you actually use. Most companies start with a Foundational Health round for everyone, then run Check-ins every 6–12 months.
+            Most companies start with a Foundational Health round for everyone, then run Check-ins every 6–12 months. Pricing is tailored to your team — <a href="/contact" className="text-[#10B981] font-semibold hover:underline">get in touch</a> and we&apos;ll put together a quote.
           </p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -442,7 +449,7 @@ function Packages() {
         </div>
 
         <p className="text-sm text-[#64748B] mt-6 max-w-3xl">
-          Final pricing depends on headcount, location, and package mix. <a href="#inquiry" className="font-semibold text-[#10B981] hover:underline">Request a proposal</a> and we&apos;ll come back within 2 working days.
+          Final pricing depends on headcount, location, and package mix. <a href="#inquiry" className="font-semibold text-[#10B981] hover:underline">Request a proposal</a>{" "}and we&apos;ll come back within 2 working days.
         </p>
       </div>
     </section>
@@ -629,11 +636,8 @@ function InquiryForm() {
   }
 
   const interests = [
-    { key: "foundational", label: "Foundational Health" },
-    { key: "checkin", label: "Check-in" },
-    { key: "self-checkin", label: "Self Check-in" },
-    { key: "coaching", label: "Coaching app" },
-    { key: "other", label: "Not sure yet" },
+    { key: "foundational", label: "Foundational health assessment" },
+    { key: "coaching", label: "Lifeline Health Coaching app" },
   ];
 
   return (
@@ -694,9 +698,10 @@ function InquiryForm() {
           />
         </label>
         <label className="block">
-          <span className="block text-sm font-medium text-gray-700 mb-1">Phone (optional)</span>
+          <span className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-red-500">*</span></span>
           <input
             type="tel"
+            required
             value={contactPhone}
             onChange={(e) => setContactPhone(e.target.value)}
             className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
@@ -771,8 +776,9 @@ function InquiryForm() {
 
 function FAQ() {
   const items = [
+    { q: "Where is the service available?", a: "Across all of Iceland. We serve companies in the capital area and around the country. The service is offered in Iceland only." },
     { q: "How quickly can you start?", a: "Most companies go from kick-off call to on-site measurement day in 3–6 weeks. Smaller teams can move even faster." },
-    { q: "What happens if we have employees outside Reykjavík?", a: "We coordinate with a partner lab near their office — employees never drive far for a blood draw. The measurement day and doctor consultations can be fully remote when needed." },
+    { q: "What happens if we have employees outside the capital area?", a: "We coordinate with a partner lab near their office — employees never drive far for a blood draw. The measurement day and doctor consultations can be done on-site or remotely (video/phone), whichever suits your team." },
     { q: "What sees the company, and what stays with the employee?", a: "All clinical data stays in each employee's personal patient portal. The company only sees anonymised group metrics — participation, programme progress, wellbeing averages. We mask any metric where fewer than 5 employees responded, so nobody can be re-identified." },
     { q: "Is the coaching app mandatory?", a: "No. The assessment is the foundation. Coaching is optional — the company can cover it for everyone, cover it for specific groups, or leave it as a personal choice." },
     { q: "How is billing handled?", a: "One consolidated PayDay invoice per round, delivered electronically to your company kennitala. You pay per completed assessment — no-shows don't count." },
