@@ -147,13 +147,14 @@ export default function JobDescriptionWorkspace() {
   };
 
   const createDoc = async () => {
-    const title = prompt("Titill á nýrri verkefnalýsingu:", "Ný staða");
+    const DEFAULT_TITLE = "Boð um að ganga til liðs við Lifeline";
+    const title = prompt("Titill á nýju skjali:", DEFAULT_TITLE);
     if (title === null) return;
     try {
       const res = await fetch("/api/job-description", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-        body: JSON.stringify({ title: title.trim() || "Ný staða" }),
+        body: JSON.stringify({ title: title.trim() || DEFAULT_TITLE }),
       });
       if (!res.ok) { alert("Gat ekki búið til skjal."); return; }
       const j = await res.json();
@@ -249,13 +250,10 @@ export default function JobDescriptionWorkspace() {
             <div className="jd-noprint max-w-3xl mx-auto mb-4">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
-                  <input
-                    value={meta.title}
-                    onChange={(e) => setMetaField("title")(e.target.value)}
-                    placeholder="Titill skjals"
-                    className="w-full text-xl font-bold text-gray-900 bg-transparent outline-none border-b border-transparent focus:border-emerald-400"
-                  />
-                  <div className="flex flex-wrap gap-3 mt-2">
+                  <p className="text-[11px] uppercase tracking-wide text-gray-400 mb-1">
+                    Titill skjalsins er breytanlegur efst í skjalinu sjálfu →
+                  </p>
+                  <div className="flex flex-wrap gap-3 mt-1">
                     <input
                       value={meta.candidate_name}
                       onChange={(e) => setMetaField("candidate_name")(e.target.value)}
@@ -317,7 +315,12 @@ export default function JobDescriptionWorkspace() {
               </div>
             </div>
 
-            <JobDescriptionDoc fields={fields} set={set} />
+            <JobDescriptionDoc
+              fields={fields}
+              set={set}
+              title={meta.title}
+              onTitleChange={setMetaField("title")}
+            />
 
             <ContractPanel
               jobId={activeId}
@@ -329,7 +332,7 @@ export default function JobDescriptionWorkspace() {
             {previewOpen && (
               <Modal title="Forskoðun — útgáfa umsækjanda" onClose={() => setPreviewOpen(false)} wide>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <JobDescriptionDoc fields={fields} readOnly embedded />
+                  <JobDescriptionDoc fields={fields} readOnly embedded title={meta.title} />
                 </div>
               </Modal>
             )}

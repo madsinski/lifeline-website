@@ -38,11 +38,12 @@ export async function GET(req: NextRequest) {
     const docId = id || DEFAULT_DOC_ID;
     const { data, error } = await supabaseAdmin
       .from("job_descriptions")
-      .select("fields, updated_at")
+      .select("title, fields, updated_at")
       .eq("id", docId)
       .maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({
+      title: data?.title ?? null,
       fields: (data?.fields as Record<string, unknown>) ?? {},
       updated_at: data?.updated_at ?? null,
     });

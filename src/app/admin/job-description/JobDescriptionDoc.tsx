@@ -166,6 +166,8 @@ export function JobDescriptionDoc({
   set,
   readOnly = false,
   embedded = false,
+  title,
+  onTitleChange,
 }: {
   fields: DocFields;
   set?: (k: keyof DocFields) => (v: string) => void;
@@ -173,6 +175,10 @@ export function JobDescriptionDoc({
   // Rendered inside another container (the print portal or an on-screen
   // preview modal): don't emit the global <style> or a nested print portal.
   embedded?: boolean;
+  // The document title — shown as the heading and on the password page.
+  // The same value as the admin "Titill skjals" field, so they always match.
+  title?: string;
+  onTitleChange?: (v: string) => void;
 }) {
   const on = (k: keyof DocFields): ((v: string) => void) | undefined =>
     readOnly || !set ? undefined : set(k);
@@ -223,7 +229,16 @@ export function JobDescriptionDoc({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lifeline-logo-rebrand.svg" alt="Lifeline" className="h-7 w-auto mb-5" />
           <h2 className="text-3xl font-bold text-gray-900 leading-tight">
-            Verkefnalýsing — <EditInline value={fields.starfsheiti} onChange={on("starfsheiti")} className="inline-block min-w-[180px] align-baseline" />
+            {onTitleChange ? (
+              <input
+                className="jd-input"
+                value={title ?? ""}
+                onChange={(e) => onTitleChange(e.target.value)}
+                placeholder="Titill skjals"
+              />
+            ) : (
+              (title && title.trim()) || fields.starfsheiti
+            )}
           </h2>
           <p className="text-gray-500 mt-1"><EditInline value={fields.subtitle} onChange={on("subtitle")} className="inline-block min-w-[160px]" /></p>
           <span className="inline-block mt-4 text-[12.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
@@ -410,7 +425,7 @@ export function JobDescriptionDoc({
           (editor and public mirror) so both print cleanly. */}
       {!embedded && (
         <PrintPortal>
-          <JobDescriptionDoc fields={fields} readOnly embedded />
+          <JobDescriptionDoc fields={fields} readOnly embedded title={title} />
         </PrintPortal>
       )}
     </>
