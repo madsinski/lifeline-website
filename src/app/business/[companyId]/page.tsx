@@ -233,9 +233,13 @@ export default function BusinessDashboardPage() {
   const hasBloodDays = bloodDays.length > 0;
   const agreementSigned = !!company.agreement_signed_at;
   const rosterDone = rosterConfirmed;
-  const stepsDone = [rosterDone, hasEvents, hasBloodDays, agreementSigned].filter(Boolean).length;
-  const allStepsDone = rosterDone && hasEvents && hasBloodDays && agreementSigned;
-  const nextStep = !rosterDone ? 1 : !hasEvents ? 2 : !hasBloodDays ? 3 : !agreementSigned ? 4 : 0;
+  // Step order: sign the service agreement + purchase order FIRST, so the
+  // platform-agreement gate is satisfied before any employee invites go
+  // out (otherwise the invite API rejects the batch with
+  // "agreement_not_signed"). Roster, then measurement day, then blood days.
+  const stepsDone = [agreementSigned, rosterDone, hasEvents, hasBloodDays].filter(Boolean).length;
+  const allStepsDone = agreementSigned && rosterDone && hasEvents && hasBloodDays;
+  const nextStep = !agreementSigned ? 1 : !rosterDone ? 2 : !hasEvents ? 3 : !hasBloodDays ? 4 : 0;
 
   const confirmRoster = async () => {
     if (members.length === 0) {
@@ -408,11 +412,70 @@ export default function BusinessDashboardPage() {
         )}
 
         <div id="setup" className="scroll-mt-24" />
-        {/* STEP 1 — Register employees */}
+        {/* STEP 1 — Sign service agreement + purchase order. This MUST be
+            first: the invite API refuses to send until the platform
+            agreement is signed, so signing before the roster step avoids
+            the "agreement_not_signed" dead-end testers hit. */}
+        {!finalized && (
+          <StepCard
+            n={1}
+            done={agreementSigned}
+            active={nextStep === 1}
+            title={agreementSigned ? "Þjónustusamningur undirritaður" : "Veldu pakka og undirritaðu þjónustusamning"}
+            subtitle={
+              agreementSigned
+                ? `Undirritað ${new Date(company.agreement_signed_at!).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" })} — afrit í fyrirtækisgátt og á tölvupósti.`
+                : "Segðu okkur fjölda starfsmanna og fjölda heilsumata — verðið reiknast sjálfkrafa. Yfirfarðu samninginn og undirritaðu rafrænt. Þetta þarf að gerast áður en hægt er að bjóða starfsmönnum."
+            }
+          >
+            {!agreementSigned ? (
+              <button
+                onClick={() => router.push(`/business/${companyId}/sign`)}
+                className="btn-step-primary"
+              >
+                Halda áfram að verði og undirritun →
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                  Samningurinn er geymdur á öruggan hátt. Þú getur hlaðið niður afriti hér að neðan.
+                </div>
+                {signedDocs.length > 0 && (
+                  <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
+                    {signedDocs.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 truncate">
+                            {d.po_number || "(pöntun)"} · {d.signatory_name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {d.signatory_role} · {new Date(d.signed_at).toLocaleString("is-IS", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            {d.total_isk != null && <> · <strong>{d.total_isk.toLocaleString("is-IS")} kr</strong></>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => downloadSignedPdf(d.id, d.pdf_storage_path)}
+                          disabled={downloadingId === d.id || !d.pdf_storage_path}
+                          title={!d.pdf_storage_path ? "PDF vantar" : "Hlaða niður PDF"}
+                          className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40 whitespace-nowrap"
+                        >
+                          {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Hlaða niður PDF" : "Vantar"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </StepCard>
+        )}
+
+        {/* STEP 2 — Register employees */}
         <StepCard
-          n={1}
+          n={2}
           done={rosterDone}
-          active={nextStep === 1}
+          active={nextStep === 2}
+          locked={!agreementSigned && !rosterDone}
           title="Register your employees"
           subtitle={
             members.length === 0
@@ -505,11 +568,11 @@ export default function BusinessDashboardPage() {
           </div>
         </StepCard>
 
-        {/* STEP 2 — Measurement day */}
+        {/* STEP 3 — Measurement day */}
         <StepCard
-          n={2}
+          n={3}
           done={hasEvents}
-          active={nextStep === 2}
+          active={nextStep === 3}
           locked={!rosterDone && !hasEvents}
           title="Schedule the measurement day"
           subtitle={
@@ -555,11 +618,11 @@ export default function BusinessDashboardPage() {
           </button>
         </StepCard>
 
-        {/* STEP 3 — Blood-test days */}
+        {/* STEP 4 — Blood-test days */}
         <StepCard
-          n={3}
+          n={4}
           done={hasBloodDays}
-          active={nextStep === 3}
+          active={nextStep === 4}
           locked={!hasEvents && !hasBloodDays}
           title="Pick blood-test days"
           subtitle={
@@ -581,61 +644,6 @@ export default function BusinessDashboardPage() {
             {hasBloodDays ? "Add more days" : "Pick days"}
           </button>
         </StepCard>
-
-        {/* STEP 4 — Sign service agreement + purchase order (only after steps 1–3) */}
-        {!finalized && rosterDone && hasEvents && hasBloodDays && (
-          <StepCard
-            n={4}
-            done={agreementSigned}
-            active={nextStep === 4}
-            title={agreementSigned ? "Þjónustusamningur undirritaður" : "Undirrita þjónustusamning og pöntun"}
-            subtitle={
-              agreementSigned
-                ? `Undirritað ${new Date(company.agreement_signed_at!).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" })} — afrit í fyrirtækisgátt og á tölvupósti.`
-                : "Yfirfarðu þjónustusamninginn, bættu við pöntunaratriðum og undirritaðu rafrænt."
-            }
-          >
-            {!agreementSigned ? (
-              <button
-                onClick={() => router.push(`/business/${companyId}/sign`)}
-                className="btn-step-primary"
-              >
-                Halda áfram að undirritun →
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                  Samningurinn er geymdur á öruggan hátt. Þú getur hlaðið niður afriti hér að neðan.
-                </div>
-                {signedDocs.length > 0 && (
-                  <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
-                    {signedDocs.map((d) => (
-                      <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-gray-900 truncate">
-                            {d.po_number || "(pöntun)"} · {d.signatory_name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {d.signatory_role} · {new Date(d.signed_at).toLocaleString("is-IS", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            {d.total_isk != null && <> · <strong>{d.total_isk.toLocaleString("is-IS")} kr</strong></>}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => downloadSignedPdf(d.id, d.pdf_storage_path)}
-                          disabled={downloadingId === d.id || !d.pdf_storage_path}
-                          title={!d.pdf_storage_path ? "PDF vantar" : "Hlaða niður PDF"}
-                          className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40 whitespace-nowrap"
-                        >
-                          {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Hlaða niður PDF" : "Vantar"}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </StepCard>
-        )}
 
         {/* Finalize CTA — shown when all 4 steps done but not yet finalized */}
         {allStepsDone && !finalized && (

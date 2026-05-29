@@ -9,6 +9,7 @@ import {
   renderPurchaseOrder,
   type PurchaseOrderLineItem,
 } from "@/lib/agreement-templates";
+import { buildAssessmentPricing, assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
 
 interface CompanyRow {
   id: string;
@@ -17,11 +18,6 @@ interface CompanyRow {
   agreement_signed_at: string | null;
   kennitala_last4?: string | null;
 }
-
-// Default package pricing — staff/contact person can edit before signing.
-const DEFAULT_LINE_ITEMS: PurchaseOrderLineItem[] = [
-  { description: "Heilsumat starfsmanns (Foundational Health Assessment)", qty: 1, unit_price_isk: 49900, total_isk: 49900 },
-];
 
 function fmtIsk(n: number): string {
   return n.toLocaleString("is-IS") + " kr";
@@ -46,8 +42,11 @@ export default function SignAgreementPage() {
   const [signatoryEmail, setSignatoryEmail] = useState("");
   const [agreeChecked, setAgreeChecked] = useState(false);
 
-  // Purchase order state
-  const [lineItems, setLineItems] = useState<PurchaseOrderLineItem[]>(DEFAULT_LINE_ITEMS);
+  // Purchase order — line items are auto-computed from headcount + rounds.
+  const [headcount, setHeadcount] = useState<number>(1);
+  const [rounds, setRounds] = useState<1 | 2>(1);
+  const [includeFollowup, setIncludeFollowup] = useState<boolean>(false);
+  const [lineItems, setLineItems] = useState<PurchaseOrderLineItem[]>([]);
   const [billingCadence, setBillingCadence] = useState<string>("one_time");
   const todayIso = new Date().toISOString().slice(0, 10);
   const oneYearFromToday = (() => {
@@ -126,44 +125,30 @@ export default function SignAgreementPage() {
     })();
   }, [companyId]);
 
-  // Load employee count from the roster and set the default per-employee line
-  // item quantity to match. We only auto-fill once, on first load — once the
-  // user edits the line items, we leave their numbers alone.
-  const [employeeCount, setEmployeeCount] = useState<number | null>(null);
-  const didAutoFillQtyRef = useRef(false);
+  // Pre-fill headcount from the roster if employees were already added.
+  // In the normal flow the roster is empty at signing time (signing is
+  // step 1), so this just seeds a sensible default the contact adjusts.
+  const didSeedHeadcountRef = useRef(false);
   useEffect(() => {
     (async () => {
-      if (!companyId) return;
+      if (!companyId || didSeedHeadcountRef.current) return;
       const { data, error: e } = await supabase.rpc("list_company_members", { p_company_id: companyId });
       if (e || !Array.isArray(data)) return;
-      setEmployeeCount(data.length);
+      if (data.length > 0) { setHeadcount(data.length); didSeedHeadcountRef.current = true; }
     })();
   }, [companyId]);
+
+  // Auto-compute the PO line items from headcount + rounds + follow-up.
   useEffect(() => {
-    if (didAutoFillQtyRef.current) return;
-    if (employeeCount == null || employeeCount <= 0) return;
-    setLineItems((prev) => {
-      // Only patch if the first line item still looks like the default
-      // (description unchanged, qty = 1). That avoids overwriting edits.
-      if (prev.length !== 1) return prev;
-      const first = prev[0];
-      if (first.description !== DEFAULT_LINE_ITEMS[0].description || first.qty !== 1) return prev;
-      didAutoFillQtyRef.current = true;
-      return [{ ...first, qty: employeeCount, total_isk: employeeCount * first.unit_price_isk }];
+    const { lineItems: items } = buildAssessmentPricing({
+      employeeCount: Math.max(1, headcount),
+      rounds,
+      includeFollowup,
     });
-  }, [employeeCount]);
+    setLineItems(items);
+  }, [headcount, rounds, includeFollowup]);
 
-  const updateLineItem = (idx: number, patch: Partial<PurchaseOrderLineItem>) => {
-    setLineItems((prev) => prev.map((li, i) => {
-      if (i !== idx) return li;
-      const next = { ...li, ...patch };
-      next.total_isk = next.qty * next.unit_price_isk;
-      return next;
-    }));
-  };
-
-  const addLine = () => setLineItems((p) => [...p, { description: "", qty: 1, unit_price_isk: 0, total_isk: 0 }]);
-  const removeLine = (idx: number) => setLineItems((p) => p.filter((_, i) => i !== idx));
+  const perEmployeeUnit = assessmentUnitPriceIsk(Math.max(1, headcount), rounds);
 
   const sign = async () => {
     setError("");
@@ -269,39 +254,57 @@ export default function SignAgreementPage() {
         </p>
       </header>
 
-      {/* Purchase order editor */}
+      {/* Purchase order — auto-priced from headcount + rounds */}
       <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
         <h2 className="font-semibold text-gray-900">Innkaupapöntun</h2>
 
-        <div className="space-y-2">
+        {/* Pricing inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="text-sm text-gray-700">
+            Fjöldi starfsmanna
+            <input
+              type="number" min={1}
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+              value={headcount}
+              onChange={(e) => setHeadcount(Math.max(1, parseInt(e.target.value) || 1))}
+            />
+            <span className="text-[11px] text-gray-400">{headcount <= 14 ? "0–14 verðflokkur" : "15+ verðflokkur"}</span>
+          </label>
+          <label className="text-sm text-gray-700">
+            Fjöldi heilsumata
+            <select
+              value={rounds}
+              onChange={(e) => setRounds(parseInt(e.target.value) === 2 ? 2 : 1)}
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+            >
+              <option value={1}>1× heilsumat</option>
+              <option value={2}>2× heilsumat</option>
+            </select>
+            <span className="text-[11px] text-gray-400">{fmtIsk(perEmployeeUnit)} á heilsumat / starfsmann</span>
+          </label>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={includeFollowup}
+            onChange={(e) => setIncludeFollowup(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          Bæta við eftirfylgni læknis — 15 mín viðtal eftir 3 mánuði ({fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} / starfsmann)
+        </label>
+
+        {/* Read-only computed breakdown */}
+        <div className="space-y-1.5 pt-2 border-t border-gray-100">
           {lineItems.map((li, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-              <input
-                className="col-span-6 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-                placeholder="Lýsing (t.d. Heilsumat starfsmanns)"
-                value={li.description}
-                onChange={(e) => updateLineItem(idx, { description: e.target.value })}
-              />
-              <input
-                type="number" min={1}
-                className="col-span-1 px-2 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-                value={li.qty}
-                onChange={(e) => updateLineItem(idx, { qty: Math.max(1, parseInt(e.target.value) || 1) })}
-              />
-              <input
-                type="number" min={0}
-                className="col-span-3 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-                placeholder="Einingaverð (kr)"
-                value={li.unit_price_isk}
-                onChange={(e) => updateLineItem(idx, { unit_price_isk: Math.max(0, parseInt(e.target.value) || 0) })}
-              />
-              <div className="col-span-1 text-right text-sm text-gray-700">{fmtIsk(li.total_isk)}</div>
-              <button onClick={() => removeLine(idx)} className="col-span-1 text-red-500 text-xs hover:underline disabled:opacity-30" disabled={lineItems.length <= 1}>
-                Eyða
-              </button>
+            <div key={idx} className="flex items-start justify-between gap-3 text-sm">
+              <div className="text-gray-700">
+                {li.description}
+                <span className="text-gray-400"> · {li.qty} × {fmtIsk(li.unit_price_isk)}</span>
+              </div>
+              <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(li.total_isk)}</div>
             </div>
           ))}
-          <button onClick={addLine} className="text-sm font-medium text-emerald-600 hover:underline">+ Bæta við pöntunaratriði</button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100">
