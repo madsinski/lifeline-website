@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getMyStaffRole } from "@/lib/staff-role";
 import {
   type FeedbackSurvey,
   STATUS_LABEL,
@@ -257,12 +258,8 @@ export default function SurveysHubPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.email) {
-          const { data: staffRow } = await supabase
-            .from("staff")
-            .select("role")
-            .eq("email", user.email)
-            .maybeSingle();
-          if (!cancelled) setRole((staffRow?.role as string) || null);
+          const r = await getMyStaffRole(user.email);
+          if (!cancelled) setRole(r);
         }
 
         const { data: surveyRows } = await supabase

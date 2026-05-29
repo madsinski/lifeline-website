@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { getMyStaffRole } from "@/lib/staff-role";
 import {
   type FeedbackSurvey,
   type FeedbackQuestion,
@@ -59,12 +60,8 @@ export default function SurveyEditorPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.email) {
-          const { data: staffRow } = await supabase
-            .from("staff")
-            .select("role")
-            .eq("email", user.email)
-            .maybeSingle();
-          if (!cancelled) setRole((staffRow?.role as string) || null);
+          const r = await getMyStaffRole(user.email);
+          if (!cancelled) setRole(r);
         }
 
         const { data: surveyRow } = await supabase
