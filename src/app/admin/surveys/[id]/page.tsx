@@ -173,6 +173,7 @@ export default function SurveyEditorPage() {
             outro_is: survey.outro_is,
             outro_en: survey.outro_en,
             estimated_minutes: survey.estimated_minutes,
+            category: survey.category,
           },
           questions: questions.map((q) => ({
             id: q._new ? null : q.id,
@@ -379,6 +380,27 @@ export default function SurveyEditorPage() {
             disabled={!canEditStructure}
             onChange={(v) => updateSurveyField({ estimated_minutes: v })}
           />
+          <label className="block md:col-span-2">
+            <span className="block text-xs font-medium text-gray-600 mb-1">Category</span>
+            <input
+              type="text"
+              list="survey-category-list"
+              value={survey.category || ""}
+              onChange={(e) => updateSurveyField({ category: e.target.value || null })}
+              disabled={!canEditStructure}
+              placeholder="e.g. Post-assessment, 3-month follow-up"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 disabled:bg-gray-50 disabled:text-gray-500"
+            />
+            <datalist id="survey-category-list">
+              <option value="Post-assessment" />
+              <option value="3-month follow-up" />
+              <option value="6-month follow-up" />
+              <option value="Annual" />
+            </datalist>
+            <span className="block text-[11px] text-gray-400 mt-1">
+              Free text — group surveys by purpose. Shown inline in the surveys list.
+            </span>
+          </label>
         </div>
       </div>
 

@@ -28,6 +28,8 @@ export interface FeedbackSurvey {
   outro_is: string | null;
   outro_en: string | null;
   estimated_minutes: number;
+  // Free-text grouping label, e.g. "Post-assessment", "3-month follow-up".
+  category: string | null;
   status: SurveyStatus;
   approved_by: string | null;
   approved_by_name: string | null;

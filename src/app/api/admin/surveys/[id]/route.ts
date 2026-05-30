@@ -22,6 +22,7 @@ interface SurveyPatch {
   outro_is?: string | null;
   outro_en?: string | null;
   estimated_minutes?: number;
+  category?: string | null;
 }
 
 interface QuestionPayload {
@@ -91,7 +92,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
   if (body.survey) {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     const allowed: (keyof SurveyPatch)[] = [
-      "title_is", "title_en", "intro_is", "intro_en", "outro_is", "outro_en", "estimated_minutes",
+      "title_is", "title_en", "intro_is", "intro_en", "outro_is", "outro_en", "estimated_minutes", "category",
     ];
     for (const k of allowed) {
       if (k in body.survey) patch[k] = body.survey[k];

@@ -384,7 +384,8 @@ export default function SurveysHubPage() {
           seed the default post-assessment survey.
         </div>
       ) : (() => {
-        const active = surveys.filter((s) => s.status !== "archived");
+        const drafts = surveys.filter((s) => s.status === "draft" || s.status === "pending_approval");
+        const active = surveys.filter((s) => s.status === "approved");
         const archived = surveys.filter((s) => s.status === "archived");
         const renderRow = (s: FeedbackSurvey) => {
           const c = counts[s.id] || { sent: 0, completed: 0 };
@@ -398,6 +399,11 @@ export default function SurveysHubPage() {
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_BADGE_CLASS[s.status]}`}>
                       {STATUS_LABEL[s.status]}
                     </span>
+                    {s.category && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                        {s.category}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {s.estimated_minutes} mín · {c.completed}/{c.sent} svör
@@ -489,12 +495,32 @@ export default function SurveysHubPage() {
         return (
           <div className="space-y-8">
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-                Active <span className="text-gray-400 font-normal normal-case">({active.length})</span>
-              </h2>
+              <div className="mb-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Draft <span className="text-gray-400 font-normal normal-case">({drafts.length})</span>
+                </h2>
+                <p className="text-[11px] text-gray-400">Editable — not yet approved.</p>
+              </div>
+              {drafts.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+                  No drafts.
+                </div>
+              ) : (
+                <div className="space-y-3">{drafts.map(renderRow)}</div>
+              )}
+            </section>
+            <section>
+              <div className="mb-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Active <span className="text-gray-400 font-normal normal-case">({active.length})</span>
+                </h2>
+                <p className="text-[11px] text-gray-400">
+                  Approved and in use — locked. Clone or reopen the editor to make changes.
+                </p>
+              </div>
               {active.length === 0 ? (
                 <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
-                  No active surveys.
+                  No active surveys yet — approve a draft above to put it in rotation.
                 </div>
               ) : (
                 <div className="space-y-3">{active.map(renderRow)}</div>
@@ -502,9 +528,12 @@ export default function SurveysHubPage() {
             </section>
             {archived.length > 0 && (
               <section>
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-                  Archived <span className="text-gray-400 font-normal normal-case">({archived.length})</span>
-                </h2>
+                <div className="mb-2">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Archived <span className="text-gray-400 font-normal normal-case">({archived.length})</span>
+                  </h2>
+                  <p className="text-[11px] text-gray-400">Older versions kept for the record.</p>
+                </div>
                 <div className="space-y-3 opacity-75">{archived.map(renderRow)}</div>
               </section>
             )}
