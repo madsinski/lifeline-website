@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { aalFromToken } from "@/lib/auth-helpers";
 import type { QuestionType } from "@/lib/feedback-survey-types";
 
 export const runtime = "nodejs";
@@ -175,5 +176,110 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     ok: true,
     survey: refreshedSurvey,
     questions: refreshedQuestions || [],
+  });
+}
+
+// DELETE /api/admin/surveys/[id]
+// Hard-deletes the survey, its questions (CASCADE), its assignments, and
+// all collected responses (assignments → responses CASCADE).
+//
+// Security:
+//   - Admin role (medical_advisor cannot delete).
+//   - AAL2 (MFA) required — destructive.
+//   - The caller must echo the survey's `key` in the request body as a
+//     typed confirmation so accidental fetch()s can't wipe the record.
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id: surveyId } = await ctx.params;
+
+  let body: { confirm?: string } = {};
+  try { body = await req.json(); } catch { /* allow empty body */ }
+
+  // ── Auth ──────────────────────────────────────────────────────
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+  }
+  const token = authHeader.slice("Bearer ".length);
+  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+  if (userErr || !userData.user?.email) {
+    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
+  }
+  const { data: staffRow } = await supabaseAdmin
+    .from("staff")
+    .select("id, role, name, active")
+    .eq("email", userData.user.email)
+    .maybeSingle();
+  if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
+    return NextResponse.json({ ok: false, error: "Admin role required to delete a survey." }, { status: 403 });
+  }
+  if (aalFromToken(token) !== "aal2") {
+    return NextResponse.json({ ok: false, error: "MFA step-up required to delete a survey." }, { status: 403 });
+  }
+
+  // ── Load survey + counts; require typed confirmation ──────────
+  const { data: surveyRow } = await supabaseAdmin
+    .from("feedback_surveys")
+    .select("id, key, title_is, status")
+    .eq("id", surveyId)
+    .maybeSingle();
+  if (!surveyRow) {
+    return NextResponse.json({ ok: false, error: "Survey not found" }, { status: 404 });
+  }
+  if (!body.confirm || body.confirm !== surveyRow.key) {
+    return NextResponse.json(
+      { ok: false, error: `Confirmation mismatch: send { confirm: "${surveyRow.key}" } to delete.` },
+      { status: 400 },
+    );
+  }
+
+  // ── Tally what's being destroyed (for the audit log + UI) ─────
+  const { count: assignmentCount } = await supabaseAdmin
+    .from("feedback_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("survey_id", surveyId);
+  const { count: responseCount } = await supabaseAdmin
+    .from("feedback_responses")
+    .select("id", { count: "exact", head: true })
+    .in("assignment_id",
+      // PostgREST `in` needs a literal list; we build it via a sub-select alternative:
+      // safer to count via a join — but PostgREST has no join in REST. Do a 2-step.
+      ((await supabaseAdmin
+        .from("feedback_assignments")
+        .select("id")
+        .eq("survey_id", surveyId)
+      ).data ?? []).map((r) => r.id),
+    );
+
+  // ── Delete in order. Assignments lack ON DELETE CASCADE from
+  //    surveys (responses → assignments DO cascade), so wipe
+  //    assignments first to take responses with them; questions
+  //    cascade-delete from the survey row. ────────────────────────
+  const { error: aErr } = await supabaseAdmin
+    .from("feedback_assignments")
+    .delete()
+    .eq("survey_id", surveyId);
+  if (aErr) {
+    return NextResponse.json({ ok: false, error: `Assignment delete failed: ${aErr.message}` }, { status: 500 });
+  }
+  const { error: sErr } = await supabaseAdmin
+    .from("feedback_surveys")
+    .delete()
+    .eq("id", surveyId);
+  if (sErr) {
+    return NextResponse.json({ ok: false, error: `Survey delete failed: ${sErr.message}` }, { status: 500 });
+  }
+
+  console.warn(
+    `[surveys:delete] survey=${surveyRow.key} (${surveyId}) by staff=${staffRow.id} (${userData.user.email}) — removed ${assignmentCount ?? 0} assignment(s), ${responseCount ?? 0} response(s)`,
+  );
+
+  return NextResponse.json({
+    ok: true,
+    deleted: {
+      survey_id: surveyId,
+      key: surveyRow.key,
+      assignments: assignmentCount ?? 0,
+      responses: responseCount ?? 0,
+    },
   });
 }

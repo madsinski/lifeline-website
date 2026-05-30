@@ -49,6 +49,11 @@ export default function SurveyEditorPage() {
   const [emailPreview, setEmailPreview] = useState<{ subject: string; html: string } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Hard-delete confirmation state.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   const isAdmin = role === "admin";
   const isMedicalAdvisor = role === "medical_advisor";
   // Both admin and medical advisor can edit content directly while a
@@ -224,6 +229,29 @@ export default function SurveyEditorPage() {
       setMsg({ type: "err", text: `Could not load email preview: ${(e as Error).message}` });
     } finally {
       setPreviewLoading(false);
+    }
+  };
+
+  const deleteSurvey = async () => {
+    if (!survey) return;
+    if (deleteInput !== survey.key) return;
+    setDeleting(true);
+    setMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${survey.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ confirm: deleteInput }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j?.error || `HTTP ${res.status}`);
+      router.push("/admin/surveys");
+    } catch (e) {
+      setDeleting(false);
+      setMsg({ type: "err", text: `Delete failed: ${(e as Error).message}` });
     }
   };
 
@@ -601,7 +629,72 @@ export default function SurveyEditorPage() {
         {survey.approval_note && (
           <p className="text-xs text-gray-500 italic">Last note: {survey.approval_note}</p>
         )}
+
+        {isAdmin && (
+          <div className="pt-3 mt-1 border-t border-gray-100 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-gray-500">
+              Destructive — removes the survey, its questions, and every collected response.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setDeleteInput(""); setDeleteOpen(true); }}
+              className="text-xs font-semibold px-3 py-1.5 rounded-md border border-red-200 text-red-700 hover:bg-red-50"
+            >
+              Delete survey
+            </button>
+          </div>
+        )}
       </div>
+
+      {deleteOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8"
+          onClick={() => !deleting && setDeleteOpen(false)}
+        >
+          <div
+            className="my-4 w-full max-w-md rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-gray-200">
+              <h3 className="text-sm font-bold text-red-700">Delete this survey?</h3>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-gray-700">
+                This permanently removes the survey <strong>{survey.title_is}</strong>, all of its
+                questions, and every response that has been collected. This cannot be undone.
+              </p>
+              <p className="text-xs text-gray-500">
+                Type the survey key <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{survey.key}</code> to confirm.
+              </p>
+              <input
+                value={deleteInput}
+                onChange={(e) => setDeleteInput(e.target.value)}
+                placeholder={survey.key}
+                disabled={deleting}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none"
+              />
+            </div>
+            <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting || deleteInput !== survey.key}
+                onClick={deleteSurvey}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting…" : "Delete permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {emailPreview && (
         <div
