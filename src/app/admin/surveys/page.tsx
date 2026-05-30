@@ -60,6 +60,7 @@ export default function SurveysHubPage() {
   const [sendTab, setSendTab] = useState<"clients" | "companies">("clients");
   const [sendClients, setSendClients] = useState<SendClient[]>([]);
   const [sendCompanies, setSendCompanies] = useState<SendCompany[]>([]);
+  const [sendMembers, setSendMembers] = useState<{ id: string; email: string | null; company_id: string | null }[]>([]);
   const [sendClientsLoaded, setSendClientsLoaded] = useState(false);
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
@@ -183,7 +184,7 @@ export default function SurveysHubPage() {
     if (sendClientsLoaded) return;
     // Lazy-load clients + companies the first time the modal is opened.
     try {
-      const [clientsRes, companiesRes] = await Promise.all([
+      const [clientsRes, companiesRes, membersRes] = await Promise.all([
         supabase
           .from("clients_decrypted")
           .select("id, email, full_name, company_id")
@@ -193,15 +194,28 @@ export default function SurveysHubPage() {
           .from("companies")
           .select("id, name")
           .order("name", { ascending: true }),
+        supabase
+          .from("company_members")
+          .select("id, email, company_id")
+          .limit(5000),
       ]);
       const cs = (clientsRes.data || []) as SendClient[];
-      const co = ((companiesRes.data || []) as { id: string; name: string }[]).map((c) => ({
-        id: c.id,
-        name: c.name,
-        employee_count: cs.filter((cl) => cl.company_id === c.id && cl.email).length,
-      }));
+      const ms = (membersRes.data || []) as { id: string; email: string | null; company_id: string | null }[];
+      const co = ((companiesRes.data || []) as { id: string; name: string }[]).map((c) => {
+        // Unique-by-email across both onboarded clients and the roster
+        // members — same person registered in both shouldn't be counted twice.
+        const emails = new Set<string>();
+        for (const cl of cs) {
+          if (cl.company_id === c.id && cl.email) emails.add(cl.email.toLowerCase());
+        }
+        for (const m of ms) {
+          if (m.company_id === c.id && m.email) emails.add(m.email.toLowerCase());
+        }
+        return { id: c.id, name: c.name, employee_count: emails.size };
+      });
       setSendClients(cs);
       setSendCompanies(co);
+      setSendMembers(ms);
       setSendClientsLoaded(true);
     } catch (e) {
       setSendError(`Could not load recipients: ${(e as Error).message}`);
@@ -230,15 +244,27 @@ export default function SurveysHubPage() {
     });
   };
 
-  // Total recipient count (deduped: clients in selected companies are counted once
-  // even if also explicitly selected).
+  // Total recipient count. Deduped by lowercased email across explicit
+  // client picks, clients in selected companies, and the company roster
+  // (company_members) so the same person isn't counted twice.
   const recipientPreview = (() => {
-    const ids = new Set<string>();
-    for (const id of selectedClientIds) ids.add(id);
-    for (const c of sendClients) {
-      if (c.company_id && selectedCompanyIds.has(c.company_id) && c.email) ids.add(c.id);
+    const emails = new Set<string>();
+    const byId = new Map(sendClients.map((c) => [c.id, c] as const));
+    for (const id of selectedClientIds) {
+      const c = byId.get(id);
+      if (c?.email) emails.add(c.email.toLowerCase());
     }
-    return ids.size;
+    for (const c of sendClients) {
+      if (c.company_id && selectedCompanyIds.has(c.company_id) && c.email) {
+        emails.add(c.email.toLowerCase());
+      }
+    }
+    for (const m of sendMembers) {
+      if (m.company_id && selectedCompanyIds.has(m.company_id) && m.email) {
+        emails.add(m.email.toLowerCase());
+      }
+    }
+    return emails.size;
   })();
 
   const submitSend = async () => {
