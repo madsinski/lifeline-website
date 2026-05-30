@@ -89,7 +89,18 @@ export function SurveyQuestionBlock({
       }`}
     >
       <div className="mb-3">
-        <p className="text-[11px] font-mono text-gray-400 mb-0.5">Spurning {idx + 1} / {q.required ? "*" : "valfrjáls"}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[11px] font-mono text-gray-400">Spurning {idx + 1}</span>
+          {q.required ? (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-50 text-red-700 border border-red-100">
+              Skylda
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide bg-gray-50 text-gray-500 border border-gray-200">
+              Valfrjáls
+            </span>
+          )}
+        </div>
         <h3 className="text-base font-semibold text-gray-900 leading-snug">{q.label_is}</h3>
         {q.helper_is && <p className="text-xs text-gray-500 mt-1">{q.helper_is}</p>}
       </div>
