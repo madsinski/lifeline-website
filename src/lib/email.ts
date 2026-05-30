@@ -856,11 +856,11 @@ export function renderSurveyInviteEmail(params: {
 
   const text = `${greeting}
 
-Takk fyrir að taka þátt í heilsumati Lifeline Health.
+Þetta er nafnlaus könnun um þjónustu Lifeline Health.
 
-Við myndum gjarnan vilja heyra af reynslu þinni. Könnunin er nafnlaus,
-tekur um ${estimatedMinutes} mínútur, og hjálpar okkur að bæta þjónustuna
-fyrir þig og aðra.
+Við myndum gjarnan vilja heyra af reynslu þinni. Könnunin tekur um
+${estimatedMinutes} mínútur og hjálpar okkur að bæta þjónustuna fyrir þig
+og aðra.
 
 Smelltu á slóðina hér að neðan til að byrja:
 ${surveyUrl}
@@ -878,8 +878,9 @@ Takk fyrir,
     bodyHtml: `
       <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 14px;">
-        Okkur þætti vænt um ef þú vildir taka þátt í <strong>${escapeHtml(surveyTitleIs)}</strong>.
-        Við viljum gjarnan heyra af reynslu þinni svo við getum þróað þjónustuna áfram.
+        <strong>Þetta er nafnlaus könnun.</strong> Okkur þætti vænt um ef þú vildir taka þátt
+        í <strong>${escapeHtml(surveyTitleIs)}</strong> — við viljum gjarnan heyra af reynslu
+        þinni svo við getum þróað þjónustuna áfram.
       </p>
       <p style="margin:0 0 14px;">
         Könnunin tekur um <strong>${estimatedMinutes} mínútur</strong>, og svörin þín hjálpa
