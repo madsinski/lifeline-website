@@ -155,6 +155,48 @@ export default function SurveyEditorPage() {
     });
   };
 
+  // Insert a brand-new chapter directly above the chapter that the
+  // question at `beforeIdx` belongs to. Every existing chapter at or above
+  // that section_index gets bumped by +1 so the order is preserved.
+  const insertChapterAbove = (beforeIdx: number) => {
+    if (!survey) return;
+    const target = questions[beforeIdx];
+    if (!target) return;
+    const targetSection = target.section_index ?? 1;
+    const blank: DraftQuestion = {
+      id: `new-${Date.now()}`,
+      survey_id: survey.id,
+      order_index: 0,
+      section_index: targetSection,
+      section_title_is: "",
+      section_title_en: null,
+      question_type: "likert5",
+      label_is: "",
+      label_en: null,
+      helper_is: null,
+      helper_en: null,
+      options_jsonb: defaultOptionsFor("likert5"),
+      required: true,
+      allow_skip: false,
+      skip_label_is: "Á ekki við",
+      skip_label_en: "Not applicable",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      _new: true,
+      _dirty: true,
+    };
+    setQuestions((prev) => {
+      const bumped = prev.map((q) => {
+        const si = q.section_index ?? 1;
+        return si >= targetSection
+          ? { ...q, section_index: si + 1, _dirty: true }
+          : q;
+      });
+      const next = [...bumped.slice(0, beforeIdx), blank, ...bumped.slice(beforeIdx)];
+      return next.map((q, i) => ({ ...q, order_index: i + 1, _dirty: q._dirty || i >= beforeIdx }));
+    });
+  };
+
   const removeQuestion = (idx: number) => {
     if (!confirm("Remove this question? Already-collected responses to it remain in the database for historical surveys.")) return;
     setQuestions((prev) => prev.filter((_, i) => i !== idx).map((q, i) => ({ ...q, order_index: i + 1, _dirty: true })));
@@ -413,13 +455,25 @@ export default function SurveyEditorPage() {
             return (
               <div key={q.id}>
                 {isChapterStart && (
-                  <div className="bg-emerald-50/60 border-y border-emerald-100 px-5 py-2.5">
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-700">
-                      Kafli {q.section_index ?? 1}
+                  <div className="bg-emerald-50/60 border-y border-emerald-100 px-5 py-2.5 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-700">
+                        Kafli {q.section_index ?? 1}
+                      </div>
+                      <div className="text-sm font-semibold text-emerald-900">
+                        {q.section_title_is || <span className="italic text-emerald-700/60">(no chapter title)</span>}
+                      </div>
                     </div>
-                    <div className="text-sm font-semibold text-emerald-900">
-                      {q.section_title_is || <span className="italic text-emerald-700/60">(no chapter title)</span>}
-                    </div>
+                    {canEditStructure && (
+                      <button
+                        type="button"
+                        onClick={() => insertChapterAbove(idx)}
+                        className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-md border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
+                        title="Insert a new chapter above this one — later chapters renumber automatically"
+                      >
+                        + Chapter above
+                      </button>
+                    )}
                   </div>
                 )}
                 <QuestionEditor
