@@ -865,7 +865,7 @@ fyrir þig og aðra.
 Smelltu á slóðina hér að neðan til að byrja:
 ${surveyUrl}
 
-Slóðin er einkanýtt og virkar í eitt skipti — hún rennur út ${expiresStr}.
+Slóðin er aðeins fyrir þig og virkar í eitt skipti — hún rennur út ${expiresStr}.
 
 Takk fyrir,
 — Lifeline Health teymið`;
@@ -888,7 +888,7 @@ Takk fyrir,
     `,
     ctaLabel: "Hefja könnun",
     ctaUrl: surveyUrl,
-    footerNote: `Slóðin er einkanýtt og rennur út ${escapeHtml(expiresStr)}. Þú þarft ekki að skrá þig inn — slóðin er aðgangurinn þinn.`,
+    footerNote: `Slóðin er aðeins fyrir þig og rennur út ${escapeHtml(expiresStr)}. Þú þarft ekki að skrá þig inn — slóðin er aðgangurinn þinn.`,
   });
 
   return { text, html, subject: `${surveyTitleIs} — ${estimatedMinutes} mín` };
