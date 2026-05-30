@@ -856,11 +856,11 @@ export function renderSurveyInviteEmail(params: {
 
   const text = `${greeting}
 
-Þetta er nafnlaus könnun um þjónustu Lifeline Health.
+Okkur þætti vænt um ef þú gæfir þér nokkrar mínútur til að taka þátt í
+nafnlausri þjónustukönnun Lifeline Health. Álit þitt og reynsla eru okkur
+mikilvæg og hjálpa okkur að þróa og bæta þjónustuna enn frekar.
 
-Við myndum gjarnan vilja heyra af reynslu þinni. Könnunin tekur um
-${estimatedMinutes} mínútur og hjálpar okkur að bæta þjónustuna fyrir þig
-og aðra.
+Könnunin tekur um ${estimatedMinutes} mínútur.
 
 Smelltu á slóðina hér að neðan til að byrja:
 ${surveyUrl}
@@ -878,13 +878,12 @@ Takk fyrir,
     bodyHtml: `
       <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 14px;">
-        <strong>Þetta er nafnlaus könnun.</strong> Okkur þætti vænt um ef þú vildir taka þátt
-        í <strong>${escapeHtml(surveyTitleIs)}</strong> — við viljum gjarnan heyra af reynslu
-        þinni svo við getum þróað þjónustuna áfram.
+        Okkur þætti vænt um ef þú gæfir þér nokkrar mínútur til að taka þátt í
+        <strong>nafnlausri þjónustukönnun Lifeline Health</strong>. Álit þitt og reynsla
+        eru okkur mikilvæg og hjálpa okkur að þróa og bæta þjónustuna enn frekar.
       </p>
       <p style="margin:0 0 14px;">
-        Könnunin tekur um <strong>${estimatedMinutes} mínútur</strong>, og svörin þín hjálpa
-        okkur að gera Lifeline Health enn betri fyrir þig og aðra.
+        Könnunin tekur um <strong>${estimatedMinutes} mínútur</strong>.
       </p>
     `,
     ctaLabel: "Hefja könnun",
