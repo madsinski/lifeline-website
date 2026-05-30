@@ -7,6 +7,7 @@
 //   approve              pending_approval → approved  (admin OR medical_advisor)
 //   request_changes      pending_approval → draft     (admin OR medical_advisor)
 //   archive              approved → archived          (admin)
+//   reopen               approved → draft             (admin) — edit after approval
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -14,10 +15,10 @@ import { aalFromToken } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
-type Action = "submit_for_approval" | "reset_to_draft" | "approve" | "request_changes" | "archive";
+type Action = "submit_for_approval" | "reset_to_draft" | "approve" | "request_changes" | "archive" | "reopen";
 type StaffRole = "admin" | "medical_advisor";
 
-const ACTIONS: Action[] = ["submit_for_approval", "reset_to_draft", "approve", "request_changes", "archive"];
+const ACTIONS: Action[] = ["submit_for_approval", "reset_to_draft", "approve", "request_changes", "archive", "reopen"];
 
 interface TransitionMatrix {
   from: ("draft" | "pending_approval" | "approved" | "archived")[];
@@ -32,6 +33,10 @@ const MATRIX: Record<Action, TransitionMatrix> = {
   approve:             { from: ["pending_approval"], to: "approved", roles: ["admin", "medical_advisor"] },
   request_changes:     { from: ["pending_approval"], to: "draft", roles: ["admin", "medical_advisor"], noteRequired: true },
   archive:             { from: ["approved"], to: "archived", roles: ["admin"] },
+  // Edit an already-approved survey: send it back to draft so the same
+  // editor flow works. Clears the prior approval metadata, so the survey
+  // must be re-approved before it can be assigned again.
+  reopen:              { from: ["approved"], to: "draft", roles: ["admin"] },
 };
 
 interface RequestBody {
@@ -116,7 +121,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     patch.approved_by = staffRow.id;
     patch.approved_by_name = staffRow.name || userData.user.email;
     patch.approved_at = new Date().toISOString();
-  } else if (action === "reset_to_draft" || action === "request_changes") {
+  } else if (action === "reset_to_draft" || action === "request_changes" || action === "reopen") {
     // Clear prior approval metadata if any.
     patch.approved_by = null;
     patch.approved_by_name = null;

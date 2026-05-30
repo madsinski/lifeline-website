@@ -223,7 +223,7 @@ export default function SurveyEditorPage() {
   };
 
   const transitionStatus = async (
-    action: "submit_for_approval" | "approve" | "request_changes" | "archive" | "reset_to_draft",
+    action: "submit_for_approval" | "approve" | "request_changes" | "archive" | "reset_to_draft" | "reopen",
   ) => {
     if (!survey) return;
     if (action === "request_changes" && !approvalNote.trim()) {
@@ -456,24 +456,36 @@ export default function SurveyEditorPage() {
           </div>
         )}
         {isAdmin && survey.status === "approved" && (
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs text-emerald-700">Approved — locked. To revise, clone into a new draft (the next version) and edit there.</p>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={cloneSurvey}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              Clone &amp; edit (new draft)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => transitionStatus("archive")}
-              className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              Archive
-            </button>
+          <div className="space-y-2">
+            <p className="text-xs text-emerald-700">
+              Approved. <strong>Reopen for edits</strong> sends this survey back to draft so you can edit it (the current approval is cleared and a fresh one is required before it can be assigned again). For a brand-new version that keeps this one frozen, clone into a new draft instead.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => transitionStatus("reopen")}
+                className="px-4 py-2 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+              >
+                Reopen for edits
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={cloneSurvey}
+                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                Clone &amp; edit (new draft)
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => transitionStatus("archive")}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Archive
+              </button>
+            </div>
           </div>
         )}
         {isAdmin && survey.status === "archived" && (
