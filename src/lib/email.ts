@@ -878,7 +878,7 @@ Takk fyrir,
     bodyHtml: `
       <p style="margin:0 0 14px;">${escapeHtml(greeting)}</p>
       <p style="margin:0 0 14px;">
-        Takk fyrir að taka þátt í <strong>${escapeHtml(surveyTitleIs)}</strong>.
+        Okkur þætti vænt um ef þú vildir taka þátt í <strong>${escapeHtml(surveyTitleIs)}</strong>.
         Við viljum gjarnan heyra af reynslu þinni svo við getum þróað þjónustuna áfram.
       </p>
       <p style="margin:0 0 14px;">

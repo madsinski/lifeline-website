@@ -45,6 +45,10 @@ export default function SurveyEditorPage() {
   // Approval / status-change form (medical advisor)
   const [approvalNote, setApprovalNote] = useState("");
 
+  // Email preview state.
+  const [emailPreview, setEmailPreview] = useState<{ subject: string; html: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
   const isAdmin = role === "admin";
   const isMedicalAdvisor = role === "medical_advisor";
   // Both admin and medical advisor can edit content directly while a
@@ -196,6 +200,30 @@ export default function SurveyEditorPage() {
       setMsg({ type: "err", text: (e as Error).message });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const previewEmail = async () => {
+    if (!survey) return;
+    setPreviewLoading(true);
+    setMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${survey.id}/email-preview`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${res.status}`);
+      }
+      const j = await res.json();
+      setEmailPreview({ subject: j.subject, html: j.html });
+    } catch (e) {
+      setMsg({ type: "err", text: `Could not load email preview: ${(e as Error).message}` });
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -384,7 +412,17 @@ export default function SurveyEditorPage() {
 
       {/* Action bar */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Workflow</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Workflow</h2>
+          <button
+            type="button"
+            onClick={previewEmail}
+            disabled={previewLoading}
+            className="text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+          >
+            {previewLoading ? "Loading…" : "Preview email"}
+          </button>
+        </div>
         {isAdmin && survey.status === "draft" && (
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -564,6 +602,43 @@ export default function SurveyEditorPage() {
           <p className="text-xs text-gray-500 italic">Last note: {survey.approval_note}</p>
         )}
       </div>
+
+      {emailPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8"
+          onClick={() => setEmailPreview(null)}
+        >
+          <div
+            className="my-4 w-full max-w-3xl rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 px-5 py-3 bg-white rounded-t-xl">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-gray-400">Subject</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{emailPreview.subject}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEmailPreview(null)}
+                className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2 shrink-0"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-[11px] text-gray-500 mb-2">
+                Preview only — recipient, link, and expiry are placeholders.
+              </p>
+              <iframe
+                title="Survey invite email preview"
+                srcDoc={emailPreview.html}
+                className="w-full bg-white rounded-md border border-gray-200"
+                style={{ height: 600 }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
