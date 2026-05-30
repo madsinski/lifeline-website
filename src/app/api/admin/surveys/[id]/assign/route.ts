@@ -200,6 +200,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
+  // Throttle to stay under Resend's 5 req/sec rate limit. 250ms between
+  // sends ≈ 4/sec, leaving headroom for any concurrent Resend calls
+  // elsewhere in the app. Skipped recipients don't hit the network so
+  // we only sleep before an actual sendEmail call.
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  let firstSend = true;
+
   for (const recipient of recipients.values()) {
     if (activeRecipients.has(recipient.id)) {
       results.push({ client_id: recipient.id, email: recipient.email, status: "skipped", reason: "already_invited_active" });
@@ -234,6 +241,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       surveyUrl,
       expiresAt,
     });
+    if (!firstSend) await sleep(250);
+    firstSend = false;
     const emailRes = await sendEmail({
       to: recipient.email,
       subject,

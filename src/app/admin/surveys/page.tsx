@@ -737,6 +737,9 @@ export default function SurveysHubPage() {
               <p className="text-xs text-gray-500 mt-1">
                 Each recipient gets a unique link valid for 30 days. Clients with an active outstanding invite for this survey are skipped automatically.
               </p>
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+                Email provider (Resend) free plan: <strong>max 100 emails per day</strong>, max <strong>5 per second</strong>. Sending is throttled server-side; bigger batches will need to be split across multiple days. Failed sends are not counted as invited and can be re-sent.
+              </p>
             </header>
 
             {sendSummary ? (
@@ -883,15 +886,38 @@ export default function SurveysHubPage() {
                   </div>
                 )}
 
+                {recipientPreview > 100 && (
+                  <div className="mx-5 mb-2 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg text-xs">
+                    <strong>{recipientPreview} recipients</strong> — over the free-plan daily cap of 100. Trim the list, or send the rest tomorrow.
+                  </div>
+                )}
                 <footer className="px-5 py-3 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
                   <span className="text-xs text-gray-500">
                     {selectedClientIds.size} client{selectedClientIds.size === 1 ? "" : "s"}
                     {" · "}
                     {selectedCompanyIds.size} compan{selectedCompanyIds.size === 1 ? "y" : "ies"}
                     {" · "}
-                    <strong className="text-gray-700">≈ {recipientPreview} total recipient{recipientPreview === 1 ? "" : "s"}</strong>
+                    <strong className={recipientPreview > 100 ? "text-amber-700" : "text-gray-700"}>
+                      ≈ {recipientPreview} total recipient{recipientPreview === 1 ? "" : "s"}
+                    </strong>
                   </span>
                   <div className="flex items-center gap-2">
+                    {sendTab === "clients" && selectedClientIds.size > 100 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Keep the first 100 by display order (alphabetical name).
+                          const visible = sendClients
+                            .filter((c) => !!c.email && selectedClientIds.has(c.id))
+                            .slice(0, 100);
+                          setSelectedClientIds(new Set(visible.map((c) => c.id)));
+                        }}
+                        disabled={sending}
+                        className="px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+                      >
+                        Trim to 100
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={closeSend}
