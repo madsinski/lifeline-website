@@ -192,7 +192,7 @@ export function SurveyQuestionBlock({
           onChange={(e) => onChange({ text_value: e.target.value, skipped: false })}
           rows={4}
           maxLength={5000}
-          placeholder="Þín svör..."
+          placeholder="Skrifaðu hér..."
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 resize-y focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
         />
       )}
