@@ -114,18 +114,19 @@ export default function SurveyEditorPage() {
     });
   };
 
-  const addQuestion = () => {
+  // `afterIdx === undefined` appends to the end. Otherwise the new
+  // question is inserted right after the given index and inherits that
+  // question's chapter (so adding inside a section just continues it).
+  const addQuestion = (afterIdx?: number) => {
     if (!survey) return;
-    // Inherit the section from the last question so adding to an existing
-    // chapter is the default. New chapter? Edit the section_index field.
-    const last = questions[questions.length - 1];
+    const reference = afterIdx !== undefined ? questions[afterIdx] : questions[questions.length - 1];
     const blank: DraftQuestion = {
       id: `new-${Date.now()}`,
       survey_id: survey.id,
-      order_index: questions.length + 1,
-      section_index: last?.section_index ?? 1,
-      section_title_is: last?.section_title_is ?? null,
-      section_title_en: last?.section_title_en ?? null,
+      order_index: 0, // reassigned below
+      section_index: reference?.section_index ?? 1,
+      section_title_is: reference?.section_title_is ?? null,
+      section_title_en: reference?.section_title_en ?? null,
       question_type: "likert5",
       label_is: "",
       label_en: null,
@@ -141,7 +142,17 @@ export default function SurveyEditorPage() {
       _new: true,
       _dirty: true,
     };
-    setQuestions((prev) => [...prev, blank]);
+    setQuestions((prev) => {
+      const insertAt = afterIdx !== undefined ? afterIdx + 1 : prev.length;
+      const next = [...prev.slice(0, insertAt), blank, ...prev.slice(insertAt)];
+      // Renumber every row at or after the insertion point — their
+      // order_index changes, so they need to be marked dirty too.
+      return next.map((q, i) => ({
+        ...q,
+        order_index: i + 1,
+        _dirty: q._dirty || i >= insertAt,
+      }));
+    });
   };
 
   const removeQuestion = (idx: number) => {
@@ -388,7 +399,7 @@ export default function SurveyEditorPage() {
           {canEditStructure && (
             <button
               type="button"
-              onClick={addQuestion}
+              onClick={() => addQuestion()}
               className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
             >
               + Add question
@@ -419,6 +430,7 @@ export default function SurveyEditorPage() {
                   onChange={(patch) => updateQuestion(idx, patch)}
                   onMove={(dir) => moveQuestion(idx, dir)}
                   onRemove={() => removeQuestion(idx)}
+                  onInsertBelow={() => addQuestion(idx)}
                 />
               </div>
             );
@@ -768,7 +780,7 @@ function defaultOptionsFor(type: QuestionType): QuestionOption[] | null {
 }
 
 function QuestionEditor({
-  question, idx, total, canEdit, onChange, onMove, onRemove,
+  question, idx, total, canEdit, onChange, onMove, onRemove, onInsertBelow,
 }: {
   question: DraftQuestion;
   idx: number;
@@ -777,6 +789,7 @@ function QuestionEditor({
   onChange: (patch: Partial<DraftQuestion>) => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
+  onInsertBelow: () => void;
 }) {
   const options = useMemo(() => question.options_jsonb || [], [question.options_jsonb]);
   const supportsOptions = question.question_type === "likert5" || question.question_type === "singleselect" || question.question_type === "multiselect";
@@ -946,6 +959,14 @@ function QuestionEditor({
               title="Move down"
             >
               ↓
+            </button>
+            <button
+              type="button"
+              onClick={onInsertBelow}
+              className="p-1 text-emerald-600 hover:text-emerald-800"
+              title="Insert new question below"
+            >
+              +
             </button>
             <button
               type="button"
