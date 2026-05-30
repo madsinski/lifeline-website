@@ -888,7 +888,7 @@ Takk fyrir,
     `,
     ctaLabel: "Hefja könnun",
     ctaUrl: surveyUrl,
-    footerNote: `Slóðin er aðeins fyrir þig og rennur út ${escapeHtml(expiresStr)}. Þú þarft ekki að skrá þig inn — slóðin er aðgangurinn þinn.`,
+    footerNote: `Slóðin er aðeins fyrir þig og rennur út ${escapeHtml(expiresStr)}.<br>Þú þarft ekki að skrá þig inn — slóðin er aðgangurinn þinn.`,
   });
 
   return { text, html, subject: `${surveyTitleIs} — ${estimatedMinutes} mín` };
