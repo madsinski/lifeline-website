@@ -46,6 +46,15 @@ export default function SurveysHubPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newError, setNewError] = useState<string | null>(null);
 
+  // Email-preview modal state.
+  const [emailPreview, setEmailPreview] = useState<{ subject: string; html: string; title: string } | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+
+  // Hard-delete confirmation state.
+  const [deleteTarget, setDeleteTarget] = useState<FeedbackSurvey | null>(null);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   // Send-survey modal state
   const [sendSurvey, setSendSurvey] = useState<FeedbackSurvey | null>(null);
   const [sendTab, setSendTab] = useState<"clients" | "companies">("clients");
@@ -77,6 +86,53 @@ export default function SurveysHubPage() {
     } catch (e) {
       alert((e as Error).message);
       setBusy(false);
+    }
+  };
+
+  const previewEmail = async (s: FeedbackSurvey) => {
+    setPreviewLoadingId(s.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${s.id}/email-preview`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${res.status}`);
+      }
+      const j = await res.json();
+      setEmailPreview({ subject: j.subject, html: j.html, title: s.title_is });
+    } catch (e) {
+      alert(`Could not load email preview: ${(e as Error).message}`);
+    } finally {
+      setPreviewLoadingId(null);
+    }
+  };
+
+  const deleteSurvey = async () => {
+    if (!deleteTarget) return;
+    if (deleteInput !== deleteTarget.key) return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not signed in");
+      const res = await fetch(`/api/admin/surveys/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ confirm: deleteInput }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j?.error || `HTTP ${res.status}`);
+      const deletedId = deleteTarget.id;
+      setSurveys((prev) => prev.filter((x) => x.id !== deletedId));
+      setDeleteTarget(null);
+    } catch (e) {
+      alert(`Delete failed: ${(e as Error).message}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -327,103 +383,227 @@ export default function SurveysHubPage() {
           <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">migration-feedback-surveys.sql</code> to
           seed the default post-assessment survey.
         </div>
-      ) : (
-        <div className="space-y-3">
-          {surveys.map((s) => {
-            const c = counts[s.id] || { sent: 0, completed: 0 };
-            return (
-              <div key={s.id} className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors">
-                <div className="px-5 py-4 flex items-start justify-between gap-4 flex-wrap">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-semibold text-[#1F2937] truncate">
-                        {s.title_is}
-                      </h3>
-                      <span className="text-xs font-mono text-gray-400">
-                        {s.key} v{s.version}
-                      </span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_BADGE_CLASS[s.status]}`}>
-                        {STATUS_LABEL[s.status]}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {s.estimated_minutes} mín · {c.completed}/{c.sent} svör
-                      {s.approved_at && (
-                        <>
-                          {" · "}
-                          approved by {s.approved_by_name || "—"}{" "}
-                          {new Date(s.approved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                        </>
-                      )}
-                    </p>
-                  </div>
+      ) : (() => {
+        const active = surveys.filter((s) => s.status !== "archived");
+        const archived = surveys.filter((s) => s.status === "archived");
+        const renderRow = (s: FeedbackSurvey) => {
+          const c = counts[s.id] || { sent: 0, completed: 0 };
+          return (
+            <div key={s.id} className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors">
+              <div className="px-5 py-4 flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Link
-                      href={`/admin/surveys/${s.id}`}
-                      className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      {canEdit ? "Edit" : "Review"}
-                    </Link>
-                    <Link
-                      href={`/admin/surveys/${s.id}/preview`}
-                      className="px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
-                    >
-                      Preview &amp; test
-                    </Link>
-                    {canEdit && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => duplicateSurvey(s)}
-                        className="px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
-                      >
-                        Duplicate
-                      </button>
-                    )}
-                    {canEdit && s.status === "approved" && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => openSend(s)}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                      >
-                        Send to clients
-                      </button>
-                    )}
-                    {canEdit && (s.status === "approved" || s.status === "archived") && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => cloneSurvey(s.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
-                      >
-                        Clone &amp; edit
-                      </button>
-                    )}
-                    <Link
-                      href={`/admin/surveys/${s.id}/results`}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                        s.status === "approved"
-                          ? "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
-                          : "text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100"
-                      }`}
-                      title={s.status === "approved" ? "View aggregated results + CSV export" : "Results page (will show 0 responses until the survey is approved + sent)"}
-                    >
-                      Results &amp; export
-                    </Link>
+                    <h3 className="text-base font-semibold text-[#1F2937] truncate">{s.title_is}</h3>
+                    <span className="text-xs font-mono text-gray-400">{s.key} v{s.version}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_BADGE_CLASS[s.status]}`}>
+                      {STATUS_LABEL[s.status]}
+                    </span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {s.estimated_minutes} mín · {c.completed}/{c.sent} svör
+                    {s.approved_at && (
+                      <>
+                        {" · "}
+                        approved by {s.approved_by_name || "—"}{" "}
+                        {new Date(s.approved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href={`/admin/surveys/${s.id}`}
+                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    {canEdit ? "Edit" : "Review"}
+                  </Link>
+                  <Link
+                    href={`/admin/surveys/${s.id}/preview`}
+                    className="px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                  >
+                    Preview &amp; test
+                  </Link>
+                  <button
+                    type="button"
+                    disabled={previewLoadingId === s.id}
+                    onClick={() => previewEmail(s)}
+                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    {previewLoadingId === s.id ? "Loading…" : "Preview email"}
+                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => duplicateSurvey(s)}
+                      className="px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+                    >
+                      Duplicate
+                    </button>
+                  )}
+                  {canEdit && s.status === "approved" && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => openSend(s)}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                    >
+                      Send to clients
+                    </button>
+                  )}
+                  {canEdit && (s.status === "approved" || s.status === "archived") && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => cloneSurvey(s.id)}
+                      className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      Clone &amp; edit
+                    </button>
+                  )}
+                  <Link
+                    href={`/admin/surveys/${s.id}/results`}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      s.status === "approved"
+                        ? "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
+                        : "text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                    }`}
+                    title={s.status === "approved" ? "View aggregated results + CSV export" : "Results page (will show 0 responses until the survey is approved + sent)"}
+                  >
+                    Results &amp; export
+                  </Link>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteTarget(s); setDeleteInput(""); }}
+                      className="px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          );
+        };
+        return (
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                Active <span className="text-gray-400 font-normal normal-case">({active.length})</span>
+              </h2>
+              {active.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+                  No active surveys.
+                </div>
+              ) : (
+                <div className="space-y-3">{active.map(renderRow)}</div>
+              )}
+            </section>
+            {archived.length > 0 && (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                  Archived <span className="text-gray-400 font-normal normal-case">({archived.length})</span>
+                </h2>
+                <div className="space-y-3 opacity-75">{archived.map(renderRow)}</div>
+              </section>
+            )}
+          </div>
+        );
+      })()}
 
       {isMedicalAdvisor && (
         <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 text-sm text-blue-900">
           <strong>Velkomin/n.</strong> Open any survey above to review the question structure. Use
           the action buttons at the bottom of the editor to <em>approve</em> or <em>request changes</em>.
           Once approved, results land at the <em>Results &amp; export</em> link on each survey card.
+        </div>
+      )}
+
+      {emailPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8"
+          onClick={() => setEmailPreview(null)}
+        >
+          <div
+            className="my-4 w-full max-w-3xl rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 px-5 py-3 bg-white rounded-t-xl">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-gray-400">Subject — {emailPreview.title}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{emailPreview.subject}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEmailPreview(null)}
+                className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2 shrink-0"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-[11px] text-gray-500 mb-2">
+                Preview only — recipient, link, and expiry are placeholders.
+              </p>
+              <iframe
+                title="Survey invite email preview"
+                srcDoc={emailPreview.html}
+                className="w-full bg-white rounded-md border border-gray-200"
+                style={{ height: 600 }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8"
+          onClick={() => !deleting && setDeleteTarget(null)}
+        >
+          <div
+            className="my-4 w-full max-w-md rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-gray-200">
+              <h3 className="text-sm font-bold text-red-700">Delete this survey?</h3>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-gray-700">
+                This permanently removes the survey <strong>{deleteTarget.title_is}</strong>, all of its
+                questions, and every response that has been collected. This cannot be undone.
+              </p>
+              <p className="text-xs text-gray-500">
+                Type the survey key <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{deleteTarget.key}</code> to confirm.
+              </p>
+              <input
+                value={deleteInput}
+                onChange={(e) => setDeleteInput(e.target.value)}
+                placeholder={deleteTarget.key}
+                disabled={deleting}
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none"
+              />
+            </div>
+            <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting || deleteInput !== deleteTarget.key}
+                onClick={deleteSurvey}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting…" : "Delete permanently"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
