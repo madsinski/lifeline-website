@@ -391,7 +391,11 @@ function QuestionResults({
 
   const meanLabel = (() => {
     if (mean === null) return null;
-    const max = Math.max(...((q.options_jsonb || []).map((o) => parseInt(o.value, 10)).filter(Number.isFinite)), 5);
+    // Denominator is the question's own top option value (a 1–3 scale maxes at
+    // 3, a 1–6 scale at 6). Fall back to 5 only when no option carries a
+    // numeric value — never floor the real scale at 5.
+    const optMax = Math.max(...((q.options_jsonb || []).map((o) => parseInt(o.value, 10)).filter(Number.isFinite)));
+    const max = Number.isFinite(optMax) ? optMax : 5;
     return `${mean} / ${max}`;
   })();
 
