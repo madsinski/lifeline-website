@@ -864,6 +864,24 @@ function QuestionEditor({
     onChange({ options_jsonb: options.filter((_, i) => i !== optIdx) });
   };
 
+  // Scoring preview. likert5 / singleselect get a "meðaltal X / Y" badge on
+  // the results page — but only when every option value is numeric, and the
+  // denominator (Y) is the largest option value. Mirror that logic here so the
+  // editor shows the live max score and flags non-numeric values that would
+  // silently drop the question out of scoring.
+  const scored = question.question_type === "likert5" || question.question_type === "singleselect";
+  const numericValues = options.map((o) => parseInt(o.value, 10)).filter(Number.isFinite);
+  const allNumeric = options.length > 0 && numericValues.length === options.length;
+  const maxScore = numericValues.length ? Math.max(...numericValues) : null;
+
+  // Set each option's value to a score from its position — the top option gets
+  // the highest, matching the likert5 convention (first = best). One click to
+  // make a question scorable without hand-typing every value.
+  const autoNumber = () => {
+    const next = options.map((opt, i) => ({ ...opt, value: String(options.length - i) }));
+    onChange({ options_jsonb: next });
+  };
+
   return (
     <div className="px-5 py-4 space-y-3">
       <div className="flex items-start gap-3">
@@ -949,27 +967,52 @@ function QuestionEditor({
 
           {supportsOptions && (
             <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-600">Options</span>
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={addOption}
-                    className="text-xs text-emerald-700 hover:text-emerald-800"
-                  >
-                    + Add option
-                  </button>
-                )}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs font-medium text-gray-600">
+                  Options
+                  {scored && (
+                    <span className="ml-1 font-normal text-gray-400">
+                      — gildi = stig
+                    </span>
+                  )}
+                </span>
+                <div className="flex items-center gap-3">
+                  {scored && allNumeric && maxScore !== null && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+                      meðaltal af {maxScore}
+                    </span>
+                  )}
+                  {canEdit && scored && options.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={autoNumber}
+                      className="text-xs text-gray-600 hover:text-gray-800"
+                      title="Setur gildi efstu valmöguleika hæst niður í 1"
+                    >
+                      Númera sjálfkrafa
+                    </button>
+                  )}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={addOption}
+                      className="text-xs text-emerald-700 hover:text-emerald-800"
+                    >
+                      + Add option
+                    </button>
+                  )}
+                </div>
               </div>
               {options.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input
                     type="text"
+                    inputMode={scored ? "numeric" : "text"}
                     value={opt.value}
                     onChange={(e) => updateOption(i, { value: e.target.value })}
                     disabled={!canEdit}
                     className="w-24 px-2 py-1 border border-gray-200 rounded text-xs font-mono text-gray-900"
-                    placeholder="value"
+                    placeholder={scored ? "stig" : "value"}
                   />
                   <input
                     type="text"
@@ -990,6 +1033,13 @@ function QuestionEditor({
                   )}
                 </div>
               ))}
+              {scored && options.length > 0 && !allNumeric && (
+                <p className="text-[11px] text-amber-700">
+                  Til að reikna meðaltal þurfa öll gildi að vera tölur. Smelltu á
+                  <span className="font-semibold"> Númera sjálfkrafa</span> til að
+                  setja stig út frá röðinni.
+                </p>
+              )}
             </div>
           )}
         </div>
