@@ -39,7 +39,7 @@ begin;
 -- ── Co-admin detail columns (SAFE — run regardless) ─────────────────
 alter table public.company_admins
   add column if not exists phone               text,
-  add column if not exists position            text,
+  add column if not exists "position"          text,
   add column if not exists kennitala_encrypted bytea,
   add column if not exists kennitala_last4     text;
 
@@ -56,7 +56,7 @@ returns table(
   added_at        timestamptz,
   is_primary      boolean,
   phone           text,
-  position        text,
+  "position"      text,
   kennitala_last4 text
 )
 language sql security definer set search_path = public, auth as $$
@@ -68,7 +68,7 @@ language sql security definer set search_path = public, auth as $$
     c.created_at                                     as added_at,
     true                                             as is_primary,
     c.contact_phone                                  as phone,
-    c.contact_position                               as position,
+    c.contact_position                               as "position",
     c.contact_kennitala_last4                        as kennitala_last4
   from public.companies c
   join auth.users u on u.id = c.contact_person_id
@@ -84,8 +84,8 @@ language sql security definer set search_path = public, auth as $$
     u.email::text                                    as email,
     ca.added_at,
     false                                            as is_primary,
-    coalesce(ca.phone,    u.raw_user_meta_data->>'phone')    as phone,
-    coalesce(ca.position, u.raw_user_meta_data->>'position') as position,
+    coalesce(ca.phone,      u.raw_user_meta_data->>'phone')    as phone,
+    coalesce(ca."position", u.raw_user_meta_data->>'position') as "position",
     ca.kennitala_last4
   from public.company_admins ca
   join auth.users u on u.id = ca.user_id
