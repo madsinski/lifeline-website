@@ -10,6 +10,7 @@ import ScheduleBodyComp from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
 import DoctorInterviews from "./DoctorInterviews";
 import BillingPanel from "@/app/components/BillingPanel";
+import { PRICING_TIERS, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
 
 interface Company {
   id: string;
@@ -21,6 +22,8 @@ interface Company {
   agreement_signed_at: string | null;
   last_round_completed_at: string | null;
   current_round_id: string | null;
+  contact_phone: string | null;
+  contact_position: string | null;
 }
 
 interface AssessmentRound {
@@ -98,7 +101,7 @@ export default function BusinessDashboardPage() {
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
     const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: ag }, { data: po }] = await Promise.all([
-      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id").eq("id", companyId).maybeSingle(),
+      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id, contact_phone, contact_position").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
         .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status, approval_status")
@@ -287,8 +290,11 @@ export default function BusinessDashboardPage() {
       />
 
       <main className="max-w-6xl mx-auto px-6 py-10 flex gap-8">
-        {/* Side nav — Heroicons outline, stroke 1.5, matches admin sidebar language */}
-        <nav className="hidden lg:block w-52 shrink-0 sticky top-24 self-start bg-white rounded-xl border border-gray-100 shadow-sm p-2">
+        {/* Left sidebar — jump-nav + the Company admins card (desktop only).
+            On mobile the admins card re-appears in the main flow below, since
+            this whole column is hidden under lg. Heroicons outline, stroke 1.5. */}
+        <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start space-y-4">
+        <nav className="bg-white rounded-xl border border-gray-100 shadow-sm p-2">
           <div className="px-3 pt-2 pb-3 text-[10px] uppercase tracking-[0.12em] font-semibold text-gray-400">
             Jump to
           </div>
@@ -308,11 +314,6 @@ export default function BusinessDashboardPage() {
               label: "Insights",
               iconPath: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
             },
-            {
-              id: "team",
-              label: "Team & Admins",
-              iconPath: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
-            },
           ].map((item) => (
             <button
               key={item.id}
@@ -326,6 +327,17 @@ export default function BusinessDashboardPage() {
             </button>
           ))}
         </nav>
+
+        {/* Company admins — lives in the sidebar on desktop (mirrored into the
+            main flow under lg, see below). */}
+        <AdminsSection
+          companyId={companyId!}
+          companyName={company.name}
+          viewerIsStaff={viewerIsStaff}
+          contactPhone={company.contact_phone}
+          contactPosition={company.contact_position}
+        />
+        </aside>
 
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-6">
@@ -435,12 +447,15 @@ export default function BusinessDashboardPage() {
             }
           >
             {!agreementSigned ? (
-              <button
-                onClick={() => router.push(`/business/${companyId}/sign`)}
-                className="btn-step-primary"
-              >
-                Halda áfram að verði og undirritun →
-              </button>
+              <div className="space-y-4">
+                <PackageComparison />
+                <button
+                  onClick={() => router.push(`/business/${companyId}/sign`)}
+                  className="btn-step-primary"
+                >
+                  Halda áfram að verði og undirritun →
+                </button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
@@ -743,8 +758,17 @@ export default function BusinessDashboardPage() {
         <div id="insights" className="scroll-mt-24" />
         <InsightsCard companyId={companyId!} />
 
-        <div id="team" className="scroll-mt-24" />
-        <AdminsSection companyId={companyId!} companyName={company.name} viewerIsStaff={viewerIsStaff} />
+        {/* Company admins — mobile/tablet placement (hidden on lg, where it
+            renders in the sidebar instead). */}
+        <div className="lg:hidden">
+          <AdminsSection
+            companyId={companyId!}
+            companyName={company.name}
+            viewerIsStaff={viewerIsStaff}
+            contactPhone={company.contact_phone}
+            contactPosition={company.contact_position}
+          />
+        </div>
         </div>{/* end content */}
       </main>
 
@@ -829,6 +853,82 @@ function StepCard({
         </div>
       </div>
     </section>
+  );
+}
+
+// ── Package comparison ──────────────────────────────────────────────────────
+// Collapsible "see & compare packages" panel for Step 1, so the buyer can weigh
+// the tiers before clicking through to the pricing + signing page. The numbers
+// come from PRICING_TIERS (src/lib/b2b-pricing.ts) so this stays in sync with
+// the actual unit prices used on the purchase order.
+
+function PackageComparison() {
+  const [open, setOpen] = useState(false);
+  const fmt = (n: number) => n.toLocaleString("is-IS") + " kr";
+  const teams = ["0–14 starfsmenn", "15+ starfsmenn"] as const;
+  const roundOptions = [
+    { key: "1× heilsumat", label: "Árlegt heilsumat", desc: "Eitt heilsumat á hvern starfsmann á ári." },
+    { key: "2× heilsumat", label: "Hálfsársmat", desc: "Tvö heilsumöt á ári — fylgist með framvindu." },
+  ] as const;
+  const priceFor = (team: string, rounds: string) =>
+    PRICING_TIERS.find((t) => t.team === team && t.rounds === rounds)?.unitIsk ?? 0;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50/60 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50"
+        aria-expanded={open}
+      >
+        <span className="text-sm font-semibold text-gray-900">
+          Skoða og bera saman pakka
+          <span className="ml-2 font-normal text-gray-500">verð á hvert heilsumat, á starfsmann</span>
+        </span>
+        <svg className={`w-5 h-5 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-200 bg-white p-4 space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="text-gray-500">
+                  <th className="py-2 pr-4 font-medium text-left">Pakki</th>
+                  {teams.map((t) => (
+                    <th key={t} className="py-2 px-4 font-medium whitespace-nowrap text-right">{t}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {roundOptions.map((r) => (
+                  <tr key={r.key} className="border-t border-gray-100 align-top">
+                    <td className="py-3 pr-4">
+                      <div className="font-semibold text-gray-900">{r.label}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{r.desc}</div>
+                    </td>
+                    {teams.map((t) => (
+                      <td key={t} className="py-3 px-4 text-right whitespace-nowrap">
+                        <span className="font-semibold text-emerald-700">{fmt(priceFor(t, r.key))}</span>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs text-emerald-800">
+            Valfrjáls viðbót: <strong>eftirfylgni læknis</strong> — 15 mín viðtal eftir 3 mánuði, {fmt(FOLLOWUP_DOCTOR_PRICE_ISK)} á starfsmann.
+          </div>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Stærri teymi og 2× árleg heilsumöt lækka einingaverðið sjálfkrafa. Endanlegt verð reiknast eftir fjölda starfsmanna á næsta skrefi.
+            Heilbrigðisþjónusta er virðisaukaskattsfrjáls (lög nr. 50/1988).
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1231,7 +1331,7 @@ function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone:
   );
 }
 
-function AdminsSection({ companyId, companyName, viewerIsStaff }: { companyId: string; companyName: string; viewerIsStaff: boolean }) {
+function AdminsSection({ companyId, companyName, viewerIsStaff, contactPhone, contactPosition }: { companyId: string; companyName: string; viewerIsStaff: boolean; contactPhone: string | null; contactPosition: string | null }) {
   interface Admin { user_id: string; full_name: string | null; email: string | null; added_at: string; is_primary: boolean }
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [email, setEmail] = useState("");
@@ -1343,8 +1443,19 @@ function AdminsSection({ companyId, companyName, viewerIsStaff }: { companyId: s
               <div className="font-semibold text-lg leading-tight truncate">
                 {primary.full_name || primary.email || "Primary admin"}
               </div>
+              {contactPosition && (
+                <div className="text-xs opacity-90 truncate">{contactPosition}</div>
+              )}
               {primary.full_name && primary.email && (
                 <div className="text-xs opacity-90 truncate">{primary.email}</div>
+              )}
+              {contactPhone && (
+                <div className="text-xs opacity-90 truncate flex items-center gap-1.5">
+                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                  </svg>
+                  {contactPhone}
+                </div>
               )}
             </div>
             {viewerIsStaff && primary.email && (
