@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*.local
+
+# supabase CLI local state (linked project, cached versions, etc.)
+supabase/.temp/
+
+# editor / SQL backup files
+*.sql.bak
