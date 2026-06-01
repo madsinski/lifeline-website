@@ -23,6 +23,17 @@ function fmtIsk(n: number): string {
   return n.toLocaleString("is-IS") + " kr";
 }
 
+// What the Foundational Health package includes — mirrors the public
+// /business "Packages" card so the contact person sees the full value of
+// what they are buying before they sign.
+const PACKAGE_INCLUDES = [
+  "On-site measurements (5 min) — blood pressure, body composition",
+  "Targeted blood panel",
+  "Full health questionnaire",
+  "Doctor-reviewed personal report",
+  "1:1 doctor consultation + action plan",
+] as const;
+
 // Icelandic alphabet: Á Ð É Í Ó Ú Ý Þ Æ Ö — render in standard UTF-8, the
 // browser and html2canvas handle it via the active web font.
 
@@ -109,10 +120,10 @@ export default function SignAgreementPage() {
       setDiscountStatus("error");
       const reason = row?.error;
       setDiscountError(
-        reason === "expired" ? "Kóðinn er útrunninn."
-        : reason === "exhausted" ? "Kóðinn er fullnýttur."
-        : reason === "inactive" ? "Kóðinn er óvirkur."
-        : "Kóðinn fannst ekki.",
+        reason === "expired" ? "This code has expired."
+        : reason === "exhausted" ? "This code has been fully used."
+        : reason === "inactive" ? "This code is inactive."
+        : "Code not found.",
       );
       return;
     }
@@ -140,7 +151,7 @@ export default function SignAgreementPage() {
       .eq("id", companyId)
       .maybeSingle();
     if (e || !data) {
-      setError("Fyrirtæki fannst ekki eða þú hefur ekki aðgang.");
+      setError("Company not found, or you don't have access.");
       setLoading(false);
       return;
     }
@@ -200,20 +211,22 @@ export default function SignAgreementPage() {
   }, [headcount, rounds, includeFollowup]);
 
   const perEmployeeUnit = assessmentUnitPriceIsk(Math.max(1, headcount), rounds);
+  const assessmentTotal = Math.max(1, headcount) * rounds * perEmployeeUnit;
+  const followupTotal = includeFollowup ? Math.max(1, headcount) * FOLLOWUP_DOCTOR_PRICE_ISK : 0;
 
   const sign = async () => {
     setError("");
     if (!company) return;
     if (!signatoryName.trim() || !signatoryRole.trim() || !signatoryEmail.trim()) {
-      setError("Fylltu inn nafn, starfsheiti og netfang.");
+      setError("Enter your name, job title and email.");
       return;
     }
     if (!agreeChecked) {
-      setError("Þú verður að staðfesta að þú hafir heimild til að binda félagið.");
+      setError("You must confirm that you are authorized to bind the company.");
       return;
     }
     if (lineItems.some((li) => !li.description.trim() || li.qty <= 0 || li.unit_price_isk < 0)) {
-      setError("Öll pöntunaratriði verða að hafa lýsingu, jákvæðan fjölda og verð.");
+      setError("Every order line must have a description, a positive quantity and a price.");
       return;
     }
 
@@ -244,20 +257,20 @@ export default function SignAgreementPage() {
       try { j = raw ? JSON.parse(raw) : {}; } catch { /* non-JSON body */ }
       if (!res.ok) {
         const detail = j.detail || j.error || (raw.startsWith("Request ") ? raw : `HTTP ${res.status}`);
-        setError(`Villa: ${detail}`);
+        setError(`Error: ${detail}`);
         setSigning(false);
         return;
       }
       setDone(true);
     } catch (e) {
-      setError(`Villa: ${(e as Error).message}`);
+      setError(`Error: ${(e as Error).message}`);
     } finally {
       setSigning(false);
     }
   };
 
   if (loading) {
-    return <div className="max-w-3xl mx-auto py-16 text-center text-gray-500">Hleð…</div>;
+    return <div className="max-w-3xl mx-auto py-16 text-center text-gray-500">Loading…</div>;
   }
   if (error && !company) {
     return <div className="max-w-3xl mx-auto py-16 text-center text-red-600">{error}</div>;
@@ -272,13 +285,13 @@ export default function SignAgreementPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Samningur undirritaður</h1>
-        <p className="text-gray-600 mb-6">Afrit hefur verið sent á netfang undirritanda og á Lifeline teymið.</p>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Agreement signed</h1>
+        <p className="text-gray-600 mb-6">A copy has been emailed to the signatory and to the Lifeline team.</p>
         <button
           onClick={() => router.push(`/business/${companyId}`)}
           className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-emerald-500 text-white font-semibold"
         >
-          Til baka í fyrirtækisgátt
+          Back to company portal
         </button>
       </div>
     );
@@ -303,136 +316,212 @@ export default function SignAgreementPage() {
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-900">Þjónustusamningur og innkaupapöntun</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Service agreement &amp; purchase order</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Yfirfarðu samninginn og fylltu út innkaupapöntun. Undirritun er rafræn og bindandi.
+          Review the agreement and complete your order. Signing is electronic and binding.
         </p>
       </header>
 
-      {/* Purchase order — auto-priced from headcount + rounds */}
-      <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-        <h2 className="font-semibold text-gray-900">Innkaupapöntun</h2>
+      {/* Package — the Foundational Health programme, priced from headcount + term */}
+      <section className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="h-1.5 bg-gradient-to-r from-blue-500 to-emerald-500" />
+        <div className="p-5 sm:p-6 space-y-6">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-600 mb-1">Your package</div>
+            <h2 className="text-xl font-bold text-gray-900">Foundational Health</h2>
+            <p className="text-sm text-gray-600 mt-1 max-w-2xl">
+              The full programme — the fastest way to give every employee a clear, medical-grade picture of their health.
+            </p>
+          </div>
 
-        {/* Pricing inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label className="text-sm text-gray-700">
-            Fjöldi starfsmanna
-            <input
-              type="number" min={1}
-              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-              value={headcount}
-              onChange={(e) => setHeadcount(Math.max(1, parseInt(e.target.value) || 1))}
-            />
-            <span className="text-[11px] text-gray-400">{headcount <= 14 ? "0–14 verðflokkur" : "15+ verðflokkur"}</span>
-          </label>
-          <label className="text-sm text-gray-700">
-            Fjöldi heilsumata
-            <select
-              value={rounds}
-              onChange={(e) => setRounds(parseInt(e.target.value) === 2 ? 2 : 1)}
-              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-            >
-              <option value={1}>1× heilsumat</option>
-              <option value={2}>2× heilsumat</option>
-            </select>
-            <span className="text-[11px] text-gray-400">{fmtIsk(perEmployeeUnit)} á heilsumat / starfsmann</span>
-          </label>
-        </div>
+          {/* What every employee gets */}
+          <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">What every employee gets</div>
+            <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+              {PACKAGE_INCLUDES.map((x) => (
+                <li key={x} className="flex items-start gap-2 text-sm text-gray-700">
+                  <svg className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {x}
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-gray-500 mt-3">Doctor consultation in person or as a secure video meeting.</p>
+          </div>
 
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={includeFollowup}
-            onChange={(e) => setIncludeFollowup(e.target.checked)}
-            className="rounded border-gray-300"
-          />
-          Bæta við eftirfylgni læknis — 15 mín viðtal eftir 3 mánuði ({fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} / starfsmann)
-        </label>
-
-        {/* Read-only computed breakdown */}
-        <div className="space-y-1.5 pt-2 border-t border-gray-100">
-          {lineItems.map((li, idx) => (
-            <div key={idx} className="flex items-start justify-between gap-3 text-sm">
-              <div className="text-gray-700">
-                {li.description}
-                <span className="text-gray-400"> · {li.qty} × {fmtIsk(li.unit_price_isk)}</span>
-              </div>
-              <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(li.total_isk)}</div>
+          {/* Term — 1-year vs 2-year */}
+          <div>
+            <div className="text-sm font-semibold text-gray-900 mb-2">Choose your term</div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {([
+                { yrs: 1 as const, title: "1-year plan", blurb: "One full health assessment per employee." },
+                { yrs: 2 as const, title: "2-year plan", blurb: "Two annual assessments per employee — track progress at a lower price per assessment." },
+              ]).map((opt) => {
+                const selected = rounds === opt.yrs;
+                const unit = assessmentUnitPriceIsk(Math.max(1, headcount), opt.yrs);
+                return (
+                  <button
+                    key={opt.yrs}
+                    type="button"
+                    onClick={() => setRounds(opt.yrs)}
+                    aria-pressed={selected}
+                    className={`text-left rounded-xl border-2 p-4 transition ${selected ? "border-emerald-500 bg-emerald-50/50" : "border-gray-200 hover:border-gray-300"}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-gray-900">{opt.title}</span>
+                      {selected && (
+                        <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">{opt.blurb}</div>
+                    <div className="text-sm font-semibold text-emerald-700 mt-2">
+                      {fmtIsk(unit)} <span className="font-normal text-gray-500">/ assessment / employee</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100">
-          <label className="text-xs text-gray-500">Greiðslufyrirkomulag
-            <select value={billingCadence} onChange={(e) => setBillingCadence(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900">
-              <option value="one_time">Eingreiðsla</option>
-              <option value="monthly">Mánaðarlega</option>
-              <option value="quarterly">Ársfjórðungslega</option>
-              <option value="yearly">Árlega</option>
-            </select>
-          </label>
-          <label className="text-xs text-gray-500">Gildir frá
-            <input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
-          </label>
-          <label className="text-xs text-gray-500">Gildir til
-            <input
-              type="date"
-              value={endsAt}
-              onChange={(e) => { didEditEndsAtRef.current = true; setEndsAt(e.target.value); }}
-              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-            />
-            <span className="text-[10px] text-gray-400">Sjálfgildi: 12 mánuðir frá upphafsdegi</span>
-          </label>
-          <label className="text-xs text-gray-500">Vsk. %
-            <input type="number" min={0} max={24} value={vatRate} onChange={(e) => setVatRate(Math.max(0, Math.min(24, parseInt(e.target.value) || 0)))} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
-            <span className="text-[10px] text-gray-400">Heilbrigðisþjónusta er vsk-frjáls (lög nr. 50/1988)</span>
-          </label>
-        </div>
-
-        {/* Afsláttarkóði */}
-        <div className="pt-2 border-t border-gray-100">
-          <label className="text-xs text-gray-500">Afsláttarkóði</label>
-          {appliedCode ? (
-            <div className="mt-1 flex items-center gap-3 text-sm">
-              <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold">{appliedCode}</span>
-              <span className="text-gray-600">−{fmtIsk(discountIsk)}</span>
-              <button type="button" onClick={clearDiscount} className="text-xs text-red-500 hover:underline">Fjarlægja</button>
-            </div>
-          ) : (
-            <div className="mt-1 flex gap-2">
+          {/* Headcount */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="text-sm text-gray-700">
+              Number of employees
               <input
-                type="text"
-                value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
-                placeholder="Sláðu inn kóða"
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 uppercase"
+                type="number" min={1}
+                className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                value={headcount}
+                onChange={(e) => setHeadcount(Math.max(1, parseInt(e.target.value) || 1))}
               />
-              <button
-                type="button"
-                onClick={applyDiscount}
-                disabled={discountStatus === "checking" || !discountInput.trim()}
-                className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40"
-              >
-                {discountStatus === "checking" ? "…" : "Virkja"}
-              </button>
-            </div>
-          )}
-          {discountError && <p className="text-xs text-red-600 mt-1">{discountError}</p>}
-        </div>
+              <span className="text-[11px] text-gray-400">{headcount <= 14 ? "0–14 price band" : "15+ price band"}</span>
+            </label>
+          </div>
 
-        <div className="flex justify-end gap-6 pt-2 border-t border-gray-100 text-sm">
-          <div>Samtals án vsk.: <strong>{fmtIsk(subtotal)}</strong></div>
-          {discountIsk > 0 && <div>Afsláttur: <strong>−{fmtIsk(discountIsk)}</strong></div>}
-          <div>Vsk.: <strong>{fmtIsk(vat)}</strong></div>
-          <div className="text-base">Heildar: <strong className="text-emerald-700">{fmtIsk(total)}</strong></div>
+          {/* Add-ons */}
+          <div>
+            <div className="text-sm font-semibold text-gray-900 mb-2">Add-ons</div>
+            <div className="space-y-2">
+              <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-3 cursor-pointer hover:border-gray-300">
+                <input
+                  type="checkbox"
+                  checked={includeFollowup}
+                  onChange={(e) => setIncludeFollowup(e.target.checked)}
+                  className="mt-1 rounded border-gray-300"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 text-sm">3-month doctor phone call</div>
+                  <div className="text-xs text-gray-600">A 15-minute follow-up call with the doctor three months after the assessment.</div>
+                </div>
+                <div className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} <span className="font-normal text-gray-400">/ employee</span></div>
+              </label>
+
+              <div className="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 p-3 opacity-80">
+                <input type="checkbox" disabled className="mt-1 rounded border-gray-300" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 text-sm flex items-center gap-2 flex-wrap">
+                    Coaching app subscription
+                    <span className="text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">Coming soon</span>
+                  </div>
+                  <div className="text-xs text-gray-600">Daily actions built on each report, a real health coach, community and education — offered as a company perk. Available soon.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Order summary */}
+          <div className="space-y-1.5 pt-2 border-t border-gray-100 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="text-gray-700">
+                Foundational Health — {Math.max(1, headcount)} employee{headcount === 1 ? "" : "s"} × {rounds} assessment{rounds === 1 ? "" : "s"}
+                <span className="text-gray-400"> · {rounds === 1 ? "1-year plan" : "2-year plan"}</span>
+              </div>
+              <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(assessmentTotal)}</div>
+            </div>
+            {includeFollowup && (
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-gray-700">3-month doctor phone call — {Math.max(1, headcount)} employee{headcount === 1 ? "" : "s"}</div>
+                <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(followupTotal)}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Billing details */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100">
+            <label className="text-xs text-gray-500">Billing
+              <select value={billingCadence} onChange={(e) => setBillingCadence(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900">
+                <option value="one_time">One-time</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Annually</option>
+              </select>
+            </label>
+            <label className="text-xs text-gray-500">Starts
+              <input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
+            </label>
+            <label className="text-xs text-gray-500">Ends
+              <input
+                type="date"
+                value={endsAt}
+                onChange={(e) => { didEditEndsAtRef.current = true; setEndsAt(e.target.value); }}
+                className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+              />
+              <span className="text-[10px] text-gray-400">Default: 12 months from start</span>
+            </label>
+            <label className="text-xs text-gray-500">VAT %
+              <input type="number" min={0} max={24} value={vatRate} onChange={(e) => setVatRate(Math.max(0, Math.min(24, parseInt(e.target.value) || 0)))} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
+              <span className="text-[10px] text-gray-400">Healthcare services are VAT-exempt (Act no. 50/1988)</span>
+            </label>
+          </div>
+
+          {/* Discount code */}
+          <div className="pt-2 border-t border-gray-100">
+            <label className="text-xs text-gray-500">Discount code</label>
+            {appliedCode ? (
+              <div className="mt-1 flex items-center gap-3 text-sm">
+                <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold">{appliedCode}</span>
+                <span className="text-gray-600">−{fmtIsk(discountIsk)}</span>
+                <button type="button" onClick={clearDiscount} className="text-xs text-red-500 hover:underline">Remove</button>
+              </div>
+            ) : (
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  placeholder="Enter code"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={applyDiscount}
+                  disabled={discountStatus === "checking" || !discountInput.trim()}
+                  className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40"
+                >
+                  {discountStatus === "checking" ? "…" : "Apply"}
+                </button>
+              </div>
+            )}
+            {discountError && <p className="text-xs text-red-600 mt-1">{discountError}</p>}
+          </div>
+
+          {/* Totals */}
+          <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 pt-2 border-t border-gray-100 text-sm">
+            <div>Subtotal (excl. VAT): <strong>{fmtIsk(subtotal)}</strong></div>
+            {discountIsk > 0 && <div>Discount: <strong>−{fmtIsk(discountIsk)}</strong></div>}
+            <div>VAT: <strong>{fmtIsk(vat)}</strong></div>
+            <div className="text-base">Total: <strong className="text-emerald-700">{fmtIsk(total)}</strong></div>
+          </div>
         </div>
       </section>
 
       {/* Full document preview — hashed by server + rendered to PDF */}
       <section className="bg-white border border-gray-200 rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-900">Samningur og skilmálar</h2>
-          <span className="text-xs text-gray-400">Þetta er nákvæmlega það sem verður undirritað.</span>
+          <h2 className="font-semibold text-gray-900">Agreement &amp; terms</h2>
+          <span className="text-xs text-gray-400">The binding contract is in Icelandic — this is exactly what will be signed.</span>
         </div>
         <div className="bg-white p-6 text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md">
           <div className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900">{renderThjonustusamningur(agreementParams)}</div>
@@ -480,24 +569,24 @@ export default function SignAgreementPage() {
 
       {/* Signatory + authority */}
       <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-        <h2 className="font-semibold text-gray-900">Undirritandi</h2>
+        <h2 className="font-semibold text-gray-900">Signatory</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <label className="text-xs text-gray-500">Fullt nafn
+          <label className="text-xs text-gray-500">Full name
             <input value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder="Jón Jónsson" />
           </label>
-          <label className="text-xs text-gray-500">Starfsheiti / staða
-            <input value={signatoryRole} onChange={(e) => setSignatoryRole(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder="Framkvæmdastjóri" />
+          <label className="text-xs text-gray-500">Job title / role
+            <input value={signatoryRole} onChange={(e) => setSignatoryRole(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder="Managing director" />
           </label>
-          <label className="text-xs text-gray-500">Netfang
+          <label className="text-xs text-gray-500">Email
             <input type="email" value={signatoryEmail} onChange={(e) => setSignatoryEmail(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder="jon@example.is" />
           </label>
         </div>
         <label className="flex items-start gap-2 pt-2">
           <input type="checkbox" checked={agreeChecked} onChange={(e) => setAgreeChecked(e.target.checked)} className="mt-1" />
           <span className="text-sm text-gray-700">
-            Ég, <strong>{signatoryName || "[nafn]"}</strong>, staðfesti að ég hef heimild til að binda <strong>{company.name}</strong>
-            {companyKennitala ? <> (kt. {companyKennitala})</> : null} og samþykki framangreindan þjónustusamning, þjónustuskilmála og innkaupapöntun.
-            Ég staðfesti jafnframt að IP-tala og vafraauðkenni verða skráð sem hluti af undirritun.
+            I, <strong>{signatoryName || "[name]"}</strong>, confirm that I am authorized to bind <strong>{company.name}</strong>
+            {companyKennitala ? <> (reg. no. {companyKennitala})</> : null} and I accept the service agreement, service terms and purchase order above.
+            I also acknowledge that my IP address and browser fingerprint will be recorded as part of the signature.
           </span>
         </label>
       </section>
@@ -506,7 +595,7 @@ export default function SignAgreementPage() {
 
       <div className="flex gap-3 justify-end">
         <button onClick={() => router.push(`/business/${companyId}`)} className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
-          Hætta við
+          Cancel
         </button>
         <button
           onClick={sign}
@@ -514,7 +603,7 @@ export default function SignAgreementPage() {
           className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-emerald-500 text-white font-semibold text-sm disabled:opacity-60 flex items-center gap-2"
         >
           {signing && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {signing ? "Undirrita…" : "Undirrita og staðfesta pöntun"}
+          {signing ? "Signing…" : "Sign & confirm order"}
         </button>
       </div>
     </div>

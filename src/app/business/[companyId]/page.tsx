@@ -10,7 +10,6 @@ import ScheduleBodyComp from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
 import DoctorInterviews from "./DoctorInterviews";
 import BillingPanel from "@/app/components/BillingPanel";
-import { PRICING_TIERS, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
 
 interface Company {
   id: string;
@@ -68,6 +67,14 @@ interface BloodDay {
   notes: string | null;
 }
 
+interface Admin {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  added_at: string;
+  is_primary: boolean;
+}
+
 export default function BusinessDashboardPage() {
   const params = useParams<{ companyId: string }>();
   const router = useRouter();
@@ -90,6 +97,7 @@ export default function BusinessDashboardPage() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewerIsStaff, setViewerIsStaff] = useState(false);
   const [rounds, setRounds] = useState<AssessmentRound[]>([]);
+  const [admins, setAdmins] = useState<Admin[]>([]);
   const [startingRound, setStartingRound] = useState(false);
   const [error, setError] = useState("");
   const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
@@ -148,6 +156,12 @@ export default function BusinessDashboardPage() {
     setLoading(false);
   }, [companyId]);
 
+  const loadAdmins = useCallback(async () => {
+    if (!companyId) return;
+    const { data } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
+    setAdmins((data || []) as Admin[]);
+  }, [companyId]);
+
   const startNewRound = async (pkg: string) => {
     setStartingRound(true);
     try {
@@ -195,8 +209,9 @@ export default function BusinessDashboardPage() {
         .from("staff").select("id, active").eq("id", data.user.id).maybeSingle();
       setViewerIsStaff(!!staffRow && staffRow.active === true);
       loadData();
+      loadAdmins();
     });
-  }, [loadData, router]);
+  }, [loadData, loadAdmins, router]);
 
   const exportCsv = async () => {
     const { data: s } = await supabase.auth.getSession();
@@ -290,11 +305,8 @@ export default function BusinessDashboardPage() {
       />
 
       <main className="max-w-6xl mx-auto px-6 py-10 flex gap-8">
-        {/* Left sidebar — jump-nav + the Company admins card (desktop only).
-            On mobile the admins card re-appears in the main flow below, since
-            this whole column is hidden under lg. Heroicons outline, stroke 1.5. */}
-        <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start space-y-4">
-        <nav className="bg-white rounded-xl border border-gray-100 shadow-sm p-2">
+        {/* Side nav — Heroicons outline, stroke 1.5, matches admin sidebar language */}
+        <nav className="hidden lg:block w-52 shrink-0 sticky top-24 self-start bg-white rounded-xl border border-gray-100 shadow-sm p-2">
           <div className="px-3 pt-2 pb-3 text-[10px] uppercase tracking-[0.12em] font-semibold text-gray-400">
             Jump to
           </div>
@@ -314,6 +326,11 @@ export default function BusinessDashboardPage() {
               label: "Insights",
               iconPath: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
             },
+            {
+              id: "team",
+              label: "Team & Admins",
+              iconPath: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
+            },
           ].map((item) => (
             <button
               key={item.id}
@@ -328,33 +345,26 @@ export default function BusinessDashboardPage() {
           ))}
         </nav>
 
-        {/* Company admins — lives in the sidebar on desktop (mirrored into the
-            main flow under lg, see below). */}
-        <AdminsSection
-          companyId={companyId!}
-          companyName={company.name}
-          viewerIsStaff={viewerIsStaff}
-          contactPhone={company.contact_phone}
-          contactPosition={company.contact_position}
-        />
-        </aside>
-
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-6">
-        {/* Hero */}
-        <section className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-semibold">{company.name}</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              {finalized
-                ? "Management mode — your registration is complete."
-                : stepsDone === 4
-                  ? "All four steps done. Finalize below to notify the Lifeline admin team."
-                  : `${stepsDone} of 4 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`}
-            </p>
-          </div>
-          <button onClick={exportCsv} className="btn-ghost">Export CSV</button>
-        </section>
+        {/* Header card — company identity + the contact person (primary admin),
+            with phone + position. Replaces the bare company-name hero. */}
+        <CompanyHeaderCard
+          companyId={companyId!}
+          companyName={company.name}
+          statusText={
+            finalized
+              ? "Management mode — your registration is complete."
+              : stepsDone === 4
+                ? "All four steps done. Finalize below to notify the Lifeline admin team."
+                : `${stepsDone} of 4 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`
+          }
+          primary={admins.find((a) => a.is_primary) || null}
+          contactPhone={company.contact_phone}
+          contactPosition={company.contact_position}
+          viewerIsStaff={viewerIsStaff}
+          onExport={exportCsv}
+        />
 
         {/* Finalized banner */}
         {finalized && (
@@ -439,27 +449,24 @@ export default function BusinessDashboardPage() {
             n={1}
             done={agreementSigned}
             active={nextStep === 1}
-            title={agreementSigned ? "Þjónustusamningur undirritaður" : "Veldu pakka og undirritaðu þjónustusamning"}
+            title={agreementSigned ? "Service agreement signed" : "Choose your package & sign the service agreement"}
             subtitle={
               agreementSigned
-                ? `Undirritað ${new Date(company.agreement_signed_at!).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" })} — afrit í fyrirtækisgátt og á tölvupósti.`
-                : "Segðu okkur fjölda starfsmanna og fjölda heilsumata — verðið reiknast sjálfkrafa. Yfirfarðu samninginn og undirritaðu rafrænt. Þetta þarf að gerast áður en hægt er að bjóða starfsmönnum."
+                ? `Signed ${new Date(company.agreement_signed_at!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} — a copy is in your company portal and was emailed to you.`
+                : "Review the package and everything it includes, choose a 1-year or 2-year term, then sign electronically. This must be done before you can invite employees."
             }
           >
             {!agreementSigned ? (
-              <div className="space-y-4">
-                <PackageComparison />
-                <button
-                  onClick={() => router.push(`/business/${companyId}/sign`)}
-                  className="btn-step-primary"
-                >
-                  Halda áfram að verði og undirritun →
-                </button>
-              </div>
+              <button
+                onClick={() => router.push(`/business/${companyId}/sign`)}
+                className="btn-step-primary"
+              >
+                Choose package & continue to signing →
+              </button>
             ) : (
               <div className="space-y-3">
                 <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                  Samningurinn er geymdur á öruggan hátt. Þú getur hlaðið niður afriti hér að neðan.
+                  Your agreement is stored securely. You can download a copy below.
                 </div>
                 {signedDocs.length > 0 && (
                   <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
@@ -467,20 +474,20 @@ export default function BusinessDashboardPage() {
                       <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-gray-900 truncate">
-                            {d.po_number || "(pöntun)"} · {d.signatory_name}
+                            {d.po_number || "(order)"} · {d.signatory_name}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {d.signatory_role} · {new Date(d.signed_at).toLocaleString("is-IS", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            {d.signatory_role} · {new Date(d.signed_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                             {d.total_isk != null && <> · <strong>{d.total_isk.toLocaleString("is-IS")} kr</strong></>}
                           </div>
                         </div>
                         <button
                           onClick={() => downloadSignedPdf(d.id, d.pdf_storage_path)}
                           disabled={downloadingId === d.id || !d.pdf_storage_path}
-                          title={!d.pdf_storage_path ? "PDF vantar" : "Hlaða niður PDF"}
+                          title={!d.pdf_storage_path ? "PDF missing" : "Download PDF"}
                           className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40 whitespace-nowrap"
                         >
-                          {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Hlaða niður PDF" : "Vantar"}
+                          {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Download PDF" : "Missing"}
                         </button>
                       </li>
                     ))}
@@ -758,17 +765,12 @@ export default function BusinessDashboardPage() {
         <div id="insights" className="scroll-mt-24" />
         <InsightsCard companyId={companyId!} />
 
-        {/* Company admins — mobile/tablet placement (hidden on lg, where it
-            renders in the sidebar instead). */}
-        <div className="lg:hidden">
-          <AdminsSection
-            companyId={companyId!}
-            companyName={company.name}
-            viewerIsStaff={viewerIsStaff}
-            contactPhone={company.contact_phone}
-            contactPosition={company.contact_position}
-          />
-        </div>
+        <div id="team" className="scroll-mt-24" />
+        <CoAdminsSection
+          companyId={companyId!}
+          admins={admins}
+          onReload={loadAdmins}
+        />
         </div>{/* end content */}
       </main>
 
@@ -853,82 +855,6 @@ function StepCard({
         </div>
       </div>
     </section>
-  );
-}
-
-// ── Package comparison ──────────────────────────────────────────────────────
-// Collapsible "see & compare packages" panel for Step 1, so the buyer can weigh
-// the tiers before clicking through to the pricing + signing page. The numbers
-// come from PRICING_TIERS (src/lib/b2b-pricing.ts) so this stays in sync with
-// the actual unit prices used on the purchase order.
-
-function PackageComparison() {
-  const [open, setOpen] = useState(false);
-  const fmt = (n: number) => n.toLocaleString("is-IS") + " kr";
-  const teams = ["0–14 starfsmenn", "15+ starfsmenn"] as const;
-  const roundOptions = [
-    { key: "1× heilsumat", label: "Árlegt heilsumat", desc: "Eitt heilsumat á hvern starfsmann á ári." },
-    { key: "2× heilsumat", label: "Hálfsársmat", desc: "Tvö heilsumöt á ári — fylgist með framvindu." },
-  ] as const;
-  const priceFor = (team: string, rounds: string) =>
-    PRICING_TIERS.find((t) => t.team === team && t.rounds === rounds)?.unitIsk ?? 0;
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/60 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50"
-        aria-expanded={open}
-      >
-        <span className="text-sm font-semibold text-gray-900">
-          Skoða og bera saman pakka
-          <span className="ml-2 font-normal text-gray-500">verð á hvert heilsumat, á starfsmann</span>
-        </span>
-        <svg className={`w-5 h-5 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="border-t border-gray-200 bg-white p-4 space-y-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="text-gray-500">
-                  <th className="py-2 pr-4 font-medium text-left">Pakki</th>
-                  {teams.map((t) => (
-                    <th key={t} className="py-2 px-4 font-medium whitespace-nowrap text-right">{t}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {roundOptions.map((r) => (
-                  <tr key={r.key} className="border-t border-gray-100 align-top">
-                    <td className="py-3 pr-4">
-                      <div className="font-semibold text-gray-900">{r.label}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{r.desc}</div>
-                    </td>
-                    {teams.map((t) => (
-                      <td key={t} className="py-3 px-4 text-right whitespace-nowrap">
-                        <span className="font-semibold text-emerald-700">{fmt(priceFor(t, r.key))}</span>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs text-emerald-800">
-            Valfrjáls viðbót: <strong>eftirfylgni læknis</strong> — 15 mín viðtal eftir 3 mánuði, {fmt(FOLLOWUP_DOCTOR_PRICE_ISK)} á starfsmann.
-          </div>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Stærri teymi og 2× árleg heilsumöt lækka einingaverðið sjálfkrafa. Endanlegt verð reiknast eftir fjölda starfsmanna á næsta skrefi.
-            Heilbrigðisþjónusta er virðisaukaskattsfrjáls (lög nr. 50/1988).
-          </p>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -1331,26 +1257,99 @@ function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone:
   );
 }
 
-function AdminsSection({ companyId, companyName, viewerIsStaff, contactPhone, contactPosition }: { companyId: string; companyName: string; viewerIsStaff: boolean; contactPhone: string | null; contactPosition: string | null }) {
-  interface Admin { user_id: string; full_name: string | null; email: string | null; added_at: string; is_primary: boolean }
-  const [admins, setAdmins] = useState<Admin[]>([]);
+// Two-letter initials for an avatar fallback.
+function initials(name: string | null | undefined): string {
+  const n = (name || "").trim();
+  if (!n) return "?";
+  const parts = n.split(/\s+/).slice(0, 2);
+  return parts.map((p) => p.charAt(0).toUpperCase()).join("");
+}
+
+// Page header card — company identity + the contact person (the primary admin),
+// with their position and phone. Replaces the plain company-name hero.
+function CompanyHeaderCard({
+  companyId, companyName, statusText, primary, contactPhone, contactPosition, viewerIsStaff, onExport,
+}: {
+  companyId: string;
+  companyName: string;
+  statusText: string;
+  primary: Admin | null;
+  contactPhone: string | null;
+  contactPosition: string | null;
+  viewerIsStaff: boolean;
+  onExport: () => void;
+}) {
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  return (
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="h-1.5 bg-gradient-to-r from-blue-500 to-emerald-500" />
+      <div className="p-6 flex flex-col sm:flex-row sm:items-start gap-5">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-semibold text-gray-900 truncate">{companyName}</h1>
+          <p className="text-sm text-gray-600 mt-1">{statusText}</p>
+
+          {primary && (
+            <div className="mt-4 flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
+                {initials(primary.full_name || primary.email)}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Contact person</div>
+                <div className="font-semibold text-gray-900 leading-tight truncate">
+                  {primary.full_name || primary.email || "Primary contact"}
+                  {contactPosition && <span className="font-normal text-gray-500"> · {contactPosition}</span>}
+                </div>
+                <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                  {primary.email && <span className="truncate">{primary.email}</span>}
+                  {contactPhone && (
+                    <span className="inline-flex items-center gap-1">
+                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                      </svg>
+                      {contactPhone}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {viewerIsStaff && primary?.email && (
+            <button onClick={() => setShowMessageModal(true)} className="btn-ghost inline-flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Email contact
+            </button>
+          )}
+          <button onClick={onExport} className="btn-ghost">Export CSV</button>
+        </div>
+      </div>
+
+      {showMessageModal && primary && (
+        <MessageContactModal
+          companyId={companyId}
+          companyName={companyName}
+          recipientName={primary.full_name || primary.email || "the contact person"}
+          recipientEmail={primary.email || ""}
+          onClose={() => setShowMessageModal(false)}
+        />
+      )}
+    </section>
+  );
+}
+
+// Co-admin management card — invite / promote / remove colleagues who help run
+// this company. The primary contact now lives in the header card above; this
+// card reads from the lifted `admins` list and asks the parent to reload.
+function CoAdminsSection({ companyId, admins, onReload }: { companyId: string; admins: Admin[]; onReload: () => void }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState(true);
-  const [showMessageModal, setShowMessageModal] = useState(false);
-
-  const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
-    if (error) setError(error.message);
-    else {
-      setAdmins((data || []) as Admin[]);
-      // Auto-expand if there's already a co-admin (so it's visible)
-      if ((data || []).some((a: Admin) => !a.is_primary)) setExpanded(true);
-    }
-  }, [companyId]);
-
-  useEffect(() => { load(); }, [load]);
+  const coAdmins = admins.filter((a) => !a.is_primary);
 
   const addAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1365,7 +1364,7 @@ function AdminsSection({ companyId, companyName, viewerIsStaff, contactPhone, co
     });
     const j = await res.json();
     if (!res.ok) setError(j.error || "Failed to add admin");
-    else { setEmail(""); load(); }
+    else { setEmail(""); onReload(); }
     setLoading(false);
   };
 
@@ -1377,11 +1376,11 @@ function AdminsSection({ companyId, companyName, viewerIsStaff, contactPhone, co
       method: "DELETE",
       headers: t ? { Authorization: `Bearer ${t}` } : {},
     });
-    load();
+    onReload();
   };
 
-  const promote = async (userId: string, email: string | null) => {
-    if (!confirm(`Make ${email || userId} the primary contact person? You will be demoted to a co-admin.`)) return;
+  const promote = async (userId: string, addr: string | null) => {
+    if (!confirm(`Make ${addr || userId} the primary contact person? You will be demoted to a co-admin.`)) return;
     const { data: s } = await supabase.auth.getSession();
     const t = s.session?.access_token;
     const res = await fetch(`/api/business/companies/${companyId}/promote`, {
@@ -1391,16 +1390,7 @@ function AdminsSection({ companyId, companyName, viewerIsStaff, contactPhone, co
     });
     const j = await res.json();
     if (!res.ok) alert(`Failed: ${j.error || "promote_failed"}`);
-    load();
-  };
-
-  const primary = admins.find((a) => a.is_primary);
-  const coAdmins = admins.filter((a) => !a.is_primary);
-  const initials = (name: string | null | undefined): string => {
-    const n = (name || "").trim();
-    if (!n) return "?";
-    const parts = n.split(/\s+/).slice(0, 2);
-    return parts.map((p) => p.charAt(0).toUpperCase()).join("");
+    onReload();
   };
 
   return (
@@ -1427,61 +1417,6 @@ function AdminsSection({ companyId, companyName, viewerIsStaff, contactPhone, co
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-
-      {/* Primary contact — always visible, not gated by expand */}
-      {primary && (
-        <div className="mt-4 rounded-xl p-4 text-white shadow-sm"
-          style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg shrink-0">
-              {initials(primary.full_name || primary.email)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold tracking-wider uppercase opacity-90">
-                Primary contact person
-              </div>
-              <div className="font-semibold text-lg leading-tight truncate">
-                {primary.full_name || primary.email || "Primary admin"}
-              </div>
-              {contactPosition && (
-                <div className="text-xs opacity-90 truncate">{contactPosition}</div>
-              )}
-              {primary.full_name && primary.email && (
-                <div className="text-xs opacity-90 truncate">{primary.email}</div>
-              )}
-              {contactPhone && (
-                <div className="text-xs opacity-90 truncate flex items-center gap-1.5">
-                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                  </svg>
-                  {contactPhone}
-                </div>
-              )}
-            </div>
-            {viewerIsStaff && primary.email && (
-              <button
-                onClick={() => setShowMessageModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium shrink-0"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Email contact
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {showMessageModal && primary && (
-        <MessageContactModal
-          companyId={companyId}
-          companyName={companyName}
-          recipientName={primary.full_name || primary.email || "the contact person"}
-          recipientEmail={primary.email || ""}
-          onClose={() => setShowMessageModal(false)}
-        />
-      )}
 
       {expanded && (
         <div className="mt-5 space-y-4">
