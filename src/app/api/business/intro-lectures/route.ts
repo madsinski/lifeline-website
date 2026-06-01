@@ -14,20 +14,42 @@ function addMinutes(hhmm: string, mins: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-// A company proposes a 30-min introduction lecture (on-site or video) before
-// the measurement day. Starts as 'requested'; Lifeline staff approve it in
+interface SessionInput {
+  lecture_date: string;
+  start_time: string;
+  mode: "onsite" | "video";
+  location?: string | null;
+  room_notes?: string | null;
+}
+
+// A company proposes 30-min introduction lecture(s) (on-site or video) before
+// the measurement day. Each starts as 'requested'; Lifeline staff approve in
 // /admin/business → Approvals. Mirrors the doctor-interview proposal flow.
 export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const { company_id, lecture_date, start_time, mode, location, room_notes } = body || {};
-  if (!company_id || !lecture_date || !start_time || !mode) {
+  const { company_id } = body || {};
+
+  // Back-compat: accept either a `sessions` array (multi) or a single
+  // lecture_date/start_time/mode at the top level (the old shape).
+  const rawSessions: SessionInput[] = Array.isArray(body?.sessions) && body.sessions.length
+    ? body.sessions
+    : (body?.lecture_date
+        ? [{ lecture_date: body.lecture_date, start_time: body.start_time, mode: body.mode, location: body.location, room_notes: body.room_notes }]
+        : []);
+
+  if (!company_id || rawSessions.length === 0) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
-  if (mode !== "onsite" && mode !== "video") {
-    return NextResponse.json({ error: "invalid_mode" }, { status: 400 });
+  for (const s of rawSessions) {
+    if (!s.lecture_date || !s.start_time || !s.mode) {
+      return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    }
+    if (s.mode !== "onsite" && s.mode !== "video") {
+      return NextResponse.json({ error: "invalid_mode" }, { status: 400 });
+    }
   }
 
   const { data: company } = await supabaseAdmin
@@ -46,40 +68,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const end_time = addMinutes(String(start_time).slice(0, 5), LECTURE_MIN);
+  const rows = rawSessions.map((s) => ({
+    company_id,
+    lecture_date: s.lecture_date,
+    start_time: s.start_time,
+    end_time: addMinutes(String(s.start_time).slice(0, 5), LECTURE_MIN),
+    mode: s.mode,
+    location: s.mode === "onsite" ? ((s.location || "").trim() || null) : null,
+    room_notes: s.mode === "onsite" ? ((s.room_notes || "").trim() || null) : null,
+    created_by: user.id,
+  }));
 
   const { data: inserted, error: insErr } = await supabaseAdmin
     .from("intro_lectures")
-    .insert({
-      company_id,
-      lecture_date,
-      start_time,
-      end_time,
-      mode,
-      location: mode === "onsite" ? ((location || "").trim() || null) : null,
-      room_notes: mode === "onsite" ? ((room_notes || "").trim() || null) : null,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+    .insert(rows)
+    .select("id");
   if (insErr || !inserted) {
     console.error("[intro-lectures] insert", insErr);
     return NextResponse.json({ error: "lecture_create_failed" }, { status: 500 });
   }
 
-  const dateLabel = new Date(lecture_date + "T00:00:00").toLocaleDateString("en-GB", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
+  const fmt = (s: SessionInput) => {
+    const label = new Date(s.lecture_date + "T00:00:00").toLocaleDateString("en-GB", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric",
+    });
+    const end = addMinutes(String(s.start_time).slice(0, 5), LECTURE_MIN);
+    return `${label}, ${String(s.start_time).slice(0, 5)}–${end} (${s.mode === "onsite" ? "on-site" : "video/phone"})`;
+  };
+
   try {
+    const lines = rawSessions.map(fmt);
     await sendEmail({
       to: "contact@lifelinehealth.is",
-      subject: `Introduction lecture needs approval — ${company.name}`,
-      text: `${company.name} proposed a 30-min introduction lecture on ${dateLabel}, ${String(start_time).slice(0, 5)}–${end_time} (${mode === "onsite" ? "on-site" : "video/phone"}). Approve it in /admin/business → Approvals.`,
-      html: `<p><strong>${company.name}</strong> proposed a 30-min introduction lecture:</p><ul><li>${dateLabel}</li><li>${String(start_time).slice(0, 5)}–${end_time}</li><li>${mode === "onsite" ? "On-site" : "Video/phone"}</li></ul><p>Approve it in <a href="https://www.lifelinehealth.is/admin/business">/admin/business → Approvals</a>.</p>`,
+      subject: `Introduction lecture${rawSessions.length > 1 ? "s" : ""} need approval — ${company.name}`,
+      text: `${company.name} proposed ${rawSessions.length} introduction lecture time(s):\n${lines.map((l) => `• ${l}`).join("\n")}\nApprove in /admin/business → Approvals.`,
+      html: `<p><strong>${company.name}</strong> proposed ${rawSessions.length} introduction lecture time(s):</p><ul>${lines.map((l) => `<li>${l}</li>`).join("")}</ul><p>Approve in <a href="https://www.lifelinehealth.is/admin/business">/admin/business → Approvals</a>.</p>`,
     });
   } catch (e) {
     console.error("[intro-lectures] ops notify failed", (e as Error).message);
   }
 
-  return NextResponse.json({ ok: true, lecture_id: inserted.id });
+  return NextResponse.json({ ok: true, lecture_ids: inserted.map((r) => r.id), count: inserted.length });
 }
