@@ -176,7 +176,12 @@ export const DECK_CSS = `
 .lldeck .cols-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem;}
 .lldeck .cols-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;}
 .lldeck .cols-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
-.lldeck .stack{display:flex;flex-direction:column;gap:1.1rem;}
+.lldeck .stack{display:flex;flex-direction:column;gap:.9rem;}
+/* compact horizontal cards + smaller phone for the coaching slide so it fits */
+.lldeck .coach-card{display:flex;flex-direction:row;align-items:flex-start;gap:.85rem;padding:.95rem 1.1rem;}
+.lldeck .coach-card .icon{margin-bottom:0;}
+.lldeck .coach-card h3{margin-bottom:.15rem;}
+.lldeck .coach-phone .phone-shot{width:clamp(118px,12.5cqw,172px);}
 
 .lldeck .card{background:var(--card);border:1px solid var(--line);border-radius:var(--card-radius);padding:1.3rem;box-shadow:var(--shadow);}
 .lldeck .dark .card{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.12);backdrop-filter:blur(6px);box-shadow:none;}

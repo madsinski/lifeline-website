@@ -11,7 +11,7 @@ import { requireAdminAAL2 } from "@/lib/auth-helpers";
 // results. Gated to admin + AAL2 since it spends API budget.
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const MODEL = "gpt-5.4";
 

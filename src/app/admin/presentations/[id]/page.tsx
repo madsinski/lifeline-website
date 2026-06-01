@@ -118,14 +118,23 @@ export default function PresentationEditor() {
       const data: PresentationData = { slides, design, tIs, syncSnap };
       const plan = planSync(data);
       if (plan.items.length === 0) { setSyncMsg("Already in sync — nothing changed."); return; }
-      const res = await fetch(`/api/admin/presentations/${id}/translate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-        body: JSON.stringify({ items: plan.items.map(({ from, to, text }) => ({ from, to, text })) }),
-      });
-      if (!res.ok) { const j = await res.json().catch(() => ({})); setSyncMsg(`Sync failed: ${j.error || res.status}`); return; }
-      const { translations } = await res.json();
-      const results = plan.items.map((it, idx) => ({ slideId: it.slideId, path: it.path, to: it.to, text: (translations?.[idx] ?? it.text) as string }));
+      // Translate in small batches so each request stays well under the
+      // function/gateway timeout (a whole-deck call can otherwise 504).
+      const CHUNK = 12;
+      const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+      const all: string[] = [];
+      for (let off = 0; off < plan.items.length; off += CHUNK) {
+        const slice = plan.items.slice(off, off + CHUNK);
+        setSyncMsg(`Translating… ${Math.min(off + CHUNK, plan.items.length)} / ${plan.items.length}`);
+        const res = await fetch(`/api/admin/presentations/${id}/translate`, {
+          method: "POST", headers,
+          body: JSON.stringify({ items: slice.map(({ from, to, text }) => ({ from, to, text })) }),
+        });
+        if (!res.ok) { const j = await res.json().catch(() => ({})); setSyncMsg(`Sync failed: ${j.error || res.status}`); return; }
+        const { translations } = await res.json();
+        for (let k = 0; k < slice.length; k++) all.push((translations?.[k] ?? slice[k].text) as string);
+      }
+      const results = plan.items.map((it, idx) => ({ slideId: it.slideId, path: it.path, to: it.to, text: all[idx] ?? it.text }));
       const nextData = applySync(data, results);
       setSlides(nextData.slides);
       setTIs(nextData.tIs || {});

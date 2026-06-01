@@ -241,12 +241,12 @@ function SlideBody({ s }: { s: Slide }) {
           <div>
             {s.kicker && <span className="kicker">{s.kicker}</span>}
             <h2>{rich(s.heading)}</h2>
-            {s.lead && <p className="lead" style={{ marginTop: "1rem" }}>{s.lead}</p>}
-            <div style={{ marginTop: "1.4rem", maxWidth: 220 }}><PhoneImg src={s.phone} /></div>
+            {s.lead && <p className="lead" style={{ marginTop: ".9rem" }}>{s.lead}</p>}
+            <div className="coach-phone" style={{ marginTop: "1.1rem" }}><PhoneImg src={s.phone} /></div>
           </div>
           <div className="stack">
             {(s.cards || []).map((c, i) => (
-              <div key={i} className="card"><div className="icon"><Icon name={c.icon} /></div><h3>{c.title}</h3><p>{c.body}</p></div>
+              <div key={i} className="card coach-card"><div className="icon"><Icon name={c.icon} /></div><div className="ct"><h3>{c.title}</h3><p>{c.body}</p></div></div>
             ))}
           </div>
         </div>
