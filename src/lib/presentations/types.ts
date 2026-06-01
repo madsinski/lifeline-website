@@ -17,14 +17,22 @@ export type SlideTheme = "dark" | "light";
 
 // Visual designs — each is a palette + typography treatment applied to the
 // whole deck via a data-design attribute on the deck root (see deck-css.ts).
-export type DesignId = "lifeline" | "midnight" | "clinical" | "warm" | "mono";
+export type DesignId =
+  | "lifeline" | "midnight" | "clinical" | "warm" | "mono"
+  | "bloom" | "vital" | "pulse" | "journey";
 
 export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
+  // Colour profiles (same layout, different palette)
   { id: "lifeline", name: "Lifeline", blurb: "Signature emerald + cyan." },
   { id: "midnight", name: "Midnight", blurb: "Indigo on deep navy — premium tech." },
   { id: "clinical", name: "Clinical", blurb: "Calm medical blue, serif headings." },
   { id: "warm", name: "Warm", blurb: "Editorial terracotta on cream." },
   { id: "mono", name: "Mono", blurb: "High-contrast black & emerald." },
+  // Distinct themed designs (shape + typography, Lifeline-branded)
+  { id: "bloom", name: "Bloom · Wellness", blurb: "Soft rounded shapes, minty, airy." },
+  { id: "vital", name: "Vital · Medical", blurb: "Crisp white, dotted grid, data-forward." },
+  { id: "pulse", name: "Pulse · Motivational", blurb: "Big bold type, energetic emerald→lime." },
+  { id: "journey", name: "Journey · Personal", blurb: "Cream editorial with handwritten accents." },
 ];
 
 export const DEFAULT_DESIGN: DesignId = "lifeline";

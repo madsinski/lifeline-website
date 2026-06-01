@@ -19,7 +19,7 @@ export const DECK_CSS = `
   --dark1:#06231c; --dark2:#064e3b; --dark3:#07372b;
   --glow1:rgba(16,185,129,.22); --glow2:rgba(6,182,212,.18);
   --head-font:var(--font-inter), 'Inter', system-ui, sans-serif;
-  --head-weight:800; --head-spacing:-.025em;
+  --head-weight:800; --head-spacing:-.025em; --card-radius:16px;
   /* fixed (semantic) */
   --exercise:#EA580C; --nutrition:#65A30D; --sleep:#7C6FB0; --mental:#0EA5E9; --amber:#F59E0B;
   --shadow:0 10px 40px -12px rgba(6,78,59,.18);
@@ -67,6 +67,65 @@ export const DECK_CSS = `
   --head-weight:900; --head-spacing:-.04em;
   --shadow:0 10px 30px -14px rgba(0,0,0,.35);
 }
+
+/* Bloom — wellness: soft rounded shapes, minty palette, airy, rounded font. */
+.lldeck[data-design="bloom"]{
+  --emerald:#0EA17E; --emerald-dark:#0B7A60; --cyan:#2DD4BF;
+  --ink:#0c3b30; --foreground:#214a40; --muted:#5e7d73;
+  --bg:#f1faf6; --card:#ffffff; --line:#dcefe6;
+  --on-dark:#eafff8; --on-dark-muted:#bfe9d8; --on-dark-accent:#7af0cf;
+  --dark1:#06382c; --dark2:#0a5a44; --dark3:#073a2d;
+  --glow1:rgba(45,212,191,.26); --glow2:rgba(16,185,129,.18);
+  --head-font:var(--font-nunito-sans), 'Inter', sans-serif; --head-weight:800;
+  --card-radius:26px; --shadow:0 16px 44px -16px rgba(11,122,96,.22);
+}
+.lldeck[data-design="bloom"] .slide.light{background:radial-gradient(620px 460px at 88% 4%, rgba(45,212,191,.16), transparent 60%),radial-gradient(520px 440px at 2% 98%, rgba(16,185,129,.13), transparent 60%),var(--bg);}
+.lldeck[data-design="bloom"] .icon{border-radius:18px;}
+.lldeck[data-design="bloom"] .pillar{border-radius:24px;}
+.lldeck[data-design="bloom"] .kicker::before{width:18px;border-radius:3px;}
+
+/* Vital — medical: crisp white, dotted grid, card top-accent, tabular figures. */
+.lldeck[data-design="vital"]{
+  --emerald:#0E9F6E; --emerald-dark:#0a7d57; --cyan:#0891B2;
+  --ink:#0b3a3f; --foreground:#143b42; --muted:#5b7177;
+  --bg:#f5fbfd; --card:#ffffff; --line:#d7e9ef;
+  --on-dark:#eafaff; --on-dark-muted:#bfe2ec; --on-dark-accent:#67e8d6;
+  --dark1:#06303a; --dark2:#0a4f5e; --dark3:#073744;
+  --glow1:rgba(8,145,178,.22); --glow2:rgba(14,159,110,.18);
+  --card-radius:10px; --shadow:0 8px 30px -14px rgba(8,80,100,.20);
+}
+.lldeck[data-design="vital"] .slide.light{background:radial-gradient(circle, rgba(8,145,178,.10) 1px, transparent 1.4px) 0 0/22px 22px, var(--bg);}
+.lldeck[data-design="vital"] .card{border-top:3px solid var(--emerald);}
+.lldeck[data-design="vital"] .stat .big{font-feature-settings:"tnum";letter-spacing:-.02em;}
+.lldeck[data-design="vital"] .kicker{color:var(--cyan);}
+
+/* Pulse — motivational: big bold type, energetic emerald→lime, pill kicker. */
+.lldeck[data-design="pulse"]{
+  --emerald:#10B981; --emerald-dark:#15803d; --cyan:#A3E635;
+  --ink:#0c2e22; --foreground:#1d3b30; --muted:#5b7568;
+  --bg:#f0fbef; --card:#ffffff; --line:#dbf0d6;
+  --on-dark:#f2fff0; --on-dark-muted:#c8edbf; --on-dark-accent:#bef264;
+  --dark1:#062a14; --dark2:#0b5d2e; --dark3:#08401f;
+  --glow1:rgba(163,230,53,.26); --glow2:rgba(16,185,129,.22);
+  --head-weight:900; --head-spacing:-.04em;
+}
+.lldeck[data-design="pulse"] h1{font-size:clamp(2.1rem,7cqw,5.6rem);}
+.lldeck[data-design="pulse"] .kicker{background:color-mix(in srgb, var(--emerald) 14%, transparent);padding:.38rem .8rem;border-radius:999px;}
+.lldeck[data-design="pulse"] .kicker::before{display:none;}
+
+/* Journey — personal/editorial: cream, handwritten kicker + tagline (Caveat). */
+.lldeck[data-design="journey"]{
+  --emerald:#0F8A6A; --emerald-dark:#0c6e54; --cyan:#34D399;
+  --ink:#33402f; --foreground:#3a3a30; --muted:#7a766a;
+  --bg:#fbf7ef; --card:#fffdf8; --line:#ece4d4;
+  --on-dark:#f6f1e6; --on-dark-muted:#d8e6cf; --on-dark-accent:#8fe6c4;
+  --dark1:#10241c; --dark2:#1e4533; --dark3:#142a20;
+  --glow1:rgba(52,211,153,.22); --glow2:rgba(15,138,106,.16);
+  --shadow:0 12px 40px -14px rgba(60,50,20,.18); --card-radius:18px;
+}
+.lldeck[data-design="journey"] .kicker{font-family:var(--font-signature), cursive;font-size:clamp(1.1rem,2cqw,1.7rem);text-transform:none;letter-spacing:.01em;font-weight:700;}
+.lldeck[data-design="journey"] .kicker::before{display:none;}
+.lldeck[data-design="journey"] .tagline{font-family:var(--font-signature), cursive;font-size:clamp(1.3rem,2.4cqw,2rem);letter-spacing:0;}
 
 .lldeck *{box-sizing:border-box;margin:0;padding:0;}
 
@@ -119,7 +178,7 @@ export const DECK_CSS = `
 .lldeck .cols-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
 .lldeck .stack{display:flex;flex-direction:column;gap:1.1rem;}
 
-.lldeck .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.3rem;box-shadow:var(--shadow);}
+.lldeck .card{background:var(--card);border:1px solid var(--line);border-radius:var(--card-radius);padding:1.3rem;box-shadow:var(--shadow);}
 .lldeck .dark .card{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.12);backdrop-filter:blur(6px);box-shadow:none;}
 .lldeck .card h3{margin-bottom:.45rem;}
 .lldeck .card p{color:var(--muted);font-size:clamp(.78rem,1cqw,1.02rem);}

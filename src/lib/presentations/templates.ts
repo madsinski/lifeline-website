@@ -24,6 +24,10 @@ export const TEMPLATES: PresentationTemplate[] = [
   { id: "clinical", name: "Clinical", description: "Full deck · calm medical blue with serif headings.", design: "clinical" },
   { id: "warm", name: "Warm editorial", description: "Full deck · terracotta on cream, serif headings.", design: "warm" },
   { id: "mono", name: "Mono", description: "Full deck · high-contrast black & emerald.", design: "mono" },
+  { id: "bloom", name: "Bloom · Wellness", description: "Full deck · soft rounded, minty & airy.", design: "bloom" },
+  { id: "vital", name: "Vital · Medical", description: "Full deck · crisp white, dotted grid, data-forward.", design: "vital" },
+  { id: "pulse", name: "Pulse · Motivational", description: "Full deck · big bold type, energetic emerald→lime.", design: "pulse" },
+  { id: "journey", name: "Journey · Personal", description: "Full deck · cream editorial with handwritten accents.", design: "journey" },
 ];
 
 /** Returns a fresh copy of the standard slides with brand-new slide IDs. */
