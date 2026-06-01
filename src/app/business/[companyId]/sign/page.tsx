@@ -387,17 +387,28 @@ export default function SignAgreementPage() {
           </div>
 
           {/* Headcount */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="text-sm text-gray-700">
-              Number of employees
-              <input
-                type="number" min={1}
-                className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
-                value={headcount}
-                onChange={(e) => setHeadcount(Math.max(1, parseInt(e.target.value) || 1))}
-              />
-              <span className="text-[11px] text-gray-400">{headcount <= 14 ? "0–14 price band" : "15+ price band"}</span>
-            </label>
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="text-sm text-gray-700">
+                Number of employees
+                <input
+                  type="number" min={1}
+                  className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                  value={headcount}
+                  onChange={(e) => setHeadcount(Math.max(1, parseInt(e.target.value) || 1))}
+                />
+                <span className="text-[11px] text-gray-400">{headcount <= 14 ? "0–14 price band" : "15+ price band"}</span>
+              </label>
+            </div>
+            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs text-emerald-800">
+              <svg className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                Enter your expected headcount — this is just for the estimate. You&apos;re only billed for the employees we actually process,
+                so if some don&apos;t show up for their assessment, the final invoice is adjusted down accordingly.
+              </span>
+            </div>
           </div>
 
           {/* Add-ons */}
