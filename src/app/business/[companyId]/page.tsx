@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import BusinessHeader from "../BusinessHeader";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
-import ScheduleBodyComp from "./ScheduleBodyComp";
+import ScheduleBodyComp, { type EditableEvent } from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
 import ScheduleLecture from "./ScheduleLecture";
 import DoctorInterviews from "./DoctorInterviews";
@@ -56,6 +56,8 @@ interface BodyCompEvent {
   end_time: string;
   location: string | null;
   room_notes: string | null;
+  break_start: string | null;
+  break_end: string | null;
   slot_minutes: number;
   slot_capacity: number;
   status: string;
@@ -115,6 +117,8 @@ export default function BusinessDashboardPage() {
   const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
   const [introLectures, setIntroLectures] = useState<IntroLecture[]>([]);
   const [showSchedBC, setShowSchedBC] = useState(false);
+  const [editBcEvent, setEditBcEvent] = useState<EditableEvent | null>(null);
+  const [deletingBcId, setDeletingBcId] = useState<string | null>(null);
   const [showSchedBlood, setShowSchedBlood] = useState(false);
   const [showSchedLecture, setShowSchedLecture] = useState(false);
 
@@ -126,7 +130,7 @@ export default function BusinessDashboardPage() {
       supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id, contact_phone, contact_position").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
-        .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, status, approval_status")
+        .select("id, event_date, start_time, end_time, location, room_notes, break_start, break_end, slot_minutes, slot_capacity, status, approval_status")
         .eq("company_id", companyId).gte("event_date", today).order("event_date"),
       supabase.from("blood_test_days")
         .select("id, day, notes")
@@ -185,6 +189,27 @@ export default function BusinessDashboardPage() {
     const { data } = await supabase.rpc("list_company_admins", { p_company_id: companyId });
     setAdmins((data || []) as Admin[]);
   }, [companyId]);
+
+  const deleteBcEvent = async (id: string) => {
+    if (typeof window !== "undefined" && !window.confirm("Remove this measurement day?")) return;
+    setDeletingBcId(id);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const tok = s.session?.access_token;
+      const res = await fetch(`/api/business/events/${id}`, {
+        method: "DELETE",
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(`Could not remove: ${j.error || res.status}`);
+        return;
+      }
+      await loadData();
+    } finally {
+      setDeletingBcId(null);
+    }
+  };
 
   const startNewRound = async (pkg: string) => {
     setStartingRound(true);
@@ -735,7 +760,9 @@ export default function BusinessDashboardPage() {
         >
           {hasEvents && (
             <div className="mb-4 space-y-2">
-              {events.map((e) => (
+              {events.map((e) => {
+                const editable = viewerIsStaff || e.approval_status === "requested";
+                return (
                 <div key={e.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 text-sm">
                   <div>
                     <div className="font-semibold">
@@ -743,18 +770,42 @@ export default function BusinessDashboardPage() {
                     </div>
                     <div className="text-xs text-gray-600">
                       {e.start_time.slice(0, 5)}–{e.end_time.slice(0, 5)}
+                      {e.break_start && e.break_end && ` · lunch ${e.break_start.slice(0, 5)}–${e.break_end.slice(0, 5)}`}
                       {e.location && ` · ${e.location}`}
                     </div>
                   </div>
-                  {e.approval_status === "approved" ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Approved</span>
-                  ) : e.approval_status === "rejected" ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Rejected — pick another day</span>
-                  ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Lifeline approval</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {e.approval_status === "approved" ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Approved</span>
+                    ) : e.approval_status === "rejected" ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Rejected — pick another day</span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Lifeline approval</span>
+                    )}
+                    {editable && (
+                      <>
+                        <button
+                          onClick={() => setEditBcEvent({
+                            id: e.id, event_date: e.event_date, start_time: e.start_time, end_time: e.end_time,
+                            location: e.location, room_notes: e.room_notes, break_start: e.break_start, break_end: e.break_end,
+                          })}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteBcEvent(e.id)}
+                          disabled={deletingBcId === e.id}
+                          className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                        >
+                          {deletingBcId === e.id ? "…" : "Remove"}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -889,11 +940,13 @@ export default function BusinessDashboardPage() {
         </div>{/* end content */}
       </main>
 
-      {showSchedBC && (
+      {(showSchedBC || editBcEvent) && (
         <ScheduleBodyComp
           companyId={companyId!}
-          onClose={() => setShowSchedBC(false)}
-          onCreated={() => { setShowSchedBC(false); loadData(); }}
+          employeeCount={poEmployeeCount || members.length}
+          editEvent={editBcEvent}
+          onClose={() => { setShowSchedBC(false); setEditBcEvent(null); }}
+          onCreated={() => { setShowSchedBC(false); setEditBcEvent(null); loadData(); }}
         />
       )}
       {showSchedBlood && (

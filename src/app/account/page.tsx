@@ -142,7 +142,7 @@ function AccountPageInner() {
   const [lastBodyCompAt, setLastBodyCompAt] = useState<string | null>(null);
   const [biodyActivated, setBiodyActivated] = useState(false);
   /* upcoming-events data for the Home timeline */
-  const [companyEvent, setCompanyEvent] = useState<{ id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null; slot_minutes: number; slot_capacity: number; company_id: string } | null>(null);
+  const [companyEvent, setCompanyEvent] = useState<{ id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null; break_start: string | null; break_end: string | null; slot_minutes: number; slot_capacity: number; company_id: string } | null>(null);
   const [mySlotAt, setMySlotAt] = useState<string | null>(null);
   const [upcomingBloodDays, setUpcomingBloodDays] = useState<Array<{ day: string; notes: string | null }>>([]);
   const [myBloodTestBooking, setMyBloodTestBooking] = useState<{ day: string; note: string | null } | null>(null);
@@ -403,7 +403,7 @@ function AccountPageInner() {
             // Upcoming B2B body-comp event + my slot
             const { data: ev } = await supabase
               .from("body_comp_events")
-              .select("id, event_date, start_time, end_time, location, room_notes, slot_minutes, slot_capacity, company_id")
+              .select("id, event_date, start_time, end_time, location, room_notes, break_start, break_end, slot_minutes, slot_capacity, company_id")
               .eq("company_id", companyId)
               .eq("status", "scheduled")
               .gte("event_date", today)
@@ -4677,7 +4677,7 @@ function CurrentBookings({
 function BodyCompSlotPickerModal({
   event, onClose, onBooked,
 }: {
-  event: { id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null; slot_minutes: number; slot_capacity: number };
+  event: { id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null; break_start: string | null; break_end: string | null; slot_minutes: number; slot_capacity: number };
   onClose: () => void;
   onBooked: () => void;
 }) {
