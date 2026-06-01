@@ -48,6 +48,10 @@ alter table public.company_admins
 -- company_admins) for a company, each with name/email/phone/position/
 -- kennitala_last4. Phone/position for co-admins fall back to the values
 -- they saved in auth user_metadata before this migration existed.
+-- Adding OUT columns changes the return type, which CREATE OR REPLACE can't
+-- do — drop the old signature first. (uuid arg, so this targets the one we mean.)
+drop function if exists public.list_company_admins(uuid);
+
 create or replace function public.list_company_admins(p_company_id uuid)
 returns table(
   user_id         uuid,
