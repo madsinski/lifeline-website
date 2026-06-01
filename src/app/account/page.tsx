@@ -356,7 +356,16 @@ function AccountPageInner() {
           const companyId = cd.company_id as string | null;
           const welcomeSeen = cd.welcome_seen_at as string | null;
           if (!companyId && !welcomeSeen) {
-            router.replace("/account/welcome");
+            // B2B contacts who signed up to manage a company (account_origin
+            // "business") and aren't an employee of any company (no company_id)
+            // belong in the business portal, not the consumer welcome flow.
+            // This catches contacts who confirmed their email but abandoned
+            // company registration.
+            if ((currentUser.user_metadata?.account_origin as string | undefined) === "business") {
+              router.replace("/business");
+            } else {
+              router.replace("/account/welcome");
+            }
             setLoading(false);
             return;
           }

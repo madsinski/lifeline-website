@@ -30,6 +30,8 @@ function BusinessLoginInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [signupSent, setSignupSent] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,15 +69,26 @@ function BusinessLoginInner() {
         return;
       }
       if (!res.ok) throw new Error(j.detail || j.error || "Signup failed");
-      // Account created — sign in automatically and continue to signup flow
-      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInErr) throw signInErr;
-      router.push("/business/signup");
+      // Account created UNCONFIRMED. A confirmation link was emailed (via
+      // Resend). The user must click it to verify their address before they
+      // can sign in and continue — so we don't auto-sign-in here.
+      setSignupSent(true);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const resendSignup = async () => {
+    if (!email) return;
+    setResendStatus("sending");
+    const res = await fetch("/api/business/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, resend: true }),
+    });
+    setResendStatus(res.ok ? "sent" : "error");
   };
 
   const handleForgotPassword = async () => {
@@ -221,6 +234,37 @@ function BusinessLoginInner() {
                   {t("b2b.login.forgot", "Forgot your password?")}
                 </button>
               </>
+            ) : signupSent ? (
+              <div className="mt-6 text-center space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Confirm your email to continue</h2>
+                <p className="text-sm text-gray-600">
+                  We&apos;ve sent a confirmation link to <span className="font-semibold text-gray-900">{email}</span>.
+                  Click it to verify your address — then you can finish setting up your company.
+                </p>
+                <div className="flex flex-col items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={resendSignup}
+                    disabled={resendStatus === "sending" || resendStatus === "sent"}
+                    className="text-sm font-medium text-blue-600 hover:underline disabled:opacity-50 disabled:no-underline"
+                  >
+                    {resendStatus === "sending" ? "Sending…" : resendStatus === "sent" ? "Confirmation re-sent ✓" : "Didn't get it? Resend confirmation email"}
+                  </button>
+                  {resendStatus === "error" && <p className="text-xs text-red-600">Could not resend — try again shortly.</p>}
+                  <button
+                    type="button"
+                    onClick={() => { setSignupSent(false); setMode("login"); setError(""); setInfo(""); }}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Back to log in
+                  </button>
+                </div>
+              </div>
             ) : (
               <form onSubmit={submitSignup} className="space-y-5 mt-6">
                 <div>

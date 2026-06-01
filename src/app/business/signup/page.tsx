@@ -135,8 +135,14 @@ export default function BusinessSignupPage() {
   const resendConfirmation = async () => {
     if (!userEmail) return;
     setResendStatus("sending");
-    const { error: e } = await supabase.auth.resend({ type: "signup", email: userEmail });
-    setResendStatus(e ? "error" : "sent");
+    // Resend via our own endpoint (Resend channel), not Supabase's built-in
+    // email — which isn't configured for this project.
+    const res = await fetch("/api/business/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: userEmail, resend: true }),
+    });
+    setResendStatus(res.ok ? "sent" : "error");
   };
 
   const handleCreateCompany = async (e: React.FormEvent) => {
