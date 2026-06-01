@@ -7,6 +7,7 @@ import BusinessHeader from "@/app/business/BusinessHeader";
 import DoctorsTeam from "@/app/components/DoctorsTeam";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
+import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 import {
   EMPLOYEE_TOS_KEY,
   EMPLOYEE_TOS_VERSION,
@@ -27,6 +28,7 @@ export default function OnboardPage() {
   const token = params?.token || "";
 
   const [stage, setStage] = useState<Stage>("password");
+  const [appAccess, setAppAccess] = useState(false);
 
   // Scroll to top on every forward step
   useEffect(() => {
@@ -125,6 +127,7 @@ export default function OnboardPage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Registration failed");
+      setAppAccess(!!j.app_access);
       setStage("done");
     } catch (e) {
       setError((e as Error).message);
@@ -237,7 +240,7 @@ export default function OnboardPage() {
           onSubmit={completeOnboarding}
         />}
 
-        {stage === "done" && <DoneStage firstName={(fullName.split(" ")[0] || "").trim()} />}
+        {stage === "done" && <DoneStage firstName={(fullName.split(" ")[0] || "").trim()} appAccess={appAccess} />}
             </>
           );
         })()}
@@ -583,7 +586,7 @@ function AccountStage({
   );
 }
 
-function DoneStage({ firstName }: { firstName: string }) {
+function DoneStage({ firstName, appAccess }: { firstName: string; appAccess?: boolean }) {
   return (
     <section className="bg-white rounded-2xl p-10 shadow-sm text-center">
       <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
@@ -595,7 +598,7 @@ function DoneStage({ firstName }: { firstName: string }) {
       <p className="text-sm text-gray-600 mb-5 max-w-md mx-auto">
         Your Lifeline account is ready.
       </p>
-      <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-left max-w-md mx-auto mb-7">
+      <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-left max-w-md mx-auto mb-5">
         <div className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-2">What happens next</div>
         <ul className="space-y-1.5 text-sm text-blue-900/90">
           <li>• Your company schedules the on-site measurement day — you&apos;ll be notified.</li>
@@ -603,6 +606,28 @@ function DoneStage({ firstName }: { firstName: string }) {
           <li>• A Lifeline doctor reviews your results and meets you 1:1.</li>
         </ul>
       </div>
+
+      {/* App access — only when the employer included it. */}
+      {appAccess && (
+        <div className="rounded-xl border border-violet-100 bg-violet-50/70 p-4 text-left max-w-md mx-auto mb-7">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-lg">📱</span>
+            <div className="text-sm font-semibold text-violet-900">The Lifeline app is included in your plan</div>
+          </div>
+          <p className="text-[13px] text-violet-900/80 leading-relaxed mb-3">
+            Your personal plan, daily actions, programmes and coaching live in the app — sign in with the same email and password you just set.
+          </p>
+          {APP_LIVE ? (
+            <div className="flex flex-wrap gap-2">
+              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-800">App Store</a>
+              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-800">Google Play</a>
+            </div>
+          ) : (
+            <p className="text-[12px] font-medium text-violet-700">Launching soon on iPhone and Android — we&apos;ll email you the download link.</p>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-center gap-3">
         <a href="/account" className="btn-primary">Go to your dashboard</a>
         <Link href="/" className="btn-ghost">Back to home</Link>

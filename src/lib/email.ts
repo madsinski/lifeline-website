@@ -1,3 +1,5 @@
+import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "./app-links";
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_ADDRESS = process.env.INVITE_FROM_EMAIL || "Lifeline Health <onboarding@lifelinehealth.is>";
 
@@ -149,8 +151,10 @@ export function renderWelcomeEmail(params: {
   recipientName: string;
   welcomeUrl: string;
   loginUrl: string;
+  /** Employer included Lifeline app access (an active subscription was created). */
+  appAccess?: boolean;
 }) {
-  const { companyName, recipientName, welcomeUrl, loginUrl } = params;
+  const { companyName, recipientName, welcomeUrl, loginUrl, appAccess } = params;
   const isB2B = !!companyName;
 
   // Steps + copy differ by flow. B2B assumes the employer scheduled an
@@ -175,6 +179,16 @@ export function renderWelcomeEmail(params: {
     ? `All your health data stays confidential — ${companyName} never sees individual results.`
     : "All your health data stays confidential — only you and your Lifeline clinician see your individual results.";
 
+  // App-access section — only when the employer included the Lifeline app.
+  // Until the stores are live (APP_LIVE) we promise the link rather than ship
+  // one that 404s.
+  const appText = appAccess
+    ? (APP_LIVE
+        ? `\nYour plan includes the Lifeline app — your personal plan, daily actions, programmes and coaching, in your pocket. Sign in with this same email and password.
+Download: App Store ${APP_STORE_URL} · Google Play ${PLAY_STORE_URL}\n`
+        : `\nYour plan includes the Lifeline app — your personal plan, daily actions, programmes and coaching, in your pocket. It launches soon on iPhone and Android; we'll email you the download link, and you'll sign in with this same email and password.\n`)
+    : "";
+
   const text = `Hi ${recipientName},
 
 You're registered with Lifeline Health${viaLine}. 🎉
@@ -184,7 +198,7 @@ Your health assessment has four steps:
 ${steps.map((s, i) => `  ${i + 1}. ${s.title} ${s.body}`).join("\n")}
 
 ${privacyLine}
-
+${appText}
 Start here: ${welcomeUrl}
 Or sign in later: ${loginUrl}
 
@@ -211,6 +225,16 @@ Or sign in later: ${loginUrl}
     <p style="margin:0 0 20px;color:#4b5563;font-size:13px;background:#F0FDF4;border:1px solid #BBF7D0;padding:10px 14px;border-radius:8px;">
       ${privacyHtml}
     </p>
+    ${appAccess ? `<div style="margin:0 0 20px;padding:16px;border:1px solid #DDD6FE;background:#F5F3FF;border-radius:12px;">
+      <p style="margin:0 0 6px;font-weight:600;color:#5B21B6;">📱 The Lifeline app is included in your plan</p>
+      <p style="margin:0 0 ${APP_LIVE ? "12" : "0"}px;color:#4b5563;font-size:13px;line-height:1.6;">
+        Your personal plan, daily actions, programmes and coaching live in the mobile app — sign in with this same email and password.${APP_LIVE ? "" : " It launches soon on iPhone and Android; we'll email you the download link."}
+      </p>
+      ${APP_LIVE ? `<div>
+        <a href="${APP_STORE_URL}" style="display:inline-block;margin-right:8px;padding:8px 16px;background:#111827;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;">App Store</a>
+        <a href="${PLAY_STORE_URL}" style="display:inline-block;padding:8px 16px;background:#111827;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;">Google Play</a>
+      </div>` : ""}
+    </div>` : ""}
     <div style="text-align:center;margin:28px 0;">
       <a href="${welcomeUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start here</a>
     </div>

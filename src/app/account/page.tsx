@@ -18,6 +18,7 @@ import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/asses
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
 import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
+import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 import SignedDocumentsList from "./SignedDocumentsList";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
@@ -4028,14 +4029,18 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <a href="https://apps.apple.com/app/lifeline-health" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-sky-200 text-sky-700 bg-white hover:bg-sky-50">
-              App Store
-            </a>
-            <a href="https://play.google.com/store/apps/details?id=is.lifelinehealth.app" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-sky-200 text-sky-700 bg-white hover:bg-sky-50">
-              Google Play
-            </a>
-          </div>
+          {APP_LIVE ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-sky-200 text-sky-700 bg-white hover:bg-sky-50">
+                App Store
+              </a>
+              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-sky-200 text-sky-700 bg-white hover:bg-sky-50">
+                Google Play
+              </a>
+            </div>
+          ) : (
+            <p className="mt-4 text-[11px] font-medium text-sky-700">Coming soon to the App Store &amp; Google Play.</p>
+          )}
         </div>
 
         {/* ── PATH 2: WARM / AMBER — Cadence over time ─────────────── */}
@@ -5881,6 +5886,35 @@ function DownloadAppHero() {
       setError("Could not subscribe. Try again.");
       setStatus("error");
     }
+  }
+
+  // Once the app is live, this card becomes a direct download CTA instead of
+  // an email-capture "coming soon" form.
+  if (APP_LIVE) {
+    return (
+      <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+        <div className="p-6 sm:p-8">
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Get the Lifeline app</h2>
+              <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
+                Your personal plan, daily actions, programmes and tracking — in your pocket. Sign in with the same email and password you use here.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gray-900 text-white text-sm font-semibold shadow-sm hover:bg-gray-800">App Store</a>
+                <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gray-900 text-white text-sm font-semibold shadow-sm hover:bg-gray-800">Google Play</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (

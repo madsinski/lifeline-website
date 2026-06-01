@@ -160,6 +160,12 @@ async function handle(
     company_id: memberRow.company_id,
     terms_version,
     terms_accepted_at: now,
+    // Web onboarding is the employee's full account setup (consent, profile,
+    // password). Mark it complete so the mobile app doesn't drop them back
+    // into its own onboarding flow when they log in. The app reads this flag
+    // on login (clients.onboarding_complete); onboarding_data stays null and
+    // the app handles that gracefully (program pickers, empty dismissedKeys).
+    onboarding_complete: true,
     updated_at: now,
   };
   if (dobIso) clientPayload.date_of_birth = dobIso;
@@ -310,10 +316,14 @@ async function handle(
   }
 
   // Apply company default tier (if set) — create/update a subscription.
+  // Capture it so the done-screen + welcome email can tell the employee the
+  // app is included in their plan.
+  let appTier: string | null = null;
   try {
     const { data: companyTier } = await supabaseAdmin
       .from("companies").select("default_tier").eq("id", memberRow.company_id).maybeSingle();
     if (companyTier?.default_tier) {
+      appTier = companyTier.default_tier as string;
       await supabaseAdmin.from("subscriptions").upsert({
         client_id: userId,
         tier: companyTier.default_tier,
@@ -324,6 +334,9 @@ async function handle(
   } catch (e) {
     console.error("[onboard-complete] tier apply failed:", (e as Error).message);
   }
+  // App access is granted whenever a tier is set (any active subscription lets
+  // the employee into the app; tier governs which features unlock).
+  const appAccess = appTier != null;
 
   // Send a welcome email — non-blocking; failures don't break the flow.
   try {
@@ -335,6 +348,7 @@ async function handle(
       recipientName: (memberRow.full_name || "").split(" ")[0] || "there",
       welcomeUrl: `${origin.replace(/\/$/, "")}/account/login?next=${encodeURIComponent("/account/welcome")}`,
       loginUrl: `${origin.replace(/\/$/, "")}/account/login`,
+      appAccess,
     });
     await sendEmail({
       to: email,
@@ -346,7 +360,7 @@ async function handle(
     console.error("[onboard-complete] welcome email failed:", (e as Error).message);
   }
 
-  return NextResponse.json({ ok: true, biody: biodyResult });
+  return NextResponse.json({ ok: true, biody: biodyResult, app_access: appAccess, app_tier: appTier });
 }
 
 function parseKennitalaToDob(kt: string | null | undefined): string | null {
