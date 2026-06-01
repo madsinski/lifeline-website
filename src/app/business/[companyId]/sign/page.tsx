@@ -337,7 +337,7 @@ export default function SignAgreementPage() {
           {/* What every employee gets */}
           <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">What every employee gets</div>
-            <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+            <ul className="space-y-2">
               {PACKAGE_INCLUDES.map((x) => (
                 <li key={x} className="flex items-start gap-2 text-sm text-gray-700">
                   <svg className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
