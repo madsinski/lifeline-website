@@ -647,7 +647,7 @@ export default function BusinessDashboardPage() {
               ? events.map((e) =>
                   `${new Date(e.event_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${e.start_time.slice(0,5)}–${e.end_time.slice(0,5)}`,
                 ).join(" · ")
-              : "Our Lifeline nurse travels to your office with the measurement scanner. Pick a day and time window. Each employee then books a 5-minute slot (2 people per slot)."
+              : "A Lifeline staff member travels to your office with the measurement scanner. Pick a day and time window. Each employee then books a 5-minute slot (2 people per slot)."
           }
         >
           {hasEvents && (
