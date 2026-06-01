@@ -51,5 +51,5 @@ export default async function PresentPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const found = await fetchPublished(slug);
   if (!found) return <Unavailable />;
-  return <Deck slides={found.data.slides} />;
+  return <Deck slides={found.data.slides} design={found.data.design} />;
 }

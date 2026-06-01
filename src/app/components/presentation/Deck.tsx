@@ -18,11 +18,11 @@ function DeckStyle() {
  * A single slide rendered inside a 16:9 container that scales to its parent
  * (container queries do the sizing). Used for the editor's live preview.
  */
-export function SlideStage({ slide }: { slide: Slide | null }) {
+export function SlideStage({ slide, design }: { slide: Slide | null; design?: string }) {
   return (
     <div style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: 12, overflow: "hidden", boxShadow: "0 10px 40px -12px rgba(6,78,59,.25)" }}>
       <DeckStyle />
-      <div className="lldeck is-stage">
+      <div className="lldeck is-stage" data-design={design || "lifeline"}>
         <DeckDefs />
         {slide
           ? <section className={`slide ${slide.theme}${hasBg(slide) ? " has-bg" : ""} active`}><SlideView slide={slide} /></section>
@@ -37,7 +37,7 @@ export function SlideStage({ slide }: { slide: Slide | null }) {
  * navigation, progress bar and presenter notes (N). Pass `onClose` to show a
  * close button (used by the editor preview); omit it for the public route.
  */
-export function Deck({ slides, initialIndex = 0, onClose }: { slides: Slide[]; initialIndex?: number; onClose?: () => void }) {
+export function Deck({ slides, design, initialIndex = 0, onClose }: { slides: Slide[]; design?: string; initialIndex?: number; onClose?: () => void }) {
   const [i, setI] = useState(initialIndex);
   const [notesOpen, setNotesOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -81,6 +81,7 @@ export function Deck({ slides, initialIndex = 0, onClose }: { slides: Slide[]; i
     <div
       ref={rootRef}
       className="lldeck"
+      data-design={design || "lifeline"}
       style={{ position: "fixed", inset: 0, zIndex: 9999 }}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => {

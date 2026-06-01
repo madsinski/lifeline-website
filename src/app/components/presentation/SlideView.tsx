@@ -50,7 +50,7 @@ function SlideBody({ s }: { s: Slide }) {
             ? <h1>{rich(s.heading)}</h1>
             : <h1 style={{ maxWidth: "16ch" }}>{rich(s.heading)}</h1>}
           {s.lead && <p className="lead" style={{ marginTop: "1.6rem" }}>{s.lead}</p>}
-          {s.tagline && <p style={{ marginTop: "2.2rem", fontWeight: 700, letterSpacing: ".04em", color: "#6ee7b7" }}>{s.tagline}</p>}
+          {s.tagline && <p className="tagline" style={{ marginTop: "2.2rem" }}>{s.tagline}</p>}
         </div>
       );
 

@@ -15,6 +15,20 @@
 
 export type SlideTheme = "dark" | "light";
 
+// Visual designs — each is a palette + typography treatment applied to the
+// whole deck via a data-design attribute on the deck root (see deck-css.ts).
+export type DesignId = "lifeline" | "midnight" | "clinical" | "warm" | "mono";
+
+export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
+  { id: "lifeline", name: "Lifeline", blurb: "Signature emerald + cyan." },
+  { id: "midnight", name: "Midnight", blurb: "Indigo on deep navy — premium tech." },
+  { id: "clinical", name: "Clinical", blurb: "Calm medical blue, serif headings." },
+  { id: "warm", name: "Warm", blurb: "Editorial terracotta on cream." },
+  { id: "mono", name: "Mono", blurb: "High-contrast black & emerald." },
+];
+
+export const DEFAULT_DESIGN: DesignId = "lifeline";
+
 export type IconKey =
   | "pulse" | "clip" | "shield" | "phone" | "doc" | "chart"
   | "users" | "spark" | "dumbbell" | "leaf" | "moon" | "brain"
@@ -90,6 +104,7 @@ export interface Slide {
 
 export interface PresentationData {
   slides: Slide[];
+  design?: DesignId;
 }
 
 export interface PresentationMeta {

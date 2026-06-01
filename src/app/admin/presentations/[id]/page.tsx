@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
-  SLIDE_SCHEMAS, SLIDE_TYPE_ORDER, makeBlankSlide,
-  type Slide, type SlideType, type SlideTheme, type PresentationData,
+  SLIDE_SCHEMAS, SLIDE_TYPE_ORDER, makeBlankSlide, DESIGNS,
+  type Slide, type SlideType, type SlideTheme, type PresentationData, type DesignId,
 } from "@/lib/presentations/types";
 import { Deck, SlideStage } from "@/app/components/presentation/Deck";
 import { SlideFields } from "../_components/SlideFields";
@@ -26,6 +26,7 @@ export default function PresentationEditor() {
   const [slug, setSlug] = useState("");
   const [published, setPublished] = useState(false);
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [design, setDesign] = useState<DesignId>("lifeline");
   const [sel, setSel] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [save, setSave] = useState<SaveState>("idle");
@@ -49,6 +50,7 @@ export default function PresentationEditor() {
       setSlug(p.slug ?? "");
       setPublished(!!p.is_published);
       setSlides(((p.data as PresentationData)?.slides) ?? []);
+      setDesign(((p.data as PresentationData)?.design) ?? "lifeline");
       setLoaded(true);
     })();
   }, [id]);
@@ -64,13 +66,13 @@ export default function PresentationEditor() {
         const res = await fetch(`/api/admin/presentations/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-          body: JSON.stringify({ title, data: { slides } }),
+          body: JSON.stringify({ title, data: { slides, design } }),
         });
         setSave(res.ok ? "saved" : "error");
       } catch { setSave("error"); }
     }, 800);
     return () => clearTimeout(saveTimer.current);
-  }, [title, slides, loaded, id]);
+  }, [title, slides, design, loaded, id]);
 
   const selected = slides[sel] ?? null;
 
@@ -129,6 +131,12 @@ export default function PresentationEditor() {
         <span className={`text-xs ${save === "error" ? "text-red-600" : save === "saved" ? "text-emerald-600" : "text-gray-400"}`}>
           {save === "saving" ? "Saving…" : save === "saved" ? "Saved" : save === "error" ? "Save failed" : ""}
         </span>
+        <label className="flex items-center gap-1.5 text-xs text-gray-500">
+          Design
+          <select value={design} onChange={(e) => setDesign(e.target.value as DesignId)} className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none" title="Deck design">
+            {DESIGNS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </label>
         <button onClick={() => setPresent(true)} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">▶ Present</button>
         <button onClick={togglePublish} className={`rounded-md px-3 py-1.5 text-sm font-medium ${published ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-gray-300 text-gray-700 hover:bg-gray-50"}`}>
           {published ? "Published" : "Publish"}
@@ -182,7 +190,7 @@ export default function PresentationEditor() {
 
         {/* preview */}
         <div className="overflow-y-auto bg-gray-100 p-6">
-          <SlideStage slide={selected} />
+          <SlideStage slide={selected} design={design} />
           {selected && (
             <p className="mt-3 text-center text-xs text-gray-400">Slide {sel + 1} of {slides.length} · {SLIDE_SCHEMAS[selected.type].label}</p>
           )}
@@ -226,7 +234,7 @@ export default function PresentationEditor() {
         </div>
       </div>
 
-      {present && <Deck slides={slides} initialIndex={sel} onClose={() => setPresent(false)} />}
+      {present && <Deck slides={slides} design={design} initialIndex={sel} onClose={() => setPresent(false)} />}
     </div>
   );
 }

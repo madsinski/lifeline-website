@@ -1,10 +1,12 @@
 // ============================================================================
 // Built-in starting templates offered in the "New presentation" dialog.
-// Per product decision, v1 and v2 are both the current standard deck — pick
-// either and customise. template_version is recorded on the row for
-// provenance, and lets us diverge the two later without a migration.
+// standard-v1/v2 are the current standard deck on the Lifeline design; the
+// remaining four seed the same proven 18-slide content on a different visual
+// design (palette + typography). The design is also switchable later in the
+// editor, so a template is really "content + a starting design".
+// template_version records provenance on the row.
 // ============================================================================
-import type { PresentationData, Slide } from "./types";
+import type { PresentationData, Slide, DesignId } from "./types";
 import { newId } from "./types";
 import { standardDeckSlides } from "./standard-deck";
 
@@ -12,32 +14,27 @@ export interface PresentationTemplate {
   id: string;
   name: string;
   description: string;
+  design: DesignId;
 }
 
 export const TEMPLATES: PresentationTemplate[] = [
-  { id: "standard-v1", name: "Standard — v1", description: "The full employee-introduction deck (18 slides)." },
-  { id: "standard-v2", name: "Standard — v2", description: "The full employee-introduction deck (18 slides)." },
+  { id: "standard-v1", name: "Standard — v1", description: "Full 18-slide deck · Lifeline emerald.", design: "lifeline" },
+  { id: "standard-v2", name: "Standard — v2", description: "Full 18-slide deck · Lifeline emerald.", design: "lifeline" },
+  { id: "midnight", name: "Midnight", description: "Full deck · indigo on deep navy, premium tech feel.", design: "midnight" },
+  { id: "clinical", name: "Clinical", description: "Full deck · calm medical blue with serif headings.", design: "clinical" },
+  { id: "warm", name: "Warm editorial", description: "Full deck · terracotta on cream, serif headings.", design: "warm" },
+  { id: "mono", name: "Mono", description: "Full deck · high-contrast black & emerald.", design: "mono" },
 ];
 
-/** Returns a fresh copy of a template's slides with brand-new slide IDs. */
+/** Returns a fresh copy of the standard slides with brand-new slide IDs. */
 function cloneWithFreshIds(slides: Slide[]): Slide[] {
-  return slides.map((s) => ({ ...structuredCloneSlide(s), id: newId() }));
-}
-
-// structuredClone isn't guaranteed in every runtime we target; JSON round-trip
-// is safe here because slides are plain JSON-serialisable data.
-function structuredCloneSlide(s: Slide): Slide {
-  return JSON.parse(JSON.stringify(s)) as Slide;
+  // JSON round-trip is safe: slides are plain JSON-serialisable data.
+  return slides.map((s) => ({ ...(JSON.parse(JSON.stringify(s)) as Slide), id: newId() }));
 }
 
 export function buildTemplateData(templateId: string): PresentationData {
-  // Both templates currently seed from the same standard deck.
-  switch (templateId) {
-    case "standard-v1":
-    case "standard-v2":
-    default:
-      return { slides: cloneWithFreshIds(standardDeckSlides()) };
-  }
+  const tpl = TEMPLATES.find((t) => t.id === templateId);
+  return { slides: cloneWithFreshIds(standardDeckSlides()), design: tpl?.design ?? "lifeline" };
 }
 
 export function isKnownTemplate(id: string): boolean {
