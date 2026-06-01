@@ -424,7 +424,22 @@ export default function SignAgreementPage() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 text-sm">3-month doctor phone call</div>
-                  <div className="text-xs text-gray-600">A 15-minute follow-up call with the doctor three months after the assessment.</div>
+                  <div className="text-xs text-gray-600">A 15-minute follow-up call with the doctor, three months after the assessment.</div>
+                  <ul className="mt-2 space-y-1">
+                    {[
+                      "Keeps momentum — a booked check-in makes employees far more likely to act on their plan",
+                      "The doctor reviews early progress and fine-tunes the action plan to what's working",
+                      "Surfaces blockers and questions early, instead of waiting a full year for the next assessment",
+                      "Just 15 minutes by phone or secure video — no travel, minimal time away from work",
+                    ].map((point) => (
+                      <li key={point} className="flex items-start gap-1.5 text-xs text-gray-600">
+                        <svg className="w-3.5 h-3.5 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} <span className="font-normal text-gray-400">/ employee</span></div>
               </label>
