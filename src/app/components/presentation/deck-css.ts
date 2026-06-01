@@ -19,8 +19,13 @@ export const DECK_CSS = `
 .lldeck .slide{
   position:absolute; inset:0; display:flex; flex-direction:column;
   padding:6cqh 8cqw 8cqh; overflow:hidden;
+  opacity:0; visibility:hidden; transform:translateY(18px) scale(.995);
+  transition:opacity .5s ease, transform .5s ease, visibility .5s;
 }
-.lldeck.is-stage .slide{position:relative; height:100%;}
+.lldeck .slide.active{opacity:1; visibility:visible; transform:none; z-index:2;}
+.lldeck .slide.prev{transform:translateY(-18px) scale(.995);}
+/* Stage = single-slide editor preview: always show the one rendered slide. */
+.lldeck.is-stage .slide{position:relative; height:100%; opacity:1; visibility:visible; transform:none; transition:none;}
 .lldeck .slide.light{background:var(--bg); color:var(--foreground);}
 .lldeck .slide.dark{
   background:
