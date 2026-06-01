@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { PresentationData } from "@/lib/presentations/types";
 import { Deck } from "@/app/components/presentation/Deck";
+import { resolveSlides, hasIcelandic } from "@/lib/presentations/i18n";
 
 // Always render fresh: unpublishing must take effect immediately, and we never
 // want a stale published copy cached at the edge.
@@ -51,5 +52,7 @@ export default async function PresentPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const found = await fetchPublished(slug);
   if (!found) return <Unavailable />;
-  return <Deck slides={found.data.slides} design={found.data.design} />;
+  const data = found.data;
+  const slidesIs = hasIcelandic(data) ? resolveSlides(data, "is") : undefined;
+  return <Deck slides={data.slides} slidesIs={slidesIs} design={data.design} />;
 }

@@ -37,12 +37,15 @@ export function SlideStage({ slide, design }: { slide: Slide | null; design?: st
  * navigation, progress bar and presenter notes (N). Pass `onClose` to show a
  * close button (used by the editor preview); omit it for the public route.
  */
-export function Deck({ slides, design, initialIndex = 0, onClose }: { slides: Slide[]; design?: string; initialIndex?: number; onClose?: () => void }) {
+export function Deck({ slides, slidesIs, design, initialIndex = 0, onClose }: { slides: Slide[]; slidesIs?: Slide[]; design?: string; initialIndex?: number; onClose?: () => void }) {
+  const hasIs = !!slidesIs && slidesIs.length === slides.length;
   const [i, setI] = useState(initialIndex);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [loc, setLoc] = useState<"en" | "is">(hasIs ? "is" : "en"); // Icelandic audience by default
   const rootRef = useRef<HTMLDivElement>(null);
   const touchX = useRef(0);
   const total = slides.length;
+  const view = loc === "is" && hasIs ? slidesIs! : slides;
 
   const go = useCallback((n: number) => setI((cur) => Math.max(0, Math.min(total - 1, n ?? cur))), [total]);
 
@@ -75,7 +78,7 @@ export function Deck({ slides, design, initialIndex = 0, onClose }: { slides: Sl
     );
   }
 
-  const cur = slides[i];
+  const cur = view[i];
 
   return (
     <div
@@ -99,7 +102,7 @@ export function Deck({ slides, design, initialIndex = 0, onClose }: { slides: Sl
       <DeckDefs />
       <div className="deck-bar" style={{ width: `${((i + 1) / total) * 100}%` }} />
 
-      {slides.map((s, idx) => (
+      {view.map((s, idx) => (
         <section key={s.id} className={`slide ${s.theme}${hasBg(s) ? " has-bg" : ""}${idx === i ? " active" : idx < i ? " prev" : ""}`}>
           <SlideView slide={s} />
         </section>
@@ -108,6 +111,11 @@ export function Deck({ slides, design, initialIndex = 0, onClose }: { slides: Sl
       <div className="deck-hint">← → / Space · <b>F</b> fullscreen · <b>N</b> notes</div>
 
       <div className="deck-nav">
+        {hasIs && (
+          <button aria-label="Toggle language" title="Switch language" onClick={() => setLoc((l) => (l === "is" ? "en" : "is"))} style={{ width: "auto", padding: "0 .7rem", fontSize: ".82rem", fontWeight: 700 }}>
+            {loc === "is" ? "IS" : "EN"}
+          </button>
+        )}
         <button aria-label="Previous slide" onClick={() => go(i - 1)}>‹</button>
         <span className="count">{i + 1} / {total}</span>
         <button aria-label="Next slide" onClick={() => go(i + 1)}>›</button>

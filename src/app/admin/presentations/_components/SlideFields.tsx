@@ -14,6 +14,9 @@ const labelCls = "block text-xs font-medium text-gray-500 mb-1";
 function isScalarList(f: FieldDef): boolean {
   return !!f.itemFields && f.itemFields.length === 1 && f.itemFields[0].key === "value";
 }
+function isTranslatableSub(sf: SubFieldDef): boolean {
+  return (sf.kind === "text" || sf.kind === "textarea") && !sf.noTranslate;
+}
 
 function defaultForSub(sf: SubFieldDef): unknown {
   if (sf.kind === "icon") return "target";
@@ -66,9 +69,10 @@ function SubControl({ def, value, presentationId, onChange }: { def: SubFieldDef
 }
 
 // ---- list editor ----------------------------------------------------------
-function ListEditor({ field, value, presentationId, onChange }: { field: FieldDef; value: unknown[]; presentationId: string; onChange: (v: unknown[]) => void }) {
+function ListEditor({ field, value, presentationId, onChange, textOnly }: { field: FieldDef; value: unknown[]; presentationId: string; onChange: (v: unknown[]) => void; textOnly?: boolean }) {
   const items = value || [];
   const scalar = isScalarList(field);
+  const subFields = textOnly ? (field.itemFields || []).filter(isTranslatableSub) : (field.itemFields || []);
   const atMax = field.max != null && items.length >= field.max;
 
   function update(i: number, next: unknown) {
@@ -89,17 +93,19 @@ function ListEditor({ field, value, presentationId, onChange }: { field: FieldDe
         <div key={i} className="rounded-md border border-gray-200 bg-gray-50/60 p-2.5">
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{field.itemLabel} {i + 1}</span>
-            <div className="flex items-center gap-1.5 text-gray-400">
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="px-1 hover:text-gray-700 disabled:opacity-30">↑</button>
-              <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} className="px-1 hover:text-gray-700 disabled:opacity-30">↓</button>
-              <button type="button" onClick={() => remove(i)} className="px-1 hover:text-red-500">✕</button>
-            </div>
+            {!textOnly && (
+              <div className="flex items-center gap-1.5 text-gray-400">
+                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="px-1 hover:text-gray-700 disabled:opacity-30">↑</button>
+                <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} className="px-1 hover:text-gray-700 disabled:opacity-30">↓</button>
+                <button type="button" onClick={() => remove(i)} className="px-1 hover:text-red-500">✕</button>
+              </div>
+            )}
           </div>
           {scalar && scalarSub ? (
             <SubControl def={scalarSub} value={item} presentationId={presentationId} onChange={(v) => update(i, v)} />
           ) : (
             <div className="space-y-2">
-              {(field.itemFields || []).map((sf) => (
+              {subFields.map((sf) => (
                 <div key={sf.key}>
                   <label className={labelCls}>{sf.label}</label>
                   <SubControl
@@ -114,18 +120,18 @@ function ListEditor({ field, value, presentationId, onChange }: { field: FieldDe
           )}
         </div>
       ))}
-      {!atMax && (
+      {!textOnly && !atMax && (
         <button type="button" onClick={add} className="w-full rounded-md border border-dashed border-gray-300 py-1.5 text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600">
           + Add {field.itemLabel}
         </button>
       )}
-      {atMax && <p className="text-[11px] text-gray-400">Maximum {field.max} reached.</p>}
+      {!textOnly && atMax && <p className="text-[11px] text-gray-400">Maximum {field.max} reached.</p>}
     </div>
   );
 }
 
 // ---- the editor for one slide ---------------------------------------------
-export function SlideFields({ slide, presentationId, onChange }: { slide: Slide; presentationId: string; onChange: (s: Slide) => void }) {
+export function SlideFields({ slide, presentationId, onChange, textOnly }: { slide: Slide; presentationId: string; onChange: (s: Slide) => void; textOnly?: boolean }) {
   const schema = SLIDE_SCHEMAS[slide.type];
 
   function setField(key: string, value: unknown) {
@@ -134,9 +140,20 @@ export function SlideFields({ slide, presentationId, onChange }: { slide: Slide;
     onChange({ ...slide, [key]: v });
   }
 
+  // In text-only (translation) mode show only translatable fields.
+  const fields = textOnly
+    ? schema.fields.filter((f) => {
+        if (f.noTranslate) return false;
+        if (f.kind === "text" || f.kind === "textarea") return true;
+        if (f.kind === "list") return (f.itemFields || []).some(isTranslatableSub);
+        return false;
+      })
+    : schema.fields;
+
   return (
     <div className="space-y-4">
-      {schema.fields.map((f) => {
+      {fields.length === 0 && <p className="text-sm text-gray-400">This slide has no translatable text.</p>}
+      {fields.map((f) => {
         const key = f.key as string;
         const raw = (slide as unknown as Record<string, unknown>)[key];
         return (
@@ -155,7 +172,7 @@ export function SlideFields({ slide, presentationId, onChange }: { slide: Slide;
                 {(f.options || []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             )}
-            {f.kind === "list" && <ListEditor field={f} value={(raw as unknown[]) ?? []} presentationId={presentationId} onChange={(v) => setField(key, v)} />}
+            {f.kind === "list" && <ListEditor field={f} value={(raw as unknown[]) ?? []} presentationId={presentationId} onChange={(v) => setField(key, v)} textOnly={textOnly} />}
             {f.help && <p className="mt-1 text-[11px] text-gray-400">{f.help}</p>}
           </div>
         );

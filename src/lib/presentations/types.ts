@@ -110,9 +110,17 @@ export interface Slide {
   notes?: string;         // presenter notes (shown with N key, never public)
 }
 
+// Translation overlays. A TextMap maps a field path (e.g. "heading",
+// "bullets.0", "cards.1.body") to its translated string for one slide;
+// DeckTextMaps keys those by slide id.
+export type TextMap = Record<string, string>;
+export type DeckTextMaps = Record<string, TextMap>;
+
 export interface PresentationData {
-  slides: Slide[];
+  slides: Slide[];            // structure + English (source) text
   design?: DesignId;
+  tIs?: DeckTextMaps;         // Icelandic text overlay, keyed by slide id → path → text
+  syncSnap?: { en: DeckTextMaps; is: DeckTextMaps }; // last-synced snapshots, for change detection
 }
 
 export interface PresentationMeta {
@@ -141,6 +149,7 @@ export interface SubFieldDef {
   kind: "text" | "textarea" | "image" | "icon" | "select";
   imageRole?: ImageRole;
   options?: { value: string; label: string }[];
+  noTranslate?: boolean; // text field that should NOT be translated (names, numeric values)
 }
 
 export interface FieldDef {
@@ -148,6 +157,7 @@ export interface FieldDef {
   label: string;
   kind: FieldKind;
   help?: string;
+  noTranslate?: boolean;
   imageRole?: ImageRole;
   options?: { value: string; label: string }[];
   // for kind === "list"
@@ -186,7 +196,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     fields: [
       F.kicker, F.heading, F.lead, F.footnote,
       { key: "stats", label: "Stats", kind: "list", itemLabel: "stat", itemFields: [
-        { key: "value", label: "Big value", kind: "text" },
+        { key: "value", label: "Big value", kind: "text", noTranslate: true },
         { key: "label", label: "Label", kind: "textarea" },
       ] },
     ],
@@ -224,7 +234,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "members", label: "Members", kind: "list", itemLabel: "member", itemFields: [
         { key: "photo", label: "Photo", kind: "image", imageRole: "photo" },
         { key: "flag", label: "Flag (small label)", kind: "text" },
-        { key: "name", label: "Name", kind: "text" },
+        { key: "name", label: "Name", kind: "text", noTranslate: true },
         { key: "role", label: "Role", kind: "text" },
       ] },
     ],

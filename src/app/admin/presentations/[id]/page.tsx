@@ -7,9 +7,17 @@ import { supabase } from "@/lib/supabase";
 import {
   SLIDE_SCHEMAS, SLIDE_TYPE_ORDER, makeBlankSlide, DESIGNS,
   type Slide, type SlideType, type SlideTheme, type PresentationData, type DesignId,
+  type DeckTextMaps,
 } from "@/lib/presentations/types";
+import {
+  applyTextMap, extractTextMap, translatablePaths, getAtPath,
+  planSync, applySync, resolveSlides, hasIcelandic,
+} from "@/lib/presentations/i18n";
 import { Deck, SlideStage } from "@/app/components/presentation/Deck";
 import { SlideFields } from "../_components/SlideFields";
+
+type EditLang = "en" | "is";
+const EMPTY_SNAP = { en: {}, is: {} };
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -27,6 +35,11 @@ export default function PresentationEditor() {
   const [published, setPublished] = useState(false);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [design, setDesign] = useState<DesignId>("lifeline");
+  const [tIs, setTIs] = useState<DeckTextMaps>({});
+  const [syncSnap, setSyncSnap] = useState<{ en: DeckTextMaps; is: DeckTextMaps }>(EMPTY_SNAP);
+  const [editLang, setEditLang] = useState<EditLang>("en");
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [sel, setSel] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [save, setSave] = useState<SaveState>("idle");
@@ -49,8 +62,11 @@ export default function PresentationEditor() {
       setTitle(p.title ?? "");
       setSlug(p.slug ?? "");
       setPublished(!!p.is_published);
-      setSlides(((p.data as PresentationData)?.slides) ?? []);
-      setDesign(((p.data as PresentationData)?.design) ?? "lifeline");
+      const data = (p.data as PresentationData) || { slides: [] };
+      setSlides(data.slides ?? []);
+      setDesign(data.design ?? "lifeline");
+      setTIs(data.tIs ?? {});
+      setSyncSnap(data.syncSnap ?? EMPTY_SNAP);
       setLoaded(true);
     })();
   }, [id]);
@@ -66,19 +82,59 @@ export default function PresentationEditor() {
         const res = await fetch(`/api/admin/presentations/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-          body: JSON.stringify({ title, data: { slides, design } }),
+          body: JSON.stringify({ title, data: { slides, design, tIs, syncSnap } }),
         });
         setSave(res.ok ? "saved" : "error");
       } catch { setSave("error"); }
     }, 800);
     return () => clearTimeout(saveTimer.current);
-  }, [title, slides, design, loaded, id]);
+  }, [title, slides, design, tIs, syncSnap, loaded, id]);
 
   const selected = slides[sel] ?? null;
 
   const updateSlide = useCallback((next: Slide) => {
     setSlides((prev) => prev.map((s, i) => (i === sel ? next : s)));
   }, [sel]);
+
+  // What the editor shows/edits in the right panel, per edit language.
+  const displaySlide = selected ? (editLang === "is" ? applyTextMap(selected, tIs[selected.id]) : selected) : null;
+
+  const handleFieldChange = useCallback((next: Slide) => {
+    if (!selected) return;
+    if (editLang === "en") { updateSlide(next); return; }
+    // IS mode: keep only fields whose Icelandic text differs from English.
+    const enMap = extractTextMap(selected);
+    const map: Record<string, string> = {};
+    for (const p of translatablePaths(selected)) {
+      const v = getAtPath(next, p);
+      if (v && v !== enMap[p]) map[p] = v;
+    }
+    setTIs((prev) => ({ ...prev, [selected.id]: map }));
+  }, [selected, editLang, updateSlide]);
+
+  async function runSync() {
+    setSyncing(true); setSyncMsg(null);
+    try {
+      const data: PresentationData = { slides, design, tIs, syncSnap };
+      const plan = planSync(data);
+      if (plan.items.length === 0) { setSyncMsg("Already in sync — nothing changed."); return; }
+      const res = await fetch(`/api/admin/presentations/${id}/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ items: plan.items.map(({ from, to, text }) => ({ from, to, text })) }),
+      });
+      if (!res.ok) { const j = await res.json().catch(() => ({})); setSyncMsg(`Sync failed: ${j.error || res.status}`); return; }
+      const { translations } = await res.json();
+      const results = plan.items.map((it, idx) => ({ slideId: it.slideId, path: it.path, to: it.to, text: (translations?.[idx] ?? it.text) as string }));
+      const nextData = applySync(data, results);
+      setSlides(nextData.slides);
+      setTIs(nextData.tIs || {});
+      setSyncSnap(nextData.syncSnap || EMPTY_SNAP);
+      setSyncMsg(`Synced ${results.length} field${results.length === 1 ? "" : "s"}${plan.conflicts ? ` · ${plan.conflicts} conflict${plan.conflicts === 1 ? "" : "s"} resolved to English` : ""}.`);
+    } catch (e) {
+      setSyncMsg(e instanceof Error ? e.message : "Sync failed");
+    } finally { setSyncing(false); }
+  }
 
   function addSlide(type: SlideType) {
     const ns = makeBlankSlide(type);
@@ -143,6 +199,23 @@ export default function PresentationEditor() {
         </button>
       </div>
 
+      {/* translation bar */}
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-gray-100 bg-white px-4 py-1.5 text-xs">
+        <span className="font-medium text-gray-400">Language</span>
+        <div className="inline-flex overflow-hidden rounded-md border border-gray-300">
+          {(["en", "is"] as const).map((l) => (
+            <button key={l} onClick={() => setEditLang(l)} className={`px-2.5 py-1 ${editLang === l ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+              {l === "en" ? "English" : "Íslenska"}
+            </button>
+          ))}
+        </div>
+        <button onClick={runSync} disabled={syncing} className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
+          {syncing ? "Syncing…" : "⟳ Sync translations"}
+        </button>
+        {syncMsg && <span className="text-gray-500">{syncMsg}</span>}
+        <span className="ml-auto text-gray-400">{editLang === "is" ? "Editing Icelandic — structure & images shared with English." : "Editing English (source)."}</span>
+      </div>
+
       {published && (
         <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50/60 px-4 py-1.5 text-xs">
           <span className="text-emerald-700">Public link:</span>
@@ -190,43 +263,48 @@ export default function PresentationEditor() {
 
         {/* preview */}
         <div className="overflow-y-auto bg-gray-100 p-6">
-          <SlideStage slide={selected} design={design} />
+          <SlideStage slide={displaySlide} design={design} />
           {selected && (
-            <p className="mt-3 text-center text-xs text-gray-400">Slide {sel + 1} of {slides.length} · {SLIDE_SCHEMAS[selected.type].label}</p>
+            <p className="mt-3 text-center text-xs text-gray-400">Slide {sel + 1} of {slides.length} · {SLIDE_SCHEMAS[selected.type].label}{editLang === "is" ? " · Icelandic preview" : ""}</p>
           )}
         </div>
 
         {/* field editor */}
         <div className="overflow-y-auto border-l border-gray-100 bg-white p-4">
-          {selected ? (
+          {selected && displaySlide ? (
             <>
               <div className="mb-4 flex items-center gap-2">
                 <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{SLIDE_SCHEMAS[selected.type].label}</span>
-                <div className="ml-auto flex items-center gap-1 text-xs text-gray-500">
-                  Theme:
-                  <select
-                    value={selected.theme}
-                    onChange={(e) => updateSlide({ ...selected, theme: e.target.value as SlideTheme })}
-                    className="rounded border border-gray-300 px-1.5 py-0.5"
-                  >
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                  </select>
+                {editLang === "is" && <span className="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">🇮🇸 Icelandic</span>}
+                {editLang === "en" && (
+                  <div className="ml-auto flex items-center gap-1 text-xs text-gray-500">
+                    Theme:
+                    <select
+                      value={selected.theme}
+                      onChange={(e) => updateSlide({ ...selected, theme: e.target.value as SlideTheme })}
+                      className="rounded border border-gray-300 px-1.5 py-0.5"
+                    >
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <SlideFields slide={displaySlide} presentationId={id!} onChange={handleFieldChange} textOnly={editLang === "is"} />
+
+              {editLang === "en" && (
+                <div className="mt-5 border-t border-gray-100 pt-4">
+                  <label className="mb-1 block text-xs font-medium text-gray-500">Presenter notes (private)</label>
+                  <textarea
+                    rows={4}
+                    value={selected.notes ?? ""}
+                    onChange={(e) => updateSlide({ ...selected, notes: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+                    placeholder="Shown to the presenter with the N key. Never visible to the audience."
+                  />
                 </div>
-              </div>
-
-              <SlideFields slide={selected} presentationId={id!} onChange={updateSlide} />
-
-              <div className="mt-5 border-t border-gray-100 pt-4">
-                <label className="mb-1 block text-xs font-medium text-gray-500">Presenter notes (private)</label>
-                <textarea
-                  rows={4}
-                  value={selected.notes ?? ""}
-                  onChange={(e) => updateSlide({ ...selected, notes: e.target.value })}
-                  className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
-                  placeholder="Shown to the presenter with the N key. Never visible to the audience."
-                />
-              </div>
+              )}
             </>
           ) : (
             <p className="text-gray-400">Add a slide to begin.</p>
@@ -234,7 +312,15 @@ export default function PresentationEditor() {
         </div>
       </div>
 
-      {present && <Deck slides={slides} design={design} initialIndex={sel} onClose={() => setPresent(false)} />}
+      {present && (
+        <Deck
+          slides={slides}
+          slidesIs={hasIcelandic({ slides, tIs }) ? resolveSlides({ slides, tIs }, "is") : undefined}
+          design={design}
+          initialIndex={sel}
+          onClose={() => setPresent(false)}
+        />
+      )}
     </div>
   );
 }
