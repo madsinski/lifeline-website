@@ -80,8 +80,8 @@ function SlideBody({ s }: { s: Slide }) {
       // heading is taller than the slide and overflows). 3/4-up stay stacked.
       if (s.columns === 2) {
         return (
-          <div className="body two">
-            <div>
+          <div className="body two" style={{ alignItems: "start", gridTemplateColumns: ".9fr 1.1fr" }}>
+            <div style={{ paddingTop: ".2rem" }}>
               {s.kicker && <span className="kicker">{s.kicker}</span>}
               {s.heading && <h2>{rich(s.heading)}</h2>}
               {s.lead && <p className="lead" style={{ marginTop: "1.1rem" }}>{s.lead}</p>}
@@ -237,17 +237,17 @@ function SlideBody({ s }: { s: Slide }) {
 
     case "coaching":
       return (
-        <div className="body two">
+        <div className="body two" style={{ gridTemplateColumns: ".8fr 1.2fr" }}>
+          <div className="coach-phone"><PhoneImg src={s.phone} /></div>
           <div>
             {s.kicker && <span className="kicker">{s.kicker}</span>}
             <h2>{rich(s.heading)}</h2>
             {s.lead && <p className="lead" style={{ marginTop: ".9rem" }}>{s.lead}</p>}
-            <div className="coach-phone" style={{ marginTop: "1.1rem" }}><PhoneImg src={s.phone} /></div>
-          </div>
-          <div className="stack">
-            {(s.cards || []).map((c, i) => (
-              <div key={i} className="card coach-card"><div className="icon"><Icon name={c.icon} /></div><div className="ct"><h3>{c.title}</h3><p>{c.body}</p></div></div>
-            ))}
+            <div className="stack" style={{ marginTop: "1.4rem" }}>
+              {(s.cards || []).map((c, i) => (
+                <div key={i} className="card coach-card"><div className="icon"><Icon name={c.icon} /></div><div className="ct"><h3>{c.title}</h3><p>{c.body}</p></div></div>
+              ))}
+            </div>
           </div>
         </div>
       );

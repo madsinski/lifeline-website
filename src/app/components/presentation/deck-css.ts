@@ -130,8 +130,8 @@ export const DECK_CSS = `
 .lldeck *{box-sizing:border-box;margin:0;padding:0;}
 
 .lldeck .slide{
-  position:absolute; inset:0; display:flex; flex-direction:column;
-  padding:6cqh 8cqw 8cqh; overflow:hidden;
+  position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+  padding:13cqh 8cqw 9cqh; overflow:hidden;
   opacity:0; visibility:hidden; transform:translateY(18px) scale(.995);
   transition:opacity .5s ease, transform .5s ease, visibility .5s;
 }
@@ -163,14 +163,14 @@ export const DECK_CSS = `
 .lldeck .tagline{color:var(--on-dark-accent);font-weight:700;letter-spacing:.04em;}
 .lldeck .light .tagline{color:var(--emerald-dark);}
 
-.lldeck .slide-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto;gap:1rem;}
+.lldeck .slide-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;position:absolute;top:6cqh;left:8cqw;right:8cqw;z-index:4;}
 .lldeck .logo{display:flex;align-items:center;height:clamp(20px,2.1cqw,30px);color:var(--ink);}
 .lldeck .dark .logo{color:var(--on-dark);}
 .lldeck .logo svg{height:clamp(20px,2.1cqw,30px);width:auto;display:block;}
 .lldeck .tag-pill{font-size:clamp(.55rem,.78cqw,.72rem);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--emerald-dark);border:1px solid var(--line);border-radius:999px;padding:.4rem .8rem;background:var(--card);white-space:nowrap;}
 .lldeck .dark .tag-pill{color:var(--on-dark-accent);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.06);}
 
-.lldeck .body{margin:auto 0;width:100%;}
+.lldeck .body{margin:0;width:100%;}
 
 .lldeck .two{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(1.4rem,5cqw,5rem);align-items:center;}
 .lldeck .cols-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem;}
@@ -272,7 +272,7 @@ export const DECK_CSS = `
 .lldeck .footnote{font-size:clamp(.66rem,.82cqw,.78rem);color:var(--muted);margin-top:1.1cqh;}
 .lldeck .dark .footnote{color:var(--on-dark-muted);}
 
-.lldeck .center{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;height:100%;}
+.lldeck .center{display:flex;flex-direction:column;align-items:flex-start;}
 
 /* ===== controls (present mode only) ===== */
 .lldeck .deck-bar{position:absolute;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--emerald),var(--cyan));z-index:50;transition:width .4s ease;box-shadow:0 0 12px color-mix(in srgb,var(--emerald) 60%, transparent);}
