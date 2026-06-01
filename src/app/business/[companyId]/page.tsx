@@ -10,7 +10,6 @@ import ScheduleBodyComp, { type EditableEvent } from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
 import ScheduleLecture, { type EditableLecture } from "./ScheduleLecture";
 import DoctorInterviews from "./DoctorInterviews";
-import BillingPanel from "@/app/components/BillingPanel";
 
 interface Company {
   id: string;
@@ -1818,14 +1817,25 @@ function BillingCard({ companyId }: { companyId: string }) {
   }
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.rpc("list_company_invoices", { p_company_id: companyId });
+      const { data, error } = await supabase.rpc("list_company_invoices", { p_company_id: companyId });
+      if (error) { setLoadError(true); setLoading(false); return; }
       setInvoices((data || []) as Invoice[]);
       setLoading(false);
     })();
   }, [companyId]);
+
+  // "sent" past its due date is effectively overdue, even if nothing flipped the DB status.
+  const effectiveStatus = (inv: Invoice) =>
+    inv.status === "sent" && inv.due_at && new Date(inv.due_at) < new Date() ? "overdue" : inv.status;
+
+  const statusLabel: Record<string, string> = {
+    draft: "Drög", sent: "Sendur", paid: "Greitt",
+    overdue: "Í vanskilum", cancelled: "Felldur niður",
+  };
 
   const statusColor = (s: string) =>
     s === "paid" ? "bg-emerald-100 text-emerald-700"
@@ -1834,59 +1844,70 @@ function BillingCard({ companyId }: { companyId: string }) {
     : s === "cancelled" ? "bg-gray-100 text-gray-500"
     : "bg-amber-100 text-amber-700";
 
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" });
+
   return (
     <section className="bg-white rounded-2xl p-6 shadow-sm">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
         <div>
-          <h2 className="text-lg font-semibold">Billing</h2>
+          <h2 className="text-lg font-semibold">Reikningar</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            Your company is invoiced once the full assessment + doctor interviews are complete. Billing is handled through PayDay.
+            Fyrirtækið er rukkað þegar heilsumati og læknisviðtölum er lokið. Reikningar eru sendir í gegnum PayDay.
           </p>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading…</p>
+        <p className="text-sm text-gray-500">Hleð…</p>
+      ) : loadError ? (
+        <div className="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700">
+          Ekki tókst að sækja reikninga. Reyndu aftur síðar eða hafðu samband við Lifeline.
+        </div>
       ) : invoices.length === 0 ? (
         <div className="rounded-lg bg-gray-50 border border-gray-100 p-4 text-sm text-gray-600">
-          No invoices yet. Lifeline will generate one after the doctor interviews are complete.
+          Engir reikningar enn. Lifeline gefur út reikning þegar læknisviðtölum er lokið.
         </div>
       ) : (
         <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
-          {invoices.map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-gray-900">
-                    {inv.payday_invoice_number || `Invoice ${inv.id.slice(0, 8)}`}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(inv.status)}`}>
-                    {inv.status}
-                  </span>
+          {invoices.map((inv) => {
+            const s = effectiveStatus(inv);
+            const unit = inv.quantity > 0 ? Math.round(inv.amount_net / inv.quantity) : inv.amount_net;
+            return (
+              <div key={inv.id} className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-gray-900">
+                      {inv.payday_invoice_number || `Reikningur ${inv.id.slice(0, 8)}`}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(s)}`}>
+                      {statusLabel[s] || s}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {inv.quantity} × {unit.toLocaleString("is-IS")} kr ·
+                    {inv.vat_rate === 0 ? " VSK-frjálst" : ` VSK ${inv.vat_rate}%`} ·
+                    <strong className="ml-1 text-gray-700">{inv.amount_total.toLocaleString("is-IS")} kr</strong>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {inv.issued_at && <>Gefinn út {fmtDate(inv.issued_at)}</>}
+                    {inv.due_at && <> · Gjalddagi {fmtDate(inv.due_at)}</>}
+                    {inv.paid_at && <> · Greitt {fmtDate(inv.paid_at)}</>}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {inv.quantity} × {Math.round(inv.amount_net / inv.quantity).toLocaleString()} ISK ·
-                  VAT {inv.vat_rate}% ·
-                  <strong className="ml-1 text-gray-700">{inv.amount_total.toLocaleString()} ISK incl. VAT</strong>
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {inv.issued_at && <>Issued {new Date(inv.issued_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</>}
-                  {inv.due_at && <> · Due {new Date(inv.due_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</>}
-                </div>
+                {inv.pdf_url && (
+                  <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-700 hover:underline shrink-0">
+                    PDF ↗
+                  </a>
+                )}
               </div>
-              {inv.pdf_url && (
-                <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline shrink-0">
-                  PDF ↗
-                </a>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
   );
 }
-
 type InsightsPayload = {
   min_n: number;
   participation: { invited: number; completed: number; rate: number };
