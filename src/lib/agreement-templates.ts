@@ -194,6 +194,12 @@ export interface PurchaseOrderLineItem {
   qty: number;
   unit_price_isk: number;
   total_isk: number;
+  // When set, this line is a recurring charge (e.g. the monthly app
+  // subscription) rather than the one-time assessment fee. Recurring lines
+  // are rendered in their own section and are NOT included in the one-time
+  // subtotal/total. Absent on all legacy one-time orders, so their rendered
+  // (and therefore hashed) output is byte-identical.
+  recurring?: "monthly" | null;
 }
 
 export interface PurchaseOrderParams {
@@ -214,10 +220,16 @@ export interface PurchaseOrderParams {
 export function renderPurchaseOrder(p: PurchaseOrderParams, language: DocumentLanguage = "is"): string {
   const fmt = (n: number) => n.toLocaleString("is-IS") + " kr";
   const fmtEn = (n: number) => n.toLocaleString("en-US") + " ISK";
-  const linesIs = p.lineItems.map((li, i) =>
+  // One-time items make up the assessment fee + totals; recurring items
+  // (monthly app subscription) are listed in their own section and excluded
+  // from the one-time subtotal/total.
+  const oneTimeItems = p.lineItems.filter((li) => !li.recurring);
+  const recurringItems = p.lineItems.filter((li) => li.recurring === "monthly");
+  const recurringMonthlyIsk = recurringItems.reduce((s, li) => s + li.total_isk, 0);
+  const linesIs = oneTimeItems.map((li, i) =>
     `${i + 1}. ${li.description} — ${li.qty} × ${fmt(li.unit_price_isk)} = ${fmt(li.total_isk)}`,
   ).join("\n");
-  const linesEn = p.lineItems.map((li, i) =>
+  const linesEn = oneTimeItems.map((li, i) =>
     `${i + 1}. ${li.description} — ${li.qty} × ${fmtEn(li.unit_price_isk)} = ${fmtEn(li.total_isk)}`,
   ).join("\n");
   if (language === "en") {
@@ -242,7 +254,11 @@ ${linesEn}
 Subtotal (excl. VAT): ${fmtEn(p.subtotalIsk)}${p.discountIsk && p.discountIsk > 0 ? `\nDiscount (code ${p.discountCode}): −${fmtEn(p.discountIsk)}` : ""}
 VAT: ${fmtEn(p.vatIsk)}
 Total payable: ${fmtEn(p.totalIsk)}
-
+${recurringItems.length > 0 ? `
+Recurring subscriptions (billed monthly, separately from the one-time fee above):
+${recurringItems.map((li, i) => `${i + 1}. ${li.description} — ${li.qty} × ${fmtEn(li.unit_price_isk)} = ${fmtEn(li.total_isk)} / month`).join("\n")}
+Monthly total: ${fmtEn(recurringMonthlyIsk)} / month
+` : ""}
 Billing cadence: ${cadenceLabelEn[p.billingCadence] || p.billingCadence}
 Period: ${p.startsAt || "—"} to ${p.endsAt || "open"}
 
@@ -266,7 +282,11 @@ ${linesIs}
 Samtals án vsk.: ${fmt(p.subtotalIsk)}${p.discountIsk && p.discountIsk > 0 ? `\nAfsláttur (kóði ${p.discountCode}): −${fmt(p.discountIsk)}` : ""}
 Virðisaukaskattur: ${fmt(p.vatIsk)}
 Samtals til greiðslu: ${fmt(p.totalIsk)}
-
+${recurringItems.length > 0 ? `
+Áskriftir (rukkað mánaðarlega, aðskilið frá eingreiðslunni að ofan):
+${recurringItems.map((li, i) => `${i + 1}. ${li.description} — ${li.qty} × ${fmt(li.unit_price_isk)} = ${fmt(li.total_isk)} / mánuði`).join("\n")}
+Mánaðarlegt samtals: ${fmt(recurringMonthlyIsk)} / mánuði
+` : ""}
 Greiðslufyrirkomulag: ${cadenceLabel[p.billingCadence] || p.billingCadence}
 Tímabil: ${p.startsAt || "—"} til ${p.endsAt || "opið"}
 

@@ -92,6 +92,11 @@ export interface AgreementPdfProps {
 }
 
 function AgreementDocument(p: AgreementPdfProps) {
+  // One-time items drive the table + totals; recurring items (monthly app
+  // subscription) get their own section and are excluded from the one-time total.
+  const oneTimeItems = p.lineItems.filter((li) => !li.recurring);
+  const recurringItems = p.lineItems.filter((li) => li.recurring === "monthly");
+  const recurringMonthlyIsk = recurringItems.reduce((sum, li) => sum + li.total_isk, 0);
   return (
     <Document
       title={`Þjónustusamningur — ${p.companyName} — ${p.poNumber}`}
@@ -327,8 +332,8 @@ function AgreementDocument(p: AgreementPdfProps) {
             <Text style={[s.tCellPrice, { fontWeight: "bold" }]}>Einingav.</Text>
             <Text style={[s.tCellTotal, { fontWeight: "bold" }]}>Samtals</Text>
           </View>
-          {p.lineItems.map((li, i) => (
-            <View key={i} style={i === p.lineItems.length - 1 ? s.tRowLast : s.tRow}>
+          {oneTimeItems.map((li, i) => (
+            <View key={i} style={i === oneTimeItems.length - 1 ? s.tRowLast : s.tRow}>
               <Text style={s.tCellDesc}>{li.description}</Text>
               <Text style={s.tCellQty}>{li.qty}</Text>
               <Text style={s.tCellPrice}>{fmtIsk(li.unit_price_isk)}</Text>
@@ -355,6 +360,35 @@ function AgreementDocument(p: AgreementPdfProps) {
           <Text style={[s.totalsLabel, { color: "#059669" }]}>Samtals til greiðslu:</Text>
           <Text style={[s.totalsValue, s.grandTotal]}>{fmtIsk(p.totalIsk)}</Text>
         </View>
+
+        {recurringItems.length > 0 && (
+          <>
+            <Text style={s.h3}>Áskriftir (rukkað mánaðarlega)</Text>
+            <Text style={[s.subtle, { marginBottom: 4 }]}>
+              Aðskilið frá eingreiðslunni að ofan — rukkað mánaðarlega á gildistíma samnings.
+            </Text>
+            <View style={s.table}>
+              <View style={s.tHead}>
+                <Text style={[s.tCellDesc, { fontWeight: "bold" }]}>Lýsing</Text>
+                <Text style={[s.tCellQty, { fontWeight: "bold" }]}>Fj.</Text>
+                <Text style={[s.tCellPrice, { fontWeight: "bold" }]}>Á mán.</Text>
+                <Text style={[s.tCellTotal, { fontWeight: "bold" }]}>Samtals/mán.</Text>
+              </View>
+              {recurringItems.map((li, i) => (
+                <View key={i} style={i === recurringItems.length - 1 ? s.tRowLast : s.tRow}>
+                  <Text style={s.tCellDesc}>{li.description}</Text>
+                  <Text style={s.tCellQty}>{li.qty}</Text>
+                  <Text style={s.tCellPrice}>{fmtIsk(li.unit_price_isk)}</Text>
+                  <Text style={s.tCellTotal}>{fmtIsk(li.total_isk)}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={s.totalsRow}>
+              <Text style={s.totalsLabel}>Mánaðarlegt samtals:</Text>
+              <Text style={s.totalsValue}>{fmtIsk(recurringMonthlyIsk)} / mán.</Text>
+            </View>
+          </>
+        )}
 
         <Text style={s.h3}>Greiðslufyrirkomulag</Text>
         <Text style={s.p}>

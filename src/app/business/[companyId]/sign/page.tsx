@@ -17,6 +17,10 @@ interface CompanyRow {
   contact_person_id: string;
   agreement_signed_at: string | null;
   kennitala_last4?: string | null;
+  // Per-company commercial overrides set by Lifeline staff in /admin/companies.
+  assessment_unit_price?: number | null; // custom per-assessment price (overrides the tiered price)
+  app_enabled?: boolean | null;          // offer the Lifeline app subscription on this order
+  app_price_isk_monthly?: number | null; // monthly per-employee app price
 }
 
 function fmtIsk(n: number): string {
@@ -57,6 +61,7 @@ export default function SignAgreementPage() {
   const [headcount, setHeadcount] = useState<number>(1);
   const [rounds, setRounds] = useState<1 | 2>(1);
   const [includeFollowup, setIncludeFollowup] = useState<boolean>(false);
+  const [appAddon, setAppAddon] = useState<boolean>(false);
   const [lineItems, setLineItems] = useState<PurchaseOrderLineItem[]>([]);
   const [billingCadence, setBillingCadence] = useState<string>("one_time");
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -92,8 +97,14 @@ export default function SignAgreementPage() {
   const [discountStatus, setDiscountStatus] = useState<"idle" | "checking" | "applied" | "error">("idle");
   const [discountError, setDiscountError] = useState("");
 
+  // One-time subtotal excludes recurring lines (monthly app subscription),
+  // which are billed separately and shown on their own.
   const subtotal = useMemo(
-    () => lineItems.reduce((s, li) => s + (li.qty * li.unit_price_isk), 0),
+    () => lineItems.filter((li) => !li.recurring).reduce((s, li) => s + (li.qty * li.unit_price_isk), 0),
+    [lineItems],
+  );
+  const recurringMonthly = useMemo(
+    () => lineItems.filter((li) => li.recurring === "monthly").reduce((s, li) => s + li.total_isk, 0),
     [lineItems],
   );
   const discountIsk = useMemo(() => {
@@ -147,7 +158,7 @@ export default function SignAgreementPage() {
     setLoading(true);
     const { data, error: e } = await supabase
       .from("companies")
-      .select("id, name, contact_person_id, agreement_signed_at")
+      .select("id, name, contact_person_id, agreement_signed_at, assessment_unit_price, app_enabled, app_price_isk_monthly")
       .eq("id", companyId)
       .maybeSingle();
     if (e || !data) {
@@ -200,17 +211,39 @@ export default function SignAgreementPage() {
     })();
   }, [companyId]);
 
-  // Auto-compute the PO line items from headcount + rounds + follow-up.
-  useEffect(() => {
-    const { lineItems: items } = buildAssessmentPricing({
-      employeeCount: Math.max(1, headcount),
-      rounds,
-      includeFollowup,
-    });
-    setLineItems(items);
-  }, [headcount, rounds, includeFollowup]);
+  // Per-company custom assessment price (set by staff) overrides the tiered price.
+  const customUnit = typeof company?.assessment_unit_price === "number" && company.assessment_unit_price >= 0
+    ? company.assessment_unit_price
+    : null;
+  const appEnabled = company?.app_enabled === true;
+  const appMonthly = typeof company?.app_price_isk_monthly === "number" ? company.app_price_isk_monthly : 3490;
 
-  const perEmployeeUnit = assessmentUnitPriceIsk(Math.max(1, headcount), rounds);
+  // Auto-compute the PO line items from headcount + rounds + follow-up,
+  // applying the custom price override and the optional monthly app subscription.
+  useEffect(() => {
+    const emp = Math.max(1, headcount);
+    const { lineItems: items } = buildAssessmentPricing({ employeeCount: emp, rounds, includeFollowup });
+    let next: PurchaseOrderLineItem[] = items;
+    // Override the assessment line (index 0) with the company's custom unit price.
+    if (customUnit != null) {
+      next = next.map((li, idx) =>
+        idx === 0 ? { ...li, unit_price_isk: customUnit, total_isk: li.qty * customUnit } : li,
+      );
+    }
+    // Append the monthly app subscription as a recurring line when offered + opted in.
+    if (appEnabled && appAddon) {
+      next = [...next, {
+        description: `Aðgangur að Lifeline appi — mánaðaráskrift starfsmanns (${emp} starfsm.)`,
+        qty: emp,
+        unit_price_isk: appMonthly,
+        total_isk: emp * appMonthly,
+        recurring: "monthly",
+      }];
+    }
+    setLineItems(next);
+  }, [headcount, rounds, includeFollowup, customUnit, appEnabled, appAddon, appMonthly]);
+
+  const perEmployeeUnit = customUnit ?? assessmentUnitPriceIsk(Math.max(1, headcount), rounds);
   const assessmentTotal = Math.max(1, headcount) * rounds * perEmployeeUnit;
   const followupTotal = includeFollowup ? Math.max(1, headcount) * FOLLOWUP_DOCTOR_PRICE_ISK : 0;
 
@@ -359,7 +392,7 @@ export default function SignAgreementPage() {
                 { yrs: 2 as const, title: "2-year plan", blurb: "Two annual assessments per employee — track progress at a lower price per assessment." },
               ]).map((opt) => {
                 const selected = rounds === opt.yrs;
-                const unit = assessmentUnitPriceIsk(Math.max(1, headcount), opt.yrs);
+                const unit = customUnit ?? assessmentUnitPriceIsk(Math.max(1, headcount), opt.yrs);
                 return (
                   <button
                     key={opt.yrs}
@@ -444,16 +477,50 @@ export default function SignAgreementPage() {
                 <div className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} <span className="font-normal text-gray-400">/ employee</span></div>
               </label>
 
-              <div className="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 p-3 opacity-80">
-                <input type="checkbox" disabled className="mt-1 rounded border-gray-300" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 text-sm flex items-center gap-2 flex-wrap">
-                    Coaching app subscription
-                    <span className="text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">Coming soon</span>
+              {appEnabled ? (
+                <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-3 cursor-pointer hover:border-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={appAddon}
+                    onChange={(e) => setAppAddon(e.target.checked)}
+                    className="mt-1 rounded border-gray-300"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 text-sm flex items-center gap-2 flex-wrap">
+                      Coaching app subscription
+                      <span className="text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">For your team</span>
+                    </div>
+                    <div className="text-xs text-gray-600">Full access to the Lifeline app for every employee — daily actions built on each report, a real health coach, community and education.</div>
+                    <ul className="mt-2 space-y-1">
+                      {[
+                        "Turns each assessment into a daily plan employees actually follow",
+                        "A real health coach in their pocket — questions answered between visits",
+                        "Education and community that keep healthy habits going year-round",
+                        "Billed monthly per employee, separate from the one-time assessment fee",
+                      ].map((point) => (
+                        <li key={point} className="flex items-start gap-1.5 text-xs text-gray-600">
+                          <svg className="w-3.5 h-3.5 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="text-xs text-gray-600">Daily actions built on each report, a real health coach, community and education — offered as a company perk. Available soon.</div>
+                  <div className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(appMonthly)} <span className="font-normal text-gray-400">/ mo / employee</span></div>
+                </label>
+              ) : (
+                <div className="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 p-3 opacity-80">
+                  <input type="checkbox" disabled className="mt-1 rounded border-gray-300" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 text-sm flex items-center gap-2 flex-wrap">
+                      Coaching app subscription
+                      <span className="text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">Coming soon</span>
+                    </div>
+                    <div className="text-xs text-gray-600">Daily actions built on each report, a real health coach, community and education — offered as a company perk. Available soon.</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -470,6 +537,15 @@ export default function SignAgreementPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="text-gray-700">3-month doctor phone call — {Math.max(1, headcount)} employee{headcount === 1 ? "" : "s"}</div>
                 <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(followupTotal)}</div>
+              </div>
+            )}
+            {appEnabled && appAddon && (
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-gray-700">
+                  Coaching app subscription — {Math.max(1, headcount)} employee{headcount === 1 ? "" : "s"}
+                  <span className="text-gray-400"> · billed monthly</span>
+                </div>
+                <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(recurringMonthly)} / mo</div>
               </div>
             )}
           </div>
@@ -539,6 +615,11 @@ export default function SignAgreementPage() {
             {discountIsk > 0 && <div>Discount: <strong>−{fmtIsk(discountIsk)}</strong></div>}
             <div>VAT: <strong>{fmtIsk(vat)}</strong></div>
             <div className="text-base">Total: <strong className="text-emerald-700">{fmtIsk(total)}</strong></div>
+            {recurringMonthly > 0 && (
+              <div className="w-full text-right text-xs text-gray-500">
+                + {fmtIsk(recurringMonthly)} / month — app subscription, billed separately from the one-time total above
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -25,6 +25,9 @@ interface CompanyRow {
   body_comp_event_count: number;
   blood_test_day_count: number;
   default_tier?: string | null;
+  assessment_unit_price?: number | null;
+  app_enabled?: boolean | null;
+  app_price_isk_monthly?: number | null;
   status?: "draft" | "contact_invited" | "active" | "archived" | null;
   contact_draft_email?: string | null;
   contact_draft_name?: string | null;
@@ -1101,6 +1104,151 @@ function EmployeeRows({ companyId }: { companyId: string }) {
   );
 }
 
+// Per-company commercial settings: custom assessment price, app subscription
+// enablement + monthly price, the access tier, and a one-click "provision app
+// access for already-onboarded employees" action.
+function CommercialSettingsButton({ company, onReload }: { company: CompanyRow; onReload: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [provisioning, setProvisioning] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [price, setPrice] = useState<string>(company.assessment_unit_price != null ? String(company.assessment_unit_price) : "");
+  const [appEnabled, setAppEnabled] = useState<boolean>(company.app_enabled === true);
+  const [appPrice, setAppPrice] = useState<string>(String(company.app_price_isk_monthly ?? 3490));
+  const [tier, setTier] = useState<string>(company.default_tier || "");
+
+  const authHeader = async (): Promise<Record<string, string>> => {
+    const { data } = await supabase.auth.getSession();
+    const t = data.session?.access_token;
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setToast(null);
+    const headers = { "Content-Type": "application/json", ...(await authHeader()) };
+    const res = await fetch(`/api/admin/companies/${company.id}/commercial`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        assessment_unit_price: price.trim() === "" ? null : Math.max(0, parseInt(price, 10) || 0),
+        app_enabled: appEnabled,
+        app_price_isk_monthly: Math.max(0, parseInt(appPrice, 10) || 0),
+        default_tier: tier || null,
+      }),
+    });
+    setSaving(false);
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setToast({ type: "error", text: j.detail || j.error || "Could not save settings." });
+      return;
+    }
+    setToast({ type: "success", text: "Settings saved." });
+    onReload();
+  };
+
+  const provision = async () => {
+    setProvisioning(true);
+    setToast(null);
+    const headers = { "Content-Type": "application/json", ...(await authHeader()) };
+    const res = await fetch(`/api/admin/companies/${company.id}/provision-app`, { method: "POST", headers });
+    setProvisioning(false);
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setToast({ type: "error", text: j.detail || j.error || "Could not provision app access." });
+      return;
+    }
+    setToast({
+      type: "success",
+      text: j.provisioned === 0
+        ? "No onboarded employees yet — they'll get access automatically when they onboard."
+        : `Provisioned ${j.provisioned} employee${j.provisioned === 1 ? "" : "s"} at the ${j.tier} tier.`,
+    });
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-colors"
+        title="Pricing & app subscription"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l9-3 9 3M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8M9 21V9h6v12" />
+        </svg>
+        Pricing &amp; app
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900">Pricing &amp; app — {company.name}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Overrides apply to this company&apos;s purchase order, invoices, and app access.</p>
+            </div>
+
+            <div className="px-6 py-4 space-y-5">
+              {/* Custom assessment price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">Custom assessment price (ISK / assessment)</label>
+                <input
+                  type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Leave blank for standard tiered pricing"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">Shown on the signed contract and used on invoices. Blank = tiered price (49,900–54,900).</p>
+              </div>
+
+              {/* App subscription */}
+              <div className="rounded-xl border border-gray-200 p-3 space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <input type="checkbox" checked={appEnabled} onChange={(e) => setAppEnabled(e.target.checked)} className="rounded border-gray-300" />
+                  Offer Lifeline app subscription on the order
+                </label>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Monthly price (ISK / employee / month)</label>
+                  <input
+                    type="number" min={0} value={appPrice} onChange={(e) => setAppPrice(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">App access tier (what employees get)</label>
+                  <select value={tier} onChange={(e) => setTier(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white">
+                    {TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">Employees get this tier (active subscription) when they onboard. Use <strong>Premium</strong> for full app access.</p>
+                </div>
+                <button
+                  onClick={provision}
+                  disabled={provisioning}
+                  className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                >
+                  {provisioning ? "Provisioning…" : "Provision app access for onboarded employees now"}
+                </button>
+                <p className="text-[11px] text-gray-400">Backfills employees who already have an account. New employees get access automatically at onboarding.</p>
+              </div>
+
+              {toast && (
+                <div className={`text-sm rounded-lg px-3 py-2 ${toast.type === "success" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                  {toast.text}
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-3 border-t border-gray-100 flex justify-end gap-2">
+              <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">Close</button>
+              <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-emerald-500 disabled:opacity-50">
+                {saving ? "Saving…" : "Save settings"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1111,11 +1259,11 @@ export default function AdminCompaniesPage() {
     setLoading(true);
     const [rpcRes, tiersRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
-      supabase.from("companies").select("id, name, default_tier, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id"),
+      supabase.from("companies").select("id, name, default_tier, assessment_unit_price, app_enabled, app_price_isk_monthly, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id"),
     ]);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
-      type ExtraRow = { id: string; name: string; default_tier: string | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null };
+      type ExtraRow = { id: string; name: string; default_tier: string | null; assessment_unit_price: number | null; app_enabled: boolean | null; app_price_isk_monthly: number | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null };
       const extraMap = new Map<string, ExtraRow>((tiersRes.data || []).map((t: ExtraRow) => [t.id, t]));
       const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => {
         const extra = extraMap.get(c.id);
@@ -1124,6 +1272,9 @@ export default function AdminCompaniesPage() {
         return {
           ...c,
           default_tier: extra?.default_tier || null,
+          assessment_unit_price: extra?.assessment_unit_price ?? null,
+          app_enabled: extra?.app_enabled ?? false,
+          app_price_isk_monthly: extra?.app_price_isk_monthly ?? 3490,
           status: extra?.status || "active",
           contact_draft_email: extra?.contact_draft_email || null,
           contact_draft_name: extra?.contact_draft_name || null,
@@ -1414,6 +1565,7 @@ export default function AdminCompaniesPage() {
                     {isParentWithSubs && (
                       <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
                     )}
+                    <CommercialSettingsButton company={c} onReload={load} />
                     {(c.status === "draft" || c.status === "contact_invited") && (
                       <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
                     )}
