@@ -77,6 +77,15 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/presentations",
+    label: "Presentations",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12a2.25 2.25 0 002.25-2.25V3M3.75 3h16.5M3.75 3H2.25m18 0h1.5m-18 13.5L12 21m0 0l5.25-4.5M12 21V11.25" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/business",
     label: "Business",
     badgeType: "business",

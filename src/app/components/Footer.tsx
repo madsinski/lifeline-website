@@ -15,7 +15,7 @@ export default function Footer() {
   const pathname = usePathname();
 
   // Match Navbar — survey respondent pages + research docs are chrome-free.
-  if (pathname.startsWith("/survey") || pathname.startsWith("/research") || pathname.startsWith("/verkefnalysing")) {
+  if (pathname.startsWith("/survey") || pathname.startsWith("/research") || pathname.startsWith("/verkefnalysing") || pathname.startsWith("/present")) {
     return null;
   }
 
