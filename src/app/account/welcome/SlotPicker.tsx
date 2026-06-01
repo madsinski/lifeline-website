@@ -17,6 +17,8 @@ interface Event {
   end_time: string;
   location: string | null;
   room_notes: string | null;
+  break_start: string | null;
+  break_end: string | null;
   slot_minutes: number;
   slot_capacity: number;
 }
@@ -34,11 +36,21 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  // Defence-in-depth: hide any slot that falls inside the day's lunch
+  // break. The list_event_slots RPC already skips these once the
+  // break-window migration is applied, but filtering here keeps the
+  // break enforced in the UI regardless of RPC version.
+  const inBreak = (slotAt: string): boolean => {
+    if (!event.break_start || !event.break_end) return false;
+    const hm = new Date(slotAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return hm >= event.break_start.slice(0, 5) && hm < event.break_end.slice(0, 5);
+  };
+
   const load = async () => {
     setLoading(true);
     const { data, error: err } = await supabase.rpc("list_event_slots", { p_event_id: event.id });
     if (err) setError(err.message);
-    else setSlots((data || []) as Slot[]);
+    else setSlots(((data || []) as Slot[]).filter((s) => !inBreak(s.slot_at)));
     setLoading(false);
   };
 
