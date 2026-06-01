@@ -6,14 +6,18 @@ import { supabase } from "@/lib/supabase";
 import BusinessHeader from "../BusinessHeader";
 
 // Co-admins arrive here from the magic-link invite. They set a password and
-// their details (name, role, phone) before entering the company portal. All of
-// it lives on the auth user (user_metadata + password) — no schema change.
+// their details (name, role, phone, kennitala) before entering the company
+// portal — the same identifying details the primary contact gives at signup.
+// Name/role/phone live on the auth user (user_metadata); phone/position +
+// the encrypted kennitala are also persisted to company_admins via
+// /api/business/co-admin-profile so they show up in the company dashboard.
 export default function CoAdminSetupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
   const [position, setPosition] = useState("");
   const [phone, setPhone] = useState("");
+  const [kennitala, setKennitala] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
@@ -35,8 +39,12 @@ export default function CoAdminSetupPage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const kt = kennitala.replace(/[^0-9]/g, "");
     if (!fullName.trim() || !position.trim() || !phone.trim()) {
       setError("Please fill in your name, role and phone."); return;
+    }
+    if (kt.length !== 10) {
+      setError("Your kennitala must be 10 digits."); return;
     }
     if (password.length < 8) {
       setError("Choose a password of at least 8 characters."); return;
@@ -54,8 +62,23 @@ export default function CoAdminSetupPage() {
         coadmin_setup_complete: true,
       },
     });
+    if (e1) { setSaving(false); setError(e1.message); return; }
+
+    // Persist phone/position + encrypted kennitala to company_admins so the
+    // company dashboard shows the same details it shows for the primary.
+    const { data: s } = await supabase.auth.getSession();
+    const tok = s.session?.access_token;
+    const res = await fetch("/api/business/co-admin-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+      body: JSON.stringify({ phone: phone.trim(), position: position.trim(), kennitala: kt }),
+    });
     setSaving(false);
-    if (e1) { setError(e1.message); return; }
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setError(j.error || "Could not save your details. Please try again.");
+      return;
+    }
     router.replace("/business");
   };
 
@@ -81,6 +104,9 @@ export default function CoAdminSetupPage() {
             </Field>
             <Field label="Phone">
               <input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="6XX XXXX" required />
+            </Field>
+            <Field label="Your kennitala (10 digits)">
+              <input className="input" inputMode="numeric" value={kennitala} onChange={(e) => setKennitala(e.target.value)} placeholder="0000000000" maxLength={11} required />
             </Field>
             <Field label="Set a password">
               <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} placeholder="At least 8 characters" required />

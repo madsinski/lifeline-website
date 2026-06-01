@@ -87,6 +87,9 @@ interface Admin {
   email: string | null;
   added_at: string;
   is_primary: boolean;
+  phone: string | null;
+  position: string | null;
+  kennitala_last4: string | null;
 }
 
 export default function BusinessDashboardPage() {
@@ -1679,6 +1682,9 @@ function CoAdminManager({ companyId, admins, onReload }: { companyId: string; ad
           {loading ? "Inviting…" : "Invite co-admin"}
         </button>
       </form>
+      <p className="text-xs text-gray-500">
+        They&apos;ll get a one-click link to set their password and their own details — name, role, phone and kennitala — just like you did at signup.
+      </p>
       {error && <div className="text-red-600 text-sm">{error}</div>}
       {invited && (invited.emailSent ? (
         <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
@@ -1701,8 +1707,21 @@ function CoAdminManager({ companyId, admins, onReload }: { companyId: string; ad
                     {initials(a.full_name || a.email)}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{a.full_name || a.email || "(unknown)"}</div>
-                    {a.full_name && a.email && <div className="text-xs text-gray-500 truncate">{a.email}</div>}
+                    <div className="font-medium text-gray-900 truncate">
+                      {a.full_name || a.email || "(unknown)"}
+                      {a.position && <span className="font-normal text-gray-500"> · {a.position}</span>}
+                    </div>
+                    <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                      {a.full_name && a.email && <span className="truncate">{a.email}</span>}
+                      {a.phone && (
+                        <span className="inline-flex items-center gap-1">
+                          <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                          </svg>
+                          {a.phone}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
