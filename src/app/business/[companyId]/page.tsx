@@ -333,11 +333,6 @@ export default function BusinessDashboardPage() {
               label: "Insights",
               iconPath: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
             },
-            {
-              id: "team",
-              label: "Team & Admins",
-              iconPath: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
-            },
           ].map((item) => (
             <button
               key={item.id}
@@ -367,6 +362,8 @@ export default function BusinessDashboardPage() {
                 : `${stepsDone} of 4 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`
           }
           primary={admins.find((a) => a.is_primary) || null}
+          admins={admins}
+          onReload={loadAdmins}
           contactPhone={company.contact_phone}
           contactPosition={company.contact_position}
           viewerIsStaff={viewerIsStaff}
@@ -503,6 +500,23 @@ export default function BusinessDashboardPage() {
               </div>
             )}
           </StepCard>
+        )}
+
+        {/* Optional early prompt — invite a colleague to co-manage. Shown during
+            onboarding; ongoing access is via the header card's Co-admins
+            dropdown. Not a numbered step and not required to finalize. */}
+        {!finalized && (
+          <section className="bg-white/60 rounded-2xl p-6 border border-dashed border-gray-300">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-gray-700">Add a co-admin?</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">Optional</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-1 mb-4">
+              Want a colleague from your company to help manage this — register employees, schedule the days?
+              Invite them now, or skip and add them anytime later from the <span className="font-medium text-gray-700">Co-admins</span> button at the top.
+            </p>
+            <CoAdminManager companyId={companyId!} admins={admins} onReload={loadAdmins} />
+          </section>
         )}
 
         {/* STEP 2 — Register employees */}
@@ -803,13 +817,6 @@ export default function BusinessDashboardPage() {
 
         <div id="insights" className="scroll-mt-24" />
         <InsightsCard companyId={companyId!} />
-
-        <div id="team" className="scroll-mt-24" />
-        <CoAdminsSection
-          companyId={companyId!}
-          admins={admins}
-          onReload={loadAdmins}
-        />
         </div>{/* end content */}
       </main>
 
@@ -1322,18 +1329,22 @@ function initials(name: string | null | undefined): string {
 // Page header card — company identity + the contact person (the primary admin),
 // with their position and phone. Replaces the plain company-name hero.
 function CompanyHeaderCard({
-  companyId, companyName, statusText, primary, contactPhone, contactPosition, viewerIsStaff, onExport,
+  companyId, companyName, statusText, primary, admins, onReload, contactPhone, contactPosition, viewerIsStaff, onExport,
 }: {
   companyId: string;
   companyName: string;
   statusText: string;
   primary: Admin | null;
+  admins: Admin[];
+  onReload: () => void;
   contactPhone: string | null;
   contactPosition: string | null;
   viewerIsStaff: boolean;
   onExport: () => void;
 }) {
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showCoAdmins, setShowCoAdmins] = useState(false);
+  const coAdminCount = admins.filter((a) => !a.is_primary).length;
   return (
     <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="h-1.5 bg-gradient-to-r from-blue-500 to-emerald-500" />
@@ -1369,7 +1380,7 @@ function CompanyHeaderCard({
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           {viewerIsStaff && primary?.email && (
             <button onClick={() => setShowMessageModal(true)} className="btn-ghost inline-flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
@@ -1378,9 +1389,29 @@ function CompanyHeaderCard({
               Email contact
             </button>
           )}
+          <button
+            onClick={() => setShowCoAdmins((v) => !v)}
+            aria-expanded={showCoAdmins}
+            className="btn-ghost inline-flex items-center gap-1.5"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+            </svg>
+            Co-admins{coAdminCount > 0 ? ` (${coAdminCount})` : ""}
+            <svg className={`w-3.5 h-3.5 transition-transform ${showCoAdmins ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
           <button onClick={onExport} className="btn-ghost">Export CSV</button>
         </div>
       </div>
+
+      {showCoAdmins && (
+        <div className="border-t border-gray-100 bg-gray-50/60 p-6">
+          <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Company admins</div>
+          <CoAdminManager companyId={companyId} admins={admins} onReload={onReload} />
+        </div>
+      )}
 
       {showMessageModal && primary && (
         <MessageContactModal
@@ -1395,20 +1426,22 @@ function CompanyHeaderCard({
   );
 }
 
-// Co-admin management card — invite / promote / remove colleagues who help run
-// this company. The primary contact now lives in the header card above; this
-// card reads from the lifted `admins` list and asks the parent to reload.
-function CoAdminsSection({ companyId, admins, onReload }: { companyId: string; admins: Admin[]; onReload: () => void }) {
+// Co-admin management — invite / promote / remove colleagues who help run this
+// company. Reused in two places: the early onboarding prompt and the header
+// card dropdown. Reads from the lifted `admins` list and asks the parent to
+// reload after a mutation.
+function CoAdminManager({ companyId, admins, onReload }: { companyId: string; admins: Admin[]; onReload: () => void }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState(true);
+  const [invited, setInvited] = useState<{ email: string; emailSent: boolean } | null>(null);
   const coAdmins = admins.filter((a) => !a.is_primary);
 
   const addAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setInvited(null);
     const { data: s } = await supabase.auth.getSession();
     const t = s.session?.access_token;
     const res = await fetch(`/api/business/companies/${companyId}/admins`, {
@@ -1417,8 +1450,8 @@ function CoAdminsSection({ companyId, admins, onReload }: { companyId: string; a
       body: JSON.stringify({ email }),
     });
     const j = await res.json();
-    if (!res.ok) setError(j.error || "Failed to add admin");
-    else { setEmail(""); onReload(); }
+    if (!res.ok) setError(j.error || "Failed to invite co-admin");
+    else { setInvited({ email: email.trim(), emailSent: j.email_sent !== false }); setEmail(""); onReload(); }
     setLoading(false);
   };
 
@@ -1448,81 +1481,56 @@ function CoAdminsSection({ companyId, admins, onReload }: { companyId: string; a
   };
 
   return (
-    <section className="bg-white/60 rounded-2xl p-6 border border-dashed border-gray-300">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex items-start justify-between w-full text-left gap-4"
-      >
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-gray-700">Company admins</h2>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">Optional</span>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Only needed if you want a colleague to help you manage this company. Skip this if you&apos;ll run it on your own.
-            {coAdmins.length > 0 && <span className="text-gray-700 font-medium"> · {coAdmins.length} co-admin{coAdmins.length === 1 ? "" : "s"}</span>}
-          </p>
+    <div className="space-y-4">
+      <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="colleague@example.is"
+          required
+          className="input flex-1"
+        />
+        <button type="submit" disabled={loading} className="btn-primary text-sm whitespace-nowrap">
+          {loading ? "Inviting…" : "Invite co-admin"}
+        </button>
+      </form>
+      {error && <div className="text-red-600 text-sm">{error}</div>}
+      {invited && (invited.emailSent ? (
+        <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+          Invite sent to <strong>{invited.email}</strong>. They&apos;ll get an email with a one-click link to log in and help manage this company.
         </div>
-        <svg
-          className={`w-4 h-4 text-gray-400 mt-1 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+      ) : (
+        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          Added <strong>{invited.email}</strong> as a co-admin, but the invite email couldn&apos;t be sent. Ask them to sign in at the company login (they can use &ldquo;Forgot your password?&rdquo; to set one).
+        </div>
+      ))}
 
-      {expanded && (
-        <div className="mt-5 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-              Add a co-admin
-            </label>
-            <form onSubmit={addAdmin} className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="colleague@example.is"
-                required
-                className="input flex-1"
-              />
-              <button type="submit" disabled={loading} className="btn-primary text-sm">
-                {loading ? "Inviting…" : "Invite co-admin"}
-              </button>
-            </form>
-          </div>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
-
-          {coAdmins.length > 0 && (
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-                Co-admins
-              </div>
-              <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
-                {coAdmins.map((a) => (
-                  <div key={a.user_id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 font-semibold flex items-center justify-center shrink-0 text-sm">
-                        {initials(a.full_name || a.email)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-gray-900 truncate">{a.full_name || a.email || "(unknown)"}</div>
-                        {a.full_name && a.email && <div className="text-xs text-gray-500 truncate">{a.email}</div>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
-                      <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
-                    </div>
+      {coAdmins.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Co-admins</div>
+          <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
+            {coAdmins.map((a) => (
+              <div key={a.user_id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 font-semibold flex items-center justify-center shrink-0 text-sm">
+                    {initials(a.full_name || a.email)}
                   </div>
-                ))}
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{a.full_name || a.email || "(unknown)"}</div>
+                    {a.full_name && a.email && <div className="text-xs text-gray-500 truncate">{a.email}</div>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button onClick={() => promote(a.user_id, a.email)} className="text-sm text-blue-600 hover:underline">Make primary</button>
+                  <button onClick={() => removeAdmin(a.user_id)} className="text-sm text-red-600 hover:underline">Remove</button>
+                </div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
