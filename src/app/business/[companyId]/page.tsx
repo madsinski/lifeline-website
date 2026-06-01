@@ -1709,7 +1709,7 @@ function InsightsCard({ companyId }: { companyId: string }) {
         <div>
           <h2 className="text-xl font-semibold text-[#1F2937]">Employee insights</h2>
           <p className="text-sm text-[#6B7280] mt-1 max-w-xl">
-            All clinical data lives in Medalia for the individuals themselves. Here you see the anonymised programme metrics Lifeline collects for you. Numbers below 5 are hidden to protect privacy.
+            All clinical data lives in Medalia for the individuals themselves. Here you see how many of your employees have been invited and have completed their assessment.
           </p>
         </div>
         <button onClick={load} className="text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50">
@@ -1721,50 +1721,10 @@ function InsightsCard({ companyId }: { companyId: string }) {
       ) : error ? (
         <div className="text-sm text-red-600">{error}</div>
       ) : data ? (
-        <div className="space-y-6">
-          {/* Participation */}
-          <div>
-            <h3 className="text-xs uppercase tracking-wide text-gray-600 font-semibold mb-2">Participation</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Stat label="Invited" value={String(data.participation.invited)} />
-              <Stat label="Completed" value={String(data.participation.completed)} />
-              <Stat label="Completion rate" value={`${Math.round((data.participation.rate || 0) * 100)}%`} accent="emerald" />
-            </div>
-          </div>
-          {/* Journey funnel */}
-          <div>
-            <h3 className="text-xs uppercase tracking-wide text-gray-600 font-semibold mb-2">Journey</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Stat label="Biody activated" value={String(data.journey.biody_activated)} />
-              <Stat label="Body-comp booked" value={String(data.journey.body_comp_booked)} />
-              <Stat label="Blood test booked" value={String(data.journey.blood_test_booked)} />
-              <Stat label="Doctor booked" value={String(data.journey.doctor_booked)} />
-            </div>
-          </div>
-          {/* Wellbeing */}
-          <div>
-            <h3 className="text-xs uppercase tracking-wide text-gray-600 font-semibold mb-2">Self-reported wellbeing (WHO-5)</h3>
-            {data.wellbeing.masked ? (
-              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-4 text-sm text-gray-600">
-                Not enough responses yet ({data.wellbeing.n}/{data.min_n}). Results will appear once at least {data.min_n} employees have completed a wellbeing check-in.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Stat label="Responses" value={String(data.wellbeing.n)} />
-                <Stat label="Average score" value={`${data.wellbeing.who5_percent ?? "—"}%`} accent="emerald" />
-                <Stat label="Benchmark" value={data.wellbeing.who5_percent != null && data.wellbeing.who5_percent < 52 ? "Low — follow up" : data.wellbeing.who5_percent != null && data.wellbeing.who5_percent < 72 ? "Average" : "Good"} />
-              </div>
-            )}
-          </div>
-          {/* Satisfaction */}
-          <div>
-            <h3 className="text-xs uppercase tracking-wide text-gray-600 font-semibold mb-2">Service satisfaction</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <SatisfactionCell label="Body-comp scan" cell={data.satisfaction.body_comp} minN={data.min_n} />
-              <SatisfactionCell label="Doctor consultation" cell={data.satisfaction.doctor} minN={data.min_n} />
-              <SatisfactionCell label="Overall" cell={data.satisfaction.overall} minN={data.min_n} />
-            </div>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <Stat label="Invited" value={String(data.participation.invited)} />
+          <Stat label="Completed" value={String(data.participation.completed)} />
+          <Stat label="Completion rate" value={`${Math.round((data.participation.rate || 0) * 100)}%`} accent="emerald" />
         </div>
       ) : null}
     </section>
@@ -1781,24 +1741,3 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
   );
 }
 
-function SatisfactionCell({
-  label, cell, minN,
-}: {
-  label: string;
-  cell: { n: number; nps?: number; helpful_avg?: number; masked?: boolean };
-  minN: number;
-}) {
-  return (
-    <div className="rounded-xl border border-gray-100 bg-white p-4">
-      <div className="text-xs text-gray-500 uppercase tracking-wide">{label}</div>
-      {cell.masked ? (
-        <div className="text-sm text-gray-500 mt-2">{cell.n}/{minN} — hidden until {minN}</div>
-      ) : (
-        <>
-          <div className="text-2xl font-bold mt-1 text-gray-900">{cell.nps ?? "—"}</div>
-          <div className="text-xs text-gray-500">NPS · helpful {cell.helpful_avg ?? "—"}/5 · n={cell.n}</div>
-        </>
-      )}
-    </div>
-  );
-}
