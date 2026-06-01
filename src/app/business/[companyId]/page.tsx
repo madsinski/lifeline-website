@@ -389,7 +389,6 @@ export default function BusinessDashboardPage() {
           contactPhone={company.contact_phone}
           contactPosition={company.contact_position}
           viewerIsStaff={viewerIsStaff}
-          onExport={exportCsv}
         />
 
         {/* Finalized banner */}
@@ -600,6 +599,9 @@ export default function BusinessDashboardPage() {
             >
               Upload / paste CSV
             </button>
+            {members.length > 0 && (
+              <button onClick={exportCsv} className="btn-step ml-auto">Export CSV</button>
+            )}
           </div>
 
           {addMode === "single" && (
@@ -1403,7 +1405,7 @@ function initials(name: string | null | undefined): string {
 // Page header card — company identity + the contact person (the primary admin),
 // with their position and phone. Replaces the plain company-name hero.
 function CompanyHeaderCard({
-  companyId, companyName, statusText, primary, admins, onReload, contactPhone, contactPosition, viewerIsStaff, onExport,
+  companyId, companyName, statusText, primary, admins, onReload, contactPhone, contactPosition, viewerIsStaff,
 }: {
   companyId: string;
   companyName: string;
@@ -1414,7 +1416,6 @@ function CompanyHeaderCard({
   contactPhone: string | null;
   contactPosition: string | null;
   viewerIsStaff: boolean;
-  onExport: () => void;
 }) {
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showCoAdmins, setShowCoAdmins] = useState(false);
@@ -1476,7 +1477,6 @@ function CompanyHeaderCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          <button onClick={onExport} className="btn-ghost">Export CSV</button>
         </div>
       </div>
 
