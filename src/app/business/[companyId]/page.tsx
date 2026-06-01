@@ -98,6 +98,7 @@ export default function BusinessDashboardPage() {
   const [viewerIsStaff, setViewerIsStaff] = useState(false);
   const [rounds, setRounds] = useState<AssessmentRound[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
+  const [poEmployeeCount, setPoEmployeeCount] = useState<number | null>(null);
   const [startingRound, setStartingRound] = useState(false);
   const [error, setError] = useState("");
   const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
@@ -121,7 +122,7 @@ export default function BusinessDashboardPage() {
         .select("id, signed_at, signatory_name, signatory_role, pdf_storage_path")
         .eq("company_id", companyId).order("signed_at", { ascending: false }),
       supabase.from("b2b_purchase_orders")
-        .select("agreement_id, po_number, total_isk")
+        .select("agreement_id, po_number, total_isk, line_items")
         .eq("company_id", companyId),
     ]);
     if (!c) {
@@ -144,6 +145,12 @@ export default function BusinessDashboardPage() {
         po_number: poMap.get(a.id)?.po_number ?? null,
         total_isk: poMap.get(a.id)?.total_isk ?? null,
       })));
+
+    // Headcount purchased on the signed purchase order — the target for the
+    // step-2 roster counter. Derived from the assessment line item.
+    const posWithItems = (po ?? []) as { line_items?: { description: string; qty: number }[] | null }[];
+    const firstWithItems = posWithItems.find((p) => Array.isArray(p.line_items) && p.line_items.length > 0);
+    setPoEmployeeCount(deriveEmployeeCount(firstWithItems?.line_items ?? null));
 
     // Fetch assessment rounds
     const { data: roundsData } = await supabase
@@ -511,6 +518,38 @@ export default function BusinessDashboardPage() {
               : `${members.length} on roster · ${totalInvited} invited · ${totalCompleted} completed`
           }
         >
+          {/* Roster counter — tracks employees added against the headcount
+              purchased on the signed purchase order. */}
+          {poEmployeeCount != null && (
+            <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="text-sm font-semibold text-gray-900">
+                  {members.length} of {poEmployeeCount} employee{poEmployeeCount === 1 ? "" : "s"} added
+                </div>
+                <div className={`text-xs font-medium ${members.length >= poEmployeeCount ? "text-emerald-600" : "text-gray-500"}`}>
+                  {members.length < poEmployeeCount
+                    ? `${poEmployeeCount - members.length} to go`
+                    : members.length === poEmployeeCount
+                      ? "All set ✓"
+                      : `${members.length - poEmployeeCount} over`}
+                </div>
+              </div>
+              <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
+                  style={{ width: `${Math.min(100, Math.round((members.length / poEmployeeCount) * 100))}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {members.length < poEmployeeCount
+                  ? `Your purchase order covers ${poEmployeeCount} employees — add the rest so everyone gets invited.`
+                  : members.length === poEmployeeCount
+                    ? "You've added everyone covered by your purchase order."
+                    : `You've added more than the ${poEmployeeCount} on your purchase order — that's fine, you're only billed for employees we actually process.`}
+              </p>
+            </div>
+          )}
+
           {/* Add controls */}
           <div className="flex flex-wrap gap-2 mb-4">
             <button
@@ -1255,6 +1294,21 @@ function RemindStaleButton({ memberIds, onDone }: { memberIds: string[]; onDone:
       {sending ? "Reminding…" : `Remind ${memberIds.length} stale`}
     </button>
   );
+}
+
+// Employee headcount purchased on the signed purchase order, derived from the
+// assessment line item (description like "Heilsumat starfsmanns — 20 starfsmenn
+// [× 2 skipti]"). Used as the target for the step-2 roster counter.
+function deriveEmployeeCount(
+  lineItems: { description: string; qty: number }[] | null | undefined,
+): number | null {
+  if (!lineItems || lineItems.length === 0) return null;
+  const assessment = lineItems[0]; // buildAssessmentPricing always puts it first
+  const m = /(\d+)\s*starfsm/i.exec(assessment.description || "");
+  if (m) return parseInt(m[1], 10);
+  // Fallback: qty ÷ rounds (rounds inferred from a "2 skipti" / "× 2" marker).
+  const rounds = /(×\s*2|2\s*skipti)/i.test(assessment.description || "") ? 2 : 1;
+  return assessment.qty > 0 ? Math.round(assessment.qty / rounds) : null;
 }
 
 // Two-letter initials for an avatar fallback.
