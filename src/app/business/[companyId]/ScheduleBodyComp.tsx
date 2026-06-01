@@ -81,7 +81,7 @@ export default function ScheduleBodyComp({ companyId, onClose, onCreated }: Prop
           </h2>
           <p className="text-sm text-gray-600 mt-1">
             {t("b2b.sched_bc.subtitle",
-              "Blood pressure and body composition measurements on-site. Our nurse comes to your office — book at least 2 weeks ahead.")}
+              "Blood pressure and body composition measurements on-site. A Lifeline staff member comes to your office — book at least 2 weeks ahead.")}
           </p>
         </div>
 
