@@ -1833,8 +1833,8 @@ function BillingCard({ companyId }: { companyId: string }) {
     inv.status === "sent" && inv.due_at && new Date(inv.due_at) < new Date() ? "overdue" : inv.status;
 
   const statusLabel: Record<string, string> = {
-    draft: "Drög", sent: "Sendur", paid: "Greitt",
-    overdue: "Í vanskilum", cancelled: "Felldur niður",
+    draft: "Draft", sent: "Sent", paid: "Paid",
+    overdue: "Overdue", cancelled: "Cancelled",
   };
 
   const statusColor = (s: string) =>
@@ -1845,28 +1845,28 @@ function BillingCard({ companyId }: { companyId: string }) {
     : "bg-amber-100 text-amber-700";
 
   const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" });
+    new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
   return (
     <section className="bg-white rounded-2xl p-6 shadow-sm">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
         <div>
-          <h2 className="text-lg font-semibold">Reikningar</h2>
+          <h2 className="text-lg font-semibold">Invoices</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            Fyrirtækið er rukkað þegar heilsumati og læknisviðtölum er lokið. Reikningar eru sendir í gegnum PayDay.
+            The company is invoiced once health assessments and doctor consultations are completed.
           </p>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Hleð…</p>
+        <p className="text-sm text-gray-500">Loading…</p>
       ) : loadError ? (
         <div className="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700">
-          Ekki tókst að sækja reikninga. Reyndu aftur síðar eða hafðu samband við Lifeline.
+          Could not load invoices. Please try again later or contact Lifeline.
         </div>
       ) : invoices.length === 0 ? (
         <div className="rounded-lg bg-gray-50 border border-gray-100 p-4 text-sm text-gray-600">
-          Engir reikningar enn. Lifeline gefur út reikning þegar læknisviðtölum er lokið.
+          No invoices yet. Lifeline issues an invoice once the doctor consultations are completed.
         </div>
       ) : (
         <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg">
@@ -1878,7 +1878,7 @@ function BillingCard({ companyId }: { companyId: string }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-gray-900">
-                      {inv.payday_invoice_number || `Reikningur ${inv.id.slice(0, 8)}`}
+                      {inv.payday_invoice_number || `Invoice ${inv.id.slice(0, 8)}`}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(s)}`}>
                       {statusLabel[s] || s}
@@ -1886,13 +1886,13 @@ function BillingCard({ companyId }: { companyId: string }) {
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">
                     {inv.quantity} × {unit.toLocaleString("is-IS")} kr ·
-                    {inv.vat_rate === 0 ? " VSK-frjálst" : ` VSK ${inv.vat_rate}%`} ·
+                    {inv.vat_rate === 0 ? " VAT-exempt" : ` VAT ${inv.vat_rate}%`} ·
                     <strong className="ml-1 text-gray-700">{inv.amount_total.toLocaleString("is-IS")} kr</strong>
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">
-                    {inv.issued_at && <>Gefinn út {fmtDate(inv.issued_at)}</>}
-                    {inv.due_at && <> · Gjalddagi {fmtDate(inv.due_at)}</>}
-                    {inv.paid_at && <> · Greitt {fmtDate(inv.paid_at)}</>}
+                    {inv.issued_at && <>Issued {fmtDate(inv.issued_at)}</>}
+                    {inv.due_at && <> · Due {fmtDate(inv.due_at)}</>}
+                    {inv.paid_at && <> · Paid {fmtDate(inv.paid_at)}</>}
                   </div>
                 </div>
                 {inv.pdf_url && (
