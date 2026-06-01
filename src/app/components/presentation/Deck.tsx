@@ -80,15 +80,21 @@ export function Deck({ slides, design, initialIndex = 0, onClose }: { slides: Sl
   return (
     <div
       ref={rootRef}
-      className="lldeck"
-      data-design={design || "lifeline"}
-      style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+      style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#050505", display: "grid", placeItems: "center" }}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => {
         const dx = e.changedTouches[0].clientX - touchX.current;
         if (Math.abs(dx) > 50) setI((c) => Math.max(0, Math.min(total - 1, c + (dx < 0 ? 1 : -1))));
       }}
     >
+      {/* Letterbox to a 16:9 stage so the deck renders identically to the editor
+          preview regardless of window aspect — prevents content overflow on
+          short/wide windows. */}
+      <div
+        className="lldeck"
+        data-design={design || "lifeline"}
+        style={{ width: "min(100vw, calc(100vh * 16 / 9))", height: "min(100vh, calc(100vw * 9 / 16))", position: "relative" }}
+      >
       <DeckStyle />
       <DeckDefs />
       <div className="deck-bar" style={{ width: `${((i + 1) / total) * 100}%` }} />
@@ -112,6 +118,7 @@ export function Deck({ slides, design, initialIndex = 0, onClose }: { slides: Sl
       <div className={`deck-notes${notesOpen ? " show" : ""}`}>
         <b>Presenter note · {i + 1} / {total}</b>
         <p>{cur.notes || "—"}</p>
+      </div>
       </div>
     </div>
   );

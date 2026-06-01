@@ -70,19 +70,35 @@ function SlideBody({ s }: { s: Slide }) {
         </div>
       );
 
-    case "cards":
+    case "cards": {
+      const cards = (
+        (s.cards || []).map((c, i) => (
+          <div key={i} className="card"><div className="icon"><Icon name={c.icon} /></div><h3>{c.title}</h3><p>{c.body}</p></div>
+        ))
+      );
+      // 2-up cards sit BESIDE the heading (a full-width 2×2 grid under the
+      // heading is taller than the slide and overflows). 3/4-up stay stacked.
+      if (s.columns === 2) {
+        return (
+          <div className="body two">
+            <div>
+              {s.kicker && <span className="kicker">{s.kicker}</span>}
+              {s.heading && <h2>{rich(s.heading)}</h2>}
+              {s.lead && <p className="lead" style={{ marginTop: "1.1rem" }}>{s.lead}</p>}
+            </div>
+            <div className="cols-2">{cards}</div>
+          </div>
+        );
+      }
       return (
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2 style={{ maxWidth: "22ch" }}>{rich(s.heading)}</h2>}
           {s.lead && <p className="lead" style={{ marginTop: ".9rem" }}>{s.lead}</p>}
-          <div className={`cols-${s.columns || 3}`} style={{ marginTop: "1.8rem" }}>
-            {(s.cards || []).map((c, i) => (
-              <div key={i} className="card"><div className="icon"><Icon name={c.icon} /></div><h3>{c.title}</h3><p>{c.body}</p></div>
-            ))}
-          </div>
+          <div className={`cols-${s.columns || 3}`} style={{ marginTop: "1.8rem" }}>{cards}</div>
         </div>
       );
+    }
 
     case "quote":
       return (
