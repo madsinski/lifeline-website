@@ -276,15 +276,19 @@ export default function BusinessDashboardPage() {
   const hasEvents = events.length > 0;
   const hasBloodDays = bloodDays.length > 0;
   const hasIntroLecture = introLectures.length > 0;
+  const hasCoAdmin = admins.some((a) => !a.is_primary);
   const agreementSigned = !!company.agreement_signed_at;
   const rosterDone = rosterConfirmed;
   // Step order: sign the service agreement + purchase order FIRST, so the
   // platform-agreement gate is satisfied before any employee invites go out
   // (otherwise the invite API rejects the batch with "agreement_not_signed").
   // Then roster, the introduction lecture, the measurement day, and blood days.
-  const stepsDone = [agreementSigned, rosterDone, hasIntroLecture, hasEvents, hasBloodDays].filter(Boolean).length;
+  // Step 2 (co-admin) is OPTIONAL: it ticks green when a co-admin is invited but
+  // never blocks finalize, so it's excluded from allStepsDone and skipped by
+  // nextStep. It still counts toward the 6-step progress display.
+  const stepsDone = [agreementSigned, hasCoAdmin, rosterDone, hasIntroLecture, hasEvents, hasBloodDays].filter(Boolean).length;
   const allStepsDone = agreementSigned && rosterDone && hasIntroLecture && hasEvents && hasBloodDays;
-  const nextStep = !agreementSigned ? 1 : !rosterDone ? 2 : !hasIntroLecture ? 3 : !hasEvents ? 4 : !hasBloodDays ? 5 : 0;
+  const nextStep = !agreementSigned ? 1 : !rosterDone ? 3 : !hasIntroLecture ? 4 : !hasEvents ? 5 : !hasBloodDays ? 6 : 0;
 
   const confirmRoster = async () => {
     if (members.length === 0) {
@@ -375,9 +379,9 @@ export default function BusinessDashboardPage() {
           statusText={
             finalized
               ? "Management mode — your registration is complete."
-              : stepsDone === 5
-                ? "All five steps done. Finalize below to notify the Lifeline admin team."
-                : `${stepsDone} of 5 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`
+              : stepsDone === 6
+                ? "All steps done. Finalize below to notify the Lifeline admin team."
+                : `${stepsDone} of 6 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : ` — the rest is optional, you can finalize below.`}`
           }
           primary={admins.find((a) => a.is_primary) || null}
           admins={admins}
@@ -456,7 +460,7 @@ export default function BusinessDashboardPage() {
           <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
-              style={{ width: `${(stepsDone / 5) * 100}%` }}
+              style={{ width: `${(stepsDone / 6) * 100}%` }}
             />
           </div>
         )}
@@ -520,28 +524,28 @@ export default function BusinessDashboardPage() {
           </StepCard>
         )}
 
-        {/* Optional early prompt — invite a colleague to co-manage. Shown during
-            onboarding; ongoing access is via the header card's Co-admins
-            dropdown. Not a numbered step and not required to finalize. */}
-        {!finalized && (
-          <section className="bg-white/60 rounded-2xl p-6 border border-dashed border-gray-300">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-gray-700">Add a co-admin?</h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">Optional</span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1 mb-4">
-              Want a colleague from your company to help manage this — register employees, schedule the days?
-              Invite them now, or skip and add them anytime later from the <span className="font-medium text-gray-700">Co-admins</span> button at the top.
-            </p>
-            <CoAdminManager companyId={companyId!} admins={admins} onReload={loadAdmins} />
-          </section>
-        )}
-
-        {/* STEP 2 — Register employees */}
+        {/* STEP 2 — Add a co-admin (optional; ticks green once one is invited,
+            but never blocks finalize). Also available via the header dropdown. */}
         <StepCard
           n={2}
+          done={hasCoAdmin}
+          active={false}
+          locked={!agreementSigned && !hasCoAdmin}
+          title="Add a co-admin"
+          subtitle={
+            hasCoAdmin
+              ? `${admins.filter((a) => !a.is_primary).length} co-admin${admins.filter((a) => !a.is_primary).length === 1 ? "" : "s"} invited · optional — add more or manage them anytime.`
+              : "Optional — invite a colleague to help manage this company (register employees, schedule the days). You can also do this anytime from the Co-admins button at the top."
+          }
+        >
+          <CoAdminManager companyId={companyId!} admins={admins} onReload={loadAdmins} />
+        </StepCard>
+
+        {/* STEP 3 — Register employees */}
+        <StepCard
+          n={3}
           done={rosterDone}
-          active={nextStep === 2}
+          active={nextStep === 3}
           locked={!agreementSigned && !rosterDone}
           title="Register your employees"
           subtitle={
@@ -667,11 +671,11 @@ export default function BusinessDashboardPage() {
           </div>
         </StepCard>
 
-        {/* STEP 3 — Introduction lecture (Lifeline-approved) */}
+        {/* STEP 4 — Introduction lecture (Lifeline-approved) */}
         <StepCard
-          n={3}
+          n={4}
           done={hasIntroLecture}
-          active={nextStep === 3}
+          active={nextStep === 4}
           locked={!rosterDone && !hasIntroLecture}
           title="Schedule the introduction lecture"
           subtitle={
@@ -712,11 +716,11 @@ export default function BusinessDashboardPage() {
           </button>
         </StepCard>
 
-        {/* STEP 4 — Measurement day */}
+        {/* STEP 5 — Measurement day */}
         <StepCard
-          n={4}
+          n={5}
           done={hasEvents}
-          active={nextStep === 4}
+          active={nextStep === 5}
           locked={!hasIntroLecture && !hasEvents}
           title="Schedule the measurement day"
           subtitle={
@@ -768,11 +772,11 @@ export default function BusinessDashboardPage() {
           </button>
         </StepCard>
 
-        {/* STEP 5 — Blood-test days (no Lifeline approval needed) */}
+        {/* STEP 6 — Blood-test days (no Lifeline approval needed) */}
         <StepCard
-          n={5}
+          n={6}
           done={hasBloodDays}
-          active={nextStep === 5}
+          active={nextStep === 6}
           locked={!hasEvents && !hasBloodDays}
           title="Pick blood-test days"
           subtitle={
@@ -795,13 +799,13 @@ export default function BusinessDashboardPage() {
           </button>
         </StepCard>
 
-        {/* Finalize CTA — shown when all 4 steps done but not yet finalized */}
+        {/* Finalize CTA — shown when all required steps done but not yet finalized */}
         {allStepsDone && !finalized && (
           <section className="rounded-2xl p-6 text-white shadow-sm"
             style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
             <h2 className="text-xl font-semibold">Ready to finalize?</h2>
             <p className="text-sm opacity-95 mt-1 max-w-xl">
-              All five setup steps are done. Click finalize to notify the Lifeline admin team — they&apos;ll take over from here.
+              All required setup steps are done. Click finalize to notify the Lifeline admin team — they&apos;ll take over from here.
               You can still edit the roster, event, and test days afterwards.
             </p>
             <button onClick={finalizeRegistration} className="mt-4 inline-block px-5 py-2.5 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">

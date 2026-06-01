@@ -74,7 +74,7 @@ export async function POST(
   const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
     email,
-    options: { redirectTo: `${siteUrl}/business` },
+    options: { redirectTo: `${siteUrl}/business/co-admin-setup` },
   });
   if (linkErr || !linkData?.properties?.action_link) {
     console.error("[co-admin] generateLink failed", linkErr);

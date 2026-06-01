@@ -27,6 +27,13 @@ export default function BusinessIndexPage() {
         supabase.from("companies").select("id, name, created_at").eq("contact_person_id", user.id),
         supabase.from("company_admins").select("company_id, added_at, companies:company_id(id, name, created_at)").eq("user_id", user.id),
       ]);
+      // A freshly-invited co-admin (no company of their own, hasn't finished
+      // setting a password + details) is sent to complete their profile first.
+      if ((coAdminRows?.length || 0) > 0 && (primary?.length || 0) === 0
+          && user.user_metadata?.coadmin_setup_complete !== true) {
+        router.replace("/business/co-admin-setup");
+        return;
+      }
       const list: CompanyRow[] = [];
       for (const c of primary || []) list.push({ id: c.id, name: c.name, role: "primary", created_at: c.created_at });
       for (const row of coAdminRows || []) {
