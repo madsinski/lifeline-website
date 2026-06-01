@@ -44,8 +44,6 @@
       "Bash(supabase --version)"
     ],
     "ask": [
-      "Edit",
-      "Write",
       "Bash(git push*)",
       "Bash(git pull*)",
       "Bash(git fetch*)",
