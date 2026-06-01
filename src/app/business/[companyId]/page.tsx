@@ -8,7 +8,7 @@ import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 import ScheduleBodyComp, { type EditableEvent } from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
-import ScheduleLecture from "./ScheduleLecture";
+import ScheduleLecture, { type EditableLecture } from "./ScheduleLecture";
 import DoctorInterviews from "./DoctorInterviews";
 import BillingPanel from "@/app/components/BillingPanel";
 
@@ -77,6 +77,7 @@ interface IntroLecture {
   end_time: string;
   mode: "onsite" | "video";
   location: string | null;
+  room_notes: string | null;
   approval_status: string;
 }
 
@@ -121,6 +122,8 @@ export default function BusinessDashboardPage() {
   const [deletingBcId, setDeletingBcId] = useState<string | null>(null);
   const [showSchedBlood, setShowSchedBlood] = useState(false);
   const [showSchedLecture, setShowSchedLecture] = useState(false);
+  const [editLecture, setEditLecture] = useState<EditableLecture | null>(null);
+  const [deletingLectureId, setDeletingLectureId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!companyId) return;
@@ -142,7 +145,7 @@ export default function BusinessDashboardPage() {
         .select("agreement_id, po_number, total_isk, line_items")
         .eq("company_id", companyId),
       supabase.from("intro_lectures")
-        .select("id, lecture_date, start_time, end_time, mode, location, approval_status")
+        .select("id, lecture_date, start_time, end_time, mode, location, room_notes, approval_status")
         .eq("company_id", companyId).gte("lecture_date", today).order("lecture_date"),
     ]);
     if (!c) {
@@ -208,6 +211,27 @@ export default function BusinessDashboardPage() {
       await loadData();
     } finally {
       setDeletingBcId(null);
+    }
+  };
+
+  const deleteLecture = async (id: string) => {
+    if (typeof window !== "undefined" && !window.confirm("Remove this lecture time?")) return;
+    setDeletingLectureId(id);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const tok = s.session?.access_token;
+      const res = await fetch(`/api/business/intro-lectures/${id}`, {
+        method: "DELETE",
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(`Could not remove: ${j.error || res.status}`);
+        return;
+      }
+      await loadData();
+    } finally {
+      setDeletingLectureId(null);
     }
   };
 
@@ -404,9 +428,7 @@ export default function BusinessDashboardPage() {
           statusText={
             finalized
               ? "Management mode — your registration is complete."
-              : stepsDone === 6
-                ? "All steps done. Finalize below to notify the Lifeline admin team."
-                : `${stepsDone} of 6 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : ` — the rest is optional, you can finalize below.`}`
+              : ""
           }
           primary={admins.find((a) => a.is_primary) || null}
           admins={admins}
@@ -479,13 +501,22 @@ export default function BusinessDashboardPage() {
             the 30-min slots in the patient portal after Lifeline approves. */}
         {finalized && <DoctorInterviews companyId={companyId!} />}
 
-        {/* Progress bar (hidden after finalize) */}
+        {/* Progress bar + step status (hidden after finalize). The status
+            line lives here rather than in the header card so it sits with
+            the bar it describes. */}
         {!finalized && (
-          <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
-              style={{ width: `${(stepsDone / 6) * 100}%` }}
-            />
+          <div className="space-y-1.5">
+            <p className="text-sm text-gray-600">
+              {stepsDone === 6
+                ? "All steps done. Finalize below to notify the Lifeline admin team."
+                : `${stepsDone} of 6 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : ` — the rest is optional, you can finalize below.`}`}
+            </p>
+            <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
+                style={{ width: `${(stepsDone / 6) * 100}%` }}
+              />
+            </div>
           </div>
         )}
 
@@ -715,7 +746,9 @@ export default function BusinessDashboardPage() {
         >
           {hasIntroLecture && (
             <div className="mb-4 space-y-2">
-              {introLectures.map((l) => (
+              {introLectures.map((l) => {
+                const editable = viewerIsStaff || l.approval_status === "requested";
+                return (
                 <div key={l.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 text-sm">
                   <div>
                     <div className="font-semibold">
@@ -726,15 +759,38 @@ export default function BusinessDashboardPage() {
                       {l.mode === "onsite" && l.location ? ` · ${l.location}` : ""}
                     </div>
                   </div>
-                  {l.approval_status === "approved" ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Approved</span>
-                  ) : l.approval_status === "rejected" ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Rejected — pick another time</span>
-                  ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Lifeline approval</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {l.approval_status === "approved" ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Approved</span>
+                    ) : l.approval_status === "rejected" ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Rejected — pick another time</span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Lifeline approval</span>
+                    )}
+                    {editable && (
+                      <>
+                        <button
+                          onClick={() => setEditLecture({
+                            id: l.id, lecture_date: l.lecture_date, start_time: l.start_time,
+                            mode: l.mode, location: l.location, room_notes: l.room_notes,
+                          })}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteLecture(l.id)}
+                          disabled={deletingLectureId === l.id}
+                          className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                        >
+                          {deletingLectureId === l.id ? "…" : "Remove"}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -957,11 +1013,12 @@ export default function BusinessDashboardPage() {
           onCreated={() => { setShowSchedBlood(false); loadData(); }}
         />
       )}
-      {showSchedLecture && (
+      {(showSchedLecture || editLecture) && (
         <ScheduleLecture
           companyId={companyId!}
-          onClose={() => setShowSchedLecture(false)}
-          onCreated={() => { setShowSchedLecture(false); loadData(); }}
+          editLecture={editLecture}
+          onClose={() => { setShowSchedLecture(false); setEditLecture(null); }}
+          onCreated={() => { setShowSchedLecture(false); setEditLecture(null); loadData(); }}
         />
       )}
 
@@ -1479,7 +1536,7 @@ function CompanyHeaderCard({
       <div className="p-6 flex flex-col sm:flex-row sm:items-start gap-5">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-semibold text-gray-900 truncate">{companyName}</h1>
-          <p className="text-sm text-gray-600 mt-1">{statusText}</p>
+          {statusText && <p className="text-sm text-gray-600 mt-1">{statusText}</p>}
 
           {primary && (
             <div className="mt-4 flex items-center gap-3">
