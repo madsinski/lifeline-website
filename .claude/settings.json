@@ -1,5 +1,5 @@
 {
-  "$schema": "https://claude.com/schema/settings.json",
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "_comment": "Team-wide project settings (committed). Per-developer session ad-hoc rules live in .claude/settings.local.json (gitignored).",
   "permissions": {
     "allow": [
