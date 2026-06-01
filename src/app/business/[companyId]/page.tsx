@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 import BusinessHeader from "../BusinessHeader";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
@@ -71,6 +72,8 @@ interface BloodDay {
 export default function BusinessDashboardPage() {
   const params = useParams<{ companyId: string }>();
   const router = useRouter();
+  const { locale } = useI18n();
+  const tr = (is: string, en: string) => (locale === "is" ? is : en);
   const companyId = params?.companyId;
 
   const [loading, setLoading] = useState(true);
@@ -167,7 +170,7 @@ export default function BusinessDashboardPage() {
 
   const downloadSignedPdf = async (agreementId: string, storagePath: string | null) => {
     if (!storagePath) {
-      alert("PDF fannst ekki. Hafðu samband við Lifeline teymið.");
+      alert(tr("PDF fannst ekki. Hafðu samband við Lifeline teymið.", "PDF not found. Please contact the Lifeline team."));
       return;
     }
     setDownloadingId(agreementId);
@@ -176,7 +179,7 @@ export default function BusinessDashboardPage() {
         .from("b2b-signed-documents")
         .createSignedUrl(storagePath, 300);
       if (sErr || !data?.signedUrl) {
-        alert(`Gat ekki búið til niðurhalstengil: ${sErr?.message || "óþekkt villa"}`);
+        alert(tr(`Gat ekki búið til niðurhalstengil: ${sErr?.message || "óþekkt villa"}`, `Could not create download link: ${sErr?.message || "unknown error"}`));
         return;
       }
       window.open(data.signedUrl, "_blank");
@@ -439,11 +442,19 @@ export default function BusinessDashboardPage() {
             n={1}
             done={agreementSigned}
             active={nextStep === 1}
-            title={agreementSigned ? "Þjónustusamningur undirritaður" : "Veldu pakka og undirritaðu þjónustusamning"}
+            title={agreementSigned
+              ? tr("Þjónustusamningur undirritaður", "Service agreement signed")
+              : tr("Veldu pakka og undirritaðu þjónustusamning", "Choose a package and sign the service agreement")}
             subtitle={
               agreementSigned
-                ? `Undirritað ${new Date(company.agreement_signed_at!).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" })} — afrit í fyrirtækisgátt og á tölvupósti.`
-                : "Segðu okkur fjölda starfsmanna og fjölda heilsumata — verðið reiknast sjálfkrafa. Yfirfarðu samninginn og undirritaðu rafrænt. Þetta þarf að gerast áður en hægt er að bjóða starfsmönnum."
+                ? tr(
+                    `Undirritað ${new Date(company.agreement_signed_at!).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" })} — afrit í fyrirtækisgátt og á tölvupósti.`,
+                    `Signed ${new Date(company.agreement_signed_at!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} — a copy is in the company dashboard and your email.`,
+                  )
+                : tr(
+                    "Segðu okkur fjölda starfsmanna og fjölda heilsumata — verðið reiknast sjálfkrafa. Yfirfarðu samninginn og undirritaðu rafrænt. Þetta þarf að gerast áður en hægt er að bjóða starfsmönnum.",
+                    "Tell us the number of employees and the number of assessments — the price is calculated automatically. Review the agreement and sign electronically. This must happen before you can invite employees.",
+                  )
             }
           >
             {!agreementSigned ? (
@@ -453,13 +464,13 @@ export default function BusinessDashboardPage() {
                   onClick={() => router.push(`/business/${companyId}/sign`)}
                   className="btn-step-primary"
                 >
-                  Halda áfram að verði og undirritun →
+                  {tr("Halda áfram að verði og undirritun →", "Continue to pricing and signature →")}
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
                 <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                  Samningurinn er geymdur á öruggan hátt. Þú getur hlaðið niður afriti hér að neðan.
+                  {tr("Samningurinn er geymdur á öruggan hátt. Þú getur hlaðið niður afriti hér að neðan.", "The agreement is stored securely. You can download a copy below.")}
                 </div>
                 {signedDocs.length > 0 && (
                   <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg bg-white">
@@ -467,7 +478,7 @@ export default function BusinessDashboardPage() {
                       <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-gray-900 truncate">
-                            {d.po_number || "(pöntun)"} · {d.signatory_name}
+                            {d.po_number || tr("(pöntun)", "(order)")} · {d.signatory_name}
                           </div>
                           <div className="text-xs text-gray-500">
                             {d.signatory_role} · {new Date(d.signed_at).toLocaleString("is-IS", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
@@ -477,10 +488,10 @@ export default function BusinessDashboardPage() {
                         <button
                           onClick={() => downloadSignedPdf(d.id, d.pdf_storage_path)}
                           disabled={downloadingId === d.id || !d.pdf_storage_path}
-                          title={!d.pdf_storage_path ? "PDF vantar" : "Hlaða niður PDF"}
+                          title={!d.pdf_storage_path ? tr("PDF vantar", "PDF missing") : tr("Hlaða niður PDF", "Download PDF")}
                           className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40 whitespace-nowrap"
                         >
-                          {downloadingId === d.id ? "…" : d.pdf_storage_path ? "Hlaða niður PDF" : "Vantar"}
+                          {downloadingId === d.id ? "…" : d.pdf_storage_path ? tr("Hlaða niður PDF", "Download PDF") : tr("Vantar", "Missing")}
                         </button>
                       </li>
                     ))}
@@ -863,12 +874,19 @@ function StepCard({
 // the actual unit prices used on the purchase order.
 
 function PackageComparison() {
+  const { locale } = useI18n();
+  const tr = (is: string, en: string) => (locale === "is" ? is : en);
   const [open, setOpen] = useState(false);
   const fmt = (n: number) => n.toLocaleString("is-IS") + " kr";
-  const teams = ["0–14 starfsmenn", "15+ starfsmenn"] as const;
+  // `key` matches PRICING_TIERS.team / .rounds and MUST stay verbatim (lookup
+  // key, never shown). `label`/`desc` are the displayed, translatable copy.
+  const teams = [
+    { key: "0–14 starfsmenn", label: tr("0–14 starfsmenn", "0–14 employees") },
+    { key: "15+ starfsmenn", label: tr("15+ starfsmenn", "15+ employees") },
+  ] as const;
   const roundOptions = [
-    { key: "1× heilsumat", label: "Árlegt heilsumat", desc: "Eitt heilsumat á hvern starfsmann á ári." },
-    { key: "2× heilsumat", label: "Hálfsársmat", desc: "Tvö heilsumöt á ári — fylgist með framvindu." },
+    { key: "1× heilsumat", label: tr("Árlegt heilsumat", "Annual assessment"), desc: tr("Eitt heilsumat á hvern starfsmann á ári.", "One assessment per employee per year.") },
+    { key: "2× heilsumat", label: tr("Hálfsársmat", "Half-yearly assessment"), desc: tr("Tvö heilsumöt á ári — fylgist með framvindu.", "Two assessments per year — track progress.") },
   ] as const;
   const priceFor = (team: string, rounds: string) =>
     PRICING_TIERS.find((t) => t.team === team && t.rounds === rounds)?.unitIsk ?? 0;
@@ -882,8 +900,8 @@ function PackageComparison() {
         aria-expanded={open}
       >
         <span className="text-sm font-semibold text-gray-900">
-          Skoða og bera saman pakka
-          <span className="ml-2 font-normal text-gray-500">verð á hvert heilsumat, á starfsmann</span>
+          {tr("Skoða og bera saman pakka", "View and compare packages")}
+          <span className="ml-2 font-normal text-gray-500">{tr("verð á hvert heilsumat, á starfsmann", "price per assessment, per employee")}</span>
         </span>
         <svg className={`w-5 h-5 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -896,9 +914,9 @@ function PackageComparison() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="text-gray-500">
-                  <th className="py-2 pr-4 font-medium text-left">Pakki</th>
+                  <th className="py-2 pr-4 font-medium text-left">{tr("Pakki", "Package")}</th>
                   {teams.map((t) => (
-                    <th key={t} className="py-2 px-4 font-medium whitespace-nowrap text-right">{t}</th>
+                    <th key={t.key} className="py-2 px-4 font-medium whitespace-nowrap text-right">{t.label}</th>
                   ))}
                 </tr>
               </thead>
@@ -910,8 +928,8 @@ function PackageComparison() {
                       <div className="text-xs text-gray-500 mt-0.5">{r.desc}</div>
                     </td>
                     {teams.map((t) => (
-                      <td key={t} className="py-3 px-4 text-right whitespace-nowrap">
-                        <span className="font-semibold text-emerald-700">{fmt(priceFor(t, r.key))}</span>
+                      <td key={t.key} className="py-3 px-4 text-right whitespace-nowrap">
+                        <span className="font-semibold text-emerald-700">{fmt(priceFor(t.key, r.key))}</span>
                       </td>
                     ))}
                   </tr>
@@ -920,11 +938,20 @@ function PackageComparison() {
             </table>
           </div>
           <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs text-emerald-800">
-            Valfrjáls viðbót: <strong>eftirfylgni læknis</strong> — 15 mín viðtal eftir 3 mánuði, {fmt(FOLLOWUP_DOCTOR_PRICE_ISK)} á starfsmann.
+            {locale === "is" ? (
+              <>Valfrjáls viðbót: <strong>eftirfylgni læknis</strong> — 15 mín viðtal eftir 3 mánuði, {fmt(FOLLOWUP_DOCTOR_PRICE_ISK)} á starfsmann.</>
+            ) : (
+              <>Optional add-on: <strong>doctor follow-up</strong> — a 15-min interview after 3 months, {fmt(FOLLOWUP_DOCTOR_PRICE_ISK)} per employee.</>
+            )}
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Stærri teymi og 2× árleg heilsumöt lækka einingaverðið sjálfkrafa. Endanlegt verð reiknast eftir fjölda starfsmanna á næsta skrefi.
-            Heilbrigðisþjónusta er virðisaukaskattsfrjáls (lög nr. 50/1988).
+            {locale === "is" ? (
+              <>Stærri teymi og 2× árleg heilsumöt lækka einingaverðið sjálfkrafa. Endanlegt verð reiknast eftir fjölda starfsmanna á næsta skrefi.
+              Heilbrigðisþjónusta er virðisaukaskattsfrjáls (lög nr. 50/1988).</>
+            ) : (
+              <>Larger teams and 2× annual assessments automatically lower the unit price. The final price is calculated from the number of employees in the next step.
+              Healthcare services are VAT-exempt (Act no. 50/1988).</>
+            )}
           </p>
         </div>
       )}

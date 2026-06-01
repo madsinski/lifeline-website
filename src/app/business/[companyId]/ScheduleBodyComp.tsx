@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function ScheduleBodyComp({ companyId, onClose, onCreated }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("15:00");
@@ -124,7 +124,7 @@ export default function ScheduleBodyComp({ companyId, onClose, onCreated }: Prop
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="Hafnarstræti 5, Reykjavík"
+              placeholder={locale === "is" ? "Hafnarstræti 5, Reykjavík" : "5 Main Street, Reykjavík"}
               className="input mt-1"
             />
           </label>

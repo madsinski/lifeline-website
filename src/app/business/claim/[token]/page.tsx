@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 import {
   TOS_VERSION, renderTermsOfService,
   DPA_VERSION, renderDataProcessingAgreement,
@@ -28,6 +29,8 @@ export default function ClaimPage() {
   const params = useParams<{ token: string }>();
   const token = params?.token || "";
   const router = useRouter();
+  const { locale } = useI18n();
+  const tr = (is: string, en: string) => (locale === "is" ? is : en);
 
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -58,10 +61,10 @@ export default function ClaimPage() {
         const res = await fetch(`/api/business/claim/${token}/complete`);
         const j = await res.json();
         if (!res.ok || !j?.ok) {
-          const msg = j?.error === "expired" ? "Hlekkurinn er útrunninn. Hafðu samband við Lifeline-teymið til að fá nýjan."
-            : j?.error === "already_claimed" ? "Þessi aðgangur hefur þegar verið tekinn yfir. Skráðu þig inn í staðinn."
-            : j?.error === "invalid_or_consumed" ? "Ógildur hlekkur — hann hefur verið notaður eða rennt út."
-            : "Gat ekki sótt boðið.";
+          const msg = j?.error === "expired" ? tr("Hlekkurinn er útrunninn. Hafðu samband við Lifeline-teymið til að fá nýjan.", "The link has expired. Contact the Lifeline team to get a new one.")
+            : j?.error === "already_claimed" ? tr("Þessi aðgangur hefur þegar verið tekinn yfir. Skráðu þig inn í staðinn.", "This account has already been claimed. Sign in instead.")
+            : j?.error === "invalid_or_consumed" ? tr("Ógildur hlekkur — hann hefur verið notaður eða rennt út.", "Invalid link — it has been used or has expired.")
+            : tr("Gat ekki sótt boðið.", "Could not load the invitation.");
           setLoadErr(msg);
           return;
         }
@@ -85,11 +88,11 @@ export default function ClaimPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    if (password.length < 8) { setErr("Lykilorðið verður að vera að minnsta kosti 8 stafir."); return; }
-    if (password !== password2) { setErr("Lykilorðin eru ekki eins."); return; }
-    if (!signatoryName.trim()) { setErr("Nafn undirritanda vantar."); return; }
+    if (password.length < 8) { setErr(tr("Lykilorðið verður að vera að minnsta kosti 8 stafir.", "The password must be at least 8 characters.")); return; }
+    if (password !== password2) { setErr(tr("Lykilorðin eru ekki eins.", "The passwords do not match.")); return; }
+    if (!signatoryName.trim()) { setErr(tr("Nafn undirritanda vantar.", "The signatory's name is missing.")); return; }
     if (!preview?.is_sub && (!acceptTos || !acceptDpa)) {
-      setErr("Samþykktu bæði þjónustuskilmála og gagnavinnslusamning.");
+      setErr(tr("Samþykktu bæði þjónustuskilmála og gagnavinnslusamning.", "Accept both the Terms of Service and the Data Processing Agreement."));
       return;
     }
     setSubmitting(true);
@@ -108,7 +111,7 @@ export default function ClaimPage() {
       });
       const j = await res.json();
       if (!res.ok || !j?.ok) {
-        setErr(j?.detail || j?.error || "Skráning mistókst.");
+        setErr(j?.detail || j?.error || tr("Skráning mistókst.", "Registration failed."));
         return;
       }
       // Success — send them to business login so they can sign in.
@@ -121,15 +124,15 @@ export default function ClaimPage() {
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Sæki…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">{tr("Sæki…", "Fetching…")}</div>;
   }
   if (!preview) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white border border-red-100 rounded-2xl p-8 shadow-sm text-center">
-          <h1 className="text-xl font-semibold text-gray-900">Ógilt boð</h1>
+          <h1 className="text-xl font-semibold text-gray-900">{tr("Ógilt boð", "Invalid invitation")}</h1>
           <p className="text-sm text-gray-600 mt-2">{loadErr}</p>
-          <Link href="/" className="mt-4 inline-block text-sm text-blue-600 hover:underline">← Aftur á Lifelinehealth.is</Link>
+          <Link href="/" className="mt-4 inline-block text-sm text-blue-600 hover:underline">{tr("← Aftur á Lifelinehealth.is", "← Back to Lifelinehealth.is")}</Link>
         </div>
       </div>
     );
@@ -139,20 +142,31 @@ export default function ClaimPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <main className="max-w-3xl mx-auto px-6 py-10 sm:py-14 space-y-6">
         <header className="text-center">
-          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-2">Tengiliðarboð</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-2">{tr("Tengiliðarboð", "Contact invitation")}</div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">
-            Velkomin, {preview.company_name}
+            {tr("Velkomin", "Welcome")}, {preview.company_name}
           </h1>
           {preview.is_sub && preview.parent_name ? (
             <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-xl mx-auto">
-              Lifeline Health-teymið hefur stofnað aðgang fyrir <strong>{preview.company_name}</strong>, sem er undireining hjá <strong>{preview.parent_name}</strong>.
-              Móðurfyrirtækið hefur þegar samþykkt þjónustuskilmála og gagnavinnslusamning fyrir hönd allra eininga —
-              þú þarft aðeins að velja lykilorð til að taka við þessum aðgangi.
+              {locale === "is" ? (
+                <>Lifeline Health-teymið hefur stofnað aðgang fyrir <strong>{preview.company_name}</strong>, sem er undireining hjá <strong>{preview.parent_name}</strong>.
+                Móðurfyrirtækið hefur þegar samþykkt þjónustuskilmála og gagnavinnslusamning fyrir hönd allra eininga —
+                þú þarft aðeins að velja lykilorð til að taka við þessum aðgangi.</>
+              ) : (
+                <>The Lifeline Health team has created an account for <strong>{preview.company_name}</strong>, which is a sub-unit of <strong>{preview.parent_name}</strong>.
+                The parent company has already accepted the Terms of Service and the Data Processing Agreement on behalf of all units —
+                you only need to choose a password to claim this account.</>
+              )}
             </p>
           ) : (
             <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-xl mx-auto">
-              Lifeline Health-teymið hefur stofnað aðgang fyrir fyrirtækið ykkar. Til að taka við umsjón
-              þarft þú að velja lykilorð og samþykkja þjónustuskilmála og gagnavinnslusamninginn. Þú færð PDF-staðfestingu í tölvupósti eftir undirritun.
+              {locale === "is" ? (
+                <>Lifeline Health-teymið hefur stofnað aðgang fyrir fyrirtækið ykkar. Til að taka við umsjón
+                þarft þú að velja lykilorð og samþykkja þjónustuskilmála og gagnavinnslusamninginn. Þú færð PDF-staðfestingu í tölvupósti eftir undirritun.</>
+              ) : (
+                <>The Lifeline Health team has created an account for your company. To take over management
+                you need to choose a password and accept the Terms of Service and the Data Processing Agreement. You will receive a PDF confirmation by email after signing.</>
+              )}
             </p>
           )}
         </header>
@@ -168,11 +182,17 @@ export default function ClaimPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M4.929 19h14.142a2 2 0 001.78-2.924L13.78 4.924a2 2 0 00-3.56 0L3.15 16.076A2 2 0 004.929 19z" />
                 </svg>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-amber-900 mb-1">Ertu skráð/ur inn sem rétti notandi?</div>
+                  <div className="font-semibold text-amber-900 mb-1">{tr("Ertu skráð/ur inn sem rétti notandi?", "Are you signed in as the right user?")}</div>
                   <p className="text-sm text-amber-900/90 leading-relaxed">
-                    Þessi boðshlekkur var sendur á <strong className="font-mono">{preview.contact_draft_email}</strong>,
-                    en þú ert núna skráð/ur inn sem <strong className="font-mono">{currentEmail}</strong>. Ef þú heldur áfram mun aðgangurinn
-                    festast á rangan notanda. Skráðu þig út fyrst og opnaðu hlekkinn aftur í hreinum glugga.
+                    {locale === "is" ? (
+                      <>Þessi boðshlekkur var sendur á <strong className="font-mono">{preview.contact_draft_email}</strong>,
+                      en þú ert núna skráð/ur inn sem <strong className="font-mono">{currentEmail}</strong>. Ef þú heldur áfram mun aðgangurinn
+                      festast á rangan notanda. Skráðu þig út fyrst og opnaðu hlekkinn aftur í hreinum glugga.</>
+                    ) : (
+                      <>This invitation link was sent to <strong className="font-mono">{preview.contact_draft_email}</strong>,
+                      but you are currently signed in as <strong className="font-mono">{currentEmail}</strong>. If you continue, the account
+                      will be tied to the wrong user. Sign out first and open the link again in a clean window.</>
+                    )}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -186,10 +206,10 @@ export default function ClaimPage() {
                       disabled={signingOut}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60"
                     >
-                      {signingOut ? "Skráir út…" : `Skrá út ${currentEmail}`}
+                      {signingOut ? tr("Skráir út…", "Signing out…") : tr(`Skrá út ${currentEmail}`, `Sign out ${currentEmail}`)}
                     </button>
                     <Link href="/" className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-900 bg-white hover:bg-amber-50">
-                      Hætta við
+                      {tr("Hætta við", "Cancel")}
                     </Link>
                   </div>
                 </div>
@@ -201,29 +221,29 @@ export default function ClaimPage() {
         <form onSubmit={submit} className={`space-y-5 ${currentEmail && preview.contact_draft_email && currentEmail.toLowerCase() !== preview.contact_draft_email.toLowerCase() ? "opacity-40 pointer-events-none" : ""}`}>
           {/* Account */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900">1. Aðgangur tengiliðs</h2>
+            <h2 className="text-sm font-semibold text-gray-900">{tr("1. Aðgangur tengiliðs", "1. Contact account")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Fullt nafn" required>
+              <Field label={tr("Fullt nafn", "Full name")} required>
                 <input type="text" value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)}
                   required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </Field>
-              <Field label="Starfsheiti">
+              <Field label={tr("Starfsheiti", "Job title")}>
                 <input type="text" value={signatoryRole} onChange={(e) => setSignatoryRole(e.target.value)}
-                  placeholder="t.d. Mannauðsstjóri"
+                  placeholder={tr("t.d. Mannauðsstjóri", "e.g. HR Manager")}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </Field>
-              <Field label="Netfang" required>
+              <Field label={tr("Netfang", "Email")} required>
                 <input type="email" value={signatoryEmail} disabled
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500" />
-                <p className="text-[11px] text-gray-500 mt-1">Þetta netfang varð fyrir valinu í boðinu. Hafðu samband ef þarft að breyta því.</p>
+                <p className="text-[11px] text-gray-500 mt-1">{tr("Þetta netfang varð fyrir valinu í boðinu. Hafðu samband ef þarft að breyta því.", "This email was chosen in the invitation. Contact us if you need to change it.")}</p>
               </Field>
-              <Field label="Lykilorð" required>
+              <Field label={tr("Lykilorð", "Password")} required>
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                   minLength={8} required autoComplete="new-password"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-                <p className="text-[11px] text-gray-500 mt-1">Að lágmarki 8 stafir.</p>
+                <p className="text-[11px] text-gray-500 mt-1">{tr("Að lágmarki 8 stafir.", "At least 8 characters.")}</p>
               </Field>
-              <Field label="Lykilorð (staðfesta)" required>
+              <Field label={tr("Lykilorð (staðfesta)", "Password (confirm)")} required>
                 <input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)}
                   minLength={8} required autoComplete="new-password"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
@@ -236,27 +256,35 @@ export default function ClaimPage() {
           {!preview.is_sub && (
             <>
               <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-3">
-                <h2 className="text-sm font-semibold text-gray-900">2. Notkunarskilmálar ({TOS_VERSION})</h2>
+                <h2 className="text-sm font-semibold text-gray-900">{tr("2. Notkunarskilmálar", "2. Terms of Service")} ({TOS_VERSION})</h2>
                 <pre className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderTermsOfService()}
                 </pre>
                 <label className="flex items-start gap-2 cursor-pointer select-none">
                   <input type="checkbox" checked={acceptTos} onChange={(e) => setAcceptTos(e.target.checked)} className="mt-1" />
                   <span className="text-sm text-gray-700">
-                    Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.
+                    {locale === "is" ? (
+                      <>Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.</>
+                    ) : (
+                      <>I have read and accept the Lifeline Health Terms of Service ({TOS_VERSION}) on behalf of <strong>{preview.company_name}</strong>.</>
+                    )}
                   </span>
                 </label>
               </section>
 
               <section className="bg-white border border-gray-200 rounded-2xl p-6 space-y-3">
-                <h2 className="text-sm font-semibold text-gray-900">3. Gagnavinnslusamningur (DPA, {DPA_VERSION})</h2>
+                <h2 className="text-sm font-semibold text-gray-900">{tr("3. Gagnavinnslusamningur", "3. Data Processing Agreement")} (DPA, {DPA_VERSION})</h2>
                 <pre className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderDataProcessingAgreement()}
                 </pre>
                 <label className="flex items-start gap-2 cursor-pointer select-none">
                   <input type="checkbox" checked={acceptDpa} onChange={(e) => setAcceptDpa(e.target.checked)} className="mt-1" />
                   <span className="text-sm text-gray-700">
-                    Ég samþykki gagnavinnslusamning Lifeline Health ({DPA_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.
+                    {locale === "is" ? (
+                      <>Ég samþykki gagnavinnslusamning Lifeline Health ({DPA_VERSION}) fyrir hönd <strong>{preview.company_name}</strong>.</>
+                    ) : (
+                      <>I accept the Lifeline Health Data Processing Agreement ({DPA_VERSION}) on behalf of <strong>{preview.company_name}</strong>.</>
+                    )}
                   </span>
                 </label>
               </section>
@@ -268,7 +296,11 @@ export default function ClaimPage() {
           <div className="flex items-center justify-end">
             <button type="submit" disabled={submitting || (!preview.is_sub && (!acceptTos || !acceptDpa))}
               className="px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50 hover:opacity-95">
-              {submitting ? "Vistar…" : preview.is_sub ? "Taka við aðganginum" : "Samþykkja og taka við"}
+              {submitting
+                ? tr("Vistar…", "Saving…")
+                : preview.is_sub
+                  ? tr("Taka við aðganginum", "Claim the account")
+                  : tr("Samþykkja og taka við", "Accept and claim")}
             </button>
           </div>
         </form>

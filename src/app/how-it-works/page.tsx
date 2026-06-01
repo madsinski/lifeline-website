@@ -15,7 +15,6 @@ export default function HowItWorksPage() {
     <WelcomeSlideshow
       variant="public"
       ctaHref="/assessment"
-      ctaLabel="Skoða leiðir til þátttöku"
     />
   );
 }

@@ -22,7 +22,7 @@ type Step = "agreement" | "company" | "done";
 
 export default function BusinessSignupPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [step, setStep] = useState<Step>("agreement");
 
   useEffect(() => {
@@ -243,7 +243,7 @@ export default function BusinessSignupPage() {
 
             {/* Terms of Service */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">1. Notkunarskilmálar (Terms of Service) — {TOS_VERSION}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">{locale === "is" ? `1. Notkunarskilmálar (Terms of Service) — ${TOS_VERSION}` : `1. Terms of Service — ${TOS_VERSION}`}</h2>
               <p className="text-xs text-gray-500 mb-2">How you and your team use the Lifeline portal.</p>
               <pre className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderTermsOfService()}
@@ -256,14 +256,16 @@ export default function BusinessSignupPage() {
                   className="mt-1"
                 />
                 <span className="text-sm text-gray-700">
-                  Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd fyrirtækisins.
+                  {locale === "is"
+                    ? `Ég hef lesið og samþykki Notkunarskilmála Lifeline Health (${TOS_VERSION}) fyrir hönd fyrirtækisins.`
+                    : `I have read and accept the Lifeline Health Terms of Service (${TOS_VERSION}) on behalf of the company.`}
                 </span>
               </label>
             </div>
 
             {/* Data Processing Agreement */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">2. Vinnslusamningur (Data Processing Agreement) — {DPA_VERSION}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">{locale === "is" ? `2. Vinnslusamningur (Data Processing Agreement) — ${DPA_VERSION}` : `2. Data Processing Agreement — ${DPA_VERSION}`}</h2>
               <p className="text-xs text-gray-500 mb-2">How Lifeline processes your employees&apos; personal data.</p>
               <pre className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderDataProcessingAgreement()}
@@ -276,7 +278,9 @@ export default function BusinessSignupPage() {
                   className="mt-1"
                 />
                 <span className="text-sm text-gray-700">
-                  Ég staðfesti heimild mína til að binda fyrirtækið og samþykki Vinnslusamninginn ({DPA_VERSION}).
+                  {locale === "is"
+                    ? `Ég staðfesti heimild mína til að binda fyrirtækið og samþykki Vinnslusamninginn (${DPA_VERSION}).`
+                    : `I confirm my authority to bind the company and accept the Data Processing Agreement (${DPA_VERSION}).`}
                 </span>
               </label>
             </div>
@@ -284,8 +288,12 @@ export default function BusinessSignupPage() {
             {error && <div className="text-sm text-red-600">{error}</div>}
 
             <p className="text-xs text-gray-500">
-              Tímastimpill, IP-tala og vafraauðkenni verða skráð sem hluti af samþykkinu.{" "}
-              <Link href="/terms" className="text-blue-600 hover:underline">Skoða á opinberri síðu →</Link>
+              {locale === "is"
+                ? "Tímastimpill, IP-tala og vafraauðkenni verða skráð sem hluti af samþykkinu."
+                : "A timestamp, IP address and browser identifier are recorded as part of your acceptance."}{" "}
+              <Link href="/terms" className="text-blue-600 hover:underline">
+                {locale === "is" ? "Skoða á opinberri síðu →" : "View on the public page →"}
+              </Link>
             </p>
 
             <button

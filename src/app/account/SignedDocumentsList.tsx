@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 
 interface AcceptanceRow {
   id: string;
@@ -22,16 +23,28 @@ interface AcceptanceRow {
   text_hash: string | null;
 }
 
-const DOC_TITLE_IS: Record<string, string> = {
-  "terms-of-service": "Notkunarskilmálar (TOS)",
-  "data-processing-agreement": "Vinnslusamningur (DPA)",
-  "employee-terms-of-service": "Notkunarskilmálar fyrir starfsmenn",
-  "health-assessment-consent": "Upplýst samþykki fyrir heilsumat",
-  "biody-import-v1": "Samþykki fyrir Biody-innflutning í app",
-  "privacy-policy": "Persónuverndarstefna",
-};
+const buildDocTitles = (locale: "en" | "is"): Record<string, string> =>
+  locale === "is"
+    ? {
+        "terms-of-service": "Notkunarskilmálar (TOS)",
+        "data-processing-agreement": "Vinnslusamningur (DPA)",
+        "employee-terms-of-service": "Notkunarskilmálar fyrir starfsmenn",
+        "health-assessment-consent": "Upplýst samþykki fyrir heilsumat",
+        "biody-import-v1": "Samþykki fyrir Biody-innflutning í app",
+        "privacy-policy": "Persónuverndarstefna",
+      }
+    : {
+        "terms-of-service": "Terms of Service (TOS)",
+        "data-processing-agreement": "Data Processing Agreement (DPA)",
+        "employee-terms-of-service": "Terms of Service for employees",
+        "health-assessment-consent": "Informed consent for the health assessment",
+        "biody-import-v1": "Consent for Biody import into the app",
+        "privacy-policy": "Privacy Policy",
+      };
 
 export default function SignedDocumentsList() {
+  const { locale } = useI18n();
+  const docTitles = buildDocTitles(locale);
   const [rows, setRows] = useState<AcceptanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +55,7 @@ export default function SignedDocumentsList() {
     setError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setError("Ekki innskráð/-ur."); return; }
+      if (!user) { setError(locale === "is" ? "Ekki innskráð/-ur." : "Not signed in."); return; }
       const { data, error: qErr } = await supabase
         .from("platform_agreement_acceptances")
         .select("id, document_key, document_version, accepted_at, pdf_storage_path, text_hash")
@@ -56,7 +69,7 @@ export default function SignedDocumentsList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -68,7 +81,9 @@ export default function SignedDocumentsList() {
         .from("platform-acceptance-pdfs")
         .createSignedUrl(row.pdf_storage_path, 300);
       if (signErr || !data?.signedUrl) {
-        alert(`Tókst ekki að sækja PDF: ${signErr?.message || "engin slóð"}`);
+        alert(locale === "is"
+          ? `Tókst ekki að sækja PDF: ${signErr?.message || "engin slóð"}`
+          : `Could not fetch PDF: ${signErr?.message || "no URL"}`);
         return;
       }
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
@@ -78,7 +93,7 @@ export default function SignedDocumentsList() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Hleð skjölum…</p>;
+    return <p className="text-sm text-gray-500">{locale === "is" ? "Hleð skjölum…" : "Loading documents…"}</p>;
   }
   if (error) {
     return <p className="text-sm text-red-600">{error}</p>;
@@ -86,7 +101,9 @@ export default function SignedDocumentsList() {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-gray-500">
-        Engin undirrituð skjöl. Þú hefur ekki samþykkt nein lögleg skjöl ennþá á þessum aðgangi.
+        {locale === "is"
+          ? "Engin undirrituð skjöl. Þú hefur ekki samþykkt nein lögleg skjöl ennþá á þessum aðgangi."
+          : "No signed documents. You have not accepted any legal documents on this account yet."}
       </p>
     );
   }
@@ -94,7 +111,7 @@ export default function SignedDocumentsList() {
   return (
     <div className="space-y-2">
       {rows.map((r) => {
-        const title = DOC_TITLE_IS[r.document_key] || r.document_key;
+        const title = docTitles[r.document_key] || r.document_key;
         return (
           <div
             key={r.id}
@@ -103,19 +120,25 @@ export default function SignedDocumentsList() {
             <div className="min-w-0">
               <p className="text-sm font-medium text-[#1F2937] truncate">{title}</p>
               <p className="text-[11px] text-gray-500 mt-0.5">
-                Útgáfa <span className="font-mono">{r.document_version}</span>
+                {locale === "is" ? "Útgáfa" : "Version"} <span className="font-mono">{r.document_version}</span>
                 {" · "}
-                Samþykkt {new Date(r.accepted_at).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}
+                {locale === "is" ? "Samþykkt" : "Accepted"} {new Date(r.accepted_at).toLocaleDateString(locale === "is" ? "is-IS" : "en-GB", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
             <button
               type="button"
               onClick={() => downloadPdf(r)}
               disabled={!r.pdf_storage_path || downloadingId === r.id}
-              title={!r.pdf_storage_path ? "PDF ekki tilbúið" : "Sækja PDF"}
+              title={!r.pdf_storage_path
+                ? (locale === "is" ? "PDF ekki tilbúið" : "PDF not ready")
+                : (locale === "is" ? "Sækja PDF" : "Download PDF")}
               className="text-xs font-medium px-3 py-1.5 rounded-md bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
-              {downloadingId === r.id ? "Sæki…" : r.pdf_storage_path ? "Sækja PDF" : "PDF vantar"}
+              {downloadingId === r.id
+                ? (locale === "is" ? "Sæki…" : "Fetching…")
+                : r.pdf_storage_path
+                  ? (locale === "is" ? "Sækja PDF" : "Download PDF")
+                  : (locale === "is" ? "PDF vantar" : "PDF missing")}
             </button>
           </div>
         );

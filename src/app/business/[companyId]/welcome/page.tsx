@@ -61,7 +61,7 @@ export default function CompanyWelcomePage() {
           <div>
             <p className="text-sm text-gray-500 mb-1">{t("b2b.contact_welcome.care", "With care,")}</p>
             <p className="text-base text-gray-800 leading-relaxed">
-              {t("b2b.contact_welcome.note", "Læknarnir á bak við Lifeline — allir með starfsleyfi frá Embætti landlæknis.")}
+              {t("b2b.contact_welcome.note", "Our physicians — all licensed by the Directorate of Health (Embætti landlæknis).")}
             </p>
           </div>
           <DoctorsTeam compact />

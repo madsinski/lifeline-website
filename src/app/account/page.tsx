@@ -18,6 +18,7 @@ import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/asses
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
 import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
+import { useI18n } from "@/lib/i18n";
 import SignedDocumentsList from "./SignedDocumentsList";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
@@ -105,6 +106,7 @@ interface ExerciseRow {
    ============================================================ */
 function AccountPageInner() {
   const router = useRouter();
+  const { locale } = useI18n();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -2821,8 +2823,8 @@ function AccountPageInner() {
                     each acceptance certificate. */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="mb-3">
-                    <p className="text-sm font-medium text-[#1F2937]">Lögleg samþykki</p>
-                    <p className="text-xs text-[#6B7280]">Skjöl sem þú hefur undirritað rafrænt — sækja PDF.</p>
+                    <p className="text-sm font-medium text-[#1F2937]">{locale === "is" ? "Lögleg samþykki" : "Legal consents"}</p>
+                    <p className="text-xs text-[#6B7280]">{locale === "is" ? "Skjöl sem þú hefur undirritað rafrænt — sækja PDF." : "Documents you have signed electronically — download PDF."}</p>
                   </div>
                   <SignedDocumentsList />
                 </div>
@@ -3601,6 +3603,7 @@ function JourneyTimeline({
   journeyChecks?: { questionnaire?: string; blood_test?: string; results_viewed?: string };
   onToggleJourneyCheck?: (key: JourneyCheckKey) => void;
 }) {
+  const { locale } = useI18n();
   const eventLabel = companyEvent
     ? `${new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}${companyEvent.location ? ` · ${companyEvent.location}` : ""}`
     : "";
@@ -3625,7 +3628,7 @@ function JourneyTimeline({
     done: hasOnboarded,
     active: false,
     description: "Profile + consent complete.",
-    cta: { label: "Horfa á kynningu", href: "/account/welcome?preview=1" },
+    cta: { label: locale === "is" ? "Horfa á kynningu" : "Watch the intro", href: "/account/welcome?preview=1" },
   };
   const bodyCompProfileStep: JourneyStep = {
     title: "Body composition profile",
@@ -3899,7 +3902,7 @@ function JourneyTimeline({
                     {s.active && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
                         <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
-                        Næsta skref
+                        {locale === "is" ? "Næsta skref" : "Next step"}
                       </span>
                     )}
                   </div>
@@ -4895,6 +4898,7 @@ function BiodyProfileModal({
   onClose: () => void;
   onActivated?: () => void;
 }) {
+  const { locale } = useI18n();
   const [biodyActive, setBiodyActive] = useState(false);
   const [sex, setSex] = useState<"male" | "female" | "">("");
   const [heightCm, setHeightCm] = useState("");
@@ -5068,10 +5072,12 @@ function BiodyProfileModal({
               <div className="border-t border-gray-100 pt-4 space-y-2">
                 <div>
                   <p className="text-xs font-semibold text-[#0F172A]">
-                    Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
+                    {locale === "is" ? "Upplýst samþykki fyrir heilsumat" : "Informed consent for the health assessment"} ({HEALTH_CONSENT_VERSION})
                   </p>
                   <p className="text-[11px] text-gray-500 mt-0.5">
-                    9. gr. (2)(a) GDPR · krafa fyrir vinnslu heilsugagna
+                    {locale === "is"
+                      ? "9. gr. (2)(a) GDPR · krafa fyrir vinnslu heilsugagna"
+                      : "GDPR Art. 9(2)(a) · required for processing health data"}
                   </p>
                 </div>
                 <pre className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
@@ -5080,7 +5086,9 @@ function BiodyProfileModal({
                 <label className="flex items-start gap-2 cursor-pointer select-none">
                   <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1" />
                   <span className="text-xs text-[#334155]">
-                    Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
+                    {locale === "is"
+                      ? `Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health (${HEALTH_CONSENT_VERSION}).`
+                      : `I give informed and explicit consent for the processing of my health information in connection with Lifeline Health's health assessment (${HEALTH_CONSENT_VERSION}).`}
                   </span>
                 </label>
               </div>

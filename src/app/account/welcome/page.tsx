@@ -18,10 +18,12 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 import WelcomeSlideshow from "../../components/WelcomeSlideshow";
 
 function AccountWelcomePageInner() {
   const router = useRouter();
+  const { locale } = useI18n();
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [companyName, setCompanyName] = useState<string | null>(null);
@@ -78,7 +80,7 @@ function AccountWelcomePageInner() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Hleð kynningu…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">{locale === "is" ? "Hleð kynningu…" : "Loading presentation…"}</div>;
   }
 
   return (
@@ -87,15 +89,22 @@ function AccountWelcomePageInner() {
       firstName={firstName || undefined}
       companyName={companyName}
       ctaHref="/account"
-      ctaLabel={variant === "b2b" ? "Halda áfram á mælaborðið" : "Halda áfram"}
+      ctaLabel={variant === "b2b"
+        ? (locale === "is" ? "Halda áfram á mælaborðið" : "Continue to the dashboard")
+        : (locale === "is" ? "Halda áfram" : "Continue")}
       onComplete={markSeen}
     />
   );
 }
 
+function WelcomeFallback() {
+  const { locale } = useI18n();
+  return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">{locale === "is" ? "Hleð kynningu…" : "Loading presentation…"}</div>;
+}
+
 export default function AccountWelcomePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Hleð kynningu…</div>}>
+    <Suspense fallback={<WelcomeFallback />}>
       <AccountWelcomePageInner />
     </Suspense>
   );

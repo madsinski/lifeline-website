@@ -12,6 +12,9 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
+
+type Locale = "en" | "is";
 
 export interface Doctor {
   slug: string;        // matches /public/team/{slug}.jpg
@@ -22,32 +25,41 @@ export interface Doctor {
 }
 
 // Edit names + titles + bios here. Photos live at /public/team/{slug}.png.
-export const LIFELINE_DOCTORS: Doctor[] = [
-  {
-    slug: "victor",
-    name: "Victor Guðmundsson",
-    fullTitle: "Læknir, Stofnandi",
-    accent: "blue",
-  },
-  {
-    slug: "mads",
-    name: "Mads Christian Aanesen",
-    fullTitle: "Læknir, Stofnandi",
-    accent: "emerald",
-  },
-  {
-    slug: "vignir",
-    name: "Vignir Sigurðsson",
-    fullTitle: "Sérfræðilæknir, Ráðgjafi, Stofnandi",
-    accent: "violet",
-  },
-  {
-    slug: "dagbjort",
-    name: "Dagbjört Guðbrandsdóttir",
-    fullTitle: "Læknir",
-    accent: "amber",
-  },
-];
+// Titles are bilingual: built per-locale inside the component (see
+// buildDoctors) so English-mode users never see Icelandic job titles.
+// Person names are proper nouns and stay verbatim in both languages.
+const buildDoctors = (locale: Locale): Doctor[] => {
+  const tr = (is: string, en: string) => (locale === "is" ? is : en);
+  return [
+    {
+      slug: "victor",
+      name: "Victor Guðmundsson",
+      fullTitle: tr("Læknir, Stofnandi", "Doctor, Founder"),
+      accent: "blue",
+    },
+    {
+      slug: "mads",
+      name: "Mads Christian Aanesen",
+      fullTitle: tr("Læknir, Stofnandi", "Doctor, Founder"),
+      accent: "emerald",
+    },
+    {
+      slug: "vignir",
+      name: "Vignir Sigurðsson",
+      fullTitle: tr(
+        "Sérfræðilæknir, Ráðgjafi, Stofnandi",
+        "Specialist physician, Advisor, Founder",
+      ),
+      accent: "violet",
+    },
+    {
+      slug: "dagbjort",
+      name: "Dagbjört Guðbrandsdóttir",
+      fullTitle: tr("Læknir", "Doctor"),
+      accent: "amber",
+    },
+  ];
+};
 
 const ACCENT_GRADIENT: Record<Doctor["accent"], string> = {
   emerald: "from-emerald-400 to-emerald-600",
@@ -64,13 +76,15 @@ interface Props {
 }
 
 export default function DoctorsTeam({ layout = "grid", compact = false }: Props) {
+  const { locale } = useI18n();
+  const doctors = buildDoctors(locale);
   const gridClass = layout === "row"
     ? "grid grid-cols-2 sm:grid-cols-4 gap-4"
     : "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4";
 
   return (
     <div className={gridClass}>
-      {LIFELINE_DOCTORS.map((d) => (
+      {doctors.map((d) => (
         <DoctorCard key={d.slug} doctor={d} compact={compact} />
       ))}
     </div>

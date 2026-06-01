@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 import {
   HEALTH_CONSENT_VERSION,
   renderHealthAssessmentConsent,
@@ -25,6 +26,7 @@ type ActivityLevel = "sedentary" | "light" | "moderate" | "very_active" | "extra
 
 export default function AccountOnboardPage() {
   const router = useRouter();
+  const { locale } = useI18n();
   const [stage, setStage] = useState<Stage>("welcome");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -147,18 +149,20 @@ export default function AccountOnboardPage() {
         {email && (
           <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-gray-200 bg-white/60 px-4 py-2.5 text-xs">
             <span className="text-gray-600">
-              Skráð/ur inn sem <strong className="text-gray-900 font-mono">{email}</strong>
+              {locale === "is" ? "Skráð/ur inn sem" : "Signed in as"} <strong className="text-gray-900 font-mono">{email}</strong>
             </span>
             <button
               type="button"
               onClick={async () => {
-                if (!confirm("Skrá út og opna skráninguna aftur með öðrum aðganga?")) return;
+                if (!confirm(locale === "is"
+                  ? "Skrá út og opna skráninguna aftur með öðrum aðganga?"
+                  : "Sign out and restart registration with a different account?")) return;
                 await supabase.auth.signOut();
                 router.replace("/account/login?next=/account/onboard");
               }}
               className="text-gray-500 hover:text-gray-800 underline underline-offset-2"
             >
-              Rangur aðgangur? Skrá út
+              {locale === "is" ? "Rangur aðgangur? Skrá út" : "Wrong account? Sign out"}
             </button>
           </div>
         )}
@@ -309,18 +313,23 @@ function ConsentStage({
   acceptHealth: boolean; setAcceptHealth: (v: boolean) => void;
   onBack: () => void; onContinue: () => void;
 }) {
+  const { locale } = useI18n();
   return (
     <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#0F172A]">Upplýst samþykki fyrir heilsumat</h1>
+        <h1 className="text-2xl font-semibold text-[#0F172A]">
+          {locale === "is" ? "Upplýst samþykki fyrir heilsumat" : "Informed consent for the health assessment"}
+        </h1>
         <p className="text-sm text-[#64748B] mt-2 leading-relaxed">
-          Áður en þú getur hafið heilsumat þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti.
+          {locale === "is"
+            ? "Áður en þú getur hafið heilsumat þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti."
+            : "Before you can begin the health assessment you must give informed consent for the processing of health information under GDPR Art. 9 and Act no. 74/1997 on patients' rights. The consent is recorded electronically with a timestamp, IP address and browser identifier. You will receive a confirmation document by email."}
         </p>
       </header>
 
       <div>
         <h2 className="text-sm font-semibold text-[#0F172A] mb-2">
-          Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
+          {locale === "is" ? "Upplýst samþykki fyrir heilsumat" : "Informed consent for the health assessment"} ({HEALTH_CONSENT_VERSION})
         </h2>
         <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderHealthAssessmentConsent()}
@@ -328,21 +337,25 @@ function ConsentStage({
         <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
           <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1" />
           <span className="text-sm text-[#334155]">
-            Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
+            {locale === "is"
+              ? `Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health (${HEALTH_CONSENT_VERSION}).`
+              : `I give informed and explicit consent for the processing of my health information in connection with Lifeline Health's health assessment (${HEALTH_CONSENT_VERSION}).`}
           </span>
         </label>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <button onClick={onBack} className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm">
-          Back
+          {locale === "is" ? "Til baka" : "Back"}
         </button>
         <button
           onClick={onContinue}
           disabled={!acceptHealth}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
         >
-          {acceptHealth ? "Halda áfram →" : "Samþykktu skjalið"}
+          {acceptHealth
+            ? (locale === "is" ? "Halda áfram →" : "Continue →")
+            : (locale === "is" ? "Samþykktu skjalið" : "Accept the document")}
         </button>
       </div>
     </section>

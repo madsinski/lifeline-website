@@ -22,14 +22,14 @@ export default function ComingSoon() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setErrorMsg(body?.error || t("coming-soon.error", "Eitthvað fór úrskeiðis. Reyndu aftur."));
+        setErrorMsg(body?.error || t("coming-soon.error", "Something went wrong. Please try again."));
         setStatus("error");
         return;
       }
       setStatus("success");
       setEmail("");
     } catch {
-      setErrorMsg(t("coming-soon.error", "Eitthvað fór úrskeiðis. Reyndu aftur."));
+      setErrorMsg(t("coming-soon.error", "Something went wrong. Please try again."));
       setStatus("error");
     }
   };
@@ -49,10 +49,10 @@ export default function ComingSoon() {
             style={{ transform: "translateX(20px) translateY(-100px)" }}
           />
           <h1 className="mt-10 text-2xl font-semibold text-gray-900 tracking-tight">
-            {t("coming-soon.title", "Væntanlegt")}
+            {t("coming-soon.title", "Coming soon")}
           </h1>
           <p className="mt-3 text-gray-500 text-center">
-            {t("coming-soon.description", "Við erum að byggja eitthvað frábært. Vertu fyrst/ur til að vita þegar við opnum.")}
+            {t("coming-soon.description", "We're building something great. Be the first to know when we launch.")}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 w-full flex flex-col sm:flex-row gap-2">
@@ -61,7 +61,7 @@ export default function ComingSoon() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("coming-soon.placeholder", "netfang@dæmi.is")}
+              placeholder={t("coming-soon.placeholder", "you@example.com")}
               disabled={status === "submitting" || status === "success"}
               className="flex-1 px-4 py-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition disabled:opacity-60"
             />
@@ -70,13 +70,13 @@ export default function ComingSoon() {
               disabled={status === "submitting" || status === "success"}
               className="px-6 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-all duration-200 whitespace-nowrap disabled:opacity-60"
             >
-              {status === "submitting" ? "…" : status === "success" ? t("coming-soon.success_button", "Takk!") : t("coming-soon.submit", "Láttu mig vita")}
+              {status === "submitting" ? "…" : status === "success" ? t("coming-soon.success_button", "Thanks!") : t("coming-soon.submit", "Notify me")}
             </button>
           </form>
 
           {status === "success" && (
             <p className="mt-3 text-sm text-emerald-600">
-              {t("coming-soon.success_message", "Þú ert komin/n á listann. Við höfum samband.")}
+              {t("coming-soon.success_message", "You're on the list. We'll be in touch.")}
             </p>
           )}
           {status === "error" && (

@@ -10,6 +10,7 @@ import {
   type PurchaseOrderLineItem,
 } from "@/lib/agreement-templates";
 import { buildAssessmentPricing, assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
+import { useI18n } from "@/lib/i18n";
 
 interface CompanyRow {
   id: string;
@@ -29,6 +30,8 @@ function fmtIsk(n: number): string {
 export default function SignAgreementPage() {
   const params = useParams<{ companyId: string }>();
   const router = useRouter();
+  const { locale } = useI18n();
+  const tr = (is: string, en: string) => (locale === "is" ? is : en);
   const companyId = params?.companyId;
 
   const [company, setCompany] = useState<CompanyRow | null>(null);
@@ -109,10 +112,10 @@ export default function SignAgreementPage() {
       setDiscountStatus("error");
       const reason = row?.error;
       setDiscountError(
-        reason === "expired" ? "Kóðinn er útrunninn."
-        : reason === "exhausted" ? "Kóðinn er fullnýttur."
-        : reason === "inactive" ? "Kóðinn er óvirkur."
-        : "Kóðinn fannst ekki.",
+        reason === "expired" ? tr("Kóðinn er útrunninn.", "The code has expired.")
+        : reason === "exhausted" ? tr("Kóðinn er fullnýttur.", "The code has been fully used.")
+        : reason === "inactive" ? tr("Kóðinn er óvirkur.", "The code is inactive.")
+        : tr("Kóðinn fannst ekki.", "Code not found."),
       );
       return;
     }
@@ -140,7 +143,7 @@ export default function SignAgreementPage() {
       .eq("id", companyId)
       .maybeSingle();
     if (e || !data) {
-      setError("Fyrirtæki fannst ekki eða þú hefur ekki aðgang.");
+      setError(tr("Fyrirtæki fannst ekki eða þú hefur ekki aðgang.", "Company not found, or you do not have access."));
       setLoading(false);
       return;
     }
@@ -205,15 +208,15 @@ export default function SignAgreementPage() {
     setError("");
     if (!company) return;
     if (!signatoryName.trim() || !signatoryRole.trim() || !signatoryEmail.trim()) {
-      setError("Fylltu inn nafn, starfsheiti og netfang.");
+      setError(tr("Fylltu inn nafn, starfsheiti og netfang.", "Fill in name, job title and email."));
       return;
     }
     if (!agreeChecked) {
-      setError("Þú verður að staðfesta að þú hafir heimild til að binda félagið.");
+      setError(tr("Þú verður að staðfesta að þú hafir heimild til að binda félagið.", "You must confirm that you have authority to bind the company."));
       return;
     }
     if (lineItems.some((li) => !li.description.trim() || li.qty <= 0 || li.unit_price_isk < 0)) {
-      setError("Öll pöntunaratriði verða að hafa lýsingu, jákvæðan fjölda og verð.");
+      setError(tr("Öll pöntunaratriði verða að hafa lýsingu, jákvæðan fjölda og verð.", "Every line item must have a description, a positive quantity and a price."));
       return;
     }
 
@@ -244,20 +247,20 @@ export default function SignAgreementPage() {
       try { j = raw ? JSON.parse(raw) : {}; } catch { /* non-JSON body */ }
       if (!res.ok) {
         const detail = j.detail || j.error || (raw.startsWith("Request ") ? raw : `HTTP ${res.status}`);
-        setError(`Villa: ${detail}`);
+        setError(tr(`Villa: ${detail}`, `Error: ${detail}`));
         setSigning(false);
         return;
       }
       setDone(true);
     } catch (e) {
-      setError(`Villa: ${(e as Error).message}`);
+      setError(tr(`Villa: ${(e as Error).message}`, `Error: ${(e as Error).message}`));
     } finally {
       setSigning(false);
     }
   };
 
   if (loading) {
-    return <div className="max-w-3xl mx-auto py-16 text-center text-gray-500">Hleð…</div>;
+    return <div className="max-w-3xl mx-auto py-16 text-center text-gray-500">{tr("Hleð…", "Loading…")}</div>;
   }
   if (error && !company) {
     return <div className="max-w-3xl mx-auto py-16 text-center text-red-600">{error}</div>;
@@ -272,13 +275,13 @@ export default function SignAgreementPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Samningur undirritaður</h1>
-        <p className="text-gray-600 mb-6">Afrit hefur verið sent á netfang undirritanda og á Lifeline teymið.</p>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">{tr("Samningur undirritaður", "Agreement signed")}</h1>
+        <p className="text-gray-600 mb-6">{tr("Afrit hefur verið sent á netfang undirritanda og á Lifeline teymið.", "A copy has been sent to the signatory's email and to the Lifeline team.")}</p>
         <button
           onClick={() => router.push(`/business/${companyId}`)}
           className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-emerald-500 text-white font-semibold"
         >
-          Til baka í fyrirtækisgátt
+          {tr("Til baka í fyrirtækisgátt", "Back to company dashboard")}
         </button>
       </div>
     );
@@ -288,7 +291,7 @@ export default function SignAgreementPage() {
   const poParams = {
     companyName: company.name,
     companyKennitala: companyKennitala || "____-____",
-    poNumber: "(úthlutað við undirritun)",
+    poNumber: tr("(úthlutað við undirritun)", "(assigned on signing)"),
     lineItems,
     subtotalIsk: subtotal,
     vatIsk: vat,
@@ -303,39 +306,39 @@ export default function SignAgreementPage() {
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-900">Þjónustusamningur og innkaupapöntun</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">{tr("Þjónustusamningur og innkaupapöntun", "Service agreement & purchase order")}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Yfirfarðu samninginn og fylltu út innkaupapöntun. Undirritun er rafræn og bindandi.
+          {tr("Yfirfarðu samninginn og fylltu út innkaupapöntun. Undirritun er rafræn og bindandi.", "Review the agreement and fill in the purchase order. Signing is electronic and binding.")}
         </p>
       </header>
 
       {/* Purchase order — auto-priced from headcount + rounds */}
       <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-        <h2 className="font-semibold text-gray-900">Innkaupapöntun</h2>
+        <h2 className="font-semibold text-gray-900">{tr("Innkaupapöntun", "Purchase order")}</h2>
 
         {/* Pricing inputs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="text-sm text-gray-700">
-            Fjöldi starfsmanna
+            {tr("Fjöldi starfsmanna", "Number of employees")}
             <input
               type="number" min={1}
               className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
               value={headcount}
               onChange={(e) => setHeadcount(Math.max(1, parseInt(e.target.value) || 1))}
             />
-            <span className="text-[11px] text-gray-400">{headcount <= 14 ? "0–14 verðflokkur" : "15+ verðflokkur"}</span>
+            <span className="text-[11px] text-gray-400">{headcount <= 14 ? tr("0–14 verðflokkur", "0–14 price tier") : tr("15+ verðflokkur", "15+ price tier")}</span>
           </label>
           <label className="text-sm text-gray-700">
-            Fjöldi heilsumata
+            {tr("Fjöldi heilsumata", "Number of health checks")}
             <select
               value={rounds}
               onChange={(e) => setRounds(parseInt(e.target.value) === 2 ? 2 : 1)}
               className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
             >
-              <option value={1}>1× heilsumat</option>
-              <option value={2}>2× heilsumat</option>
+              <option value={1}>{tr("1× heilsumat", "1× health check")}</option>
+              <option value={2}>{tr("2× heilsumat", "2× health check")}</option>
             </select>
-            <span className="text-[11px] text-gray-400">{fmtIsk(perEmployeeUnit)} á heilsumat / starfsmann</span>
+            <span className="text-[11px] text-gray-400">{fmtIsk(perEmployeeUnit)} {tr("á heilsumat / starfsmann", "per health check / employee")}</span>
           </label>
         </div>
 
@@ -346,7 +349,10 @@ export default function SignAgreementPage() {
             onChange={(e) => setIncludeFollowup(e.target.checked)}
             className="rounded border-gray-300"
           />
-          Bæta við eftirfylgni læknis — 15 mín viðtal eftir 3 mánuði ({fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} / starfsmann)
+          {tr(
+            `Bæta við eftirfylgni læknis — 15 mín viðtal eftir 3 mánuði (${fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} / starfsmann)`,
+            `Add doctor follow-up — 15 min consultation after 3 months (${fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} / employee)`,
+          )}
         </label>
 
         {/* Read-only computed breakdown */}
@@ -363,40 +369,40 @@ export default function SignAgreementPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100">
-          <label className="text-xs text-gray-500">Greiðslufyrirkomulag
+          <label className="text-xs text-gray-500">{tr("Greiðslufyrirkomulag", "Billing schedule")}
             <select value={billingCadence} onChange={(e) => setBillingCadence(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900">
-              <option value="one_time">Eingreiðsla</option>
-              <option value="monthly">Mánaðarlega</option>
-              <option value="quarterly">Ársfjórðungslega</option>
-              <option value="yearly">Árlega</option>
+              <option value="one_time">{tr("Eingreiðsla", "One-time payment")}</option>
+              <option value="monthly">{tr("Mánaðarlega", "Monthly")}</option>
+              <option value="quarterly">{tr("Ársfjórðungslega", "Quarterly")}</option>
+              <option value="yearly">{tr("Árlega", "Yearly")}</option>
             </select>
           </label>
-          <label className="text-xs text-gray-500">Gildir frá
+          <label className="text-xs text-gray-500">{tr("Gildir frá", "Valid from")}
             <input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
           </label>
-          <label className="text-xs text-gray-500">Gildir til
+          <label className="text-xs text-gray-500">{tr("Gildir til", "Valid until")}
             <input
               type="date"
               value={endsAt}
               onChange={(e) => { didEditEndsAtRef.current = true; setEndsAt(e.target.value); }}
               className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
             />
-            <span className="text-[10px] text-gray-400">Sjálfgildi: 12 mánuðir frá upphafsdegi</span>
+            <span className="text-[10px] text-gray-400">{tr("Sjálfgildi: 12 mánuðir frá upphafsdegi", "Default: 12 months from the start date")}</span>
           </label>
-          <label className="text-xs text-gray-500">Vsk. %
+          <label className="text-xs text-gray-500">{tr("Vsk. %", "VAT %")}
             <input type="number" min={0} max={24} value={vatRate} onChange={(e) => setVatRate(Math.max(0, Math.min(24, parseInt(e.target.value) || 0)))} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
-            <span className="text-[10px] text-gray-400">Heilbrigðisþjónusta er vsk-frjáls (lög nr. 50/1988)</span>
+            <span className="text-[10px] text-gray-400">{tr("Heilbrigðisþjónusta er vsk-frjáls (lög nr. 50/1988)", "Healthcare services are VAT-exempt (Act no. 50/1988)")}</span>
           </label>
         </div>
 
         {/* Afsláttarkóði */}
         <div className="pt-2 border-t border-gray-100">
-          <label className="text-xs text-gray-500">Afsláttarkóði</label>
+          <label className="text-xs text-gray-500">{tr("Afsláttarkóði", "Discount code")}</label>
           {appliedCode ? (
             <div className="mt-1 flex items-center gap-3 text-sm">
               <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-semibold">{appliedCode}</span>
               <span className="text-gray-600">−{fmtIsk(discountIsk)}</span>
-              <button type="button" onClick={clearDiscount} className="text-xs text-red-500 hover:underline">Fjarlægja</button>
+              <button type="button" onClick={clearDiscount} className="text-xs text-red-500 hover:underline">{tr("Fjarlægja", "Remove")}</button>
             </div>
           ) : (
             <div className="mt-1 flex gap-2">
@@ -404,7 +410,7 @@ export default function SignAgreementPage() {
                 type="text"
                 value={discountInput}
                 onChange={(e) => setDiscountInput(e.target.value)}
-                placeholder="Sláðu inn kóða"
+                placeholder={tr("Sláðu inn kóða", "Enter a code")}
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 uppercase"
               />
               <button
@@ -413,7 +419,7 @@ export default function SignAgreementPage() {
                 disabled={discountStatus === "checking" || !discountInput.trim()}
                 className="px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg hover:bg-emerald-100 disabled:opacity-40"
               >
-                {discountStatus === "checking" ? "…" : "Virkja"}
+                {discountStatus === "checking" ? "…" : tr("Virkja", "Apply")}
               </button>
             </div>
           )}
@@ -421,18 +427,18 @@ export default function SignAgreementPage() {
         </div>
 
         <div className="flex justify-end gap-6 pt-2 border-t border-gray-100 text-sm">
-          <div>Samtals án vsk.: <strong>{fmtIsk(subtotal)}</strong></div>
-          {discountIsk > 0 && <div>Afsláttur: <strong>−{fmtIsk(discountIsk)}</strong></div>}
-          <div>Vsk.: <strong>{fmtIsk(vat)}</strong></div>
-          <div className="text-base">Heildar: <strong className="text-emerald-700">{fmtIsk(total)}</strong></div>
+          <div>{tr("Samtals án vsk.:", "Subtotal excl. VAT:")} <strong>{fmtIsk(subtotal)}</strong></div>
+          {discountIsk > 0 && <div>{tr("Afsláttur:", "Discount:")} <strong>−{fmtIsk(discountIsk)}</strong></div>}
+          <div>{tr("Vsk.:", "VAT:")} <strong>{fmtIsk(vat)}</strong></div>
+          <div className="text-base">{tr("Heildar:", "Total:")} <strong className="text-emerald-700">{fmtIsk(total)}</strong></div>
         </div>
       </section>
 
       {/* Full document preview — hashed by server + rendered to PDF */}
       <section className="bg-white border border-gray-200 rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-900">Samningur og skilmálar</h2>
-          <span className="text-xs text-gray-400">Þetta er nákvæmlega það sem verður undirritað.</span>
+          <h2 className="font-semibold text-gray-900">{tr("Samningur og skilmálar", "Agreement and terms")}</h2>
+          <span className="text-xs text-gray-400">{tr("Þetta er nákvæmlega það sem verður undirritað.", "This is exactly what will be signed.")}</span>
         </div>
         <div className="bg-white p-6 text-[12px] leading-relaxed text-gray-900 border border-gray-100 rounded-md">
           <div className="whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-gray-900">{renderThjonustusamningur(agreementParams)}</div>
@@ -443,36 +449,45 @@ export default function SignAgreementPage() {
 
           {/* Signing block — stands out from the body with a card + dividers */}
           <div className="mt-8 pt-5 border-t-2 border-gray-300">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-gray-500 font-semibold mb-3">Rafræn undirritun</div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-gray-500 font-semibold mb-3">{tr("Rafræn undirritun", "Electronic signature")}</div>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[12.5px]">
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Undirritun</div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">{tr("Undirritun", "Signature")}</div>
                 <div className="font-semibold text-gray-900 border-b border-gray-300 pb-1 min-h-[22px]">
                   {signatoryName || <span className="text-gray-300">________________</span>}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Starfsheiti</div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">{tr("Starfsheiti", "Job title")}</div>
                 <div className="font-semibold text-gray-900 border-b border-gray-300 pb-1 min-h-[22px]">
                   {signatoryRole || <span className="text-gray-300">________________</span>}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Netfang</div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">{tr("Netfang", "Email")}</div>
                 <div className="font-medium text-gray-900 border-b border-gray-300 pb-1 min-h-[22px] break-all">
                   {signatoryEmail || <span className="text-gray-300">________________</span>}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Dagsetning</div>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">{tr("Dagsetning", "Date")}</div>
                 <div className="font-medium text-gray-900 border-b border-gray-300 pb-1 min-h-[22px]">
-                  {new Date().toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}
+                  {new Date().toLocaleDateString(locale === "is" ? "is-IS" : "en-GB", { day: "numeric", month: "long", year: "numeric" })}
                 </div>
               </div>
             </div>
             <p className="text-[10.5px] text-gray-500 mt-3 leading-relaxed">
-              Rafræn undirritun þessi er skráð með tímastimpli, IP-tölu og vafraauðkenni undirritanda í þjónustukerfi Lifeline Health.
-              Undirritunin er bindandi og jafngild rituðu undirritun, sbr. lög nr. 28/2001 um rafrænar undirskriftir.
+              {locale === "is" ? (
+                <>
+                  Rafræn undirritun þessi er skráð með tímastimpli, IP-tölu og vafraauðkenni undirritanda í þjónustukerfi Lifeline Health.
+                  Undirritunin er bindandi og jafngild rituðu undirritun, sbr. lög nr. 28/2001 um rafrænar undirskriftir.
+                </>
+              ) : (
+                <>
+                  This electronic signature is recorded with a timestamp, IP address and browser identifier of the signatory in the Lifeline Health service system.
+                  The signature is binding and equivalent to a written signature, cf. Act no. 28/2001 on electronic signatures.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -480,24 +495,34 @@ export default function SignAgreementPage() {
 
       {/* Signatory + authority */}
       <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-        <h2 className="font-semibold text-gray-900">Undirritandi</h2>
+        <h2 className="font-semibold text-gray-900">{tr("Undirritandi", "Signatory")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <label className="text-xs text-gray-500">Fullt nafn
+          <label className="text-xs text-gray-500">{tr("Fullt nafn", "Full name")}
             <input value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder="Jón Jónsson" />
           </label>
-          <label className="text-xs text-gray-500">Starfsheiti / staða
-            <input value={signatoryRole} onChange={(e) => setSignatoryRole(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder="Framkvæmdastjóri" />
+          <label className="text-xs text-gray-500">{tr("Starfsheiti / staða", "Job title / position")}
+            <input value={signatoryRole} onChange={(e) => setSignatoryRole(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder={tr("Framkvæmdastjóri", "CEO")} />
           </label>
-          <label className="text-xs text-gray-500">Netfang
+          <label className="text-xs text-gray-500">{tr("Netfang", "Email")}
             <input type="email" value={signatoryEmail} onChange={(e) => setSignatoryEmail(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" placeholder="jon@example.is" />
           </label>
         </div>
         <label className="flex items-start gap-2 pt-2">
           <input type="checkbox" checked={agreeChecked} onChange={(e) => setAgreeChecked(e.target.checked)} className="mt-1" />
           <span className="text-sm text-gray-700">
-            Ég, <strong>{signatoryName || "[nafn]"}</strong>, staðfesti að ég hef heimild til að binda <strong>{company.name}</strong>
-            {companyKennitala ? <> (kt. {companyKennitala})</> : null} og samþykki framangreindan þjónustusamning, þjónustuskilmála og innkaupapöntun.
-            Ég staðfesti jafnframt að IP-tala og vafraauðkenni verða skráð sem hluti af undirritun.
+            {locale === "is" ? (
+              <>
+                Ég, <strong>{signatoryName || "[nafn]"}</strong>, staðfesti að ég hef heimild til að binda <strong>{company.name}</strong>
+                {companyKennitala ? <> (kt. {companyKennitala})</> : null} og samþykki framangreindan þjónustusamning, þjónustuskilmála og innkaupapöntun.
+                Ég staðfesti jafnframt að IP-tala og vafraauðkenni verða skráð sem hluti af undirritun.
+              </>
+            ) : (
+              <>
+                I, <strong>{signatoryName || "[name]"}</strong>, confirm that I have authority to bind <strong>{company.name}</strong>
+                {companyKennitala ? <> (kt. {companyKennitala})</> : null} and accept the service agreement, service terms and purchase order set out above.
+                I further confirm that my IP address and browser identifier will be recorded as part of the signature.
+              </>
+            )}
           </span>
         </label>
       </section>
@@ -506,7 +531,7 @@ export default function SignAgreementPage() {
 
       <div className="flex gap-3 justify-end">
         <button onClick={() => router.push(`/business/${companyId}`)} className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
-          Hætta við
+          {tr("Hætta við", "Cancel")}
         </button>
         <button
           onClick={sign}
@@ -514,7 +539,7 @@ export default function SignAgreementPage() {
           className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-emerald-500 text-white font-semibold text-sm disabled:opacity-60 flex items-center gap-2"
         >
           {signing && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {signing ? "Undirrita…" : "Undirrita og staðfesta pöntun"}
+          {signing ? tr("Undirrita…", "Signing…") : tr("Undirrita og staðfesta pöntun", "Sign and confirm order")}
         </button>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
 import {
@@ -456,26 +457,38 @@ function TermsConsentStage({
   onBack: () => void;
   onConfirm: (e: React.FormEvent) => void;
 }) {
+  const { locale } = useI18n();
   return (
     <form onSubmit={onConfirm} className="space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-[#0F172A]">
-          {firstName ? `Næstum þar, ${firstName}` : "Næstum þar"}
+          {locale === "is"
+            ? (firstName ? `Næstum þar, ${firstName}` : "Næstum þar")
+            : (firstName ? `Almost there, ${firstName}` : "Almost there")}
         </h2>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-          Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja
-          notkunarskilmála og persónuverndarstefnu Lifeline Health.
+          {locale === "is" ? (
+            <>Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja
+            notkunarskilmála og persónuverndarstefnu Lifeline Health.</>
+          ) : (
+            <>Before your account is created you need to read and accept
+            Lifeline Health&apos;s Terms of Service and Privacy Policy.</>
+          )}
         </p>
         {email && (
           <p className="text-xs text-gray-400 mt-1">
-            Aðgangurinn verður stofnaður á <span className="font-medium text-gray-600">{email}</span>.
+            {locale === "is" ? (
+              <>Aðgangurinn verður stofnaður á <span className="font-medium text-gray-600">{email}</span>.</>
+            ) : (
+              <>The account will be created for <span className="font-medium text-gray-600">{email}</span>.</>
+            )}
           </p>
         )}
       </div>
 
       <div>
         <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
-          Notkunarskilmálar ({PUBLIC_TERMS_VERSION})
+          {locale === "is" ? "Notkunarskilmálar" : "Terms of Service"} ({PUBLIC_TERMS_VERSION})
         </p>
         <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
 {renderPublicTermsOfService("is")}
@@ -484,7 +497,7 @@ function TermsConsentStage({
 
       <div>
         <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
-          Persónuverndarstefna ({PUBLIC_PRIVACY_VERSION})
+          {locale === "is" ? "Persónuverndarstefna" : "Privacy Policy"} ({PUBLIC_PRIVACY_VERSION})
         </p>
         <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
 {renderPublicPrivacyPolicy("is")}
@@ -501,8 +514,13 @@ function TermsConsentStage({
             className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
           />
           <span className="text-xs text-gray-700 leading-snug">
-            Ég hef lesið og samþykki <strong>notkunarskilmála</strong> Lifeline Health (v{PUBLIC_TERMS_VERSION})
-            og <strong>persónuverndarstefnu</strong> (v{PUBLIC_PRIVACY_VERSION}).
+            {locale === "is" ? (
+              <>Ég hef lesið og samþykki <strong>notkunarskilmála</strong> Lifeline Health (v{PUBLIC_TERMS_VERSION})
+              og <strong>persónuverndarstefnu</strong> (v{PUBLIC_PRIVACY_VERSION}).</>
+            ) : (
+              <>I have read and accept Lifeline Health&apos;s <strong>Terms of Service</strong> (v{PUBLIC_TERMS_VERSION})
+              and <strong>Privacy Policy</strong> (v{PUBLIC_PRIVACY_VERSION}).</>
+            )}
             <span className="text-red-500 ml-0.5">*</span>
           </span>
         </label>
@@ -514,8 +532,13 @@ function TermsConsentStage({
             className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
           />
           <span className="text-xs text-gray-700 leading-snug">
-            <strong>Afþakka rannsóknanotkun.</strong>{" "}
-            Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.
+            {locale === "is" ? (
+              <><strong>Afþakka rannsóknanotkun.</strong>{" "}
+              Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.</>
+            ) : (
+              <><strong>Opt out of research use.</strong>{" "}
+              Do not use my anonymised data to improve Lifeline or in clinical research.</>
+            )}
           </span>
         </label>
         <label className="flex items-start gap-2.5 cursor-pointer">
@@ -526,8 +549,13 @@ function TermsConsentStage({
             className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
           />
           <span className="text-xs text-gray-700 leading-snug">
-            <strong>Afþakka markaðspóst.</strong>{" "}
-            Ekki senda mér vörufréttir eða kynningar frá Lifeline.
+            {locale === "is" ? (
+              <><strong>Afþakka markaðspóst.</strong>{" "}
+              Ekki senda mér vörufréttir eða kynningar frá Lifeline.</>
+            ) : (
+              <><strong>Opt out of marketing email.</strong>{" "}
+              Do not send me product news or promotions from Lifeline.</>
+            )}
           </span>
         </label>
       </div>
@@ -549,14 +577,16 @@ function TermsConsentStage({
           onClick={onBack}
           className="px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
         >
-          ← Til baka
+          {locale === "is" ? "← Til baka" : "← Back"}
         </button>
         <button
           type="submit"
           disabled={loading || !acceptTerms}
           className="flex-1 bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Stofnar aðgang..." : "Samþykkja og stofna aðgang"}
+          {loading
+            ? (locale === "is" ? "Stofnar aðgang..." : "Creating account...")
+            : (locale === "is" ? "Samþykkja og stofna aðgang" : "Accept and create account")}
         </button>
       </div>
     </form>

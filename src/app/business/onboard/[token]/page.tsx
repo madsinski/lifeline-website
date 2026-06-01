@@ -25,6 +25,7 @@ const ORDER: Stage[] = ["welcome", "consent", "profile", "account"];
 export default function OnboardPage() {
   const params = useParams<{ token: string }>();
   const token = params?.token || "";
+  const { locale } = useI18n();
 
   const [stage, setStage] = useState<Stage>("password");
 
@@ -153,9 +154,15 @@ export default function OnboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M4.929 19h14.142a2 2 0 001.78-2.924L13.78 4.924a2 2 0 00-3.56 0L3.15 16.076A2 2 0 004.929 19z" />
               </svg>
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-amber-900 mb-1">Ertu skráð/ur inn sem rétti notandi?</div>
+                <div className="font-semibold text-amber-900 mb-1">
+                  {locale === "is" ? "Ertu skráð/ur inn sem rétti notandi?" : "Are you signed in as the right user?"}
+                </div>
                 <p className="text-sm text-amber-900/90 leading-relaxed">
-                  Boðshlekkurinn var sendur á <strong className="font-mono">{email}</strong>, en þú ert núna skráð/ur inn sem <strong className="font-mono">{currentEmail}</strong>. Haltu ekki áfram — skráning myndi festast á rangan notanda. Skráðu þig út og opnaðu hlekkinn aftur.
+                  {locale === "is" ? (
+                    <>Boðshlekkurinn var sendur á <strong className="font-mono">{email}</strong>, en þú ert núna skráð/ur inn sem <strong className="font-mono">{currentEmail}</strong>. Haltu ekki áfram — skráning myndi festast á rangan notanda. Skráðu þig út og opnaðu hlekkinn aftur.</>
+                  ) : (
+                    <>The invite link was sent to <strong className="font-mono">{email}</strong>, but you are currently signed in as <strong className="font-mono">{currentEmail}</strong>. Do not continue — registration would be bound to the wrong user. Sign out and open the link again.</>
+                  )}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -169,10 +176,12 @@ export default function OnboardPage() {
                     disabled={signingOut}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60"
                   >
-                    {signingOut ? "Skráir út…" : `Skrá út ${currentEmail}`}
+                    {locale === "is"
+                      ? (signingOut ? "Skráir út…" : `Skrá út ${currentEmail}`)
+                      : (signingOut ? "Signing out…" : `Sign out ${currentEmail}`)}
                   </button>
                   <Link href="/" className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-900 bg-white hover:bg-amber-50">
-                    Hætta við
+                    {locale === "is" ? "Hætta við" : "Cancel"}
                   </Link>
                 </div>
               </div>
@@ -354,7 +363,7 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
           <div>
             <p className="text-sm text-gray-500 mb-1">{t("onboard.welcome.team.care", "Welcome aboard,")}</p>
             <p className="text-base text-gray-800 leading-relaxed">
-              {t("onboard.welcome.team.note", "Læknarnir okkar — allir með starfsleyfi frá Embætti landlæknis.")}
+              {t("onboard.welcome.team.note", "Our physicians — all licensed by the Directorate of Health (Embætti landlæknis).")}
             </p>
           </div>
           <DoctorsTeam compact />
@@ -381,29 +390,41 @@ function ConsentStage({
   marketingOptOut: boolean; setMarketingOptOut: (v: boolean) => void;
   onBack: () => void; onContinue: () => void;
 }) {
+  const { locale } = useI18n();
   return (
     <section className="bg-white rounded-2xl p-8 shadow-sm space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">Samþykki — skilmálar og heilsumat</h1>
+        <h1 className="text-2xl font-semibold">
+          {locale === "is" ? "Samþykki — skilmálar og heilsumat" : "Consent — terms and health assessment"}
+        </h1>
         <p className="text-sm text-gray-600 mt-2">
-          Áður en þú getur hafið heilsumat þarftu að samþykkja tvö skjöl: almenna notkunarskilmála og upplýst samþykki
-          fyrir heilsumati. Samþykkin eru skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni.
+          {locale === "is"
+            ? "Áður en þú getur hafið heilsumat þarftu að samþykkja tvö skjöl: almenna notkunarskilmála og upplýst samþykki fyrir heilsumati. Samþykkin eru skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni."
+            : "Before you can start the health assessment you must accept two documents: general Terms of Service and informed consent for the health assessment. Your acceptances are recorded electronically with a timestamp, IP address and browser identifier."}
         </p>
       </header>
 
       {/* 1. Employee TOS */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">
-          1. Notkunarskilmálar starfsmanns ({EMPLOYEE_TOS_VERSION})
+          {locale === "is"
+            ? `1. Notkunarskilmálar starfsmanns (${EMPLOYEE_TOS_VERSION})`
+            : `1. Employee Terms of Service (${EMPLOYEE_TOS_VERSION})`}
         </h2>
-        <p className="text-xs text-gray-500 mb-2">Almennir skilmálar um notkun þína á þjónustusíðunni og snjallforritinu.</p>
+        <p className="text-xs text-gray-500 mb-2">
+          {locale === "is"
+            ? "Almennir skilmálar um notkun þína á þjónustusíðunni og snjallforritinu."
+            : "General terms covering your use of the service site and the app."}
+        </p>
         <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderEmployeeTermsOfService()}
         </pre>
         <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
           <input type="checkbox" checked={acceptTos} onChange={(e) => setAcceptTos(e.target.checked)} className="mt-1" />
           <span className="text-sm text-gray-700">
-            Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({EMPLOYEE_TOS_VERSION}).
+            {locale === "is"
+              ? `Ég hef lesið og samþykki Notkunarskilmála Lifeline Health (${EMPLOYEE_TOS_VERSION}).`
+              : `I have read and accept the Lifeline Health Terms of Service (${EMPLOYEE_TOS_VERSION}).`}
           </span>
         </label>
       </div>
@@ -411,11 +432,14 @@ function ConsentStage({
       {/* 2. Informed health consent */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">
-          2. Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
+          {locale === "is"
+            ? `2. Upplýst samþykki fyrir heilsumat (${HEALTH_CONSENT_VERSION})`
+            : `2. Informed consent for the health assessment (${HEALTH_CONSENT_VERSION})`}
         </h2>
         <p className="text-xs text-gray-500 mb-2">
-          Sérstakt samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga.
-          Lifeline Health framkvæmir heilsumatið með leyfi frá landlækni; sjúkraskrá er varðveitt hjá Medalia.
+          {locale === "is"
+            ? "Sérstakt samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Lifeline Health framkvæmir heilsumatið með leyfi frá landlækni; sjúkraskrá er varðveitt hjá Medalia."
+            : "A specific consent for processing health information under Art. 9 GDPR and Act no. 74/1997 on patients' rights. Lifeline Health carries out the health assessment under a licence from the Directorate of Health (landlæknir); the medical record is kept with Medalia."}
         </p>
         <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderHealthAssessmentConsent()}
@@ -423,28 +447,52 @@ function ConsentStage({
         <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
           <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1" />
           <span className="text-sm text-gray-700">
-            Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
+            {locale === "is"
+              ? `Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health (${HEALTH_CONSENT_VERSION}).`
+              : `I give my informed and explicit consent to the processing of my health information in connection with the Lifeline Health assessment (${HEALTH_CONSENT_VERSION}).`}
           </span>
         </label>
       </div>
 
       {/* Opt-out choices */}
       <div className="border-t border-gray-100 pt-6 space-y-3">
-        <p className="text-sm font-medium text-gray-700">Val um frekari vinnslu (ekki nauðsynlegt):</p>
+        <p className="text-sm font-medium text-gray-700">
+          {locale === "is" ? "Val um frekari vinnslu (ekki nauðsynlegt):" : "Optional further processing choices (not required):"}
+        </p>
         <Checkbox checked={researchOptOut} onChange={setResearchOptOut}>
-          <strong>Afþakka rannsóknanotkun.</strong>{" "}
-          <span className="text-gray-600">Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.</span>
+          {locale === "is" ? (
+            <>
+              <strong>Afþakka rannsóknanotkun.</strong>{" "}
+              <span className="text-gray-600">Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.</span>
+            </>
+          ) : (
+            <>
+              <strong>Opt out of research use.</strong>{" "}
+              <span className="text-gray-600">Do not use my anonymised data to improve Lifeline or for clinical research.</span>
+            </>
+          )}
         </Checkbox>
         <Checkbox checked={marketingOptOut} onChange={setMarketingOptOut}>
-          <strong>Afþakka markaðspóst.</strong>{" "}
-          <span className="text-gray-600">Ekki senda mér vörufréttir eða kynningar frá Lifeline.</span>
+          {locale === "is" ? (
+            <>
+              <strong>Afþakka markaðspóst.</strong>{" "}
+              <span className="text-gray-600">Ekki senda mér vörufréttir eða kynningar frá Lifeline.</span>
+            </>
+          ) : (
+            <>
+              <strong>Opt out of marketing email.</strong>{" "}
+              <span className="text-gray-600">Do not send me product news or promotions from Lifeline.</span>
+            </>
+          )}
         </Checkbox>
       </div>
 
       <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-        <button onClick={onBack} className="btn-ghost">Back</button>
+        <button onClick={onBack} className="btn-ghost">{locale === "is" ? "Til baka" : "Back"}</button>
         <button onClick={onContinue} disabled={!acceptTos || !acceptHealth} className="btn-primary">
-          {!acceptTos || !acceptHealth ? "Samþykktu bæði skjölin" : "Halda áfram →"}
+          {!acceptTos || !acceptHealth
+            ? (locale === "is" ? "Samþykktu bæði skjölin" : "Accept both documents")
+            : (locale === "is" ? "Halda áfram →" : "Continue →")}
         </button>
       </div>
     </section>
@@ -465,12 +513,17 @@ function ProfileStage({
   setActivityLevel: (v: "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "") => void;
   error: string; onBack: () => void; onContinue: () => void;
 }) {
+  const { locale } = useI18n();
   return (
     <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Líkamssamsetningarsnið</h1>
+        <h1 className="text-2xl font-semibold">
+          {locale === "is" ? "Líkamssamsetningarsnið" : "Body-composition profile"}
+        </h1>
         <p className="text-sm text-gray-600 mt-1">
-          Við höfum nafn og netfang úr boðspóstinum. Við þurfum kyn, hæð, þyngd og hreyfingarstig til að stofna Biody-sniðmátið þitt — fæðingardagur kemur úr kennitölunni sem þú notaðir áðan.
+          {locale === "is"
+            ? "Við höfum nafn og netfang úr boðspóstinum. Við þurfum kyn, hæð, þyngd og hreyfingarstig til að stofna Biody-sniðmátið þitt — fæðingardagur kemur úr kennitölunni sem þú notaðir áðan."
+            : "We have your name and email from the invite. We need your sex, height, weight and activity level to create your Biody profile — your date of birth comes from the kennitala you used earlier."}
         </p>
       </div>
 
@@ -479,7 +532,7 @@ function ProfileStage({
       <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4 space-y-3 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">Netfang</div>
+            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">{locale === "is" ? "Netfang" : "Email"}</div>
             <div className="text-gray-800">{email}</div>
           </div>
           <div>
@@ -488,17 +541,17 @@ function ProfileStage({
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Nafn (má leiðrétta)">
+          <Field label={locale === "is" ? "Nafn (má leiðrétta)" : "Name (can be corrected)"}>
             <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" />
           </Field>
-          <Field label="Símanúmer (má leiðrétta)">
+          <Field label={locale === "is" ? "Símanúmer (má leiðrétta)" : "Phone number (can be corrected)"}>
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="input" />
           </Field>
         </div>
       </div>
 
       <div className="border-t border-gray-100 pt-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-700">Biody-gildi</h2>
+        <h2 className="text-sm font-semibold text-gray-700">{locale === "is" ? "Biody-gildi" : "Biody values"}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Sex">
             <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required className="input">
