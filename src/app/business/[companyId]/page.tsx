@@ -8,6 +8,7 @@ import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 import ScheduleBodyComp from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
+import ScheduleLecture from "./ScheduleLecture";
 import DoctorInterviews from "./DoctorInterviews";
 import BillingPanel from "@/app/components/BillingPanel";
 
@@ -67,6 +68,16 @@ interface BloodDay {
   notes: string | null;
 }
 
+interface IntroLecture {
+  id: string;
+  lecture_date: string;
+  start_time: string;
+  end_time: string;
+  mode: "onsite" | "video";
+  location: string | null;
+  approval_status: string;
+}
+
 interface Admin {
   user_id: string;
   full_name: string | null;
@@ -102,14 +113,16 @@ export default function BusinessDashboardPage() {
   const [startingRound, setStartingRound] = useState(false);
   const [error, setError] = useState("");
   const [addMode, setAddMode] = useState<"none" | "single" | "import">("none");
+  const [introLectures, setIntroLectures] = useState<IntroLecture[]>([]);
   const [showSchedBC, setShowSchedBC] = useState(false);
   const [showSchedBlood, setShowSchedBlood] = useState(false);
+  const [showSchedLecture, setShowSchedLecture] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!companyId) return;
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
-    const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: ag }, { data: po }] = await Promise.all([
+    const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: ag }, { data: po }, { data: il }] = await Promise.all([
       supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id, contact_phone, contact_position").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
@@ -124,6 +137,9 @@ export default function BusinessDashboardPage() {
       supabase.from("b2b_purchase_orders")
         .select("agreement_id, po_number, total_isk, line_items")
         .eq("company_id", companyId),
+      supabase.from("intro_lectures")
+        .select("id, lecture_date, start_time, end_time, mode, location, approval_status")
+        .eq("company_id", companyId).gte("lecture_date", today).order("lecture_date"),
     ]);
     if (!c) {
       setError("Company not found or you don't have access.");
@@ -134,6 +150,7 @@ export default function BusinessDashboardPage() {
     setMembers((m || []) as Member[]);
     setEvents((ev || []) as BodyCompEvent[]);
     setBloodDays((bd || []) as BloodDay[]);
+    setIntroLectures((il || []) as IntroLecture[]);
 
     const poMap = new Map<string, { po_number: string; total_isk: number }>();
     for (const row of (po ?? []) as { agreement_id: string; po_number: string; total_isk: number }[]) {
@@ -258,15 +275,16 @@ export default function BusinessDashboardPage() {
   const finalized = !!company.registration_finalized_at;
   const hasEvents = events.length > 0;
   const hasBloodDays = bloodDays.length > 0;
+  const hasIntroLecture = introLectures.length > 0;
   const agreementSigned = !!company.agreement_signed_at;
   const rosterDone = rosterConfirmed;
   // Step order: sign the service agreement + purchase order FIRST, so the
-  // platform-agreement gate is satisfied before any employee invites go
-  // out (otherwise the invite API rejects the batch with
-  // "agreement_not_signed"). Roster, then measurement day, then blood days.
-  const stepsDone = [agreementSigned, rosterDone, hasEvents, hasBloodDays].filter(Boolean).length;
-  const allStepsDone = agreementSigned && rosterDone && hasEvents && hasBloodDays;
-  const nextStep = !agreementSigned ? 1 : !rosterDone ? 2 : !hasEvents ? 3 : !hasBloodDays ? 4 : 0;
+  // platform-agreement gate is satisfied before any employee invites go out
+  // (otherwise the invite API rejects the batch with "agreement_not_signed").
+  // Then roster, the introduction lecture, the measurement day, and blood days.
+  const stepsDone = [agreementSigned, rosterDone, hasIntroLecture, hasEvents, hasBloodDays].filter(Boolean).length;
+  const allStepsDone = agreementSigned && rosterDone && hasIntroLecture && hasEvents && hasBloodDays;
+  const nextStep = !agreementSigned ? 1 : !rosterDone ? 2 : !hasIntroLecture ? 3 : !hasEvents ? 4 : !hasBloodDays ? 5 : 0;
 
   const confirmRoster = async () => {
     if (members.length === 0) {
@@ -357,9 +375,9 @@ export default function BusinessDashboardPage() {
           statusText={
             finalized
               ? "Management mode — your registration is complete."
-              : stepsDone === 4
-                ? "All four steps done. Finalize below to notify the Lifeline admin team."
-                : `${stepsDone} of 4 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`
+              : stepsDone === 5
+                ? "All five steps done. Finalize below to notify the Lifeline admin team."
+                : `${stepsDone} of 5 setup steps complete${nextStep ? ` — next: step ${nextStep}.` : "."}`
           }
           primary={admins.find((a) => a.is_primary) || null}
           admins={admins}
@@ -438,7 +456,7 @@ export default function BusinessDashboardPage() {
           <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
-              style={{ width: `${(stepsDone / 4) * 100}%` }}
+              style={{ width: `${(stepsDone / 5) * 100}%` }}
             />
           </div>
         )}
@@ -649,12 +667,57 @@ export default function BusinessDashboardPage() {
           </div>
         </StepCard>
 
-        {/* STEP 3 — Measurement day */}
+        {/* STEP 3 — Introduction lecture (Lifeline-approved) */}
         <StepCard
           n={3}
-          done={hasEvents}
+          done={hasIntroLecture}
           active={nextStep === 3}
-          locked={!rosterDone && !hasEvents}
+          locked={!rosterDone && !hasIntroLecture}
+          title="Schedule the introduction lecture"
+          subtitle={
+            hasIntroLecture
+              ? introLectures.map((l) =>
+                  `${new Date(l.lecture_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${l.start_time.slice(0,5)}–${l.end_time.slice(0,5)} · ${l.mode === "onsite" ? "On-site" : "Video"}`,
+                ).join(" · ")
+              : "A 30-minute kick-off lecture for your team — on-site or by video. You can hold it the same day as the measurement day (e.g. the lecture at 09:00, measurements from 10:00). Lifeline reviews and approves the time."
+          }
+        >
+          {hasIntroLecture && (
+            <div className="mb-4 space-y-2">
+              {introLectures.map((l) => (
+                <div key={l.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 text-sm">
+                  <div>
+                    <div className="font-semibold">
+                      {new Date(l.lecture_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {l.start_time.slice(0, 5)}–{l.end_time.slice(0, 5)} · {l.mode === "onsite" ? "On-site" : "Video / phone"}
+                      {l.mode === "onsite" && l.location ? ` · ${l.location}` : ""}
+                    </div>
+                  </div>
+                  {l.approval_status === "approved" ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Approved</span>
+                  ) : l.approval_status === "rejected" ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Rejected — pick another time</span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Lifeline approval</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button onClick={() => setShowSchedLecture(true)} className="btn-step-primary">
+            {hasIntroLecture ? "Propose another time" : "Schedule lecture"}
+          </button>
+        </StepCard>
+
+        {/* STEP 4 — Measurement day */}
+        <StepCard
+          n={4}
+          done={hasEvents}
+          active={nextStep === 4}
+          locked={!hasIntroLecture && !hasEvents}
           title="Schedule the measurement day"
           subtitle={
             hasEvents
@@ -705,11 +768,11 @@ export default function BusinessDashboardPage() {
           </button>
         </StepCard>
 
-        {/* STEP 4 — Blood-test days */}
+        {/* STEP 5 — Blood-test days (no Lifeline approval needed) */}
         <StepCard
-          n={4}
+          n={5}
           done={hasBloodDays}
-          active={nextStep === 4}
+          active={nextStep === 5}
           locked={!hasEvents && !hasBloodDays}
           title="Pick blood-test days"
           subtitle={
@@ -738,7 +801,7 @@ export default function BusinessDashboardPage() {
             style={{ background: "linear-gradient(135deg, #3B82F6, #10B981)" }}>
             <h2 className="text-xl font-semibold">Ready to finalize?</h2>
             <p className="text-sm opacity-95 mt-1 max-w-xl">
-              All four setup steps are done. Click finalize to notify the Lifeline admin team — they&apos;ll take over from here.
+              All five setup steps are done. Click finalize to notify the Lifeline admin team — they&apos;ll take over from here.
               You can still edit the roster, event, and test days afterwards.
             </p>
             <button onClick={finalizeRegistration} className="mt-4 inline-block px-5 py-2.5 rounded-lg bg-white text-blue-700 font-semibold text-sm hover:bg-gray-50">
@@ -833,6 +896,13 @@ export default function BusinessDashboardPage() {
           existing={bloodDays}
           onClose={() => setShowSchedBlood(false)}
           onCreated={() => { setShowSchedBlood(false); loadData(); }}
+        />
+      )}
+      {showSchedLecture && (
+        <ScheduleLecture
+          companyId={companyId!}
+          onClose={() => setShowSchedLecture(false)}
+          onCreated={() => { setShowSchedLecture(false); loadData(); }}
         />
       )}
 

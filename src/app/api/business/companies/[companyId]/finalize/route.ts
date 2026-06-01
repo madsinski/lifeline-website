@@ -76,8 +76,20 @@ export async function POST(
       .eq("company_id", companyId),
   ]);
 
+  // Introduction lecture is required too. Queried separately so we can capture
+  // the error and stay tolerant if the table isn't present yet (defence in
+  // depth around the manual migration).
+  const { count: lectureCount, error: lectureErr } = await supabaseAdmin
+    .from("intro_lectures")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .gte("lecture_date", new Date().toISOString().slice(0, 10));
+
   if (!company.roster_confirmed_at) {
     return NextResponse.json({ error: "roster_not_confirmed" }, { status: 400 });
+  }
+  if (!lectureErr && !lectureCount) {
+    return NextResponse.json({ error: "no_intro_lecture" }, { status: 400 });
   }
   if (!eventCount) {
     return NextResponse.json({ error: "no_body_comp_event" }, { status: 400 });
