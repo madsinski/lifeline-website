@@ -34,10 +34,14 @@ type Payment = {
 };
 
 export default function BillingPanel({
-  ownerType, ownerId,
+  ownerType, ownerId, disableAddCard = false, hidePrices = false,
 }: {
   ownerType: OwnerType;
   ownerId: string;
+  /** Hide the (stub) "Add card" affordance — payment methods become read-only. */
+  disableAddCard?: boolean;
+  /** Hide monetary amounts in the payment-history table. */
+  hidePrices?: boolean;
 }) {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -150,21 +154,23 @@ export default function BillingPanel({
               })()}
             </p>
           </div>
-          <button
-            onClick={handleAddCard}
-            disabled={adding}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60 shadow-sm"
-          >
-            {adding && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {adding ? "Saving…" : "+ Add card"}
-          </button>
+          {!disableAddCard && (
+            <button
+              onClick={handleAddCard}
+              disabled={adding}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60 shadow-sm"
+            >
+              {adding && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {adding ? "Saving…" : "+ Add card"}
+            </button>
+          )}
         </div>
         {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
         {loading ? (
           <div className="text-sm text-gray-500">Loading…</div>
         ) : methods.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-            No payment methods on file yet. Add a card to pay for services.
+            {disableAddCard ? "No payment methods on file yet." : "No payment methods on file yet. Add a card to pay for services."}
           </div>
         ) : (
           <div className="space-y-2">
@@ -221,7 +227,7 @@ export default function BillingPanel({
                 <tr className="text-left text-[#6B7280] border-b border-gray-100">
                   <th className="pb-3 font-medium">Date</th>
                   <th className="pb-3 font-medium">Description</th>
-                  <th className="pb-3 font-medium text-right">Amount</th>
+                  {!hidePrices && <th className="pb-3 font-medium text-right">Amount</th>}
                   <th className="pb-3 font-medium text-right">Status</th>
                 </tr>
               </thead>
@@ -235,9 +241,11 @@ export default function BillingPanel({
                       {p.description}
                       {p.provider_reference && <div className="text-[10px] text-gray-400 font-mono">{p.provider_reference}</div>}
                     </td>
-                    <td className="py-3 text-[#1F2937] font-medium text-right whitespace-nowrap">
-                      {p.amount_isk.toLocaleString("is-IS")} {p.currency}
-                    </td>
+                    {!hidePrices && (
+                      <td className="py-3 text-[#1F2937] font-medium text-right whitespace-nowrap">
+                        {p.amount_isk.toLocaleString("is-IS")} {p.currency}
+                      </td>
+                    )}
                     <td className="py-3 text-right whitespace-nowrap">
                       {statusPill(p.status)}
                       {p.pdf_url ? (

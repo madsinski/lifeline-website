@@ -592,12 +592,6 @@ function PackageStage({
               <div className="p-5">
                 <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 mb-3">{p.tag}</div>
                 <h3 className="text-lg font-bold text-[#0F172A]">{p.name}</h3>
-                <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold text-[#0F172A]">
-                    {p.priceIsk === 0 ? "Free" : p.priceIsk.toLocaleString("is-IS")}
-                  </span>
-                  {p.priceIsk > 0 && <span className="text-xs font-medium text-[#64748B]">ISK · one-time</span>}
-                </div>
                 <p className="text-sm text-[#475569] mt-2 leading-relaxed">{p.summary}</p>
                 <ul className="mt-3 space-y-1">
                   {p.includes.map((x) => (
@@ -824,22 +818,6 @@ function ReviewStage({
         {notes && <Row label="Notes" value={notes} />}
       </div>
 
-      {pkg.priceIsk > 0 ? (
-        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm">
-          <div className="flex items-center justify-between font-semibold text-[#0F172A]">
-            <span>Total</span>
-            <span>{pkg.priceIsk.toLocaleString("is-IS")} ISK</span>
-          </div>
-          <p className="text-xs text-[#64748B] mt-1">
-            Healthcare services are exempt from VAT in Iceland (Act 50/1988).
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900">
-          Free — no payment needed.
-        </div>
-      )}
-
       {error && <div className="text-sm text-red-600">{error}</div>}
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
@@ -910,10 +888,6 @@ function PayStage({
         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900">
           <strong>Test mode:</strong> no real charge is made. Your booking will be marked paid for internal testing.
         </div>
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <span className="text-[#64748B]">Charge amount</span>
-          <span className="font-semibold text-[#0F172A]">{pkg.priceIsk.toLocaleString("is-IS")} ISK</span>
-        </div>
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}
@@ -937,7 +911,7 @@ function PayStage({
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60"
         >
           {paying && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {paying ? "Processing…" : `Pay ${pkg.priceIsk.toLocaleString("is-IS")} ISK`}
+          {paying ? "Processing…" : "Pay"}
         </button>
       </div>
     </div>

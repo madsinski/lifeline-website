@@ -14,7 +14,7 @@ import { googleCalendarUrl, downloadIcs, type CalendarEvent } from "@/lib/calend
 import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 import AvatarPicker from "../components/AvatarPicker";
-import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
+import { PACKAGES as ASSESSMENT_PACKAGES } from "@/lib/assessment-packages";
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
 import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
@@ -1048,11 +1048,10 @@ function AccountPageInner() {
         setRefundRequestOpen(true);
         return false;
       }
-      const human = (amount + (hasCheckinAddon ? 18500 : 0)).toLocaleString("is-IS");
-      const addonLine = hasCheckinAddon ? " (including your 18,500 ISK doctor add-on)" : "";
+      const addonLine = hasCheckinAddon ? " (including your doctor add-on)" : "";
       const msg = reason === "change"
-        ? `Cancel your current booking and choose a different package? You'll receive a full refund of ${human} ISK${addonLine} within 3–5 business days.`
-        : `Cancel your booking and refund ${human} ISK${addonLine} within 3–5 business days?`;
+        ? `Cancel your current booking and choose a different package? You'll receive a full refund${addonLine} within 3–5 business days.`
+        : `Cancel your booking and refund the amount paid${addonLine} within 3–5 business days?`;
       if (!confirm(msg)) return false;
       setCancelBusy(true);
       try {
@@ -1350,7 +1349,7 @@ function AccountPageInner() {
                         </div>
                         <h3 className={`text-base font-semibold ${resolvedRefundRequest.status === "approved" ? "text-emerald-900" : "text-red-900"}`}>
                           {resolvedRefundRequest.status === "approved"
-                            ? `We're refunding ${(resolvedRefundRequest.approved_isk ?? 0).toLocaleString("is-IS")} ISK`
+                            ? "We're processing your refund"
                             : "We couldn't approve your refund"}
                         </h3>
                         {resolvedRefundRequest.admin_note && (
@@ -1446,7 +1445,7 @@ function AccountPageInner() {
                     videoConfirmBusy={videoConfirmBusy}
                     onPayDoctorAddon={async () => {
                       if (!user) return;
-                      if (!confirm("Add a doctor consultation to your Check-in round for 18,500 kr? You'll be charged via Straumur.")) return;
+                      if (!confirm("Add a doctor consultation to your Check-in round? You'll be charged via Straumur.")) return;
                       setPayingCheckinDoctor(true);
                       try {
                         const AMOUNT = 18500;
@@ -2648,9 +2647,6 @@ function AccountPageInner() {
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>
                           {activeTier.name}
                         </span>
-                        <span className="text-sm text-[#6B7280]">
-                          {activeTier.price === "0" ? "Free" : `${activeTier.price} ISK / ${activeTier.period}`}
-                        </span>
                       </div>
                       {subscription?.current_period_end && currentTier !== "free-trial" && (
                         <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 mb-4">
@@ -2722,10 +2718,7 @@ function AccountPageInner() {
                             <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold mb-2 ${tier.badgeColor}`}>
                               {tier.name}
                             </span>
-                            <p className="text-xl font-bold text-[#1F2937]">
-                              {tier.price === "0" ? "Free" : `${tier.price} ISK`}
-                            </p>
-                            <p className="text-xs text-[#6B7280] mb-3">{tier.period}</p>
+                            <p className="text-xs text-[#6B7280] mb-3 mt-1">{tier.period}</p>
                             <ul className="space-y-1">
                               {tier.features.map((f) => (
                                 <li key={f} className="text-xs text-[#6B7280] flex items-start gap-1.5">
@@ -2756,8 +2749,7 @@ function AccountPageInner() {
                         return (
                           <>
                             <p className="text-sm text-[#6B7280] mb-1">
-                              You are switching to <span className="font-semibold text-[#1F2937]">{target.name}</span>
-                              {isPaid ? ` at ${target.price} ISK / ${target.period}.` : " (free)."}
+                              You are switching to <span className="font-semibold text-[#1F2937]">{target.name}</span>.
                             </p>
                             {isPaid && (
                               <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 mb-3">
@@ -2792,7 +2784,7 @@ function AccountPageInner() {
                 </section>
 
                 {/* Payment methods + history — shared BillingPanel */}
-                <BillingPanel ownerType="client" ownerId={user.id} />
+                <BillingPanel ownerType="client" ownerId={user.id} disableAddCard hidePrices />
               </section>
             )}
 
@@ -2821,8 +2813,8 @@ function AccountPageInner() {
                     each acceptance certificate. */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="mb-3">
-                    <p className="text-sm font-medium text-[#1F2937]">Lögleg samþykki</p>
-                    <p className="text-xs text-[#6B7280]">Skjöl sem þú hefur undirritað rafrænt — sækja PDF.</p>
+                    <p className="text-sm font-medium text-[#1F2937]">Legal agreements</p>
+                    <p className="text-xs text-[#6B7280]">Documents you&apos;ve signed electronically — download as PDF.</p>
                   </div>
                   <SignedDocumentsList />
                 </div>
@@ -3479,7 +3471,7 @@ function CheckinJourney({
       if (!doctorAddonPaid) {
         return {
           title: "Doctor consultation",
-          description: "Optional add-on — book a 1:1 doctor review of your progress and an updated action plan. Charged separately at 18,500 kr.",
+          description: "Optional add-on — book a 1:1 doctor review of your progress and an updated action plan. Charged separately.",
           state: "pending" as const,
           cta: (
             <button
@@ -3488,7 +3480,7 @@ function CheckinJourney({
               className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white hover:opacity-95 disabled:opacity-50"
             >
               {payingDoctorAddon && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {payingDoctorAddon ? "Charging…" : "Add for 18,500 kr"}
+              {payingDoctorAddon ? "Charging…" : "Add doctor consultation"}
             </button>
           ),
         };
@@ -5522,9 +5514,6 @@ function GetStartedHero() {
                       <div className={`text-[10px] font-semibold uppercase tracking-wider ${pkg.dot}`}>{pkg.tag}</div>
                       <h3 className="text-base font-bold text-[#0F172A] mt-0.5">{pkg.name}</h3>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-[#0F172A] whitespace-nowrap">{formatPackagePrice(pkg.priceIsk)}</div>
-                    </div>
                   </div>
                   <p className="text-xs text-gray-600 mt-2 leading-relaxed">{pkg.summary}</p>
                   <ul className="mt-3 space-y-1.5">
@@ -5652,10 +5641,6 @@ function ServicesSection({
               <div className="p-6 flex-1 flex flex-col">
                 <div className="inline-flex items-center self-start px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 mb-3">{p.tag}</div>
                 <h3 className="text-lg font-bold text-[#0F172A]">{p.name}</h3>
-                <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold text-[#0F172A]">{p.price === "0" ? "Free" : p.price}</span>
-                  {p.price !== "0" && <span className="text-xs font-medium text-[#64748B]">{p.unit} · one-time</span>}
-                </div>
                 <p className="text-sm text-[#475569] mt-2 leading-relaxed">{p.desc}</p>
                 <ul className="mt-4 space-y-1.5 flex-1">
                   {p.includes.map((x) => (
@@ -6067,10 +6052,6 @@ function RefundRequestModal({
               <span className="text-[#64748B]">Booking</span>
               <span className="font-medium text-[#0F172A] text-right">{when}</span>
             </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-[#64748B]">Amount paid</span>
-              <span className="font-medium text-[#0F172A]">{(amountIsk + (includeAddon ? 18500 : 0)).toLocaleString("is-IS")} ISK</span>
-            </div>
           </div>
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Reason</span>
@@ -6085,7 +6066,7 @@ function RefundRequestModal({
           {includeCheckinAddon && (
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={includeAddon} onChange={(e) => setIncludeAddon(e.target.checked)} />
-              Also request refund of the 18,500 ISK Check-in doctor add-on
+              Also request refund of the Check-in doctor add-on
             </label>
           )}
           {err && <div className="text-sm text-red-600">{err}</div>}
