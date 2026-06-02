@@ -1514,6 +1514,53 @@ function initials(name: string | null | undefined): string {
   return parts.map((p) => p.charAt(0).toUpperCase()).join("");
 }
 
+// A single person card — avatar + name/role/email/phone. Used for both the
+// primary contact (emerald gradient avatar) and onboarded co-admins (gray
+// avatar), so they read as a consistent set when shown side by side.
+function ContactPersonCard({
+  name, email, phone, position, label, primary,
+}: {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  position: string | null;
+  label: string;
+  primary: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <div
+        className={`w-11 h-11 rounded-full flex items-center justify-center font-bold shrink-0 ${
+          primary
+            ? "bg-gradient-to-br from-blue-500 to-emerald-500 text-white"
+            : "bg-gray-100 text-gray-600"
+        }`}
+      >
+        {initials(name || email)}
+      </div>
+      <div className="min-w-0">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</div>
+        <div className="font-semibold text-gray-900 leading-tight truncate">
+          {name || email || (primary ? "Primary contact" : "Co-admin")}
+          {position && <span className="font-normal text-gray-500"> · {position}</span>}
+        </div>
+        <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+          {/* Show email only when it isn't already the title (i.e. a name exists) */}
+          {name && email && <span className="truncate">{email}</span>}
+          {phone && (
+            <span className="inline-flex items-center gap-1">
+              <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+              </svg>
+              {phone}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Page header card — company identity + the contact person (the primary admin),
 // with their position and phone. Replaces the plain company-name hero.
 function CompanyHeaderCard({
@@ -1532,6 +1579,9 @@ function CompanyHeaderCard({
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showCoAdmins, setShowCoAdmins] = useState(false);
   const coAdminCount = admins.filter((a) => !a.is_primary).length;
+  // Onboarded co-admins (completed setup → have a name) surface next to the
+  // contact person. Pending invites stay in the Co-admins dropdown only.
+  const onboardedCoAdmins = admins.filter((a) => !a.is_primary && a.full_name);
   return (
     <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="h-1.5 bg-gradient-to-r from-blue-500 to-emerald-500" />
@@ -1540,29 +1590,29 @@ function CompanyHeaderCard({
           <h1 className="text-2xl font-semibold text-gray-900 truncate">{companyName}</h1>
           {statusText && <p className="text-sm text-gray-600 mt-1">{statusText}</p>}
 
-          {primary && (
-            <div className="mt-4 flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
-                {initials(primary.full_name || primary.email)}
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Contact person</div>
-                <div className="font-semibold text-gray-900 leading-tight truncate">
-                  {primary.full_name || primary.email || "Primary contact"}
-                  {contactPosition && <span className="font-normal text-gray-500"> · {contactPosition}</span>}
-                </div>
-                <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                  {primary.email && <span className="truncate">{primary.email}</span>}
-                  {contactPhone && (
-                    <span className="inline-flex items-center gap-1">
-                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                      </svg>
-                      {contactPhone}
-                    </span>
-                  )}
-                </div>
-              </div>
+          {(primary || onboardedCoAdmins.length > 0) && (
+            <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap gap-x-8 gap-y-4">
+              {primary && (
+                <ContactPersonCard
+                  name={primary.full_name}
+                  email={primary.email}
+                  phone={contactPhone}
+                  position={contactPosition}
+                  label="Contact person"
+                  primary
+                />
+              )}
+              {onboardedCoAdmins.map((a) => (
+                <ContactPersonCard
+                  key={a.user_id}
+                  name={a.full_name}
+                  email={a.email}
+                  phone={a.phone}
+                  position={a.position}
+                  label="Co-admin"
+                  primary={false}
+                />
+              ))}
             </div>
           )}
         </div>
