@@ -692,10 +692,17 @@ export function renderInvoiceContactEmail(params: {
   amountTotal: number;
   invoiceNumber?: string | null;
   pdfUrl?: string | null;
+  // When the invoice has more than the single assessment line (e.g. the
+  // 3-month doctor call or the app subscription), pass every line here so
+  // the email lists them all. Falls back to the single assessment line.
+  lineItems?: Array<{ description: string; quantity: number; unitPrice: number }>;
 }) {
-  const { recipientName, companyName, quantity, unitPrice, amountTotal, invoiceNumber, pdfUrl } = params;
+  const { recipientName, companyName, quantity, unitPrice, amountTotal, invoiceNumber, pdfUrl, lineItems } = params;
   const money = (n: number) => `${n.toLocaleString("is-IS")} kr.`;
-  const lineItem = `Lifeline Health Assessment · ${quantity} × ${money(unitPrice)}`;
+  const lines = lineItems && lineItems.length > 0
+    ? lineItems.map((li) => `${li.description} · ${li.quantity} × ${money(li.unitPrice)}`)
+    : [`Lifeline Health Assessment · ${quantity} × ${money(unitPrice)}`];
+  const lineItem = lines.join("\n");
   const refLine = invoiceNumber ? `Invoice no. ${invoiceNumber}` : "";
   const text = `Hi ${recipientName},
 
@@ -720,7 +727,7 @@ If anything looks off, reply to this email and we'll help.
     <p style="margin:0 0 16px;color:#4b5563;">We've issued an invoice to <strong>${escapeHtml(companyName)}</strong>. It's delivered through PayDay's electronic invoicing system to the company's kennitala, so your accounting software should receive it automatically.</p>
     <div style="background:#f3f4f6;border-radius:10px;padding:16px;margin:20px 0;font-size:14px;color:#111827;line-height:1.7;">
       ${invoiceNumber ? `<div><strong>Invoice no.</strong> ${escapeHtml(invoiceNumber)}</div>` : ""}
-      <div>${escapeHtml(lineItem)}</div>
+      ${lines.map((l) => `<div>${escapeHtml(l)}</div>`).join("")}
       <div><strong>Total incl. VAT:</strong> ${money(amountTotal)}</div>
     </div>
     ${pdfUrl ? `<div style="text-align:center;margin:24px 0;"><a href="${pdfUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">View PDF</a></div>` : ""}

@@ -24,6 +24,26 @@ export async function POST(
   const createElectronicInvoice: boolean | undefined = body?.create_electronic_invoice;
   const sendEmail: boolean | undefined = body?.send_email;
 
+  // Optional extra invoice lines beyond the assessment line — e.g. the
+  // 3-month doctor call or the monthly app subscription, each at the
+  // company's custom price (the admin UI fills these from the company's
+  // commercial settings / signed PO). Validated, then trusted like the
+  // unit_price override above (staff-only endpoint).
+  type ExtraLine = { description: string; quantity: number; unit_price: number };
+  const additionalLines: ExtraLine[] = [];
+  if (Array.isArray(body?.additional_lines)) {
+    for (const raw of body.additional_lines as unknown[]) {
+      const l = raw as { description?: unknown; quantity?: unknown; unit_price?: unknown };
+      const description = typeof l.description === "string" ? l.description.trim() : "";
+      const quantity = typeof l.quantity === "number" ? l.quantity : NaN;
+      const unit_price = typeof l.unit_price === "number" ? l.unit_price : NaN;
+      if (!description || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unit_price) || unit_price < 0) {
+        return NextResponse.json({ error: "invalid_additional_line", detail: "Each extra line needs a description, a positive quantity and a non-negative price." }, { status: 400 });
+      }
+      additionalLines.push({ description, quantity: Math.round(quantity), unit_price: Math.round(unit_price) });
+    }
+  }
+
   const { data: company } = await supabaseAdmin
     .from("companies")
     .select("id, name, kennitala_encrypted, contact_person_id, assessment_unit_price, payday_customer_id, parent_company_id")
@@ -93,9 +113,10 @@ export async function POST(
     return NextResponse.json({ error: "nothing_to_invoice", detail: "No employees in roster." }, { status: 400 });
   }
 
-  const amountNet = unitPrice * quantity;
   // Health services are VAT exempt in Iceland (§2 gr. laga um virðisaukaskatt / heilbrigðisþjónusta er vsk-frjáls)
   const vatRate = 0;
+  const additionalNet = additionalLines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
+  const amountNet = unitPrice * quantity + additionalNet;
   const amountTotal = amountNet;
 
   // Billing email resolution order:
@@ -147,8 +168,23 @@ export async function POST(
     }, { status: 502 });
   }
 
-  // Step 2: create invoice
+  // Step 2: create invoice. The assessment line first, then any extra
+  // lines (3-month doctor call, app subscription) at their custom prices.
   const lineDescription = `Lifeline Health Assessment${notes ? ` — ${notes}` : ""}`;
+  const invoiceLines = [
+    {
+      description: lineDescription,
+      quantity,
+      unitPriceExcludingVat: unitPrice,
+      vatPercentage: vatRate,
+    },
+    ...additionalLines.map((l) => ({
+      description: l.description,
+      quantity: l.quantity,
+      unitPriceExcludingVat: l.unit_price,
+      vatPercentage: vatRate,
+    })),
+  ];
   const invoiceRes = await createPaydayInvoice({
     customerId: customerRes.customer_id,
     description: `Lifeline health assessments for ${company.name}`,
@@ -157,14 +193,7 @@ export async function POST(
     createElectronicInvoice: createElectronicInvoice ?? false,
     sendEmail: sendEmail ?? true,
     reference: `ll:${companyId}`,
-    lines: [
-      {
-        description: lineDescription,
-        quantity,
-        unitPriceExcludingVat: unitPrice,
-        vatPercentage: vatRate,
-      },
-    ],
+    lines: invoiceLines,
   });
 
   if (!invoiceRes.ok) {
@@ -188,12 +217,7 @@ export async function POST(
       amount_net: amountNet,
       amount_total: amountTotal,
       vat_rate: vatRate,
-      line_items: [{
-        description: lineDescription,
-        quantity,
-        unitPriceExcludingVat: unitPrice,
-        vatPercentage: vatRate,
-      }],
+      line_items: invoiceLines,
       issued_at: invoiceRes.issued_at || new Date().toISOString(),
       due_at: invoiceRes.due_at || new Date(Date.now() + 14 * 86_400_000).toISOString(),
       pdf_url: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
@@ -220,7 +244,9 @@ export async function POST(
       owner_company_name: company.name,
       amount_isk: amountTotal,
       currency: "ISK",
-      description: `Lifeline assessments · ${quantity} × ${unitPrice.toLocaleString("is-IS")} ISK`,
+      description: additionalLines.length > 0
+        ? `Lifeline · ${quantity} starfsmenn · ${invoiceLines.length} línur · ${amountTotal.toLocaleString("is-IS")} ISK`
+        : `Lifeline assessments · ${quantity} × ${unitPrice.toLocaleString("is-IS")} ISK`,
       provider: "payday",
       provider_reference: invoiceRes.invoice_number || invoiceRes.invoice_id || null,
       status: "pending",
@@ -253,6 +279,7 @@ export async function POST(
         amountTotal,
         invoiceNumber: invoiceRes.invoice_number || null,
         pdfUrl: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
+        lineItems: invoiceLines.map((l) => ({ description: l.description, quantity: l.quantity, unitPrice: l.unitPriceExcludingVat })),
       });
       const sendRes = await sendResendEmail({
         to: contactEmail,
@@ -276,6 +303,7 @@ export async function POST(
       amount_total: amountTotal,
       quantity,
       unit_price: unitPrice,
+      additional_lines: additionalLines.length,
       payday_invoice_number: invoiceRes.invoice_number || null,
     },
   });
@@ -288,6 +316,7 @@ export async function POST(
     unit_price: unitPrice,
     amount_net: amountNet,
     amount_total: amountTotal,
+    lines: invoiceLines.map((l) => ({ description: l.description, quantity: l.quantity, unit_price: l.unitPriceExcludingVat })),
     pdf_url: invoiceRes.invoice_id ? paydayPdfUrl(invoiceRes.invoice_id) : null,
     notify_email,
     notify_error,

@@ -804,6 +804,13 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
   const [employeeCount, setEmployeeCount] = useState(0);
   const [unitPrice, setUnitPrice] = useState(49900);
   const [notes, setNotes] = useState("");
+  // Optional extra lines, defaulted from the company's custom prices / signed PO.
+  const [includeFollowup, setIncludeFollowup] = useState(false);
+  const [followupQty, setFollowupQty] = useState(0);
+  const [followupPrice, setFollowupPrice] = useState(12900);
+  const [includeApp, setIncludeApp] = useState(false);
+  const [appQty, setAppQty] = useState(0);
+  const [appPrice, setAppPrice] = useState(3490);
 
   // Past invoices
   const [pastInvoices, setPastInvoices] = useState<{ number: string | null; quantity: number; amount_total: number; status: string; issued_at: string }[]>([]);
@@ -812,16 +819,33 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
     setOpen(true);
     setLoading(true);
     setNotes("");
-    // Fetch employee count, pricing, and past invoices
-    const [{ count }, { data: po }, { data: invoices }] = await Promise.all([
+    // Fetch employee count, pricing, the company's custom prices, and past invoices
+    const [{ count }, { data: po }, { data: commercial }, { data: invoices }] = await Promise.all([
       supabase.from("company_members").select("id", { count: "exact", head: true }).eq("company_id", companyId),
       supabase.from("b2b_purchase_orders").select("line_items").eq("company_id", companyId).eq("status", "signed").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("companies").select("followup_doctor_price, app_price_isk_monthly").eq("id", companyId).maybeSingle(),
       supabase.from("company_invoices").select("payday_invoice_number, quantity, amount_total, status, issued_at").eq("company_id", companyId).order("created_at", { ascending: false }).limit(5),
     ]);
-    setEmployeeCount(count || 0);
-    if (po?.line_items && Array.isArray(po.line_items) && po.line_items.length > 0) {
-      setUnitPrice((po.line_items[0] as { unit_price_isk?: number }).unit_price_isk || 49900);
-    }
+    const emp = count || 0;
+    setEmployeeCount(emp);
+    // Parse the signed PO: line 0 is the assessment, the follow-up line is
+    // identified by its description, the app line by its recurring marker.
+    const poLines = (po?.line_items && Array.isArray(po.line_items) ? po.line_items : []) as Array<{ description?: string; unit_price_isk?: number; qty?: number; recurring?: string | null }>;
+    if (poLines.length > 0) setUnitPrice(poLines[0].unit_price_isk || 49900);
+    const followupLine = poLines.find((l) => /eftirfylgni/i.test(l.description || ""));
+    const appLine = poLines.find((l) => l.recurring === "monthly");
+    const custFollowup = (commercial as { followup_doctor_price?: number | null } | null)?.followup_doctor_price;
+    const custApp = (commercial as { app_price_isk_monthly?: number | null } | null)?.app_price_isk_monthly;
+    // Follow-up: pre-checked when the signed PO included it; price prefers the
+    // PO line, then the company custom price, then the flat default.
+    setIncludeFollowup(!!followupLine);
+    setFollowupQty(followupLine?.qty ?? emp);
+    setFollowupPrice(followupLine?.unit_price_isk ?? custFollowup ?? 12900);
+    // App subscription is a recurring monthly charge — opt-in (unchecked) so
+    // it isn't billed on every assessment invoice by accident.
+    setIncludeApp(false);
+    setAppQty(appLine?.qty ?? emp);
+    setAppPrice(appLine?.unit_price_isk ?? custApp ?? 3490);
     setPastInvoices((invoices || []).map((i: any) => ({ number: i.payday_invoice_number, quantity: i.quantity, amount_total: i.amount_total, status: i.status, issued_at: i.issued_at })));
     setLoading(false);
   };
@@ -830,19 +854,28 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
     setSending(true);
     const { data: s } = await supabase.auth.getSession();
     const t = s.session?.access_token;
+    const additional_lines: Array<{ description: string; quantity: number; unit_price: number }> = [];
+    if (includeFollowup && followupQty > 0) {
+      additional_lines.push({ description: "Eftirfylgni læknis — 3 mánaða símtal", quantity: followupQty, unit_price: followupPrice });
+    }
+    if (includeApp && appQty > 0) {
+      additional_lines.push({ description: "Aðgangur að Lifeline appi — mánaðaráskrift", quantity: appQty, unit_price: appPrice });
+    }
     const res = await fetch(`/api/admin/companies/${companyId}/invoice`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-      body: JSON.stringify({ unit_price: unitPrice, quantity: employeeCount, notes: notes.trim() || undefined }),
+      body: JSON.stringify({ unit_price: unitPrice, quantity: employeeCount, notes: notes.trim() || undefined, additional_lines }),
     });
     const j = await res.json();
     setSending(false);
     setOpen(false);
     if (!res.ok) setToast({ type: "error", text: `Failed: ${j.detail || j.error || "unknown"}\n\nPayDay response:\n${JSON.stringify(j.raw || "none", null, 2)}` });
-    else setToast({ type: "success", text: `Invoice created${j.payday_invoice_number ? ` · #${j.payday_invoice_number}` : ""}\n\n${j.quantity} employees × ${j.unit_price.toLocaleString()} ISK = ${j.amount_total.toLocaleString()} ISK\nVAT exempt (health services) · Eindagi: 14 days` });
+    else setToast({ type: "success", text: `Invoice created${j.payday_invoice_number ? ` · #${j.payday_invoice_number}` : ""}\n\n${(j.lines || []).map((l: { description: string; quantity: number; unit_price: number }) => `${l.description} · ${l.quantity} × ${l.unit_price.toLocaleString()}`).join("\n")}\nTotal: ${j.amount_total.toLocaleString()} ISK\nVAT exempt (health services) · Eindagi: 14 days` });
   };
 
-  const total = employeeCount * unitPrice;
+  const total = employeeCount * unitPrice
+    + (includeFollowup ? followupQty * followupPrice : 0)
+    + (includeApp ? appQty * appPrice : 0);
 
   return (
     <>
@@ -898,19 +931,61 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
                   </div>
                 </div>
 
+                {/* Optional 3-month doctor call line */}
+                <div className="rounded-lg border border-gray-200 p-3 space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                    <input type="checkbox" checked={includeFollowup} onChange={(e) => setIncludeFollowup(e.target.checked)} className="rounded border-gray-300" />
+                    3-month doctor call
+                  </label>
+                  {includeFollowup && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="min-w-0">
+                        <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+                        <input type="number" min={0} value={followupQty} onChange={(e) => setFollowupQty(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
+                      </div>
+                      <div className="min-w-0">
+                        <label className="block text-xs text-gray-500 mb-1">Unit price (ISK)</label>
+                        <input type="number" min={0} value={followupPrice} onChange={(e) => setFollowupPrice(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Optional app subscription line (recurring — opt in per invoice) */}
+                <div className="rounded-lg border border-gray-200 p-3 space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                    <input type="checkbox" checked={includeApp} onChange={(e) => setIncludeApp(e.target.checked)} className="rounded border-gray-300" />
+                    App subscription <span className="text-xs font-normal text-gray-400">(monthly)</span>
+                  </label>
+                  {includeApp && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="min-w-0">
+                        <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+                        <input type="number" min={0} value={appQty} onChange={(e) => setAppQty(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
+                      </div>
+                      <div className="min-w-0">
+                        <label className="block text-xs text-gray-500 mb-1">Unit price (ISK / mo.)</label>
+                        <input type="number" min={0} value={appPrice} onChange={(e) => setAppPrice(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="min-w-0">
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Note (optional)</label>
                   <input
                     type="text" value={notes} onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Appears on the invoice line item"
+                    placeholder="Appears on the assessment line item"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-emerald-300 outline-none box-border"
                   />
                 </div>
 
                 {/* Total */}
                 <div className="bg-emerald-50 rounded-lg p-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm text-gray-600">{employeeCount} × {unitPrice.toLocaleString()} ISK</p>
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="text-sm text-gray-600">Assessment · {employeeCount} × {unitPrice.toLocaleString()} ISK</p>
+                    {includeFollowup && <p className="text-sm text-gray-600">Doctor call · {followupQty} × {followupPrice.toLocaleString()} ISK</p>}
+                    {includeApp && <p className="text-sm text-gray-600">App · {appQty} × {appPrice.toLocaleString()} ISK</p>}
                     <p className="text-xs text-gray-500">VAT exempt · health services</p>
                   </div>
                   <p className="text-2xl font-bold text-gray-900 shrink-0">{total.toLocaleString()} <span className="text-sm font-medium text-gray-500">ISK</span></p>
