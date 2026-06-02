@@ -6,21 +6,24 @@ import { createHash } from "crypto";
 // are allowed in this file. Exclusions are handled by the bypass list
 // + static-asset regex below.
 
-// Hard bypass list — these paths must always work regardless of access
-// rules: auth flows, admin (gated by /admin/login + AAL2), account
-// (employees sign in here), API routes, static assets, and the access
-// claim flow itself.
+// Hard bypass list — these paths are infrastructure / dedicated token
+// flows and must always work. Everything else (marketing site, signup,
+// /account/*, etc.) goes through the gate. The only ways in are:
+//   • staff (auto-granted via has_site_access)
+//   • a logged-in user with a matching access_grant
+//   • an unauthenticated visitor with a claimed site_access_token cookie
+// Bypassing the proxy is NOT the same as bypassing auth — /admin still
+// requires AAL2, /account still requires a session, etc.
 const BYPASS_PREFIXES = [
-  "/auth",
-  "/admin",
-  "/account",
-  "/api",
-  "/access",            // the /access/claim route
-  "/research",
-  "/survey",
-  "/verkefnalysing",
-  "/radningarsamningur",
-  "/present",           // public shareable presentation decks
+  "/auth",                  // Supabase auth callbacks
+  "/admin",                 // staff portal (own auth + AAL2)
+  "/api",                   // API routes (own auth)
+  "/access",                // the /access/claim + /access/error pages
+  "/account/login",         // existing users need to be able to log in
+  "/business/login",        //   "          "
+  "/business/onboard",      // B2B employee invite-token URLs (token IS access)
+  "/business/claim",        // B2B company-claim token URLs
+  "/coming-soon",           // the gate's own rewrite target
   "/_next",
   "/favicon",
 ];
