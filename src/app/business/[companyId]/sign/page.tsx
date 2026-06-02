@@ -63,6 +63,7 @@ export default function SignAgreementPage() {
   const [rounds, setRounds] = useState<1 | 2>(1);
   const [includeFollowup, setIncludeFollowup] = useState<boolean>(false);
   const [appAddon, setAppAddon] = useState<boolean>(false);
+  const [appMonths, setAppMonths] = useState<number>(12); // prepaid app term per employee
   const [lineItems, setLineItems] = useState<PurchaseOrderLineItem[]>([]);
   const [billingCadence, setBillingCadence] = useState<string>("one_time");
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -98,8 +99,9 @@ export default function SignAgreementPage() {
   const [discountStatus, setDiscountStatus] = useState<"idle" | "checking" | "applied" | "error">("idle");
   const [discountError, setDiscountError] = useState("");
 
-  // One-time subtotal excludes recurring lines (monthly app subscription),
-  // which are billed separately and shown on their own.
+  // One-time subtotal. The app subscription is now a one-time prepaid term
+  // (counted here); the recurring split is kept as generic infra for any
+  // future recurring line but produces 0 for current orders.
   const subtotal = useMemo(
     () => lineItems.filter((li) => !li.recurring).reduce((s, li) => s + (li.qty * li.unit_price_isk), 0),
     [lineItems],
@@ -236,22 +238,25 @@ export default function SignAgreementPage() {
         idx === 0 ? { ...li, unit_price_isk: customUnit, total_isk: li.qty * customUnit } : li,
       );
     }
-    // Append the monthly app subscription as a recurring line when offered + opted in.
+    // Append the app subscription as a one-time prepaid line (X months per
+    // employee) when offered + opted in. Included in the one-time total so it
+    // flows onto the PO and the invoice. unit_price = monthly × months.
     if (appEnabled && appAddon) {
+      const months = Math.max(1, appMonths);
       next = [...next, {
-        description: `Aðgangur að Lifeline appi — mánaðaráskrift starfsmanns (${emp} starfsm.)`,
+        description: `Aðgangur að Lifeline appi — ${months} mán. áskrift starfsmanns (${emp} starfsm.)`,
         qty: emp,
-        unit_price_isk: appMonthly,
-        total_isk: emp * appMonthly,
-        recurring: "monthly",
+        unit_price_isk: appMonthly * months,
+        total_isk: emp * appMonthly * months,
       }];
     }
     setLineItems(next);
-  }, [headcount, rounds, includeFollowup, customUnit, customFollowup, appEnabled, appAddon, appMonthly]);
+  }, [headcount, rounds, includeFollowup, customUnit, customFollowup, appEnabled, appAddon, appMonths, appMonthly]);
 
   const perEmployeeUnit = customUnit ?? assessmentUnitPriceIsk(Math.max(1, headcount), rounds);
   const assessmentTotal = Math.max(1, headcount) * rounds * perEmployeeUnit;
   const followupTotal = includeFollowup ? Math.max(1, headcount) * followupUnit : 0;
+  const appTotal = appEnabled && appAddon ? Math.max(1, headcount) * appMonthly * Math.max(1, appMonths) : 0;
 
   const sign = async () => {
     setError("");
@@ -502,7 +507,7 @@ export default function SignAgreementPage() {
                         "Turns each assessment into a daily plan employees actually follow",
                         "A real health coach in their pocket — questions answered between visits",
                         "Education and community that keep healthy habits going year-round",
-                        "Billed monthly per employee, separate from the one-time assessment fee",
+                        "Prepaid per employee for the chosen term, added to the one-time order",
                       ].map((point) => (
                         <li key={point} className="flex items-start gap-1.5 text-xs text-gray-600">
                           <svg className="w-3.5 h-3.5 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.4}>
@@ -515,7 +520,24 @@ export default function SignAgreementPage() {
                   </div>
                   <div className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(appMonthly)} <span className="font-normal text-gray-400">/ mo / employee</span></div>
                 </label>
-              ) : (
+              ) : null}
+              {appEnabled && appAddon && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 -mt-1">
+                  <label className="text-sm text-gray-700" htmlFor="app-months">Subscription length per employee</label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      id="app-months"
+                      value={appMonths}
+                      onChange={(e) => setAppMonths(parseInt(e.target.value, 10) || 1)}
+                      className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
+                    >
+                      {[1, 3, 6, 12, 24].map((m) => <option key={m} value={m}>{m} {m === 1 ? "month" : "months"}</option>)}
+                    </select>
+                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(appTotal)}</span>
+                  </div>
+                </div>
+              )}
+              {!appEnabled && (
                 <div className="flex items-start gap-3 rounded-xl border border-dashed border-gray-200 p-3 opacity-80">
                   <input type="checkbox" disabled className="mt-1 rounded border-gray-300" />
                   <div className="flex-1 min-w-0">
@@ -549,9 +571,9 @@ export default function SignAgreementPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="text-gray-700">
                   Coaching app subscription — {Math.max(1, headcount)} employee{headcount === 1 ? "" : "s"}
-                  <span className="text-gray-400"> · billed monthly</span>
+                  <span className="text-gray-400"> · {Math.max(1, appMonths)} {Math.max(1, appMonths) === 1 ? "month" : "months"} prepaid</span>
                 </div>
-                <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(recurringMonthly)} / mo</div>
+                <div className="text-gray-900 font-medium whitespace-nowrap">{fmtIsk(appTotal)}</div>
               </div>
             )}
           </div>

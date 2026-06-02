@@ -811,6 +811,7 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
   const [includeApp, setIncludeApp] = useState(false);
   const [appQty, setAppQty] = useState(0);
   const [appPrice, setAppPrice] = useState(3490);
+  const [appDesc, setAppDesc] = useState("Aðgangur að Lifeline appi — áskrift");
 
   // Past invoices
   const [pastInvoices, setPastInvoices] = useState<{ number: string | null; quantity: number; amount_total: number; status: string; issued_at: string }[]>([]);
@@ -833,7 +834,10 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
     const poLines = (po?.line_items && Array.isArray(po.line_items) ? po.line_items : []) as Array<{ description?: string; unit_price_isk?: number; qty?: number; recurring?: string | null }>;
     if (poLines.length > 0) setUnitPrice(poLines[0].unit_price_isk || 49900);
     const followupLine = poLines.find((l) => /eftirfylgni/i.test(l.description || ""));
-    const appLine = poLines.find((l) => l.recurring === "monthly");
+    // The app line is a one-time prepaid term on the PO (qty = employees,
+    // unit price = monthly × months), identified by its description. Older
+    // POs may still carry a recurring marker — match either.
+    const appLine = poLines.find((l) => /lifeline appi/i.test(l.description || "") || l.recurring === "monthly");
     const custFollowup = (commercial as { followup_doctor_price?: number | null } | null)?.followup_doctor_price;
     const custApp = (commercial as { app_price_isk_monthly?: number | null } | null)?.app_price_isk_monthly;
     // Follow-up: pre-checked when the signed PO included it; price prefers the
@@ -841,11 +845,12 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
     setIncludeFollowup(!!followupLine);
     setFollowupQty(followupLine?.qty ?? emp);
     setFollowupPrice(followupLine?.unit_price_isk ?? custFollowup ?? 12900);
-    // App subscription is a recurring monthly charge — opt-in (unchecked) so
-    // it isn't billed on every assessment invoice by accident.
-    setIncludeApp(false);
+    // App: pre-check + prefill from the prepaid PO line (term price already
+    // baked into unit price); fall back to the company's monthly price.
+    setIncludeApp(!!appLine);
     setAppQty(appLine?.qty ?? emp);
     setAppPrice(appLine?.unit_price_isk ?? custApp ?? 3490);
+    setAppDesc(appLine?.description || "Aðgangur að Lifeline appi — áskrift");
     setPastInvoices((invoices || []).map((i: any) => ({ number: i.payday_invoice_number, quantity: i.quantity, amount_total: i.amount_total, status: i.status, issued_at: i.issued_at })));
     setLoading(false);
   };
@@ -859,7 +864,7 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
       additional_lines.push({ description: "Eftirfylgni læknis — 3 mánaða símtal", quantity: followupQty, unit_price: followupPrice });
     }
     if (includeApp && appQty > 0) {
-      additional_lines.push({ description: "Aðgangur að Lifeline appi — mánaðaráskrift", quantity: appQty, unit_price: appPrice });
+      additional_lines.push({ description: appDesc, quantity: appQty, unit_price: appPrice });
     }
     const res = await fetch(`/api/admin/companies/${companyId}/invoice`, {
       method: "POST",
@@ -955,19 +960,22 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
                 <div className="rounded-lg border border-gray-200 p-3 space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
                     <input type="checkbox" checked={includeApp} onChange={(e) => setIncludeApp(e.target.checked)} className="rounded border-gray-300" />
-                    App subscription <span className="text-xs font-normal text-gray-400">(monthly)</span>
+                    App subscription <span className="text-xs font-normal text-gray-400">(prepaid term)</span>
                   </label>
                   {includeApp && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="min-w-0">
-                        <label className="block text-xs text-gray-500 mb-1">Quantity</label>
-                        <input type="number" min={0} value={appQty} onChange={(e) => setAppQty(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="min-w-0">
+                          <label className="block text-xs text-gray-500 mb-1">Quantity (employees)</label>
+                          <input type="number" min={0} value={appQty} onChange={(e) => setAppQty(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
+                        </div>
+                        <div className="min-w-0">
+                          <label className="block text-xs text-gray-500 mb-1">Unit price (ISK / employee)</label>
+                          <input type="number" min={0} value={appPrice} onChange={(e) => setAppPrice(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <label className="block text-xs text-gray-500 mb-1">Unit price (ISK / mo.)</label>
-                        <input type="number" min={0} value={appPrice} onChange={(e) => setAppPrice(Math.max(0, parseInt(e.target.value) || 0))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 box-border" />
-                      </div>
-                    </div>
+                      <p className="text-[11px] text-gray-400">Prefilled from the signed PO when the company prepaid app access. Unit price covers the full term per employee.</p>
+                    </>
                   )}
                 </div>
 
