@@ -19,6 +19,7 @@ interface CompanyRow {
   kennitala_last4?: string | null;
   // Per-company commercial overrides set by Lifeline staff in /admin/companies.
   assessment_unit_price?: number | null; // custom per-assessment price (overrides the tiered price)
+  followup_doctor_price?: number | null; // custom 3-month doctor call price (overrides the flat default)
   app_enabled?: boolean | null;          // offer the Lifeline app subscription on this order
   app_price_isk_monthly?: number | null; // monthly per-employee app price
 }
@@ -158,7 +159,7 @@ export default function SignAgreementPage() {
     setLoading(true);
     const { data, error: e } = await supabase
       .from("companies")
-      .select("id, name, contact_person_id, agreement_signed_at, assessment_unit_price, app_enabled, app_price_isk_monthly")
+      .select("id, name, contact_person_id, agreement_signed_at, assessment_unit_price, followup_doctor_price, app_enabled, app_price_isk_monthly")
       .eq("id", companyId)
       .maybeSingle();
     if (e || !data) {
@@ -215,6 +216,11 @@ export default function SignAgreementPage() {
   const customUnit = typeof company?.assessment_unit_price === "number" && company.assessment_unit_price >= 0
     ? company.assessment_unit_price
     : null;
+  // Per-company custom 3-month doctor call price overrides the flat default.
+  const customFollowup = typeof company?.followup_doctor_price === "number" && company.followup_doctor_price >= 0
+    ? company.followup_doctor_price
+    : null;
+  const followupUnit = customFollowup ?? FOLLOWUP_DOCTOR_PRICE_ISK;
   const appEnabled = company?.app_enabled === true;
   const appMonthly = typeof company?.app_price_isk_monthly === "number" ? company.app_price_isk_monthly : 3490;
 
@@ -222,7 +228,7 @@ export default function SignAgreementPage() {
   // applying the custom price override and the optional monthly app subscription.
   useEffect(() => {
     const emp = Math.max(1, headcount);
-    const { lineItems: items } = buildAssessmentPricing({ employeeCount: emp, rounds, includeFollowup });
+    const { lineItems: items } = buildAssessmentPricing({ employeeCount: emp, rounds, includeFollowup, followupUnitPrice: customFollowup ?? undefined });
     let next: PurchaseOrderLineItem[] = items;
     // Override the assessment line (index 0) with the company's custom unit price.
     if (customUnit != null) {
@@ -241,11 +247,11 @@ export default function SignAgreementPage() {
       }];
     }
     setLineItems(next);
-  }, [headcount, rounds, includeFollowup, customUnit, appEnabled, appAddon, appMonthly]);
+  }, [headcount, rounds, includeFollowup, customUnit, customFollowup, appEnabled, appAddon, appMonthly]);
 
   const perEmployeeUnit = customUnit ?? assessmentUnitPriceIsk(Math.max(1, headcount), rounds);
   const assessmentTotal = Math.max(1, headcount) * rounds * perEmployeeUnit;
-  const followupTotal = includeFollowup ? Math.max(1, headcount) * FOLLOWUP_DOCTOR_PRICE_ISK : 0;
+  const followupTotal = includeFollowup ? Math.max(1, headcount) * followupUnit : 0;
 
   const sign = async () => {
     setError("");
@@ -474,7 +480,7 @@ export default function SignAgreementPage() {
                     ))}
                   </ul>
                 </div>
-                <div className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(FOLLOWUP_DOCTOR_PRICE_ISK)} <span className="font-normal text-gray-400">/ employee</span></div>
+                <div className="text-sm font-semibold text-gray-700 whitespace-nowrap">{fmtIsk(followupUnit)} <span className="font-normal text-gray-400">/ employee</span></div>
               </label>
 
               {appEnabled ? (

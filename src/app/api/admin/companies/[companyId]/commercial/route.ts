@@ -6,11 +6,13 @@ export const maxDuration = 30;
 
 // Per-company commercial settings set by Lifeline staff:
 //   • assessment_unit_price  — custom per-assessment price shown on /sign + invoices
+//   • followup_doctor_price  — custom 3-month doctor call price (NULL = flat default)
 //   • app_enabled            — offer the Lifeline app subscription on the order
 //   • app_price_isk_monthly  — monthly per-employee app price
 //   • default_tier           — subscription tier employees get on onboarding (app access)
 //
-// Columns added by supabase/migration-b2b-app-subscription.sql. Mutations are
+// Columns added by supabase/migration-b2b-app-subscription.sql and
+// supabase/migration-companies-followup-doctor-price.sql. Mutations are
 // AAL2-gated per the admin-write convention.
 
 const ALLOWED_TIERS = ["free-trial", "self-maintained", "premium", "full-access"] as const;
@@ -36,6 +38,17 @@ export async function PUT(
       patch.assessment_unit_price = Math.round(v);
     } else {
       return NextResponse.json({ error: "invalid_assessment_unit_price" }, { status: 400 });
+    }
+  }
+
+  if ("followup_doctor_price" in body) {
+    const v = body.followup_doctor_price;
+    if (v === null) {
+      patch.followup_doctor_price = null;
+    } else if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
+      patch.followup_doctor_price = Math.round(v);
+    } else {
+      return NextResponse.json({ error: "invalid_followup_doctor_price" }, { status: 400 });
     }
   }
 
@@ -73,7 +86,7 @@ export async function PUT(
     .from("companies")
     .update(patch)
     .eq("id", companyId)
-    .select("id, assessment_unit_price, app_enabled, app_price_isk_monthly, default_tier")
+    .select("id, assessment_unit_price, followup_doctor_price, app_enabled, app_price_isk_monthly, default_tier")
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: "update_failed", detail: error.message }, { status: 500 });

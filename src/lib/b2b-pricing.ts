@@ -3,7 +3,8 @@
 // Tier is chosen automatically from headcount + number of assessment
 // rounds (1× or 2×). Larger teams and the 2× commitment both lower the
 // per-assessment unit price. The 3-month follow-up doctor interview is a
-// flat per-employee add-on.
+// flat per-employee add-on, overridable per company via followupUnitPrice
+// (companies.followup_doctor_price set by staff in /admin/companies).
 //
 // Source of truth for the numbers the company sees on the purchase order.
 
@@ -25,6 +26,11 @@ export interface PricingInput {
   rounds: 1 | 2;
   /** Include the 3-month follow-up doctor interview (12 900 ISK / employee). */
   includeFollowup: boolean;
+  /**
+   * Custom per-employee price (ISK) for the follow-up doctor call, set by
+   * staff per company. Omit / undefined → flat FOLLOWUP_DOCTOR_PRICE_ISK.
+   */
+  followupUnitPrice?: number;
 }
 
 export interface PricingResult {
@@ -41,6 +47,10 @@ export interface PricingResult {
 export function buildAssessmentPricing(input: PricingInput): PricingResult {
   const { employeeCount, rounds, includeFollowup } = input;
   const unitPriceIsk = assessmentUnitPriceIsk(employeeCount, rounds);
+  const followupUnitPrice =
+    typeof input.followupUnitPrice === "number" && input.followupUnitPrice >= 0
+      ? input.followupUnitPrice
+      : FOLLOWUP_DOCTOR_PRICE_ISK;
 
   const lineItems: PurchaseOrderLineItem[] = [];
 
@@ -59,8 +69,8 @@ export function buildAssessmentPricing(input: PricingInput): PricingResult {
     lineItems.push({
       description: `Eftirfylgni læknis — 15 mín viðtal eftir 3 mánuði (${employeeCount} starfsmenn)`,
       qty: employeeCount,
-      unit_price_isk: FOLLOWUP_DOCTOR_PRICE_ISK,
-      total_isk: employeeCount * FOLLOWUP_DOCTOR_PRICE_ISK,
+      unit_price_isk: followupUnitPrice,
+      total_isk: employeeCount * followupUnitPrice,
     });
   }
 

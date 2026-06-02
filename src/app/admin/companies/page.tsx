@@ -26,6 +26,7 @@ interface CompanyRow {
   blood_test_day_count: number;
   default_tier?: string | null;
   assessment_unit_price?: number | null;
+  followup_doctor_price?: number | null;
   app_enabled?: boolean | null;
   app_price_isk_monthly?: number | null;
   status?: "draft" | "contact_invited" | "active" | "archived" | null;
@@ -1113,6 +1114,7 @@ function CommercialSettingsButton({ company, onReload }: { company: CompanyRow; 
   const [provisioning, setProvisioning] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [price, setPrice] = useState<string>(company.assessment_unit_price != null ? String(company.assessment_unit_price) : "");
+  const [followupPrice, setFollowupPrice] = useState<string>(company.followup_doctor_price != null ? String(company.followup_doctor_price) : "");
   const [appEnabled, setAppEnabled] = useState<boolean>(company.app_enabled === true);
   const [appPrice, setAppPrice] = useState<string>(String(company.app_price_isk_monthly ?? 3490));
   const [tier, setTier] = useState<string>(company.default_tier || "");
@@ -1132,6 +1134,7 @@ function CommercialSettingsButton({ company, onReload }: { company: CompanyRow; 
       headers,
       body: JSON.stringify({
         assessment_unit_price: price.trim() === "" ? null : Math.max(0, parseInt(price, 10) || 0),
+        followup_doctor_price: followupPrice.trim() === "" ? null : Math.max(0, parseInt(followupPrice, 10) || 0),
         app_enabled: appEnabled,
         app_price_isk_monthly: Math.max(0, parseInt(appPrice, 10) || 0),
         default_tier: tier || null,
@@ -1199,6 +1202,17 @@ function CommercialSettingsButton({ company, onReload }: { company: CompanyRow; 
                 <p className="text-[11px] text-gray-400 mt-1">Shown on the signed contract and used on invoices. Blank = tiered price (49,900–54,900).</p>
               </div>
 
+              {/* Custom 3-month doctor call price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">Custom 3-month doctor call price (ISK / employee)</label>
+                <input
+                  type="number" min={0} value={followupPrice} onChange={(e) => setFollowupPrice(e.target.value)}
+                  placeholder="Leave blank for the standard price"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">The optional 15-min follow-up call, when added to the order. Blank = standard price (12,900).</p>
+              </div>
+
               {/* App subscription */}
               <div className="rounded-xl border border-gray-200 p-3 space-y-3">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
@@ -1259,11 +1273,11 @@ export default function AdminCompaniesPage() {
     setLoading(true);
     const [rpcRes, tiersRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
-      supabase.from("companies").select("id, name, default_tier, assessment_unit_price, app_enabled, app_price_isk_monthly, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id"),
+      supabase.from("companies").select("id, name, default_tier, assessment_unit_price, followup_doctor_price, app_enabled, app_price_isk_monthly, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id"),
     ]);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
-      type ExtraRow = { id: string; name: string; default_tier: string | null; assessment_unit_price: number | null; app_enabled: boolean | null; app_price_isk_monthly: number | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null };
+      type ExtraRow = { id: string; name: string; default_tier: string | null; assessment_unit_price: number | null; followup_doctor_price: number | null; app_enabled: boolean | null; app_price_isk_monthly: number | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null };
       const extraMap = new Map<string, ExtraRow>((tiersRes.data || []).map((t: ExtraRow) => [t.id, t]));
       const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => {
         const extra = extraMap.get(c.id);
@@ -1273,6 +1287,7 @@ export default function AdminCompaniesPage() {
           ...c,
           default_tier: extra?.default_tier || null,
           assessment_unit_price: extra?.assessment_unit_price ?? null,
+          followup_doctor_price: extra?.followup_doctor_price ?? null,
           app_enabled: extra?.app_enabled ?? false,
           app_price_isk_monthly: extra?.app_price_isk_monthly ?? 3490,
           status: extra?.status || "active",
