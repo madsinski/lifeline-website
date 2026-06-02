@@ -12,29 +12,38 @@
 --   src/lib/b2b-pricing.ts                                           (tiered default when this column is NULL)
 --
 -- Background: this column was originally created directly in the SQL editor
--- (it had no committed migration) with a column-level DEFAULT 29900 (the
--- B2C "premium" tier price, reused by mistake). Because the company INSERT
--- paths never set assessment_unit_price explicitly
--- (api/business/companies/route.ts on self-signup; api/admin/companies/
--- create-draft/route.ts when the price field is left blank), Postgres filled
--- the omitted column with 29900 on every new company. The non-NULL value was
--- then treated as an admin-stipulated custom price, so the intended tiered
--- default (~52 000 ISK, see src/lib/b2b-pricing.ts) was never reached.
+-- (it had no committed migration) as `integer NOT NULL DEFAULT 29900` — the
+-- B2C "premium" tier price (src/app/admin/page.tsx), reused by mistake. Two
+-- problems compounded:
 --
--- The fix: drop the default so an unspecified price stays NULL and the code
--- falls back to the tiered price, and null out companies that inherited 29900
--- automatically. This file documents the column so it is finally tracked in
--- the repo.
+--   1. NOT NULL contradicts the code, which types the column `number | null`
+--      and uses NULL as the sentinel for "no admin-stipulated price → fall
+--      back to the tiered ~52 000 ISK price" (src/lib/b2b-pricing.ts,
+--      src/app/business/[companyId]/sign/page.tsx). With NOT NULL the value
+--      can never be NULL, so the tiered fallback never fires, and the admin
+--      "leave blank" action (commercial/route.ts sends null) would error.
+--   2. DEFAULT 29900 meant every company whose INSERT omitted the field
+--      (api/business/companies/route.ts on self-signup; create-draft/route.ts
+--      when the price box is blank) silently inherited 29900, which the rest
+--      of the app then read as a real custom price.
+--
+-- The fix: make the column nullable, drop the default, and null out the rows
+-- that inherited 29900 automatically. This file documents the column so it is
+-- finally tracked in the repo.
 
 -- 1. Ensure the column exists (it predates the repo's migrations) ----
 ALTER TABLE public.companies
   ADD COLUMN IF NOT EXISTS assessment_unit_price integer;
 
--- 2. Remove the accidental column default ---------------------------
+-- 2. Allow NULL — the code uses NULL = "no custom price, use tiered default"
+ALTER TABLE public.companies
+  ALTER COLUMN assessment_unit_price DROP NOT NULL;
+
+-- 3. Remove the accidental column default ---------------------------
 ALTER TABLE public.companies
   ALTER COLUMN assessment_unit_price DROP DEFAULT;
 
--- 3. Clear the value on companies that inherited 29900 automatically.
+-- 4. Clear the value on companies that inherited 29900 automatically.
 --    These were never priced by an admin; NULL lets them fall back to the
 --    tiered default. Scope by id instead if any company was intentionally
 --    priced at 29 900.
