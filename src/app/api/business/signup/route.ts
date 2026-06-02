@@ -89,25 +89,36 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Generate a confirmation link and email it via Resend. A magic link both
-  // verifies the email (sets email_confirmed_at) and signs the user in when
-  // clicked, landing them back in the onboarding flow.
+  // Generate a magic-link token and email a link to our own verify route
+  // (/auth/business-confirm). We deliberately email the `hashed_token` rather
+  // than Supabase's raw `action_link`: the action_link relies on the PKCE
+  // code-verifier flow, but the verifier is never stored in the recipient's
+  // browser (this link is generated server-side), so the raw link lands them on
+  // the page WITHOUT a session and bounces them to login. Our verify route
+  // calls verifyOtp({ token_hash, type }) client-side, which both confirms the
+  // email (sets email_confirmed_at) and establishes the session in cookies — so
+  // the user arrives at onboarding already signed in.
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
   const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
     email,
     options: { redirectTo: `${siteUrl}/business/signup` },
   });
-  if (linkErr || !linkData?.properties?.action_link) {
+  if (linkErr || !linkData?.properties?.hashed_token) {
     console.error("[b2b signup] generateLink failed", linkErr);
     return NextResponse.json({ error: "confirmation_link_failed" }, { status: 500 });
   }
 
+  const confirmLink =
+    `${siteUrl}/auth/business-confirm` +
+    `?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}` +
+    `&type=magiclink&next=${encodeURIComponent("/business/signup")}`;
+
   const send = await sendEmail({
     to: email,
     subject: "Confirm your email — Lifeline Health",
-    html: confirmationEmailHtml(linkData.properties.action_link),
-    text: `Confirm your email to continue setting up your company on Lifeline Health:\n\n${linkData.properties.action_link}`,
+    html: confirmationEmailHtml(confirmLink),
+    text: `Confirm your email to continue setting up your company on Lifeline Health:\n\n${confirmLink}`,
   });
   if (!send.ok) {
     console.error("[b2b signup] confirmation email failed", send.error);
