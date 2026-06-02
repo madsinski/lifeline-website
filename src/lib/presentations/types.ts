@@ -80,7 +80,9 @@ export interface ChipItem { label: string; }
 export type SlideType =
   | "title" | "stats" | "cards" | "quote" | "story" | "team"
   | "pillars" | "steps" | "bullets" | "phone-feature"
-  | "app-showcase" | "coaching" | "timeline" | "closing";
+  | "app-showcase" | "coaching" | "timeline" | "closing"
+  // from-scratch layout primitives
+  | "statement" | "metric" | "feature-rows" | "hero-image" | "checklist";
 
 export interface Slide {
   id: string;
@@ -106,7 +108,11 @@ export interface Slide {
   pillars?: PillarItem[];
   nodes?: NodeItem[];
   members?: MemberItem[];
-  columns?: 2 | 3 | 4;    // grid width for `cards`
+  rows?: CardItem[];      // feature-rows
+  items?: string[];       // checklist
+  value?: string;         // metric — the giant number
+  image?: string;         // hero-image — edge-bleed image
+  columns?: 2 | 3 | 4;    // grid width for `cards` / `checklist`
   notes?: string;         // presenter notes (shown with N key, never public)
 }
 
@@ -321,12 +327,51 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       F.footnote,
     ],
   },
+  statement: {
+    type: "statement", label: "Statement", description: "One bold, full-bleed statement.",
+    fields: [ F.kicker, { key: "heading", label: "Statement", kind: "textarea", help: "Big. Use ==accent== for the gradient." }, F.lead ],
+  },
+  metric: {
+    type: "metric", label: "Metric", description: "A giant number beside a supporting headline.",
+    fields: [
+      F.kicker,
+      { key: "value", label: "Giant value", kind: "text", noTranslate: true },
+      F.heading, F.lead, F.footnote,
+    ],
+  },
+  "feature-rows": {
+    type: "feature-rows", label: "Feature rows", description: "Full-width stacked rows with hairlines.",
+    fields: [
+      F.kicker, F.heading,
+      { key: "rows", label: "Rows", kind: "list", itemLabel: "row", itemFields: [
+        { key: "icon", label: "Icon", kind: "icon" },
+        { key: "title", label: "Title", kind: "text" },
+        { key: "body", label: "Body", kind: "textarea" },
+      ] },
+    ],
+  },
+  "hero-image": {
+    type: "hero-image", label: "Hero image", description: "Heading beside an edge-bleed image.",
+    fields: [
+      { key: "image", label: "Image", kind: "image", imageRole: "background" },
+      F.kicker, F.heading, F.lead,
+      { key: "tagline", label: "Tagline line", kind: "text" },
+    ],
+  },
+  checklist: {
+    type: "checklist", label: "Checklist", description: "Big two-column list of checked items.",
+    fields: [
+      F.kicker, F.heading,
+      { key: "columns", label: "Columns", kind: "select", options: [{ value: "1", label: "1" }, { value: "2", label: "2" }] },
+      { key: "items", label: "Items", kind: "list", itemLabel: "item", itemFields: [{ key: "value", label: "Text", kind: "textarea" }] },
+    ],
+  },
 };
 
 export const SLIDE_TYPE_ORDER: SlideType[] = [
-  "title", "stats", "cards", "quote", "story", "team", "pillars",
-  "steps", "bullets", "phone-feature", "app-showcase", "coaching",
-  "timeline", "closing",
+  "title", "statement", "metric", "stats", "cards", "feature-rows",
+  "checklist", "quote", "story", "team", "pillars", "steps", "bullets",
+  "phone-feature", "app-showcase", "coaching", "timeline", "hero-image", "closing",
 ];
 
 // ----------------------------------------------------------------------------
@@ -376,5 +421,19 @@ export function makeBlankSlide(type: SlideType): Slide {
       return { ...base, kicker: "Your journey", heading: "From start to finish.", nodes: [ { icon: "clip", title: "Start", body: "" }, { icon: "chart", title: "Finish", body: "" } ], lead: "" };
     case "closing":
       return { ...base, theme: "dark", kicker: "Getting started", heading: "A strong ==closing== line.", lead: "", tagline: "Tagline.", footnote: "" };
+    case "statement":
+      return { ...base, theme: "dark", kicker: "", heading: "A bold ==statement== that stands alone.", lead: "" };
+    case "metric":
+      return { ...base, theme: "dark", kicker: "By the numbers", value: "80%", heading: "What the number means.", lead: "A sentence of context.", footnote: "" };
+    case "feature-rows":
+      return { ...base, kicker: "Section", heading: "A few things, in a row.", rows: [
+        { icon: "target", title: "First", body: "Body text." },
+        { icon: "pulse", title: "Second", body: "Body text." },
+        { icon: "chart", title: "Third", body: "Body text." },
+      ] };
+    case "hero-image":
+      return { ...base, theme: "dark", kicker: "Section", heading: "A ==headline== beside an image.", lead: "Supporting copy.", tagline: "", image: "" };
+    case "checklist":
+      return { ...base, kicker: "Section", heading: "What's included.", columns: 2, items: ["First item.", "Second item.", "Third item.", "Fourth item."] };
   }
 }

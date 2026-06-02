@@ -266,6 +266,73 @@ function SlideBody({ s }: { s: Slide }) {
         </div>
       );
 
+    case "statement":
+      return (
+        <div className="body center">
+          {s.kicker && <span className="kicker">{s.kicker}</span>}
+          <p className="statement">{rich(s.heading)}</p>
+          {s.lead && <p className="lead" style={{ marginTop: "1.6rem" }}>{s.lead}</p>}
+        </div>
+      );
+
+    case "metric":
+      return (
+        <div className="body two" style={{ alignItems: "center", gridTemplateColumns: ".9fr 1.1fr" }}>
+          <div className="metric-val"><span className="grad">{s.value}</span></div>
+          <div>
+            {s.kicker && <span className="kicker">{s.kicker}</span>}
+            <h2>{rich(s.heading)}</h2>
+            {s.lead && <p className="lead" style={{ marginTop: "1rem" }}>{s.lead}</p>}
+            {s.footnote && <p className="footnote">{s.footnote}</p>}
+          </div>
+        </div>
+      );
+
+    case "feature-rows":
+      return (
+        <div className="body">
+          {s.kicker && <span className="kicker">{s.kicker}</span>}
+          {s.heading && <h2>{rich(s.heading)}</h2>}
+          <div className="frows" style={{ marginTop: "1.4rem" }}>
+            {(s.rows || []).map((r, i) => (
+              <div key={i} className="frow">
+                <div className="icon"><Icon name={r.icon} /></div>
+                <h3>{r.title}</h3>
+                <p>{r.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case "hero-image":
+      return (
+        <>
+          <div className="hero-img" style={{ backgroundImage: s.image ? `url(${s.image})` : undefined }}>
+            {!s.image && <span className="hero-ph">No image yet</span>}
+          </div>
+          <div className="body hero-body">
+            {s.kicker && <span className="kicker">{s.kicker}</span>}
+            <h1 style={{ fontSize: "clamp(1.6rem,4.4cqw,3.4rem)" }}>{rich(s.heading)}</h1>
+            {s.lead && <p className="lead" style={{ marginTop: "1.2rem" }}>{s.lead}</p>}
+            {s.tagline && <p className="tagline" style={{ marginTop: "1.6rem" }}>{s.tagline}</p>}
+          </div>
+        </>
+      );
+
+    case "checklist":
+      return (
+        <div className="body">
+          {s.kicker && <span className="kicker">{s.kicker}</span>}
+          {s.heading && <h2>{rich(s.heading)}</h2>}
+          <div className={`checklist cols-${s.columns || 2}`} style={{ marginTop: "1.6rem" }}>
+            {(s.items || []).map((it, i) => (
+              <div key={i} className="check"><span className="cbox" /><span>{it}</span></div>
+            ))}
+          </div>
+        </div>
+      );
+
     default:
       return null;
   }
