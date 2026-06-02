@@ -9,6 +9,7 @@
 import type { PresentationData, Slide, DesignId } from "./types";
 import { newId } from "./types";
 import { standardDeckSlides } from "./standard-deck";
+import { editorialDeck, keynoteDeck, clinicalDeck, energeticDeck, brochureDeck } from "./template-decks";
 
 export interface PresentationTemplate {
   id: string;
@@ -28,7 +29,22 @@ export const TEMPLATES: PresentationTemplate[] = [
   { id: "vital", name: "Vital · Medical", description: "Full deck · crisp white, dotted grid, data-forward.", design: "vital" },
   { id: "pulse", name: "Pulse · Motivational", description: "Full deck · big bold type, energetic emerald→lime.", design: "pulse" },
   { id: "journey", name: "Journey · Personal", description: "Full deck · cream editorial with handwritten accents.", design: "journey" },
+  // From-scratch decks — different layouts/elements, not re-skins.
+  { id: "editorial", name: "Editorial", description: "Rebuilt from scratch · photo cover, pull-quotes & feature rows.", design: "journey" },
+  { id: "keynote", name: "Keynote", description: "Rebuilt from scratch · minimal, one idea per slide, giant numbers.", design: "midnight" },
+  { id: "clinical-report", name: "Clinical Report", description: "Rebuilt from scratch · data-forward metrics, checklists & steps.", design: "vital" },
+  { id: "energetic", name: "Energetic", description: "Rebuilt from scratch · bold motivational statements & metrics.", design: "pulse" },
+  { id: "brochure", name: "Brochure", description: "Rebuilt from scratch · image-led wellness brochure.", design: "bloom" },
 ];
+
+// From-scratch templates map to a bespoke deck builder + design.
+const CUSTOM_DECKS: Record<string, { fn: () => Slide[]; design: DesignId }> = {
+  editorial: { fn: editorialDeck, design: "journey" },
+  keynote: { fn: keynoteDeck, design: "midnight" },
+  "clinical-report": { fn: clinicalDeck, design: "vital" },
+  energetic: { fn: energeticDeck, design: "pulse" },
+  brochure: { fn: brochureDeck, design: "bloom" },
+};
 
 /** Returns a fresh copy of the standard slides with brand-new slide IDs. */
 function cloneWithFreshIds(slides: Slide[]): Slide[] {
@@ -37,6 +53,8 @@ function cloneWithFreshIds(slides: Slide[]): Slide[] {
 }
 
 export function buildTemplateData(templateId: string): PresentationData {
+  const custom = CUSTOM_DECKS[templateId];
+  if (custom) return { slides: cloneWithFreshIds(custom.fn()), design: custom.design };
   const tpl = TEMPLATES.find((t) => t.id === templateId);
   return { slides: cloneWithFreshIds(standardDeckSlides()), design: tpl?.design ?? "lifeline" };
 }
