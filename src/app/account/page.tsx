@@ -190,6 +190,7 @@ function AccountPageInner() {
   /* password */
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
 
   /* delete account */
@@ -1125,12 +1126,17 @@ function AccountPageInner() {
 
   const handleChangePassword = async () => {
     setPasswordMsg("");
+    if (newPassword !== confirmNewPassword) {
+      setPasswordMsg("Passwords don't match.");
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       setPasswordMsg(error.message);
     } else {
       setPasswordMsg("Password updated successfully.");
       setNewPassword("");
+      setConfirmNewPassword("");
       setTimeout(() => {
         setShowPasswordForm(false);
         setPasswordMsg("");
@@ -2852,12 +2858,15 @@ function AccountPageInner() {
                   {showPasswordForm && (
                     <div className="mt-4 max-w-sm space-y-3">
                       <input type="password" placeholder="New password (min 6 characters)" value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
+                      <input type="password" placeholder="Confirm new password" value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)} autoComplete="new-password"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                       {passwordMsg && (
                         <p className={`text-xs ${passwordMsg.includes("success") ? "text-green-600" : "text-red-600"}`}>{passwordMsg}</p>
                       )}
-                      <button onClick={handleChangePassword} disabled={newPassword.length < 6}
+                      <button onClick={handleChangePassword} disabled={newPassword.length < 6 || confirmNewPassword.length < 6}
                         className="px-5 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Update Password
                       </button>

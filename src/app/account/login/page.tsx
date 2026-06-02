@@ -34,6 +34,7 @@ function AccountLoginContent() {
   const [signupStage, setSignupStage] = useState<"form" | "terms">("form");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -100,6 +101,11 @@ function AccountLoginContent() {
         }
         if (password.length < 12) {
           setError("Password must be at least 12 characters.");
+          setLoading(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError("Passwords don't match.");
           setLoading(false);
           return;
         }
@@ -183,6 +189,7 @@ function AccountLoginContent() {
       setMode("login");
       setSignupStage("form");
       setPassword("");
+      setConfirmPassword("");
       setAcceptTerms(false);
       setLoading(false);
       return;
@@ -380,8 +387,31 @@ function AccountLoginContent() {
                     : "Enter your password"
                 }
                 minLength={mode === "signup" ? 12 : undefined}
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
               />
             </div>
+
+            {mode === "signup" && (
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Confirm password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
+                  placeholder="Re-enter your password"
+                  minLength={12}
+                  autoComplete="new-password"
+                />
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">

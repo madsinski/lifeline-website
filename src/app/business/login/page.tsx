@@ -26,6 +26,7 @@ function BusinessLoginInner() {
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +50,10 @@ function BusinessLoginInner() {
 
   const submitSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError(t("b2b.signup.password_mismatch", "Passwords don't match."));
+      return;
+    }
     setLoading(true);
     setError("");
     setInfo("");
@@ -309,6 +314,23 @@ function BusinessLoginInner() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
                     placeholder={t("b2b.signup.password_placeholder", "At least 12 characters")}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="signupConfirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("b2b.signup.confirm_password", "Confirm password")}
+                  </label>
+                  <input
+                    id="signupConfirmPassword"
+                    type="password"
+                    required
+                    minLength={12}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
+                    placeholder={t("b2b.signup.confirm_password_placeholder", "Re-enter your password")}
+                    autoComplete="new-password"
                   />
                 </div>
 
