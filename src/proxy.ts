@@ -89,9 +89,12 @@ export async function proxy(request: NextRequest) {
   //    network call entirely if there isn't a Supabase auth cookie on
   //    the request — anonymous visitors are the common case and don't
   //    need a round-trip to Supabase just to be sent to coming-soon.
+  // @supabase/ssr stores the session cookie under "sb-<ref>-auth-token",
+  // but large tokens get chunked into "...-auth-token.0", ".1", … so
+  // we look for the substring rather than an exact suffix match.
   const hasSupabaseAuthCookie = request.cookies
     .getAll()
-    .some((c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"));
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
 
   if (hasSupabaseAuthCookie) {
     const {
