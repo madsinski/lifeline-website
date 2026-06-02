@@ -50,7 +50,11 @@ export default function ComingSoon() {
             width={220}
             height={60}
             priority
-            style={{ transform: "translateX(20px) translateY(-100px)" }}
+            // The wordmark is right-heavy (mark on the left, "lifeline
+            // health" trailing right), so geometric centring still reads
+            // shifted right. Small negative X compensates so the visual
+            // weight sits over the vertical centre.
+            style={{ transform: "translateX(-12px) translateY(-100px)" }}
           />
           <h1 className="mt-10 text-2xl font-semibold text-gray-900 tracking-tight">
             Væntanlegt
