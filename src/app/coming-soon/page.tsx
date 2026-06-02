@@ -2,13 +2,17 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { useI18n } from "@/lib/i18n";
 
+// Hardcoded Icelandic on purpose — this page is the public gate for a
+// service that's offered in Iceland only. Honouring a per-user English
+// preference from localStorage (which the global i18n provider does)
+// is exactly the wrong behaviour here: anyone who'd flipped the rest of
+// the site to English while it was still publicly browsable now sees
+// the wait-list screen in English. Don't use the i18n hook here.
 export default function ComingSoon() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,14 +26,14 @@ export default function ComingSoon() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setErrorMsg(body?.error || t("coming-soon.error", "Eitthvað fór úrskeiðis. Reyndu aftur."));
+        setErrorMsg(body?.error || "Eitthvað fór úrskeiðis. Reyndu aftur.");
         setStatus("error");
         return;
       }
       setStatus("success");
       setEmail("");
     } catch {
-      setErrorMsg(t("coming-soon.error", "Eitthvað fór úrskeiðis. Reyndu aftur."));
+      setErrorMsg("Eitthvað fór úrskeiðis. Reyndu aftur.");
       setStatus("error");
     }
   };
@@ -49,10 +53,10 @@ export default function ComingSoon() {
             style={{ transform: "translateX(20px) translateY(-100px)" }}
           />
           <h1 className="mt-10 text-2xl font-semibold text-gray-900 tracking-tight">
-            {t("coming-soon.title", "Væntanlegt")}
+            Væntanlegt
           </h1>
           <p className="mt-3 text-gray-500 text-center">
-            {t("coming-soon.description", "Við erum að byggja eitthvað frábært. Vertu fyrst/ur til að vita þegar við opnum.")}
+            Við erum að byggja eitthvað frábært. Vertu fyrst/ur til að vita þegar við opnum.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 w-full flex flex-col sm:flex-row gap-2">
@@ -61,7 +65,7 @@ export default function ComingSoon() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("coming-soon.placeholder", "netfang@dæmi.is")}
+              placeholder="netfang@dæmi.is"
               disabled={status === "submitting" || status === "success"}
               className="flex-1 px-4 py-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition disabled:opacity-60"
             />
@@ -70,13 +74,13 @@ export default function ComingSoon() {
               disabled={status === "submitting" || status === "success"}
               className="px-6 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-all duration-200 whitespace-nowrap disabled:opacity-60"
             >
-              {status === "submitting" ? "…" : status === "success" ? t("coming-soon.success_button", "Takk!") : t("coming-soon.submit", "Láttu mig vita")}
+              {status === "submitting" ? "…" : status === "success" ? "Takk!" : "Láttu mig vita"}
             </button>
           </form>
 
           {status === "success" && (
             <p className="mt-3 text-sm text-emerald-600">
-              {t("coming-soon.success_message", "Þú ert komin/n á listann. Við höfum samband.")}
+              Þú ert komin/n á listann. Við höfum samband.
             </p>
           )}
           {status === "error" && (
