@@ -54,7 +54,7 @@ export default function ComingSoon() {
             // health" trailing right), so geometric centring still reads
             // shifted right. Small negative X compensates so the visual
             // weight sits over the vertical centre.
-            style={{ transform: "translateX(-12px) translateY(-100px)" }}
+            style={{ transform: "translateX(-32px) translateY(-100px)" }}
           />
           <h1 className="mt-10 text-2xl font-semibold text-gray-900 tracking-tight">
             Væntanlegt
