@@ -71,17 +71,28 @@ export async function POST(
   const { data: companyRow } = await supabaseAdmin
     .from("companies").select("name").eq("id", companyId).maybeSingle();
   const companyName = companyRow?.name || "your company";
+  // Email a link to our own verify route (/auth/business-confirm) carrying the
+  // magic-link `hashed_token` rather than Supabase's raw `action_link`. The raw
+  // action_link relies on the PKCE code-verifier flow, but the verifier is never
+  // stored in the recipient's browser (this link is generated server-side), so
+  // landing it straight on /business/co-admin-setup leaves them WITHOUT a session
+  // — and if the inviter is logged in in the same browser, the page reads the
+  // inviter's session instead. business-confirm calls verifyOtp({ token_hash })
+  // which establishes the co-admin's session in cookies, then forwards to setup.
   const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
     email,
     options: { redirectTo: `${siteUrl}/business/co-admin-setup` },
   });
-  if (linkErr || !linkData?.properties?.action_link) {
+  if (linkErr || !linkData?.properties?.hashed_token) {
     console.error("[co-admin] generateLink failed", linkErr);
     // The co-admin row exists; tell the UI the email didn't go out.
     return NextResponse.json({ ok: true, user_id: target.id, email, email_sent: false });
   }
-  const link = linkData.properties.action_link;
+  const link =
+    `${siteUrl}/auth/business-confirm` +
+    `?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}` +
+    `&type=magiclink&next=${encodeURIComponent("/business/co-admin-setup")}`;
   const send = await sendEmail({
     to: email,
     subject: `You're a co-admin for ${companyName} — Lifeline Health`,
