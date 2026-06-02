@@ -21,8 +21,19 @@ const BYPASS_PREFIXES = [
   "/access",                // the /access/claim + /access/error pages
   "/account/login",         // existing users need to be able to log in
   "/business/login",        //   "          "
-  "/business/onboard",      // B2B employee invite-token URLs (token IS access)
+  // ── Token-gated / unguessable-URL flows: the URL itself is the
+  //    access mechanism (per-recipient secret token, noindex'd, never
+  //    listed), so they have to bypass the coming-soon gate the same
+  //    way /business/onboard does. Removing any of these silently
+  //    breaks links already sent to people outside the system.
+  "/business/onboard",      // B2B employee invite-token URLs
   "/business/claim",        // B2B company-claim token URLs
+  "/survey",                // per-recipient feedback survey links
+  "/research",              // unlisted clinical/advisor documents
+  "/verkefnalysing",        // staff project-description URLs
+  "/radningarsamningur",    // staff employment-contract sign URLs
+  "/present",               // shareable presentation decks
+  // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
   "/_next",
   "/favicon",
