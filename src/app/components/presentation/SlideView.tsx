@@ -333,6 +333,28 @@ function SlideBody({ s }: { s: Slide }) {
         </div>
       );
 
+    case "report":
+      return (
+        <div className="body two" style={{ gridTemplateColumns: ".82fr 1.18fr" }}>
+          <div>
+            {s.kicker && <span className="kicker">{s.kicker}</span>}
+            <h2>{rich(s.heading)}</h2>
+            {s.lead && <p className="lead" style={{ marginTop: ".9rem" }}>{s.lead}</p>}
+            {!!(s.bullets || []).length && (
+              <ul className="clean" style={{ marginTop: "1.2rem" }}>
+                {s.bullets!.map((b, i) => <li key={i}><span>{b}</span></li>)}
+              </ul>
+            )}
+          </div>
+          <div className="laptop">
+            <div className="screen">
+              {s.image ? <img src={s.image} alt={s.heading || "Report"} /> : <div className="phone-ph">No screenshot yet</div>}
+            </div>
+            <div className="laptop-base" />
+          </div>
+        </div>
+      );
+
     default:
       return null;
   }

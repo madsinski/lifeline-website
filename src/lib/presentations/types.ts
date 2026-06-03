@@ -82,7 +82,8 @@ export type SlideType =
   | "pillars" | "steps" | "bullets" | "phone-feature"
   | "app-showcase" | "coaching" | "timeline" | "closing"
   // from-scratch layout primitives
-  | "statement" | "metric" | "feature-rows" | "hero-image" | "checklist";
+  | "statement" | "metric" | "feature-rows" | "hero-image" | "checklist"
+  | "report";
 
 export interface Slide {
   id: string;
@@ -366,12 +367,19 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "items", label: "Items", kind: "list", itemLabel: "item", itemFields: [{ key: "value", label: "Text", kind: "textarea" }] },
     ],
   },
+  report: {
+    type: "report", label: "Report (laptop)", description: "A wide screenshot in a laptop mock-up beside text.",
+    fields: [
+      F.kicker, F.heading, F.lead, F.bullets,
+      { key: "image", label: "Screenshot", kind: "image", imageRole: "phone" },
+    ],
+  },
 };
 
 export const SLIDE_TYPE_ORDER: SlideType[] = [
   "title", "statement", "metric", "stats", "cards", "feature-rows",
   "checklist", "quote", "story", "team", "pillars", "steps", "bullets",
-  "phone-feature", "app-showcase", "coaching", "timeline", "hero-image", "closing",
+  "phone-feature", "report", "app-showcase", "coaching", "timeline", "hero-image", "closing",
 ];
 
 // ----------------------------------------------------------------------------
@@ -435,5 +443,7 @@ export function makeBlankSlide(type: SlideType): Slide {
       return { ...base, theme: "dark", kicker: "Section", heading: "A ==headline== beside an image.", lead: "Supporting copy.", tagline: "", image: "" };
     case "checklist":
       return { ...base, kicker: "Section", heading: "What's included.", columns: 2, items: ["First item.", "Second item.", "Third item.", "Fourth item."] };
+    case "report":
+      return { ...base, kicker: "Your report", heading: "Your complete health report.", lead: "Every marker, scored and explained.", bullets: ["A score for each area of your health.", "Plain-language explanations and next steps.", "Trends over time as you reassess."], image: "" };
   }
 }

@@ -13,6 +13,7 @@ export const EXISTING_IMAGES: ExistingImage[] = [
   { url: "/presentation-images/banner.png", label: "Vestmannaeyjar aerial", category: "Backgrounds" },
 
   // Editorial / clinical (portrait-ish)
+  { url: "/presentation-images/health-report.jpg", label: "Health check report (screenshot)", category: "App screenshots" },
   { url: "/presentation-images/victor-clinic-bw.jpg", label: "Physician on clinic floor (b&w)", category: "Editorial" },
   { url: "/presentation-images/victor-surgery.jpg", label: "In the clinic", category: "Editorial" },
   { url: "/presentation-images/victor-fjarlaekningar.jpg", label: "Telemedicine", category: "Editorial" },
