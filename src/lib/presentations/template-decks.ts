@@ -82,17 +82,16 @@ export function editorialDeck(): Slide[] {
 // switch between the two companies (see DeckAssets `Logo`, deck-css brand-fjar).
 export function lifelineFjarlaekningarDeck(): Slide[] {
   return [
-    // 1 · Lifeline elevator pitch — phone screenshot of the app
-    s({ type: "phone-feature", theme: "dark", brand: "lifeline",
+    // 1 · Lifeline elevator pitch — two services beside a phone screenshot
+    s({ type: "coaching", theme: "dark", brand: "lifeline",
       kicker: "Lifeline Health",
-      heading: "Prevention, turned into a ==daily plan.==",
-      lead: "An Icelandic health platform — a clinical-grade assessment plus ongoing, personalised coaching, for individuals and the companies that cover them.",
-      bullets: [
-        "A real assessment: 50+ blood markers, body composition and lifestyle — reviewed by a physician.",
-        "A Lifestyle Score across exercise, nutrition, sleep and mental wellness.",
-        "Daily actions and coaching that adapt as your numbers improve.",
-      ],
-      phone: IMG.lifelineApp }),
+      heading: "Two services, one ==health journey.==",
+      lead: "A clinical Health Check, and the coaching that turns knowing into doing.",
+      phone: IMG.lifelineApp,
+      cards: [
+        { icon: "clip", title: "The Health Check", body: "Body-composition scan, a targeted blood panel and a lifestyle questionnaire — reviewed by a physician, then a doctor interview to walk through your results and Lifestyle Score." },
+        { icon: "spark", title: "Daily coaching", body: "A daily action plan across exercise, nutrition, sleep and mental wellness, built on your results — with an AI coach, plus a personal coach and weekly check-ins on Premium. It adapts as you improve." },
+      ] }),
     // 2 · Fjarlækningar elevator pitch — laptop screenshot of the web app
     s({ type: "report", theme: "dark", brand: "fjarlaekningar",
       kicker: "Fjarlækningar",
