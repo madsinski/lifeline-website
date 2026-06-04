@@ -9,7 +9,7 @@
 import type { PresentationData, Slide, DesignId } from "./types";
 import { newId } from "./types";
 import { standardDeckSlides } from "./standard-deck";
-import { editorialDeck, keynoteDeck, clinicalDeck, energeticDeck, brochureDeck } from "./template-decks";
+import { editorialDeck, keynoteDeck, clinicalDeck, energeticDeck, brochureDeck, lifelineFjarlaekningarDeck } from "./template-decks";
 
 export interface PresentationTemplate {
   id: string;
@@ -35,6 +35,8 @@ export const TEMPLATES: PresentationTemplate[] = [
   { id: "clinical-report", name: "Clinical Report", description: "Rebuilt from scratch · data-forward metrics, checklists & steps.", design: "vital" },
   { id: "energetic", name: "Energetic", description: "Rebuilt from scratch · bold motivational statements & metrics.", design: "pulse" },
   { id: "brochure", name: "Brochure", description: "Rebuilt from scratch · image-led wellness brochure.", design: "bloom" },
+  // Joint two-company showcase — short deck, per-slide brand switching.
+  { id: "lifeline-fjarlaekningar", name: "Lifeline + Fjarlækningar", description: "4 slides · about + team for both companies. Exportable to PDF.", design: "lifeline" },
 ];
 
 // From-scratch templates map to a bespoke deck builder + design.
@@ -44,6 +46,7 @@ const CUSTOM_DECKS: Record<string, { fn: () => Slide[]; design: DesignId }> = {
   "clinical-report": { fn: clinicalDeck, design: "vital" },
   energetic: { fn: energeticDeck, design: "pulse" },
   brochure: { fn: brochureDeck, design: "bloom" },
+  "lifeline-fjarlaekningar": { fn: lifelineFjarlaekningarDeck, design: "lifeline" },
 };
 
 /** Returns a fresh copy of the standard slides with brand-new slide IDs. */

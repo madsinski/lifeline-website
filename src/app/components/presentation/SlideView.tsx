@@ -368,7 +368,7 @@ export function SlideView({ slide }: { slide: Slide }) {
       {hasBg && <div className="slide-bg" style={{ backgroundImage: `url(${slide.bg})` }} />}
       {hasBg && <div className="slide-bg-ov" />}
       <div className="slide-head">
-        <Logo />
+        <Logo brand={slide.brand} />
         <HeadTag tag={slide.tag} />
       </div>
       <SlideBody s={slide} />

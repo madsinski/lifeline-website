@@ -23,6 +23,15 @@ const TEAM: Slide["members"] = [
   { photo: IMG.dagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
 ];
 
+// Fjarlækningar leadership. Victor & Mads share photos with the Lifeline team;
+// Guðbjartur and Elvar Páll have no photo on file yet (graceful placeholder).
+const FJAR_TEAM: Slide["members"] = [
+  { photo: IMG.victor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
+  { photo: IMG.mads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "Medical Doctor" },
+  { photo: "", flag: "Chief Medical Officer", name: "Guðbjartur Ólafsson", role: "Specialist Doctor" },
+  { photo: "", flag: "Chief Marketing Officer", name: "Elvar Páll Sigurðsson", role: "Marketing" },
+];
+
 let _c = 0;
 const id = () => `t${_c++}`;
 const s = (slide: Omit<Slide, "id">): Slide => ({ id: id(), ...slide });
@@ -67,6 +76,41 @@ export function editorialDeck(): Slide[] {
       { icon: "cal", title: "Quarterly doctor call", body: "Optional — four times a year, by video." },
     ] }),
     s({ type: "hero-image", theme: "dark", image: IMG.banner, kicker: "Getting started", heading: "The next best time is ==today.==", lead: "Book your assessment, and we'll take it from there.", tagline: "Ahead of yourself." }),
+  ];
+}
+
+// ── Lifeline + Fjarlækningar — a 4-slide joint showcase ──────────────────────
+// One "about" slide per company, then a team slide per company. Each slide
+// carries its own `brand`, so the header wordmark switches between the two
+// companies (see DeckAssets `Logo` + SlideView header).
+export function lifelineFjarlaekningarDeck(): Slide[] {
+  return [
+    // 1 · About Lifeline Health
+    s({ type: "title", theme: "dark", brand: "lifeline", bg: IMG.banner,
+      kicker: "About · Lifeline Health",
+      heading: "Health, ==written by you.==",
+      lead: "Lifeline Health is an Icelandic health platform: a clinical-grade health assessment paired with ongoing, personalised coaching — for individuals and for companies.",
+      tagline: "Ahead of yourself." }),
+    // 2 · About Fjarlækningar
+    s({ type: "title", theme: "light", brand: "fjarlaekningar",
+      kicker: "About · Fjarlækningar",
+      heading: "Healthcare, ==without the wait.==",
+      lead: "Fjarlækningar ehf. is an Icelandic telemedicine service — doctor consultations by video, with bookings and visits handled through the Medalia patient portal.",
+      tagline: "Care, wherever you are.",
+      footnote: "fjarlaekningar.is" }),
+    // 3 · Lifeline Health team
+    s({ type: "team", theme: "light", brand: "lifeline",
+      kicker: "The team · Lifeline Health",
+      heading: "The people behind Lifeline.",
+      lead: "Physicians at the core — building the prevention layer between healthcare and daily life.",
+      members: TEAM }),
+    // 4 · Fjarlækningar team
+    s({ type: "team", theme: "light", brand: "fjarlaekningar",
+      kicker: "The team · Fjarlækningar",
+      heading: "The people behind Fjarlækningar.",
+      lead: "A doctor-led team bringing specialist care within reach over video.",
+      members: FJAR_TEAM,
+      footnote: "Photos for Guðbjartur and Elvar Páll can be added in the editor." }),
   ];
 }
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Slide } from "@/lib/presentations/types";
 import { DECK_CSS } from "./deck-css";
 import { DeckDefs, SlideView } from "./SlideView";
+import { DeckPrint } from "./DeckPrint";
 
 function hasBg(s: Slide): boolean {
   return (s.type === "title" || s.type === "closing") && !!s.bg;
@@ -41,6 +42,7 @@ export function Deck({ slides, slidesIs, design, initialIndex = 0, onClose }: { 
   const hasIs = !!slidesIs && slidesIs.length === slides.length;
   const [i, setI] = useState(initialIndex);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const [loc, setLoc] = useState<"en" | "is">(hasIs ? "is" : "en"); // Icelandic audience by default
   const rootRef = useRef<HTMLDivElement>(null);
   const touchX = useRef(0);
@@ -119,6 +121,7 @@ export function Deck({ slides, slidesIs, design, initialIndex = 0, onClose }: { 
         <button aria-label="Previous slide" onClick={() => go(i - 1)}>‹</button>
         <span className="count">{i + 1} / {total}</span>
         <button aria-label="Next slide" onClick={() => go(i + 1)}>›</button>
+        <button aria-label="Export PDF" title="Export PDF" onClick={() => setPrintOpen(true)} style={{ width: "auto", padding: "0 .7rem", fontSize: ".8rem", fontWeight: 700 }}>PDF</button>
         <button aria-label="Fullscreen" onClick={toggleFullscreen}>⛶</button>
         {onClose && <button aria-label="Close" onClick={onClose}>✕</button>}
       </div>
@@ -128,6 +131,7 @@ export function Deck({ slides, slidesIs, design, initialIndex = 0, onClose }: { 
         <p>{cur.notes || "—"}</p>
       </div>
       </div>
+      {printOpen && <DeckPrint slides={view} design={design} onClose={() => setPrintOpen(false)} />}
     </div>
   );
 }
