@@ -96,12 +96,13 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
     // 2 · Fjarlækningar elevator pitch — laptop screenshot of the web app
     s({ type: "report", theme: "dark", brand: "fjarlaekningar",
       kicker: "Fjarlækningar",
-      heading: "A doctor, ==without the wait.==",
-      lead: "An Icelandic telemedicine service — see a physician by video, with booking, consultation and follow-up handled through the Medalia patient portal.",
+      heading: "Care that skips the ==waiting room.==",
+      lead: "An asynchronous telemedicine service, built by Icelandic doctors and specialists. Pick your concern, answer a focused questionnaire, and a physician reviews it and prescribes treatment — no appointment needed.",
       bullets: [
-        "Choose the service you need — allergies, infections, prescriptions and more.",
-        "Video consultations with Icelandic-licensed doctors.",
-        "Book, consult and follow up entirely online.",
+        "Choose from a menu of common medical problems.",
+        "Answer a focused questionnaire — with a home test where it helps: urine stick, strep, CRP.",
+        "A doctor reviews your answers and prescribes the right treatment.",
+        "First pilot underway with South Iceland Primary Health Care.",
       ],
       image: IMG.fjarApp }),
     // 3 · One team, two companies — shared founders + a branch per company
