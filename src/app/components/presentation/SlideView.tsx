@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- deck renders CMS/storage/full-bleed imagery where next/image's layout constraints don't fit; plain <img> is intentional. */
 import React from "react";
-import type { Slide } from "@/lib/presentations/types";
+import type { Slide, MemberItem } from "@/lib/presentations/types";
 import { DeckDefs, Logo, Icon } from "./DeckAssets";
 
 export { DeckDefs };
@@ -34,6 +34,19 @@ function PhoneImg({ src, alt }: { src?: string; alt?: string }) {
   return (
     <div className="phone-shot">
       {src ? <img src={src} alt={alt || ""} /> : <div className="phone-ph">No image yet</div>}
+    </div>
+  );
+}
+
+function MemberCard({ m }: { m: MemberItem }) {
+  return (
+    <div className="member">
+      {m.photo
+        ? <img className="photo" src={m.photo} alt={m.name} />
+        : <div className="photo ph-empty">No photo</div>}
+      {m.flag && <span className="flag">{m.flag}</span>}
+      <h4>{m.name}</h4>
+      <span className="role">{m.role}</span>
     </div>
   );
 }
@@ -152,6 +165,33 @@ function SlideBody({ s }: { s: Slide }) {
           {s.footnote && <p className="footnote">{s.footnote}</p>}
         </div>
       );
+
+    case "team-branch": {
+      const branch = (label: string | undefined, brand: Slide["brand"], members: MemberItem[] | undefined) => (
+        <div className={`tb-branch${brand === "fjarlaekningar" ? " brand-fjar" : ""}`}>
+          <div className="tb-branch-head">
+            <Logo brand={brand} />
+            {label && <span className="tb-label">{label}</span>}
+          </div>
+          <div className="tb-row">{(members || []).map((m, i) => <MemberCard key={i} m={m} />)}</div>
+        </div>
+      );
+      return (
+        <div className="body team-branch">
+          {s.kicker && <span className="kicker">{s.kicker}</span>}
+          <h2>{rich(s.heading)}</h2>
+          {s.lead && <p className="lead" style={{ marginTop: ".6rem" }}>{s.lead}</p>}
+          <div className="tb-common">
+            {s.commonLabel && <span className="tb-label">{s.commonLabel}</span>}
+            <div className="tb-row">{(s.common || []).map((m, i) => <MemberCard key={i} m={m} />)}</div>
+          </div>
+          <div className="tb-split">
+            {branch(s.branch1Label, s.branch1Brand, s.branch1)}
+            {branch(s.branch2Label, s.branch2Brand, s.branch2)}
+          </div>
+        </div>
+      );
+    }
 
     case "pillars":
       return (

@@ -11,6 +11,9 @@ const IMG = {
   banner: "/presentation-images/banner.png",
   clinic: "/presentation-images/victor-clinic-bw.jpg",
   victor: "/team/victor.png", mads: "/team/mads.png", vignir: "/team/vignir.png", dagbjort: "/team/dagbjort.png",
+  // Fjarlækningar headshots (Canon EOS R5 portraits, shared with the joint deck)
+  fjarVictor: "/team/fjar-victor.jpg", fjarMads: "/team/fjar-mads.jpg", fjarDagbjort: "/team/fjar-dagbjort.jpg",
+  fjarGudbjartur: "/team/fjar-gudbjartur.jpg", fjarElvar: "/team/fjar-elvar.jpg",
   appHealth: "/app-screenshot-health.jpg", appReport: "/app-screenshot-report.jpg",
   appCommunity: "/app-screenshot-community.jpg", appMeasurements: "/app-screenshot-measurements.jpg",
   appCoach: "/app-screenshot-coach.jpg",
@@ -21,15 +24,6 @@ const TEAM: Slide["members"] = [
   { photo: IMG.mads, flag: "Co-founder", name: "Mads C. Aanesen", role: "CTO · Medical Doctor & Coach" },
   { photo: IMG.vignir, flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
   { photo: IMG.dagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
-];
-
-// Fjarlækningar leadership. Victor & Mads share photos with the Lifeline team;
-// Guðbjartur and Elvar Páll have no photo on file yet (graceful placeholder).
-const FJAR_TEAM: Slide["members"] = [
-  { photo: IMG.victor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
-  { photo: IMG.mads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "Medical Doctor" },
-  { photo: "", flag: "Chief Medical Officer", name: "Guðbjartur Ólafsson", role: "Specialist Doctor" },
-  { photo: "", flag: "Chief Marketing Officer", name: "Elvar Páll Sigurðsson", role: "Marketing" },
 ];
 
 let _c = 0;
@@ -79,38 +73,57 @@ export function editorialDeck(): Slide[] {
   ];
 }
 
-// ── Lifeline + Fjarlækningar — a 4-slide joint showcase ──────────────────────
-// One "about" slide per company, then a team slide per company. Each slide
-// carries its own `brand`, so the header wordmark switches between the two
-// companies (see DeckAssets `Logo` + SlideView header).
+// ── Lifeline + Fjarlækningar — a 3-slide joint showcase ──────────────────────
+// An elevator pitch for each company, then ONE team slide that branches: the
+// shared founders up top, then a Lifeline branch and a Fjarlækningar branch.
+// Each slide carries its own `brand`, so the header wordmark + accent colours
+// switch between the two companies (see DeckAssets `Logo`, deck-css brand-fjar).
 export function lifelineFjarlaekningarDeck(): Slide[] {
   return [
-    // 1 · About Lifeline Health
-    s({ type: "title", theme: "dark", brand: "lifeline", bg: IMG.banner,
-      kicker: "About · Lifeline Health",
-      heading: "Health, ==written by you.==",
-      lead: "Lifeline Health is an Icelandic health platform: a clinical-grade health assessment paired with ongoing, personalised coaching — for individuals and for companies.",
-      tagline: "Ahead of yourself." }),
-    // 2 · About Fjarlækningar
-    s({ type: "title", theme: "light", brand: "fjarlaekningar",
-      kicker: "About · Fjarlækningar",
-      heading: "Healthcare, ==without the wait.==",
-      lead: "Fjarlækningar ehf. is an Icelandic telemedicine service — doctor consultations by video, with bookings and visits handled through the Medalia patient portal.",
-      tagline: "Care, wherever you are.",
+    // 1 · Lifeline elevator pitch
+    s({ type: "bullets", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health",
+      heading: "Prevention, turned into a ==daily plan.==",
+      lead: "Lifeline is an Icelandic health platform — a clinical-grade assessment plus ongoing, personalised coaching, for individuals and the companies that cover them.",
+      chips: [{ label: "For individuals" }, { label: "For companies" }],
+      bullets: [
+        "A real assessment: 50+ blood markers, body composition and lifestyle — reviewed by a physician.",
+        "A personal plan across exercise, nutrition, sleep and mental wellness.",
+        "Daily actions and coaching that adapt as your numbers improve.",
+      ],
+      footnote: "lifelinehealth.is" }),
+    // 2 · Fjarlækningar elevator pitch
+    s({ type: "bullets", theme: "dark", brand: "fjarlaekningar",
+      kicker: "Fjarlækningar",
+      heading: "A doctor, ==without the wait.==",
+      lead: "Fjarlækningar is an Icelandic telemedicine service — see a physician by video, with booking, consultation and follow-up handled end-to-end through the Medalia patient portal.",
+      chips: [{ label: "Telemedicine" }, { label: "Medalia portal" }],
+      bullets: [
+        "Video consultations with Icelandic-licensed doctors.",
+        "Book, consult and follow up entirely online.",
+        "Specialist care brought within reach — wherever you are.",
+      ],
       footnote: "fjarlaekningar.is" }),
-    // 3 · Lifeline Health team
-    s({ type: "team", theme: "light", brand: "lifeline",
-      kicker: "The team · Lifeline Health",
-      heading: "The people behind Lifeline.",
-      lead: "Physicians at the core — building the prevention layer between healthcare and daily life.",
-      members: TEAM }),
-    // 4 · Fjarlækningar team
-    s({ type: "team", theme: "light", brand: "fjarlaekningar",
-      kicker: "The team · Fjarlækningar",
-      heading: "The people behind Fjarlækningar.",
-      lead: "A doctor-led team bringing specialist care within reach over video.",
-      members: FJAR_TEAM,
-      footnote: "Photos for Guðbjartur and Elvar Páll can be added in the editor." }),
+    // 3 · One team, two companies — shared founders + a branch per company
+    s({ type: "team-branch", theme: "light", brand: "lifeline",
+      kicker: "The team",
+      heading: "One team, ==two companies.==",
+      lead: "The same founding physicians, with a specialist team behind each company.",
+      commonLabel: "Co-founders · both companies",
+      common: [
+        { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
+        { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "Medical Doctor" },
+      ],
+      branch1Brand: "lifeline", branch1Label: "",
+      branch1: [
+        { photo: IMG.vignir, flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
+        { photo: IMG.fjarDagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
+      ],
+      branch2Brand: "fjarlaekningar", branch2Label: "",
+      branch2: [
+        { photo: IMG.fjarGudbjartur, flag: "Chief Medical Officer", name: "Guðbjartur Ólafsson", role: "Specialist Doctor" },
+        { photo: IMG.fjarElvar, flag: "Chief Marketing Officer", name: "Elvar Páll Sigurðsson", role: "Marketing" },
+      ] }),
   ];
 }
 

@@ -89,7 +89,7 @@ export interface MemberItem { photo: string; flag?: string; name: string; role: 
 export interface ChipItem { label: string; }
 
 export type SlideType =
-  | "title" | "stats" | "cards" | "quote" | "story" | "team"
+  | "title" | "stats" | "cards" | "quote" | "story" | "team" | "team-branch"
   | "pillars" | "steps" | "bullets" | "phone-feature"
   | "app-showcase" | "coaching" | "timeline" | "closing"
   // from-scratch layout primitives
@@ -121,6 +121,11 @@ export interface Slide {
   pillars?: PillarItem[];
   nodes?: NodeItem[];
   members?: MemberItem[];
+  // team-branch: shared members up top, then one branch per company
+  common?: MemberItem[];
+  commonLabel?: string;
+  branch1Brand?: BrandKey; branch1Label?: string; branch1?: MemberItem[];
+  branch2Brand?: BrandKey; branch2Label?: string; branch2?: MemberItem[];
   rows?: CardItem[];      // feature-rows
   items?: string[];       // checklist
   value?: string;         // metric — the giant number
@@ -202,6 +207,15 @@ const F = {
   bullets: { key: "bullets", label: "Bullets", kind: "list", itemLabel: "bullet", itemFields: [{ key: "value", label: "Text", kind: "textarea" }] } as FieldDef,
 };
 
+// Shared sub-fields for a team member (used by `team` and `team-branch`).
+const MEMBER_FIELDS: SubFieldDef[] = [
+  { key: "photo", label: "Photo", kind: "image", imageRole: "photo" },
+  { key: "flag", label: "Flag (small label)", kind: "text" },
+  { key: "name", label: "Name", kind: "text", noTranslate: true },
+  { key: "role", label: "Role", kind: "text" },
+];
+const brandSubOptions = BRAND_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
+
 export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
   title: {
     type: "title", label: "Title", description: "Opening slide with full-bleed background.",
@@ -252,12 +266,21 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     type: "team", label: "Team", description: "Heading + a grid of team members.",
     fields: [
       F.brand, F.kicker, F.heading, F.lead, F.footnote,
-      { key: "members", label: "Members", kind: "list", itemLabel: "member", itemFields: [
-        { key: "photo", label: "Photo", kind: "image", imageRole: "photo" },
-        { key: "flag", label: "Flag (small label)", kind: "text" },
-        { key: "name", label: "Name", kind: "text", noTranslate: true },
-        { key: "role", label: "Role", kind: "text" },
-      ] },
+      { key: "members", label: "Members", kind: "list", itemLabel: "member", itemFields: MEMBER_FIELDS },
+    ],
+  },
+  "team-branch": {
+    type: "team-branch", label: "Team — branching", description: "Shared members up top, two company-specific branches below.",
+    fields: [
+      F.kicker, F.heading, F.lead,
+      { key: "commonLabel", label: "Shared group label", kind: "text" },
+      { key: "common", label: "Shared members", kind: "list", itemLabel: "member", itemFields: MEMBER_FIELDS },
+      { key: "branch1Brand", label: "Branch 1 · logo", kind: "select", noTranslate: true, options: brandSubOptions },
+      { key: "branch1Label", label: "Branch 1 · caption", kind: "text" },
+      { key: "branch1", label: "Branch 1 · members", kind: "list", itemLabel: "member", itemFields: MEMBER_FIELDS },
+      { key: "branch2Brand", label: "Branch 2 · logo", kind: "select", noTranslate: true, options: brandSubOptions },
+      { key: "branch2Label", label: "Branch 2 · caption", kind: "text" },
+      { key: "branch2", label: "Branch 2 · members", kind: "list", itemLabel: "member", itemFields: MEMBER_FIELDS },
     ],
   },
   pillars: {
@@ -392,7 +415,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
 
 export const SLIDE_TYPE_ORDER: SlideType[] = [
   "title", "statement", "metric", "stats", "cards", "feature-rows",
-  "checklist", "quote", "story", "team", "pillars", "steps", "bullets",
+  "checklist", "quote", "story", "team", "team-branch", "pillars", "steps", "bullets",
   "phone-feature", "report", "app-showcase", "coaching", "timeline", "hero-image", "closing",
 ];
 
@@ -422,6 +445,11 @@ export function makeBlankSlide(type: SlideType): Slide {
       return { ...base, theme: "dark", kicker: "Our story", heading: "A short story heading.", lead: "Set the scene in a sentence or two.", bullets: ["First point.", "Second point.", "Third point."], photo: "", caption: "" };
     case "team":
       return { ...base, kicker: "The team", heading: "Meet the team.", lead: "", members: [ { photo: "", name: "Full Name", role: "Role" } ], footnote: "" };
+    case "team-branch":
+      return { ...base, kicker: "The team", heading: "One team, ==two companies.==", commonLabel: "Shared founders",
+        common: [ { photo: "", flag: "Co-founder", name: "Full Name", role: "Role" } ],
+        branch1Brand: "lifeline", branch1Label: "", branch1: [ { photo: "", name: "Full Name", role: "Role" } ],
+        branch2Brand: "fjarlaekningar", branch2Label: "", branch2: [ { photo: "", name: "Full Name", role: "Role" } ] };
     case "pillars":
       return { ...base, kicker: "The model", heading: "Four pillars.", pillars: [
         { key: "exercise", icon: "dumbbell", title: "Exercise", body: "" },

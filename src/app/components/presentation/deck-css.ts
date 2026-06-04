@@ -133,7 +133,7 @@ export const DECK_CSS = `
    each company in its own colours (the .slide-level override beats the deck
    design's root variables for that slide only). */
 .lldeck[data-design="fjarlaekningar"],
-.lldeck .slide.brand-fjar{
+.lldeck .brand-fjar{
   --emerald:#00a8cc; --emerald-dark:#0488a4; --cyan:#00d6ff;
   --ink:#1a1a1a; --foreground:#1f2937; --muted:#6b7280;
   --bg:#f5f7fa; --card:#ffffff; --line:#e3e9ef;
@@ -286,6 +286,22 @@ export const DECK_CSS = `
 .lldeck .member h4{font-size:clamp(.88rem,1.1cqw,1.04rem);font-weight:700;line-height:1.2;}
 .lldeck .member .role{font-size:clamp(.72rem,.9cqw,.82rem);color:var(--muted);line-height:1.35;max-width:22ch;}
 .lldeck .dark .member .role{color:var(--on-dark-muted);}
+
+/* team-branch — shared members up top, two company branches below */
+.lldeck .team-branch{display:flex;flex-direction:column;gap:1.2cqh;}
+.lldeck .tb-label{display:inline-block;font-size:clamp(.58rem,.74cqw,.72rem);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem;}
+.lldeck .tb-row{display:flex;gap:clamp(1rem,2.4cqw,2.2rem);flex-wrap:wrap;}
+.lldeck .tb-split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1.4rem,4cqw,3.4rem);position:relative;margin-top:.2cqh;}
+.lldeck .tb-split::before{content:"";position:absolute;top:-.4cqh;bottom:8%;left:50%;width:1px;background:var(--line);}
+.lldeck .tb-branch-head{display:flex;align-items:center;gap:.7rem;min-height:clamp(22px,2.8cqw,38px);margin-bottom:.8rem;}
+.lldeck .tb-branch-head .logo{height:auto;color:var(--ink);}
+.lldeck .tb-branch-head .logo svg{height:clamp(22px,2.8cqw,38px);}
+.lldeck .tb-branch-head .tb-label{margin-bottom:0;}
+/* tighter member cards so the whole org fits one 16:9 slide */
+.lldeck .team-branch .member{gap:.4rem;}
+.lldeck .team-branch .member .photo{width:clamp(58px,6.2cqw,92px);height:clamp(58px,6.2cqw,92px);}
+.lldeck .team-branch .member h4{font-size:clamp(.8rem,1cqw,.96rem);}
+.lldeck .team-branch .member .role{font-size:clamp(.66rem,.84cqw,.78rem);max-width:18ch;}
 
 .lldeck .tl{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;margin-top:1rem;}
 .lldeck .tl::before{content:"";position:absolute;left:6%;right:6%;top:clamp(16px,1.6cqw,22px);height:3px;background:linear-gradient(90deg,var(--emerald),var(--cyan));border-radius:3px;}
