@@ -127,6 +127,32 @@ export const DECK_CSS = `
 .lldeck[data-design="journey"] .kicker::before{display:none;}
 .lldeck[data-design="journey"] .tagline{font-family:var(--font-signature), cursive;font-size:clamp(1.3rem,2.4cqw,2rem);letter-spacing:0;}
 
+/* Fjarlækningar — electric cyan brand (mark #00d6ff, primary #00a8cc, accent
+   magenta #cf147b, slate neutrals). Available deck-wide via data-design, AND
+   per-slide via .brand-fjar — so a mixed Lifeline + Fjarlækningar deck renders
+   each company in its own colours (the .slide-level override beats the deck
+   design's root variables for that slide only). */
+.lldeck[data-design="fjarlaekningar"],
+.lldeck .slide.brand-fjar{
+  --emerald:#00a8cc; --emerald-dark:#0488a4; --cyan:#00d6ff;
+  --ink:#1a1a1a; --foreground:#1f2937; --muted:#6b7280;
+  --bg:#f5f7fa; --card:#ffffff; --line:#e3e9ef;
+  --on-dark:#eafaff; --on-dark-muted:#bfe6f2; --on-dark-accent:#5fe0ff;
+  --dark1:#062a38; --dark2:#0a4a5e; --dark3:#07313f;
+  --glow1:rgba(0,214,255,.24); --glow2:rgba(207,20,123,.18);
+  --shadow:0 10px 40px -12px rgba(8,70,90,.20);
+}
+/* Cyan-led wash with a hint of magenta on light Fjarlækningar slides. */
+.lldeck[data-design="fjarlaekningar"] .slide.light,
+.lldeck .slide.brand-fjar.light{
+  background:
+    radial-gradient(620px 460px at 88% 4%, rgba(0,214,255,.13), transparent 60%),
+    radial-gradient(520px 440px at 2% 98%, rgba(207,20,123,.08), transparent 60%),
+    var(--bg);
+}
+/* Mark + wordmark lockup spacing for the Fjarlækningar header logo. */
+.lldeck .logo-fjar{gap:.5rem;}
+
 .lldeck *{box-sizing:border-box;margin:0;padding:0;}
 
 .lldeck .slide{

@@ -26,7 +26,7 @@ export function SlideStage({ slide, design }: { slide: Slide | null; design?: st
       <div className="lldeck is-stage" data-design={design || "lifeline"}>
         <DeckDefs />
         {slide
-          ? <section className={`slide ${slide.theme}${hasBg(slide) ? " has-bg" : ""} active`}><SlideView slide={slide} /></section>
+          ? <section className={`slide ${slide.theme}${slide.brand === "fjarlaekningar" ? " brand-fjar" : ""}${hasBg(slide) ? " has-bg" : ""} active`}><SlideView slide={slide} /></section>
           : <section className="slide light active" style={{ display: "grid", placeItems: "center" }}><p style={{ color: "#5b6b66" }}>No slide selected</p></section>}
       </div>
     </div>
@@ -105,7 +105,7 @@ export function Deck({ slides, slidesIs, design, initialIndex = 0, onClose }: { 
       <div className="deck-bar" style={{ width: `${((i + 1) / total) * 100}%` }} />
 
       {view.map((s, idx) => (
-        <section key={s.id} className={`slide ${s.theme}${hasBg(s) ? " has-bg" : ""}${idx === i ? " active" : idx < i ? " prev" : ""}`}>
+        <section key={s.id} className={`slide ${s.theme}${s.brand === "fjarlaekningar" ? " brand-fjar" : ""}${hasBg(s) ? " has-bg" : ""}${idx === i ? " active" : idx < i ? " prev" : ""}`}>
           <SlideView slide={s} />
         </section>
       ))}

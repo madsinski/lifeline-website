@@ -82,7 +82,7 @@ export function DeckPrint({ slides, design, onClose }: { slides: Slide[]; design
         {slides.map((s) => (
           <div key={s.id} className="ll-pdf-page">
             <div className="lldeck is-stage" data-design={design || "lifeline"}>
-              <section className={`slide ${s.theme}${hasBg(s) ? " has-bg" : ""} active`}>
+              <section className={`slide ${s.theme}${s.brand === "fjarlaekningar" ? " brand-fjar" : ""}${hasBg(s) ? " has-bg" : ""} active`}>
                 <SlideView slide={s} />
               </section>
             </div>

@@ -19,11 +19,12 @@ export type SlideTheme = "dark" | "light";
 // whole deck via a data-design attribute on the deck root (see deck-css.ts).
 export type DesignId =
   | "lifeline" | "midnight" | "clinical" | "warm" | "mono"
-  | "bloom" | "vital" | "pulse" | "journey";
+  | "bloom" | "vital" | "pulse" | "journey" | "fjarlaekningar";
 
 export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
   // Colour profiles (same layout, different palette)
   { id: "lifeline", name: "Lifeline", blurb: "Signature emerald + cyan." },
+  { id: "fjarlaekningar", name: "Fjarlækningar", blurb: "Electric cyan + magenta, slate neutrals." },
   { id: "midnight", name: "Midnight", blurb: "Indigo on deep navy — premium tech." },
   { id: "clinical", name: "Clinical", blurb: "Calm medical blue, serif headings." },
   { id: "warm", name: "Warm", blurb: "Editorial terracotta on cream." },
