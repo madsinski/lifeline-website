@@ -136,15 +136,15 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
       heading: "The people behind both companies.",
       branch1Brand: "lifeline", branch1Label: "",
       branch1: [
-        { photo: IMG.fjarVictor, flag: "Co-founder", name: "Victor Guðmundsson", role: "CEO · Medical Doctor" },
-        { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "CTO · Medical Doctor" },
+        { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
+        { photo: IMG.fjarMads, flag: "Co-founder & CTO", name: "Mads Christian Aanesen", role: "Medical Doctor" },
         { photo: IMG.vignir, flag: "Chief Medical Advisor", name: "Vignir Sigurðsson", role: "Pediatrician" },
         { photo: IMG.fjarDagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
       ],
       branch2Brand: "fjarlaekningar", branch2Label: "",
       branch2: [
         { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
-        { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "Medical Doctor" },
+        { photo: IMG.fjarMads, flag: "Co-founder & CTO", name: "Mads Christian Aanesen", role: "Medical Doctor" },
         { photo: IMG.fjarGudbjartur, flag: "Chief Medical Officer", name: "Guðbjartur Ólafsson", role: "Specialist Doctor" },
         { photo: IMG.fjarElvar, flag: "Chief Marketing Officer", name: "Elvar Páll Sigurðsson", role: "Marketing" },
       ] }),
