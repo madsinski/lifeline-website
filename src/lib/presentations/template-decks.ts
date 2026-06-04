@@ -14,6 +14,8 @@ const IMG = {
   // Fjarlækningar headshots (Canon EOS R5 portraits, shared with the joint deck)
   fjarVictor: "/team/fjar-victor.jpg", fjarMads: "/team/fjar-mads.jpg", fjarDagbjort: "/team/fjar-dagbjort.jpg",
   fjarGudbjartur: "/team/fjar-gudbjartur.jpg", fjarElvar: "/team/fjar-elvar.jpg",
+  fjarApp: "/presentation-images/fjarlaekningar-app.png",
+  lifelineApp: "/presentation-images/lifeline-app-myhealth.jpg",
   appHealth: "/app-screenshot-health.jpg", appReport: "/app-screenshot-report.jpg",
   appCommunity: "/app-screenshot-community.jpg", appMeasurements: "/app-screenshot-measurements.jpg",
   appCoach: "/app-screenshot-coach.jpg",
@@ -80,30 +82,28 @@ export function editorialDeck(): Slide[] {
 // switch between the two companies (see DeckAssets `Logo`, deck-css brand-fjar).
 export function lifelineFjarlaekningarDeck(): Slide[] {
   return [
-    // 1 · Lifeline elevator pitch
-    s({ type: "bullets", theme: "dark", brand: "lifeline",
+    // 1 · Lifeline elevator pitch — phone screenshot of the app
+    s({ type: "phone-feature", theme: "dark", brand: "lifeline",
       kicker: "Lifeline Health",
       heading: "Prevention, turned into a ==daily plan.==",
-      lead: "Lifeline is an Icelandic health platform — a clinical-grade assessment plus ongoing, personalised coaching, for individuals and the companies that cover them.",
-      chips: [{ label: "For individuals" }, { label: "For companies" }],
+      lead: "An Icelandic health platform — a clinical-grade assessment plus ongoing, personalised coaching, for individuals and the companies that cover them.",
       bullets: [
         "A real assessment: 50+ blood markers, body composition and lifestyle — reviewed by a physician.",
-        "A personal plan across exercise, nutrition, sleep and mental wellness.",
+        "A Lifestyle Score across exercise, nutrition, sleep and mental wellness.",
         "Daily actions and coaching that adapt as your numbers improve.",
       ],
-      footnote: "lifelinehealth.is" }),
-    // 2 · Fjarlækningar elevator pitch
-    s({ type: "bullets", theme: "dark", brand: "fjarlaekningar",
+      phone: IMG.lifelineApp }),
+    // 2 · Fjarlækningar elevator pitch — laptop screenshot of the web app
+    s({ type: "report", theme: "dark", brand: "fjarlaekningar",
       kicker: "Fjarlækningar",
       heading: "A doctor, ==without the wait.==",
-      lead: "Fjarlækningar is an Icelandic telemedicine service — see a physician by video, with booking, consultation and follow-up handled end-to-end through the Medalia patient portal.",
-      chips: [{ label: "Telemedicine" }, { label: "Medalia portal" }],
+      lead: "An Icelandic telemedicine service — see a physician by video, with booking, consultation and follow-up handled through the Medalia patient portal.",
       bullets: [
+        "Choose the service you need — allergies, infections, prescriptions and more.",
         "Video consultations with Icelandic-licensed doctors.",
         "Book, consult and follow up entirely online.",
-        "Specialist care brought within reach — wherever you are.",
       ],
-      footnote: "fjarlaekningar.is" }),
+      image: IMG.fjarApp }),
     // 3 · One team, two companies — shared founders + a branch per company
     s({ type: "team-branch", theme: "light", brand: "lifeline",
       kicker: "The team",
