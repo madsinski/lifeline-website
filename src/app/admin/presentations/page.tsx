@@ -139,10 +139,10 @@ export default function PresentationsList() {
 
       {showNew && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowNew(false)}>
-          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-1 font-semibold text-gray-800">New presentation</h3>
             <p className="mb-4 text-sm text-gray-500">Start from a template — you can change everything after.</p>
-            <div className="space-y-2">
+            <div className="-mr-2 space-y-2 overflow-y-auto pr-2">
               {TEMPLATES.map((t) => (
                 <button key={t.id} disabled={busy === "new"} onClick={() => create(t.id)} className="w-full rounded-lg border border-gray-200 p-3 text-left hover:border-emerald-400 hover:bg-emerald-50/40 disabled:opacity-50">
                   <div className="font-medium text-gray-800">{t.name}</div>
