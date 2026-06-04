@@ -15,7 +15,7 @@ const IMG = {
   fjarVictor: "/team/fjar-victor.jpg", fjarMads: "/team/fjar-mads.jpg", fjarDagbjort: "/team/fjar-dagbjort.jpg",
   fjarGudbjartur: "/team/fjar-gudbjartur.jpg", fjarElvar: "/team/fjar-elvar.jpg",
   fjarApp: "/presentation-images/fjarlaekningar-app.png",
-  lifelineApp: "/presentation-images/lifeline-app-myhealth.jpg",
+  lifelineApp: "/presentation-images/lifeline-app-myhealth-cropped.jpg",
   appHealth: "/app-screenshot-health.jpg", appReport: "/app-screenshot-report.jpg",
   appCommunity: "/app-screenshot-community.jpg", appMeasurements: "/app-screenshot-measurements.jpg",
   appCoach: "/app-screenshot-coach.jpg",
@@ -75,24 +75,50 @@ export function editorialDeck(): Slide[] {
   ];
 }
 
-// ── Lifeline + Fjarlækningar — a 3-slide joint showcase ──────────────────────
-// An elevator pitch for each company, then ONE team slide that branches: the
-// shared founders up top, then a Lifeline branch and a Fjarlækningar branch.
-// Each slide carries its own `brand`, so the header wordmark + accent colours
-// switch between the two companies (see DeckAssets `Logo`, deck-css brand-fjar).
+// ── Lifeline + Fjarlækningar — joint showcase ────────────────────────────────
+// Lifeline content (the Health Check assessment process, the four pillars of
+// health, and why coaching works), then Fjarlækningar, then a team slide per
+// company. Each slide carries its own `brand`, so the header wordmark + accent
+// colours switch between the two companies (see DeckAssets `Logo`, deck-css
+// brand-fjar). Copy is drawn from the lifelinehealth.is assessment + coaching
+// pages and the Fjarlækningar concept.
 export function lifelineFjarlaekningarDeck(): Slide[] {
   return [
-    // 1 · Lifeline elevator pitch — two services beside a phone screenshot
-    s({ type: "coaching", theme: "dark", brand: "lifeline",
-      kicker: "Lifeline Health",
-      heading: "Two services, one ==health journey.==",
-      lead: "A clinical Health Check, and the coaching that turns knowing into doing.",
-      phone: IMG.lifelineApp,
-      cards: [
-        { icon: "clip", title: "The Health Check", body: "Body-composition scan, a targeted blood panel and a lifestyle questionnaire — reviewed by a physician, then a doctor interview to walk through your results and Lifestyle Score." },
-        { icon: "spark", title: "Daily coaching", body: "A daily action plan across exercise, nutrition, sleep and mental wellness, built on your results — with an AI coach, plus a personal coach and weekly check-ins on Premium. It adapts as you improve." },
+    // 1 · Lifeline — the Health Check (assessment process)
+    s({ type: "steps", theme: "light", brand: "lifeline",
+      kicker: "Lifeline Health · The Health Check",
+      heading: "The assessment process",
+      steps: [
+        { title: "Book your assessment", body: "Open the patient portal and choose the Foundational Health or Check-in package, at a time that suits you." },
+        { title: "Visit our station", body: "Come to our Lágmúla 5 station in Reykjavík for your body-composition scan and measurements — about 20 minutes." },
+        { title: "Blood test at Sameind", body: "Visit any Sameind collection station for your blood panel. Results are sent directly to Lifeline." },
+        { title: "Results reviewed", body: "A Lifeline physician reviews all your results and prepares your personalised health report." },
+        { title: "Doctor interview", body: "Meet your doctor — in person or by video — to discuss your results, your health score across the four pillars, and personalised recommendations." },
       ] }),
-    // 2 · Fjarlækningar elevator pitch — laptop screenshot of the web app
+    // 2 · Lifeline — the four pillars of health (coaching framework)
+    s({ type: "pillars", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health · Coaching",
+      heading: "The four pillars of health",
+      lead: "Knowledge alone doesn't create change. Coaching bridges the gap between knowing and doing.",
+      pillars: [
+        { key: "exercise", icon: "dumbbell", title: "Exercise", body: "Personalised programs for your level — strength, cardio and mobility — that progress as you do." },
+        { key: "nutrition", icon: "leaf", title: "Nutrition", body: "Guidance from your blood work and body composition. Sustainable habits, not fad diets." },
+        { key: "sleep", icon: "moon", title: "Sleep", body: "Science-backed optimisation for better recovery, energy and focus." },
+        { key: "mental", icon: "brain", title: "Mental wellness", body: "Mindfulness, breathing and stress tools — with a supportive community." },
+      ] }),
+    // 3 · Lifeline — why coaching works (beside the app)
+    s({ type: "phone-feature", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health · Coaching",
+      heading: "Why health coaching works",
+      bullets: [
+        "Create real change — programs built on your blood work and body composition, not generic templates.",
+        "Daily action plans — a clear plan every day across exercise, nutrition, sleep and mental wellness.",
+        "Connect with coaches — message your coach for answers, adjustments and support when you need it.",
+        "Join the community — events, challenges and a network on the same journey.",
+        "Motivation that lasts — progress tracking, streaks and health scores keep you engaged.",
+      ],
+      phone: IMG.lifelineApp }),
+    // 4 · Fjarlækningar elevator pitch — laptop screenshot of the web app
     s({ type: "report", theme: "dark", brand: "fjarlaekningar",
       kicker: "Fjarlækningar",
       heading: "Care that skips the ==waiting room.==",
@@ -104,23 +130,23 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
         "First pilot underway with South Iceland Primary Health Care.",
       ],
       image: IMG.fjarApp }),
-    // 3 · One team, two companies — shared founders + a branch per company
-    s({ type: "team-branch", theme: "light", brand: "lifeline",
-      kicker: "The team",
-      heading: "One team, ==two companies.==",
-      lead: "The same founding physicians, with a specialist team behind each company.",
-      commonLabel: "Co-founders · both companies",
-      common: [
-        { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
-        { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "Medical Doctor" },
-      ],
-      branch1Brand: "lifeline", branch1Label: "",
-      branch1: [
+    // 5 · Lifeline Health team
+    s({ type: "team", theme: "light", brand: "lifeline",
+      kicker: "The team · Lifeline Health",
+      heading: "The people behind ==Lifeline.==",
+      members: [
+        { photo: IMG.fjarVictor, flag: "Co-founder", name: "Victor Guðmundsson", role: "CEO · Medical Doctor" },
+        { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "CTO · Medical Doctor" },
         { photo: IMG.vignir, flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
         { photo: IMG.fjarDagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
-      ],
-      branch2Brand: "fjarlaekningar", branch2Label: "",
-      branch2: [
+      ] }),
+    // 6 · Fjarlækningar team
+    s({ type: "team", theme: "light", brand: "fjarlaekningar",
+      kicker: "The team · Fjarlækningar",
+      heading: "The people behind ==Fjarlækningar.==",
+      members: [
+        { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
+        { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "Medical Doctor" },
         { photo: IMG.fjarGudbjartur, flag: "Chief Medical Officer", name: "Guðbjartur Ólafsson", role: "Specialist Doctor" },
         { photo: IMG.fjarElvar, flag: "Chief Marketing Officer", name: "Elvar Páll Sigurðsson", role: "Marketing" },
       ] }),

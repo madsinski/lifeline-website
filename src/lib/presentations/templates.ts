@@ -36,7 +36,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   { id: "energetic", name: "Energetic", description: "Rebuilt from scratch · bold motivational statements & metrics.", design: "pulse" },
   { id: "brochure", name: "Brochure", description: "Rebuilt from scratch · image-led wellness brochure.", design: "bloom" },
   // Joint two-company showcase — short deck, per-slide brand switching.
-  { id: "lifeline-fjarlaekningar", name: "Lifeline + Fjarlækningar", description: "4 slides · about + team for both companies. Exportable to PDF.", design: "lifeline" },
+  { id: "lifeline-fjarlaekningar", name: "Lifeline + Fjarlækningar", description: "Assessment, four pillars, coaching, Fjarlækningar + a team per company. Exportable to PDF.", design: "lifeline" },
 ];
 
 // From-scratch templates map to a bespoke deck builder + design.
