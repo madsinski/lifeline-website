@@ -102,9 +102,9 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
       lead: "Knowledge alone doesn't create change. Coaching bridges the gap between knowing and doing.",
       pillars: [
         { key: "exercise", icon: "dumbbell", title: "Exercise", body: "Personalised programs for your level — strength, cardio and mobility — that progress as you do." },
-        { key: "nutrition", icon: "leaf", title: "Nutrition", body: "Guidance from your blood work and body composition. Sustainable habits, not fad diets." },
+        { key: "nutrition", icon: "apple", title: "Nutrition", body: "Guidance from your blood work and body composition. Sustainable habits, not fad diets." },
         { key: "sleep", icon: "moon", title: "Sleep", body: "Science-backed optimisation for better recovery, energy and focus." },
-        { key: "mental", icon: "brain", title: "Mental wellness", body: "Mindfulness, breathing and stress tools — with a supportive community." },
+        { key: "mental", icon: "smile", title: "Mental wellness", body: "Mindfulness, breathing and stress tools — with a supportive community." },
       ] }),
     // 3 · Lifeline — why coaching works (beside the app)
     s({ type: "phone-feature", theme: "dark", brand: "lifeline",

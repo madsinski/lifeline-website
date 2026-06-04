@@ -41,7 +41,7 @@ export const DEFAULT_DESIGN: DesignId = "lifeline";
 export type IconKey =
   | "pulse" | "clip" | "shield" | "phone" | "doc" | "chart"
   | "users" | "spark" | "dumbbell" | "leaf" | "moon" | "brain"
-  | "target" | "lock" | "cal";
+  | "target" | "lock" | "cal" | "apple" | "smile";
 
 export const ICON_OPTIONS: { value: IconKey; label: string }[] = [
   { value: "pulse", label: "Pulse / heartbeat" },
@@ -59,6 +59,8 @@ export const ICON_OPTIONS: { value: IconKey; label: string }[] = [
   { value: "target", label: "Target" },
   { value: "lock", label: "Lock" },
   { value: "cal", label: "Calendar" },
+  { value: "apple", label: "Apple" },
+  { value: "smile", label: "Smiley face" },
 ];
 
 export type PillarKey = "exercise" | "nutrition" | "sleep" | "mental";
