@@ -248,6 +248,10 @@ export const DECK_CSS = `
 .lldeck .phone-row{display:flex;gap:.8rem;justify-content:center;align-items:flex-end;}
 .lldeck .phone-row .phone-shot{width:clamp(90px,11cqw,165px);margin:0;}
 .lldeck .phone-row .phone-shot:nth-child(2){width:clamp(104px,12.5cqw,188px);margin-bottom:14px;}
+/* app-showcase: larger phones so the screenshots are legible */
+.lldeck .phone-row.showcase{align-items:center;gap:clamp(.5rem,1.4cqw,1.1rem);}
+.lldeck .phone-row.showcase .phone-shot{width:clamp(132px,17cqw,222px);margin:0;}
+.lldeck .phone-row.showcase .phone-shot:nth-child(2){width:clamp(144px,18.5cqw,242px);margin-bottom:0;}
 .lldeck .phone-ph{display:grid;place-items:center;color:var(--on-dark-muted);font-size:.8rem;text-align:center;height:100%;padding:1rem;}
 
 .lldeck .team{display:grid;grid-template-columns:repeat(4,1fr);gap:1.3rem;margin-top:1.8cqh;}

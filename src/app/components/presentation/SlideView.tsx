@@ -221,16 +221,16 @@ function SlideBody({ s }: { s: Slide }) {
 
     case "app-showcase":
       return (
-        <div className="body">
-          {s.kicker && <span className="kicker">{s.kicker}</span>}
-          <h2 style={{ maxWidth: "22ch" }}>{rich(s.heading)}</h2>
-          <div className="two" style={{ marginTop: "1.4rem" }}>
-            <div className="phone-row">
-              {(s.phones || []).slice(0, 3).map((p, i) => <PhoneImg key={i} src={p} />)}
-            </div>
-            <ul className="clean">
+        <div className="body two" style={{ gridTemplateColumns: ".82fr 1.18fr", alignItems: "center", gap: "clamp(1rem,3cqw,2.5rem)" }}>
+          <div>
+            {s.kicker && <span className="kicker">{s.kicker}</span>}
+            <h2>{rich(s.heading)}</h2>
+            <ul className="clean" style={{ marginTop: "1.2rem" }}>
               {(s.bullets || []).map((b, i) => <li key={i}><span>{b}</span></li>)}
             </ul>
+          </div>
+          <div className="phone-row showcase">
+            {(s.phones || []).slice(0, 3).map((p, i) => <PhoneImg key={i} src={p} />)}
           </div>
         </div>
       );
