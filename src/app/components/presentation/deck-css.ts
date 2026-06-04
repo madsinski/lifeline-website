@@ -339,9 +339,10 @@ export const DECK_CSS = `
 /* report — laptop mock-up */
 .lldeck .laptop{width:100%;max-width:760px;margin:0 auto;}
 .lldeck .laptop .screen{border:clamp(7px,.9cqw,12px) solid #16181c;border-bottom:none;border-radius:14px 14px 0 0;background:#fff;aspect-ratio:16/10;overflow:hidden;box-shadow:0 30px 60px -28px rgba(0,0,0,.55);}
-/* Fjarlækningar web app is a wide ~16:9 capture — match the screen ratio so it
-   isn't cropped at the sides, and seat it on the app's own light background. */
-.lldeck .slide.brand-fjar .laptop .screen{aspect-ratio:16/9;background:#f5f7fa;}
+/* Fjarlækningar web app is a wide capture — keep the laptop's normal screen
+   shape (no squashing) and letterbox the screenshot on the app's own light
+   background so the whole UI shows without side-cropping. */
+.lldeck .slide.brand-fjar .laptop .screen{background:#f5f7fa;}
 .lldeck .slide.brand-fjar .laptop .screen img{object-fit:contain;object-position:top center;}
 .lldeck .laptop .screen img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}
 .lldeck .laptop .screen .phone-ph{height:100%;color:var(--muted);}
