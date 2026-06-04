@@ -167,27 +167,30 @@ function SlideBody({ s }: { s: Slide }) {
       );
 
     case "team-branch": {
-      const branch = (label: string | undefined, brand: Slide["brand"], members: MemberItem[] | undefined) => (
-        <div className={`tb-branch${brand === "fjarlaekningar" ? " brand-fjar" : ""}`}>
-          <div className="tb-branch-head">
+      const team = (label: string | undefined, brand: Slide["brand"], members: MemberItem[] | undefined) => (
+        <div className={`tb-team${brand === "fjarlaekningar" ? " brand-fjar" : ""}`}>
+          <div className="tb-team-head">
             <Logo brand={brand} />
             {label && <span className="tb-label">{label}</span>}
           </div>
           <div className="tb-row">{(members || []).map((m, i) => <MemberCard key={i} m={m} />)}</div>
         </div>
       );
+      const hasCommon = !!(s.common || []).length;
       return (
         <div className="body team-branch">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           <h2>{rich(s.heading)}</h2>
-          {s.lead && <p className="lead" style={{ marginTop: ".6rem" }}>{s.lead}</p>}
-          <div className="tb-common">
-            {s.commonLabel && <span className="tb-label">{s.commonLabel}</span>}
-            <div className="tb-row">{(s.common || []).map((m, i) => <MemberCard key={i} m={m} />)}</div>
-          </div>
-          <div className="tb-split">
-            {branch(s.branch1Label, s.branch1Brand, s.branch1)}
-            {branch(s.branch2Label, s.branch2Brand, s.branch2)}
+          {s.lead && <p className="lead" style={{ marginTop: ".5rem" }}>{s.lead}</p>}
+          <div className="tb-teams">
+            {hasCommon && (
+              <div className="tb-team">
+                {s.commonLabel && <span className="tb-label tb-team-head">{s.commonLabel}</span>}
+                <div className="tb-row">{(s.common || []).map((m, i) => <MemberCard key={i} m={m} />)}</div>
+              </div>
+            )}
+            {team(s.branch1Label, s.branch1Brand, s.branch1)}
+            {team(s.branch2Label, s.branch2Brand, s.branch2)}
           </div>
         </div>
       );
@@ -408,7 +411,7 @@ export function SlideView({ slide }: { slide: Slide }) {
       {hasBg && <div className="slide-bg" style={{ backgroundImage: `url(${slide.bg})` }} />}
       {hasBg && <div className="slide-bg-ov" />}
       <div className="slide-head">
-        <Logo brand={slide.brand} />
+        {slide.type === "team-branch" ? <span /> : <Logo brand={slide.brand} />}
         <HeadTag tag={slide.tag} />
       </div>
       <SlideBody s={slide} />

@@ -191,6 +191,10 @@ export const DECK_CSS = `
 .lldeck .logo{display:flex;align-items:center;height:clamp(20px,2.1cqw,30px);color:var(--ink);}
 .lldeck .dark .logo{color:var(--on-dark);}
 .lldeck .logo svg{height:clamp(20px,2.1cqw,30px);width:auto;display:block;}
+/* The Fjarlækningar lockup is more compact than the Lifeline wordmark, so size
+   it up to read at a comparable visual weight in the header. */
+.lldeck .logo-fjar{height:clamp(28px,3.1cqw,44px);}
+.lldeck .logo-fjar svg{height:clamp(28px,3.1cqw,44px);}
 .lldeck .tag-pill{font-size:clamp(.55rem,.78cqw,.72rem);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--emerald-dark);border:1px solid var(--line);border-radius:999px;padding:.4rem .8rem;background:var(--card);white-space:nowrap;}
 .lldeck .dark .tag-pill{color:var(--on-dark-accent);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.06);}
 
@@ -287,21 +291,20 @@ export const DECK_CSS = `
 .lldeck .member .role{font-size:clamp(.72rem,.9cqw,.82rem);color:var(--muted);line-height:1.35;max-width:22ch;}
 .lldeck .dark .member .role{color:var(--on-dark-muted);}
 
-/* team-branch — shared members up top, two company branches below */
-.lldeck .team-branch{display:flex;flex-direction:column;gap:1.2cqh;}
-.lldeck .tb-label{display:inline-block;font-size:clamp(.58rem,.74cqw,.72rem);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.55rem;}
-.lldeck .tb-row{display:flex;gap:clamp(1rem,2.4cqw,2.2rem);flex-wrap:wrap;}
-.lldeck .tb-split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1.4rem,4cqw,3.4rem);position:relative;margin-top:.2cqh;}
-.lldeck .tb-split::before{content:"";position:absolute;top:-.4cqh;bottom:8%;left:50%;width:1px;background:var(--line);}
-.lldeck .tb-branch-head{display:flex;align-items:center;gap:.7rem;min-height:clamp(22px,2.8cqw,38px);margin-bottom:.8rem;}
-.lldeck .tb-branch-head .logo{height:auto;color:var(--ink);}
-.lldeck .tb-branch-head .logo svg{height:clamp(22px,2.8cqw,38px);}
-.lldeck .tb-branch-head .tb-label{margin-bottom:0;}
-/* tighter member cards so the whole org fits one 16:9 slide */
-.lldeck .team-branch .member{gap:.4rem;}
-.lldeck .team-branch .member .photo{width:clamp(58px,6.2cqw,92px);height:clamp(58px,6.2cqw,92px);}
-.lldeck .team-branch .member h4{font-size:clamp(.8rem,1cqw,.96rem);}
-.lldeck .team-branch .member .role{font-size:clamp(.66rem,.84cqw,.78rem);max-width:18ch;}
+/* team-branch — one or two company teams stacked on a single slide */
+.lldeck .team-branch{display:flex;flex-direction:column;}
+.lldeck .tb-label{display:inline-block;font-size:clamp(.58rem,.74cqw,.72rem);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;}
+.lldeck .tb-row{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(1rem,2.4cqw,2rem);align-items:start;}
+/* breathing room between the heading and the first team */
+.lldeck .tb-teams{display:flex;flex-direction:column;gap:clamp(1.4rem,3.6cqh,2.8rem);margin-top:clamp(1.4rem,3.4cqh,2.8rem);}
+.lldeck .tb-team-head{display:flex;align-items:center;gap:.8rem;min-height:clamp(26px,3.2cqw,44px);margin-bottom:.95rem;}
+.lldeck .tb-team-head .logo{height:auto;color:var(--ink);}
+.lldeck .tb-team-head .logo svg{height:clamp(24px,3.1cqw,42px);}
+.lldeck .tb-team-head .tb-label{margin-bottom:0;}
+.lldeck .team-branch .member{gap:.45rem;}
+.lldeck .team-branch .member .photo{width:clamp(64px,7cqw,104px);height:clamp(64px,7cqw,104px);}
+.lldeck .team-branch .member h4{font-size:clamp(.82rem,1.05cqw,1rem);}
+.lldeck .team-branch .member .role{font-size:clamp(.68rem,.86cqw,.8rem);max-width:18ch;}
 
 .lldeck .tl{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;margin-top:1rem;}
 .lldeck .tl::before{content:"";position:absolute;left:6%;right:6%;top:clamp(16px,1.6cqw,22px);height:3px;background:linear-gradient(90deg,var(--emerald),var(--cyan));border-radius:3px;}

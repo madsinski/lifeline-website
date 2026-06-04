@@ -63,7 +63,7 @@ export function DeckDefs() {
 export function Logo({ brand }: { brand?: BrandKey } = {}) {
   if (brand === "fjarlaekningar") {
     return (
-      <span className="logo">
+      <span className="logo logo-fjar">
         <svg viewBox="0 0 1704 402" role="img" aria-label="Fjarlækningar">
           <use href="#fjar-logo" />
         </svg>

@@ -130,21 +130,19 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
         "First pilot underway with South Iceland Primary Health Care.",
       ],
       image: IMG.fjarApp }),
-    // 5 · Lifeline Health team
-    s({ type: "team", theme: "light", brand: "lifeline",
-      kicker: "The team · Lifeline Health",
-      heading: "The people behind ==Lifeline.==",
-      members: [
+    // 5 · The teams — both companies on one page
+    s({ type: "team-branch", theme: "light", brand: "lifeline",
+      kicker: "The teams",
+      heading: "The people behind both companies.",
+      branch1Brand: "lifeline", branch1Label: "",
+      branch1: [
         { photo: IMG.fjarVictor, flag: "Co-founder", name: "Victor Guðmundsson", role: "CEO · Medical Doctor" },
         { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "CTO · Medical Doctor" },
         { photo: IMG.vignir, flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
         { photo: IMG.fjarDagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
-      ] }),
-    // 6 · Fjarlækningar team
-    s({ type: "team", theme: "light", brand: "fjarlaekningar",
-      kicker: "The team · Fjarlækningar",
-      heading: "The people behind ==Fjarlækningar.==",
-      members: [
+      ],
+      branch2Brand: "fjarlaekningar", branch2Label: "",
+      branch2: [
         { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
         { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "Medical Doctor" },
         { photo: IMG.fjarGudbjartur, flag: "Chief Medical Officer", name: "Guðbjartur Ólafsson", role: "Specialist Doctor" },
