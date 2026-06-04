@@ -150,9 +150,6 @@ export const DECK_CSS = `
     radial-gradient(520px 440px at 2% 98%, rgba(207,20,123,.08), transparent 60%),
     var(--bg);
 }
-/* Mark + wordmark lockup spacing for the Fjarlækningar header logo. */
-.lldeck .logo-fjar{gap:.5rem;}
-
 .lldeck *{box-sizing:border-box;margin:0;padding:0;}
 
 .lldeck .slide{
