@@ -9,35 +9,42 @@ const B2B_SIGNING_SECRET = process.env.B2B_BIODY_SIGNING_SECRET;
 /**
  * Build headers for a server-to-biody-sync call.
  *
- * When B2B_BIODY_SIGNING_SECRET is set (production posture), we send only
- * the HMAC signature — the service-role bearer is deliberately omitted so
- * a leaked SUPABASE_SERVICE_ROLE_KEY alone cannot be used to forge calls
- * into biody-sync. biody-sync still requires the service-role key on
- * Supabase's edge transport (`apikey` header), which Supabase Edge
- * Functions need for invocation routing — that's the only place the key
- * is used.
+ * biody-sync is a JWT-verified Supabase Edge Function, so the request must
+ * carry a valid service-role bearer on the `Authorization` header just to
+ * be *invoked* — without it the platform gateway rejects the call with
+ * "Missing authorization header" before any function code runs. The
+ * `apikey` header is sent alongside for edge transport routing.
  *
- * When the signing secret is NOT set (transitional / local dev), we fall
- * back to service-role bearer auth on the Authorization header. This is
- * less secure and should not be the production configuration.
+ * The bearer alone is NOT trusted: when B2B_BIODY_SIGNING_SECRET is set,
+ * biody-sync additionally requires a valid HMAC signature bound to the
+ * timestamp + body. So the HMAC is *additive* to the bearer, not a
+ * replacement for it — a leaked SUPABASE_SERVICE_ROLE_KEY alone still
+ * cannot forge a call, because the request is rejected
+ * (`hmac_signature_invalid` / `no_hmac_header...`) without the secret.
+ *
+ * (An earlier revision dropped the bearer whenever the secret was set, on
+ * the theory that the HMAC replaced it. That broke every signed call: the
+ * JWT gate fires first, so the HMAC code was never reached. Both headers
+ * are required.)
  */
 export function signBiodyHeaders(bodyText: string): Record<string, string> {
   const h: Record<string, string> = {
     "Content-Type": "application/json",
   };
+  // Service-role bearer — required by the Edge Function JWT gate to invoke
+  // biody-sync at all. Not sufficient on its own (see HMAC below).
+  if (SERVICE_ROLE_KEY) {
+    h.Authorization = `Bearer ${SERVICE_ROLE_KEY}`;
+    h.apikey = SERVICE_ROLE_KEY;
+  }
+  // HMAC signature — the real anti-forgery gate. biody-sync verifies this
+  // over `${ts}.${body}` and rejects the call if it's missing or wrong.
   if (B2B_SIGNING_SECRET) {
     const ts = Math.floor(Date.now() / 1000).toString();
     const mac = createHmac("sha256", B2B_SIGNING_SECRET)
       .update(`${ts}.${bodyText}`)
       .digest("hex");
     h["X-Lifeline-Signature"] = `t=${ts},v1=${mac}`;
-    // Supabase edge function transport still requires the apikey header
-    // to route the request to the function — but Authorization is *not*
-    // sent. biody-sync validates the HMAC before trusting the body.
-    if (SERVICE_ROLE_KEY) h.apikey = SERVICE_ROLE_KEY;
-  } else if (SERVICE_ROLE_KEY) {
-    h.Authorization = `Bearer ${SERVICE_ROLE_KEY}`;
-    h.apikey = SERVICE_ROLE_KEY;
   }
   return h;
 }
@@ -98,6 +105,10 @@ export async function activateBiodyForClient(clientId: string): Promise<Activate
   if (!client.height_cm) missing.push("height_cm");
   if (!client.activity_level) missing.push("activity_level");
   if (missing.length) {
+    // Release the claim we just took — otherwise this client is wedged
+    // ("activation_in_progress") for the next 2 minutes even though we
+    // never called biody-sync.
+    await supabaseAdmin.rpc("release_biody_activation", { p_client_id: clientId });
     return { ok: false, error: "missing_client_fields", detail: missing };
   }
 
