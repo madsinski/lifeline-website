@@ -138,7 +138,7 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
       branch1: [
         { photo: IMG.fjarVictor, flag: "Co-founder", name: "Victor Guðmundsson", role: "CEO · Medical Doctor" },
         { photo: IMG.fjarMads, flag: "Co-founder", name: "Mads Christian Aanesen", role: "CTO · Medical Doctor" },
-        { photo: IMG.vignir, flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
+        { photo: IMG.vignir, flag: "Chief Medical Advisor", name: "Vignir Sigurðsson", role: "Pediatrician" },
         { photo: IMG.fjarDagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
       ],
       branch2Brand: "fjarlaekningar", branch2Label: "",
