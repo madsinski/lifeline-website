@@ -135,9 +135,9 @@ export interface Slide {
   value?: string;         // metric — the giant number
   image?: string;         // hero-image — edge-bleed image
   numbered?: boolean;     // report — render the bullets as a numbered list
-  // fan — two cards, each with mini cards fanning out
-  fan1Title?: string; fan1Icon?: IconKey; fan1?: string[];
-  fan2Title?: string; fan2Icon?: IconKey; fan2?: string[];
+  // fan — two labelled groups of cards (e.g. Clients / Collaborations)
+  fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string }[];
+  fan2Title?: string; fan2Icon?: IconKey; fan2?: { value: string; body?: string }[];
   columns?: 1 | 2 | 3 | 4; // grid width for `cards` / `checklist`
   notes?: string;         // presenter notes (shown with N key, never public)
 }
@@ -429,15 +429,21 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     ],
   },
   fan: {
-    type: "fan", label: "Fan-out cards", description: "Two cards, each with mini cards fanning out.",
+    type: "fan", label: "Two card groups", description: "Two labelled groups of cards side by side.",
     fields: [
       F.kicker, F.heading, F.lead,
-      { key: "fan1Title", label: "Card 1 · title", kind: "text" },
-      { key: "fan1Icon", label: "Card 1 · icon", kind: "icon" },
-      { key: "fan1", label: "Card 1 · mini cards", kind: "list", itemLabel: "card", itemFields: [{ key: "value", label: "Label", kind: "text" }] },
-      { key: "fan2Title", label: "Card 2 · title", kind: "text" },
-      { key: "fan2Icon", label: "Card 2 · icon", kind: "icon" },
-      { key: "fan2", label: "Card 2 · mini cards", kind: "list", itemLabel: "card", itemFields: [{ key: "value", label: "Label", kind: "text" }] },
+      { key: "fan1Title", label: "Group 1 · title", kind: "text" },
+      { key: "fan1Icon", label: "Group 1 · icon", kind: "icon" },
+      { key: "fan1", label: "Group 1 · cards", kind: "list", itemLabel: "card", itemFields: [
+        { key: "value", label: "Title", kind: "text" },
+        { key: "body", label: "Body", kind: "textarea" },
+      ] },
+      { key: "fan2Title", label: "Group 2 · title", kind: "text" },
+      { key: "fan2Icon", label: "Group 2 · icon", kind: "icon" },
+      { key: "fan2", label: "Group 2 · cards", kind: "list", itemLabel: "card", itemFields: [
+        { key: "value", label: "Title", kind: "text" },
+        { key: "body", label: "Body", kind: "textarea" },
+      ] },
     ],
   },
 };
@@ -519,8 +525,8 @@ export function makeBlankSlide(type: SlideType): Slide {
     case "report":
       return { ...base, kicker: "Your report", heading: "Your complete health report.", lead: "Every marker, scored and explained.", bullets: ["A score for each area of your health.", "Plain-language explanations and next steps.", "Trends over time as you reassess."], image: "" };
     case "fan":
-      return { ...base, theme: "light", kicker: "Section", heading: "Two ==groups== fanning out.",
-        fan1Title: "Group one", fan1Icon: "shield", fan1: ["Item A", "Item B", "Item C"],
-        fan2Title: "Group two", fan2Icon: "leaf", fan2: ["Item D", "Item E"] };
+      return { ...base, theme: "light", kicker: "Section", heading: "Two ==groups== of cards.",
+        fan1Title: "Group one", fan1Icon: "shield", fan1: [{ value: "First", body: "Short description." }, { value: "Second", body: "Short description." }],
+        fan2Title: "Group two", fan2Icon: "leaf", fan2: [{ value: "Third", body: "Short description." }] };
   }
 }

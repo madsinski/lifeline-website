@@ -180,15 +180,21 @@ export function investorDeck(): Slide[] {
         "First pilot underway with South Iceland Primary Health Care.",
       ],
       image: IMG.fjarApp }),
-    // F3 · Clients & collaborations — fan-out mini cards
+    // F3 · Clients & collaborations — two groups of cards
     s({ type: "fan", theme: "light", brand: "fjarlaekningar",
       kicker: "Fjarlækningar · Clients & collaborations",
       heading: "From the health service to your ==doorstep.==",
-      lead: "Heilbrigðisstofnun Suðurlands (HSU), the South Iceland health service, and a growing national reach — with Lyfja bringing home delivery and a new level of service to the patient.",
       fan1Title: "Clients", fan1Icon: "shield",
-      fan1: ["HSU · South", "North", "West", "East"],
+      fan1: [
+        { value: "HSU — South Iceland", body: "Heilbrigðisstofnun Suðurlands, the Health Care Institution of South Iceland — our first pilot." },
+        { value: "Expanding nationwide", body: "Collaborations underway with the North, West and East of Iceland." },
+      ],
       fan2Title: "Collaborations", fan2Icon: "leaf",
-      fan2: ["Lyfja", "Home delivery", "Next-level service"] }),
+      fan2: [
+        { value: "Lyfja", body: "Iceland's largest pharmacy chain — over 40 pharmacies nationwide." },
+        { value: "Home delivery", body: "Medication and home-test kits delivered straight to the patient." },
+        { value: "Next-level service", body: "A new standard of convenience and care, end to end." },
+      ] }),
     // F4 · Team
     s({ type: "team", theme: "light", brand: "fjarlaekningar",
       kicker: "Fjarlækningar · Team",

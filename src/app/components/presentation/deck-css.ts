@@ -369,21 +369,17 @@ export const DECK_CSS = `
 .lldeck .hero-img{position:absolute;top:0;right:0;bottom:0;width:42%;background-size:cover;background-position:center;z-index:0;display:grid;place-items:center;background-color:var(--dark2);}
 .lldeck .hero-ph{color:var(--on-dark-muted);font-size:.8rem;}
 .lldeck .hero-body{padding-right:46%;}
-/* fan — two cards, each with mini cards fanning out below for a wow effect */
-.lldeck .fan{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1.5rem,6cqw,4.5rem);align-items:start;margin-top:clamp(2.4rem,6cqh,4rem);}
-.lldeck .fan-group{display:flex;flex-direction:column;align-items:center;text-align:center;}
-.lldeck .fan-main{position:relative;z-index:2;background:var(--card);border:1px solid var(--line);border-radius:var(--card-radius);box-shadow:var(--shadow);padding:1.3rem 1.9rem;display:flex;flex-direction:column;align-items:center;gap:.45rem;min-width:clamp(160px,18cqw,240px);}
-.lldeck .dark .fan-main{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);}
-.lldeck .fan-main .icon{margin-bottom:0;}
-.lldeck .fan-main h3{font-size:clamp(1.1rem,1.9cqw,1.6rem);}
-.lldeck .fan-minis{display:flex;justify-content:center;align-items:flex-start;gap:clamp(.4rem,1cqw,.8rem);margin-top:clamp(1rem,2.6cqh,1.8rem);}
-.lldeck .fan-mini{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 22px -10px rgba(0,0,0,.28);padding:.55rem .9rem;font-size:clamp(.74rem,1cqw,.96rem);font-weight:600;color:var(--foreground);white-space:nowrap;transform-origin:top center;}
-.lldeck .dark .fan-mini{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:var(--on-dark);}
-.lldeck .fan-minis .fan-mini:nth-child(1){transform:rotate(-9deg) translateY(7px);}
-.lldeck .fan-minis .fan-mini:nth-child(2){transform:rotate(-3deg);}
-.lldeck .fan-minis .fan-mini:nth-child(3){transform:rotate(3deg);}
-.lldeck .fan-minis .fan-mini:nth-child(4){transform:rotate(9deg) translateY(7px);}
-.lldeck .fan-minis .fan-mini:nth-child(5){transform:rotate(14deg) translateY(15px);}
+/* two labelled groups of cards (e.g. Clients / Collaborations) */
+.lldeck .grps{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1.4rem,4cqw,3rem);align-items:start;margin-top:clamp(1.8rem,4.4cqh,3rem);}
+.lldeck .grp-head{display:flex;align-items:center;gap:.7rem;padding-bottom:.7rem;margin-bottom:1rem;border-bottom:2px solid color-mix(in srgb, var(--emerald) 30%, transparent);}
+.lldeck .grp-head .icon{margin-bottom:0;width:clamp(32px,2.8cqw,42px);height:clamp(32px,2.8cqw,42px);}
+.lldeck .grp-head h3{font-size:clamp(1.05rem,1.8cqw,1.5rem);letter-spacing:-.01em;}
+.lldeck .grp-cards{display:flex;flex-direction:column;gap:clamp(.7rem,1.6cqh,1.1rem);}
+.lldeck .grp-card{background:var(--card);border:1px solid var(--line);border-radius:var(--card-radius);box-shadow:var(--shadow);padding:clamp(.9rem,1.4cqw,1.2rem) clamp(1rem,1.6cqw,1.3rem);}
+.lldeck .dark .grp-card{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.12);backdrop-filter:blur(6px);box-shadow:none;}
+.lldeck .grp-card h4{font-size:clamp(.95rem,1.3cqw,1.18rem);font-weight:700;line-height:1.2;}
+.lldeck .grp-card p{font-size:clamp(.78rem,1cqw,1rem);color:var(--muted);line-height:1.45;margin-top:.25rem;}
+.lldeck .dark .grp-card p{color:var(--on-dark-muted);}
 
 /* numbered list (e.g. the report's assessment steps) */
 .lldeck ol.numbered{list-style:none;display:flex;flex-direction:column;gap:.7rem;}

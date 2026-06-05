@@ -386,14 +386,19 @@ function SlideBody({ s }: { s: Slide }) {
       );
 
     case "fan": {
-      const group = (title: string | undefined, icon: IconKey | undefined, items: string[] | undefined) => (
-        <div className="fan-group">
-          <div className="fan-main">
+      const group = (title: string | undefined, icon: IconKey | undefined, items: { value: string; body?: string }[] | undefined) => (
+        <div className="grp">
+          <div className="grp-head">
             {icon && <div className="icon"><Icon name={icon} /></div>}
             {title && <h3>{title}</h3>}
           </div>
-          <div className="fan-minis">
-            {(items || []).map((it, i) => <div key={i} className="fan-mini">{it}</div>)}
+          <div className="grp-cards">
+            {(items || []).map((it, i) => (
+              <div key={i} className="grp-card">
+                <h4>{it.value}</h4>
+                {it.body && <p>{it.body}</p>}
+              </div>
+            ))}
           </div>
         </div>
       );
@@ -401,8 +406,8 @@ function SlideBody({ s }: { s: Slide }) {
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2>{rich(s.heading)}</h2>}
-          {s.lead && <p className="lead" style={{ marginTop: ".8rem", maxWidth: "60ch" }}>{s.lead}</p>}
-          <div className="fan">
+          {s.lead && <p className="lead" style={{ marginTop: ".8rem", maxWidth: "62ch" }}>{s.lead}</p>}
+          <div className="grps">
             {group(s.fan1Title, s.fan1Icon, s.fan1)}
             {group(s.fan2Title, s.fan2Icon, s.fan2)}
           </div>
