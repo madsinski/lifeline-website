@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
-  SLIDE_SCHEMAS, SLIDE_TYPE_ORDER, makeBlankSlide, DESIGNS,
+  SLIDE_SCHEMAS, SLIDE_TYPE_ORDER, makeBlankSlide, DESIGNS, BRAND_OPTIONS,
   type Slide, type SlideType, type SlideTheme, type PresentationData, type DesignId,
   type DeckTextMaps, type BrandKey,
 } from "@/lib/presentations/types";
@@ -289,8 +289,7 @@ export default function PresentationEditor() {
                         onChange={(e) => updateSlide({ ...selected, brand: e.target.value as BrandKey })}
                         className="rounded border border-gray-300 px-1.5 py-0.5"
                       >
-                        <option value="lifeline">Lifeline</option>
-                        <option value="fjarlaekningar">Fjarlækningar</option>
+                        {BRAND_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </label>
                     <label className="flex items-center gap-1">Theme
@@ -355,8 +354,8 @@ export default function PresentationEditor() {
               <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
                 <span>Logo</span>
                 <div className="inline-flex overflow-hidden rounded-md border border-gray-300">
-                  {([["lifeline", "Lifeline"], ["fjarlaekningar", "Fjarlækningar"]] as const).map(([v, label]) => (
-                    <button key={v} onClick={() => setAddBrand(v)} className={`px-2.5 py-1 ${addBrand === v ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>{label}</button>
+                  {BRAND_OPTIONS.map((o) => (
+                    <button key={o.value} onClick={() => setAddBrand(o.value)} className={`px-2.5 py-1 ${addBrand === o.value ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>{o.label}</button>
                   ))}
                 </div>
                 <button onClick={() => setAddOpen(false)} className="ml-1 rounded p-1 text-gray-400 hover:text-gray-700" aria-label="Close">✕</button>

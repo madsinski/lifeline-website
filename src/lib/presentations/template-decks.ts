@@ -284,6 +284,77 @@ export function investorDeck(): Slide[] {
   ];
 }
 
+// ── World Class × Lifeline — gym-chain partnership deck ──────────────────────
+// Pitches the Lifeline collaboration to the World Class gym chain. World Class
+// slides carry brand "worldclass" (red), Lifeline app slides carry "lifeline".
+export function worldclassDeck(): Slide[] {
+  return [
+    // 1 · Title
+    s({ type: "title", theme: "dark", brand: "worldclass",
+      kicker: "A health partnership",
+      heading: "Lifeline × ==World Class==",
+      lead: "Bringing clinical-grade health checks, coaching and nutrition into Iceland's largest gym network.",
+      tagline: "Bætt heilsa — betra líf." }),
+    // 2 · Measurements at the gym
+    s({ type: "bullets", theme: "light", brand: "worldclass",
+      kicker: "At the gym · Measurements",
+      heading: "Your health check, ==where you train.==",
+      lead: "Members measure their body composition and blood pressure right at World Class — no clinic visit needed.",
+      chips: [{ label: "Body composition" }, { label: "Blood pressure" }],
+      bullets: [
+        "A body-composition scan, on site at the gym.",
+        "Blood-pressure measurement alongside it.",
+        "Results flow straight into the Lifeline app — scored and explained.",
+      ] }),
+    // 3 · Nutrition station at Laugar
+    s({ type: "bullets", theme: "dark", brand: "worldclass",
+      kicker: "At the gym · Nutrition",
+      heading: "A nutrition station at ==Laugar.==",
+      lead: "World Class Laugar already has an in-house restaurant serving clean food — together we make it a Lifeline nutrition station.",
+      bullets: [
+        "Clean, healthy food already on site.",
+        "Nutrition guidance tied to your own results.",
+        "Eat to your plan, right after you train.",
+      ] }),
+    // 4 · The app, community & classes
+    s({ type: "phone-feature", theme: "dark", brand: "lifeline",
+      kicker: "The app · Community",
+      heading: "The Lifeline app, ==connected to World Class.==",
+      lead: "Your Lifeline community links straight to World Class — the classes, trainers and people you train with.",
+      bullets: [
+        "Discover and book World Class group classes.",
+        "Connect with World Class personal trainers.",
+        "One community across the gym and the app.",
+      ],
+      phone: IMG.appCommunity }),
+    // 5 · In-app programs linked to gym classes
+    s({ type: "feature-rows", theme: "light", brand: "lifeline",
+      kicker: "The app · Programs",
+      heading: "Your plan, ==in the class schedule.==",
+      rows: [
+        { icon: "cal", title: "Programs map to classes", body: "Each step in your Lifeline program links to a real World Class class." },
+        { icon: "dumbbell", title: "Matched to your plan", body: "Spinning, strength, yoga, HIIT — the right class for the right day." },
+        { icon: "users", title: "Train together", body: "Follow your plan in a room full of people, with a coach up front." },
+      ] }),
+    // 6 · Co-marketing health events
+    s({ type: "bullets", theme: "dark", brand: "worldclass",
+      kicker: "Together · Marketing",
+      heading: "Health events, ==co-hosted.==",
+      lead: "Lifeline and World Class run joint health events — building awareness, members and momentum for both brands.",
+      bullets: [
+        "Co-branded health challenges and pop-ups.",
+        "Shared reach across both communities.",
+        "One message: better health, better life.",
+      ] }),
+    // 7 · Closing
+    s({ type: "closing", theme: "dark", brand: "worldclass",
+      kicker: "Together",
+      heading: "Better health, ==built into the gym.==",
+      lead: "Lifeline × World Class — clinical health, nutrition and coaching, where Iceland already trains.",
+      tagline: "Bætt heilsa — betra líf." }),
+  ];
+}
+
 // ── 2. KEYNOTE — minimal, one idea per slide: statements + metrics ───────────
 export function keynoteDeck(): Slide[] {
   return [

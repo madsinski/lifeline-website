@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { Slide } from "@/lib/presentations/types";
 import { DECK_CSS } from "./deck-css";
-import { DeckDefs, SlideView } from "./SlideView";
+import { DeckDefs, SlideView, brandClass } from "./SlideView";
 
 function hasBg(s: Slide): boolean {
   return (s.type === "title" || s.type === "closing") && !!s.bg;
@@ -92,7 +92,7 @@ export function DeckPrint({ slides, design, onClose }: { slides: Slide[]; design
         {slides.map((s) => (
           <div key={s.id} className="ll-pdf-page">
             <div className="lldeck is-stage" data-design={design || "lifeline"}>
-              <section className={`slide ${s.theme}${s.brand === "fjarlaekningar" ? " brand-fjar" : ""}${hasBg(s) ? " has-bg" : ""} active`}>
+              <section className={`slide ${s.theme}${brandClass(s.brand)}${hasBg(s) ? " has-bg" : ""} active`}>
                 <SlideView slide={s} />
               </section>
             </div>

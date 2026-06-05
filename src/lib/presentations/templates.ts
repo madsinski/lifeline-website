@@ -9,7 +9,7 @@
 import type { PresentationData, Slide, DesignId } from "./types";
 import { newId } from "./types";
 import { standardDeckSlides } from "./standard-deck";
-import { editorialDeck, keynoteDeck, clinicalDeck, energeticDeck, brochureDeck, lifelineFjarlaekningarDeck, investorDeck } from "./template-decks";
+import { editorialDeck, keynoteDeck, clinicalDeck, energeticDeck, brochureDeck, lifelineFjarlaekningarDeck, investorDeck, worldclassDeck } from "./template-decks";
 
 export interface PresentationTemplate {
   id: string;
@@ -39,6 +39,8 @@ export const TEMPLATES: PresentationTemplate[] = [
   { id: "lifeline-fjarlaekningar", name: "Lifeline + Fjarlækningar", description: "Assessment, four pillars, coaching, Fjarlækningar + a team per company. Exportable to PDF.", design: "lifeline" },
   // Investor deck — 4 slides per company (History · Concept · Clients · Team).
   { id: "investor", name: "Investor — Fjarlækningar + Lifeline", description: "History, concept, clients & team for each company (Lifeline split into assessment + coaching). Exportable to PDF.", design: "lifeline" },
+  // World Class gym-chain partnership pitch.
+  { id: "worldclass", name: "World Class × Lifeline", description: "7 slides · gym partnership — measurements, nutrition, app, programs & co-marketing. Exportable to PDF.", design: "lifeline" },
 ];
 
 // From-scratch templates map to a bespoke deck builder + design.
@@ -50,6 +52,7 @@ const CUSTOM_DECKS: Record<string, { fn: () => Slide[]; design: DesignId }> = {
   brochure: { fn: brochureDeck, design: "bloom" },
   "lifeline-fjarlaekningar": { fn: lifelineFjarlaekningarDeck, design: "lifeline" },
   investor: { fn: investorDeck, design: "lifeline" },
+  worldclass: { fn: worldclassDeck, design: "lifeline" },
 };
 
 /** Returns a fresh copy of the standard slides with brand-new slide IDs. */

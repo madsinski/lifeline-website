@@ -5,6 +5,11 @@ import { DeckDefs, Logo, Icon } from "./DeckAssets";
 
 export { DeckDefs };
 
+/** Extra slide class for a non-default brand (drives palette + logo colour). */
+export function brandClass(brand?: string): string {
+  return brand === "fjarlaekningar" ? " brand-fjar" : brand === "worldclass" ? " brand-wc" : "";
+}
+
 // Render ==accent== markers as gradient spans and \n as line breaks.
 function rich(text?: string): React.ReactNode {
   if (!text) return null;
@@ -168,7 +173,7 @@ function SlideBody({ s }: { s: Slide }) {
 
     case "team-branch": {
       const team = (label: string | undefined, brand: Slide["brand"], members: MemberItem[] | undefined) => (
-        <div className={`tb-team${brand === "fjarlaekningar" ? " brand-fjar" : ""}`}>
+        <div className={`tb-team${brandClass(brand)}`}>
           <div className="tb-team-head">
             <Logo brand={brand} />
             {label && <span className="tb-label">{label}</span>}

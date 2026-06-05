@@ -150,6 +150,29 @@ export const DECK_CSS = `
     radial-gradient(520px 440px at 2% 98%, rgba(207,20,123,.08), transparent 60%),
     var(--bg);
 }
+
+/* World Class — red brand (#D03C3C) on near-black, for the Lifeline × World
+   Class partnership deck. Per-slide via .brand-wc, deck-wide via data-design. */
+.lldeck[data-design="worldclass"],
+.lldeck .brand-wc{
+  --emerald:#D03C3C; --emerald-dark:#B22820; --cyan:#841A22;
+  --ink:#1D1D1D; --foreground:#1D1D1D; --muted:#5b5656;
+  --bg:#f6f4f4; --card:#ffffff; --line:#e7e2e2;
+  --on-dark:#f7eaea; --on-dark-muted:#e2b8b8; --on-dark-accent:#ff8175;
+  --dark1:#181313; --dark2:#3a1413; --dark3:#221011;
+  --glow1:rgba(208,60,60,.28); --glow2:rgba(132,26,34,.20);
+}
+.lldeck[data-design="worldclass"] .slide.light,
+.lldeck .slide.brand-wc.light{
+  background:
+    radial-gradient(620px 460px at 88% 4%, rgba(208,60,60,.10), transparent 60%),
+    radial-gradient(520px 440px at 2% 98%, rgba(132,26,34,.07), transparent 60%),
+    var(--bg);
+}
+/* World Class logo: red on light slides, white on dark (their brand usage). */
+.lldeck .slide.brand-wc .logo{color:#D03C3C;}
+.lldeck .slide.brand-wc.dark .logo{color:#ffffff;}
+.lldeck .logo-wc,.lldeck .logo-wc svg{height:clamp(22px,2.6cqw,38px);}
 .lldeck *{box-sizing:border-box;margin:0;padding:0;}
 
 .lldeck .slide{

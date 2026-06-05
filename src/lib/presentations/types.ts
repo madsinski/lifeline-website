@@ -75,11 +75,12 @@ export const PILLAR_OPTIONS: { value: PillarKey; label: string }[] = [
 // Which company wordmark shows in a slide's header. Lets a single deck present
 // more than one brand (e.g. a joint Lifeline + Fjarlækningar showcase). Default
 // is Lifeline when unset, so existing decks are unaffected.
-export type BrandKey = "lifeline" | "fjarlaekningar";
+export type BrandKey = "lifeline" | "fjarlaekningar" | "worldclass";
 
 export const BRAND_OPTIONS: { value: BrandKey; label: string }[] = [
   { value: "lifeline", label: "Lifeline Health" },
   { value: "fjarlaekningar", label: "Fjarlækningar" },
+  { value: "worldclass", label: "World Class" },
 ];
 
 export interface StatItem { value: string; label: string; }
