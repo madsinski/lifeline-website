@@ -237,16 +237,19 @@ export function investorDeck(): Slide[] {
         "Motivation that lasts — progress tracking, streaks and health scores keep you engaged.",
       ],
       phone: IMG.lifelineApp }),
-    // L4 · Clients & partners
-    s({ type: "cards", theme: "light", brand: "lifeline", columns: 2,
+    // L4 · Clients & partners — one card per client / municipality / partner
+    s({ type: "cards", theme: "light", brand: "lifeline", columns: 4,
       kicker: "Lifeline Health · Clients & partners",
       heading: "Growing across ==Iceland.==",
-      lead: "From the capital region to the North — and able to work remotely, nationwide.",
       cards: [
-        { icon: "shield", title: "Municipalities", body: "Working with Hafnarfjörður, Vestmannaeyjabær and more coming on board." },
-        { icon: "users", title: "Companies", body: "Across the capital region and around the country." },
-        { icon: "spark", title: "B2C — launching soon", body: "With pharmacies and gyms, for measurements and blood tests nationwide." },
-        { icon: "doc", title: "Clinical partners", body: "Lyfja, Sameind blood-work clinic, and LAK (Læknastofa Akureyrar) in the North — clinicians across all departments." },
+        { icon: "shield", title: "Hafnarfjörður", body: "Municipality" },
+        { icon: "shield", title: "Vestmannaeyjabær", body: "Municipality" },
+        { icon: "users", title: "Companies", body: "Capital region & beyond" },
+        { icon: "spark", title: "Pharmacies & gyms", body: "B2C — launching soon" },
+        { icon: "leaf", title: "Lyfja", body: "Pharmacy chain" },
+        { icon: "chart", title: "Sameind", body: "Blood-work clinic" },
+        { icon: "doc", title: "LAK · Akureyri", body: "Clinicians, the North" },
+        { icon: "phone", title: "Remote", body: "Nationwide reach" },
       ] }),
     // L5 · Team
     s({ type: "team", theme: "light", brand: "lifeline",
@@ -258,6 +261,26 @@ export function investorDeck(): Slide[] {
         { photo: IMG.vignir, flag: "Chief Medical Advisor", name: "Vignir Sigurðsson", role: "Pediatrician" },
         { photo: IMG.fjarDagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
       ] }),
+    // L6 · Future plans (the App + the Health House)
+    s({ type: "feature-rows", theme: "light", brand: "lifeline",
+      kicker: "Lifeline Health · Future plans",
+      heading: "Where Lifeline is ==headed.==",
+      rows: [
+        { icon: "phone", title: "Lifeline Health — the App", body: "A health club, community and coach. All your data and health in one place — exercise, nutrition, sleep and mental wellbeing — with a living plan tailored to you, daily." },
+        { icon: "leaf", title: "Lifeline Health — Health House", body: "Heilsuhús / Lífstílsklíník — a lifestyle clinic bringing the whole experience together under one roof." },
+      ] }),
+    // L7 · Our goal — a health revolution
+    s({ type: "timeline", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health · Our goal",
+      heading: "A health revolution starts in ==people.==",
+      nodes: [
+        { icon: "spark", title: "One person", body: "More energy." },
+        { icon: "target", title: "A better life", body: "At home and at work." },
+        { icon: "users", title: "It spreads", body: "To partner, children, friends and family." },
+        { icon: "pulse", title: "Society shifts", body: "Communities start to change." },
+        { icon: "shield", title: "All of Iceland", body: "A healthier nation." },
+      ],
+      lead: "Healthier individuals create healthier families, workplaces and communities — and that changes a country." }),
   ];
 }
 
