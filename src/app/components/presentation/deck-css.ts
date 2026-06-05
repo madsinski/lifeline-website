@@ -280,8 +280,15 @@ export const DECK_CSS = `
 .lldeck .phone-row.showcase .phone-shot{width:clamp(132px,17cqw,222px);margin:0;}
 .lldeck .phone-row.showcase .phone-shot:nth-child(2){width:clamp(144px,18.5cqw,242px);margin-bottom:0;}
 .lldeck .phone-ph{display:grid;place-items:center;color:var(--on-dark-muted);font-size:.8rem;text-align:center;height:100%;padding:1rem;}
+/* trio — three equal-size phone mockups, centered, with captions */
+.lldeck .phone-trio-body{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.lldeck .phone-trio{display:flex;gap:clamp(1rem,3.2cqw,2.6rem);justify-content:center;align-items:flex-start;margin-top:clamp(1.6rem,3.4cqh,2.6rem);}
+.lldeck .phone-trio-item{display:flex;flex-direction:column;align-items:center;gap:.7rem;}
+.lldeck .phone-trio .phone-shot{width:clamp(120px,14.5cqw,230px);margin:0;}
+.lldeck .phone-trio-item p{font-size:clamp(.74rem,.95cqw,.92rem);color:var(--muted);max-width:18ch;line-height:1.35;}
+.lldeck .dark .phone-trio-item p{color:var(--on-dark-muted);}
 
-.lldeck .team{display:grid;grid-template-columns:repeat(4,1fr);gap:1.3rem;margin-top:1.8cqh;}
+.lldeck .team{display:grid;grid-template-columns:repeat(4,1fr);gap:1.3rem;margin-top:clamp(1.6rem,3.6cqh,2.8rem);}
 .lldeck .member{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.5rem;}
 .lldeck .member .photo{width:clamp(78px,9cqw,132px);height:clamp(78px,9cqw,132px);border-radius:50%;object-fit:cover;object-position:center top;border:3px solid #fff;background:#dfeae6;box-shadow:var(--shadow);}
 .lldeck .member .ph-empty{display:grid;place-items:center;color:var(--muted);font-size:.7rem;}
@@ -306,7 +313,7 @@ export const DECK_CSS = `
 .lldeck .team-branch .member h4{font-size:clamp(.82rem,1.05cqw,1rem);}
 .lldeck .team-branch .member .role{font-size:clamp(.68rem,.86cqw,.8rem);max-width:18ch;}
 
-.lldeck .tl{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;margin-top:1rem;}
+.lldeck .tl{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;margin-top:clamp(1.4rem,3cqh,2.4rem);}
 .lldeck .tl::before{content:"";position:absolute;left:6%;right:6%;top:clamp(16px,1.6cqw,22px);height:3px;background:linear-gradient(90deg,var(--emerald),var(--cyan));border-radius:3px;}
 .lldeck .tl .node{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.6rem;position:relative;padding:0 .4rem;}
 .lldeck .tl .dotn{width:clamp(34px,3.2cqw,46px);height:clamp(34px,3.2cqw,46px);border-radius:50%;background:#fff;border:3px solid var(--emerald);display:grid;place-items:center;color:var(--emerald-dark);z-index:1;}

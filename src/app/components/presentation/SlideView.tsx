@@ -108,7 +108,7 @@ function SlideBody({ s }: { s: Slide }) {
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2 style={{ maxWidth: "22ch" }}>{rich(s.heading)}</h2>}
           {s.lead && <p className="lead" style={{ marginTop: ".9rem" }}>{s.lead}</p>}
-          <div className={`cols-${s.columns || 3}`} style={{ marginTop: "1.8rem" }}>{cards}</div>
+          <div className={`cols-${s.columns || 3}`} style={{ marginTop: "2.1rem" }}>{cards}</div>
         </div>
       );
     }
@@ -202,7 +202,7 @@ function SlideBody({ s }: { s: Slide }) {
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           <h2>{rich(s.heading)}</h2>
           {s.lead && <p className="lead" style={{ marginTop: ".8rem" }}>{s.lead}</p>}
-          <div className="cols-4" style={{ marginTop: "1.8rem" }}>
+          <div className="cols-4" style={{ marginTop: "2.1rem" }}>
             {(s.pillars || []).map((p, i) => (
               <div key={i} className={`pillar p-${p.key}`}><div className="pi"><Icon name={p.icon} /></div><h3>{p.title}</h3><p>{p.body}</p></div>
             ))}
@@ -215,7 +215,7 @@ function SlideBody({ s }: { s: Slide }) {
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           <h2>{rich(s.heading)}</h2>
-          <div className="cols-3" style={{ marginTop: "1.8rem", rowGap: "1.6rem" }}>
+          <div className="cols-3" style={{ marginTop: "2.1rem", rowGap: "1.6rem" }}>
             {(s.steps || []).map((st, i) => (
               <div key={i} className="step"><span className="num">{i + 1}</span><div><h3>{st.title}</h3><p>{st.body}</p></div></div>
             ))}
@@ -278,6 +278,23 @@ function SlideBody({ s }: { s: Slide }) {
         </div>
       );
 
+    case "trio":
+      return (
+        <div className="body phone-trio-body">
+          {s.kicker && <span className="kicker">{s.kicker}</span>}
+          {s.heading && <h2 style={{ maxWidth: "24ch" }}>{rich(s.heading)}</h2>}
+          {s.lead && <p className="lead" style={{ marginTop: ".8rem" }}>{s.lead}</p>}
+          <div className="phone-trio">
+            {(s.trio || []).slice(0, 3).map((p, i) => (
+              <div key={i} className="phone-trio-item">
+                <PhoneImg src={p?.value} />
+                {p?.caption && <p>{p.caption}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
     case "coaching":
       return (
         <div className="body two" style={{ gridTemplateColumns: ".8fr 1.2fr" }}>
@@ -336,7 +353,7 @@ function SlideBody({ s }: { s: Slide }) {
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2>{rich(s.heading)}</h2>}
-          <div className="frows" style={{ marginTop: "1.4rem" }}>
+          <div className="frows" style={{ marginTop: "2.1rem" }}>
             {(s.rows || []).map((r, i) => (
               <div key={i} className="frow">
                 <div className="icon"><Icon name={r.icon} /></div>
@@ -368,7 +385,7 @@ function SlideBody({ s }: { s: Slide }) {
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2>{rich(s.heading)}</h2>}
-          <div className={`checklist cols-${s.columns || 2}`} style={{ marginTop: "1.6rem" }}>
+          <div className={`checklist cols-${s.columns || 2}`} style={{ marginTop: "2.1rem" }}>
             {(s.items || []).map((it, i) => (
               <div key={i} className="check"><span className="cbox" /><span>{it}</span></div>
             ))}

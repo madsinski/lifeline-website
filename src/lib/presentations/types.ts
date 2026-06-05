@@ -93,7 +93,7 @@ export interface ChipItem { label: string; }
 export type SlideType =
   | "title" | "stats" | "cards" | "quote" | "story" | "team" | "team-branch"
   | "pillars" | "steps" | "bullets" | "phone-feature"
-  | "app-showcase" | "coaching" | "timeline" | "closing"
+  | "app-showcase" | "trio" | "coaching" | "timeline" | "closing"
   // from-scratch layout primitives
   | "statement" | "metric" | "feature-rows" | "hero-image" | "checklist"
   | "report";
@@ -115,6 +115,7 @@ export interface Slide {
   photo?: string;         // single editorial photo URL (story)
   phone?: string;         // single phone screenshot URL (phone-feature/coaching)
   phones?: string[];      // up to 3 phone screenshot URLs (app-showcase)
+  trio?: { value: string; caption?: string }[]; // 3 equal-size phones + captions (trio)
   bullets?: string[];
   chips?: ChipItem[];
   stats?: StatItem[];
@@ -333,6 +334,16 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       F.bullets,
     ],
   },
+  trio: {
+    type: "trio", label: "Three phones", description: "Three equal-size phone screenshots, centered, with captions.",
+    fields: [
+      F.kicker, F.heading, F.lead,
+      { key: "trio", label: "Phones (max 3)", kind: "list", itemLabel: "phone", max: 3, itemFields: [
+        { key: "value", label: "Screenshot", kind: "image", imageRole: "phone" },
+        { key: "caption", label: "Caption", kind: "text" },
+      ] },
+    ],
+  },
   coaching: {
     type: "coaching", label: "Coaching", description: "Text + phone beside cards.",
     fields: [
@@ -417,7 +428,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
 export const SLIDE_TYPE_ORDER: SlideType[] = [
   "title", "statement", "metric", "stats", "cards", "feature-rows",
   "checklist", "quote", "story", "team", "team-branch", "pillars", "steps", "bullets",
-  "phone-feature", "report", "app-showcase", "coaching", "timeline", "hero-image", "closing",
+  "phone-feature", "report", "app-showcase", "trio", "coaching", "timeline", "hero-image", "closing",
 ];
 
 // ----------------------------------------------------------------------------
@@ -466,6 +477,8 @@ export function makeBlankSlide(type: SlideType): Slide {
       return { ...base, theme: "dark", kicker: "Feature", heading: "What you get.", bullets: ["First point.", "Second point."], phone: "" };
     case "app-showcase":
       return { ...base, theme: "dark", kicker: "The app", heading: "Everything in your pocket.", tag: "Coming soon", phones: [], bullets: ["First feature.", "Second feature."] };
+    case "trio":
+      return { ...base, theme: "dark", kicker: "The app", heading: "Everything in your ==pocket.==", trio: [ { value: "", caption: "Screen one" }, { value: "", caption: "Screen two" }, { value: "", caption: "Screen three" } ] };
     case "coaching":
       return { ...base, kicker: "Coaching", heading: "Smart guidance, and real humans.", lead: "", phone: "", cards: [ { icon: "spark", title: "First", body: "" }, { icon: "users", title: "Second", body: "" } ] };
     case "timeline":
