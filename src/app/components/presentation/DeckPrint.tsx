@@ -39,7 +39,14 @@ const PRINT_CSS = `
   .ll-pdf{display:block!important;position:static;background:#fff;overflow:visible;}
   .ll-pdf-bar{display:none!important;}
   .ll-pdf-scroll{display:block;padding:0;gap:0;}
-  .ll-pdf-page{box-shadow:none;margin:0;break-after:page;page-break-after:always;}
+  /* Pin explicit pixel sizes for print: percentage height + container-query
+     sizing (cqh) can fail to resolve in the print flow, which collapses the
+     deck's vertical clamp()s to their minimums and squashes the slide. Fixed
+     px on both the page and the .lldeck keeps the container query intact. */
+  html,body{width:1280px!important;}
+  .ll-pdf,.ll-pdf-scroll{width:1280px!important;}
+  .ll-pdf-page{box-shadow:none;margin:0;width:1280px!important;height:720px!important;overflow:hidden!important;break-after:page;page-break-after:always;}
+  .ll-pdf-page .lldeck{width:1280px!important;height:720px!important;}
   .ll-pdf-page:last-child{break-after:auto;page-break-after:auto;}
   .ll-pdf-page,.ll-pdf-page *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
   @page{size:1280px 720px;margin:0;}
