@@ -406,9 +406,15 @@ function SlideBody({ s }: { s: Slide }) {
             <h2>{rich(s.heading)}</h2>
             {s.lead && <p className="lead" style={{ marginTop: ".9rem" }}>{s.lead}</p>}
             {!!(s.bullets || []).length && (
-              <ul className="clean" style={{ marginTop: "1.2rem" }}>
-                {s.bullets!.map((b, i) => <li key={i}><span>{b}</span></li>)}
-              </ul>
+              s.numbered ? (
+                <ol className="numbered" style={{ marginTop: "1.2rem" }}>
+                  {s.bullets!.map((b, i) => <li key={i}><span className="n">{i + 1}</span><span>{b}</span></li>)}
+                </ol>
+              ) : (
+                <ul className="clean" style={{ marginTop: "1.2rem" }}>
+                  {s.bullets!.map((b, i) => <li key={i}><span>{b}</span></li>)}
+                </ul>
+              )
             )}
           </div>
           <div className="laptop">

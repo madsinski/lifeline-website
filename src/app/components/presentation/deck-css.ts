@@ -369,15 +369,18 @@ export const DECK_CSS = `
 .lldeck .hero-img{position:absolute;top:0;right:0;bottom:0;width:42%;background-size:cover;background-position:center;z-index:0;display:grid;place-items:center;background-color:var(--dark2);}
 .lldeck .hero-ph{color:var(--on-dark-muted);font-size:.8rem;}
 .lldeck .hero-body{padding-right:46%;}
-/* report — laptop mock-up */
+/* numbered list (e.g. the report's assessment steps) */
+.lldeck ol.numbered{list-style:none;display:flex;flex-direction:column;gap:.7rem;}
+.lldeck ol.numbered li{display:flex;gap:.7rem;align-items:flex-start;font-size:clamp(.82rem,1.35cqw,1.3rem);line-height:1.5;}
+.lldeck ol.numbered .n{flex:none;width:clamp(22px,2.4cqw,30px);height:clamp(22px,2.4cqw,30px);border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:clamp(.7rem,1cqw,.92rem);color:#fff;background:linear-gradient(135deg,var(--emerald),var(--emerald-dark));margin-top:.1rem;}
+.lldeck .dark ol.numbered li{color:var(--on-dark);}
+
+/* report — laptop mock-up. Screenshots are letterboxed (contain) on a light
+   screen so the whole capture shows — portrait app shots aren't cropped, and
+   wide web captures keep their full width. */
 .lldeck .laptop{width:100%;max-width:760px;margin:0 auto;}
-.lldeck .laptop .screen{border:clamp(7px,.9cqw,12px) solid #16181c;border-bottom:none;border-radius:14px 14px 0 0;background:#fff;aspect-ratio:16/10;overflow:hidden;box-shadow:0 30px 60px -28px rgba(0,0,0,.55);}
-/* Fjarlækningar web app is a wide capture — keep the laptop's normal screen
-   shape (no squashing) and letterbox the screenshot on the app's own light
-   background so the whole UI shows without side-cropping. */
-.lldeck .slide.brand-fjar .laptop .screen{background:#f5f7fa;}
-.lldeck .slide.brand-fjar .laptop .screen img{object-fit:contain;object-position:top center;}
-.lldeck .laptop .screen img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}
+.lldeck .laptop .screen{border:clamp(7px,.9cqw,12px) solid #16181c;border-bottom:none;border-radius:14px 14px 0 0;background:#f4f4f5;aspect-ratio:16/10;overflow:hidden;box-shadow:0 30px 60px -28px rgba(0,0,0,.55);}
+.lldeck .laptop .screen img{width:100%;height:100%;object-fit:contain;object-position:top center;display:block;}
 .lldeck .laptop .screen .phone-ph{height:100%;color:var(--muted);}
 .lldeck .laptop .laptop-base{height:clamp(10px,1.3cqw,16px);margin:0 -7%;border-radius:0 0 7px 7px;background:linear-gradient(180deg,#cfd3d9,#9aa0a8);position:relative;box-shadow:0 14px 22px -14px rgba(0,0,0,.45);}
 .lldeck .laptop .laptop-base::after{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:14%;height:clamp(4px,.55cqw,7px);background:rgba(0,0,0,.16);border-radius:0 0 9px 9px;}

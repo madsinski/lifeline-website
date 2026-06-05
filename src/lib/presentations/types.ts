@@ -134,6 +134,7 @@ export interface Slide {
   items?: string[];       // checklist
   value?: string;         // metric — the giant number
   image?: string;         // hero-image — edge-bleed image
+  numbered?: boolean;     // report — render the bullets as a numbered list
   columns?: 1 | 2 | 3 | 4; // grid width for `cards` / `checklist`
   notes?: string;         // presenter notes (shown with N key, never public)
 }

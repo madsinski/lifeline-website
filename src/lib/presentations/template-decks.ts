@@ -211,8 +211,8 @@ export function investorDeck(): Slide[] {
         { key: "sleep", icon: "moon", title: "Sleep", body: "Better recovery, energy and focus." },
         { key: "mental", icon: "smile", title: "Mental health", body: "Mindfulness, resilience and a supportive community." },
       ] }),
-    // L2 · Health assessment — the assessment process + the report on a phone
-    s({ type: "phone-feature", theme: "dark", brand: "lifeline",
+    // L2 · Health assessment — the assessment process (numbered) + report laptop
+    s({ type: "report", theme: "dark", brand: "lifeline", numbered: true,
       kicker: "Lifeline Health · Health assessment",
       heading: "The assessment process",
       lead: "Health checks by nurses and doctors — on-site and remotely — turned into a personal health report.",
@@ -223,7 +223,7 @@ export function investorDeck(): Slide[] {
         "A Lifeline physician reviews everything and prepares your personal health report.",
         "A doctor interview to discuss your results, score and recommendations.",
       ],
-      phone: IMG.appReport }),
+      image: IMG.appReport }),
     // L3 · Health coaching — why coaching works (reworded header)
     s({ type: "phone-feature", theme: "dark", brand: "lifeline",
       kicker: "Lifeline Health · Health coaching",
