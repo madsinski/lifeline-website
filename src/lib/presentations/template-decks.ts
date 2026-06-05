@@ -191,9 +191,8 @@ export function investorDeck(): Slide[] {
       ],
       fan2Title: "Collaborations", fan2Icon: "leaf",
       fan2: [
-        { value: "Lyfja", body: "Iceland's largest pharmacy chain — over 40 pharmacies nationwide." },
-        { value: "Home delivery", body: "Medication and home-test kits delivered straight to the patient." },
-        { value: "Next-level service", body: "A new standard of convenience and care, end to end." },
+        { value: "Lyfja", body: "Iceland's largest pharmacy chain — over 40 pharmacies nationwide.",
+          points: "Home delivery of medication and home-test kits, straight to the patient.\nA new level of service — convenience and care, end to end." },
       ] }),
     // F4 · Team
     s({ type: "team", theme: "light", brand: "fjarlaekningar",

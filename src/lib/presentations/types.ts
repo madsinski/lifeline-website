@@ -135,9 +135,10 @@ export interface Slide {
   value?: string;         // metric — the giant number
   image?: string;         // hero-image — edge-bleed image
   numbered?: boolean;     // report — render the bullets as a numbered list
-  // fan — two labelled groups of cards (e.g. Clients / Collaborations)
-  fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string }[];
-  fan2Title?: string; fan2Icon?: IconKey; fan2?: { value: string; body?: string }[];
+  // fan — two labelled groups of cards (e.g. Clients / Collaborations).
+  // Each card: title (value), optional body, optional newline-separated points.
+  fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string; points?: string }[];
+  fan2Title?: string; fan2Icon?: IconKey; fan2?: { value: string; body?: string; points?: string }[];
   columns?: 1 | 2 | 3 | 4; // grid width for `cards` / `checklist`
   notes?: string;         // presenter notes (shown with N key, never public)
 }
@@ -437,12 +438,14 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "fan1", label: "Group 1 · cards", kind: "list", itemLabel: "card", itemFields: [
         { key: "value", label: "Title", kind: "text" },
         { key: "body", label: "Body", kind: "textarea" },
+        { key: "points", label: "Sub-points (one per line)", kind: "textarea" },
       ] },
       { key: "fan2Title", label: "Group 2 · title", kind: "text" },
       { key: "fan2Icon", label: "Group 2 · icon", kind: "icon" },
       { key: "fan2", label: "Group 2 · cards", kind: "list", itemLabel: "card", itemFields: [
         { key: "value", label: "Title", kind: "text" },
         { key: "body", label: "Body", kind: "textarea" },
+        { key: "points", label: "Sub-points (one per line)", kind: "textarea" },
       ] },
     ],
   },

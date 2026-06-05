@@ -386,19 +386,25 @@ function SlideBody({ s }: { s: Slide }) {
       );
 
     case "fan": {
-      const group = (title: string | undefined, icon: IconKey | undefined, items: { value: string; body?: string }[] | undefined) => (
+      const group = (title: string | undefined, icon: IconKey | undefined, items: { value: string; body?: string; points?: string }[] | undefined) => (
         <div className="grp">
           <div className="grp-head">
             {icon && <div className="icon"><Icon name={icon} /></div>}
             {title && <h3>{title}</h3>}
           </div>
           <div className="grp-cards">
-            {(items || []).map((it, i) => (
-              <div key={i} className="grp-card">
-                <h4>{it.value}</h4>
-                {it.body && <p>{it.body}</p>}
-              </div>
-            ))}
+            {(items || []).map((it, i) => {
+              const pts = (it.points || "").split("\n").map((p) => p.trim()).filter(Boolean);
+              return (
+                <div key={i} className="grp-card">
+                  <h4>{it.value}</h4>
+                  {it.body && <p>{it.body}</p>}
+                  {!!pts.length && (
+                    <ul className="grp-points">{pts.map((p, j) => <li key={j}>{p}</li>)}</ul>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       );
