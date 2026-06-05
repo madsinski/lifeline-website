@@ -295,7 +295,7 @@ export function worldclassDeck(): Slide[] {
       kicker: "A health partnership",
       heading: "Lifeline × ==World Class==",
       lead: "Bringing clinical-grade health checks, coaching and nutrition into Iceland's largest gym network.",
-      tagline: "Bætt heilsa — betra líf." }),
+      tagline: "Better health, better life." }),
     // 2 · Measurements at the gym
     s({ type: "bullets", theme: "light", brand: "worldclass",
       kicker: "At the gym · Measurements",
@@ -352,7 +352,7 @@ export function worldclassDeck(): Slide[] {
       kicker: "Together",
       heading: "Better health, ==built into the gym.==",
       lead: "Lifeline × World Class — clinical health, nutrition and coaching, where Iceland already trains.",
-      tagline: "Bætt heilsa — betra líf." }),
+      tagline: "Better health, better life." }),
   ];
 }
 
