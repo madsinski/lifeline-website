@@ -18,7 +18,7 @@ function hasBg(s: Slide): boolean {
 const PRINT_CSS = `
 .ll-pdf{position:fixed;inset:0;z-index:10000;overflow:auto;background:#3b3f45;}
 .ll-pdf-scroll{display:flex;flex-direction:column;align-items:center;gap:22px;padding:78px 22px 60px;}
-.ll-pdf-page{width:1280px;height:720px;position:relative;overflow:hidden;background:#000;
+.ll-pdf-page{width:1920px;height:1080px;position:relative;overflow:hidden;background:#000;
   box-shadow:0 14px 50px -10px rgba(0,0,0,.6);}
 .ll-pdf-page .lldeck{width:100%;height:100%;}
 .ll-pdf-bar{position:fixed;top:0;left:0;right:0;z-index:10001;display:flex;align-items:center;gap:12px;
@@ -32,38 +32,24 @@ const PRINT_CSS = `
 .ll-pdf-bar .ghost:hover{background:rgba(255,255,255,.18);}
 
 @media print{
-  html,body{margin:0!important;padding:0!important;background:#fff!important;}
+  /* Render the print stage at the full 1920x1080 16:9 page so the PDF matches
+     the full-screen present view (not a smaller 1280x720). Dropping
+     container-type:size to normal makes the deck's cqw/cqh units resolve
+     against the 1920x1080 print page instead of the deck root, so the layout
+     is byte-identical to present mode and no per-size px pins are needed.
+     Print-only; screen and present mode are untouched. */
+  html,body{margin:0!important;padding:0!important;background:#fff!important;width:1920px!important;height:1080px!important;}
   /* The print surface is portalled to <body>; hide every other body child
      (admin chrome, app shell) so only the slides print. */
   body > *:not(.ll-pdf){display:none!important;}
-  .ll-pdf{display:block!important;position:static;background:#fff;overflow:visible;}
+  .ll-pdf{display:block!important;position:static;background:#fff;overflow:visible;width:1920px!important;}
   .ll-pdf-bar{display:none!important;}
-  .ll-pdf-scroll{display:block;padding:0;gap:0;}
-  /* Print sizing. The deck sizes everything with container-query units against
-     the deck root (container-type:size). In Chromium's paginated print pass the
-     height chain can fail to resolve, collapsing every height-based cqh unit to
-     0 — so the slide vertical padding/gaps vanish and content squashes
-     (width-based cqw fonts stay fine). Two-part fix:
-       1. Pin the page + deck root to an explicit 1280x720 so height resolves.
-       2. Pin every cqh-derived vertical value to its exact px for a 1280x720
-          stage (1cqh = 7.2px, 1cqw = 12.8px), so spacing is correct even if
-          cqh collapses on a given Chromium version. Print-only; screen and
-          present mode are untouched. */
-  html,body{width:1280px!important;}
-  .ll-pdf,.ll-pdf-scroll{width:1280px!important;}
-  .ll-pdf-page{box-shadow:none;margin:0;width:1280px!important;height:720px!important;overflow:hidden!important;break-after:page;page-break-after:always;}
-  .ll-pdf-page .lldeck,.ll-pdf-page .lldeck.is-stage{width:1280px!important;height:720px!important;}
+  .ll-pdf-scroll{display:block;padding:0;gap:0;width:1920px!important;}
+  .ll-pdf-page{box-shadow:none;margin:0;width:1920px!important;height:1080px!important;overflow:hidden!important;break-after:page;page-break-after:always;}
+  .ll-pdf-page .lldeck,.ll-pdf-page .lldeck.is-stage{width:1920px!important;height:1080px!important;container-type:normal!important;}
   .ll-pdf-page:last-child{break-after:auto;page-break-after:auto;}
-  /* cqh-derived vertical spacing, pinned in px for the 1280×720 print stage */
-  .ll-pdf-page .slide{padding:43.2px 102.4px 50.4px!important;row-gap:25.2px!important;}
-  .ll-pdf-page .kicker{margin-bottom:8.64px!important;}
-  .ll-pdf-page .team{margin-top:12.96px!important;}
-  .ll-pdf-page .tb-teams{margin-top:24.48px!important;gap:25.92px!important;}
-  .ll-pdf-page .footnote{margin-top:7.92px!important;}
-  .ll-pdf-page .frow{padding-top:11.52px!important;padding-bottom:11.52px!important;}
-  .ll-pdf-page .checklist{row-gap:11.52px!important;}
   .ll-pdf-page,.ll-pdf-page *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-  @page{size:1280px 720px;margin:0;}
+  @page{size:1920px 1080px;margin:0;}
 }
 `;
 
