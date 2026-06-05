@@ -307,7 +307,20 @@ export function worldclassDeck(): Slide[] {
         "Blood-pressure measurement alongside it.",
         "Results flow straight into the Lifeline app — scored and explained.",
       ] }),
-    // 3 · Nutrition station at Laugar
+    // 3 · The health assessment — the gym measurement is step one
+    s({ type: "report", theme: "light", brand: "lifeline", numbered: true,
+      kicker: "Health assessment",
+      heading: "The first step in a full ==health assessment.==",
+      lead: "The measurement station at World Class is step one — the start of a complete Lifeline health assessment.",
+      bullets: [
+        "Measurements at the gym — body composition and blood pressure.",
+        "A blood test for a full panel of markers.",
+        "A health questionnaire, designed by our doctors.",
+        "Your personal health report — every marker scored and explained.",
+        "A doctor interview to walk through your results and plan.",
+      ],
+      image: IMG.appReport }),
+    // 4 · Nutrition station at Laugar
     s({ type: "bullets", theme: "dark", brand: "worldclass",
       kicker: "At the gym · Nutrition",
       heading: "A nutrition station at ==Laugar.==",
@@ -317,7 +330,7 @@ export function worldclassDeck(): Slide[] {
         "Nutrition guidance tied to your own results.",
         "Eat to your plan, right after you train.",
       ] }),
-    // 4 · The app, community & classes
+    // 5 · The app, community & classes
     s({ type: "phone-feature", theme: "dark", brand: "lifeline",
       kicker: "The app · Community",
       heading: "The Lifeline app, ==connected to World Class.==",
@@ -328,7 +341,7 @@ export function worldclassDeck(): Slide[] {
         "One community across the gym and the app.",
       ],
       phone: IMG.appCommunity }),
-    // 5 · In-app programs linked to gym classes
+    // 6 · In-app programs linked to gym classes
     s({ type: "feature-rows", theme: "light", brand: "lifeline",
       kicker: "The app · Programs",
       heading: "Your plan, ==in the class schedule.==",
@@ -337,7 +350,7 @@ export function worldclassDeck(): Slide[] {
         { icon: "dumbbell", title: "Matched to your plan", body: "Spinning, strength, yoga, HIIT — the right class for the right day." },
         { icon: "users", title: "Train together", body: "Follow your plan in a room full of people, with a coach up front." },
       ] }),
-    // 6 · Co-marketing health events
+    // 7 · Co-marketing health events
     s({ type: "bullets", theme: "dark", brand: "worldclass",
       kicker: "Together · Marketing",
       heading: "Health events, ==co-hosted.==",
@@ -347,7 +360,7 @@ export function worldclassDeck(): Slide[] {
         "Shared reach across both communities.",
         "One message: better health, better life.",
       ] }),
-    // 7 · Closing
+    // 8 · Closing
     s({ type: "closing", theme: "dark", brand: "worldclass",
       kicker: "Together",
       heading: "Better health, ==built into the gym.==",
