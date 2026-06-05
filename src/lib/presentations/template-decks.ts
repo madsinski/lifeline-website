@@ -151,6 +151,103 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
   ];
 }
 
+// ── Investor deck — 4 slides per company (History · Concept · Clients · Team)
+// Informational and boastful, no metrics. Reuses the team photos, app
+// screenshots, brand colours and four-pillars content from the showcase deck.
+export function investorDeck(): Slide[] {
+  return [
+    // ===== FJARLÆKNINGAR =====
+    // F1 · Company / history
+    s({ type: "bullets", theme: "dark", brand: "fjarlaekningar",
+      kicker: "Fjarlækningar · Company",
+      heading: "Icelandic telemedicine, built for ==primary care.==",
+      lead: "Fjarlækningar is an Icelandic telemedicine company focused on primary health care — a doctor's assessment, reachable from home.",
+      chips: [{ label: "Established 2021" }, { label: "Primary care" }],
+      bullets: [
+        "Focused on primary health care, delivered remotely.",
+        "In close collaboration with Lyfja — Iceland's largest pharmacy chain.",
+        "Bringing a doctor's care within reach, from anywhere in the country.",
+      ] }),
+    // F2 · Concept — how it works (laptop screenshot)
+    s({ type: "report", theme: "dark", brand: "fjarlaekningar",
+      kicker: "Fjarlækningar · How it works",
+      heading: "Care that skips the ==waiting room.==",
+      lead: "From any computer or phone — no appointment needed.",
+      bullets: [
+        "Log in from your PC or phone.",
+        "Pick your problem from a menu of common conditions.",
+        "Answer a focused questionnaire.",
+        "A doctor reviews it and prescribes your treatment remotely.",
+      ],
+      image: IMG.fjarApp }),
+    // F3 · Clients & partners
+    s({ type: "cards", theme: "light", brand: "fjarlaekningar", columns: 2,
+      kicker: "Fjarlækningar · Clients & partners",
+      heading: "Trusted across ==Iceland.==",
+      cards: [
+        { icon: "shield", title: "HSU — South Iceland", body: "In collaboration with Heilbrigðisstofnun Suðurlands, the Health Care Institution of South Iceland." },
+        { icon: "target", title: "Expanding nationwide", body: "Collaborations underway with the North, West and East of Iceland." },
+        { icon: "leaf", title: "Lyfja", body: "Partnered with Iceland's largest pharmacy chain — over 40 pharmacies nationwide." },
+        { icon: "clip", title: "Home delivery", body: "Able to deliver medication and home-test kits directly to patients." },
+      ] }),
+    // F4 · Team
+    s({ type: "team", theme: "light", brand: "fjarlaekningar",
+      kicker: "Fjarlækningar · Team",
+      heading: "The people behind ==Fjarlækningar.==",
+      members: [
+        { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
+        { photo: IMG.fjarMads, flag: "Co-founder & CTO", name: "Mads Christian Aanesen", role: "Medical Doctor" },
+        { photo: IMG.fjarGudbjartur, flag: "Chief Medical Officer", name: "Guðbjartur Ólafsson", role: "Specialist Doctor" },
+        { photo: IMG.fjarElvar, flag: "Chief Marketing Officer", name: "Elvar Páll Sigurðsson", role: "Marketing" },
+      ] }),
+
+    // ===== LIFELINE =====
+    // L1 · Company / history (the four pillars)
+    s({ type: "pillars", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health · Company",
+      heading: "Holistic health, ==proactive by design.==",
+      lead: "Lifeline Health helps people take care of their health across the four pillars — proactive, not reactive.",
+      pillars: [
+        { key: "exercise", icon: "dumbbell", title: "Exercise", body: "Programs for your level — strength, cardio and mobility." },
+        { key: "nutrition", icon: "apple", title: "Nutrition", body: "Guidance built on your results — sustainable, not fad diets." },
+        { key: "sleep", icon: "moon", title: "Sleep", body: "Better recovery, energy and focus." },
+        { key: "mental", icon: "smile", title: "Mental health", body: "Mindfulness, resilience and a supportive community." },
+      ] }),
+    // L2 · Concept — how it works (phone screenshot)
+    s({ type: "coaching", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health · How it works",
+      heading: "From a health check to a ==daily plan.==",
+      lead: "Today we work B2B with companies and municipalities — on-site and remotely. Built in Iceland, with plans to expand abroad.",
+      phone: IMG.lifelineApp,
+      cards: [
+        { icon: "clip", title: "Health checks", body: "Nurses and doctors run measurements, blood tests and a doctor-designed questionnaire that maps each person's health." },
+        { icon: "chart", title: "Report & plan", body: "Everyone gets a personal health report and a tailored health plan." },
+        { icon: "phone", title: "The app", body: "A daily plan, a health coach, and connections with people across Iceland." },
+      ] }),
+    // L3 · Clients & partners
+    s({ type: "cards", theme: "light", brand: "lifeline", columns: 2,
+      kicker: "Lifeline Health · Clients & partners",
+      heading: "Growing across ==Iceland.==",
+      lead: "From the capital region to the North — and able to work remotely, nationwide.",
+      cards: [
+        { icon: "shield", title: "Municipalities", body: "Working with Hafnarfjörður, Vestmannaeyjabær and more coming on board." },
+        { icon: "users", title: "Companies", body: "Across the capital region and around the country." },
+        { icon: "spark", title: "B2C — launching soon", body: "With pharmacies and gyms, for measurements and blood tests nationwide." },
+        { icon: "doc", title: "Clinical partners", body: "Lyfja, Sameind blood-work clinic, and LAK (Læknastofa Akureyrar) in the North — clinicians across all departments." },
+      ] }),
+    // L4 · Team
+    s({ type: "team", theme: "light", brand: "lifeline",
+      kicker: "Lifeline Health · Team",
+      heading: "The people behind ==Lifeline.==",
+      members: [
+        { photo: IMG.fjarVictor, flag: "Co-founder & CEO", name: "Victor Guðmundsson", role: "Medical Doctor" },
+        { photo: IMG.fjarMads, flag: "Co-founder & CTO", name: "Mads Christian Aanesen", role: "Medical Doctor" },
+        { photo: IMG.vignir, flag: "Chief Medical Advisor", name: "Vignir Sigurðsson", role: "Pediatrician" },
+        { photo: IMG.fjarDagbjort, flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
+      ] }),
+  ];
+}
+
 // ── 2. KEYNOTE — minimal, one idea per slide: statements + metrics ───────────
 export function keynoteDeck(): Slide[] {
   return [
