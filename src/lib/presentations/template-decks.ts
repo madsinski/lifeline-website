@@ -172,23 +172,21 @@ export function investorDeck(): Slide[] {
     s({ type: "report", theme: "dark", brand: "fjarlaekningar",
       kicker: "Fjarlækningar · How it works",
       heading: "Care that skips the ==waiting room.==",
-      lead: "From any computer or phone — no appointment needed.",
+      lead: "An asynchronous telemedicine service, built by Icelandic doctors and specialists. Pick your concern, answer a focused questionnaire, and a physician reviews it and prescribes treatment — no appointment needed.",
       bullets: [
-        "Log in from your PC or phone.",
-        "Pick your problem from a menu of common conditions.",
-        "Answer a focused questionnaire.",
-        "A doctor reviews it and prescribes your treatment remotely.",
+        "Log in from your PC or phone, and choose from a menu of common medical problems.",
+        "Answer a focused questionnaire — with a home test where it helps: urine stick, strep, CRP.",
+        "A doctor reviews your answers and prescribes the right treatment.",
+        "First pilot underway with South Iceland Primary Health Care.",
       ],
       image: IMG.fjarApp }),
-    // F3 · Clients & partners
+    // F3 · Clients & collaborations
     s({ type: "cards", theme: "light", brand: "fjarlaekningar", columns: 2,
-      kicker: "Fjarlækningar · Clients & partners",
-      heading: "Trusted across ==Iceland.==",
+      kicker: "Fjarlækningar · Clients & collaborations",
+      heading: "From the health service to your ==doorstep.==",
       cards: [
-        { icon: "shield", title: "HSU — South Iceland", body: "In collaboration with Heilbrigðisstofnun Suðurlands, the Health Care Institution of South Iceland." },
-        { icon: "target", title: "Expanding nationwide", body: "Collaborations underway with the North, West and East of Iceland." },
-        { icon: "leaf", title: "Lyfja", body: "Partnered with Iceland's largest pharmacy chain — over 40 pharmacies nationwide." },
-        { icon: "clip", title: "Home delivery", body: "Able to deliver medication and home-test kits directly to patients." },
+        { icon: "shield", title: "Clients", body: "Heilbrigðisstofnun Suðurlands (HSU) — the Health Care Institution of South Iceland — with collaborations expanding to the North, West and East." },
+        { icon: "leaf", title: "Collaborations", body: "Lyfja, Iceland's largest pharmacy chain — bringing home delivery of medication and home-test kits, and a new level of service to the patient." },
       ] }),
     // F4 · Team
     s({ type: "team", theme: "light", brand: "fjarlaekningar",
@@ -213,18 +211,33 @@ export function investorDeck(): Slide[] {
         { key: "sleep", icon: "moon", title: "Sleep", body: "Better recovery, energy and focus." },
         { key: "mental", icon: "smile", title: "Mental health", body: "Mindfulness, resilience and a supportive community." },
       ] }),
-    // L2 · Concept — how it works (phone screenshot)
-    s({ type: "coaching", theme: "dark", brand: "lifeline",
-      kicker: "Lifeline Health · How it works",
-      heading: "From a health check to a ==daily plan.==",
-      lead: "Today we work B2B with companies and municipalities — on-site and remotely. Built in Iceland, with plans to expand abroad.",
-      phone: IMG.lifelineApp,
-      cards: [
-        { icon: "clip", title: "Health checks", body: "Nurses and doctors run measurements, blood tests and a doctor-designed questionnaire that maps each person's health." },
-        { icon: "chart", title: "Report & plan", body: "Everyone gets a personal health report and a tailored health plan." },
-        { icon: "phone", title: "The app", body: "A daily plan, a health coach, and connections with people across Iceland." },
-      ] }),
-    // L3 · Clients & partners
+    // L2 · Health assessment — the assessment process + the report on a phone
+    s({ type: "phone-feature", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health · Health assessment",
+      heading: "The assessment process",
+      lead: "Health checks by nurses and doctors — on-site and remotely — turned into a personal health report.",
+      bullets: [
+        "Book your assessment — choose the Foundational Health or Check-in package.",
+        "Visit our station in Reykjavík for a body-composition scan and measurements.",
+        "Blood test at Sameind — results sent directly to Lifeline.",
+        "A Lifeline physician reviews everything and prepares your personal health report.",
+        "A doctor interview to discuss your results, score and recommendations.",
+      ],
+      phone: IMG.appReport }),
+    // L3 · Health coaching — why coaching works (reworded header)
+    s({ type: "phone-feature", theme: "dark", brand: "lifeline",
+      kicker: "Lifeline Health · Health coaching",
+      heading: "Coaching that turns knowing into ==doing.==",
+      lead: "Knowledge alone doesn't create change — coaching bridges the gap between knowing and doing.",
+      bullets: [
+        "Create real change — programs built on your blood work and body composition, not generic templates.",
+        "Daily action plans — a clear plan every day across exercise, nutrition, sleep and mental wellness.",
+        "Connect with coaches — message your coach for answers, adjustments and support.",
+        "Join the community — events, challenges and a network on the same journey.",
+        "Motivation that lasts — progress tracking, streaks and health scores keep you engaged.",
+      ],
+      phone: IMG.lifelineApp }),
+    // L4 · Clients & partners
     s({ type: "cards", theme: "light", brand: "lifeline", columns: 2,
       kicker: "Lifeline Health · Clients & partners",
       heading: "Growing across ==Iceland.==",
@@ -235,7 +248,7 @@ export function investorDeck(): Slide[] {
         { icon: "spark", title: "B2C — launching soon", body: "With pharmacies and gyms, for measurements and blood tests nationwide." },
         { icon: "doc", title: "Clinical partners", body: "Lyfja, Sameind blood-work clinic, and LAK (Læknastofa Akureyrar) in the North — clinicians across all departments." },
       ] }),
-    // L4 · Team
+    // L5 · Team
     s({ type: "team", theme: "light", brand: "lifeline",
       kicker: "Lifeline Health · Team",
       heading: "The people behind ==Lifeline.==",

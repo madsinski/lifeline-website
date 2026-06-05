@@ -38,7 +38,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   // Joint two-company showcase — short deck, per-slide brand switching.
   { id: "lifeline-fjarlaekningar", name: "Lifeline + Fjarlækningar", description: "Assessment, four pillars, coaching, Fjarlækningar + a team per company. Exportable to PDF.", design: "lifeline" },
   // Investor deck — 4 slides per company (History · Concept · Clients · Team).
-  { id: "investor", name: "Investor — Fjarlækningar + Lifeline", description: "8 slides · history, concept, clients & team for each company. Exportable to PDF.", design: "lifeline" },
+  { id: "investor", name: "Investor — Fjarlækningar + Lifeline", description: "History, concept, clients & team for each company (Lifeline split into assessment + coaching). Exportable to PDF.", design: "lifeline" },
 ];
 
 // From-scratch templates map to a bespoke deck builder + design.
