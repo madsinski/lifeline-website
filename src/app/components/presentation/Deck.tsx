@@ -20,10 +20,29 @@ function DeckStyle() {
  * (container queries do the sizing). Used for the editor's live preview.
  */
 export function SlideStage({ slide, design }: { slide: Slide | null; design?: string }) {
+  // Render the deck at a FIXED 1920×1080 stage and scale it to fit the pane, so
+  // the preview is pixel-proportional to present mode (the deck's container-query
+  // clamp()s resolve at 1920, not at the smaller pane width) — it never looks
+  // squashed regardless of the editor's screen size.
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setScale(el.clientWidth / 1920);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
-    <div style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: 12, overflow: "hidden", boxShadow: "0 10px 40px -12px rgba(6,78,59,.25)" }}>
+    <div ref={ref} style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", borderRadius: 12, overflow: "hidden", background: "#000", boxShadow: "0 10px 40px -12px rgba(6,78,59,.25)" }}>
       <DeckStyle />
-      <div className="lldeck is-stage" data-design={design || "lifeline"}>
+      <div
+        className="lldeck is-stage"
+        data-design={design || "lifeline"}
+        style={{ position: "absolute", top: 0, left: 0, width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "top left" }}
+      >
         <DeckDefs />
         {slide
           ? <section className={`slide ${slide.theme}${slide.brand === "fjarlaekningar" ? " brand-fjar" : ""}${hasBg(slide) ? " has-bg" : ""} active`}><SlideView slide={slide} /></section>

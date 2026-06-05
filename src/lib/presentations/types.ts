@@ -222,7 +222,6 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
   title: {
     type: "title", label: "Title", description: "Opening slide with full-bleed background.",
     fields: [
-      F.brand,
       { key: "bg", label: "Background photo", kind: "image", imageRole: "background" },
       F.kicker, F.heading, F.lead,
       { key: "tagline", label: "Tagline line", kind: "text" },
@@ -267,7 +266,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
   team: {
     type: "team", label: "Team", description: "Heading + a grid of team members.",
     fields: [
-      F.brand, F.kicker, F.heading, F.lead, F.footnote,
+      F.kicker, F.heading, F.lead, F.footnote,
       { key: "members", label: "Members", kind: "list", itemLabel: "member", itemFields: MEMBER_FIELDS },
     ],
   },

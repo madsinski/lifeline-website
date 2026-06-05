@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import {
   SLIDE_SCHEMAS, SLIDE_TYPE_ORDER, makeBlankSlide, DESIGNS,
   type Slide, type SlideType, type SlideTheme, type PresentationData, type DesignId,
-  type DeckTextMaps,
+  type DeckTextMaps, type BrandKey,
 } from "@/lib/presentations/types";
 import {
   applyTextMap, extractTextMap, translatablePaths, getAtPath,
@@ -47,6 +47,8 @@ export default function PresentationEditor() {
   const [present, setPresent] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [addBrand, setAddBrand] = useState<BrandKey>("lifeline");
+  const [previewType, setPreviewType] = useState<SlideType>("title");
   const [copied, setCopied] = useState(false);
   const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
 
@@ -148,7 +150,7 @@ export default function PresentationEditor() {
   }
 
   function addSlide(type: SlideType) {
-    const ns = makeBlankSlide(type);
+    const ns = { ...makeBlankSlide(type), brand: addBrand };
     setSlides((prev) => {
       const copy = prev.slice();
       copy.splice(sel + 1, 0, ns);
@@ -258,19 +260,10 @@ export default function PresentationEditor() {
               <div className="mt-0.5 truncate text-xs text-gray-700">{s.heading?.replace(/==/g, "") || s.quote?.replace(/==/g, "") || s.kicker || "—"}</div>
             </div>
           ))}
-          <div className="relative">
-            <button onClick={() => setAddOpen((v) => !v)} className="mt-1 w-full rounded-md border border-dashed border-gray-300 py-2 text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600">+ Add slide</button>
-            {addOpen && (
-              <div className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-md border border-gray-200 bg-white p-1 shadow-lg">
-                {SLIDE_TYPE_ORDER.map((t) => (
-                  <button key={t} onClick={() => addSlide(t)} className="block w-full rounded px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-emerald-50">
-                    <span className="font-medium">{SLIDE_SCHEMAS[t].label}</span>
-                    <span className="ml-1 text-[11px] text-gray-400">{SLIDE_SCHEMAS[t].description}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => { setAddBrand(selected?.brand ?? "lifeline"); setPreviewType(selected?.type ?? "title"); setAddOpen(true); }}
+            className="mt-1 w-full rounded-md border border-dashed border-gray-300 py-2 text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600"
+          >+ Add slide</button>
         </div>
 
         {/* preview */}
@@ -289,16 +282,27 @@ export default function PresentationEditor() {
                 <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{SLIDE_SCHEMAS[selected.type].label}</span>
                 {editLang === "is" && <span className="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">🇮🇸 Icelandic</span>}
                 {editLang === "en" && (
-                  <div className="ml-auto flex items-center gap-1 text-xs text-gray-500">
-                    Theme:
-                    <select
-                      value={selected.theme}
-                      onChange={(e) => updateSlide({ ...selected, theme: e.target.value as SlideTheme })}
-                      className="rounded border border-gray-300 px-1.5 py-0.5"
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                    </select>
+                  <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+                    <label className="flex items-center gap-1">Logo
+                      <select
+                        value={selected.brand ?? "lifeline"}
+                        onChange={(e) => updateSlide({ ...selected, brand: e.target.value as BrandKey })}
+                        className="rounded border border-gray-300 px-1.5 py-0.5"
+                      >
+                        <option value="lifeline">Lifeline</option>
+                        <option value="fjarlaekningar">Fjarlækningar</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1">Theme
+                      <select
+                        value={selected.theme}
+                        onChange={(e) => updateSlide({ ...selected, theme: e.target.value as SlideTheme })}
+                        className="rounded border border-gray-300 px-1.5 py-0.5"
+                      >
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                      </select>
+                    </label>
                   </div>
                 )}
               </div>
@@ -340,6 +344,51 @@ export default function PresentationEditor() {
           design={design}
           onClose={() => setPrintOpen(false)}
         />
+      )}
+
+      {addOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={() => setAddOpen(false)}>
+          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 px-4 py-3">
+              <h3 className="font-semibold text-gray-800">Add slide</h3>
+              <span className="text-xs text-gray-400">Pick a layout — preview on the right.</span>
+              <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+                <span>Logo</span>
+                <div className="inline-flex overflow-hidden rounded-md border border-gray-300">
+                  {([["lifeline", "Lifeline"], ["fjarlaekningar", "Fjarlækningar"]] as const).map(([v, label]) => (
+                    <button key={v} onClick={() => setAddBrand(v)} className={`px-2.5 py-1 ${addBrand === v ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>{label}</button>
+                  ))}
+                </div>
+                <button onClick={() => setAddOpen(false)} className="ml-1 rounded p-1 text-gray-400 hover:text-gray-700" aria-label="Close">✕</button>
+              </div>
+            </div>
+            <div className="grid min-h-0 flex-1 grid-cols-[230px_1fr] gap-3 overflow-hidden p-3">
+              <div className="overflow-y-auto rounded-md border border-gray-100 bg-gray-50/50 p-1">
+                {SLIDE_TYPE_ORDER.map((t) => (
+                  <button
+                    key={t}
+                    onMouseEnter={() => setPreviewType(t)}
+                    onFocus={() => setPreviewType(t)}
+                    onClick={() => addSlide(t)}
+                    className={`block w-full rounded px-2.5 py-2 text-left ${previewType === t ? "bg-white shadow-sm ring-1 ring-emerald-300" : "hover:bg-white"}`}
+                  >
+                    <div className="text-sm font-medium text-gray-800">{SLIDE_SCHEMAS[t].label}</div>
+                    <div className="text-[11px] text-gray-400">{SLIDE_SCHEMAS[t].description}</div>
+                  </button>
+                ))}
+              </div>
+              <div className="flex min-h-0 flex-col">
+                <div className="rounded-md bg-gray-100 p-3">
+                  <SlideStage slide={{ ...makeBlankSlide(previewType), brand: addBrand }} design={design} />
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="text-xs text-gray-500">{SLIDE_SCHEMAS[previewType].label} · {SLIDE_SCHEMAS[previewType].description}</p>
+                  <button onClick={() => addSlide(previewType)} className="flex-none rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">Add this slide</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
