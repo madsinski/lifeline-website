@@ -39,15 +39,29 @@ const PRINT_CSS = `
   .ll-pdf{display:block!important;position:static;background:#fff;overflow:visible;}
   .ll-pdf-bar{display:none!important;}
   .ll-pdf-scroll{display:block;padding:0;gap:0;}
-  /* Pin explicit pixel sizes for print: percentage height + container-query
-     sizing (cqh) can fail to resolve in the print flow, which collapses the
-     deck's vertical clamp()s to their minimums and squashes the slide. Fixed
-     px on both the page and the .lldeck keeps the container query intact. */
+  /* Print sizing. The deck sizes everything with container-query units against
+     `.lldeck` (container-type:size). In Chromium's paginated print pass the
+     height chain can fail to resolve, collapsing every `cqh` (height-based)
+     unit to 0 — so the slide's vertical padding/gaps vanish and content
+     squashes (width-based `cqw` fonts stay fine). Two-part fix:
+       1. Pin the page + .lldeck to an explicit 1280×720 so height resolves.
+       2. Pin every `cqh`-derived vertical value to its exact px for a 1280×720
+          stage (1cqh = 7.2px, 1cqw = 12.8px), so spacing is correct even if
+          `cqh` collapses on a given Chromium version. Print-only; screen and
+          present mode are untouched. */
   html,body{width:1280px!important;}
   .ll-pdf,.ll-pdf-scroll{width:1280px!important;}
   .ll-pdf-page{box-shadow:none;margin:0;width:1280px!important;height:720px!important;overflow:hidden!important;break-after:page;page-break-after:always;}
-  .ll-pdf-page .lldeck{width:1280px!important;height:720px!important;}
+  .ll-pdf-page .lldeck,.ll-pdf-page .lldeck.is-stage{width:1280px!important;height:720px!important;}
   .ll-pdf-page:last-child{break-after:auto;page-break-after:auto;}
+  /* cqh-derived vertical spacing, pinned in px for the 1280×720 print stage */
+  .ll-pdf-page .slide{padding:43.2px 102.4px 50.4px!important;row-gap:25.2px!important;}
+  .ll-pdf-page .kicker{margin-bottom:8.64px!important;}
+  .ll-pdf-page .team{margin-top:12.96px!important;}
+  .ll-pdf-page .tb-teams{margin-top:24.48px!important;gap:25.92px!important;}
+  .ll-pdf-page .footnote{margin-top:7.92px!important;}
+  .ll-pdf-page .frow{padding-top:11.52px!important;padding-bottom:11.52px!important;}
+  .ll-pdf-page .checklist{row-gap:11.52px!important;}
   .ll-pdf-page,.ll-pdf-page *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
   @page{size:1280px 720px;margin:0;}
 }
