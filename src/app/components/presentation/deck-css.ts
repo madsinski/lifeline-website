@@ -205,6 +205,13 @@ export const DECK_CSS = `
 .lldeck .dark .kicker{color:var(--on-dark-accent);}
 .lldeck .kicker::before{content:"";width:26px;height:2px;background:currentColor;border-radius:2px;}
 .lldeck .grad{background:linear-gradient(100deg,var(--emerald),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;}
+/* In print/PDF, render accent text as a solid brand colour: background-clip:text
+   prints a coloured bar / invisible text in many viewers. Global so it applies on
+   every print path (the export overlay AND a direct Ctrl+P of the deck). */
+@media print{
+  .lldeck .grad{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:var(--emerald-dark)!important;-webkit-text-fill-color:var(--emerald-dark)!important;}
+  .lldeck .dark .grad{color:var(--on-dark-accent)!important;-webkit-text-fill-color:var(--on-dark-accent)!important;}
+}
 .lldeck .accent{color:var(--emerald-dark);font-weight:700;}
 .lldeck .dark .accent{color:var(--on-dark-accent);}
 .lldeck .tagline{color:var(--on-dark-accent);font-weight:700;letter-spacing:.04em;}
@@ -380,6 +387,10 @@ export const DECK_CSS = `
 .lldeck .grp-card h4{font-size:clamp(.95rem,1.3cqw,1.18rem);font-weight:700;line-height:1.2;}
 .lldeck .grp-card p{font-size:clamp(.78rem,1cqw,1rem);color:var(--muted);line-height:1.45;margin-top:.25rem;}
 .lldeck .dark .grp-card p{color:var(--on-dark-muted);}
+.lldeck .grp-points{list-style:none;display:flex;flex-direction:column;gap:.4rem;margin-top:.6rem;}
+.lldeck .grp-points li{display:flex;gap:.5rem;align-items:flex-start;font-size:clamp(.76rem,1cqw,.98rem);color:var(--muted);line-height:1.4;}
+.lldeck .grp-points li::before{content:"";flex:none;width:16px;height:16px;margin-top:.12rem;border-radius:5px;background-color:var(--emerald);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E") center/11px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E") center/11px no-repeat;}
+.lldeck .dark .grp-points li{color:var(--on-dark-muted);}
 
 /* numbered list (e.g. the report's assessment steps) */
 .lldeck ol.numbered{list-style:none;display:flex;flex-direction:column;gap:.7rem;}

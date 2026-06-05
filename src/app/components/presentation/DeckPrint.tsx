@@ -52,11 +52,8 @@ const PRINT_CSS = `
   .ll-pdf-page .lldeck,.ll-pdf-page .lldeck.is-stage{width:1920px!important;height:1080px!important;container-type:normal!important;}
   .ll-pdf-page:last-child{break-after:auto;page-break-after:auto;}
   .ll-pdf-page,.ll-pdf-page *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-  /* Gradient accent text (.grad uses background-clip:text) prints a coloured
-     bar/underline behind the words in viewers/drivers that drop the alpha-mask
-     transfer function. Render it as a solid brand colour in print instead. */
-  .ll-pdf-page .grad{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:var(--emerald-dark)!important;-webkit-text-fill-color:var(--emerald-dark)!important;}
-  .ll-pdf-page .dark .grad{color:var(--on-dark-accent)!important;-webkit-text-fill-color:var(--on-dark-accent)!important;}
+  /* (Accent text → solid colour in print is handled globally in DECK_CSS so it
+     applies on every print path, not just this export overlay.) */
   @page{size:1920px 1080px;margin:0;}
 }
 `;
