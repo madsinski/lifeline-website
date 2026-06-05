@@ -40,14 +40,14 @@ const PRINT_CSS = `
   .ll-pdf-bar{display:none!important;}
   .ll-pdf-scroll{display:block;padding:0;gap:0;}
   /* Print sizing. The deck sizes everything with container-query units against
-     `.lldeck` (container-type:size). In Chromium's paginated print pass the
-     height chain can fail to resolve, collapsing every `cqh` (height-based)
-     unit to 0 — so the slide's vertical padding/gaps vanish and content
-     squashes (width-based `cqw` fonts stay fine). Two-part fix:
-       1. Pin the page + .lldeck to an explicit 1280×720 so height resolves.
-       2. Pin every `cqh`-derived vertical value to its exact px for a 1280×720
+     the deck root (container-type:size). In Chromium's paginated print pass the
+     height chain can fail to resolve, collapsing every height-based cqh unit to
+     0 — so the slide vertical padding/gaps vanish and content squashes
+     (width-based cqw fonts stay fine). Two-part fix:
+       1. Pin the page + deck root to an explicit 1280x720 so height resolves.
+       2. Pin every cqh-derived vertical value to its exact px for a 1280x720
           stage (1cqh = 7.2px, 1cqw = 12.8px), so spacing is correct even if
-          `cqh` collapses on a given Chromium version. Print-only; screen and
+          cqh collapses on a given Chromium version. Print-only; screen and
           present mode are untouched. */
   html,body{width:1280px!important;}
   .ll-pdf,.ll-pdf-scroll{width:1280px!important;}
