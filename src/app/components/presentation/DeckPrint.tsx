@@ -38,13 +38,16 @@ const PRINT_CSS = `
      against the 1920x1080 print page instead of the deck root, so the layout
      is byte-identical to present mode and no per-size px pins are needed.
      Print-only; screen and present mode are untouched. */
-  html,body{margin:0!important;padding:0!important;background:#fff!important;width:1920px!important;height:1080px!important;}
+  /* Width pins the page + cq viewport fallback to 1920; height must stay auto
+     so the document grows to ALL pages (a fixed body height clips the printed
+     output to a single page). Each .ll-pdf-page sets its own 1080px height. */
+  html,body{margin:0!important;padding:0!important;background:#fff!important;width:1920px!important;}
   /* The print surface is portalled to <body>; hide every other body child
      (admin chrome, app shell) so only the slides print. */
   body > *:not(.ll-pdf){display:none!important;}
-  .ll-pdf{display:block!important;position:static;background:#fff;overflow:visible;width:1920px!important;}
+  .ll-pdf{display:block!important;position:static!important;background:#fff;overflow:visible!important;width:1920px!important;height:auto!important;}
   .ll-pdf-bar{display:none!important;}
-  .ll-pdf-scroll{display:block;padding:0;gap:0;width:1920px!important;}
+  .ll-pdf-scroll{display:block!important;padding:0!important;gap:0!important;overflow:visible!important;width:1920px!important;}
   .ll-pdf-page{box-shadow:none;margin:0;width:1920px!important;height:1080px!important;overflow:hidden!important;break-after:page;page-break-after:always;}
   .ll-pdf-page .lldeck,.ll-pdf-page .lldeck.is-stage{width:1920px!important;height:1080px!important;container-type:normal!important;}
   .ll-pdf-page:last-child{break-after:auto;page-break-after:auto;}
