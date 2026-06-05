@@ -97,7 +97,7 @@ export type SlideType =
   | "app-showcase" | "trio" | "coaching" | "timeline" | "closing"
   // from-scratch layout primitives
   | "statement" | "metric" | "feature-rows" | "hero-image" | "checklist"
-  | "report";
+  | "report" | "fan";
 
 export interface Slide {
   id: string;
@@ -135,6 +135,9 @@ export interface Slide {
   value?: string;         // metric — the giant number
   image?: string;         // hero-image — edge-bleed image
   numbered?: boolean;     // report — render the bullets as a numbered list
+  // fan — two cards, each with mini cards fanning out
+  fan1Title?: string; fan1Icon?: IconKey; fan1?: string[];
+  fan2Title?: string; fan2Icon?: IconKey; fan2?: string[];
   columns?: 1 | 2 | 3 | 4; // grid width for `cards` / `checklist`
   notes?: string;         // presenter notes (shown with N key, never public)
 }
@@ -425,12 +428,24 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "image", label: "Screenshot", kind: "image", imageRole: "phone" },
     ],
   },
+  fan: {
+    type: "fan", label: "Fan-out cards", description: "Two cards, each with mini cards fanning out.",
+    fields: [
+      F.kicker, F.heading, F.lead,
+      { key: "fan1Title", label: "Card 1 · title", kind: "text" },
+      { key: "fan1Icon", label: "Card 1 · icon", kind: "icon" },
+      { key: "fan1", label: "Card 1 · mini cards", kind: "list", itemLabel: "card", itemFields: [{ key: "value", label: "Label", kind: "text" }] },
+      { key: "fan2Title", label: "Card 2 · title", kind: "text" },
+      { key: "fan2Icon", label: "Card 2 · icon", kind: "icon" },
+      { key: "fan2", label: "Card 2 · mini cards", kind: "list", itemLabel: "card", itemFields: [{ key: "value", label: "Label", kind: "text" }] },
+    ],
+  },
 };
 
 export const SLIDE_TYPE_ORDER: SlideType[] = [
   "title", "statement", "metric", "stats", "cards", "feature-rows",
   "checklist", "quote", "story", "team", "team-branch", "pillars", "steps", "bullets",
-  "phone-feature", "report", "app-showcase", "trio", "coaching", "timeline", "hero-image", "closing",
+  "phone-feature", "report", "fan", "app-showcase", "trio", "coaching", "timeline", "hero-image", "closing",
 ];
 
 // ----------------------------------------------------------------------------
@@ -503,5 +518,9 @@ export function makeBlankSlide(type: SlideType): Slide {
       return { ...base, kicker: "Section", heading: "What's included.", columns: 2, items: ["First item.", "Second item.", "Third item.", "Fourth item."] };
     case "report":
       return { ...base, kicker: "Your report", heading: "Your complete health report.", lead: "Every marker, scored and explained.", bullets: ["A score for each area of your health.", "Plain-language explanations and next steps.", "Trends over time as you reassess."], image: "" };
+    case "fan":
+      return { ...base, theme: "light", kicker: "Section", heading: "Two ==groups== fanning out.",
+        fan1Title: "Group one", fan1Icon: "shield", fan1: ["Item A", "Item B", "Item C"],
+        fan2Title: "Group two", fan2Icon: "leaf", fan2: ["Item D", "Item E"] };
   }
 }

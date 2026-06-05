@@ -369,6 +369,22 @@ export const DECK_CSS = `
 .lldeck .hero-img{position:absolute;top:0;right:0;bottom:0;width:42%;background-size:cover;background-position:center;z-index:0;display:grid;place-items:center;background-color:var(--dark2);}
 .lldeck .hero-ph{color:var(--on-dark-muted);font-size:.8rem;}
 .lldeck .hero-body{padding-right:46%;}
+/* fan — two cards, each with mini cards fanning out below for a wow effect */
+.lldeck .fan{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1.5rem,6cqw,4.5rem);align-items:start;margin-top:clamp(2.4rem,6cqh,4rem);}
+.lldeck .fan-group{display:flex;flex-direction:column;align-items:center;text-align:center;}
+.lldeck .fan-main{position:relative;z-index:2;background:var(--card);border:1px solid var(--line);border-radius:var(--card-radius);box-shadow:var(--shadow);padding:1.3rem 1.9rem;display:flex;flex-direction:column;align-items:center;gap:.45rem;min-width:clamp(160px,18cqw,240px);}
+.lldeck .dark .fan-main{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);}
+.lldeck .fan-main .icon{margin-bottom:0;}
+.lldeck .fan-main h3{font-size:clamp(1.1rem,1.9cqw,1.6rem);}
+.lldeck .fan-minis{display:flex;justify-content:center;align-items:flex-start;gap:clamp(.4rem,1cqw,.8rem);margin-top:clamp(1rem,2.6cqh,1.8rem);}
+.lldeck .fan-mini{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 22px -10px rgba(0,0,0,.28);padding:.55rem .9rem;font-size:clamp(.74rem,1cqw,.96rem);font-weight:600;color:var(--foreground);white-space:nowrap;transform-origin:top center;}
+.lldeck .dark .fan-mini{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:var(--on-dark);}
+.lldeck .fan-minis .fan-mini:nth-child(1){transform:rotate(-9deg) translateY(7px);}
+.lldeck .fan-minis .fan-mini:nth-child(2){transform:rotate(-3deg);}
+.lldeck .fan-minis .fan-mini:nth-child(3){transform:rotate(3deg);}
+.lldeck .fan-minis .fan-mini:nth-child(4){transform:rotate(9deg) translateY(7px);}
+.lldeck .fan-minis .fan-mini:nth-child(5){transform:rotate(14deg) translateY(15px);}
+
 /* numbered list (e.g. the report's assessment steps) */
 .lldeck ol.numbered{list-style:none;display:flex;flex-direction:column;gap:.7rem;}
 .lldeck ol.numbered li{display:flex;gap:.7rem;align-items:flex-start;font-size:clamp(.82rem,1.35cqw,1.3rem);line-height:1.5;}

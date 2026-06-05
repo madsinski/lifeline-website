@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- deck renders CMS/storage/full-bleed imagery where next/image's layout constraints don't fit; plain <img> is intentional. */
 import React from "react";
-import type { Slide, MemberItem } from "@/lib/presentations/types";
+import type { Slide, MemberItem, IconKey } from "@/lib/presentations/types";
 import { DeckDefs, Logo, Icon } from "./DeckAssets";
 
 export { DeckDefs };
@@ -384,6 +384,31 @@ function SlideBody({ s }: { s: Slide }) {
           </div>
         </>
       );
+
+    case "fan": {
+      const group = (title: string | undefined, icon: IconKey | undefined, items: string[] | undefined) => (
+        <div className="fan-group">
+          <div className="fan-main">
+            {icon && <div className="icon"><Icon name={icon} /></div>}
+            {title && <h3>{title}</h3>}
+          </div>
+          <div className="fan-minis">
+            {(items || []).map((it, i) => <div key={i} className="fan-mini">{it}</div>)}
+          </div>
+        </div>
+      );
+      return (
+        <div className="body">
+          {s.kicker && <span className="kicker">{s.kicker}</span>}
+          {s.heading && <h2>{rich(s.heading)}</h2>}
+          {s.lead && <p className="lead" style={{ marginTop: ".8rem", maxWidth: "60ch" }}>{s.lead}</p>}
+          <div className="fan">
+            {group(s.fan1Title, s.fan1Icon, s.fan1)}
+            {group(s.fan2Title, s.fan2Icon, s.fan2)}
+          </div>
+        </div>
+      );
+    }
 
     case "checklist":
       return (
