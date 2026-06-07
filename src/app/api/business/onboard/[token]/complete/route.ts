@@ -44,6 +44,7 @@ async function handle(
   const {
     password,
     account_password,
+    login_email,
     sex,
     height_cm,
     weight_kg,
@@ -97,8 +98,17 @@ async function handle(
   // SECURITY: if a user already exists with this email, we refuse to silently
   // overwrite their password. That would let a malicious contact person hijack
   // an existing Lifeline account by adding the email to their roster.
+  //
+  // The login email is the employee's choice: it defaults to the work/roster
+  // email the invite was sent to, but they may sign up with a personal email
+  // instead (many don't use a work inbox). The work email stays on
+  // company_members for HR / invite delivery; the auth user + clients row use
+  // the chosen login email. The company link is by client_id, so the two can
+  // safely differ.
   let userId: string | null = null;
-  const email = (memberRow.email || member.email || "").toLowerCase();
+  const workEmail = (memberRow.email || member.email || "").toLowerCase();
+  const requestedLogin = typeof login_email === "string" ? login_email.trim().toLowerCase() : "";
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requestedLogin) ? requestedLogin : workEmail;
 
   const existing = await findAuthUserByEmail(email);
   if (existing) {

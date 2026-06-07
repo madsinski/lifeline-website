@@ -19,15 +19,6 @@ export async function POST(
 
   const newEmail = email.trim();
 
-  // Get the OLD email before updating anything
-  const { data: oldClient } = await supabaseAdmin
-    .from("clients_decrypted")
-    .select("email, company_id")
-    .eq("id", clientId)
-    .maybeSingle();
-  const oldEmail = oldClient?.email || "";
-  const companyId = oldClient?.company_id;
-
   // Update auth user email
   const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(clientId, {
     email: newEmail,
@@ -36,16 +27,15 @@ export async function POST(
     return NextResponse.json({ error: authErr.message }, { status: 400 });
   }
 
-  // Update clients table
+  // Update clients table (the login / account email)
   await supabaseAdmin.from("clients_decrypted").update({ email: newEmail }).eq("id", clientId);
 
-  // Sync to company_members using the OLD email to find the row
-  if (companyId && oldEmail) {
-    await supabaseAdmin.from("company_members")
-      .update({ email: newEmail })
-      .eq("email", oldEmail)
-      .eq("company_id", companyId);
-  }
+  // NOTE: we intentionally do NOT touch company_members.email here.
+  // That column is the employee's WORK / roster email (where the invite was
+  // sent, kept for HR), which is decoupled from the login email — an employee
+  // can sign up with a personal email. The company link is by
+  // company_members.client_id, not email, so the two are allowed to differ.
+  // To change the roster's work email, edit the roster directly.
 
   return NextResponse.json({ ok: true, email: newEmail });
 }

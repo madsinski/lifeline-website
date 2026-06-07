@@ -41,7 +41,8 @@ export default function OnboardPage() {
 
   const [memberId, setMemberId] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("");           // work / roster email (where the invite was sent)
+  const [loginEmail, setLoginEmail] = useState(""); // email the employee will actually log in with
   const [phone, setPhone] = useState("");
   const [kennitala, setKennitala] = useState("");
 
@@ -87,6 +88,7 @@ export default function OnboardPage() {
       setMemberId(j.id);
       setFullName(j.full_name || "");
       setEmail(j.email || "");
+      setLoginEmail(j.email || ""); // default login email to the work email; employee can change it
       setPhone(j.phone || "");
       setKennitala(j.kennitala || "");
       setStage(j.completed_at ? "done" : "welcome");
@@ -107,6 +109,12 @@ export default function OnboardPage() {
       setError("Choose a password of at least 8 characters.");
       return;
     }
+    const loginEmailTrimmed = loginEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmailTrimmed)) {
+      setError("Enter a valid login email.");
+      setStage("account");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -116,6 +124,7 @@ export default function OnboardPage() {
         body: JSON.stringify({
           password,
           account_password: accountPassword,
+          login_email: loginEmailTrimmed,
           sex,
           height_cm: Number(heightCm),
           weight_kg: Number(weightKg),
@@ -234,7 +243,7 @@ export default function OnboardPage() {
 
         {stage === "account" && <AccountStage
           accountPassword={accountPassword} setAccountPassword={setAccountPassword}
-          email={email}
+          workEmail={email} loginEmail={loginEmail} setLoginEmail={setLoginEmail}
           loading={loading} error={error}
           onBack={() => setStage("profile")}
           onSubmit={completeOnboarding}
@@ -482,7 +491,7 @@ function ProfileStage({
       <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4 space-y-3 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">Netfang</div>
+            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">Vinnunetfang (boð)</div>
             <div className="text-gray-800">{email}</div>
           </div>
           <div>
@@ -540,19 +549,38 @@ function ProfileStage({
 }
 
 function AccountStage({
-  accountPassword, setAccountPassword, email, loading, error, onBack, onSubmit,
+  accountPassword, setAccountPassword, workEmail, loginEmail, setLoginEmail, loading, error, onBack, onSubmit,
 }: {
   accountPassword: string; setAccountPassword: (v: string) => void;
-  email: string; loading: boolean; error: string;
+  workEmail: string; loginEmail: string; setLoginEmail: (v: string) => void;
+  loading: boolean; error: string;
   onBack: () => void; onSubmit: () => void;
 }) {
   const [show, setShow] = useState(false);
+  const differs = loginEmail.trim().toLowerCase() !== workEmail.trim().toLowerCase();
   return (
     <section className="bg-white rounded-2xl p-8 shadow-sm">
-      <h1 className="text-2xl font-semibold mb-2">Create your Lifeline password</h1>
+      <h1 className="text-2xl font-semibold mb-2">Create your Lifeline account</h1>
       <p className="text-sm text-gray-600 mb-6">
-        You&apos;ll sign in to the Lifeline app at <strong>{email}</strong> with this password.
+        Choose the email and password you&apos;ll use to sign in to Lifeline.
       </p>
+
+      <Field label="Login email">
+        <input
+          type="email"
+          value={loginEmail}
+          onChange={(e) => setLoginEmail(e.target.value)}
+          autoComplete="email"
+          className="input"
+        />
+        <p className="text-xs text-gray-500 mt-1.5">
+          Your invite was sent to <strong>{workEmail}</strong>. You can sign in with that, or use a
+          personal email if you prefer — handy if you don&apos;t use a work inbox.
+          {differs && <span className="block mt-1 text-emerald-700">You&apos;ll log in with <strong>{loginEmail.trim().toLowerCase()}</strong>.</span>}
+        </p>
+      </Field>
+
+      <div className="mt-5" />
       <Field label="Password (8+ characters)">
         <div className="relative">
           <input
