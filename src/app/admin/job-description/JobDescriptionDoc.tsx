@@ -44,6 +44,16 @@ export interface DocFields {
   salaryNote: string;
   equity: string;
   equityNote: string;
+  // Configurable labels for the comp cards + summary rows, so a doc whose
+  // pay model isn't "monthly salary" (e.g. a per-client / equity role) can
+  // relabel them. Default to the framkvæmdastjóri wording.
+  salaryCardLabel: string;
+  equityCardLabel: string;
+  salaryRowLabel: string;
+  salaryStartRowLabel: string;
+  equityRowLabel: string;
+  vestingRowLabel: string;
+  startRowLabel: string;
   // Compensation — summary table (proposal + agreed)
   vesting: string;
   salaryStart: string;
@@ -116,6 +126,14 @@ export const DEFAULTS: DocFields = {
   salaryNote: "hefst v. samþykki stjórnar",
   equity: "1,5% – 3%",
   equityNote: "vesting 2 ár, enginn cliff",
+
+  salaryCardLabel: "Grunnlaun / mán.",
+  equityCardLabel: "Eignarhlutur",
+  salaryRowLabel: "Grunnlaun (mán.)",
+  salaryStartRowLabel: "Launakjör hefjast",
+  equityRowLabel: "Eignarhlutur",
+  vestingRowLabel: "Vesting",
+  startRowLabel: "Upphafsdagur",
 
   vesting: "2 ár, enginn cliff",
   salaryStart: "Við samþykki stjórnar (eftir 6–12 mán.)",
@@ -293,8 +311,8 @@ export function JobDescriptionDoc({
           {/* Headline cards — two-up now that Bónus is gone, so they
               fill the row instead of leaving a third empty column. */}
           <div className="jd-block grid grid-cols-2 gap-3 mb-6">
-            <Card label="Grunnlaun / mán." value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
-            <Card label="Eignarhlutur" value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
+            <Card label={fields.salaryCardLabel || "Grunnlaun / mán."} value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
+            <Card label={fields.equityCardLabel || "Eignarhlutur"} value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
           </div>
 
           <p className="mb-2 font-semibold">
@@ -398,11 +416,11 @@ export function JobDescriptionDoc({
               </tr>
             </thead>
             <tbody>
-              <SummaryRow label="Grunnlaun (mán.)" proposal={fields.salary} onProposal={on("salary")} agreed={fields.salaryAgreed} onAgreed={on("salaryAgreed")} />
-              <SummaryRow label="Launakjör hefjast" proposal={fields.salaryStart} onProposal={on("salaryStart")} agreed={fields.salaryStartAgreed} onAgreed={on("salaryStartAgreed")} />
-              <SummaryRow label="Eignarhlutur" proposal={fields.equity} onProposal={on("equity")} agreed={fields.equityAgreed} onAgreed={on("equityAgreed")} />
-              <SummaryRow label="Vesting" proposal={fields.vesting} onProposal={on("vesting")} agreed={fields.vestingAgreed} onAgreed={on("vestingAgreed")} />
-              <SummaryRow label="Upphafsdagur" proposal={fields.startDate} onProposal={on("startDate")} agreed={fields.startAgreed} onAgreed={on("startAgreed")} proposalPlaceholder="—" />
+              <SummaryRow label={fields.salaryRowLabel || "Grunnlaun (mán.)"} proposal={fields.salary} onProposal={on("salary")} agreed={fields.salaryAgreed} onAgreed={on("salaryAgreed")} />
+              <SummaryRow label={fields.salaryStartRowLabel || "Launakjör hefjast"} proposal={fields.salaryStart} onProposal={on("salaryStart")} agreed={fields.salaryStartAgreed} onAgreed={on("salaryStartAgreed")} />
+              <SummaryRow label={fields.equityRowLabel || "Eignarhlutur"} proposal={fields.equity} onProposal={on("equity")} agreed={fields.equityAgreed} onAgreed={on("equityAgreed")} />
+              <SummaryRow label={fields.vestingRowLabel || "Vesting"} proposal={fields.vesting} onProposal={on("vesting")} agreed={fields.vestingAgreed} onAgreed={on("vestingAgreed")} />
+              <SummaryRow label={fields.startRowLabel || "Upphafsdagur"} proposal={fields.startDate} onProposal={on("startDate")} agreed={fields.startAgreed} onAgreed={on("startAgreed")} proposalPlaceholder="—" />
             </tbody>
           </table>
         </Section>
