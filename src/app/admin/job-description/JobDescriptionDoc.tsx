@@ -49,6 +49,11 @@ export interface DocFields {
   // relabel them. Default to the framkvæmdastjóri wording.
   salaryCardLabel: string;
   equityCardLabel: string;
+  // Optional third headline card + how many cards to show (1–3).
+  cardCount: string;
+  card3Label: string;
+  card3: string;
+  card3Note: string;
   salaryRowLabel: string;
   salaryStartRowLabel: string;
   equityRowLabel: string;
@@ -129,6 +134,10 @@ export const DEFAULTS: DocFields = {
 
   salaryCardLabel: "Grunnlaun / mán.",
   equityCardLabel: "Eignarhlutur",
+  cardCount: "2",
+  card3Label: "",
+  card3: "",
+  card3Note: "",
   salaryRowLabel: "Grunnlaun (mán.)",
   salaryStartRowLabel: "Launakjör hefjast",
   equityRowLabel: "Eignarhlutur",
@@ -230,6 +239,10 @@ export function JobDescriptionDoc({
   const on = (k: keyof DocFields): ((v: string) => void) | undefined =>
     readOnly || !set ? undefined : set(k);
   const editing = !readOnly && !!set;
+
+  // How many headline cards to show under "Kjör" (1–3, default 2).
+  const cardCount = Math.min(3, Math.max(1, parseInt(fields.cardCount || "2", 10) || 2));
+  const cardGridCols = cardCount === 1 ? "grid-cols-1" : cardCount === 3 ? "grid-cols-3" : "grid-cols-2";
 
   return (
     <>
@@ -353,11 +366,35 @@ export function JobDescriptionDoc({
             <EditBlock value={fields.forsenda} onChange={on("forsenda")} rows={4} />
           </div>
 
-          {/* Headline cards — two-up now that Bónus is gone, so they
-              fill the row instead of leaving a third empty column. */}
-          <div className="jd-block grid grid-cols-2 gap-3 mb-6">
-            <Card label={fields.salaryCardLabel || "Grunnlaun / mán."} value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
-            <Card label={fields.equityCardLabel || "Eignarhlutur"} value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
+          {/* Headline cards — 1 to 3, configurable. Each card's header is
+              editable. */}
+          {editing && (
+            <div className="jd-hint flex items-center gap-2 mb-2">
+              <span>Fjöldi korta:</span>
+              {[1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => on("cardCount")?.(String(n))}
+                  className={`px-2 py-0.5 rounded border text-[12px] ${
+                    cardCount === n
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold"
+                      : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className={`jd-block grid ${cardGridCols} gap-3 mb-6`}>
+            <Card label={fields.salaryCardLabel || "Grunnlaun / mán."} onLabelChange={on("salaryCardLabel")} value={fields.salary} onChange={on("salary")} note={fields.salaryNote} onNoteChange={on("salaryNote")} />
+            {cardCount >= 2 && (
+              <Card label={fields.equityCardLabel || "Eignarhlutur"} onLabelChange={on("equityCardLabel")} value={fields.equity} onChange={on("equity")} note={fields.equityNote} onNoteChange={on("equityNote")} />
+            )}
+            {cardCount >= 3 && (
+              <Card label={fields.card3Label || "Liður"} onLabelChange={on("card3Label")} value={fields.card3} onChange={on("card3")} note={fields.card3Note} onNoteChange={on("card3Note")} />
+            )}
           </div>
 
           <p className="mb-2 font-semibold">
@@ -534,13 +571,22 @@ function MetaCell({
 }
 
 function Card({
-  label, value, onChange, note, onNoteChange,
+  label, onLabelChange, value, onChange, note, onNoteChange,
 }: {
-  label: string; value: string; onChange?: (v: string) => void; note: string; onNoteChange?: (v: string) => void;
+  label: string; onLabelChange?: (v: string) => void;
+  value: string; onChange?: (v: string) => void; note: string; onNoteChange?: (v: string) => void;
 }) {
   return (
     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
-      <div className="text-[11px] uppercase tracking-wide text-gray-500">{label}</div>
+      {onLabelChange ? (
+        <input
+          className="jd-input text-center text-[11px] uppercase tracking-wide text-gray-500"
+          value={label}
+          onChange={(e) => onLabelChange(e.target.value)}
+        />
+      ) : (
+        <div className="text-[11px] uppercase tracking-wide text-gray-500">{label}</div>
+      )}
       {onChange ? (
         <input
           className="jd-input text-center text-[18px] font-bold text-emerald-700 mt-1.5"
