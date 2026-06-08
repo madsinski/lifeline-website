@@ -307,19 +307,28 @@ export function JobDescriptionDoc({
             </>
           ) : (
             <ul className="space-y-0">
-              {parseTaskGroups(fields.tasks).map((g, i) => (
-                <li key={i} className="relative pl-6 py-2.5 border-b border-gray-100 last:border-0">
-                  <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
-                  {leadBold(g.main)}
-                  {g.subs.length > 0 && (
-                    <ul className="list-disc pl-5 mt-2 space-y-1 text-[14px] text-gray-600 marker:text-emerald-500">
-                      {g.subs.map((s, j) => (
-                        <li key={j}>{leadBold(s)}</li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
+              {parseTaskGroups(fields.tasks).map((g, i) => {
+                const hasSubs = g.subs.length > 0;
+                return (
+                  <li
+                    key={i}
+                    className={`relative pl-6 py-2.5 last:border-0 ${hasSubs ? "" : "border-b border-gray-100"}`}
+                  >
+                    <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
+                    {leadBold(g.main)}
+                    {hasSubs && (
+                      <ul className="mt-2 space-y-1.5">
+                        {g.subs.map((s, j) => (
+                          <li key={j} className="relative pl-6 text-[14px] text-gray-600">
+                            <span className="absolute left-[7px] top-[8px] w-1.5 h-1.5 rounded-full border border-emerald-500 bg-transparent" />
+                            {leadBold(s)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Section>
