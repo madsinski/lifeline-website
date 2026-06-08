@@ -177,6 +177,16 @@ function leadBold(line: string): ReactNode {
   );
 }
 
+// Like leadBold, but for a top-level heading: when there is no " — "
+// separator the whole line is bolded, so a main bullet always reads as a
+// heading even when it carries no inline description.
+function headingBold(line: string): ReactNode {
+  if (line.indexOf(" — ") === -1) {
+    return <strong className="text-gray-900">{line}</strong>;
+  }
+  return leadBold(line);
+}
+
 const splitLines = (s: string) => s.split("\n").filter((l) => l.trim().length > 0);
 
 // Group task lines into top-level items with optional sub-bullets. A line
@@ -315,7 +325,7 @@ export function JobDescriptionDoc({
                     className={`relative pl-6 py-2.5 last:border-0 ${hasSubs ? "" : "border-b border-gray-100"}`}
                   >
                     <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
-                    {leadBold(g.main)}
+                    {headingBold(g.main)}
                     {hasSubs && (
                       <ul className="mt-2 space-y-1.5">
                         {g.subs.map((s, j) => (
