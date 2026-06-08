@@ -331,7 +331,7 @@ export function JobDescriptionDoc({
                         {g.subs.map((s, j) => (
                           <li key={j} className="relative pl-6 text-[14px] text-gray-600">
                             <span className="absolute left-[7px] top-[8px] w-1.5 h-1.5 rounded-full border border-emerald-500 bg-transparent" />
-                            {leadBold(s)}
+                            {s}
                           </li>
                         ))}
                       </ul>
