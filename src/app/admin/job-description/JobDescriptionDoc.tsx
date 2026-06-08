@@ -179,6 +179,25 @@ function leadBold(line: string): ReactNode {
 
 const splitLines = (s: string) => s.split("\n").filter((l) => l.trim().length > 0);
 
+// Group task lines into top-level items with optional sub-bullets. A line
+// that begins with whitespace (indentation) or a "- " / "• " / "– " marker
+// becomes a sub-bullet of the item above it; everything else starts a new
+// top-level item.
+function parseTaskGroups(s: string): { main: string; subs: string[] }[] {
+  const groups: { main: string; subs: string[] }[] = [];
+  for (const raw of s.split("\n")) {
+    if (raw.trim().length === 0) continue;
+    const isSub = /^\s+/.test(raw) || /^\s*[-•–]\s+/.test(raw);
+    const text = raw.replace(/^\s*[-•–]\s+/, "").trim();
+    if (isSub && groups.length > 0) {
+      groups[groups.length - 1].subs.push(text);
+    } else {
+      groups.push({ main: text, subs: [] });
+    }
+  }
+  return groups;
+}
+
 export function JobDescriptionDoc({
   fields,
   set,
@@ -283,15 +302,22 @@ export function JobDescriptionDoc({
         <Section title={fields.tasksTitle} onTitleChange={on("tasksTitle")}>
           {editing ? (
             <>
-              <p className="jd-hint">Ein lína = eitt atriði. Texti á undan „ — “ verður feitletraður.</p>
-              <EditBlock value={fields.tasks} onChange={on("tasks")} rows={9} />
+              <p className="jd-hint">Ein lína = eitt atriði. Byrjaðu línu á bili (eða „- “) til að gera hana að undirpunkti. Texti á undan „ — “ verður feitletraður.</p>
+              <EditBlock value={fields.tasks} onChange={on("tasks")} rows={11} />
             </>
           ) : (
             <ul className="space-y-0">
-              {splitLines(fields.tasks).map((line, i) => (
+              {parseTaskGroups(fields.tasks).map((g, i) => (
                 <li key={i} className="relative pl-6 py-2.5 border-b border-gray-100 last:border-0">
                   <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
-                  {leadBold(line)}
+                  {leadBold(g.main)}
+                  {g.subs.length > 0 && (
+                    <ul className="list-disc pl-5 mt-2 space-y-1 text-[14px] text-gray-600 marker:text-emerald-500">
+                      {g.subs.map((s, j) => (
+                        <li key={j}>{leadBold(s)}</li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
