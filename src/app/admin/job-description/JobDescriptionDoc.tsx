@@ -36,6 +36,9 @@ export interface DocFields {
   bpIntro: string;
   bpEquityIntro: string;
   bpFootnote: string;
+  // Comma-separated list of equity percentages to highlight (green fill) in
+  // the equity-value table, e.g. "1,2,3".
+  bpHighlightPcts: string;
   athugasemd: string;
   footerLeft: string;
   footerRight: string;
@@ -120,6 +123,7 @@ export const DEFAULTS: DocFields = {
     "Virði eignarhlutar eftir hlutfalli og ári (= verðmat × hlutfall). Tillagða bilið 1,5%–3% er auðkennt.",
   bpFootnote:
     "Tölur eru áætlanir, ekki loforð. Raunvirði ræðst af rekstri og markaðsaðstæðum og getur orðið hærra eða lægra.",
+  bpHighlightPcts: "1,2,3",
 
   athugasemd:
     "Þetta eru viðmið — endanleg laun og hlutur ráðast af reynslu viðkomandi og samkomulagi við aðra hluthafa. Mælt er sterklega með að bera vesting-fyrirkomulag og skattalega meðferð undir endurskoðanda og lögmann áður en samningur er undirritaður — sérstaklega muninn á beinni hlutaúthlutun, kaupréttarsamningi og phantom shares, sem getur skipt tugum milljóna í skatti fyrir starfsmanninn.",
@@ -243,6 +247,22 @@ export function JobDescriptionDoc({
   // How many headline cards to show under "Kjör" (1–3, default 2).
   const cardCount = Math.min(3, Math.max(1, parseInt(fields.cardCount || "2", 10) || 2));
   const cardGridCols = cardCount === 1 ? "grid-cols-1" : cardCount === 3 ? "grid-cols-3" : "grid-cols-2";
+
+  // Which equity-% rows get the green fill in the rekstraráætlun table.
+  const bpHighlight = new Set(
+    (fields.bpHighlightPcts ?? "1,2,3")
+      .split(",")
+      .map((x) => parseInt(x.trim(), 10))
+      .filter((n) => !Number.isNaN(n)),
+  );
+  const toggleBpHighlight = (pct: number) => {
+    const setFn = on("bpHighlightPcts");
+    if (!setFn) return;
+    const next = new Set(bpHighlight);
+    if (next.has(pct)) next.delete(pct);
+    else next.add(pct);
+    setFn(Array.from(next).sort((a, b) => a - b).join(","));
+  };
 
   return (
     <>
@@ -470,7 +490,11 @@ export function JobDescriptionDoc({
             <EditBlock value={fields.bpEquityIntro} onChange={on("bpEquityIntro")} rows={2} />
           </div>
 
-          {/* Equity value by percentage */}
+          {editing && (
+            <p className="jd-hint">Smelltu á línu í töflunni til að kveikja eða slökkva á grænni auðkenningu.</p>
+          )}
+          {/* Equity value by percentage. Highlighted rows are configurable
+              (fields.bpHighlightPcts) and toggled by clicking a row. */}
           <table className="w-full border-collapse text-[11px] tabular-nums">
             <thead>
               <tr className="bg-gray-900 text-white">
@@ -482,9 +506,14 @@ export function JobDescriptionDoc({
             </thead>
             <tbody>
               {BP_PCTS.map((pct) => {
-                const inRange = pct >= 1 && pct <= 3;
+                const inRange = bpHighlight.has(pct);
                 return (
-                  <tr key={pct} className={inRange ? "bg-emerald-50" : "even:bg-gray-50/70"}>
+                  <tr
+                    key={pct}
+                    onClick={editing ? () => toggleBpHighlight(pct) : undefined}
+                    title={editing ? "Smelltu til að auðkenna / fjarlægja auðkenningu" : undefined}
+                    className={`${inRange ? "bg-emerald-50" : "even:bg-gray-50/70"} ${editing ? "cursor-pointer hover:bg-emerald-100/60" : ""}`}
+                  >
                     <td className={`px-2 py-1.5 border-b border-gray-200 text-left ${inRange ? "font-semibold text-emerald-800" : "text-gray-700"}`}>{pct}%</td>
                     {BP_EV.map((ev, i) => (
                       <td key={i} className={`px-2 py-1.5 border-b border-gray-200 text-right ${inRange ? "font-semibold text-emerald-800" : ""}`}>{fmtISK(ev * pct / 100)}</td>
