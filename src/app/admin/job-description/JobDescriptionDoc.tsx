@@ -252,6 +252,11 @@ export function JobDescriptionDoc({
         .jd-input::placeholder { color: #9ca3af; }
         .jd-area { display: block; width: 100%; background: transparent; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 6px 8px; font: inherit; color: inherit; outline: none; resize: vertical; field-sizing: content; }
         .jd-area:focus { border-color: #10b981; background: #ecfdf5; }
+        /* Title editor: a borderless textarea that wraps and auto-grows so a
+           long title shows in full instead of scrolling off a single line. */
+        .jd-title-input { display: block; width: 100%; background: transparent; border: 0; border-bottom: 1px dashed #cbd5e1; padding: 1px 2px; margin: 0; font: inherit; color: inherit; outline: none; resize: none; overflow: hidden; field-sizing: content; }
+        .jd-title-input:focus { border-bottom-color: #10b981; background: #ecfdf5; }
+        .jd-title-input::placeholder { color: #9ca3af; }
         .jd-hint { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
         /* The clean read-only copy used for printing is hidden on screen. */
         .jd-print-portal { display: none; }
@@ -290,8 +295,9 @@ export function JobDescriptionDoc({
           <img src="/lifeline-logo-rebrand.svg" alt="Lifeline" className="h-7 w-auto mb-5" />
           <h2 className="text-3xl font-bold text-gray-900 leading-tight">
             {onTitleChange ? (
-              <input
-                className="jd-input"
+              <textarea
+                className="jd-title-input"
+                rows={1}
                 value={title ?? ""}
                 onChange={(e) => onTitleChange(e.target.value)}
                 placeholder="Titill skjals"
