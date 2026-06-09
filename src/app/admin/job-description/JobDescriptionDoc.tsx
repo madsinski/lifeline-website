@@ -200,8 +200,6 @@ function headingBold(line: string): ReactNode {
   return leadBold(line);
 }
 
-const splitLines = (s: string) => s.split("\n").filter((l) => l.trim().length > 0);
-
 // Group task lines into top-level items with optional sub-bullets. A line
 // that begins with whitespace (indentation) or a "- " / "• " / "– " marker
 // becomes a sub-bullet of the item above it; everything else starts a new
@@ -361,30 +359,7 @@ export function JobDescriptionDoc({
               <EditBlock value={fields.tasks} onChange={on("tasks")} rows={11} />
             </>
           ) : (
-            <ul className="space-y-0">
-              {parseTaskGroups(fields.tasks).map((g, i) => {
-                const hasSubs = g.subs.length > 0;
-                return (
-                  <li
-                    key={i}
-                    className={`relative pl-6 py-2.5 last:border-0 ${hasSubs ? "" : "border-b border-gray-100"}`}
-                  >
-                    <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
-                    {headingBold(g.main)}
-                    {hasSubs && (
-                      <ul className="mt-2 space-y-1.5">
-                        {g.subs.map((s, j) => (
-                          <li key={j} className="relative pl-6 text-[14px] text-gray-600">
-                            <span className="absolute left-[7px] top-[8px] w-1.5 h-1.5 rounded-full border border-emerald-500 bg-transparent" />
-                            {s}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <HierList text={fields.tasks} />
           )}
         </Section>
 
@@ -434,15 +409,11 @@ export function JobDescriptionDoc({
           </p>
           {editing ? (
             <>
-              <p className="jd-hint">Ein lína = einn punktur. Texti á undan „ — “ verður feitletraður.</p>
-              <EditBlock value={fields.equityBullets} onChange={on("equityBullets")} rows={7} />
+              <p className="jd-hint">Ein lína = einn punktur. Byrjaðu línu á bili (eða „- “) til að gera hana að undirpunkti. Texti á undan „ — “ verður feitletraður.</p>
+              <EditBlock value={fields.equityBullets} onChange={on("equityBullets")} rows={9} />
             </>
           ) : (
-            <ul className="list-disc pl-5 space-y-1.5 mb-2">
-              {splitLines(fields.equityBullets).map((line, i) => (
-                <li key={i}>{leadBold(line)}</li>
-              ))}
-            </ul>
+            <HierList text={fields.equityBullets} />
           )}
         </Section>
 
@@ -574,6 +545,38 @@ export function JobDescriptionDoc({
 }
 
 // ─── Building blocks ────────────────────────────────────────────────
+
+// A hierarchical bullet list: top-level items (bold heading + solid emerald
+// dot) with optional indented sub-bullets (hollow emerald dot). Shared by
+// "Helstu verkefni" and the "Eignarhlutur" list so they read the same.
+function HierList({ text }: { text: string }) {
+  return (
+    <ul className="space-y-0">
+      {parseTaskGroups(text).map((g, i) => {
+        const hasSubs = g.subs.length > 0;
+        return (
+          <li
+            key={i}
+            className={`relative pl-6 py-2.5 last:border-0 ${hasSubs ? "" : "border-b border-gray-100"}`}
+          >
+            <span className="absolute left-1 top-[18px] w-2 h-2 rounded-full bg-emerald-600" />
+            {headingBold(g.main)}
+            {hasSubs && (
+              <ul className="mt-2 space-y-1.5">
+                {g.subs.map((s, j) => (
+                  <li key={j} className="relative pl-6 text-[14px] text-gray-600">
+                    <span className="absolute left-[7px] top-[8px] w-1.5 h-1.5 rounded-full border border-emerald-500 bg-transparent" />
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 function Section({
   title, onTitleChange, children,
