@@ -258,6 +258,11 @@ export function JobDescriptionDoc({
         .jd-wrap-input { display: block; width: 100%; background: transparent; border: 0; border-bottom: 1px dashed #cbd5e1; padding: 1px 2px; margin: 0; font: inherit; color: inherit; outline: none; resize: none; overflow: hidden; field-sizing: content; }
         .jd-wrap-input:focus { border-bottom-color: #10b981; background: #ecfdf5; }
         .jd-wrap-input::placeholder { color: #9ca3af; }
+        /* Inline variant for fields that sit within a line of text (subtitle,
+           draft date, footers): wraps to multiple lines when long. */
+        .jd-wrap-inline { display: inline-block; vertical-align: bottom; max-width: 100%; min-width: 5ch; background: transparent; border: 0; border-bottom: 1px dashed #cbd5e1; padding: 1px 2px; margin: 0; font: inherit; color: inherit; outline: none; resize: none; overflow: hidden; field-sizing: content; }
+        .jd-wrap-inline:focus { border-bottom-color: #10b981; background: #ecfdf5; }
+        .jd-wrap-inline::placeholder { color: #9ca3af; }
         .jd-hint { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
         /* The clean read-only copy used for printing is hidden on screen. */
         .jd-print-portal { display: none; }
@@ -550,7 +555,7 @@ function Section({
     <section className="mb-7">
       <h3 className="text-[13px] font-bold uppercase tracking-wider text-emerald-700 border-b border-gray-200 pb-2 mb-4">
         {onTitleChange ? (
-          <input className="jd-input uppercase" value={title} onChange={(e) => onTitleChange(e.target.value)} />
+          <textarea className="jd-wrap-input uppercase" rows={1} value={title} onChange={(e) => onTitleChange(e.target.value)} />
         ) : (
           title
         )}
@@ -586,8 +591,9 @@ function Card({
   return (
     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
       {onLabelChange ? (
-        <input
-          className="jd-input text-center text-[11px] uppercase tracking-wide text-gray-500"
+        <textarea
+          className="jd-wrap-input text-center text-[11px] uppercase tracking-wide text-gray-500"
+          rows={1}
           value={label}
           onChange={(e) => onLabelChange(e.target.value)}
         />
@@ -595,8 +601,9 @@ function Card({
         <div className="text-[11px] uppercase tracking-wide text-gray-500">{label}</div>
       )}
       {onChange ? (
-        <input
-          className="jd-input text-center text-[18px] font-bold text-emerald-700 mt-1.5"
+        <textarea
+          className="jd-wrap-input text-center text-[18px] font-bold text-emerald-700 mt-1.5"
+          rows={1}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -604,7 +611,7 @@ function Card({
         <div className="text-[18px] font-bold text-emerald-700 mt-1.5">{value}</div>
       )}
       {onNoteChange ? (
-        <input className="jd-input text-center text-[12px] text-gray-500 mt-1" value={note} onChange={(e) => onNoteChange(e.target.value)} />
+        <textarea className="jd-wrap-input text-center text-[12px] text-gray-500 mt-1" rows={1} value={note} onChange={(e) => onNoteChange(e.target.value)} />
       ) : (
         <div className="text-[12px] text-gray-500 mt-1">{note}</div>
       )}
@@ -625,14 +632,14 @@ function SummaryRow({
       <td className="px-3 py-2.5 border-b border-gray-200 text-gray-700">{label}</td>
       <td className="px-3 py-2.5 border-b border-gray-200">
         {onProposal ? (
-          <input className="jd-input" value={proposal} onChange={(e) => onProposal(e.target.value)} placeholder={proposalPlaceholder} />
+          <textarea className="jd-wrap-input" rows={1} value={proposal} onChange={(e) => onProposal(e.target.value)} placeholder={proposalPlaceholder} />
         ) : (
           <span>{proposal || proposalPlaceholder || "—"}</span>
         )}
       </td>
       <td className="px-3 py-2.5 border-b border-gray-200">
         {onAgreed ? (
-          <input className="jd-input" value={agreed} onChange={(e) => onAgreed(e.target.value)} placeholder="—" />
+          <textarea className="jd-wrap-input" rows={1} value={agreed} onChange={(e) => onAgreed(e.target.value)} placeholder="—" />
         ) : (
           <span>{agreed || "—"}</span>
         )}
@@ -648,11 +655,11 @@ function EditInline({
 }) {
   if (!onChange) return <span className={className}>{value}</span>;
   return (
-    <input
-      className={`jd-input ${className}`}
+    <textarea
+      className={`jd-wrap-inline ${className}`}
+      rows={1}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{ width: `${Math.max(value.length + 1, 6)}ch` }}
     />
   );
 }
