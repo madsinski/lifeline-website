@@ -252,11 +252,12 @@ export function JobDescriptionDoc({
         .jd-input::placeholder { color: #9ca3af; }
         .jd-area { display: block; width: 100%; background: transparent; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 6px 8px; font: inherit; color: inherit; outline: none; resize: vertical; field-sizing: content; }
         .jd-area:focus { border-color: #10b981; background: #ecfdf5; }
-        /* Title editor: a borderless textarea that wraps and auto-grows so a
-           long title shows in full instead of scrolling off a single line. */
-        .jd-title-input { display: block; width: 100%; background: transparent; border: 0; border-bottom: 1px dashed #cbd5e1; padding: 1px 2px; margin: 0; font: inherit; color: inherit; outline: none; resize: none; overflow: hidden; field-sizing: content; }
-        .jd-title-input:focus { border-bottom-color: #10b981; background: #ecfdf5; }
-        .jd-title-input::placeholder { color: #9ca3af; }
+        /* A borderless textarea that wraps and auto-grows, so a long value
+           (title, starfsheiti, etc.) shows in full instead of scrolling off
+           a single line. */
+        .jd-wrap-input { display: block; width: 100%; background: transparent; border: 0; border-bottom: 1px dashed #cbd5e1; padding: 1px 2px; margin: 0; font: inherit; color: inherit; outline: none; resize: none; overflow: hidden; field-sizing: content; }
+        .jd-wrap-input:focus { border-bottom-color: #10b981; background: #ecfdf5; }
+        .jd-wrap-input::placeholder { color: #9ca3af; }
         .jd-hint { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
         /* The clean read-only copy used for printing is hidden on screen. */
         .jd-print-portal { display: none; }
@@ -296,7 +297,7 @@ export function JobDescriptionDoc({
           <h2 className="text-3xl font-bold text-gray-900 leading-tight">
             {onTitleChange ? (
               <textarea
-                className="jd-title-input"
+                className="jd-wrap-input"
                 rows={1}
                 value={title ?? ""}
                 onChange={(e) => onTitleChange(e.target.value)}
@@ -568,7 +569,7 @@ function MetaCell({
     <div className={`px-4 py-3 border-b border-gray-200 ${br ? "border-r" : ""}`}>
       <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-0.5">{label}</div>
       {onChange ? (
-        <input className="jd-input font-semibold text-gray-900" value={value} onChange={(e) => onChange(e.target.value)} />
+        <textarea className="jd-wrap-input font-semibold text-gray-900" rows={1} value={value} onChange={(e) => onChange(e.target.value)} />
       ) : (
         <div className="font-semibold text-gray-900">{value}</div>
       )}
