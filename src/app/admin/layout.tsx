@@ -608,7 +608,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
       const { data: { session: s } } = await supabase.auth.getSession();
       if (s) {
-        setSession(true);
+        // NOTE: setSession(true) is deliberately deferred until after the
+        // MFA gate below. Granting render here flashes the full admin UI
+        // for the redirect round-trip to /admin/mfa.
         setUserEmail(s.user?.email ?? null);
         if (s.user?.email) loadStaffProfile(s.user.email);
 
@@ -670,6 +672,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           }
         }
 
+        // Only now — after the AAL2/MFA gate has decided no redirect is
+        // needed — is the admin shell allowed to render. The spinner
+        // stays up for sessions that are about to be bounced to MFA.
+        setSession(true);
+
         // Staff e-signature gate: if this user has any outstanding
         // required agreement (NDA / þagnarskylda / acceptable use /
         // data-protection briefing) they land on /admin/onboard until
@@ -702,7 +709,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       if (s) {
-        setSession(true);
+        // Deliberately NOT setSession(true) here: SIGNED_IN fires before
+        // the AAL2/MFA gate above has run, and granting render here
+        // flashes the admin UI pre-MFA. The pathname-keyed effect above
+        // is the only place that grants render, after the gate. This
+        // handler only keeps profile state fresh.
         setUserEmail(s.user?.email ?? null);
         if (s.user?.email) loadStaffProfile(s.user.email);
       } else {
