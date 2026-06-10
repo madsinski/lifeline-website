@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lifeline Health · Technical Security Brief v1.2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --ink: #111827;
+    --ink-2: #374151;
+    --ink-3: #6B7280;
+    --ink-4: #9CA3AF;
+    --rule: #E5E7EB;
+    --rule-soft: #F3F4F6;
+    --accent: #10B981;
+    --accent-bg: #ECFDF5;
+    --warn-bg: #FFF7ED;
+    --warn-ink: #92400E;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: #fff;
+    line-height: 1.55;
+    font-size: 14px;
+  }
+  .page { max-width: 820px; margin: 0 auto; padding: 56px 48px 80px 48px; }
+
+  .title-block { border-bottom: 2px solid var(--accent); padding-bottom: 18px; margin-bottom: 28px; }
+  .title-kicker {
+    text-transform: uppercase; letter-spacing: 0.12em;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent);
+  }
+  .title-block h1 {
+    margin: 6px 0 4px 0;
+    font-size: 28px; line-height: 1.18; letter-spacing: -0.012em;
+    color: var(--ink);
+  }
+  .title-block .subtitle { color: var(--ink-2); font-size: 14px; margin-bottom: 4px; }
+  .title-block .meta {
+    font-size: 11px; color: var(--ink-3);
+    margin-top: 12px; display: flex; gap: 22px; flex-wrap: wrap;
+  }
+  .title-block .meta strong { color: var(--ink-2); font-weight: 600; }
+
+  h2 {
+    font-size: 17px; margin: 32px 0 8px 0; padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink); letter-spacing: -0.005em;
+  }
+  h2 .num { color: var(--accent); margin-right: 8px; font-weight: 700; }
+  h3 { font-size: 14px; margin: 18px 0 6px 0; color: var(--ink-2); }
+  h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin: 14px 0 4px 0; }
+
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  strong { color: var(--ink); }
+
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--rule-soft); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 10px 0 16px 0; font-size: 12.5px;
+  }
+  th, td { border-bottom: 1px solid var(--rule); padding: 7px 8px; text-align: left; vertical-align: top; }
+  th {
+    background: var(--rule-soft);
+    font-weight: 600; color: var(--ink-2);
+    border-bottom: 1px solid var(--rule); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout h4 { margin-top: 0; color: var(--accent); }
+  .callout-warn { border-left-color: #F59E0B; background: var(--warn-bg); }
+  .callout-warn h4 { color: var(--warn-ink); }
+
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .badge-med { background: var(--warn-bg); color: var(--warn-ink); }
+  .badge-low { background: var(--rule-soft); color: var(--ink-3); }
+
+  .small { font-size: 12px; color: var(--ink-3); }
+
+  @media print {
+    body { font-size: 11.5px; }
+    .page { padding: 16mm 18mm 18mm 18mm; max-width: none; }
+    h2 { page-break-after: avoid; }
+    table, tr, td, th { page-break-inside: avoid; }
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    a { color: var(--ink); text-decoration: none; }
+  }
+
+  .toolbar {
+    position: fixed; top: 16px; right: 16px;
+    background: var(--ink); color: #fff;
+    padding: 8px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    border: none; cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  }
+  .toolbar:hover { background: #000; }
+
+  .footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 11px; color: var(--ink-4); }
+</style>
+</head>
+<body>
+<button class="toolbar no-print" onclick="window.print()">Print / Export PDF</button>
+<div class="page">
+
+  <header class="title-block">
+    <div class="title-kicker">Lifeline Health · Security Engineering</div>
+    <h1>Technical Security Brief</h1>
+    <div class="subtitle">Engineering-level companion to the Security &amp; Privacy Posture Statement, written for technical security reviewers — including an explicit gap register</div>
+    <div class="meta">
+      <span><strong>Version:</strong> v1.2</span>
+      <span><strong>Last updated:</strong> 10 June 2026</span>
+      <span><strong>Owner:</strong> Mads Christian Aanesen, CTO</span>
+      <span><strong>Distribution:</strong> External security review</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="callout">
+      <h4>How to read this document</h4>
+      <p style="margin:0">Every claim here is verifiable in the codebase or infrastructure. Where something is missing, it is listed in the gap register (§11) rather than papered over — we would rather name a gap ourselves than have it discovered.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">1</span>System architecture &amp; trust boundaries</h2>
+    <h3>Components</h3>
+    <ul>
+      <li><strong>Next.js application</strong> (Vercel, Fluid Compute / Node) — marketing site, client account area, staff admin app, and all API routes from one codebase.</li>
+      <li><strong>Supabase</strong> (Postgres + Auth + Storage, Germany/EEA) — single system of record for operational (non-EHR) data.</li>
+      <li><strong>React Native client app</strong> (separate repo) — talks to the same Supabase project and the website's API routes.</li>
+      <li><strong>Medalia</strong> (licensed Icelandic EHR) — formal medical records. No API integration yet; data exchange is manual by licensed clinicians.</li>
+      <li><strong>Biody Manager</strong> (France) — raw body-composition data, fetched on demand via a Supabase Edge Function; results are not persisted in Lifeline's database.</li>
+    </ul>
+    <div class="callout">
+      <h4>Planned — in progress, not yet live</h4>
+      <p style="margin:0">A direct <strong>Medalia ↔ Biody API integration</strong> is being processed. Once operational, the Lifeline-admin-side Biody connection will be retired and measurements will flow straight into the EHR; the client app's on-demand, user-consented Biody fetch remains. Net effect: one fewer health-data path through the Lifeline layer. No code has shipped for this yet.</p>
+    </div>
+    <h3>Trust boundaries</h3>
+    <ul>
+      <li><strong>Browser/app → API:</strong> Supabase JWT in the Authorization header; every API route re-derives the user server-side — no client-asserted identity.</li>
+      <li><strong>API → database:</strong> two distinct clients. The anon client is subject to RLS; the service-role client bypasses RLS and exists only in server code. A hard convention forbids importing it (or its env var) into any client-side file.</li>
+      <li><strong>Website → Biody edge function:</strong> requires <strong>both</strong> the service-role bearer (platform JWT gate) and an HMAC signature over the request — a leaked service-role key alone cannot forge a call.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>Authentication &amp; session management</h2>
+    <ul>
+      <li>Supabase Auth (GoTrue): bcrypt-hashed passwords, short-lived JWT access tokens (~1 h) with rotating refresh tokens; sign-out revokes the refresh token.</li>
+      <li><strong>Staff MFA:</strong> TOTP enrolment is mandatory; the admin app refuses access until the session is stepped up to AAL2. Server-side, <strong>every admin mutation endpoint independently re-verifies AAL2</strong> — the check is not UI-only. Exception: the external-counsel role, which only reaches the legal archive (no patient data).</li>
+      <li><strong>Password flows:</strong> double-entry confirmation everywhere a password is set; email confirmation on our own domain via <code>token_hash + verifyOtp</code> — raw Supabase action links are never emailed.</li>
+      <li><strong>Brute force:</strong> Supabase platform rate limits on auth endpoints; our own sensitive token endpoints add per-IP database-backed limits (e.g. B2B invite verification: 20 attempts/hour/IP) on top of per-invite lockout, with expired/used tokens short-circuited before verification to prevent enumeration and timing leaks.</li>
+      <li><strong>Offboarding:</strong> deactivating the staff row revokes access centrally — RLS policies and API gates check is-active status on every request, so a deactivated account loses admin access on its next request even with a live token.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>Authorization model</h2>
+    <ul>
+      <li>Postgres Row Level Security on every table holding personal data; API-mediated tables carry an explicit deny-all policy (<code>FOR ALL USING (false)</code>) so the only path is the server API.</li>
+      <li>Staff checks inside policies go through SECURITY DEFINER helper functions (<code>is_active_staff()</code>, <code>is_admin_staff()</code>) — never inline subqueries against the staff table (avoids recursive-policy bugs; one audited implementation).</li>
+      <li>API-layer gates are role-aware: reads accept any active staff; writes require admin-write roles <em>and</em> AAL2. Read-only roles (external lawyer, medical advisor) are blocked from writes at <strong>both</strong> layers — defence in depth, not a single chokepoint.</li>
+      <li>Client-facing data access goes through the anon client under RLS; clients only see their own rows (<code>auth.uid()</code> scoping).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>Secrets &amp; key management</h2>
+    <ul>
+      <li>Application secrets (service-role key, HMAC secret, AI provider keys, SMTP) live in Vercel environment variables — encrypted at rest, scoped per environment, never committed. <code>.env.local</code> is gitignored; no secrets in the repository.</li>
+      <li>The column-encryption key lives in <strong>Supabase Vault</strong>; only SECURITY DEFINER functions can read it. It is not an application env var, so an application-layer compromise does not directly expose it.</li>
+      <li>GitHub Actions secrets (DB connection string for backups) are repository secrets with least scope.</li>
+    </ul>
+    <div class="callout-warn callout">
+      <h4>Known gap — rotation</h4>
+      <p style="margin:0">No scheduled rotation policy; keys are rotated reactively. Planned: documented rotation runbook + calendar for the service-role key, HMAC secret and Vault key (the pgcrypto design supports re-encryption migration).</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">5</span>Rate limiting &amp; abuse protection</h2>
+    <ul>
+      <li><strong>Platform:</strong> Vercel DDoS mitigation and TLS termination; Supabase limits on auth endpoints.</li>
+      <li><strong>Application (selective, where it matters):</strong> B2B invite verification 20/hour/IP (DB-backed) + lockout; per-user daily quotas on AI document parsing (staff exempt); per-user throttle on error ingestion to stop log flooding.</li>
+      <li>No anonymous compute-expensive endpoints — public AI endpoints require an authenticated user.</li>
+    </ul>
+    <div class="callout-warn callout">
+      <h4>Known gap</h4>
+      <p style="margin:0">No global WAF rules beyond platform defaults; rate limits are per-endpoint by design. Accepted at current traffic; revisit at public launch.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">6</span>Backups &amp; disaster recovery</h2>
+    <ul>
+      <li>Supabase managed daily snapshots, 7-day rolling window, restorable from the dashboard.</li>
+      <li><strong>Independent nightly logical backup</strong> (GitHub Actions, 03:00 UTC): <code>pg_dump</code> of the full public schema + data into a private storage bucket, 14-day retention, manual trigger for pre-migration snapshots — deliberately a second, portable copy outside the managed snapshot system.</li>
+      <li>Storage buckets (signed PDFs etc.) are private with per-bucket RLS; covered by provider redundancy.</li>
+    </ul>
+    <div class="callout-warn callout">
+      <h4>Known gap — restore drills</h4>
+      <p style="margin:0">A full timed restore from the nightly dump into a clean project has not yet been performed as a documented drill. RPO is ~24 h worst case; RTO is untested. Planned before public launch.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">7</span>Vulnerability &amp; dependency management</h2>
+    <ul>
+      <li>April 2026: an external code-level security audit was performed; findings were remediated across three sprints (RLS hardening, audit logging, consent system, column encryption, MFA enforcement, DSR workflow) — captured as posture v1.0.</li>
+      <li>TypeScript strict mode + ESLint in development; framework and dependencies kept on current major versions.</li>
+    </ul>
+    <div class="callout-warn callout">
+      <h4>Known gaps</h4>
+      <p style="margin:0">No automated SCA/dependency scanning in CI (updates are manual — cheap to fix, planned). No formal third-party penetration test yet; planned once the public launch surface is final. The April audit was code-review based, not adversarial.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">8</span>Logging, monitoring &amp; detection</h2>
+    <ul>
+      <li><strong>Immutable health-data audit log</strong> (Postgres triggers, admin-only read, 6-year retention) records every INSERT/UPDATE/DELETE on clients, messages, weight logs and body-composition events with actor identity and role.</li>
+      <li><strong>Error telemetry is fully in-house</strong> (Sentry removed 2026-06; no third-party error service):
+        <ul>
+          <li>Server: <code>captureException</code>/<code>captureMessage</code> helpers write directly to <code>app_errors</code>; a <code>withErrorReporting</code> wrapper captures unhandled API-route throws; the Next.js instrumentation <code>onRequestError</code> hook captures uncaught request errors.</li>
+          <li>Browser: a global error handler posts to a rate-limited ingestion endpoint.</li>
+          <li>PII redaction (kennitala + email regex) runs before storage on <strong>both</strong> paths; cookies, headers and request bodies are never captured. Error data never leaves the EEA database — one fewer subprocessor than a hosted APM.</li>
+          <li>Trade-off, stated plainly: error reporting now shares fate with the primary database (a hosted APM was independent infrastructure). Vercel runtime logs remain an independent secondary signal.</li>
+        </ul>
+      </li>
+      <li>Triage UI in the admin; daily error-digest email; weekly cron chases overdue access reviews.</li>
+    </ul>
+    <div class="callout-warn callout">
+      <h4>Known gap — detection is human-in-the-loop</h4>
+      <p style="margin:0">Audit log is query-on-demand; error notification latency is up to 24 h (daily digest, no real-time paging); no automated anomaly detection on access patterns. Accepted at current team size (every staff member personally known); revisit as the team grows.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">9</span>Environments, CI/CD &amp; change management</h2>
+    <ul>
+      <li>GitHub → Vercel: <code>main</code> auto-deploys to production; feature branches get isolated preview URLs; TLS managed by the platform.</li>
+      <li>Database migrations are plain, idempotent SQL files in the repo, applied manually in the Supabase SQL editor — a deliberate human gate on every schema change, with pre-migration snapshots on demand.</li>
+    </ul>
+    <div class="callout-warn callout">
+      <h4>Known gaps</h4>
+      <p style="margin:0">Single production Supabase project — no separate staging database (preview deployments exercise production data paths; mitigated by the manual migration gate). Single-maintainer repository — no enforced branch protection / second reviewer yet; will be enabled when the engineering team grows beyond one.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">10</span>Endpoint &amp; device security</h2>
+    <ul>
+      <li>Staff sign a device &amp; access policy at onboarding (screen lock, no shared devices, no exfiltration to personal storage); admin access additionally requires TOTP MFA, limiting the blast radius of a stolen password.</li>
+      <li>No MDM deployed — contractual + MFA controls only. Accepted at current team size; revisit when clinical staffing scales.</li>
+    </ul>
+  </section>
+
+  <section class="page-break">
+    <h2><span class="num">11</span>Gap register — summary &amp; priority</h2>
+    <table>
+      <tr><th>#</th><th>Gap</th><th>Risk</th><th>Plan</th></tr>
+      <tr><td>1</td><td>No scheduled secret/key rotation</td><td><span class="badge badge-med">Medium</span></td><td>Rotation runbook + calendar</td></tr>
+      <tr><td>2</td><td>Restore drill never executed</td><td><span class="badge badge-med">Medium</span></td><td>Timed drill pre-launch</td></tr>
+      <tr><td>3</td><td>No automated dependency scanning</td><td><span class="badge badge-med">Medium</span></td><td>Enable Dependabot alerts + PRs</td></tr>
+      <tr><td>4</td><td>No formal penetration test</td><td><span class="badge badge-med">Medium</span></td><td>Commission once launch surface is final</td></tr>
+      <tr><td>5</td><td>No staging database</td><td><span class="badge badge-med">Medium</span></td><td>Second Supabase project</td></tr>
+      <tr><td>6</td><td>No real-time alerting (daily digest) nor access-anomaly detection</td><td><span class="badge badge-low">Low*</span></td><td>Scheduled audit-log reports + paging on fatal errors</td></tr>
+      <tr><td>7</td><td>No branch protection (single dev)</td><td><span class="badge badge-low">Low*</span></td><td>Enable with second engineer</td></tr>
+      <tr><td>8</td><td>No MDM</td><td><span class="badge badge-low">Low*</span></td><td>Revisit at clinical scale</td></tr>
+    </table>
+    <p class="small">*Low at current scale (single-digit, personally-known staff; closed pre-launch user base). These re-rate to Medium at public launch.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">12</span>Changelog</h2>
+    <table>
+      <tr><th>Version</th><th>Date</th><th>Change</th></tr>
+      <tr><td>v1.2</td><td>2026-06-10</td><td>Planned Medalia ↔ Biody API integration documented (plan only — no code shipped; admin-side Biody connection to be retired, app-side fetch stays).</td></tr>
+      <tr><td>v1.1</td><td>2026-06-10</td><td>Error telemetry rewritten: Sentry fully removed; in-house pipeline documented incl. shared-fate trade-off and up-to-24h notification latency; server-side reporter hardened with kennitala/email redaction; gap #6 broadened.</td></tr>
+      <tr><td>v1.0</td><td>2026-06-10</td><td>Initial release for external technical security review: architecture/trust boundaries, authn/z, secrets, rate limiting, backups/DR, vulnerability management, monitoring, CI/CD, device posture, 8-item gap register.</td></tr>
+    </table>
+  </section>
+
+  <div class="footer">
+    Lifeline Health ehf. · Technical Security Brief v1.2 · 10 June 2026 ·
+    Companion to the Security &amp; Privacy Posture Statement v1.7 — both maintained in the Lifeline admin (/admin/legal/posture).
+  </div>
+
+</div>
+</body>
+</html>
