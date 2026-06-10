@@ -2,21 +2,44 @@
 
 import { useState } from "react";
 
-// Language-switchable viewer for the posture statement. Copy /
-// download / print always act on the currently selected language.
+type DocKey = "is" | "en" | "brief";
+
+// Switchable viewer for the posture statement (IS/EN) and the
+// technical security brief. Copy / download / print always act on
+// the currently selected document.
 export default function PostureDocument({
   textIS,
   textEN,
+  textBrief,
   version,
+  briefVersion,
 }: {
   textIS: string;
   textEN: string;
+  textBrief: string;
   version: string;
+  briefVersion: string;
 }) {
-  const [lang, setLang] = useState<"is" | "en">("is");
+  const [doc, setDoc] = useState<DocKey>("is");
   const [copied, setCopied] = useState(false);
 
-  const text = lang === "is" ? textIS : textEN;
+  const TABS: { key: DocKey; label: string }[] = [
+    { key: "is", label: "Íslenska" },
+    { key: "en", label: "English" },
+    { key: "brief", label: "Technical brief" },
+  ];
+
+  const text = doc === "is" ? textIS : doc === "en" ? textEN : textBrief;
+  const filename =
+    doc === "brief"
+      ? `lifeline-security-technical-brief-${briefVersion}.txt`
+      : `lifeline-security-posture-${version}-${doc}.txt`;
+  const caption =
+    doc === "is"
+      ? "Lagalega gildandi útgáfa."
+      : doc === "en"
+        ? "Convenience translation — the Icelandic version prevails."
+        : "Engineering-level companion for technical security reviewers, incl. gap register.";
   const dataUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(text);
 
   const onCopy = async () => {
@@ -33,27 +56,23 @@ export default function PostureDocument({
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
-          {(["is", "en"] as const).map((l) => (
+          {TABS.map((t) => (
             <button
-              key={l}
+              key={t.key}
               type="button"
-              onClick={() => setLang(l)}
+              onClick={() => setDoc(t.key)}
               className={
                 "px-3 py-1.5 text-xs font-semibold transition-colors " +
-                (lang === l
+                (doc === t.key
                   ? "bg-emerald-600 text-white"
                   : "bg-white text-gray-600 hover:bg-gray-50")
               }
             >
-              {l === "is" ? "Íslenska" : "English"}
+              {t.label}
             </button>
           ))}
         </div>
-        <span className="text-[11px] text-gray-400">
-          {lang === "en"
-            ? "Convenience translation — the Icelandic version prevails."
-            : "Lagalega gildandi útgáfa."}
-        </span>
+        <span className="text-[11px] text-gray-400">{caption}</span>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
@@ -64,7 +83,7 @@ export default function PostureDocument({
           </button>
           <a
             href={dataUrl}
-            download={`lifeline-security-posture-${version}-${lang}.txt`}
+            download={filename}
             className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
           >
             Download .txt

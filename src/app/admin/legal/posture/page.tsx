@@ -11,6 +11,10 @@ import {
   renderSecurityPosture,
   renderSecurityPostureEN,
 } from "@/lib/security-posture";
+import {
+  TECHNICAL_BRIEF_VERSION,
+  renderSecurityTechnicalBrief,
+} from "@/lib/security-technical-brief";
 import LegalTabBar from "../LegalTabBar";
 import PostureDocument from "./PostureDocument";
 
@@ -62,7 +66,9 @@ export default function SecurityPosturePage() {
       <PostureDocument
         textIS={renderSecurityPosture()}
         textEN={renderSecurityPostureEN()}
+        textBrief={renderSecurityTechnicalBrief()}
         version={SECURITY_POSTURE_VERSION}
+        briefVersion={TECHNICAL_BRIEF_VERSION}
       />
     </div>
   );
