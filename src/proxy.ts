@@ -32,6 +32,7 @@ const BYPASS_PREFIXES = [
   "/research",              // unlisted clinical/advisor documents
   "/verkefnalysing",        // staff project-description URLs
   "/radningarsamningur",    // staff employment-contract sign URLs
+  "/security-review",       // password-gated security docs for external reviewers
   "/present",               // shareable presentation decks
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target

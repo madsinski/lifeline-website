@@ -53,7 +53,14 @@ export default function SecurityPosturePage() {
             })}
           </span>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+          <Link
+            href="/security-review"
+            target="_blank"
+            className="text-xs text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+          >
+            Shareable reviewer link (password: lifeline) →
+          </Link>
           <Link
             href="/admin/legal/drafts#security-posture"
             className="text-xs text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
