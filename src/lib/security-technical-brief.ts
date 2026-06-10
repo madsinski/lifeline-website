@@ -14,7 +14,7 @@
 // On any substantive change: bump TECHNICAL_BRIEF_VERSION, update
 // TECHNICAL_BRIEF_LAST_UPDATED, add a CHANGELOG entry at the bottom.
 
-export const TECHNICAL_BRIEF_VERSION = "v1.0";
+export const TECHNICAL_BRIEF_VERSION = "v1.1";
 export const TECHNICAL_BRIEF_LAST_UPDATED = "2026-06-10";
 
 export function renderSecurityTechnicalBrief(): string {
@@ -198,17 +198,34 @@ KNOWN GAPS:
     read, 6-year retention) records every INSERT/UPDATE/DELETE on
     clients, messages, weight logs and body-composition events with
     actor identity and role.
-  - Sentry on frontend + backend with PII scrubbing (cookies, auth
-    headers, health-route bodies removed; kennitala/email regex
-    scrubbing) — plus an in-admin error mirror (/admin/errors).
-  - A daily error-digest cron emails a summary of new errors;
-    a weekly cron chases overdue staff access reviews.
+  - Error telemetry is fully in-house (Sentry was removed 2026-06
+    when the subscription ended; no third-party error service):
+      - Server: captureException/captureMessage helpers write directly
+        to public.app_errors; a withErrorReporting wrapper captures
+        unhandled throws in API route handlers; the Next.js
+        instrumentation onRequestError hook captures uncaught request
+        errors.
+      - Browser: a global error/unhandledrejection handler posts to
+        /api/errors/capture, which is rate-limited per user.
+      - PII redaction (kennitala + email regex) runs before storage on
+        BOTH paths; cookies, headers and request bodies are never
+        captured. Error data never leaves the EEA database — one
+        fewer subprocessor than a hosted APM.
+      - Trade-off, stated plainly: error reporting now shares fate
+        with the primary database (Sentry was independent
+        infrastructure). Vercel runtime logs remain an independent
+        secondary signal for outage forensics.
+  - Triage UI at /admin/errors (admin only); a daily error-digest cron
+    emails a summary of new errors; a weekly cron chases overdue staff
+    access reviews.
 
 KNOWN GAP — detection is largely human-in-the-loop: the audit log is
-query-on-demand, and there is no automated anomaly detection or
-alerting on unusual access patterns (e.g. a staff account reading an
-abnormal number of client records). Accepted at current team size
-(every staff member is personally known); revisit as the team grows.
+query-on-demand, error notification latency is up to 24h (daily
+digest, no real-time paging), and there is no automated anomaly
+detection or alerting on unusual access patterns (e.g. a staff
+account reading an abnormal number of client records). Accepted at
+current team size (every staff member is personally known); revisit
+as the team grows.
 
 ═══════════════════════════════════════════════════════════════════
 9. ENVIRONMENTS, CI/CD & CHANGE MANAGEMENT
@@ -254,7 +271,8 @@ KNOWN GAPS:
   3  | No automated dependency scanning      | Medium | Enable Dependabot alerts + PRs
   4  | No formal penetration test            | Medium | Commission post-launch-surface
   5  | No staging database                   | Medium | Second Supabase project
-  6  | No automated access-anomaly alerts    | Low*   | Scheduled audit-log reports
+  6  | No real-time alerting (daily digest)  | Low*   | Scheduled audit-log reports
+     | nor access-anomaly detection          |        | + paging on fatal errors
   7  | No branch protection (single dev)     | Low*   | Enable with 2nd engineer
   8  | No MDM                                | Low*   | Revisit at clinical scale
 
@@ -264,6 +282,15 @@ KNOWN GAPS:
 ═══════════════════════════════════════════════════════════════════
 12. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.1 (2026-06-10)
+  Error telemetry section rewritten: Sentry fully removed (subscription
+  ended); in-house pipeline (app_errors + /api/errors/capture +
+  instrumentation hook) documented, including the shared-fate
+  trade-off vs. independent APM and the up-to-24h notification
+  latency. Server-side reporter hardened with the same kennitala/email
+  redaction as the browser path as part of this update. Gap #6
+  broadened to cover real-time alerting.
 
 v1.0 (2026-06-10)
   Initial release, prepared for external technical security review.

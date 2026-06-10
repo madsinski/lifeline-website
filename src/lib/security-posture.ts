@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.5";
+export const SECURITY_POSTURE_VERSION = "v1.6";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-06-10";
 
 export function renderSecurityPosture(): string {
@@ -54,7 +54,7 @@ sínum.
   Vefsíða: https://www.lifelinehealth.is
 
 Persónuverndarfulltrúi (DPO):
-  Mads Christian Aanesen, framkvæmdastjóri og stofnandi
+  Mads Christian Aanesen, tæknistjóri (CTO) og stofnandi
   Netfang: contact@lifelinehealth.is (eða pv@lifelinehealth.is þegar
   sérstakt netfang verður stofnað)
 
@@ -266,12 +266,21 @@ Aðgangur að atburðaskrá:
   - Hægt að spyrjast fyrir um "hver skoðaði gögn skjólstæðings X á
     dagsetningu Y" í Supabase SQL Editor.
 
-Villuskráning:
-  - Sentry í framenda + bakhlið. Næmar reitir (cookies, kerfisheaders,
-    health-route bodies) eru skornir út áður en þeim er sent.
-  - Spegill villna í public.app_errors fyrir innra eftirlit í admin
-    (/admin/errors). Kennitölur og netföng eru varin (regex scrubbing)
-    áður en þeim er vistað.
+Villuskráning (eigið kerfi — engin þriðju aðila þjónusta):
+  - Eigin villuskráning í stað Sentry (Sentry fjarlægt að fullu
+    2026-06): allar villur í framenda og bakenda eru skráðar beint í
+    public.app_errors í Supabase (EES). Villugögn fara aldrei til
+    þriðja aðila.
+  - Bakendi: captureException/captureMessage hjálparföll, sjálfvirk
+    skráning óafgreiddra villna í API-leiðum (withErrorReporting) og
+    Next.js request-villum (instrumentation onRequestError).
+  - Framendi: hnattrænn villuhandler sendir á /api/errors/capture
+    (hraðatakmarkað á hvern notanda).
+  - Kennitölur og netföng eru fjarlægð (regex) áður en vistað er — á
+    BÁÐUM leiðum. Vafrakökur, hausar og request-body eru aldrei tekin
+    með í villufærslur.
+  - Triage í /admin/errors (aðeins admin) + dagleg samantekt í
+    tölvupósti (error-log-digest cron).
 
 ═══════════════════════════════════════════════════════════════════
 9. RÉTTINDI SKRÁÐRA EINSTAKLINGA / DATA SUBJECT RIGHTS
@@ -332,7 +341,8 @@ Innra ferli:
     skv. 34. gr. GDPR ef þannig ber undir.
   - Atvik skráð í health_audit_log + (ef við á) sérstök dagskýrsla.
 
-Sentry og admin/errors verkfærakistan veitir tæknilegri sýn á atvik.
+Eigin villuskráningarkerfi (app_errors + /admin/errors) veitir
+tæknilega sýn á atvik.
 
 ═══════════════════════════════════════════════════════════════════
 12. MAT Á ÁHRIFUM Á PERSÓNUVERND / DPIA
@@ -446,7 +456,7 @@ og varðveittir í eftirfarandi geymslum:
   Skráningar (sign-off PDFs allra ofangr) | Supabase Storage (privates buckets)
   Beiðnir skráðra einstaklinga (DSR)      | dsr_requests
   Aðgangsheimildir fyrir opnun (gate)     | access_grants + access_invite_tokens (SHA-256)
-  Persónuverndarbrot (atvikaskrá)         | health_audit_log + Sentry + admin/errors
+  Persónuverndarbrot (atvikaskrá)         | health_audit_log + app_errors (admin/errors)
 
 ═══════════════════════════════════════════════════════════════════
 18. TÆKNILEG OG SKIPULAGSLEG ÖRYGGISRÁÐSTAFANIR — ÚTDRÁTTUR
@@ -468,7 +478,8 @@ Tæknilegt:
   ✓ Tvíinnsláttur lykilorðs í öllum lykilorðsflæðum
   ✓ Admin-stýrður aðgangslisti fyrir opnun vefsíðu (boðstókar geymdir
     aðeins sem SHA-256 hash)
-  ✓ Sentry redaction á health-routes (PII í villuskráningu)
+  ✓ PII-hreinsun (kennitölur/netföng) í eigin villuskráningu — engin
+    villugögn fara til þriðja aðila
   ✓ Audit log með Postgres triggerum (rakningarskylda skv. lögum 55/2009)
   ✓ Daglegar dulkóðaðar afritanir (Supabase pg_dump → Storage)
   ✓ Sjálfkrafa villuskráning og atvikastjórnun
@@ -488,6 +499,17 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.6 (2026-06-10)
+  Villuskráning uppfærð: Sentry fjarlægt að fullu (áskrift hætt) og í
+  staðinn komið eigið villuskráningarkerfi sem skráir beint í
+  public.app_errors í Supabase (EES) — villugögn fara aldrei lengur
+  til þriðja aðila, sem fækkar undirvinnsluaðilum um einn. PII-hreinsun
+  (kennitölur/netföng, regex) staðfest á báðum leiðum — framenda-
+  ingestion OG bakenda-reporter (bakendaleiðin var hert samhliða
+  þessari uppfærslu). Triage í /admin/errors og dagleg tölvupósts-
+  samantekt óbreytt. Starfsheiti DPO leiðrétt: tæknistjóri (CTO), ekki
+  framkvæmdastjóri.
 
 v1.5 (2026-06-10)
   Ensk fylgiútgáfa skjalsins bætt við (renderSecurityPostureEN) —
@@ -587,7 +609,7 @@ Data controller:
   Website: https://www.lifelinehealth.is
 
 Data Protection Officer (DPO):
-  Mads Christian Aanesen, CEO and founder
+  Mads Christian Aanesen, CTO and founder
   Email: contact@lifelinehealth.is (or pv@lifelinehealth.is once a
   dedicated address is established)
 
@@ -804,12 +826,21 @@ Access to the audit log:
   - Questions like "who viewed client X's data on date Y" can be
     answered in the Supabase SQL editor.
 
-Error logging:
-  - Sentry on frontend + backend. Sensitive fields (cookies, system
-    headers, health-route bodies) are scrubbed before sending.
-  - Errors are mirrored into public.app_errors for internal review in
-    the admin (/admin/errors). Kennitala values and email addresses
-    are scrubbed (regex) before storage.
+Error logging (in-house — no third-party service):
+  - In-house error logging replaced Sentry (fully removed 2026-06):
+    all frontend and backend errors are written directly to
+    public.app_errors in Supabase (EEA). Error data never leaves for
+    a third party.
+  - Backend: captureException/captureMessage helpers, automatic
+    capture of unhandled errors in API routes (withErrorReporting)
+    and Next.js request errors (instrumentation onRequestError).
+  - Frontend: a global error handler posts to /api/errors/capture
+    (rate-limited per user).
+  - Kennitala values and email addresses are scrubbed (regex) before
+    storage — on BOTH paths. Cookies, headers and request bodies are
+    never captured in error records.
+  - Triage in /admin/errors (admin only) + a daily email digest
+    (error-log-digest cron).
 
 ═══════════════════════════════════════════════════════════════════
 9. DATA SUBJECT RIGHTS
@@ -873,8 +904,8 @@ Internal process:
   - Incidents are recorded in health_audit_log + (where applicable) a
     dedicated incident report.
 
-Sentry and the admin/errors toolkit provide the technical view of
-incidents.
+The in-house error-logging system (app_errors + /admin/errors)
+provides the technical view of incidents.
 
 ═══════════════════════════════════════════════════════════════════
 12. DATA PROTECTION IMPACT ASSESSMENT / DPIA
@@ -992,7 +1023,7 @@ hashed, and preserved in the following stores:
   Signature PDFs (all of the above)       | Supabase Storage (private buckets)
   Data subject requests (DSR)             | dsr_requests
   Pre-launch access grants (gate)         | access_grants + access_invite_tokens (SHA-256)
-  Privacy incidents                       | health_audit_log + Sentry + admin/errors
+  Privacy incidents                       | health_audit_log + app_errors (admin/errors)
 
 ═══════════════════════════════════════════════════════════════════
 18. TECHNICAL AND ORGANISATIONAL MEASURES — SUMMARY
@@ -1013,7 +1044,8 @@ Technical:
   ✓ Password double-entry in every password-setting flow
   ✓ Admin-managed pre-launch site access list (invite tokens stored
     only as SHA-256 hashes)
-  ✓ Sentry redaction on health routes (PII in error logging)
+  ✓ PII scrubbing (kennitala/email) in the in-house error logging —
+    no error data leaves for third parties
   ✓ Audit log via Postgres triggers (traceability per Act 55/2009)
   ✓ Daily encrypted backups (Supabase pg_dump → Storage)
   ✓ Automatic error logging and incident management
@@ -1033,6 +1065,16 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.6 (2026-06-10)
+  Error logging updated: Sentry fully removed (subscription ended) and
+  replaced by an in-house error-logging system writing directly to
+  public.app_errors in Supabase (EEA) — error data no longer goes to
+  any third party, removing one subprocessor. PII scrubbing
+  (kennitala/email regex) confirmed on both paths — the frontend
+  ingestion endpoint AND the backend reporter (the backend path was
+  hardened alongside this update). Triage in /admin/errors and the
+  daily email digest unchanged. DPO job title corrected: CTO, not CEO.
 
 v1.5 (2026-06-10)
   English companion rendering added (renderSecurityPostureEN) —

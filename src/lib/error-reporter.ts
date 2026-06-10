@@ -31,12 +31,21 @@ function flattenMetadata(opts: CaptureOpts): Record<string, unknown> | null {
   return Object.keys(out).length > 0 ? out : null;
 }
 
+// Same PII redaction the browser ingestion path (/api/errors/capture)
+// applies: error messages can interpolate user data ("user X not
+// found"), and app_errors must never hold kennitalas or emails.
+function redact(s: string): string {
+  return s
+    .replace(/\b\d{6}-?\d{4}\b/g, "[kennitala-redacted]")
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, "[email-redacted]");
+}
+
 export async function captureException(err: unknown, opts: CaptureOpts = {}): Promise<void> {
   try {
     const error = err instanceof Error ? err : new Error(typeof err === "string" ? err : String(err));
     await supabaseAdmin.from("app_errors").insert({
-      message: (error.message || "(no message)").slice(0, 2000),
-      stack: error.stack ? error.stack.slice(0, 8000) : null,
+      message: redact(error.message || "(no message)").slice(0, 2000),
+      stack: error.stack ? redact(error.stack).slice(0, 8000) : null,
       runtime: "server",
       level: opts.level || "error",
       metadata: flattenMetadata(opts),
@@ -47,7 +56,7 @@ export async function captureException(err: unknown, opts: CaptureOpts = {}): Pr
 export async function captureMessage(message: string, opts: CaptureOpts = {}): Promise<void> {
   try {
     await supabaseAdmin.from("app_errors").insert({
-      message: message.slice(0, 2000),
+      message: redact(message).slice(0, 2000),
       runtime: "server",
       level: opts.level || "warning",
       metadata: flattenMetadata(opts),
