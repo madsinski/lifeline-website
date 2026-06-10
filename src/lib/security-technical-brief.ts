@@ -14,7 +14,7 @@
 // On any substantive change: bump TECHNICAL_BRIEF_VERSION, update
 // TECHNICAL_BRIEF_LAST_UPDATED, add a CHANGELOG entry at the bottom.
 
-export const TECHNICAL_BRIEF_VERSION = "v1.1";
+export const TECHNICAL_BRIEF_VERSION = "v1.2";
 export const TECHNICAL_BRIEF_LAST_UPDATED = "2026-06-10";
 
 export function renderSecurityTechnicalBrief(): string {
@@ -43,6 +43,12 @@ Components:
   - Biody Manager (France) — raw body-composition data, fetched on
     demand via a Supabase Edge Function; results are not persisted in
     Lifeline's database.
+  - PLANNED (in progress, not yet live): a direct Medalia ↔ Biody API
+    integration. Once operational, the Lifeline-admin-side Biody
+    connection will be retired and measurements will flow straight
+    into the EHR; the client app's on-demand, user-consented Biody
+    fetch remains. Net effect: one fewer health-data path through the
+    Lifeline layer. No code has shipped for this yet.
 
 Trust boundaries:
   - Browser/app → API: Supabase JWT in the Authorization header;
@@ -282,6 +288,12 @@ KNOWN GAPS:
 ═══════════════════════════════════════════════════════════════════
 12. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.2 (2026-06-10)
+  Planned Medalia ↔ Biody API integration documented in the
+  architecture section: when live, the Lifeline-admin-side Biody
+  connection is retired (app-side on-demand fetch stays). Plan only —
+  no code shipped.
 
 v1.1 (2026-06-10)
   Error telemetry section rewritten: Sentry fully removed (subscription

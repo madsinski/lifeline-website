@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.6";
+export const SECURITY_POSTURE_VERSION = "v1.7";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-06-10";
 
 export function renderSecurityPosture(): string {
@@ -430,6 +430,13 @@ Líkamssamsetning sækist á eftirspurn frá Biody.
   - Eftir afdráttarlaust samþykki notanda.
   - Engar fastar afritanir í Lifeline (síðan 2026-05-03).
   - Sami munstur og við ætlum fyrir Medalia API þegar hún kemur.
+  - FYRIRHUGAÐ (í vinnslu, ekki komið í gagnið): bein API-tenging
+    Medalia ↔ Biody. Þegar hún verður virk flytjast mælingar beint í
+    sjúkraskrárkerfið og Biody-tengingu admin-hluta Lifeline verður
+    lokað — gagnaflæði heilsufarsgagna um Lifeline-lagið minnkar enn
+    frekar. Sókn appsins á eftirspurn (með samþykki notanda, engin
+    föst geymsla) helst óbreytt. Engin kerfisbreyting hefur enn verið
+    gerð; þessi málsgrein lýsir áætlun.
 
 Þessi aðskilnaður er skjalfestur í /privacy, /terms, og í Health
 Assessment Consent sem hvern skjólstæðing samþykkir.
@@ -499,6 +506,13 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.7 (2026-06-10)
+  Fyrirhuguð arkitektúrbreyting skjalfest (engin kerfisbreyting enn):
+  bein API-tenging Medalia ↔ Biody er í vinnslu. Þegar hún kemst í
+  gagnið verður Biody-tengingu admin-hluta Lifeline lokað en sókn
+  appsins á eftirspurn (með samþykki notanda) helst. Mælingar munu þá
+  flæða beint í sjúkraskrárkerfið án viðkomu í Lifeline admin.
 
 v1.6 (2026-06-10)
   Villuskráning uppfærð: Sentry fjarlægt að fullu (áskrift hætt) og í
@@ -997,6 +1011,13 @@ Body composition is fetched on demand from Biody.
   - After the user's explicit consent.
   - No persistent copies in Lifeline (since 2026-05-03).
   - The same pattern we intend for the Medalia API when it arrives.
+  - PLANNED (in progress, not yet live): a direct Medalia ↔ Biody API
+    integration. Once operational, measurements will flow directly
+    into the EHR and the Biody connection on the Lifeline admin side
+    will be retired — further shrinking the flow of health data
+    through the Lifeline layer. The app's on-demand fetch (user
+    consent, no persistent storage) remains unchanged. No system
+    change has been made yet; this paragraph describes a plan.
 
 This separation is documented in /privacy, /terms, and in the Health
 Assessment Consent every client signs.
@@ -1065,6 +1086,14 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.7 (2026-06-10)
+  Planned architecture change documented (no system change yet): a
+  direct Medalia ↔ Biody API integration is in progress. Once live,
+  the Biody connection on the Lifeline admin side will be retired
+  while the app's on-demand, user-consented fetch remains.
+  Measurements will then flow directly into the EHR without passing
+  through the Lifeline admin.
 
 v1.6 (2026-06-10)
   Error logging updated: Sentry fully removed (subscription ended) and
