@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.3";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-05-16";
+export const SECURITY_POSTURE_VERSION = "v1.4";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-06-10";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -153,9 +153,10 @@ Contractual Clauses) skv. 46. gr. GDPR.
 
 Á flutningi (in transit):
   - TLS 1.3 á öllum opinberum endapunktum (Vercel-stýrt).
-  - HMAC-undirritaðar fyrirspurnir milli Lifeline og Biody-sync edge
-    function (B2B_BIODY_SIGNING_SECRET) til að tryggja að lekið
-    service-role-key eitt sér nægi ekki til að falsa kall.
+  - Innri köll á Biody-sync edge function krefjast BÆÐI service-role
+    bearer token (JWT-hlið Supabase gateway) OG HMAC-undirritunar
+    (X-Lifeline-Signature, B2B_BIODY_SIGNING_SECRET). Tvöföld vörn:
+    lekið service-role-key eitt sér nægir ekki til að falsa kall.
 
 Við hvíld (at rest):
   - Geymslulag Supabase er sjálfgefið dulkóðað (AES-256, AWS KMS).
@@ -182,6 +183,14 @@ Við hvíld (at rest):
 Auðkenning:
   - Notendur: Supabase Auth (netfang + lykilorð, lykilorð geymd salt-
     hashed með bcrypt).
+  - Lykilorð eru slegin inn tvisvar (staðfestingarreitur með mismunar-
+    vörn) í öllum flæðum sem setja lykilorð: B2C nýskráning, B2B
+    fyrirtækjanýskráning, breyting lykilorðs, og boðsflæði starfsmanna.
+  - Staðfesting netfangs fer fram á eigin léni (t.d.
+    /auth/business-confirm) með token_hash + verifyOtp. Hráir Supabase
+    action-hlekkir eru aldrei sendir í tölvupósti — dregur úr hættu á
+    að virkir innskráningarhlekkir lendi hjá þriðja aðila (áframsending,
+    skönnunarþjónustur pósthýsils).
   - Starfsfólk: sama auðkenning + skylda tvíþátta auðkenning (TOTP /
     AAL2) áður en hægt er að komast inn í admin svæði — að undanskildum
     ytri lögmönnum (role='lawyer') sem hafa eingöngu aðgang að
@@ -210,6 +219,24 @@ Samtenging auth.users við starfsmannarafræði:
     RLS fall is_active_staff() notar JOIN á auth.users via netfang ef
     auðkennin eru ekki samtengd, til að styðja við eldri starfsmanna-
     reikninga.
+
+Aðgangsstjórnun að vefsíðu fyrir opnun (pre-launch gate):
+  - Markaðsvefurinn er lokaður almenningi fram að opnun. Aðgangur er
+    veittur í gegnum admin-stýrðan aðgangslista (/admin/access):
+      - access_grants: heimildir per-notanda / per-fyrirtækis / per-hóps
+        með valkvæðum gildistíma (expiry).
+      - user_access_groups: hópaaðild fyrir sértæka hópa (t.d.
+        fjárfestar, klínískir ráðgjafar).
+      - access_invite_tokens: deilanlegir boðshlekkir fyrir óauðkennda
+        yfirlesara — EINUNGIS SHA-256 hash tókans er vistað, hrái
+        tókinn er aldrei geymdur.
+  - Athugun og innlausn fer fram í SECURITY DEFINER föllum
+    (has_site_access, validate_access_token, claim_access_token).
+  - Eldri sameiginlegur leynilykill (hardcoded preview key) var
+    fjarlægður að fullu 2026-06-02.
+  - Athugið: gáttin ver markaðsefni fyrir opnun — hún er EKKI
+    öryggismörk fyrir persónuupplýsingar; öll gögn eru áfram varin af
+    auðkenningu, RLS og API-gáttum óháð henni.
 
 Reglubundin endurskoðun aðgangs (quarterly access review):
   - Á 90 daga fresti er hver virkur starfsmaður endurskoðaður.
@@ -414,6 +441,7 @@ og varðveittir í eftirfarandi geymslum:
   Endurskoðun aðgangs                     | staff_access_reviews
   Skráningar (sign-off PDFs allra ofangr) | Supabase Storage (privates buckets)
   Beiðnir skráðra einstaklinga (DSR)      | dsr_requests
+  Aðgangsheimildir fyrir opnun (gate)     | access_grants + access_invite_tokens (SHA-256)
   Persónuverndarbrot (atvikaskrá)         | health_audit_log + Sentry + admin/errors
 
 ═══════════════════════════════════════════════════════════════════
@@ -428,7 +456,13 @@ Tæknilegt:
     Ytri lögmaður (lawyer) er undanþeginn — hefur eingöngu aðgang að
     skjalasafni, ekki klínískum gögnum.
   ✓ TLS 1.3 á öllum opinberum endapunktum
-  ✓ HMAC-undirritun innri þjónustukalla
+  ✓ HMAC-undirritun innri þjónustukalla (ásamt service-role bearer —
+    hvorugt nægir eitt sér)
+  ✓ Staðfesting netfangs með verifyOtp á eigin léni (engir hráir
+    action-hlekkir í tölvupósti)
+  ✓ Tvíinnsláttur lykilorðs í öllum lykilorðsflæðum
+  ✓ Admin-stýrður aðgangslisti fyrir opnun vefsíðu (boðstókar geymdir
+    aðeins sem SHA-256 hash)
   ✓ Sentry redaction á health-routes (PII í villuskráningu)
   ✓ Audit log með Postgres triggerum (rakningarskylda skv. lögum 55/2009)
   ✓ Daglegar dulkóðaðar afritanir (Supabase pg_dump → Storage)
@@ -449,6 +483,21 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.4 (2026-06-10)
+  Aðgangsstjórnun að vefsíðu fyrir opnun endursmíðuð: sameiginlegi
+  leynilykillinn (hardcoded preview key) fjarlægður og í staðinn kominn
+  admin-stýrður aðgangslisti (access_grants / user_access_groups /
+  access_invite_tokens) þar sem boðstókar eru eingöngu geymdir sem
+  SHA-256 hash og athugun fer um SECURITY DEFINER föll. Auðkenningar-
+  flæði hert: tvíinnsláttur lykilorðs í B2C/B2B nýskráningu og við
+  breytingu lykilorðs; staðfesting netfangs fer nú um eigið lén með
+  token_hash + verifyOtp í stað hrárra Supabase action-hlekkja í
+  tölvupósti. Biody-sync samþætting lagfærð svo BÆÐI service-role
+  bearer OG HMAC-undirritun séu áskilin saman (tvöföld vörn staðfest
+  virk). B2B starfsmenn geta nú valið persónulegt innskráningarnetfang;
+  vinnunetfang er varðveitt aðskilið (company_members.email) fyrir
+  boð og HR-not — innskráningarauðkenni og HR-skrá eru aftengd.
 
 v1.3 (2026-05-16)
   Þjónustukönnun (post-assessment service feedback) gerð klár fyrir
