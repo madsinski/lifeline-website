@@ -9,15 +9,12 @@ import {
   SECURITY_POSTURE_VERSION,
   SECURITY_POSTURE_LAST_UPDATED,
   renderSecurityPosture,
+  renderSecurityPostureEN,
 } from "@/lib/security-posture";
 import LegalTabBar from "../LegalTabBar";
-import CopyButton from "../drafts/CopyButton";
-import PrintButton from "./PrintButton";
+import PostureDocument from "./PostureDocument";
 
 export default function SecurityPosturePage() {
-  const text = renderSecurityPosture();
-  const dataUrl = "data:text/plain;charset=utf-8," + encodeURIComponent(text);
-
   return (
     <div className="space-y-5">
       <LegalTabBar />
@@ -32,17 +29,6 @@ export default function SecurityPosturePage() {
             teams. Maintained in <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">src/lib/security-posture.ts</code> —
             version + timestamp bumped automatically when content changes.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <CopyButton text={text} />
-          <a
-            href={dataUrl}
-            download={`lifeline-security-posture-${SECURITY_POSTURE_VERSION}.txt`}
-            className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
-          >
-            Download .txt
-          </a>
-          <PrintButton />
         </div>
       </div>
 
@@ -73,38 +59,11 @@ export default function SecurityPosturePage() {
         </div>
       </div>
 
-      <section
-        id="posture-print-area"
-        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
-      >
-        <pre className="px-6 py-5 text-xs text-gray-800 whitespace-pre-wrap font-mono leading-relaxed bg-gray-50/40 max-h-[80vh] overflow-y-auto">
-          {text}
-        </pre>
-      </section>
-
-      {/* Print = only the document, full height, no admin chrome */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #posture-print-area, #posture-print-area * { visibility: visible; }
-          #posture-print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            border: none;
-            box-shadow: none;
-            border-radius: 0;
-          }
-          #posture-print-area pre {
-            max-height: none !important;
-            overflow: visible !important;
-            background: white !important;
-            font-size: 9.5px;
-            line-height: 1.55;
-          }
-        }
-      `}</style>
+      <PostureDocument
+        textIS={renderSecurityPosture()}
+        textEN={renderSecurityPostureEN()}
+        version={SECURITY_POSTURE_VERSION}
+      />
     </div>
   );
 }
