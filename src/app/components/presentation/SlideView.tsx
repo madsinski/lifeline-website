@@ -1,5 +1,8 @@
 /* eslint-disable @next/next/no-img-element -- deck renders CMS/storage/full-bleed imagery where next/image's layout constraints don't fit; plain <img> is intentional. */
+"use client";
+
 import React from "react";
+import { createPortal } from "react-dom";
 import type { Slide, MemberItem, IconKey } from "@/lib/presentations/types";
 import { DeckDefs, Logo, Icon } from "./DeckAssets";
 
@@ -56,8 +59,67 @@ function MemberCard({ m }: { m: MemberItem }) {
   );
 }
 
+type HighlightRect = { x: number; y: number; w: number; h: number };
+
+// "x,y,w,h" in % of the image → rect, or null when absent/malformed.
+function parseHighlight(spec?: string): HighlightRect | null {
+  if (!spec) return null;
+  const n = spec.split(/[,\s]+/).filter(Boolean).map(Number);
+  if (n.length !== 4 || n.some((v) => !Number.isFinite(v))) return null;
+  const [x, y, w, h] = n.map((v) => Math.max(0, Math.min(100, v)));
+  return w > 0 && h > 0 ? { x, y, w, h } : null;
+}
+
+/** Spotlight box over a screenshot: brand-cyan outline, everything around it
+ *  dimmed (the huge box-shadow is clipped by the overflow-hidden frame). */
+function HighlightBox({ rect }: { rect: HighlightRect }) {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute", left: `${rect.x}%`, top: `${rect.y}%`, width: `${rect.w}%`, height: `${rect.h}%`,
+        border: "3px solid var(--cyan, #22d3ee)", borderRadius: 10,
+        boxShadow: "0 0 0 200vmax rgba(5,16,24,.45), 0 0 24px rgba(0,214,255,.35)",
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
+/** Full-screen zoom for the report slide's laptop screenshot. Rendered in a
+ *  portal so it escapes the deck's scaled / letterboxed containers. Click or
+ *  Escape closes; the capture-phase listener keeps Escape from also closing
+ *  the editor's preview overlay underneath. */
+function Lightbox({ src, alt, highlight, onClose }: { src: string; alt: string; highlight: HighlightRect | null; onClose: () => void }) {
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); }
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Screenshot, full size"
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 10050, background: "rgba(3,14,20,.92)", display: "grid", placeItems: "center", padding: "3vmin", cursor: "zoom-out" }}
+    >
+      {/* The wrapper shrink-wraps the image, so highlight percentages map 1:1
+          onto the rendered image box. */}
+      <div style={{ position: "relative", overflow: "hidden", borderRadius: 10, boxShadow: "0 24px 80px -20px rgba(0,0,0,.8)" }}>
+        <img src={src} alt={alt} style={{ maxWidth: "94vw", maxHeight: "94vh", display: "block" }} />
+        {highlight && <HighlightBox rect={highlight} />}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /** Renders the inner content of a single slide (without the <section> shell). */
 function SlideBody({ s }: { s: Slide }) {
+  const [zoom, setZoom] = React.useState(false);
   switch (s.type) {
     case "title":
     case "closing":
@@ -434,7 +496,9 @@ function SlideBody({ s }: { s: Slide }) {
         </div>
       );
 
-    case "report":
+    case "report": {
+      const img = s.image;
+      const hl = parseHighlight(s.highlight);
       return (
         <div className="body two" style={{ gridTemplateColumns: ".82fr 1.18fr" }}>
           <div>
@@ -455,12 +519,27 @@ function SlideBody({ s }: { s: Slide }) {
           </div>
           <div className="laptop">
             <div className="screen">
-              {s.image ? <img src={s.image} alt={s.heading || "Report"} /> : <div className="phone-ph">No screenshot yet</div>}
+              {img ? (
+                // Shrink-wrap wrapper so highlight percentages align with the
+                // image box (the .screen frame letterboxes to 16:10).
+                <div style={{ position: "relative", width: "100%" }}>
+                  <img
+                    src={img}
+                    alt={s.heading || "Report"}
+                    title="Click to enlarge"
+                    style={{ width: "100%", height: "auto", cursor: "zoom-in" }}
+                    onClick={() => setZoom(true)}
+                  />
+                  {hl && <HighlightBox rect={hl} />}
+                </div>
+              ) : <div className="phone-ph">No screenshot yet</div>}
             </div>
             <div className="laptop-base" />
           </div>
+          {zoom && img && <Lightbox src={img} alt={s.heading || "Screenshot"} highlight={hl} onClose={() => setZoom(false)} />}
         </div>
       );
+    }
 
     default:
       return null;
