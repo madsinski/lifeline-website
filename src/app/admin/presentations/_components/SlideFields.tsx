@@ -52,9 +52,11 @@ function ImageField({ value, role, presentationId, onChange }: { value?: string;
 }
 
 // ---- highlight-area picker -------------------------------------------------
-// Draw / move / resize the report slide's screenshot spotlight directly on the
-// image. Value format matches the renderer: "x,y,w,h" in % of the image.
+// Draw / move / resize the report slide's screenshot spotlights directly on
+// the image. Value format matches the renderer: one or more "x,y,w,h" rects
+// (% of the image) separated by ";".
 type Rect = { x: number; y: number; w: number; h: number };
+const MAX_HIGHLIGHTS = 3;
 
 function parseRect(v?: string): Rect | null {
   if (!v) return null;
@@ -63,17 +65,22 @@ function parseRect(v?: string): Rect | null {
   const [x, y, w, h] = n;
   return { x, y, w, h };
 }
+function parseRects(v?: string): Rect[] {
+  return (v || "").split(";").map((part) => parseRect(part.trim())).filter((r): r is Rect => !!r);
+}
 const fmtRect = (r: Rect) => [r.x, r.y, r.w, r.h].map((n) => Math.round(n * 10) / 10).join(",");
+const fmtRects = (rs: Rect[]) => rs.map(fmtRect).join("; ");
 
-type DragMode =
+type DragMode = { idx: number } & (
   | { kind: "draw"; ax: number; ay: number }            // anchor corner (start point)
   | { kind: "move"; dx: number; dy: number; w: number; h: number } // pointer offset within rect
-  | { kind: "resize"; ax: number; ay: number };          // anchor = opposite corner
+  | { kind: "resize"; ax: number; ay: number }           // anchor = opposite corner
+);
 
 function HighlightAreaField({ value, image, onChange }: { value?: string; image?: string; onChange: (v: string) => void }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const drag = useRef<DragMode | null>(null);
-  const rect = parseRect(value);
+  const rects = parseRects(value);
 
   if (!image) return <p className="text-[11px] text-gray-400">Add a screenshot first, then select the area to highlight here.</p>;
 
@@ -84,7 +91,14 @@ function HighlightAreaField({ value, image, onChange }: { value?: string; image?
       y: Math.max(0, Math.min(100, ((e.clientY - b.top) / b.height) * 100)),
     };
   }
-  function commit(r: Rect) { onChange(fmtRect(r)); }
+  function commitAt(idx: number, r: Rect) {
+    const copy = rects.slice();
+    copy[idx] = r;
+    onChange(fmtRects(copy));
+  }
+  function removeAt(idx: number) {
+    onChange(fmtRects(rects.filter((_, i) => i !== idx)));
+  }
 
   function fromCorners(a: { x: number; y: number }, b: { x: number; y: number }): Rect {
     const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
@@ -96,16 +110,25 @@ function HighlightAreaField({ value, image, onChange }: { value?: string; image?
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const p = pct(e);
     const t = e.target as HTMLElement;
-    if (t.dataset.handle && rect) {
-      // anchor at the corner opposite the grabbed handle
-      const ax = t.dataset.handle.includes("e") ? rect.x : rect.x + rect.w;
-      const ay = t.dataset.handle.includes("s") ? rect.y : rect.y + rect.h;
-      drag.current = { kind: "resize", ax, ay };
-    } else if (t.dataset.rect && rect) {
-      drag.current = { kind: "move", dx: p.x - rect.x, dy: p.y - rect.y, w: rect.w, h: rect.h };
-    } else {
-      drag.current = { kind: "draw", ax: p.x, ay: p.y };
-      commit({ x: p.x, y: p.y, w: 1, h: 1 });
+    if (t.dataset.handle) {
+      // "corner:index" — anchor at the corner opposite the grabbed handle
+      const [corner, is] = t.dataset.handle.split(":");
+      const idx = Number(is);
+      const r = rects[idx];
+      if (!r) return;
+      const ax = corner.includes("e") ? r.x : r.x + r.w;
+      const ay = corner.includes("s") ? r.y : r.y + r.h;
+      drag.current = { kind: "resize", idx, ax, ay };
+    } else if (t.dataset.rect !== undefined) {
+      const idx = Number(t.dataset.rect);
+      const r = rects[idx];
+      if (!r) return;
+      drag.current = { kind: "move", idx, dx: p.x - r.x, dy: p.y - r.y, w: r.w, h: r.h };
+    } else if (rects.length < MAX_HIGHLIGHTS) {
+      // empty area → draw a new box
+      const idx = rects.length;
+      drag.current = { kind: "draw", idx, ax: p.x, ay: p.y };
+      commitAt(idx, { x: p.x, y: p.y, w: 1, h: 1 });
     }
   }
   function onMove(e: React.PointerEvent) {
@@ -113,55 +136,68 @@ function HighlightAreaField({ value, image, onChange }: { value?: string; image?
     if (!d) return;
     const p = pct(e);
     if (d.kind === "move") {
-      commit({
+      commitAt(d.idx, {
         x: Math.max(0, Math.min(100 - d.w, p.x - d.dx)),
         y: Math.max(0, Math.min(100 - d.h, p.y - d.dy)),
         w: d.w, h: d.h,
       });
     } else {
-      commit(fromCorners({ x: d.ax, y: d.ay }, p));
+      commitAt(d.idx, fromCorners({ x: d.ax, y: d.ay }, p));
     }
   }
   function onUp() { drag.current = null; }
 
-  const handles: { id: string; style: React.CSSProperties }[] = rect ? [
+  const HANDLES: { id: string; style: React.CSSProperties }[] = [
     { id: "nw", style: { left: 0, top: 0, cursor: "nwse-resize", transform: "translate(-50%,-50%)" } },
     { id: "ne", style: { right: 0, top: 0, cursor: "nesw-resize", transform: "translate(50%,-50%)" } },
     { id: "sw", style: { left: 0, bottom: 0, cursor: "nesw-resize", transform: "translate(-50%,50%)" } },
     { id: "se", style: { right: 0, bottom: 0, cursor: "nwse-resize", transform: "translate(50%,50%)" } },
-  ] : [];
+  ];
 
   return (
     <div className="space-y-2">
       <div
         ref={boxRef}
         className="relative w-full touch-none select-none overflow-hidden rounded-md border border-gray-200"
-        style={{ cursor: "crosshair" }}
+        style={{ cursor: rects.length < MAX_HIGHLIGHTS ? "crosshair" : "default" }}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerCancel={onUp}
       >
         <img src={image} alt="" className="block w-full" draggable={false} />
-        {rect && (
+        {rects.map((rect, i) => (
           <div
-            data-rect="1"
+            key={i}
+            data-rect={i}
             className="absolute border-2 border-cyan-500 bg-cyan-400/20"
             style={{ left: `${rect.x}%`, top: `${rect.y}%`, width: `${rect.w}%`, height: `${rect.h}%`, cursor: "move", borderRadius: 4 }}
           >
-            {handles.map((h) => (
-              <span key={h.id} data-handle={h.id} className="absolute h-2.5 w-2.5 rounded-sm border border-white bg-cyan-500" style={h.style} />
+            <span className="pointer-events-none absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-600 text-[9px] font-bold text-white" style={{ transform: "translate(-50%,-50%)" }}>{i + 1}</span>
+            {HANDLES.map((h) => (
+              <span key={h.id} data-handle={`${h.id}:${i}`} className="absolute h-2.5 w-2.5 rounded-sm border border-white bg-cyan-500" style={h.style} />
             ))}
           </div>
-        )}
+        ))}
       </div>
       <div className="flex items-center gap-2">
-        <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder="x,y,w,h (%)" className={inputCls} />
+        <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder="x,y,w,h; x,y,w,h (%)" className={inputCls} />
         {value && (
-          <button type="button" onClick={() => onChange("")} className="flex-none text-xs text-gray-400 hover:text-red-500">Clear</button>
+          <button type="button" onClick={() => onChange("")} className="flex-none text-xs text-gray-400 hover:text-red-500">Clear all</button>
         )}
       </div>
-      <p className="text-[11px] text-gray-400">Drag on the image to draw the spotlight; drag the box to move it, corners to resize.</p>
+      {rects.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {rects.map((_, i) => (
+            <button key={i} type="button" onClick={() => removeAt(i)} className="rounded-full border border-gray-300 px-2 py-0.5 text-[11px] text-gray-500 hover:border-red-400 hover:text-red-500" title={`Remove box ${i + 1}`}>
+              Box {i + 1} ✕
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-gray-400">
+        Drag on the image to draw a box{rects.length < MAX_HIGHLIGHTS ? ` (up to ${MAX_HIGHLIGHTS})` : ""}; drag a box to move it, corners to resize, chips below to remove.
+      </p>
     </div>
   );
 }

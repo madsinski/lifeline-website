@@ -135,7 +135,7 @@ export interface Slide {
   value?: string;         // metric — the giant number
   image?: string;         // hero-image — edge-bleed image
   numbered?: boolean;     // report — render the bullets as a numbered list
-  highlight?: string;     // report — spotlight a region of the screenshot: "x,y,w,h" in % of the image
+  highlight?: string;     // report — spotlight region(s) of the screenshot: "x,y,w,h" rects in % of the image, ";"-separated
   // fan — two labelled groups of cards (e.g. Clients / Collaborations).
   // Each card: title (value), optional body, optional newline-separated points.
   fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string; points?: string }[];
@@ -428,7 +428,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     fields: [
       F.kicker, F.heading, F.lead, F.bullets,
       { key: "image", label: "Screenshot", kind: "image", imageRole: "phone" },
-      { key: "highlight", label: "Highlight area", kind: "text", noTranslate: true, help: "Cyan spotlight on the screenshot — everything around it is dimmed." },
+      { key: "highlight", label: "Highlight areas", kind: "text", noTranslate: true, help: "Cyan spotlights on the screenshot — everything outside them is dimmed. One or more boxes." },
     ],
   },
   fan: {

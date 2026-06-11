@@ -61,7 +61,7 @@ function MemberCard({ m }: { m: MemberItem }) {
 
 type HighlightRect = { x: number; y: number; w: number; h: number };
 
-// "x,y,w,h" in % of the image → rect, or null when absent/malformed.
+// One "x,y,w,h" rect in % of the image, or null when malformed.
 function parseHighlight(spec?: string): HighlightRect | null {
   if (!spec) return null;
   const n = spec.split(/[,\s]+/).filter(Boolean).map(Number);
@@ -70,19 +70,42 @@ function parseHighlight(spec?: string): HighlightRect | null {
   return w > 0 && h > 0 ? { x, y, w, h } : null;
 }
 
-/** Spotlight box over a screenshot: brand-cyan outline, everything around it
- *  dimmed (the huge box-shadow is clipped by the overflow-hidden frame). */
-function HighlightBox({ rect }: { rect: HighlightRect }) {
+// Full highlight spec: one or more rects separated by ";".
+function parseHighlights(spec?: string): HighlightRect[] {
+  return (spec || "").split(";").map((part) => parseHighlight(part.trim())).filter((r): r is HighlightRect => !!r);
+}
+
+/** Spotlight boxes over a screenshot: brand-cyan outlines, everything outside
+ *  the boxes dimmed by a single even-odd cut-out layer (so multiple boxes
+ *  don't dim each other's interior). */
+function HighlightBoxes({ rects }: { rects: HighlightRect[] }) {
   return (
-    <div
-      aria-hidden
-      style={{
-        position: "absolute", left: `${rect.x}%`, top: `${rect.y}%`, width: `${rect.w}%`, height: `${rect.h}%`,
-        border: "3px solid var(--cyan, #22d3ee)", borderRadius: 10,
-        boxShadow: "0 0 0 200vmax rgba(5,16,24,.45), 0 0 24px rgba(0,214,255,.35)",
-        pointerEvents: "none",
-      }}
-    />
+    <>
+      <svg
+        aria-hidden
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+      >
+        <path
+          d={`M0 0H100V100H0Z ${rects.map((r) => `M${r.x} ${r.y}h${r.w}v${r.h}h${-r.w}Z`).join(" ")}`}
+          fill="rgba(5,16,24,.45)"
+          fillRule="evenodd"
+        />
+      </svg>
+      {rects.map((r, i) => (
+        <div
+          key={i}
+          aria-hidden
+          style={{
+            position: "absolute", left: `${r.x}%`, top: `${r.y}%`, width: `${r.w}%`, height: `${r.h}%`,
+            border: "3px solid var(--cyan, #22d3ee)", borderRadius: 6,
+            boxShadow: "0 0 24px rgba(0,214,255,.35)",
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+    </>
   );
 }
 
@@ -90,7 +113,7 @@ function HighlightBox({ rect }: { rect: HighlightRect }) {
  *  portal so it escapes the deck's scaled / letterboxed containers. Click or
  *  Escape closes; the capture-phase listener keeps Escape from also closing
  *  the editor's preview overlay underneath. */
-function Lightbox({ src, alt, highlight, onClose }: { src: string; alt: string; highlight: HighlightRect | null; onClose: () => void }) {
+function Lightbox({ src, alt, highlights, onClose }: { src: string; alt: string; highlights: HighlightRect[]; onClose: () => void }) {
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); }
@@ -110,7 +133,7 @@ function Lightbox({ src, alt, highlight, onClose }: { src: string; alt: string; 
           onto the rendered image box. */}
       <div style={{ position: "relative", overflow: "hidden", borderRadius: 10, boxShadow: "0 24px 80px -20px rgba(0,0,0,.8)" }}>
         <img src={src} alt={alt} style={{ maxWidth: "94vw", maxHeight: "94vh", display: "block" }} />
-        {highlight && <HighlightBox rect={highlight} />}
+        {highlights.length > 0 && <HighlightBoxes rects={highlights} />}
       </div>
     </div>,
     document.body
@@ -512,7 +535,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
 
     case "report": {
       const img = s.image;
-      const hl = parseHighlight(s.highlight);
+      const hls = parseHighlights(s.highlight);
       return (
         <div className="body two" style={{ gridTemplateColumns: ".82fr 1.18fr" }}>
           <div>
@@ -546,14 +569,14 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
                       style={{ width: "100%", height: "auto", cursor: "zoom-in" }}
                       onClick={() => setZoom(true)}
                     />
-                    {hl && <HighlightBox rect={hl} />}
+                    {hls.length > 0 && <HighlightBoxes rects={hls} />}
                   </div>
                 ) : <div className="phone-ph">No screenshot yet</div>}
               </div>
               <div className="laptop-base" />
             </div>
           </div>
-          {zoom && img && <Lightbox src={img} alt={s.heading || "Screenshot"} highlight={hl} onClose={() => setZoom(false)} />}
+          {zoom && img && <Lightbox src={img} alt={s.heading || "Screenshot"} highlights={hls} onClose={() => setZoom(false)} />}
         </div>
       );
     }
