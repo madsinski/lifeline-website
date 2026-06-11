@@ -117,16 +117,16 @@ function Lightbox({ src, alt, highlight, onClose }: { src: string; alt: string; 
   );
 }
 
-/** Pulsing pill over the report screenshot telling the audience it can be
- *  clicked open. Bilingual — the viewer serves Icelandic and English decks. */
-function ZoomHint() {
+/** Pulsing pill above the report laptop telling the audience the screenshot
+ *  can be clicked open. Clicking the pill opens the lightbox too. */
+function ZoomHint({ onClick }: { onClick: () => void }) {
   return (
-    <span className="zoom-hint" aria-hidden>
+    <span className="zoom-hint" role="button" tabIndex={0} onClick={onClick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
         <circle cx="11" cy="11" r="7" />
         <path d="M21 21l-4.3-4.3M11 8v6M8 11h6" />
       </svg>
-      Smelltu til að stækka · Click to enlarge
+      Smelltu á skjáinn til að stækka
     </span>
   );
 }
@@ -531,25 +531,27 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
               )
             )}
           </div>
-          <div className="laptop">
-            <div className="screen">
-              {img ? (
-                // Shrink-wrap wrapper so highlight percentages align with the
-                // image box (the .screen frame letterboxes to 16:10).
-                <div style={{ position: "relative", width: "100%" }}>
-                  <img
-                    src={img}
-                    alt={s.heading || "Report"}
-                    title="Click to enlarge"
-                    style={{ width: "100%", height: "auto", cursor: "zoom-in" }}
-                    onClick={() => setZoom(true)}
-                  />
-                  {hl && <HighlightBox rect={hl} />}
-                  {zoomable && <ZoomHint />}
-                </div>
-              ) : <div className="phone-ph">No screenshot yet</div>}
+          <div>
+            {zoomable && img && <ZoomHint onClick={() => setZoom(true)} />}
+            <div className="laptop">
+              <div className="screen">
+                {img ? (
+                  // Shrink-wrap wrapper so highlight percentages align with the
+                  // image box (the .screen frame letterboxes to 16:10).
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <img
+                      src={img}
+                      alt={s.heading || "Report"}
+                      title="Click to enlarge"
+                      style={{ width: "100%", height: "auto", cursor: "zoom-in" }}
+                      onClick={() => setZoom(true)}
+                    />
+                    {hl && <HighlightBox rect={hl} />}
+                  </div>
+                ) : <div className="phone-ph">No screenshot yet</div>}
+              </div>
+              <div className="laptop-base" />
             </div>
-            <div className="laptop-base" />
           </div>
           {zoom && img && <Lightbox src={img} alt={s.heading || "Screenshot"} highlight={hl} onClose={() => setZoom(false)} />}
         </div>
