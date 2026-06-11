@@ -428,7 +428,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     fields: [
       F.kicker, F.heading, F.lead, F.bullets,
       { key: "image", label: "Screenshot", kind: "image", imageRole: "phone" },
-      { key: "highlight", label: "Highlight area (x,y,w,h %)", kind: "text", noTranslate: true, help: "Spotlight a region of the screenshot, as percentages of the image — e.g. 62,40,30,18. Leave empty for none." },
+      { key: "highlight", label: "Highlight area", kind: "text", noTranslate: true, help: "Cyan spotlight on the screenshot — everything around it is dimmed." },
     ],
   },
   fan: {

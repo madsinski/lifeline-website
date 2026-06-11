@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- editor thumbnails preview CMS/storage image URLs; plain <img> is intentional. */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   SLIDE_SCHEMAS, ICON_OPTIONS,
   type Slide, type FieldDef, type SubFieldDef, type ImageRole,
@@ -48,6 +48,121 @@ function ImageField({ value, role, presentationId, onChange }: { value?: string;
       </div>
       {open && <ImagePicker value={value} role={role} presentationId={presentationId} onChange={onChange} onClose={() => setOpen(false)} />}
     </>
+  );
+}
+
+// ---- highlight-area picker -------------------------------------------------
+// Draw / move / resize the report slide's screenshot spotlight directly on the
+// image. Value format matches the renderer: "x,y,w,h" in % of the image.
+type Rect = { x: number; y: number; w: number; h: number };
+
+function parseRect(v?: string): Rect | null {
+  if (!v) return null;
+  const n = v.split(/[,\s]+/).filter(Boolean).map(Number);
+  if (n.length !== 4 || n.some((x) => !Number.isFinite(x))) return null;
+  const [x, y, w, h] = n;
+  return { x, y, w, h };
+}
+const fmtRect = (r: Rect) => [r.x, r.y, r.w, r.h].map((n) => Math.round(n * 10) / 10).join(",");
+
+type DragMode =
+  | { kind: "draw"; ax: number; ay: number }            // anchor corner (start point)
+  | { kind: "move"; dx: number; dy: number; w: number; h: number } // pointer offset within rect
+  | { kind: "resize"; ax: number; ay: number };          // anchor = opposite corner
+
+function HighlightAreaField({ value, image, onChange }: { value?: string; image?: string; onChange: (v: string) => void }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<DragMode | null>(null);
+  const rect = parseRect(value);
+
+  if (!image) return <p className="text-[11px] text-gray-400">Add a screenshot first, then select the area to highlight here.</p>;
+
+  function pct(e: React.PointerEvent): { x: number; y: number } {
+    const b = boxRef.current!.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(100, ((e.clientX - b.left) / b.width) * 100)),
+      y: Math.max(0, Math.min(100, ((e.clientY - b.top) / b.height) * 100)),
+    };
+  }
+  function commit(r: Rect) { onChange(fmtRect(r)); }
+
+  function fromCorners(a: { x: number; y: number }, b: { x: number; y: number }): Rect {
+    const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+    return { x, y, w: Math.max(1, Math.abs(a.x - b.x)), h: Math.max(1, Math.abs(a.y - b.y)) };
+  }
+
+  function onDown(e: React.PointerEvent) {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const p = pct(e);
+    const t = e.target as HTMLElement;
+    if (t.dataset.handle && rect) {
+      // anchor at the corner opposite the grabbed handle
+      const ax = t.dataset.handle.includes("e") ? rect.x : rect.x + rect.w;
+      const ay = t.dataset.handle.includes("s") ? rect.y : rect.y + rect.h;
+      drag.current = { kind: "resize", ax, ay };
+    } else if (t.dataset.rect && rect) {
+      drag.current = { kind: "move", dx: p.x - rect.x, dy: p.y - rect.y, w: rect.w, h: rect.h };
+    } else {
+      drag.current = { kind: "draw", ax: p.x, ay: p.y };
+      commit({ x: p.x, y: p.y, w: 1, h: 1 });
+    }
+  }
+  function onMove(e: React.PointerEvent) {
+    const d = drag.current;
+    if (!d) return;
+    const p = pct(e);
+    if (d.kind === "move") {
+      commit({
+        x: Math.max(0, Math.min(100 - d.w, p.x - d.dx)),
+        y: Math.max(0, Math.min(100 - d.h, p.y - d.dy)),
+        w: d.w, h: d.h,
+      });
+    } else {
+      commit(fromCorners({ x: d.ax, y: d.ay }, p));
+    }
+  }
+  function onUp() { drag.current = null; }
+
+  const handles: { id: string; style: React.CSSProperties }[] = rect ? [
+    { id: "nw", style: { left: 0, top: 0, cursor: "nwse-resize", transform: "translate(-50%,-50%)" } },
+    { id: "ne", style: { right: 0, top: 0, cursor: "nesw-resize", transform: "translate(50%,-50%)" } },
+    { id: "sw", style: { left: 0, bottom: 0, cursor: "nesw-resize", transform: "translate(-50%,50%)" } },
+    { id: "se", style: { right: 0, bottom: 0, cursor: "nwse-resize", transform: "translate(50%,50%)" } },
+  ] : [];
+
+  return (
+    <div className="space-y-2">
+      <div
+        ref={boxRef}
+        className="relative w-full touch-none select-none overflow-hidden rounded-md border border-gray-200"
+        style={{ cursor: "crosshair" }}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+      >
+        <img src={image} alt="" className="block w-full" draggable={false} />
+        {rect && (
+          <div
+            data-rect="1"
+            className="absolute border-2 border-cyan-500 bg-cyan-400/20"
+            style={{ left: `${rect.x}%`, top: `${rect.y}%`, width: `${rect.w}%`, height: `${rect.h}%`, cursor: "move", borderRadius: 4 }}
+          >
+            {handles.map((h) => (
+              <span key={h.id} data-handle={h.id} className="absolute h-2.5 w-2.5 rounded-sm border border-white bg-cyan-500" style={h.style} />
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder="x,y,w,h (%)" className={inputCls} />
+        {value && (
+          <button type="button" onClick={() => onChange("")} className="flex-none text-xs text-gray-400 hover:text-red-500">Clear</button>
+        )}
+      </div>
+      <p className="text-[11px] text-gray-400">Drag on the image to draw the spotlight; drag the box to move it, corners to resize.</p>
+    </div>
   );
 }
 
@@ -159,7 +274,10 @@ export function SlideFields({ slide, presentationId, onChange, textOnly }: { sli
         return (
           <div key={key}>
             <label className={labelCls}>{f.label}</label>
-            {f.kind === "text" && <input value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
+            {f.kind === "text" && key === "highlight" && (
+              <HighlightAreaField value={(raw as string) ?? ""} image={slide.image} onChange={(v) => setField(key, v)} />
+            )}
+            {f.kind === "text" && key !== "highlight" && <input value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
             {f.kind === "textarea" && <textarea rows={key === "heading" ? 2 : 3} value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
             {f.kind === "image" && <ImageField value={(raw as string) ?? ""} role={f.imageRole || "photo"} presentationId={presentationId} onChange={(v) => setField(key, v)} />}
             {f.kind === "icon" && (
