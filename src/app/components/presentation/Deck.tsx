@@ -45,7 +45,7 @@ export function SlideStage({ slide, design }: { slide: Slide | null; design?: st
       >
         <DeckDefs />
         {slide
-          ? <section className={`slide ${slide.theme}${brandClass(slide.brand)}${hasBg(slide) ? " has-bg" : ""} active`}><SlideView slide={slide} /></section>
+          ? <section className={`slide ${slide.theme}${brandClass(slide.brand)}${hasBg(slide) ? " has-bg" : ""} active`}><SlideView slide={slide} zoomable /></section>
           : <section className="slide light active" style={{ display: "grid", placeItems: "center" }}><p style={{ color: "#5b6b66" }}>No slide selected</p></section>}
       </div>
     </div>
@@ -125,7 +125,7 @@ export function Deck({ slides, slidesIs, design, initialIndex = 0, onClose }: { 
 
       {view.map((s, idx) => (
         <section key={s.id} className={`slide ${s.theme}${brandClass(s.brand)}${hasBg(s) ? " has-bg" : ""}${idx === i ? " active" : idx < i ? " prev" : ""}`}>
-          <SlideView slide={s} />
+          <SlideView slide={s} zoomable />
         </section>
       ))}
 

@@ -407,6 +407,11 @@ export const DECK_CSS = `
 .lldeck .laptop .screen .phone-ph{height:100%;color:var(--muted);}
 .lldeck .laptop .laptop-base{height:clamp(10px,1.3cqw,16px);margin:0 -7%;border-radius:0 0 7px 7px;background:linear-gradient(180deg,#cfd3d9,#9aa0a8);position:relative;box-shadow:0 14px 22px -14px rgba(0,0,0,.45);}
 .lldeck .laptop .laptop-base::after{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:14%;height:clamp(4px,.55cqw,7px);background:rgba(0,0,0,.16);border-radius:0 0 9px 9px;}
+/* "click to enlarge" affordance on the report screenshot (hidden in PDF export
+   via the zoomable prop — a printed page can't be clicked). */
+.lldeck .zoom-hint{position:absolute;right:clamp(8px,1cqw,14px);bottom:clamp(8px,1cqw,14px);display:inline-flex;align-items:center;gap:.5em;background:rgba(4,24,33,.85);color:#eafaff;border:1px solid rgba(95,224,255,.55);border-radius:999px;padding:.5em 1em;font-size:clamp(10px,1cqw,14px);font-weight:650;letter-spacing:.01em;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.4);animation:llzoomhint 2.6s ease-in-out infinite;}
+.lldeck .zoom-hint svg{width:1.15em;height:1.15em;flex:none;}
+@keyframes llzoomhint{0%,100%{transform:translateY(0);opacity:.92}50%{transform:translateY(-3px);opacity:1}}
 /* checklist */
 .lldeck .checklist{display:grid;gap:clamp(.7rem,1.6cqh,1.1rem) 2rem;}
 .lldeck .checklist.cols-2{grid-template-columns:1fr 1fr;}

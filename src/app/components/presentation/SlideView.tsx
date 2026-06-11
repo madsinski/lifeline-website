@@ -117,8 +117,22 @@ function Lightbox({ src, alt, highlight, onClose }: { src: string; alt: string; 
   );
 }
 
+/** Pulsing pill over the report screenshot telling the audience it can be
+ *  clicked open. Bilingual — the viewer serves Icelandic and English decks. */
+function ZoomHint() {
+  return (
+    <span className="zoom-hint" aria-hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+        <circle cx="11" cy="11" r="7" />
+        <path d="M21 21l-4.3-4.3M11 8v6M8 11h6" />
+      </svg>
+      Smelltu til að stækka · Click to enlarge
+    </span>
+  );
+}
+
 /** Renders the inner content of a single slide (without the <section> shell). */
-function SlideBody({ s }: { s: Slide }) {
+function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
   const [zoom, setZoom] = React.useState(false);
   switch (s.type) {
     case "title":
@@ -531,6 +545,7 @@ function SlideBody({ s }: { s: Slide }) {
                     onClick={() => setZoom(true)}
                   />
                   {hl && <HighlightBox rect={hl} />}
+                  {zoomable && <ZoomHint />}
                 </div>
               ) : <div className="phone-ph">No screenshot yet</div>}
             </div>
@@ -547,7 +562,7 @@ function SlideBody({ s }: { s: Slide }) {
 }
 
 /** Full slide: themed <section> + background layers + header chrome + body. */
-export function SlideView({ slide }: { slide: Slide }) {
+export function SlideView({ slide, zoomable }: { slide: Slide; zoomable?: boolean }) {
   const hasBg = (slide.type === "title" || slide.type === "closing") && !!slide.bg;
   return (
     <>
@@ -557,7 +572,7 @@ export function SlideView({ slide }: { slide: Slide }) {
         {slide.type === "team-branch" ? <span /> : <Logo brand={slide.brand} />}
         <HeadTag tag={slide.tag} />
       </div>
-      <SlideBody s={slide} />
+      <SlideBody s={slide} zoomable={zoomable} />
       {/* footnote already handled inside some bodies; title/closing render it here */}
       {(slide.type === "title" || slide.type === "closing") && slide.footnote && (
         <p className="footnote">{slide.footnote}</p>
