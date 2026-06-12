@@ -16,6 +16,7 @@
 // semicolon CSV the monthly cron (1st, 07:00 UTC) emails automatically.
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 const CATEGORIES = ["blood_tests", "measurements", "doctor", "saas", "other"] as const;
@@ -392,7 +393,11 @@ export default function Accounting() {
               {companyRows.map((r) => (
                 <tr key={r.company_id || "unassigned"} className="border-b border-gray-50">
                   <td className={`py-1.5 pr-3 ${r.company_id ? "" : "text-gray-400 italic"}`}>
-                    {r.company_name}
+                    {r.company_id ? (
+                      <Link href={`/business/${r.company_id}`} className="hover:text-emerald-700 hover:underline">
+                        {r.company_name}
+                      </Link>
+                    ) : r.company_name}
                     {r.invoice_count > 0 ? <span className="text-gray-400"> · {r.invoice_count} inv.</span> : null}
                   </td>
                   <td className="py-1.5 pr-3 text-right">{isk(r.invoiced_isk)}</td>

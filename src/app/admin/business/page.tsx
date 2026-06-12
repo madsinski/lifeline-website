@@ -5,7 +5,7 @@
 // 2026-05-04. Use the dedicated Legal section in the sidebar for any
 // legal documents, signed acceptances, or the security posture statement.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
@@ -100,8 +100,90 @@ function PaydayDiagButton() {
   );
 }
 
+// At-a-glance strip above the tabs: this month's P&L (Accounting),
+// outstanding receivables (PayDay invoices not yet paid), and pending
+// approval requests. Each card navigates to the tab that owns it, so
+// the strip doubles as a map of how the tabs fit together.
+function OverviewStrip({ onNavigate }: { onNavigate: (tab: string) => void }) {
+  const [data, setData] = useState<{
+    income: number; expenses: number; net: number;
+    outstanding: number; pending: number;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const month = new Date().toISOString().slice(0, 7);
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` } : {};
+        const [repRes, compRes, ev, iv, lec] = await Promise.all([
+          fetch(`/api/admin/accounting/report?month=${month}`, { headers }),
+          fetch(`/api/admin/accounting/companies`, { headers }),
+          supabase.from("body_comp_events").select("id", { count: "exact", head: true }).eq("approval_status", "requested"),
+          supabase.from("doctor_interview_proposals").select("id", { count: "exact", head: true }).eq("approval_status", "requested"),
+          supabase.from("intro_lectures").select("id", { count: "exact", head: true }).eq("approval_status", "requested"),
+        ]);
+        const rep = repRes.ok ? await repRes.json() : null;
+        const comp = compRes.ok ? await compRes.json() : null;
+        if (cancelled) return;
+        setData({
+          income: rep?.report?.totals?.income_isk ?? 0,
+          expenses: rep?.report?.totals?.expenses_isk ?? 0,
+          net: rep?.report?.totals?.net_isk ?? 0,
+          outstanding: ((comp?.rows || []) as Array<{ outstanding_isk: number }>)
+            .reduce((s, r) => s + (r.outstanding_isk || 0), 0),
+          pending: (ev.count || 0) + (iv.count || 0) + (lec.count || 0),
+        });
+      } catch { /* strip is best-effort; tabs still work without it */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const isk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
+  const card = "text-left border border-gray-200 rounded-lg bg-white px-3.5 py-2.5 hover:border-emerald-300 hover:shadow-sm transition-all";
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+      <button type="button" className={card} onClick={() => onNavigate("accounting")}>
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">This month</div>
+        <div className={`text-sm font-bold ${data && data.net < 0 ? "text-red-600" : "text-gray-900"}`}>
+          {data ? isk(data.net) : "…"}
+          <span className="font-normal text-gray-400 text-xs"> net</span>
+        </div>
+        <div className="text-[11px] text-gray-500">
+          {data ? `${isk(data.income)} in · ${isk(data.expenses)} out` : "Loading"}
+        </div>
+      </button>
+      <button type="button" className={card} onClick={() => onNavigate("accounting")}>
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Outstanding invoices</div>
+        <div className={`text-sm font-bold ${data && data.outstanding > 0 ? "text-amber-600" : "text-gray-900"}`}>
+          {data ? isk(data.outstanding) : "…"}
+        </div>
+        <div className="text-[11px] text-gray-500">Issued via PayDay, not yet paid</div>
+      </button>
+      <button type="button" className={card} onClick={() => onNavigate("approvals")}>
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Pending approvals</div>
+        <div className={`text-sm font-bold ${data && data.pending > 0 ? "text-amber-600" : "text-gray-900"}`}>
+          {data ? data.pending : "…"}
+        </div>
+        <div className="text-[11px] text-gray-500">Measurement days, doctor days, lectures</div>
+      </button>
+    </div>
+  );
+}
+
 export default function BusinessPage() {
   const [tab, setTab] = useState("companies");
+
+  // Deep-linking: /admin/business?tab=accounting opens that tab directly
+  // (used by the Financials line on company cards, and bookmarkable).
+  // Deferred a tick: the URL is only readable client-side, and the
+  // lint rule (correctly) dislikes synchronous setState in effects.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && tabs.some((x) => x.key === t)) queueMicrotask(() => setTab(t));
+  }, []);
 
   return (
     <div>
@@ -109,7 +191,7 @@ export default function BusinessPage() {
         <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900 mb-1">Business</h1>
-            <p className="text-sm text-gray-500">Companies and billing</p>
+            <p className="text-sm text-gray-500">Companies → approvals → invoicing → payments → accounting</p>
           </div>
           <div className="flex items-start gap-4">
             <PaydayDiagButton />
@@ -123,6 +205,7 @@ export default function BusinessPage() {
             </div>
           </div>
         </div>
+        <OverviewStrip onNavigate={setTab} />
         <AdminTabs tabs={tabs} active={tab} onChange={setTab} />
       </div>
       {tab === "companies" && <CompaniesContent />}

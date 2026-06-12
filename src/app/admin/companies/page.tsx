@@ -58,6 +58,78 @@ const TIERS = [
   { value: "premium", label: "Premium" },
 ];
 
+// Per-company financial rollup from /api/admin/accounting/companies —
+// invoiced/paid/outstanding from PayDay invoices, costs from accounting
+// invoices + adjustments tagged with the company.
+interface FinRow {
+  company_id: string | null;
+  invoice_count: number;
+  invoiced_isk: number;
+  paid_isk: number;
+  outstanding_isk: number;
+  costs_isk: number;
+  net_isk: number;
+}
+
+const iskFmt = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
+
+interface CompanyInvoiceRow {
+  id: string;
+  payday_invoice_number: string | null;
+  quantity: number | null;
+  amount_total: number | null;
+  status: string;
+  issued_at: string | null;
+}
+
+const INVOICE_STATUS_STYLE: Record<string, string> = {
+  paid: "bg-emerald-50 border-emerald-200 text-emerald-700",
+  sent: "bg-amber-50 border-amber-200 text-amber-700",
+  draft: "bg-gray-50 border-gray-200 text-gray-500",
+  cancelled: "bg-red-50 border-red-200 text-red-600",
+};
+
+// Recent PayDay invoices, shown inside the expanded company card so the
+// whole billing story lives on the company itself.
+function CompanyInvoiceRows({ companyId }: { companyId: string }) {
+  const [rows, setRows] = useState<CompanyInvoiceRow[] | null>(null);
+  useEffect(() => {
+    supabase
+      .from("company_invoices")
+      .select("id, payday_invoice_number, quantity, amount_total, status, issued_at")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(8)
+      .then(({ data }) => setRows((data as CompanyInvoiceRow[]) || []));
+  }, [companyId]);
+  if (rows === null) return <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">Loading invoices…</div>;
+  if (rows.length === 0) return null;
+  return (
+    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Invoices (PayDay)</div>
+      <div className="space-y-1">
+        {rows.map((r) => (
+          <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+            <span className="truncate">
+              {r.payday_invoice_number || "no number"}
+              <span className="text-gray-400">
+                {r.issued_at ? ` · ${new Date(r.issued_at).toLocaleDateString("is-IS")}` : ""}
+                {r.quantity ? ` · ${r.quantity} starfsmenn` : ""}
+              </span>
+            </span>
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              <span className="font-medium">{iskFmt(r.amount_total || 0)}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${INVOICE_STATUS_STYLE[r.status] || INVOICE_STATUS_STYLE.draft}`}>
+                {r.status}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // One source of truth for the company lifecycle pill. Collapsing all the
 // branchy "Drög / Boð sent / Awaiting finalize / Ready / Setup" logic
 // into a single component keeps the table row skinny and consistent.
@@ -1351,6 +1423,42 @@ export default function AdminCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [fin, setFin] = useState<Map<string, FinRow>>(new Map());
+  const [pendingApprovals, setPendingApprovals] = useState<Map<string, number>>(new Map());
+
+  // Side data for the unified view: per-company financials (accounting
+  // module) + pending approval counts. Both best-effort — the roster
+  // view works without them.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch("/api/admin/accounting/companies", {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setFin(new Map(
+            ((json.rows || []) as FinRow[])
+              .filter((r) => r.company_id)
+              .map((r) => [r.company_id as string, r]),
+          ));
+        }
+        const [ev, iv, lec] = await Promise.all([
+          supabase.from("body_comp_events").select("id, company_id").eq("approval_status", "requested"),
+          supabase.from("doctor_interview_proposals").select("id, company_id").eq("approval_status", "requested"),
+          supabase.from("intro_lectures").select("id, company_id").eq("approval_status", "requested"),
+        ]);
+        const counts = new Map<string, number>();
+        for (const arr of [ev.data, iv.data, lec.data]) {
+          for (const r of (arr as Array<{ company_id: string }> | null) || []) {
+            counts.set(r.company_id, (counts.get(r.company_id) || 0) + 1);
+          }
+        }
+        setPendingApprovals(counts);
+      } catch { /* non-blocking */ }
+    })();
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1552,6 +1660,16 @@ export default function AdminCompaniesPage() {
                             {c.name}
                           </button>
                           <CompanyStatusPill c={c} />
+                          {(pendingApprovals.get(c.id) || 0) > 0 && (
+                            <Link
+                              href="/admin/business?tab=approvals"
+                              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                              title="Open the Approvals tab"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              {pendingApprovals.get(c.id)} pending approval{(pendingApprovals.get(c.id) || 0) > 1 ? "s" : ""}
+                            </Link>
+                          )}
                           {isSub && c.parent_name && (
                             <span
                               className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200"
@@ -1647,6 +1765,31 @@ export default function AdminCompaniesPage() {
                     </div>
                   </div>
 
+                  {/* Financials — accounting rollup tied to this company:
+                      PayDay invoiced/paid/outstanding + costs tagged in
+                      the Accounting tab. Hidden until any money exists. */}
+                  {(() => {
+                    const f = fin.get(c.id);
+                    if (!f || (f.invoice_count === 0 && f.costs_isk === 0)) return null;
+                    return (
+                      <div className="mt-3 flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-600">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Financials</span>
+                        <span>Invoiced <span className="font-semibold text-gray-900">{iskFmt(f.invoiced_isk)}</span></span>
+                        <span>Paid <span className="font-semibold text-gray-900">{iskFmt(f.paid_isk)}</span></span>
+                        <span className={f.outstanding_isk > 0 ? "text-amber-600" : ""}>
+                          Outstanding <span className="font-semibold">{iskFmt(f.outstanding_isk)}</span>
+                        </span>
+                        <span>Costs <span className="font-semibold text-gray-900">{iskFmt(f.costs_isk)}</span></span>
+                        <span className={f.net_isk < 0 ? "text-red-600" : "text-emerald-700"}>
+                          Net <span className="font-semibold">{iskFmt(f.net_isk)}</span>
+                        </span>
+                        <Link href="/admin/business?tab=accounting" className="text-emerald-700 hover:underline">
+                          Accounting →
+                        </Link>
+                      </div>
+                    );
+                  })()}
+
                   {/* Actions toolbar — primary actions are always visible */}
                   <div className={`mt-3 pt-3 border-t ${isSub ? "border-slate-200" : "border-gray-100"} flex items-center gap-1.5 flex-wrap`}>
                     <Link
@@ -1698,9 +1841,10 @@ export default function AdminCompaniesPage() {
                   </div>
                 </div>
 
-                {/* Expanded employee list */}
+                {/* Expanded: invoices + employee list */}
                 {isExpanded && (
                   <div className="rounded-b-2xl overflow-hidden">
+                    <CompanyInvoiceRows companyId={c.id} />
                     <EmployeeRows companyId={c.id} />
                   </div>
                 )}
