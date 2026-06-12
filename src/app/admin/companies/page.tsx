@@ -589,7 +589,7 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
 
   const fieldCls = "w-full text-[11px] border border-gray-200 rounded px-1.5 py-1 bg-white";
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50/70 px-2.5 py-2">
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Contact</span>
         {!editing ? (
@@ -635,6 +635,12 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
           )}
         </>
       )}
+      {/* Invite lives with the contact it's sent to ("Senda boð") */}
+      {!editing && (c.status === "draft" || c.status === "contact_invited") ? (
+        <div className="mt-1.5">
+          <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2492,9 +2498,6 @@ export default function AdminCompaniesPage() {
                       <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
                     )}
                     <CommercialSettingsButton company={c} onReload={load} />
-                    {(c.status === "draft" || c.status === "contact_invited") && (
-                      <InviteContactButton companyId={c.id} draftEmail={c.contact_draft_email || null} status={c.status} />
-                    )}
                     <BulkBiodyButton
                       companyId={c.id}
                       companyName={c.name}
