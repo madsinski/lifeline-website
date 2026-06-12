@@ -15,12 +15,14 @@ const CompaniesContent = dynamic(() => import("../companies/page"), { loading: (
 const PaymentsContent = dynamic(() => import("../payments/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const DiscountCodesContent = dynamic(() => import("./DiscountCodes"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const ApprovalsContent = dynamic(() => import("./Approvals"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const AccountingContent = dynamic(() => import("./Accounting"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 
 const tabs = [
   { key: "companies", label: "Companies" },
   { key: "approvals", label: "Approvals" },
   { key: "payments", label: "Payments" },
   { key: "discounts", label: "Discount codes" },
+  { key: "accounting", label: "Accounting" },
 ];
 
 interface PaydayTestResult {
@@ -127,6 +129,7 @@ export default function BusinessPage() {
       {tab === "approvals" && <ApprovalsContent />}
       {tab === "payments" && <PaymentsContent />}
       {tab === "discounts" && <DiscountCodesContent />}
+      {tab === "accounting" && <AccountingContent />}
     </div>
   );
 }
