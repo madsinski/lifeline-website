@@ -64,6 +64,15 @@ interface CompanyRow {
   company_id: string | null; company_name: string; invoice_count: number;
   invoiced_isk: number; paid_isk: number; outstanding_isk: number;
   costs_isk: number; net_isk: number;
+  member_count: number; expected_income_isk: number;
+  expected_cost_isk: number; expected_net_isk: number;
+}
+
+interface DoctorPool {
+  rate_isk: number;
+  expected_count: number; expected_isk: number;
+  performed_count: number; performed_isk: number;
+  paid_isk: number;
 }
 
 interface Overhead {
@@ -109,6 +118,7 @@ export default function Accounting() {
   const [rates, setRates] = useState<CostRate[]>([]);
   const [companyRows, setCompanyRows] = useState<CompanyRow[]>([]);
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
+  const [doctorPool, setDoctorPool] = useState<DoctorPool | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -147,8 +157,12 @@ export default function Accounting() {
       const rts = await rateRes.json();
       setRates(rts.rates || []);
       const comp = await compRes.json();
-      setCompanyRows(comp.rows || []);
+      // The table shows relationships where money has actually moved;
+      // roster-only rows carry projections for the Companies tab.
+      setCompanyRows(((comp.rows || []) as CompanyRow[])
+        .filter((r) => r.invoice_count > 0 || r.costs_isk > 0));
       setCompanies(comp.companies || []);
+      setDoctorPool(comp.doctor_pool || null);
     } catch (e) {
       setMsg(`Load failed: ${(e as Error).message}`);
     } finally {
@@ -427,6 +441,39 @@ export default function Accounting() {
           </table>
         </div>
       </Section>
+
+      {/* Doctor salaries (founders) */}
+      {doctorPool ? (
+        <Section
+          title="Doctor salaries (founders)"
+          hint={`Interview work valued at ${isk(doctorPool.rate_isk)} per case, split between the doctors who perform them (Victor / Mads). Record actual payouts as Doctor-category cost invoices or adjustments so Paid out stays current.`}
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div>
+              <div className="text-gray-400 mb-0.5">Expected pool</div>
+              <div className="font-bold text-gray-900">{isk(doctorPool.expected_isk)}</div>
+              <div className="text-[11px] text-gray-500">{doctorPool.expected_count} roster members × {isk(doctorPool.rate_isk)}</div>
+            </div>
+            <div>
+              <div className="text-gray-400 mb-0.5">Earned (interviews done)</div>
+              <div className="font-bold text-gray-900">{isk(doctorPool.performed_isk)}</div>
+              <div className="text-[11px] text-gray-500">{doctorPool.performed_count} completed doctor slots</div>
+            </div>
+            <div>
+              <div className="text-gray-400 mb-0.5">Paid out</div>
+              <div className="font-bold text-gray-900">{isk(doctorPool.paid_isk)}</div>
+              <div className="text-[11px] text-gray-500">Doctor-category cost invoices</div>
+            </div>
+            <div>
+              <div className="text-gray-400 mb-0.5">Unpaid vs expected</div>
+              <div className={`font-bold ${doctorPool.expected_isk - doctorPool.paid_isk > 0 ? "text-amber-600" : "text-gray-900"}`}>
+                {isk(doctorPool.expected_isk - doctorPool.paid_isk)}
+              </div>
+              <div className="text-[11px] text-gray-500">Future liability if all interviews happen</div>
+            </div>
+          </div>
+        </Section>
+      ) : null}
 
       {/* Income */}
       <Section

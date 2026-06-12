@@ -14,6 +14,7 @@
 //              manual adjustments
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { assessmentUnitPriceIsk } from "@/lib/b2b-pricing";
 
 export const ACCOUNTANT_EMAIL =
   process.env.ACCOUNTING_FIRM_EMAIL || "jfk@mmedia.is";
@@ -518,28 +519,75 @@ export interface CompanyOverviewRow {
   outstanding_isk: number;
   costs_isk: number;
   net_isk: number; // invoiced − costs
+  // Projections from the roster: what this company SHOULD bring in and
+  // cost once everyone is assessed. Income = members × negotiated unit
+  // price (companies.assessment_unit_price, falling back to the tier
+  // price for the headcount); cost = members × (blood test +
+  // measurement + doctor interview rates).
+  member_count: number;
+  expected_income_isk: number;
+  expected_cost_isk: number;
+  expected_net_isk: number;
+}
+
+// The founders'/doctors' pay for interview work, valued at the
+// doctor-interview cost rate. Performed = completed doctor_slots;
+// paid = doctor-category cost invoices recorded in accounting.
+export interface DoctorPool {
+  rate_isk: number;
+  expected_count: number;   // total roster members across companies
+  expected_isk: number;
+  performed_count: number;  // doctor_slots marked completed (all-time)
+  performed_isk: number;
+  paid_isk: number;         // doctor-category expense invoices (all-time)
 }
 
 export async function computeCompanyOverview(): Promise<{
   rows: CompanyOverviewRow[];
   companies: Array<{ id: string; name: string }>;
+  doctor_pool: DoctorPool;
 }> {
-  const [companiesRes, invoicesRes, expRes, adjRes] = await Promise.all([
-    supabaseAdmin.from("companies").select("id, name").order("name"),
+  const today = new Date().toISOString().slice(0, 10);
+  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes] = await Promise.all([
+    supabaseAdmin.from("companies").select("id, name, assessment_unit_price").order("name"),
+    supabaseAdmin.from("company_members").select("company_id"),
     supabaseAdmin
       .from("company_invoices")
       .select("company_id, status, amount_total")
       .neq("status", "cancelled"),
     supabaseAdmin
       .from("accounting_expense_invoices")
-      .select("company_id, amount_isk"),
+      .select("company_id, amount_isk, category"),
     supabaseAdmin
       .from("accounting_adjustments")
       .select("company_id, amount_isk")
       .eq("kind", "expense"),
+    supabaseAdmin
+      .from("accounting_cost_rates")
+      .select("rate_key, amount_isk, effective_from")
+      .lte("effective_from", today)
+      .order("effective_from", { ascending: true }),
+    supabaseAdmin
+      .from("doctor_slots")
+      .select("id", { count: "exact", head: true })
+      .not("completed_at", "is", null),
+    supabaseAdmin
+      .from("accounting_expense_invoices")
+      .select("amount_isk")
+      .eq("category", "doctor"),
   ]);
 
-  const companies = (companiesRes.data || []) as Array<{ id: string; name: string }>;
+  const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null }>;
+
+  const rates: Record<string, number> = {};
+  for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
+  const perClientCost = (rates["blood_test"] || 0) + (rates["measurement"] || 0) + (rates["doctor_interview"] || 0);
+
+  const memberCounts = new Map<string, number>();
+  for (const m of membersRes.data || []) {
+    const id = m.company_id as string;
+    memberCounts.set(id, (memberCounts.get(id) || 0) + 1);
+  }
   const byId = new Map<string | null, CompanyOverviewRow>();
   const rowFor = (id: string | null): CompanyOverviewRow => {
     let row = byId.get(id);
@@ -549,6 +597,7 @@ export async function computeCompanyOverview(): Promise<{
         company_name: id ? (companies.find((c) => c.id === id)?.name || "Deleted company") : "Unassigned",
         invoice_count: 0, invoiced_isk: 0, paid_isk: 0, outstanding_isk: 0,
         costs_isk: 0, net_isk: 0,
+        member_count: 0, expected_income_isk: 0, expected_cost_isk: 0, expected_net_isk: 0,
       };
       byId.set(id, row);
     }
@@ -569,14 +618,43 @@ export async function computeCompanyOverview(): Promise<{
     rowFor((a.company_id as string | null) ?? null).costs_isk += (a.amount_isk as number) || 0;
   }
 
+  // Projections for every company with a roster, whether or not money
+  // has moved yet.
+  let totalMembers = 0;
+  for (const c of companies) {
+    const members = memberCounts.get(c.id) || 0;
+    if (members === 0 && !byId.has(c.id)) continue;
+    const row = rowFor(c.id);
+    row.member_count = members;
+    totalMembers += members;
+    const unitPrice = c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(members, 1), 1);
+    row.expected_income_isk = members * unitPrice;
+    row.expected_cost_isk = members * perClientCost;
+    row.expected_net_isk = row.expected_income_isk - row.expected_cost_isk;
+  }
+
   const rows = Array.from(byId.values()).map((r) => ({
     ...r,
     outstanding_isk: r.invoiced_isk - r.paid_isk,
     net_isk: r.invoiced_isk - r.costs_isk,
   }));
   // Biggest relationships first; the Unassigned bucket last.
-  rows.sort((a, b) => (a.company_id === null ? 1 : b.company_id === null ? -1 : b.invoiced_isk - a.invoiced_isk));
-  return { rows, companies };
+  rows.sort((a, b) => (a.company_id === null ? 1 : b.company_id === null ? -1
+    : (b.invoiced_isk - a.invoiced_isk) || (b.expected_income_isk - a.expected_income_isk)));
+
+  const doctorRate = rates["doctor_interview"] || 0;
+  const performedCount = docDoneRes.count ?? 0;
+  const paidIsk = (docPaidRes.data || []).reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
+  const doctor_pool: DoctorPool = {
+    rate_isk: doctorRate,
+    expected_count: totalMembers,
+    expected_isk: totalMembers * doctorRate,
+    performed_count: performedCount,
+    performed_isk: performedCount * doctorRate,
+    paid_isk: paidIsk,
+  };
+
+  return { rows, companies: companies.map(({ id, name }) => ({ id, name })), doctor_pool };
 }
 
 // ── Report email (Icelandic, to the accounting firm) ────────────────

@@ -69,6 +69,10 @@ interface FinRow {
   outstanding_isk: number;
   costs_isk: number;
   net_isk: number;
+  member_count: number;
+  expected_income_isk: number;
+  expected_cost_isk: number;
+  expected_net_isk: number;
 }
 
 const iskFmt = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
@@ -1765,27 +1769,47 @@ export default function AdminCompaniesPage() {
                     </div>
                   </div>
 
-                  {/* Financials — accounting rollup tied to this company:
-                      PayDay invoiced/paid/outstanding + costs tagged in
-                      the Accounting tab. Hidden until any money exists. */}
+                  {/* Financials — accounting rollup tied to this company.
+                      "Actual" = PayDay invoiced/paid/outstanding + costs
+                      tagged in the Accounting tab. "Expected" = roster ×
+                      negotiated unit price vs roster × per-client cost
+                      rates (blood test + measurement + doctor interview).
+                      Hidden until there's a roster or money. */}
                   {(() => {
                     const f = fin.get(c.id);
-                    if (!f || (f.invoice_count === 0 && f.costs_isk === 0)) return null;
+                    const hasActual = !!f && (f.invoice_count > 0 || f.costs_isk > 0);
+                    const hasExpected = !!f && f.member_count > 0;
+                    if (!f || (!hasActual && !hasExpected)) return null;
                     return (
-                      <div className="mt-3 flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-600">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Financials</span>
-                        <span>Invoiced <span className="font-semibold text-gray-900">{iskFmt(f.invoiced_isk)}</span></span>
-                        <span>Paid <span className="font-semibold text-gray-900">{iskFmt(f.paid_isk)}</span></span>
-                        <span className={f.outstanding_isk > 0 ? "text-amber-600" : ""}>
-                          Outstanding <span className="font-semibold">{iskFmt(f.outstanding_isk)}</span>
-                        </span>
-                        <span>Costs <span className="font-semibold text-gray-900">{iskFmt(f.costs_isk)}</span></span>
-                        <span className={f.net_isk < 0 ? "text-red-600" : "text-emerald-700"}>
-                          Net <span className="font-semibold">{iskFmt(f.net_isk)}</span>
-                        </span>
-                        <Link href="/admin/business?tab=accounting" className="text-emerald-700 hover:underline">
-                          Accounting →
-                        </Link>
+                      <div className="mt-3 space-y-1">
+                        {hasActual && (
+                          <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-600">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-14">Actual</span>
+                            <span>Invoiced <span className="font-semibold text-gray-900">{iskFmt(f.invoiced_isk)}</span></span>
+                            <span>Paid <span className="font-semibold text-gray-900">{iskFmt(f.paid_isk)}</span></span>
+                            <span className={f.outstanding_isk > 0 ? "text-amber-600" : ""}>
+                              Outstanding <span className="font-semibold">{iskFmt(f.outstanding_isk)}</span>
+                            </span>
+                            <span>Costs <span className="font-semibold text-gray-900">{iskFmt(f.costs_isk)}</span></span>
+                            <span className={f.net_isk < 0 ? "text-red-600" : "text-emerald-700"}>
+                              Net <span className="font-semibold">{iskFmt(f.net_isk)}</span>
+                            </span>
+                            <Link href="/admin/business?tab=accounting" className="text-emerald-700 hover:underline">
+                              Accounting →
+                            </Link>
+                          </div>
+                        )}
+                        {hasExpected && (
+                          <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-500">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-14">Expected</span>
+                            <span>{f.member_count} staff</span>
+                            <span>Income <span className="font-semibold text-gray-700">{iskFmt(f.expected_income_isk)}</span></span>
+                            <span>Costs <span className="font-semibold text-gray-700">{iskFmt(f.expected_cost_isk)}</span></span>
+                            <span className={f.expected_net_isk < 0 ? "text-red-600" : "text-emerald-700"}>
+                              Margin <span className="font-semibold">{iskFmt(f.expected_net_isk)}</span>
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
