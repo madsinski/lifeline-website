@@ -126,6 +126,49 @@ alter table accounting_expense_invoices
 alter table accounting_adjustments
   add column if not exists company_id uuid references companies(id) on delete set null;
 
+-- ── Who did the work (added 2026-06-12): slot-level attribution for
+--    future bookings, plus company-level work assignments ("doctor X
+--    covers 40 clients of company Y", client_count null = the whole
+--    company). Drives the per-doctor salary split in Accounting.
+alter table doctor_slots add column if not exists doctor_id uuid references staff(id) on delete set null;
+alter table station_slots add column if not exists measurer_id uuid references staff(id) on delete set null;
+
+create table if not exists company_work_assignments (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references companies(id) on delete cascade,
+  role text not null check (role in ('doctor', 'measurer')),
+  staff_id uuid not null references staff(id) on delete cascade,
+  client_count integer check (client_count > 0), -- null = whole company roster
+  note text,
+  created_by uuid,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_company_work_assignments_company
+  on company_work_assignments (company_id);
+alter table company_work_assignments enable row level security;
+drop policy if exists "Block client access" on company_work_assignments;
+create policy "Block client access" on company_work_assignments for all using (false) with check (false);
+
+-- ── Small key-value settings for the Plan tab (added 2026-06-12):
+--    cash balance, known liabilities, share count, and manual offsets
+--    for pre-platform health checks / subscribers. Edited in the UI.
+create table if not exists accounting_settings (
+  key text primary key,
+  value_numeric numeric not null default 0,
+  updated_at timestamptz not null default now()
+);
+alter table accounting_settings enable row level security;
+drop policy if exists "Block client access" on accounting_settings;
+create policy "Block client access" on accounting_settings for all using (false) with check (false);
+
+insert into accounting_settings (key, value_numeric) values
+  ('cash_balance_isk', 4503871),      -- Landsbankinn balance 12.6.2026
+  ('other_liabilities_isk', 1700000), -- 2× Biody machines still owed
+  ('total_shares', 0),                -- set to the real share count for per-share pricing
+  ('healthchecks_offset', 0),         -- health checks done outside the platform (pre-PayDay Vestmannaeyjar etc.)
+  ('subscribers_offset', 0)           -- app subscribers not visible in clients.coaching_tier
+on conflict (key) do nothing;
+
 -- ── USD→ISK rate per month. Auto-fetched on first use, manually
 --    overridable from the UI.
 create table if not exists accounting_fx_rates (

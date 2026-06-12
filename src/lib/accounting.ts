@@ -542,13 +542,25 @@ export interface DoctorPool {
   paid_isk: number;         // doctor-category expense invoices (all-time)
 }
 
+// Per-staff work split derived from company_work_assignments: clients
+// covered (explicit count, or the company's roster when null) × rate.
+export interface WorkSplitRow {
+  staff_id: string;
+  staff_name: string;
+  role: "doctor" | "measurer";
+  client_count: number;
+  rate_isk: number;
+  amount_isk: number;
+}
+
 export async function computeCompanyOverview(): Promise<{
   rows: CompanyOverviewRow[];
   companies: Array<{ id: string; name: string }>;
   doctor_pool: DoctorPool;
+  work_split: WorkSplitRow[];
 }> {
   const today = new Date().toISOString().slice(0, 10);
-  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes] = await Promise.all([
+  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes] = await Promise.all([
     supabaseAdmin.from("companies").select("id, name, assessment_unit_price").order("name"),
     supabaseAdmin.from("company_members").select("company_id"),
     supabaseAdmin
@@ -575,6 +587,9 @@ export async function computeCompanyOverview(): Promise<{
       .from("accounting_expense_invoices")
       .select("amount_isk")
       .eq("category", "doctor"),
+    supabaseAdmin
+      .from("company_work_assignments")
+      .select("company_id, role, staff_id, client_count, staff:staff_id(name, email)"),
   ]);
 
   const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null }>;
@@ -654,7 +669,30 @@ export async function computeCompanyOverview(): Promise<{
     paid_isk: paidIsk,
   };
 
-  return { rows, companies: companies.map(({ id, name }) => ({ id, name })), doctor_pool };
+  // Per-staff split: aggregate assignments per (staff, role). A null
+  // client_count means the company's whole roster.
+  const splitMap = new Map<string, WorkSplitRow>();
+  for (const a of assignRes.data || []) {
+    const role = a.role as "doctor" | "measurer";
+    const staffId = a.staff_id as string;
+    const clients = (a.client_count as number | null) ?? (memberCounts.get(a.company_id as string) || 0);
+    const rate = role === "doctor" ? doctorRate : rates["measurement"] || 0;
+    const key = `${staffId}:${role}`;
+    const staffName =
+      ((a.staff as unknown as { name?: string; email?: string } | null)?.name) ||
+      ((a.staff as unknown as { email?: string } | null)?.email) || "Unknown";
+    const row = splitMap.get(key) || {
+      staff_id: staffId, staff_name: staffName, role,
+      client_count: 0, rate_isk: rate, amount_isk: 0,
+    };
+    row.client_count += clients;
+    row.amount_isk = row.client_count * rate;
+    splitMap.set(key, row);
+  }
+  const work_split = Array.from(splitMap.values())
+    .sort((a, b) => a.role.localeCompare(b.role) || b.amount_isk - a.amount_isk);
+
+  return { rows, companies: companies.map(({ id, name }) => ({ id, name })), doctor_pool, work_split };
 }
 
 // ── Report email (Icelandic, to the accounting firm) ────────────────

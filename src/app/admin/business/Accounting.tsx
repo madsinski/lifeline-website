@@ -75,6 +75,11 @@ interface DoctorPool {
   paid_isk: number;
 }
 
+interface WorkSplitRow {
+  staff_id: string; staff_name: string; role: "doctor" | "measurer";
+  client_count: number; rate_isk: number; amount_isk: number;
+}
+
 interface Overhead {
   id: string; name: string; amount_isk: number | null; amount_usd: number | null;
   quantity: number; active: boolean; effective_from: string; effective_to: string | null;
@@ -119,6 +124,7 @@ export default function Accounting() {
   const [companyRows, setCompanyRows] = useState<CompanyRow[]>([]);
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [doctorPool, setDoctorPool] = useState<DoctorPool | null>(null);
+  const [workSplit, setWorkSplit] = useState<WorkSplitRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -163,6 +169,7 @@ export default function Accounting() {
         .filter((r) => r.invoice_count > 0 || r.costs_isk > 0));
       setCompanies(comp.companies || []);
       setDoctorPool(comp.doctor_pool || null);
+      setWorkSplit(comp.work_split || []);
     } catch (e) {
       setMsg(`Load failed: ${(e as Error).message}`);
     } finally {
@@ -472,6 +479,28 @@ export default function Accounting() {
               <div className="text-[11px] text-gray-500">Future liability if all interviews happen</div>
             </div>
           </div>
+          {workSplit.length > 0 ? (
+            <div className="mt-3 pt-2 border-t border-gray-100 space-y-1 text-xs text-gray-700">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                Split by assignment (set per company under Companies → Who does the work)
+              </div>
+              {workSplit.map((w) => (
+                <div key={`${w.staff_id}-${w.role}`} className="flex items-center justify-between gap-2">
+                  <span>
+                    <span className="font-medium">{w.staff_name}</span>
+                    <span className="text-gray-400">
+                      {" "}· {w.role === "doctor" ? "doctor interviews" : "measurements"} · {w.client_count} clients × {isk(w.rate_isk)}
+                    </span>
+                  </span>
+                  <span className="font-medium">{isk(w.amount_isk)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 pt-2 border-t border-gray-100 text-[11px] text-gray-400">
+              No work assignments yet — expand a company under Companies and use „Who does the work“ to split the pool between Victor and Mads.
+            </div>
+          )}
         </Section>
       ) : null}
 
