@@ -821,6 +821,10 @@ export interface TotalsOverview {
     realized_isk: number; // received − recorded
     full_isk: number;     // invoiced − grand total costs
   };
+  items: {
+    income: OverviewLineItem[];
+    costs: OverviewLineItem[];
+  };
   warnings: string[];
 }
 
@@ -830,46 +834,88 @@ function monthsBetween(fromDate: string, toMonth: string): number {
   return Math.max((ty - fy) * 12 + (tm - fm) + 1, 0);
 }
 
-export async function computeTotalsOverview(): Promise<TotalsOverview> {
+export interface OverviewFilter {
+  fromMonth?: string; // YYYY-MM inclusive
+  toMonth?: string;   // YYYY-MM inclusive
+  companyId?: string; // limit to one company (drops company-agnostic lines)
+}
+
+export interface OverviewLineItem {
+  date: string; // YYYY-MM-DD or YYYY-MM
+  label: string;
+  ref?: string | null;
+  category?: string | null;
+  amount_isk: number;
+  note?: string | null;
+}
+
+export async function computeTotalsOverview(filter: OverviewFilter = {}): Promise<TotalsOverview> {
   const warnings: string[] = [];
   const nowMonth = new Date().toISOString().slice(0, 7);
   const today = new Date().toISOString().slice(0, 10);
+  const fromMonth = filter.fromMonth && MONTH_RE.test(filter.fromMonth) ? filter.fromMonth : null;
+  const toMonth = filter.toMonth && MONTH_RE.test(filter.toMonth) ? filter.toMonth : null;
+  const companyId = filter.companyId || null;
+  const allTime = !fromMonth && !toMonth;
+  const startISO = fromMonth ? `${fromMonth}-01T00:00:00Z` : null;
+  const endISO = toMonth ? monthBounds(toMonth).endISO : null;
+  const fromDate = fromMonth ? `${fromMonth}-01` : null;
+  const toDate = toMonth ? `${toMonth}-01` : null;
 
-  const [invoicesRes, scannedRes, adjRes, b2cRes, overheadsRes, ratesRes, hcInvRes, hcB2cRes, settingsRes] =
+  let invQ = supabaseAdmin
+    .from("company_invoices")
+    .select("status, amount_total, issued_at, payday_invoice_number, quantity, company_id, company:companies(name)")
+    .neq("status", "cancelled");
+  if (startISO) invQ = invQ.gte("issued_at", startISO);
+  if (endISO) invQ = invQ.lt("issued_at", endISO);
+  if (companyId) invQ = invQ.eq("company_id", companyId);
+
+  let scanQ = supabaseAdmin
+    .from("accounting_expense_invoices")
+    .select("month, direction, category, vendor, description, amount_isk, invoice_number, paid_by, reimbursed_at, payer:staff!paid_by(name)");
+  if (fromDate) scanQ = scanQ.gte("month", fromDate);
+  if (toDate) scanQ = scanQ.lte("month", toDate);
+  if (companyId) scanQ = scanQ.eq("company_id", companyId);
+
+  let adjQ = supabaseAdmin
+    .from("accounting_adjustments")
+    .select("month, kind, description, amount_isk");
+  if (fromDate) adjQ = adjQ.gte("month", fromDate);
+  if (toDate) adjQ = adjQ.lte("month", toDate);
+  if (companyId) adjQ = adjQ.eq("company_id", companyId);
+
+  let b2cQ = supabaseAdmin
+    .from("payments")
+    .select("amount_isk", { count: "exact" })
+    .eq("status", "succeeded")
+    .or("provider.is.null,provider.neq.payday");
+  if (startISO) b2cQ = b2cQ.gte("paid_at", startISO);
+  if (endISO) b2cQ = b2cQ.lt("paid_at", endISO);
+
+  let hcB2cQ = supabaseAdmin
+    .from("body_comp_bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "confirmed")
+    .eq("payment_status", "paid")
+    .eq("package", "foundational");
+  if (startISO) hcB2cQ = hcB2cQ.gte("scheduled_at", startISO);
+  if (endISO) hcB2cQ = hcB2cQ.lt("scheduled_at", endISO);
+
+  const [invoicesRes, scannedRes, adjRes, b2cRes, overheadsRes, ratesRes, hcB2cRes, settingsRes] =
     await Promise.all([
-      supabaseAdmin
-        .from("company_invoices")
-        .select("status, amount_total")
-        .neq("status", "cancelled"),
-      supabaseAdmin
-        .from("accounting_expense_invoices")
-        .select("direction, category, amount_isk, paid_by, reimbursed_at"),
-      supabaseAdmin
-        .from("accounting_adjustments")
-        .select("kind, amount_isk"),
-      supabaseAdmin
-        .from("payments")
-        .select("amount_isk", { count: "exact" })
-        .eq("status", "succeeded")
-        .or("provider.is.null,provider.neq.payday"),
+      invQ,
+      scanQ,
+      adjQ,
+      companyId ? Promise.resolve({ data: [], count: 0 } as { data: Array<{ amount_isk: number }>; count: number }) : b2cQ,
       supabaseAdmin
         .from("accounting_overheads")
-        .select("amount_isk, amount_usd, quantity, active, effective_from, effective_to"),
+        .select("name, amount_isk, amount_usd, quantity, active, effective_from, effective_to"),
       supabaseAdmin
         .from("accounting_cost_rates")
         .select("rate_key, amount_isk, effective_from")
         .lte("effective_from", today)
         .order("effective_from", { ascending: true }),
-      supabaseAdmin
-        .from("company_invoices")
-        .select("quantity")
-        .neq("status", "cancelled"),
-      supabaseAdmin
-        .from("body_comp_bookings")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "confirmed")
-        .eq("payment_status", "paid")
-        .eq("package", "foundational"),
+      companyId ? Promise.resolve({ count: 0 } as { count: number }) : hcB2cQ,
       supabaseAdmin
         .from("accounting_settings")
         .select("key, value_numeric"),
@@ -877,55 +923,113 @@ export async function computeTotalsOverview(): Promise<TotalsOverview> {
 
   const settings: Record<string, number> = {};
   for (const r of settingsRes.data || []) settings[r.key as string] = Number(r.value_numeric) || 0;
+  // Company-agnostic lines (offsets, overheads, manual liabilities) only
+  // belong to the unfiltered all-time view.
+  const includeGlobals = !companyId;
+  const includeAllTimeOnly = allTime && !companyId;
 
-  // Income
-  let paydayInvoiced = 0, paydayPaid = 0;
+  const incomeItems: OverviewLineItem[] = [];
+  const costItems: OverviewLineItem[] = [];
+
+  // Income — PayDay invoices
+  let paydayInvoiced = 0, paydayPaid = 0, invoicedQty = 0;
   for (const inv of invoicesRes.data || []) {
     const a = (inv.amount_total as number) || 0;
     paydayInvoiced += a;
     if (inv.status === "paid") paydayPaid += a;
+    invoicedQty += (inv.quantity as number) || 0;
+    incomeItems.push({
+      date: (inv.issued_at as string | null)?.slice(0, 10) || "",
+      label: `Invoice — ${((inv.company as unknown as { name?: string } | null)?.name) || "company"}`,
+      ref: (inv.payday_invoice_number as string | null) ?? null,
+      amount_isk: a,
+      note: inv.status as string,
+    });
   }
+
+  // Income — scanned sales + cost rows
   const scanned = scannedRes.data || [];
-  const scannedSales = scanned
-    .filter((r) => r.direction === "income")
-    .reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
-  const incomeAdj = (adjRes.data || [])
-    .filter((a) => a.kind === "income")
-    .reduce((s, a) => s + ((a.amount_isk as number) || 0), 0);
+  let scannedSales = 0;
+  for (const r of scanned.filter((x) => x.direction === "income")) {
+    const a = (r.amount_isk as number) || 0;
+    scannedSales += a;
+    incomeItems.push({
+      date: String(r.month).slice(0, 7),
+      label: `Sales invoice (scanned) — ${r.vendor || "customer"}`,
+      ref: (r.invoice_number as string | null) ?? null,
+      amount_isk: a,
+      note: "settled",
+    });
+  }
+  const incomeAdjRows = (adjRes.data || []).filter((a) => a.kind === "income");
+  const incomeAdj = incomeAdjRows.reduce((s, a) => s + ((a.amount_isk as number) || 0), 0);
+  for (const a of incomeAdjRows) {
+    incomeItems.push({ date: String(a.month).slice(0, 7), label: `Adjustment — ${a.description}`, amount_isk: (a.amount_isk as number) || 0 });
+  }
   const b2cPaid = (b2cRes.data || []).reduce((s, p) => s + ((p.amount_isk as number) || 0), 0);
+  const b2cCount = b2cRes.count ?? 0;
+  if (b2cPaid > 0) {
+    incomeItems.push({ date: "", label: `B2C card payments (${b2cCount})`, amount_isk: b2cPaid });
+  }
   const totalInvoiced = paydayInvoiced + scannedSales + b2cPaid + incomeAdj;
   const totalReceived = paydayPaid + scannedSales + b2cPaid + incomeAdj;
 
   // Costs recorded
   const costRows = scanned.filter((r) => r.direction !== "income");
-  const costInvoices = costRows.reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
-  const unreimbursed = costRows
-    .filter((r) => r.paid_by && !r.reimbursed_at)
-    .reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
-  const expenseAdj = (adjRes.data || [])
-    .filter((a) => a.kind === "expense")
-    .reduce((s, a) => s + ((a.amount_isk as number) || 0), 0);
-
-  // Overheads accrued: active rows from effective_from → now; inactive
-  // rows only when an effective_to bounds them (rows deactivated
-  // because real invoices took over are skipped — no double count).
-  let fxRate: number | null = null;
-  const needsFx = (overheadsRes.data || []).some((o) => o.amount_usd != null);
-  if (needsFx) {
-    const fx = await getFxRate(nowMonth);
-    fxRate = fx?.usd_isk ?? null;
-    if (!fxRate) warnings.push("USD/ISK rate unavailable — USD overheads excluded from the accrual.");
+  let costInvoices = 0, unreimbursed = 0;
+  for (const r of costRows) {
+    const a = (r.amount_isk as number) || 0;
+    costInvoices += a;
+    const owed = r.paid_by && !r.reimbursed_at;
+    if (owed) unreimbursed += a;
+    costItems.push({
+      date: String(r.month).slice(0, 7),
+      label: `${r.vendor || "Invoice"}${r.description ? ` — ${r.description}` : ""}`,
+      ref: (r.invoice_number as string | null) ?? null,
+      category: (r.category as string) || "other",
+      amount_isk: a,
+      note: owed ? `paid by ${((r.payer as unknown as { name?: string } | null)?.name) || "staff"} — owed back` : null,
+    });
   }
+  const expenseAdjRows = (adjRes.data || []).filter((a) => a.kind === "expense");
+  const expenseAdj = expenseAdjRows.reduce((s, a) => s + ((a.amount_isk as number) || 0), 0);
+  for (const a of expenseAdjRows) {
+    costItems.push({ date: String(a.month).slice(0, 7), label: `Adjustment — ${a.description}`, category: "adjustment", amount_isk: (a.amount_isk as number) || 0 });
+  }
+
+  // Overheads accrued within the filtered window (company-agnostic).
   let overheadsAccrued = 0;
-  for (const o of overheadsRes.data || []) {
-    const end = o.effective_to ? String(o.effective_to).slice(0, 7) : nowMonth;
-    if (!o.active && !o.effective_to) continue;
-    const months = monthsBetween(String(o.effective_from), end > nowMonth ? nowMonth : end);
-    const qty = (o.quantity as number) || 1;
-    const unit = o.amount_usd != null
-      ? (fxRate ? (o.amount_usd as number) * fxRate : 0)
-      : ((o.amount_isk as number) || 0);
-    overheadsAccrued += Math.round(unit * qty * months);
+  if (includeGlobals) {
+    let fxRate: number | null = null;
+    const needsFx = (overheadsRes.data || []).some((o) => o.amount_usd != null);
+    if (needsFx) {
+      const fx = await getFxRate(nowMonth);
+      fxRate = fx?.usd_isk ?? null;
+      if (!fxRate) warnings.push("USD/ISK rate unavailable — USD overheads excluded from the accrual.");
+    }
+    for (const o of overheadsRes.data || []) {
+      if (!o.active && !o.effective_to) continue;
+      let start = String(o.effective_from).slice(0, 7);
+      let end = o.effective_to ? String(o.effective_to).slice(0, 7) : nowMonth;
+      if (end > nowMonth) end = nowMonth;
+      if (fromMonth && start < fromMonth) start = fromMonth;
+      if (toMonth && end > toMonth) end = toMonth;
+      if (start > end) continue;
+      const months = monthsBetween(`${start}-01`, end);
+      const qty = (o.quantity as number) || 1;
+      const unit = o.amount_usd != null
+        ? (fxRate ? (o.amount_usd as number) * fxRate : 0)
+        : ((o.amount_isk as number) || 0);
+      const amount = Math.round(unit * qty * months);
+      if (amount === 0) continue;
+      overheadsAccrued += amount;
+      costItems.push({
+        date: `${start}→${end}`,
+        label: `${o.name}${qty > 1 ? ` (${qty}×)` : ""} — ${months} month${months > 1 ? "s" : ""}`,
+        category: "overhead",
+        amount_isk: amount,
+      });
+    }
   }
   const recordedTotal = costInvoices + expenseAdj + overheadsAccrued;
 
@@ -933,18 +1037,33 @@ export async function computeTotalsOverview(): Promise<TotalsOverview> {
   const rates: Record<string, number> = {};
   for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
   const perCheck = (rates["blood_test"] || 0) + (rates["measurement"] || 0) + (rates["doctor_interview"] || 0);
-  const checksDone = (hcInvRes.data || []).reduce((s, r) => s + ((r.quantity as number) || 0), 0)
+  const checksDone = invoicedQty
     + (hcB2cRes.count ?? 0)
-    + Math.round(settings.healthchecks_offset || 0);
+    + (includeAllTimeOnly ? Math.round(settings.healthchecks_offset || 0) : 0);
   const perCheckExpected = checksDone * perCheck;
   const perCheckRecorded = costRows
     .filter((r) => ["blood_tests", "measurements", "doctor"].includes(r.category as string))
     .reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
   const perCheckOutstanding = Math.max(perCheckExpected - perCheckRecorded, 0);
+  if (perCheckOutstanding > 0) {
+    costItems.push({
+      date: "",
+      label: `Per-check costs not yet invoiced (${checksDone} checks × ${perCheck} − recorded)`,
+      category: "accrual",
+      amount_isk: perCheckOutstanding,
+      note: "outstanding",
+    });
+  }
 
-  const manualLiabilities = Math.round(settings.other_liabilities_isk || 0);
+  const manualLiabilities = includeAllTimeOnly ? Math.round(settings.other_liabilities_isk || 0) : 0;
+  if (manualLiabilities > 0) {
+    costItems.push({ date: "", label: "Known liabilities (Biody machines etc.)", category: "liability", amount_isk: manualLiabilities, note: "outstanding" });
+  }
   const outstandingTotal = perCheckOutstanding + manualLiabilities + unreimbursed;
   const grandTotal = recordedTotal + perCheckOutstanding + manualLiabilities;
+
+  incomeItems.sort((a, b) => a.date.localeCompare(b.date));
+  costItems.sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     income: {
@@ -953,7 +1072,7 @@ export async function computeTotalsOverview(): Promise<TotalsOverview> {
       payday_outstanding_isk: paydayInvoiced - paydayPaid,
       scanned_sales_isk: scannedSales,
       b2c_paid_isk: b2cPaid,
-      b2c_count: b2cRes.count ?? 0,
+      b2c_count: b2cCount,
       adjustments_isk: incomeAdj,
       total_invoiced_isk: totalInvoiced,
       total_received_isk: totalReceived,
@@ -977,6 +1096,7 @@ export async function computeTotalsOverview(): Promise<TotalsOverview> {
       realized_isk: totalReceived - recordedTotal,
       full_isk: totalInvoiced - grandTotal,
     },
+    items: { income: incomeItems, costs: costItems },
     warnings,
   };
 }

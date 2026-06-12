@@ -80,7 +80,13 @@ interface TotalsOverview {
     manual_liabilities_isk: number; outstanding_total_isk: number; grand_total_isk: number;
   };
   net: { realized_isk: number; full_isk: number };
+  items: { income: OverviewLineItem[]; costs: OverviewLineItem[] };
   warnings: string[];
+}
+
+interface OverviewLineItem {
+  date: string; label: string; ref?: string | null; category?: string | null;
+  amount_isk: number; note?: string | null;
 }
 
 interface CompanyRow {
@@ -151,6 +157,11 @@ export default function Accounting() {
   const [staffList, setStaffList] = useState<Array<{ id: string; name: string | null; email: string }>>([]);
   const [reimbursements, setReimbursements] = useState<ReimbursementRow[]>([]);
   const [totals, setTotals] = useState<TotalsOverview | null>(null);
+  // Overview scope: all time / picker year / picker month, optional
+  // single-company lens, and the itemized line view.
+  const [scope, setScope] = useState<"all" | "year" | "month">("all");
+  const [scopeCompany, setScopeCompany] = useState("");
+  const [showItems, setShowItems] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -171,13 +182,12 @@ export default function Accounting() {
     setLoading(true);
     setMsg("");
     try {
-      const [repRes, invRes, ovhRes, rateRes, compRes, totRes] = await Promise.all([
+      const [repRes, invRes, ovhRes, rateRes, compRes] = await Promise.all([
         authedFetch(`/api/admin/accounting/report?month=${month}`),
         authedFetch(`/api/admin/accounting/invoices?month=${month}`),
         authedFetch(`/api/admin/accounting/overheads`),
         authedFetch(`/api/admin/accounting/rates`),
         authedFetch(`/api/admin/accounting/companies`),
-        authedFetch(`/api/admin/accounting/totals`),
       ]);
       const rep = await repRes.json();
       if (!repRes.ok) throw new Error(rep.error || "report failed");
@@ -199,8 +209,6 @@ export default function Accounting() {
       setWorkSplit(comp.work_split || []);
       setStaffList(comp.staff || []);
       setReimbursements(comp.reimbursements || []);
-      const tot = totRes.ok ? await totRes.json() : null;
-      setTotals(tot?.totals || null);
     } catch (e) {
       setMsg(`Load failed: ${(e as Error).message}`);
     } finally {
@@ -209,6 +217,26 @@ export default function Accounting() {
   }, [authedFetch, month]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  const loadTotals = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (scope === "month") { params.set("from", month); params.set("to", month); }
+    else if (scope === "year") {
+      const y = month.slice(0, 4);
+      params.set("from", `${y}-01`);
+      params.set("to", `${y}-12`);
+    }
+    if (scopeCompany) params.set("company_id", scopeCompany);
+    try {
+      const res = await authedFetch(`/api/admin/accounting/totals?${params.toString()}`);
+      const json = res.ok ? await res.json() : null;
+      setTotals(json?.totals || null);
+    } catch {
+      setTotals(null);
+    }
+  }, [authedFetch, scope, scopeCompany, month]);
+
+  useEffect(() => { loadTotals(); }, [loadTotals]);
 
   const act = useCallback(async (
     key: string,
@@ -224,12 +252,13 @@ export default function Accounting() {
       if (json.warnings?.length) setMsg(`Saved. ${json.warnings.join(" · ")}`);
       else if (okMsg) setMsg(okMsg);
       await refresh();
+      await loadTotals();
     } catch (e) {
       setMsg(`Failed: ${(e as Error).message}`);
     } finally {
       setBusy(null);
     }
-  }, [refresh]);
+  }, [refresh, loadTotals]);
 
   // ── Header actions ──────────────────────────────────────────────
 
@@ -455,11 +484,27 @@ export default function Accounting() {
         </div>
       ) : null}
 
-      {/* All-time overview */}
+      {/* Business overview (filterable) */}
       {totals ? (
         <Section
-          title="All-time overview"
-          hint="The whole business since the start — every króna invoiced/received, costs recorded, and accrued outstanding costs (health checks performed carry a fixed per-check cost even before the supplier invoice arrives)."
+          title={`Overview — ${scope === "all" ? "all time" : scope === "year" ? month.slice(0, 4) : month}${scopeCompany ? ` · ${companies.find((c) => c.id === scopeCompany)?.name || "company"}` : ""}`}
+          hint="Every króna invoiced/received against costs recorded + accrued outstanding (health checks carry a fixed per-check cost even before the supplier invoice arrives). Company filter drops company-agnostic lines (overheads, B2C, liabilities)."
+          action={
+            <span className="flex items-center gap-2 flex-wrap">
+              <select className={inputCls} value={scope} onChange={(e) => setScope(e.target.value as "all" | "year" | "month")}>
+                <option value="all">All time</option>
+                <option value="year">Year ({month.slice(0, 4)})</option>
+                <option value="month">Month ({month})</option>
+              </select>
+              <select className={inputCls} value={scopeCompany} onChange={(e) => setScopeCompany(e.target.value)}>
+                <option value="">All companies</option>
+                {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button className={btn} onClick={() => setShowItems((v) => !v)}>
+                {showItems ? "Hide items" : "Itemize"}
+              </button>
+            </span>
+          }
         >
           {totals.warnings.map((w, i) => (
             <div key={i} className="text-xs rounded-md px-3 py-2 mb-2 border bg-amber-50 border-amber-200 text-amber-900">{w}</div>
@@ -511,6 +556,40 @@ export default function Accounting() {
               </div>
             </div>
           </div>
+          {showItems ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-3 mt-3 pt-2 border-t border-gray-100 text-[11px] text-gray-600">
+              <div className="space-y-0.5">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Income items ({totals.items.income.length})</div>
+                {totals.items.income.length === 0 ? <div className="text-gray-400">None in this scope.</div> : null}
+                {totals.items.income.map((it, i) => (
+                  <div key={i} className="flex items-start justify-between gap-3">
+                    <span>
+                      {it.date ? <span className="text-gray-400">{it.date} · </span> : null}
+                      {it.label}
+                      {it.ref ? <span className="text-gray-400"> · {it.ref}</span> : null}
+                      {it.note ? <span className={it.note === "paid" || it.note === "settled" ? " text-emerald-600" : " text-amber-600"}> · {it.note}</span> : null}
+                    </span>
+                    <span className="font-medium whitespace-nowrap">{isk(it.amount_isk)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Cost items ({totals.items.costs.length})</div>
+                {totals.items.costs.length === 0 ? <div className="text-gray-400">None in this scope.</div> : null}
+                {totals.items.costs.map((it, i) => (
+                  <div key={i} className="flex items-start justify-between gap-3">
+                    <span>
+                      {it.date ? <span className="text-gray-400">{it.date} · </span> : null}
+                      {it.label}
+                      {it.category ? <span className="text-gray-400"> · {CATEGORY_LABELS[it.category] || it.category}</span> : null}
+                      {it.note ? <span className="text-amber-600"> · {it.note}</span> : null}
+                    </span>
+                    <span className="font-medium whitespace-nowrap">{isk(it.amount_isk)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between gap-4 flex-wrap mt-3 pt-2 border-t border-gray-200 text-sm">
             <span className="text-gray-600">
               Net realized (received − recorded):{" "}
