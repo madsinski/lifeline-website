@@ -52,9 +52,29 @@ create table if not exists accounting_overheads (
   check (amount_isk is not null or amount_usd is not null)
 );
 
+-- Seed amounts are observed monthly averages from the Landsbankinn
+-- statement (Sep 2025 – Jun 2026). Medalia invoices 18.600 kr. per
+-- seat (15.000 + 24% VSK; input VAT not reclaimable — health services
+-- are VAT-exempt on sale). Card-billed SaaS settles in ISK, so these
+-- are ISK rows; switch any to amount_usd in the UI for FX-exact
+-- tracking instead.
 insert into accounting_overheads (name, amount_isk, quantity, effective_from, note)
-select 'Medalia — doctor seats', 15000, 2, '2026-01-01', 'Per doctor user per month'
-where not exists (select 1 from accounting_overheads where name = 'Medalia — doctor seats');
+select v.name, v.amount_isk, v.quantity, '2026-06-01'::date, v.note
+from (values
+  ('Medalia — doctor seats', 18600, 2, 'Per doctor user per month (15.000 + 24% VSK)'),
+  ('Claude (Anthropic)',     15600, 1, 'Varies 13.6–25k/mo on statement'),
+  ('Payday',                 10044, 1, 'Monthly invoice'),
+  ('Typeform',                8100, 1, null),
+  ('Google Workspace',        4000, 1, null),
+  ('Supabase',                3200, 1, null),
+  ('Zoom',                    2900, 1, null),
+  ('Vercel',                  2500, 1, null),
+  ('Expo (650 Industries)',   2500, 1, null),
+  ('Bitwarden',               2500, 1, null),
+  ('OpenAI API',              1200, 1, 'Varies with usage'),
+  ('Landsbankinn fees',        300, 1, 'Þjónustu- og færslugjöld')
+) as v(name, amount_isk, quantity, note)
+where not exists (select 1 from accounting_overheads o where o.name = v.name);
 
 -- ── Uploaded cost invoices (PDF in the accounting-invoices bucket,
 --    fields AI-extracted then human-confirmed). One invoice can cover a
