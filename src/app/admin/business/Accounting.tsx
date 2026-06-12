@@ -66,6 +66,23 @@ interface ReimbursementRow {
   staff_id: string; staff_name: string; invoice_count: number; total_isk: number;
 }
 
+interface TotalsOverview {
+  income: {
+    payday_invoiced_isk: number; payday_paid_isk: number; payday_outstanding_isk: number;
+    scanned_sales_isk: number; b2c_paid_isk: number; b2c_count: number;
+    adjustments_isk: number; total_invoiced_isk: number; total_received_isk: number;
+  };
+  costs: {
+    invoices_recorded_isk: number; adjustments_isk: number; overheads_accrued_isk: number;
+    recorded_total_isk: number; unreimbursed_isk: number;
+    health_checks_done: number; per_check_cost_isk: number; per_check_expected_isk: number;
+    per_check_recorded_isk: number; per_check_outstanding_isk: number;
+    manual_liabilities_isk: number; outstanding_total_isk: number; grand_total_isk: number;
+  };
+  net: { realized_isk: number; full_isk: number };
+  warnings: string[];
+}
+
 interface CompanyRow {
   company_id: string | null; company_name: string; invoice_count: number;
   invoiced_isk: number; paid_isk: number; outstanding_isk: number;
@@ -133,6 +150,7 @@ export default function Accounting() {
   const [workSplit, setWorkSplit] = useState<WorkSplitRow[]>([]);
   const [staffList, setStaffList] = useState<Array<{ id: string; name: string | null; email: string }>>([]);
   const [reimbursements, setReimbursements] = useState<ReimbursementRow[]>([]);
+  const [totals, setTotals] = useState<TotalsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -153,12 +171,13 @@ export default function Accounting() {
     setLoading(true);
     setMsg("");
     try {
-      const [repRes, invRes, ovhRes, rateRes, compRes] = await Promise.all([
+      const [repRes, invRes, ovhRes, rateRes, compRes, totRes] = await Promise.all([
         authedFetch(`/api/admin/accounting/report?month=${month}`),
         authedFetch(`/api/admin/accounting/invoices?month=${month}`),
         authedFetch(`/api/admin/accounting/overheads`),
         authedFetch(`/api/admin/accounting/rates`),
         authedFetch(`/api/admin/accounting/companies`),
+        authedFetch(`/api/admin/accounting/totals`),
       ]);
       const rep = await repRes.json();
       if (!repRes.ok) throw new Error(rep.error || "report failed");
@@ -180,6 +199,8 @@ export default function Accounting() {
       setWorkSplit(comp.work_split || []);
       setStaffList(comp.staff || []);
       setReimbursements(comp.reimbursements || []);
+      const tot = totRes.ok ? await totRes.json() : null;
+      setTotals(tot?.totals || null);
     } catch (e) {
       setMsg(`Load failed: ${(e as Error).message}`);
     } finally {
@@ -432,6 +453,75 @@ export default function Accounting() {
         <div className="text-xs rounded-md px-3 py-2 border bg-amber-50 border-amber-200 text-amber-900">
           {report.warnings.map((w, i) => <div key={i}>{w}</div>)}
         </div>
+      ) : null}
+
+      {/* All-time overview */}
+      {totals ? (
+        <Section
+          title="All-time overview"
+          hint="The whole business since the start — every króna invoiced/received, costs recorded, and accrued outstanding costs (health checks performed carry a fixed per-check cost even before the supplier invoice arrives)."
+        >
+          {totals.warnings.map((w, i) => (
+            <div key={i} className="text-xs rounded-md px-3 py-2 mb-2 border bg-amber-50 border-amber-200 text-amber-900">{w}</div>
+          ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-3 text-xs text-gray-700">
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Income</div>
+              <div className="flex justify-between"><span>PayDay invoices issued</span><span className="font-medium">{isk(totals.income.payday_invoiced_isk)}</span></div>
+              <div className="flex justify-between text-gray-500"><span className="pl-3">of which paid</span><span>{isk(totals.income.payday_paid_isk)}</span></div>
+              <div className="flex justify-between"><span className="pl-3">of which outstanding</span><span className={`font-medium ${totals.income.payday_outstanding_isk > 0 ? "text-amber-600" : ""}`}>{isk(totals.income.payday_outstanding_isk)}</span></div>
+              <div className="flex justify-between"><span>Scanned sales invoices (settled)</span><span className="font-medium">{isk(totals.income.scanned_sales_isk)}</span></div>
+              <div className="flex justify-between"><span>B2C card payments ({totals.income.b2c_count})</span><span className="font-medium">{isk(totals.income.b2c_paid_isk)}</span></div>
+              {totals.income.adjustments_isk !== 0 ? (
+                <div className="flex justify-between"><span>Income adjustments</span><span className="font-medium">{isk(totals.income.adjustments_isk)}</span></div>
+              ) : null}
+              <div className="flex justify-between pt-1 border-t border-gray-100 font-semibold text-gray-900">
+                <span>Total invoiced</span><span>{isk(totals.income.total_invoiced_isk)}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-emerald-700">
+                <span>Total received</span><span>{isk(totals.income.total_received_isk)}</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Costs</div>
+              <div className="flex justify-between"><span>Cost invoices recorded</span><span className="font-medium">{isk(totals.costs.invoices_recorded_isk)}</span></div>
+              {totals.costs.unreimbursed_isk > 0 ? (
+                <div className="flex justify-between text-amber-600"><span className="pl-3">of which owed to founders (unreimbursed)</span><span>{isk(totals.costs.unreimbursed_isk)}</span></div>
+              ) : null}
+              {totals.costs.adjustments_isk !== 0 ? (
+                <div className="flex justify-between"><span>Expense adjustments</span><span className="font-medium">{isk(totals.costs.adjustments_isk)}</span></div>
+              ) : null}
+              <div className="flex justify-between"><span>Overheads accrued (subscriptions × months)</span><span className="font-medium">{isk(totals.costs.overheads_accrued_isk)}</span></div>
+              <div className="flex justify-between pt-1 border-t border-gray-100 font-semibold text-gray-900">
+                <span>Costs recorded</span><span>{isk(totals.costs.recorded_total_isk)}</span>
+              </div>
+              <div className="flex justify-between pt-1">
+                <span>
+                  Per-check costs accrued — {totals.costs.health_checks_done} checks × {isk(totals.costs.per_check_cost_isk)}
+                </span>
+                <span className="font-medium">{isk(totals.costs.per_check_expected_isk)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500"><span className="pl-3">already invoiced (blood/measure/doctor)</span><span>−{isk(totals.costs.per_check_recorded_isk)}</span></div>
+              <div className="flex justify-between"><span className="pl-3">outstanding, no invoice yet</span><span className={`font-medium ${totals.costs.per_check_outstanding_isk > 0 ? "text-amber-600" : ""}`}>{isk(totals.costs.per_check_outstanding_isk)}</span></div>
+              {totals.costs.manual_liabilities_isk > 0 ? (
+                <div className="flex justify-between"><span>Known liabilities (Biody etc.)</span><span className="font-medium text-amber-600">{isk(totals.costs.manual_liabilities_isk)}</span></div>
+              ) : null}
+              <div className="flex justify-between pt-1 border-t border-gray-100 font-semibold text-gray-900">
+                <span>Total costs incl. outstanding</span><span>{isk(totals.costs.grand_total_isk)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-4 flex-wrap mt-3 pt-2 border-t border-gray-200 text-sm">
+            <span className="text-gray-600">
+              Net realized (received − recorded):{" "}
+              <span className={`font-bold ${totals.net.realized_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>{isk(totals.net.realized_isk)}</span>
+            </span>
+            <span className="text-gray-600">
+              Net full picture (invoiced − all costs incl. outstanding):{" "}
+              <span className={`font-bold ${totals.net.full_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>{isk(totals.net.full_isk)}</span>
+            </span>
+          </div>
+        </Section>
       ) : null}
 
       {/* P&L summary */}

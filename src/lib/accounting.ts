@@ -779,6 +779,205 @@ export async function computeCompanyOverview(): Promise<{
   };
 }
 
+// ── All-time totals overview ─────────────────────────────────────────
+//
+// The whole-business picture, not per month: every króna invoiced and
+// received, every cost recorded, plus the ACCRUED costs that have no
+// invoice yet — health checks performed carry a fixed per-check cost
+// (blood test + measurement + doctor interview rates), so checks done
+// minus per-check costs already recorded = outstanding cost accrual.
+
+export interface TotalsOverview {
+  income: {
+    payday_invoiced_isk: number;
+    payday_paid_isk: number;
+    payday_outstanding_isk: number;
+    scanned_sales_isk: number;   // income-direction scanned invoices (settled)
+    b2c_paid_isk: number;
+    b2c_count: number;
+    adjustments_isk: number;
+    total_invoiced_isk: number;
+    total_received_isk: number;
+  };
+  costs: {
+    invoices_recorded_isk: number;   // all cost invoices
+    adjustments_isk: number;         // all expense adjustments
+    overheads_accrued_isk: number;   // monthly overheads × months active
+    recorded_total_isk: number;
+    unreimbursed_isk: number;        // recorded but paid out-of-pocket, owed back
+    health_checks_done: number;
+    per_check_cost_isk: number;      // current blood + measurement + doctor rates
+    per_check_expected_isk: number;  // checks done × per-check cost
+    per_check_recorded_isk: number;  // cost invoices in those three categories
+    per_check_outstanding_isk: number; // expected − recorded (no invoice yet)
+    manual_liabilities_isk: number;  // settings: Biody machines etc.
+    outstanding_total_isk: number;   // per-check outstanding + manual + unreimbursed
+    grand_total_isk: number;         // recorded + per-check outstanding + manual
+  };
+  net: {
+    realized_isk: number; // received − recorded
+    full_isk: number;     // invoiced − grand total costs
+  };
+  warnings: string[];
+}
+
+function monthsBetween(fromDate: string, toMonth: string): number {
+  const [fy, fm] = fromDate.slice(0, 7).split("-").map(Number);
+  const [ty, tm] = toMonth.split("-").map(Number);
+  return Math.max((ty - fy) * 12 + (tm - fm) + 1, 0);
+}
+
+export async function computeTotalsOverview(): Promise<TotalsOverview> {
+  const warnings: string[] = [];
+  const nowMonth = new Date().toISOString().slice(0, 7);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [invoicesRes, scannedRes, adjRes, b2cRes, overheadsRes, ratesRes, hcInvRes, hcB2cRes, settingsRes] =
+    await Promise.all([
+      supabaseAdmin
+        .from("company_invoices")
+        .select("status, amount_total")
+        .neq("status", "cancelled"),
+      supabaseAdmin
+        .from("accounting_expense_invoices")
+        .select("direction, category, amount_isk, paid_by, reimbursed_at"),
+      supabaseAdmin
+        .from("accounting_adjustments")
+        .select("kind, amount_isk"),
+      supabaseAdmin
+        .from("payments")
+        .select("amount_isk", { count: "exact" })
+        .eq("status", "succeeded")
+        .or("provider.is.null,provider.neq.payday"),
+      supabaseAdmin
+        .from("accounting_overheads")
+        .select("amount_isk, amount_usd, quantity, active, effective_from, effective_to"),
+      supabaseAdmin
+        .from("accounting_cost_rates")
+        .select("rate_key, amount_isk, effective_from")
+        .lte("effective_from", today)
+        .order("effective_from", { ascending: true }),
+      supabaseAdmin
+        .from("company_invoices")
+        .select("quantity")
+        .neq("status", "cancelled"),
+      supabaseAdmin
+        .from("body_comp_bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "confirmed")
+        .eq("payment_status", "paid")
+        .eq("package", "foundational"),
+      supabaseAdmin
+        .from("accounting_settings")
+        .select("key, value_numeric"),
+    ]);
+
+  const settings: Record<string, number> = {};
+  for (const r of settingsRes.data || []) settings[r.key as string] = Number(r.value_numeric) || 0;
+
+  // Income
+  let paydayInvoiced = 0, paydayPaid = 0;
+  for (const inv of invoicesRes.data || []) {
+    const a = (inv.amount_total as number) || 0;
+    paydayInvoiced += a;
+    if (inv.status === "paid") paydayPaid += a;
+  }
+  const scanned = scannedRes.data || [];
+  const scannedSales = scanned
+    .filter((r) => r.direction === "income")
+    .reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
+  const incomeAdj = (adjRes.data || [])
+    .filter((a) => a.kind === "income")
+    .reduce((s, a) => s + ((a.amount_isk as number) || 0), 0);
+  const b2cPaid = (b2cRes.data || []).reduce((s, p) => s + ((p.amount_isk as number) || 0), 0);
+  const totalInvoiced = paydayInvoiced + scannedSales + b2cPaid + incomeAdj;
+  const totalReceived = paydayPaid + scannedSales + b2cPaid + incomeAdj;
+
+  // Costs recorded
+  const costRows = scanned.filter((r) => r.direction !== "income");
+  const costInvoices = costRows.reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
+  const unreimbursed = costRows
+    .filter((r) => r.paid_by && !r.reimbursed_at)
+    .reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
+  const expenseAdj = (adjRes.data || [])
+    .filter((a) => a.kind === "expense")
+    .reduce((s, a) => s + ((a.amount_isk as number) || 0), 0);
+
+  // Overheads accrued: active rows from effective_from → now; inactive
+  // rows only when an effective_to bounds them (rows deactivated
+  // because real invoices took over are skipped — no double count).
+  let fxRate: number | null = null;
+  const needsFx = (overheadsRes.data || []).some((o) => o.amount_usd != null);
+  if (needsFx) {
+    const fx = await getFxRate(nowMonth);
+    fxRate = fx?.usd_isk ?? null;
+    if (!fxRate) warnings.push("USD/ISK rate unavailable — USD overheads excluded from the accrual.");
+  }
+  let overheadsAccrued = 0;
+  for (const o of overheadsRes.data || []) {
+    const end = o.effective_to ? String(o.effective_to).slice(0, 7) : nowMonth;
+    if (!o.active && !o.effective_to) continue;
+    const months = monthsBetween(String(o.effective_from), end > nowMonth ? nowMonth : end);
+    const qty = (o.quantity as number) || 1;
+    const unit = o.amount_usd != null
+      ? (fxRate ? (o.amount_usd as number) * fxRate : 0)
+      : ((o.amount_isk as number) || 0);
+    overheadsAccrued += Math.round(unit * qty * months);
+  }
+  const recordedTotal = costInvoices + expenseAdj + overheadsAccrued;
+
+  // Accrued per-health-check costs (no invoice yet)
+  const rates: Record<string, number> = {};
+  for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
+  const perCheck = (rates["blood_test"] || 0) + (rates["measurement"] || 0) + (rates["doctor_interview"] || 0);
+  const checksDone = (hcInvRes.data || []).reduce((s, r) => s + ((r.quantity as number) || 0), 0)
+    + (hcB2cRes.count ?? 0)
+    + Math.round(settings.healthchecks_offset || 0);
+  const perCheckExpected = checksDone * perCheck;
+  const perCheckRecorded = costRows
+    .filter((r) => ["blood_tests", "measurements", "doctor"].includes(r.category as string))
+    .reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
+  const perCheckOutstanding = Math.max(perCheckExpected - perCheckRecorded, 0);
+
+  const manualLiabilities = Math.round(settings.other_liabilities_isk || 0);
+  const outstandingTotal = perCheckOutstanding + manualLiabilities + unreimbursed;
+  const grandTotal = recordedTotal + perCheckOutstanding + manualLiabilities;
+
+  return {
+    income: {
+      payday_invoiced_isk: paydayInvoiced,
+      payday_paid_isk: paydayPaid,
+      payday_outstanding_isk: paydayInvoiced - paydayPaid,
+      scanned_sales_isk: scannedSales,
+      b2c_paid_isk: b2cPaid,
+      b2c_count: b2cRes.count ?? 0,
+      adjustments_isk: incomeAdj,
+      total_invoiced_isk: totalInvoiced,
+      total_received_isk: totalReceived,
+    },
+    costs: {
+      invoices_recorded_isk: costInvoices,
+      adjustments_isk: expenseAdj,
+      overheads_accrued_isk: overheadsAccrued,
+      recorded_total_isk: recordedTotal,
+      unreimbursed_isk: unreimbursed,
+      health_checks_done: checksDone,
+      per_check_cost_isk: perCheck,
+      per_check_expected_isk: perCheckExpected,
+      per_check_recorded_isk: perCheckRecorded,
+      per_check_outstanding_isk: perCheckOutstanding,
+      manual_liabilities_isk: manualLiabilities,
+      outstanding_total_isk: outstandingTotal,
+      grand_total_isk: grandTotal,
+    },
+    net: {
+      realized_isk: totalReceived - recordedTotal,
+      full_isk: totalInvoiced - grandTotal,
+    },
+    warnings,
+  };
+}
+
 // ── Report email (Icelandic, to the accounting firm) ────────────────
 
 const fmt = (n: number) => Math.round(n).toLocaleString("is-IS") + " kr.";
