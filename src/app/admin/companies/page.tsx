@@ -94,8 +94,8 @@ interface CompanyInvoiceRow {
 // 3-month follow-up doctor interviews, and the app subscription (when
 // enabled). Uses the company's negotiated prices with tier/default
 // fallbacks — the same numbers invoices are built from.
-function CompanyIncomeBreakdown({ c, onReload }: { c: CompanyRow; onReload: () => void }) {
-  const members = c.member_count || 0;
+function CompanyIncomeBreakdown({ c, onReload, membersOverride }: { c: CompanyRow; onReload: () => void; membersOverride?: number }) {
+  const members = membersOverride ?? (c.member_count || 0);
   if (members === 0) return null;
   const checkPrice = c.assessment_unit_price ?? assessmentUnitPriceIsk(members, 1);
   const followupPrice = c.followup_doctor_price ?? FOLLOWUP_DOCTOR_PRICE_ISK;
@@ -388,15 +388,17 @@ const APPROVAL_STATUS_STYLE: Record<string, string> = {
   rejected: "bg-red-50 border-red-200 text-red-600",
 };
 
-function CompanyApprovals({ companyId }: { companyId: string }) {
+function CompanyApprovals({ companyIds }: { companyIds: string[] }) {
   const [items, setItems] = useState<Array<{ id: string; label: string; date: string; status: string }> | null>(null);
+  const idsKey = companyIds.join(",");
 
   useEffect(() => {
+    const ids = idsKey.split(",").filter(Boolean);
     (async () => {
       const [ev, iv, lec] = await Promise.all([
-        supabase.from("body_comp_events").select("id, event_date, approval_status").eq("company_id", companyId),
-        supabase.from("doctor_interview_proposals").select("id, proposed_date, approval_status").eq("company_id", companyId),
-        supabase.from("intro_lectures").select("id, lecture_date, approval_status").eq("company_id", companyId),
+        supabase.from("body_comp_events").select("id, event_date, approval_status").in("company_id", ids),
+        supabase.from("doctor_interview_proposals").select("id, proposed_date, approval_status").in("company_id", ids),
+        supabase.from("intro_lectures").select("id, lecture_date, approval_status").in("company_id", ids),
       ]);
       const out: Array<{ id: string; label: string; date: string; status: string }> = [];
       for (const r of ev.data || []) out.push({ id: r.id, label: "Measurement day", date: r.event_date, status: r.approval_status });
@@ -405,7 +407,7 @@ function CompanyApprovals({ companyId }: { companyId: string }) {
       out.sort((a, b) => a.date.localeCompare(b.date));
       setItems(out);
     })();
-  }, [companyId]);
+  }, [idsKey]);
 
   if (items !== null && items.length === 0) return null;
   return (
@@ -548,6 +550,41 @@ function CompanyAssignments({ companyId }: { companyId: string }) {
         </button>
         {msg && <span className="text-xs text-amber-700">{msg}</span>}
       </div>
+    </div>
+  );
+}
+
+// A sub-division folded into its mother company's card: compact
+// dropdown row with the division's contact person; expanding reveals
+// its employee roster. All money/invoices/approvals are handled at the
+// parent level.
+function DivisionRow({ d, onContactChanged }: { d: CompanyRow; onContactChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  const contactName = d.contact_full_name || d.contact_draft_name || null;
+  const contactEmail = d.contact_email || d.contact_draft_email || null;
+  return (
+    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-slate-50"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <svg className={`w-3 h-3 shrink-0 text-gray-400 transition-transform ${open ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="font-medium text-sm text-gray-800 truncate">{d.name}</span>
+          <span className="text-[11px] text-gray-400 whitespace-nowrap">{d.member_count || 0} staff</span>
+        </span>
+        <span className="text-[11px] text-gray-500 truncate">
+          {contactName || contactEmail
+            ? `${contactName || ""}${contactName && contactEmail ? " · " : ""}${contactEmail || ""}`
+            : "no contact"}
+        </span>
+      </button>
+      {open ? (
+        <EmployeeRows companyId={d.id} contactEmail={contactEmail} onContactChanged={onContactChanged} />
+      ) : null}
     </div>
   );
 }
@@ -2298,8 +2335,17 @@ export default function AdminCompaniesPage() {
       {companies.length > 0 && (
         <div className="space-y-3">
           {companies.map((c) => {
-            const isSub = !!c.parent_company_id;
-            const isParentWithSubs = !isSub && companies.some((o) => o.parent_company_id === c.id);
+            // Divisions render INSIDE their mother company's card (a
+            // DivisionRow in the expanded view), not as standalone
+            // cards. Orphans (parent deleted) keep their own card.
+            const isSub = !!c.parent_company_id && companies.some((p) => p.id === c.parent_company_id);
+            if (isSub) return null;
+            const children = companies.filter((x) => x.parent_company_id === c.id);
+            const isParentWithSubs = children.length > 0;
+            const aggMembers = (c.member_count || 0) + children.reduce((s, x) => s + (x.member_count || 0), 0);
+            const finRows = [c, ...children].map((x) => fin.get(x.id)).filter(Boolean) as FinRow[];
+            const aggFin = (k: keyof FinRow) => finRows.reduce((s, r) => s + ((r[k] as number) || 0), 0);
+            const pendingCount = [c, ...children].reduce((s, x) => s + (pendingApprovals.get(x.id) || 0), 0);
             const isExpanded = expanded.has(c.id);
             return (
               <div
@@ -2348,14 +2394,14 @@ export default function AdminCompaniesPage() {
                             {c.name}
                           </button>
                           <CompanyStatusPill c={c} />
-                          {(pendingApprovals.get(c.id) || 0) > 0 && (
+                          {pendingCount > 0 && (
                             <Link
                               href="/admin/business?tab=approvals"
                               className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                              title="Open the Approvals tab"
+                              title="Open the Approvals tab (includes divisions)"
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                              {pendingApprovals.get(c.id)} pending approval{(pendingApprovals.get(c.id) || 0) > 1 ? "s" : ""}
+                              {pendingCount} pending approval{pendingCount > 1 ? "s" : ""}
                             </Link>
                           )}
                           {isSub && c.parent_name && (
@@ -2409,7 +2455,7 @@ export default function AdminCompaniesPage() {
                     <div>
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Price / check</div>
                       <div className="text-[13px] font-semibold text-gray-800 whitespace-nowrap">
-                        {iskFmt(c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(c.member_count || 1, 1), 1))}
+                        {iskFmt(c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(aggMembers, 1), 1))}
                       </div>
                       <div className="text-[10px] text-gray-400">
                         {c.assessment_unit_price != null ? "negotiated" : "tier price"}
@@ -2462,23 +2508,27 @@ export default function AdminCompaniesPage() {
                       rates (blood test + measurement + doctor interview).
                       Hidden until there's a roster or money. */}
                   {(() => {
-                    const f = fin.get(c.id);
-                    const hasActual = !!f && (f.invoice_count > 0 || f.costs_isk > 0);
-                    const hasExpected = !!f && f.member_count > 0;
-                    if (!f || (!hasActual && !hasExpected)) return null;
+                    // Aggregated across the mother company + divisions —
+                    // money is handled at the parent level.
+                    if (finRows.length === 0) return null;
+                    const invoiceCount = aggFin("invoice_count");
+                    const costs = aggFin("costs_isk");
+                    const hasActual = invoiceCount > 0 || costs > 0;
+                    const hasExpected = aggMembers > 0;
+                    if (!hasActual && !hasExpected) return null;
                     return (
                       <div className="mt-3 space-y-1">
                         {hasActual && (
                           <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-600">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-14">Actual</span>
-                            <span>Invoiced <span className="font-semibold text-gray-900">{iskFmt(f.invoiced_isk)}</span></span>
-                            <span>Paid <span className="font-semibold text-gray-900">{iskFmt(f.paid_isk)}</span></span>
-                            <span className={f.outstanding_isk > 0 ? "text-amber-600" : ""}>
-                              Outstanding <span className="font-semibold">{iskFmt(f.outstanding_isk)}</span>
+                            <span>Invoiced <span className="font-semibold text-gray-900">{iskFmt(aggFin("invoiced_isk"))}</span></span>
+                            <span>Paid <span className="font-semibold text-gray-900">{iskFmt(aggFin("paid_isk"))}</span></span>
+                            <span className={aggFin("outstanding_isk") > 0 ? "text-amber-600" : ""}>
+                              Outstanding <span className="font-semibold">{iskFmt(aggFin("outstanding_isk"))}</span>
                             </span>
-                            <span>Costs <span className="font-semibold text-gray-900">{iskFmt(f.costs_isk)}</span></span>
-                            <span className={f.net_isk < 0 ? "text-red-600" : "text-emerald-700"}>
-                              Net <span className="font-semibold">{iskFmt(f.net_isk)}</span>
+                            <span>Costs <span className="font-semibold text-gray-900">{iskFmt(costs)}</span></span>
+                            <span className={aggFin("net_isk") < 0 ? "text-red-600" : "text-emerald-700"}>
+                              Net <span className="font-semibold">{iskFmt(aggFin("net_isk"))}</span>
                             </span>
                             <Link href="/admin/business?tab=accounting" className="text-emerald-700 hover:underline">
                               Accounting →
@@ -2488,11 +2538,11 @@ export default function AdminCompaniesPage() {
                         {hasExpected && (
                           <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-500">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-14">Expected</span>
-                            <span>{f.member_count} staff</span>
-                            <span>Income <span className="font-semibold text-gray-700">{iskFmt(f.expected_income_isk)}</span></span>
-                            <span>Costs <span className="font-semibold text-gray-700">{iskFmt(f.expected_cost_isk)}</span></span>
-                            <span className={f.expected_net_isk < 0 ? "text-red-600" : "text-emerald-700"}>
-                              Margin <span className="font-semibold">{iskFmt(f.expected_net_isk)}</span>
+                            <span>{aggMembers} staff{children.length > 0 ? ` (incl. ${children.length} divisions)` : ""}</span>
+                            <span>Income <span className="font-semibold text-gray-700">{iskFmt(aggFin("expected_income_isk"))}</span></span>
+                            <span>Costs <span className="font-semibold text-gray-700">{iskFmt(aggFin("expected_cost_isk"))}</span></span>
+                            <span className={aggFin("expected_net_isk") < 0 ? "text-red-600" : "text-emerald-700"}>
+                              Margin <span className="font-semibold">{iskFmt(aggFin("expected_net_isk"))}</span>
                             </span>
                           </div>
                         )}
@@ -2547,21 +2597,37 @@ export default function AdminCompaniesPage() {
                   </div>
                 </div>
 
-                {/* Expanded: full company cockpit — invoices, income
-                    breakdown, itemized costs, work assignments,
-                    approvals, employees */}
+                {/* Expanded: full company cockpit — invoices, pricing,
+                    itemized costs, work assignments, approvals,
+                    divisions, employees. Money is parent-level; each
+                    division is a dropdown with its own contact +
+                    roster. */}
                 {isExpanded && (
                   <div className="rounded-b-2xl overflow-hidden">
                     <CompanyInvoiceRows companyId={c.id} />
-                    <CompanyIncomeBreakdown c={c} onReload={load} />
-                    <CompanyCosts companyId={c.id} memberCount={c.member_count || 0} />
+                    <CompanyIncomeBreakdown c={c} onReload={load} membersOverride={aggMembers} />
+                    <CompanyCosts companyId={c.id} memberCount={aggMembers} />
                     <CompanyAssignments companyId={c.id} />
-                    <CompanyApprovals companyId={c.id} />
-                    <EmployeeRows
-                      companyId={c.id}
-                      contactEmail={c.contact_email || c.contact_draft_email || null}
-                      onContactChanged={load}
-                    />
+                    <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
+                    {children.length > 0 ? (
+                      <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                          Divisions ({children.length})
+                        </div>
+                        <div className="space-y-1.5">
+                          {children.map((d) => (
+                            <DivisionRow key={d.id} d={d} onContactChanged={load} />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {(c.member_count || 0) > 0 || children.length === 0 ? (
+                      <EmployeeRows
+                        companyId={c.id}
+                        contactEmail={c.contact_email || c.contact_draft_email || null}
+                        onContactChanged={load}
+                      />
+                    ) : null}
                   </div>
                 )}
               </div>
