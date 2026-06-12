@@ -75,6 +75,7 @@ interface FinRow {
   expected_income_isk: number;
   expected_cost_isk: number;
   expected_net_isk: number;
+  doc_kinds: string[];
 }
 
 const iskFmt = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
@@ -907,9 +908,14 @@ type CompanyDocument = {
   signed_url: string | null;
 };
 
-function DocumentsButton({ companyId }: { companyId: string }) {
+// Required signed documents for a B2B relationship — drives the
+// readiness counter on the Documents button.
+const REQUIRED_DOC_KINDS = ["tos", "dpa", "purchase_order"] as const;
+
+function DocumentsButton({ companyId, docKinds = [] }: { companyId: string; docKinds?: string[] }) {
   const [open, setOpen] = useState(false);
   const [docs, setDocs] = useState<CompanyDocument[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
@@ -931,7 +937,7 @@ function DocumentsButton({ companyId }: { companyId: string }) {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const j = await res.json();
-      if (res.ok && j.ok) setDocs(j.documents || []);
+      if (res.ok && j.ok) { setDocs(j.documents || []); setLoaded(true); }
       else setMsg({ kind: "err", text: j?.detail || j?.error || "Gat ekki sótt skjöl." });
     } finally { setLoading(false); }
   };
@@ -993,17 +999,30 @@ function DocumentsButton({ companyId }: { companyId: string }) {
   };
   const prettySize = (n: number | null) => n == null ? "—" : n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`;
 
+  // Readiness: required doc kinds on file. After the modal has loaded
+  // the live list, prefer it (reflects uploads/deletes immediately);
+  // before that, the page-level rollup is the source.
+  const presentKinds = loaded ? [...new Set(docs.map((d) => d.kind as string))] : docKinds;
+  const readyCount = REQUIRED_DOC_KINDS.filter((k) => presentKinds.includes(k)).length;
+  const allReady = readyCount === REQUIRED_DOC_KINDS.length;
+
   return (
     <>
       <button
         onClick={openModal}
-        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-        title="Hlaða upp / skoða skjöl fyrir þetta fyrirtæki"
+        className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border transition-colors ${
+          allReady
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+        }`}
+        title={allReady
+          ? "All required documents signed (ToS, DPA, service agreement)"
+          : `Missing: ${REQUIRED_DOC_KINDS.filter((k) => !presentKinds.includes(k)).join(", ")}`}
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        Skjöl
+        Documents {readyCount}/{REQUIRED_DOC_KINDS.length}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setOpen(false)}>
@@ -1958,9 +1977,6 @@ function CommercialSettingsButton({ company, onReload }: { company: CompanyRow; 
         className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-colors"
         title="Pricing & app subscription"
       >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l9-3 9 3M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8M9 21V9h6v12" />
-        </svg>
         Change pricing
       </button>
 
@@ -2500,7 +2516,7 @@ export default function AdminCompaniesPage() {
                     {isParentWithSubs && (
                       <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
                     )}
-                    <DocumentsButton companyId={c.id} />
+                    <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
                     <div className="flex-1" />
                     <OverflowMenu>
                       {() => (

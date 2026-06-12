@@ -560,6 +560,9 @@ export interface CompanyOverviewRow {
   expected_income_isk: number;
   expected_cost_isk: number;
   expected_net_isk: number;
+  // Distinct company_documents kinds on file (tos/dpa/purchase_order/
+  // other) — drives the Documents readiness counter on company cards.
+  doc_kinds: string[];
 }
 
 // The founders'/doctors' pay for interview work, valued at the
@@ -603,7 +606,7 @@ export async function computeCompanyOverview(): Promise<{
   reimbursements: ReimbursementRow[];
 }> {
   const today = new Date().toISOString().slice(0, 10);
-  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes, owedRes, staffRes] = await Promise.all([
+  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes, owedRes, staffRes, companyDocsRes] = await Promise.all([
     supabaseAdmin.from("companies").select("id, name, assessment_unit_price, followup_doctor_price").order("name"),
     supabaseAdmin.from("company_members").select("company_id"),
     supabaseAdmin
@@ -644,6 +647,9 @@ export async function computeCompanyOverview(): Promise<{
       .select("id, name, email, role")
       .eq("active", true)
       .order("name"),
+    supabaseAdmin
+      .from("company_documents")
+      .select("company_id, kind"),
   ]);
 
   const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null; followup_doctor_price?: number | null }>;
@@ -667,6 +673,7 @@ export async function computeCompanyOverview(): Promise<{
         invoice_count: 0, invoiced_isk: 0, paid_isk: 0, outstanding_isk: 0,
         costs_isk: 0, net_isk: 0,
         member_count: 0, expected_income_isk: 0, expected_cost_isk: 0, expected_net_isk: 0,
+        doc_kinds: [],
       };
       byId.set(id, row);
     }
@@ -695,6 +702,12 @@ export async function computeCompanyOverview(): Promise<{
   }
   for (const a of adjRes.data || []) {
     rowFor((a.company_id as string | null) ?? null).costs_isk += (a.amount_isk as number) || 0;
+  }
+
+  for (const d of companyDocsRes.data || []) {
+    const row = rowFor((d.company_id as string | null) ?? null);
+    const kind = d.kind as string;
+    if (!row.doc_kinds.includes(kind)) row.doc_kinds.push(kind);
   }
 
   // Projections for every company with a roster, whether or not money
