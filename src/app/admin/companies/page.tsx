@@ -2498,12 +2498,6 @@ export default function AdminCompaniesPage() {
                       <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
                     )}
                     <CommercialSettingsButton company={c} onReload={load} />
-                    <BulkBiodyButton
-                      companyId={c.id}
-                      companyName={c.name}
-                      parentName={c.parent_company_id ? c.parent_name || null : null}
-                      hasChildren={isParentWithSubs}
-                    />
                     <DocumentsButton companyId={c.id} />
                     <button
                       onClick={() => downloadCsv(c.id, c.name)}
@@ -2519,6 +2513,12 @@ export default function AdminCompaniesPage() {
                     <OverflowMenu>
                       {() => (
                         <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
+                          <BulkBiodyButton
+                            companyId={c.id}
+                            companyName={c.name}
+                            parentName={c.parent_company_id ? c.parent_name || null : null}
+                            hasChildren={isParentWithSubs}
+                          />
                           <EnsureGroupButton companyId={c.id} />
                           <BulkActivateButton companyId={c.id} />
                           <div className="border-t border-gray-100 my-0.5" />
