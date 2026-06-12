@@ -141,6 +141,13 @@ export interface MonthlyReport {
       amount_isk: number;
     }>;
     b2c_payments: { count: number; total_isk: number };
+    // Scanned outgoing invoices (direction=income in the dump) — sales
+    // made outside PayDay, e.g. pre-platform Vestmannaeyjar invoices.
+    other_invoiced: {
+      count: number;
+      total_isk: number;
+      lines: Array<{ id: string; customer: string | null; invoice_number: string | null; invoice_date: string | null; amount_isk: number }>;
+    };
     adjustments: Array<{ id: string; description: string; amount_isk: number }>;
     total_isk: number;
   };
@@ -257,7 +264,7 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
       .lt("slot_at", endISO),
     supabaseAdmin
       .from("accounting_expense_invoices")
-      .select("id, vendor, description, category, amount_isk, invoice_number, invoice_date, client_count, company_id, company:companies(name)")
+      .select("id, direction, vendor, description, category, amount_isk, invoice_number, invoice_date, client_count, company_id, company:companies(name)")
       .eq("month", monthDate)
       .order("created_at", { ascending: true }),
     supabaseAdmin
@@ -344,7 +351,21 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
     total_isk: measCount * measurementRate + docCount * doctorRate,
   };
 
-  const expenseInvoices = (expInvRes.data || []).map((r) => ({
+  const allScanned = expInvRes.data || [];
+  const incomeInvoiceRows = allScanned.filter((r) => r.direction === "income");
+  const otherInvoiced = {
+    count: incomeInvoiceRows.length,
+    total_isk: incomeInvoiceRows.reduce((s, r) => s + ((r.amount_isk as number) || 0), 0),
+    lines: incomeInvoiceRows.map((r) => ({
+      id: r.id as string,
+      customer: (r.vendor as string | null) ?? null,
+      invoice_number: (r.invoice_number as string | null) ?? null,
+      invoice_date: (r.invoice_date as string | null) ?? null,
+      amount_isk: (r.amount_isk as number) || 0,
+    })),
+  };
+
+  const expenseInvoices = allScanned.filter((r) => r.direction !== "income").map((r) => ({
     id: r.id as string,
     vendor: (r.vendor as string | null) ?? null,
     description: (r.description as string | null) ?? null,
@@ -378,7 +399,7 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
   });
   const overheadsTotal = overheads.reduce((s, o) => s + o.total_isk, 0);
 
-  const incomeTotal = b2bTotal + b2cTotal + incomeAdjTotal;
+  const incomeTotal = b2bTotal + b2cTotal + otherInvoiced.total_isk + incomeAdjTotal;
   const expensesTotal = cogs.total_isk + expenseInvoicesTotal + overheadsTotal + expenseAdjTotal;
 
   return {
@@ -388,6 +409,7 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
     income: {
       b2b_invoices: b2bInvoices,
       b2c_payments: { count: b2cCount, total_isk: b2cTotal },
+      other_invoiced: otherInvoiced,
       adjustments: incomeAdjustments,
       total_isk: incomeTotal,
     },
@@ -441,6 +463,16 @@ export function reportToCsv(report: MonthlyReport): string {
       description: `Kortagreiðslur (${report.income.b2c_payments.count} færslur)`,
       reference: "",
       amount_isk: report.income.b2c_payments.total_isk,
+    });
+  }
+  for (const inv of report.income.other_invoiced.lines) {
+    lines.push({
+      date: inv.invoice_date || lastDay,
+      type: "income",
+      category: "Seldir reikningar (skannað)",
+      description: inv.customer || "Customer invoice",
+      reference: inv.invoice_number || "",
+      amount_isk: inv.amount_isk,
     });
   }
   for (const a of report.income.adjustments) {
@@ -553,14 +585,25 @@ export interface WorkSplitRow {
   amount_isk: number;
 }
 
+// Out-of-pocket invoices (paid_by set, not yet reimbursed) grouped per
+// person — money the company owes founders/staff.
+export interface ReimbursementRow {
+  staff_id: string;
+  staff_name: string;
+  invoice_count: number;
+  total_isk: number;
+}
+
 export async function computeCompanyOverview(): Promise<{
   rows: CompanyOverviewRow[];
   companies: Array<{ id: string; name: string }>;
+  staff: Array<{ id: string; name: string | null; email: string; role: string }>;
   doctor_pool: DoctorPool;
   work_split: WorkSplitRow[];
+  reimbursements: ReimbursementRow[];
 }> {
   const today = new Date().toISOString().slice(0, 10);
-  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes] = await Promise.all([
+  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes, owedRes, staffRes] = await Promise.all([
     supabaseAdmin.from("companies").select("id, name, assessment_unit_price").order("name"),
     supabaseAdmin.from("company_members").select("company_id"),
     supabaseAdmin
@@ -569,7 +612,7 @@ export async function computeCompanyOverview(): Promise<{
       .neq("status", "cancelled"),
     supabaseAdmin
       .from("accounting_expense_invoices")
-      .select("company_id, amount_isk, category"),
+      .select("company_id, amount_isk, category, direction"),
     supabaseAdmin
       .from("accounting_adjustments")
       .select("company_id, amount_isk")
@@ -586,10 +629,21 @@ export async function computeCompanyOverview(): Promise<{
     supabaseAdmin
       .from("accounting_expense_invoices")
       .select("amount_isk")
-      .eq("category", "doctor"),
+      .eq("category", "doctor")
+      .eq("direction", "cost"),
     supabaseAdmin
       .from("company_work_assignments")
       .select("company_id, role, staff_id, client_count, staff:staff_id(name, email)"),
+    supabaseAdmin
+      .from("accounting_expense_invoices")
+      .select("paid_by, amount_isk, payer:staff!paid_by(name, email)")
+      .not("paid_by", "is", null)
+      .is("reimbursed_at", null),
+    supabaseAdmin
+      .from("staff")
+      .select("id, name, email, role")
+      .eq("active", true)
+      .order("name"),
   ]);
 
   const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null }>;
@@ -627,7 +681,17 @@ export async function computeCompanyOverview(): Promise<{
     if (inv.status === "paid") row.paid_isk += amount;
   }
   for (const e of expRes.data || []) {
-    rowFor((e.company_id as string | null) ?? null).costs_isk += (e.amount_isk as number) || 0;
+    const row = rowFor((e.company_id as string | null) ?? null);
+    const amount = (e.amount_isk as number) || 0;
+    if (e.direction === "income") {
+      // Scanned outgoing invoice (pre-PayDay sale) — counts as invoiced
+      // AND paid: these are historical, settled invoices.
+      row.invoice_count += 1;
+      row.invoiced_isk += amount;
+      row.paid_isk += amount;
+    } else {
+      row.costs_isk += amount;
+    }
   }
   for (const a of adjRes.data || []) {
     rowFor((a.company_id as string | null) ?? null).costs_isk += (a.amount_isk as number) || 0;
@@ -692,7 +756,27 @@ export async function computeCompanyOverview(): Promise<{
   const work_split = Array.from(splitMap.values())
     .sort((a, b) => a.role.localeCompare(b.role) || b.amount_isk - a.amount_isk);
 
-  return { rows, companies: companies.map(({ id, name }) => ({ id, name })), doctor_pool, work_split };
+  const reimbMap = new Map<string, ReimbursementRow>();
+  for (const r of owedRes.data || []) {
+    const staffId = r.paid_by as string;
+    const name =
+      ((r.payer as unknown as { name?: string; email?: string } | null)?.name) ||
+      ((r.payer as unknown as { email?: string } | null)?.email) || "Unknown";
+    const row = reimbMap.get(staffId) || { staff_id: staffId, staff_name: name, invoice_count: 0, total_isk: 0 };
+    row.invoice_count += 1;
+    row.total_isk += (r.amount_isk as number) || 0;
+    reimbMap.set(staffId, row);
+  }
+  const reimbursements = Array.from(reimbMap.values()).sort((a, b) => b.total_isk - a.total_isk);
+
+  return {
+    rows,
+    companies: companies.map(({ id, name }) => ({ id, name })),
+    staff: (staffRes.data || []) as Array<{ id: string; name: string | null; email: string; role: string }>,
+    doctor_pool,
+    work_split,
+    reimbursements,
+  };
 }
 
 // ── Report email (Icelandic, to the accounting firm) ────────────────
@@ -708,6 +792,7 @@ export function reportEmailBodyHtml(report: MonthlyReport): string {
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       ${row("Tekjur — B2B reikningar", fmt(report.income.b2b_invoices.reduce((s, i) => s + i.amount_isk, 0)))}
       ${row(`Tekjur — B2C greiðslur (${report.income.b2c_payments.count})`, fmt(report.income.b2c_payments.total_isk))}
+      ${report.income.other_invoiced.count > 0 ? row(`Tekjur — seldir reikningar, skannað (${report.income.other_invoiced.count})`, fmt(report.income.other_invoiced.total_isk)) : ""}
       ${row("Tekjur alls", fmt(t.income_isk), true)}
       ${row(`Mælingar (${report.cogs.measurements.count} × ${report.cogs.measurements.rate_isk} kr.)`, "−" + fmt(report.cogs.measurements.total_isk))}
       ${row(`Læknisviðtöl (${report.cogs.doctor_interviews.count} × ${report.cogs.doctor_interviews.rate_isk} kr.)`, "−" + fmt(report.cogs.doctor_interviews.total_isk))}

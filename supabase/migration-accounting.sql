@@ -126,6 +126,34 @@ alter table accounting_expense_invoices
 alter table accounting_adjustments
   add column if not exists company_id uuid references companies(id) on delete set null;
 
+-- ── Invoice direction (added 2026-06-12): the dump can receive OUR
+--    outgoing sales invoices (Lifeline → customer); the AI flags them
+--    direction='income' and they count as income, not cost.
+alter table accounting_expense_invoices
+  add column if not exists direction text not null default 'cost'
+  check (direction in ('cost', 'income'));
+
+-- Already-dumped outgoing invoices to Vestmannaeyjabær / Miðstöðin were
+-- misfiled as costs — flip them to income.
+update accounting_expense_invoices
+set direction = 'income'
+where direction = 'cost'
+  and (vendor ilike '%vestmannaeyja%' or vendor ilike '%miðstöð%' or vendor ilike '%midstod%');
+
+-- ── Out-of-pocket tracking (added 2026-06-12): a cost invoice paid
+--    personally by a founder/staff member (not from company funds) is
+--    a liability until reimbursed. paid_by null = company paid.
+alter table accounting_expense_invoices
+  add column if not exists paid_by uuid references staff(id) on delete set null;
+alter table accounting_expense_invoices
+  add column if not exists reimbursed_at timestamptz;
+
+-- Victor paid the Future Medical Systems invoices personally — tag any
+-- already-dumped ones so the reimbursement card picks them up.
+update accounting_expense_invoices
+set paid_by = (select id from staff where name ilike '%victor%' and active limit 1)
+where vendor ilike '%future medical%' and paid_by is null;
+
 -- ── Who did the work (added 2026-06-12): slot-level attribution for
 --    future bookings, plus company-level work assignments ("doctor X
 --    covers 40 clients of company Y", client_count null = the whole

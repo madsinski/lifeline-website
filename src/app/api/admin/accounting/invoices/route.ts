@@ -34,6 +34,7 @@ const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"
 const MODEL = "gpt-5.4";
 
 const extractionSchema = z.object({
+  direction: z.enum(["cost", "income"]),
   vendor: z.string().nullable(),
   invoice_number: z.string().nullable(),
   invoice_date: z.string().nullable(),   // YYYY-MM-DD
@@ -47,7 +48,7 @@ const extractionSchema = z.object({
 });
 
 const SELECT_COLS =
-  "id, month, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, company_id, company:companies(name), storage_path, content_type, size_bytes, ai_confidence, created_at";
+  "id, month, direction, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, company_id, company:companies(name), paid_by, reimbursed_at, payer:staff!paid_by(name), storage_path, content_type, size_bytes, ai_confidence, created_at";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -85,6 +86,7 @@ async function extractInvoice(buffer: Buffer, contentType: string, monthNote: st
   const systemPrompt = `You extract structured data from a COST invoice received by Lifeline Health ehf. (an Icelandic health company). The document is an invoice from a supplier — e.g. Sameind (blood-test lab, typically ~9.000 ISK per client, one invoice can cover many clients in a month), measurement providers, doctors, or SaaS vendors.
 
 RULES
+  • direction — READ WHO ISSUED THE INVOICE. Lifeline Health ehf. is OUR company. If Lifeline Health is the ISSUER/seller (an outgoing invoice TO a customer — e.g. a municipality like Vestmannaeyjabær, or a company buying health checks), set direction="income" and put the CUSTOMER's name in vendor. If Lifeline Health is the recipient/buyer, set direction="cost" with the supplier's name in vendor.
   • Amounts: total_amount is the grand total payable (including VAT if any). Icelandic format uses "." as thousands separator and "," for decimals — "129.000 kr." means 129000 ISK.
   • currency: the invoice currency code (ISK, USD, EUR, …). Icelandic invoices showing "kr." are ISK.
   • invoice_date: the issue date as YYYY-MM-DD.
@@ -221,6 +223,7 @@ export async function POST(req: NextRequest) {
     .from("accounting_expense_invoices")
     .insert({
       month: monthDate,
+      direction: extracted?.direction === "income" ? "income" : "cost",
       vendor: extracted?.vendor || null,
       description: extracted?.description || null,
       category,
@@ -288,6 +291,23 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "bad_company" }, { status: 400 });
     }
     fields.company_id = body.company_id;
+  }
+  if (body.paid_by !== undefined) {
+    if (body.paid_by !== null && !UUID_RE.test(String(body.paid_by))) {
+      return NextResponse.json({ error: "bad_payer" }, { status: 400 });
+    }
+    fields.paid_by = body.paid_by;
+    // Switching back to company-paid clears any reimbursement stamp.
+    if (body.paid_by === null) fields.reimbursed_at = null;
+  }
+  if (body.reimbursed !== undefined) {
+    fields.reimbursed_at = body.reimbursed ? new Date().toISOString() : null;
+  }
+  if (body.direction !== undefined) {
+    if (body.direction !== "cost" && body.direction !== "income") {
+      return NextResponse.json({ error: "bad_direction" }, { status: 400 });
+    }
+    fields.direction = body.direction;
   }
   if (body.month !== undefined) {
     const m = String(body.month);

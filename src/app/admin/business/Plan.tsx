@@ -45,6 +45,7 @@ interface PlanData {
     receivables_isk: number;
     other_liabilities_isk: number;
     doctor_accrued_isk: number;
+    reimbursements_owed_isk: number;
     capacity_isk: number;
     monthly_overhead_burn_isk: number;
     runway_months: number | null;
@@ -263,6 +264,10 @@ export default function Plan() {
             <div className="flex justify-between">
               <span>− Accrued unpaid doctor pay</span>
               <span className="font-medium">−{isk(inv.doctor_accrued_isk)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>− Owed to founders/staff (out-of-pocket invoices)</span>
+              <span className="font-medium">−{isk(inv.reimbursements_owed_isk)}</span>
             </div>
             <div className="flex justify-between pt-1.5 border-t border-gray-100 font-bold text-gray-900">
               <span>Investing capacity</span>

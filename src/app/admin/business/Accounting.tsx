@@ -34,6 +34,7 @@ interface Report {
   income: {
     b2b_invoices: Array<{ id: string; company_name: string; invoice_number: string | null; status: string; issued_at: string | null; amount_isk: number }>;
     b2c_payments: { count: number; total_isk: number };
+    other_invoiced: { count: number; total_isk: number; lines: Array<{ id: string; customer: string | null; invoice_number: string | null; amount_isk: number }> };
     adjustments: Array<{ id: string; description: string; amount_isk: number }>;
     total_isk: number;
   };
@@ -53,11 +54,16 @@ interface ReportRun {
 }
 
 interface ExpenseInvoice {
-  id: string; vendor: string | null; description: string | null; category: string;
+  id: string; direction: "cost" | "income"; vendor: string | null; description: string | null; category: string;
   amount_isk: number; currency: string; invoice_number: string | null;
   invoice_date: string | null; client_count: number | null;
   company_id: string | null; company?: { name?: string } | null;
+  paid_by: string | null; reimbursed_at: string | null; payer?: { name?: string } | null;
   ai_confidence: string | null; file_url: string | null;
+}
+
+interface ReimbursementRow {
+  staff_id: string; staff_name: string; invoice_count: number; total_isk: number;
 }
 
 interface CompanyRow {
@@ -125,6 +131,8 @@ export default function Accounting() {
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [doctorPool, setDoctorPool] = useState<DoctorPool | null>(null);
   const [workSplit, setWorkSplit] = useState<WorkSplitRow[]>([]);
+  const [staffList, setStaffList] = useState<Array<{ id: string; name: string | null; email: string }>>([]);
+  const [reimbursements, setReimbursements] = useState<ReimbursementRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -170,6 +178,8 @@ export default function Accounting() {
       setCompanies(comp.companies || []);
       setDoctorPool(comp.doctor_pool || null);
       setWorkSplit(comp.work_split || []);
+      setStaffList(comp.staff || []);
+      setReimbursements(comp.reimbursements || []);
     } catch (e) {
       setMsg(`Load failed: ${(e as Error).message}`);
     } finally {
@@ -274,7 +284,7 @@ export default function Accounting() {
           } else {
             const inv = json.invoice;
             results[idx].status = "done";
-            results[idx].info = `${inv.vendor || "unknown vendor"} · ${CATEGORY_LABELS[inv.category] || inv.category} · ${isk(inv.amount_isk)} → ${String(inv.month).slice(0, 7)}${inv.ai_confidence ? ` (AI: ${inv.ai_confidence})` : ""}`;
+            results[idx].info = `${inv.direction === "income" ? "INCOME · " : ""}${inv.vendor || "unknown vendor"} · ${inv.direction === "income" ? "sales invoice" : CATEGORY_LABELS[inv.category] || inv.category} · ${isk(inv.amount_isk)} → ${String(inv.month).slice(0, 7)}${inv.ai_confidence ? ` (AI: ${inv.ai_confidence})` : ""}`;
           }
         } catch (e) {
           results[idx].status = "error";
@@ -306,8 +316,18 @@ export default function Accounting() {
         invoice_date: inv.invoice_date,
         client_count: inv.client_count,
         company_id: inv.company_id,
+        paid_by: inv.paid_by,
+        direction: inv.direction,
       }),
     }));
+  };
+
+  const setReimbursed = (inv: ExpenseInvoice, reimbursed: boolean) => {
+    act("reimburse", () => authedFetch(`/api/admin/accounting/invoices`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: inv.id, reimbursed }),
+    }), reimbursed ? "Marked reimbursed." : "Reimbursement undone — back on the owed list.");
   };
 
   // ── Add-forms state ─────────────────────────────────────────────
@@ -550,6 +570,30 @@ export default function Accounting() {
         </Section>
       ) : null}
 
+      {/* Reimbursements owed */}
+      {reimbursements.length > 0 ? (
+        <Section
+          title="Owed to founders / staff"
+          hint="Cost invoices paid out-of-pocket (set the Paid-by field on an invoice). Subtracted from investing capacity on the Plan tab. Mark each invoice reimbursed when the company pays the person back."
+        >
+          <div className="space-y-1.5 text-xs text-gray-700">
+            {reimbursements.map((r) => (
+              <div key={r.staff_id} className="flex items-center justify-between gap-2">
+                <span>
+                  <span className="font-medium">{r.staff_name}</span>
+                  <span className="text-gray-400"> · {r.invoice_count} invoice{r.invoice_count > 1 ? "s" : ""} paid personally</span>
+                </span>
+                <span className="font-semibold text-amber-600">{isk(r.total_isk)}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-gray-100 font-semibold text-gray-900">
+              <span>Total owed</span>
+              <span>{isk(reimbursements.reduce((s, r) => s + r.total_isk, 0))}</span>
+            </div>
+          </div>
+        </Section>
+      ) : null}
+
       {/* Income */}
       <Section
         title="Income"
@@ -572,6 +616,15 @@ export default function Accounting() {
             <span>B2C card payments ({report?.income.b2c_payments.count ?? 0})</span>
             <span className="font-medium">{isk(report?.income.b2c_payments.total_isk ?? 0)}</span>
           </div>
+          {report && report.income.other_invoiced.count > 0 ? (
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                Scanned sales invoices ({report.income.other_invoiced.count})
+                <span className="text-gray-400"> · {report.income.other_invoiced.lines.map((l) => l.customer).filter(Boolean).join(", ")}</span>
+              </span>
+              <span className="font-medium">{isk(report.income.other_invoiced.total_isk)}</span>
+            </div>
+          ) : null}
           {report?.income.adjustments.map((a) => (
             <div key={a.id} className="flex items-center justify-between gap-2">
               <span className="text-gray-500">Adjustment: {a.description}</span>
@@ -717,6 +770,16 @@ export default function Accounting() {
                   <option value="">No company tag</option>
                   {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+                <select className={inputCls} value={editingInvoice.paid_by || ""}
+                  onChange={(e) => setEditingInvoice({ ...editingInvoice, paid_by: e.target.value || null })}>
+                  <option value="">Paid from company funds</option>
+                  {staffList.map((s) => <option key={s.id} value={s.id}>Paid by {s.name || s.email} (owed back)</option>)}
+                </select>
+                <select className={inputCls} value={editingInvoice.direction}
+                  onChange={(e) => setEditingInvoice({ ...editingInvoice, direction: e.target.value as "cost" | "income" })}>
+                  <option value="cost">Cost (we pay)</option>
+                  <option value="income">Income (our sales invoice)</option>
+                </select>
                 <div className="flex items-center gap-2 col-span-2 sm:col-span-2 justify-end">
                   <button className={btn} onClick={() => setEditingInvoice(null)}>Cancel</button>
                   <button className={btnPrimary} onClick={saveInvoice}>Save</button>
@@ -725,6 +788,11 @@ export default function Accounting() {
             ) : (
               <div key={inv.id} className="flex items-center justify-between gap-2 border-b border-gray-50 pb-1.5">
                 <span>
+                  {inv.direction === "income" ? (
+                    <span className="inline-flex items-center mr-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
+                      INCOME
+                    </span>
+                  ) : null}
                   <span className="font-medium">{inv.vendor || "Unknown vendor"}</span>
                   <span className="text-gray-400">
                     {" "}· {CATEGORY_LABELS[inv.category] || inv.category}
@@ -734,6 +802,21 @@ export default function Accounting() {
                     {inv.ai_confidence ? ` · AI: ${inv.ai_confidence}` : ""}
                   </span>
                   {inv.description ? <span className="block text-gray-500">{inv.description}</span> : null}
+                  {inv.paid_by ? (
+                    <span className={`inline-flex items-center gap-1 mt-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+                      inv.reimbursed_at
+                        ? "bg-gray-50 border-gray-200 text-gray-500"
+                        : "bg-amber-50 border-amber-200 text-amber-700"
+                    }`}>
+                      Paid by {inv.payer?.name || "staff"} — {inv.reimbursed_at ? "reimbursed" : "owed back"}
+                      <button
+                        className="underline underline-offset-2 hover:opacity-70"
+                        onClick={() => setReimbursed(inv, !inv.reimbursed_at)}
+                      >
+                        {inv.reimbursed_at ? "undo" : "mark reimbursed"}
+                      </button>
+                    </span>
+                  ) : null}
                 </span>
                 <span className="flex items-center gap-2 whitespace-nowrap">
                   <span className="font-medium">{isk(inv.amount_isk)}</span>

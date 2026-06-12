@@ -140,15 +140,17 @@ export async function GET(req: NextRequest) {
     // Investing capacity
     const receivables = overview.rows.reduce((s, r) => s + (r.outstanding_isk || 0), 0);
     const doctorAccrued = Math.max(overview.doctor_pool.performed_isk - overview.doctor_pool.paid_isk, 0);
+    const reimbursementsOwed = overview.reimbursements.reduce((s, r) => s + r.total_isk, 0);
     const burn = monthReport.totals.overheads_isk || 0;
     const capacity = Math.round(
-      settings.cash_balance_isk + receivables - settings.other_liabilities_isk - doctorAccrued,
+      settings.cash_balance_isk + receivables - settings.other_liabilities_isk - doctorAccrued - reimbursementsOwed,
     );
     const investing = {
       cash_balance_isk: Math.round(settings.cash_balance_isk),
       receivables_isk: receivables,
       other_liabilities_isk: Math.round(settings.other_liabilities_isk),
       doctor_accrued_isk: doctorAccrued,
+      reimbursements_owed_isk: reimbursementsOwed,
       capacity_isk: capacity,
       monthly_overhead_burn_isk: burn,
       runway_months: burn > 0 ? Math.round((capacity / burn) * 10) / 10 : null,
