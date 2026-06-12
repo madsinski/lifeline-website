@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { assessmentUnitPriceIsk } from "@/lib/b2b-pricing";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import BulkBiodyButton from "./BulkBiodyButton";
 
@@ -92,6 +93,119 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
   draft: "bg-gray-50 border-gray-200 text-gray-500",
   cancelled: "bg-red-50 border-red-200 text-red-600",
 };
+
+// Who does the work for this company — doctor interviews and
+// measurements assigned to staff, for X clients or the whole roster
+// (client_count null). Drives the per-doctor salary split in the
+// Accounting tab. API: /api/admin/accounting/assignments.
+interface AssignmentRow {
+  id: string;
+  role: "doctor" | "measurer";
+  staff_id: string;
+  client_count: number | null;
+  staff?: { name?: string; email?: string } | null;
+}
+interface StaffOption { id: string; name: string | null; email: string; role: string }
+
+function CompanyAssignments({ companyId }: { companyId: string }) {
+  const [assignments, setAssignments] = useState<AssignmentRow[] | null>(null);
+  const [staff, setStaff] = useState<StaffOption[]>([]);
+  const [form, setForm] = useState({ role: "doctor", staff_id: "", count: "" });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    return fetch(path, {
+      ...init,
+      headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  }, []);
+
+  const load = useCallback(async () => {
+    const res = await authedFetch(`/api/admin/accounting/assignments?company_id=${companyId}`);
+    if (!res.ok) { setMsg("Failed to load assignments"); setAssignments([]); return; }
+    const json = await res.json();
+    setAssignments(json.assignments || []);
+    setStaff(json.staff || []);
+  }, [authedFetch, companyId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    if (!form.staff_id) { setMsg("Pick a staff member."); return; }
+    const count = form.count.trim() === "" ? null : parseInt(form.count, 10);
+    if (count !== null && (!Number.isInteger(count) || count < 1)) { setMsg("Count must be a positive number or empty for the whole company."); return; }
+    setBusy(true); setMsg("");
+    try {
+      const res = await authedFetch(`/api/admin/accounting/assignments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_id: companyId, role: form.role, staff_id: form.staff_id, client_count: count }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+      setForm({ role: form.role, staff_id: "", count: "" });
+      await load();
+    } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
+  };
+
+  const remove = async (id: string) => {
+    setBusy(true);
+    await authedFetch(`/api/admin/accounting/assignments?id=${id}`, { method: "DELETE" });
+    await load();
+    setBusy(false);
+  };
+
+  return (
+    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+        Who does the work
+      </div>
+      {assignments === null ? (
+        <div className="text-xs text-gray-400">Loading…</div>
+      ) : (
+        <div className="space-y-1">
+          {assignments.map((a) => (
+            <div key={a.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+              <span>
+                <span className="font-medium">{a.staff?.name || a.staff?.email || "Unknown"}</span>
+                <span className="text-gray-400">
+                  {" "}· {a.role === "doctor" ? "doctor interviews" : "measurements"}
+                  {" "}· {a.client_count != null ? `${a.client_count} clients` : "whole company"}
+                </span>
+              </span>
+              <button className="text-red-500 hover:text-red-700" disabled={busy} onClick={() => remove(a.id)}>×</button>
+            </div>
+          ))}
+          {assignments.length === 0 && <div className="text-xs text-gray-400">No one assigned yet.</div>}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2 mt-2">
+        <select className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white" value={form.role}
+          onChange={(e) => setForm({ ...form, role: e.target.value })}>
+          <option value="doctor">Doctor interviews</option>
+          <option value="measurer">Measurements</option>
+        </select>
+        <select className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white" value={form.staff_id}
+          onChange={(e) => setForm({ ...form, staff_id: e.target.value })}>
+          <option value="">Pick staff…</option>
+          {staff.map((s) => <option key={s.id} value={s.id}>{s.name || s.email} ({s.role})</option>)}
+        </select>
+        <input className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white w-32" type="number" min={1}
+          placeholder="Clients (all if empty)" value={form.count}
+          onChange={(e) => setForm({ ...form, count: e.target.value })} />
+        <button
+          className="text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          disabled={busy} onClick={add}
+        >
+          Assign
+        </button>
+        {msg && <span className="text-xs text-amber-700">{msg}</span>}
+      </div>
+    </div>
+  );
+}
 
 // Recent PayDay invoices, shown inside the expanded company card so the
 // whole billing story lives on the company itself.
@@ -1707,7 +1821,7 @@ export default function AdminCompaniesPage() {
                   </div>
 
                   {/* Data row: contact, progress, tier */}
-                  <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.4fr_auto] gap-x-6 gap-y-2 items-start`}>
+                  <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.2fr_auto_auto] gap-x-6 gap-y-2 items-start`}>
                     {/* Contact — name on top, then email + phone in muted
                         small text. Falls back to draft name/email for
                         unclaimed contacts. Phone is decrypted server-side
@@ -1751,6 +1865,20 @@ export default function AdminCompaniesPage() {
                     <div>
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster progress</div>
                       <RosterProgressCell c={c} />
+                    </div>
+                    {/* Price per health check — the negotiated unit price
+                        (Commercial settings) or the tier fallback for the
+                        roster size. This is what the company actually pays
+                        per assessed employee. */}
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Price / check</div>
+                      <div className="text-[13px] font-semibold text-gray-800 whitespace-nowrap">
+                        {iskFmt(c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(c.member_count || 1, 1), 1))}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        {c.assessment_unit_price != null ? "negotiated" : "tier price"}
+                        {c.followup_doctor_price != null ? ` · follow-up ${iskFmt(c.followup_doctor_price)}` : ""}
+                      </div>
                     </div>
                     {/* Tier */}
                     <div>
@@ -1865,10 +1993,11 @@ export default function AdminCompaniesPage() {
                   </div>
                 </div>
 
-                {/* Expanded: invoices + employee list */}
+                {/* Expanded: invoices + work assignments + employee list */}
                 {isExpanded && (
                   <div className="rounded-b-2xl overflow-hidden">
                     <CompanyInvoiceRows companyId={c.id} />
+                    <CompanyAssignments companyId={c.id} />
                     <EmployeeRows companyId={c.id} />
                   </div>
                 )}

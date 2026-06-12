@@ -210,10 +210,26 @@ export default function AdminPaymentsPage() {
     });
   }
 
+  // Mark via the admin API so the change cascades to the source record
+  // (company_invoices.status) — the Companies Financials line and the
+  // Accounting per-company table read the invoice, not the ledger row.
+  async function markViaApi(id: string, action: "paid" | "refunded"): Promise<{ ok: boolean; cascaded?: boolean; error?: string }> {
+    const { data: s } = await supabase.auth.getSession();
+    const token = s.session?.access_token;
+    const res = await fetch("/api/admin/payments/mark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ id, action }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: json.error || `HTTP ${res.status}` };
+    return { ok: true, cascaded: json.cascaded };
+  }
+
   async function markSucceeded(id: string) {
-    const { error } = await supabase.from("payments").update({ status: "succeeded", paid_at: new Date().toISOString() }).eq("id", id);
-    if (error) { setMsg(`Update failed: ${error.message}`); return; }
-    setMsg("Marked succeeded.");
+    const r = await markViaApi(id, "paid");
+    if (!r.ok) { setMsg(`Update failed: ${r.error}`); return; }
+    setMsg(r.cascaded ? "Marked paid — company invoice updated too." : "Marked succeeded.");
     load();
   }
   async function markRefunded(id: string) {
@@ -259,10 +275,10 @@ export default function AdminPaymentsPage() {
       load();
       return;
     }
-    if (!confirm("Mark this payment as refunded? (Ledger only — not linked to a booking.)")) return;
-    const { error } = await supabase.from("payments").update({ status: "refunded", refunded_at: new Date().toISOString() }).eq("id", id);
-    if (error) { setMsg(`Update failed: ${error.message}`); return; }
-    setMsg("Marked refunded.");
+    if (!confirm("Mark this payment as refunded? (Not linked to a booking — a tied company invoice reverts to 'sent'.)")) return;
+    const r = await markViaApi(id, "refunded");
+    if (!r.ok) { setMsg(`Update failed: ${r.error}`); return; }
+    setMsg(r.cascaded ? "Marked refunded — company invoice reverted to sent." : "Marked refunded.");
     load();
   }
 
