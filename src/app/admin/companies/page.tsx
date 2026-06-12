@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { assessmentUnitPriceIsk } from "@/lib/b2b-pricing";
+import { assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import BulkBiodyButton from "./BulkBiodyButton";
 
@@ -36,6 +36,7 @@ interface CompanyRow {
   contact_draft_phone?: string | null;
   parent_company_id?: string | null;
   parent_name?: string | null;
+  applied_discount_code?: string | null;
 }
 
 interface MemberRow {
@@ -85,6 +86,246 @@ interface CompanyInvoiceRow {
   amount_total: number | null;
   status: string;
   issued_at: string | null;
+  pdf_url: string | null;
+}
+
+// Itemized EXPECTED income per product for the roster: health checks,
+// 3-month follow-up doctor interviews, and the app subscription (when
+// enabled). Uses the company's negotiated prices with tier/default
+// fallbacks — the same numbers invoices are built from.
+function CompanyIncomeBreakdown({ c }: { c: CompanyRow }) {
+  const members = c.member_count || 0;
+  if (members === 0) return null;
+  const checkPrice = c.assessment_unit_price ?? assessmentUnitPriceIsk(members, 1);
+  const followupPrice = c.followup_doctor_price ?? FOLLOWUP_DOCTOR_PRICE_ISK;
+  const appPrice = c.app_price_isk_monthly ?? 3490;
+  const lines = [
+    { label: `Health checks — ${members} × ${iskFmt(checkPrice)}`, total: members * checkPrice, suffix: "" },
+    { label: `3-month doctor follow-up — ${members} × ${iskFmt(followupPrice)}`, total: members * followupPrice, suffix: "" },
+    ...(c.app_enabled
+      ? [{ label: `App subscription — ${members} × ${iskFmt(appPrice)}/mo`, total: members * appPrice, suffix: "/mo" }]
+      : []),
+  ];
+  return (
+    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+        Income breakdown (expected, full roster)
+      </div>
+      <div className="space-y-1">
+        {lines.map((l) => (
+          <div key={l.label} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+            <span>{l.label}</span>
+            <span className="font-medium">{iskFmt(l.total)}{l.suffix}</span>
+          </div>
+        ))}
+        {!c.app_enabled ? <div className="text-[11px] text-gray-400">App subscription not enabled for this company.</div> : null}
+      </div>
+    </div>
+  );
+}
+
+// Itemized costs tagged to this company (cost invoices + manual
+// adjustments, all months) with inline amount editing and an
+// add-adjustment form — the manual cost knob Mads asked for.
+interface TaggedCost { id: string; month: string; vendor?: string | null; description: string | null; category?: string; amount_isk: number; kind?: string }
+
+function CompanyCosts({ companyId }: { companyId: string }) {
+  const [invoices, setInvoices] = useState<TaggedCost[] | null>(null);
+  const [adjustments, setAdjustments] = useState<TaggedCost[]>([]);
+  const [form, setForm] = useState({ description: "", amount: "" });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    return fetch(path, {
+      ...init,
+      headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  }, []);
+
+  const load = useCallback(async () => {
+    const [invRes, adjRes] = await Promise.all([
+      authedFetch(`/api/admin/accounting/invoices?company_id=${companyId}`),
+      authedFetch(`/api/admin/accounting/adjustments?company_id=${companyId}`),
+    ]);
+    const inv = invRes.ok ? await invRes.json() : { invoices: [] };
+    const adj = adjRes.ok ? await adjRes.json() : { adjustments: [] };
+    setInvoices(((inv.invoices || []) as Array<TaggedCost & { direction?: string }>).filter((r) => r.direction !== "income"));
+    setAdjustments((adj.adjustments || []).filter((a: TaggedCost) => a.kind === "expense"));
+  }, [authedFetch, companyId]);
+
+  useEffect(() => { queueMicrotask(load); }, [load]);
+
+  const editAmount = async (row: TaggedCost) => {
+    const v = prompt(`New amount (ISK) for ${row.vendor || row.description || "this cost"}:`, String(row.amount_isk));
+    if (v === null) return;
+    const amount = parseInt(v.replace(/[^\d]/g, ""), 10);
+    if (!Number.isInteger(amount) || amount < 0) { setMsg("Bad amount."); return; }
+    setBusy(true);
+    const res = await authedFetch(`/api/admin/accounting/invoices`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: row.id, amount_isk: amount }),
+    });
+    if (!res.ok) setMsg("Update failed.");
+    await load();
+    setBusy(false);
+  };
+
+  const addAdjustment = async () => {
+    const amount = parseInt(form.amount, 10);
+    if (!form.description.trim() || !Number.isInteger(amount) || amount < 0) {
+      setMsg("Needs a description and ISK amount."); return;
+    }
+    setBusy(true);
+    const res = await authedFetch(`/api/admin/accounting/adjustments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        month: new Date().toISOString().slice(0, 7),
+        kind: "expense",
+        description: form.description.trim(),
+        amount_isk: amount,
+        company_id: companyId,
+      }),
+    });
+    if (!res.ok) setMsg("Add failed.");
+    setForm({ description: "", amount: "" });
+    await load();
+    setBusy(false);
+  };
+
+  const removeAdjustment = async (id: string) => {
+    setBusy(true);
+    await authedFetch(`/api/admin/accounting/adjustments?id=${id}`, { method: "DELETE" });
+    await load();
+    setBusy(false);
+  };
+
+  const total = (invoices || []).reduce((s, r) => s + r.amount_isk, 0)
+    + adjustments.reduce((s, r) => s + r.amount_isk, 0);
+
+  return (
+    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+        Costs (itemized, all months)
+      </div>
+      {invoices === null ? (
+        <div className="text-xs text-gray-400">Loading…</div>
+      ) : (
+        <div className="space-y-1">
+          {invoices.map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+              <span>
+                {String(r.month).slice(0, 7)} · <span className="font-medium">{r.vendor || "Invoice"}</span>
+                <span className="text-gray-400">{r.description ? ` · ${r.description}` : ""}</span>
+              </span>
+              <span className="flex items-center gap-2 whitespace-nowrap">
+                <span className="font-medium">{iskFmt(r.amount_isk)}</span>
+                <button className="text-gray-500 hover:text-gray-800" disabled={busy} onClick={() => editAmount(r)}>edit</button>
+              </span>
+            </div>
+          ))}
+          {adjustments.map((a) => (
+            <div key={a.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+              <span>
+                {String(a.month).slice(0, 7)} · Adjustment
+                <span className="text-gray-400"> · {a.description}</span>
+              </span>
+              <span className="flex items-center gap-2 whitespace-nowrap">
+                <span className="font-medium">{iskFmt(a.amount_isk)}</span>
+                <button className="text-red-500 hover:text-red-700" disabled={busy} onClick={() => removeAdjustment(a.id)}>×</button>
+              </span>
+            </div>
+          ))}
+          {invoices.length === 0 && adjustments.length === 0 ? (
+            <div className="text-xs text-gray-400">No costs tagged to this company yet.</div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-900 pt-1 border-t border-gray-100">
+              <span>Total costs</span>
+              <span>{iskFmt(total)}</span>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <input
+              className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white"
+              placeholder="Manual cost (e.g. nurse, travel)"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+            <input
+              className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white w-28"
+              type="number" placeholder="Amount ISK"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            />
+            <button
+              className="text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              disabled={busy} onClick={addAdjustment}
+            >
+              Add cost
+            </button>
+            {msg ? <span className="text-xs text-amber-700">{msg}</span> : null}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Approval requests from this company (measurement days, doctor days,
+// intro lectures) with their status — read-only here; actions live in
+// the Approvals tab.
+const APPROVAL_STATUS_STYLE: Record<string, string> = {
+  requested: "bg-amber-50 border-amber-200 text-amber-700",
+  approved: "bg-emerald-50 border-emerald-200 text-emerald-700",
+  rejected: "bg-red-50 border-red-200 text-red-600",
+};
+
+function CompanyApprovals({ companyId }: { companyId: string }) {
+  const [items, setItems] = useState<Array<{ id: string; label: string; date: string; status: string }> | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const [ev, iv, lec] = await Promise.all([
+        supabase.from("body_comp_events").select("id, event_date, approval_status").eq("company_id", companyId),
+        supabase.from("doctor_interview_proposals").select("id, proposed_date, approval_status").eq("company_id", companyId),
+        supabase.from("intro_lectures").select("id, lecture_date, approval_status").eq("company_id", companyId),
+      ]);
+      const out: Array<{ id: string; label: string; date: string; status: string }> = [];
+      for (const r of ev.data || []) out.push({ id: r.id, label: "Measurement day", date: r.event_date, status: r.approval_status });
+      for (const r of iv.data || []) out.push({ id: r.id, label: "Doctor interview day", date: r.proposed_date, status: r.approval_status });
+      for (const r of lec.data || []) out.push({ id: r.id, label: "Intro lecture", date: r.lecture_date, status: r.approval_status });
+      out.sort((a, b) => a.date.localeCompare(b.date));
+      setItems(out);
+    })();
+  }, [companyId]);
+
+  if (items !== null && items.length === 0) return null;
+  return (
+    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Approvals</span>
+        <Link href="/admin/business?tab=approvals" className="text-[11px] text-emerald-700 hover:underline">Approvals tab →</Link>
+      </div>
+      {items === null ? (
+        <div className="text-xs text-gray-400">Loading…</div>
+      ) : (
+        <div className="space-y-1">
+          {items.map((it) => (
+            <div key={it.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+              <span>{it.label} <span className="text-gray-400">· {new Date(it.date).toLocaleDateString("is-IS")}</span></span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${APPROVAL_STATUS_STYLE[it.status] || APPROVAL_STATUS_STYLE.requested}`}>
+                {it.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 const INVOICE_STATUS_STYLE: Record<string, string> = {
@@ -214,7 +455,7 @@ function CompanyInvoiceRows({ companyId }: { companyId: string }) {
   useEffect(() => {
     supabase
       .from("company_invoices")
-      .select("id, payday_invoice_number, quantity, amount_total, status, issued_at")
+      .select("id, payday_invoice_number, quantity, amount_total, status, issued_at, pdf_url")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(8)
@@ -240,6 +481,9 @@ function CompanyInvoiceRows({ companyId }: { companyId: string }) {
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${INVOICE_STATUS_STYLE[r.status] || INVOICE_STATUS_STYLE.draft}`}>
                 {r.status}
               </span>
+              {r.pdf_url ? (
+                <a href={r.pdf_url} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 hover:underline">PDF</a>
+              ) : null}
             </span>
           </div>
         ))}
@@ -1543,6 +1787,7 @@ export default function AdminCompaniesPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [fin, setFin] = useState<Map<string, FinRow>>(new Map());
   const [pendingApprovals, setPendingApprovals] = useState<Map<string, number>>(new Map());
+  const [discountCodes, setDiscountCodes] = useState<Array<{ id: string; code: string; kind: "percent" | "fixed"; value: number }>>([]);
 
   // Side data for the unified view: per-company financials (accounting
   // module) + pending approval counts. Both best-effort — the roster
@@ -1574,19 +1819,52 @@ export default function AdminCompaniesPage() {
           }
         }
         setPendingApprovals(counts);
+        const { data: codes } = await supabase
+          .from("discount_codes")
+          .select("id, code, kind, value")
+          .eq("active", true);
+        setDiscountCodes((codes as Array<{ id: string; code: string; kind: "percent" | "fixed"; value: number }>) || []);
       } catch { /* non-blocking */ }
     })();
   }, []);
+
+  // Apply a discount code to a company: bakes the discounted price into
+  // assessment_unit_price (so invoices + projections use it) and labels
+  // the card. Removing the code resets to the tier price.
+  const applyDiscount = async (c: CompanyRow, codeId: string) => {
+    const code = discountCodes.find((d) => d.id === codeId);
+    if (!code) return;
+    const base = c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(c.member_count || 1, 1), 1);
+    const discounted = code.kind === "percent"
+      ? Math.round(base * (1 - code.value / 100))
+      : Math.max(base - code.value, 0);
+    const { error } = await supabase.from("companies")
+      .update({ assessment_unit_price: discounted, applied_discount_code: code.code })
+      .eq("id", c.id);
+    if (error) { alert(`Discount failed: ${error.message}`); return; }
+    setCompanies((prev) => prev.map((x) => x.id === c.id
+      ? { ...x, assessment_unit_price: discounted, applied_discount_code: code.code } : x));
+  };
+
+  const removeDiscount = async (c: CompanyRow) => {
+    if (!confirm(`Remove discount ${c.applied_discount_code}? Price resets to the tier price.`)) return;
+    const { error } = await supabase.from("companies")
+      .update({ assessment_unit_price: null, applied_discount_code: null })
+      .eq("id", c.id);
+    if (error) { alert(`Failed: ${error.message}`); return; }
+    setCompanies((prev) => prev.map((x) => x.id === c.id
+      ? { ...x, assessment_unit_price: null, applied_discount_code: null } : x));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     const [rpcRes, tiersRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
-      supabase.from("companies").select("id, name, default_tier, assessment_unit_price, followup_doctor_price, app_enabled, app_price_isk_monthly, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id"),
+      supabase.from("companies").select("id, name, default_tier, assessment_unit_price, followup_doctor_price, app_enabled, app_price_isk_monthly, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id, applied_discount_code"),
     ]);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
-      type ExtraRow = { id: string; name: string; default_tier: string | null; assessment_unit_price: number | null; followup_doctor_price: number | null; app_enabled: boolean | null; app_price_isk_monthly: number | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null };
+      type ExtraRow = { id: string; name: string; default_tier: string | null; assessment_unit_price: number | null; followup_doctor_price: number | null; app_enabled: boolean | null; app_price_isk_monthly: number | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null; applied_discount_code: string | null };
       const extraMap = new Map<string, ExtraRow>((tiersRes.data || []).map((t: ExtraRow) => [t.id, t]));
       const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => {
         const extra = extraMap.get(c.id);
@@ -1605,6 +1883,7 @@ export default function AdminCompaniesPage() {
           contact_draft_phone: extra?.contact_draft_phone || null,
           parent_company_id: parentId,
           parent_name: parentName,
+          applied_discount_code: extra?.applied_discount_code || null,
         };
       });
       // Tree order: parents first (sorted by name), each followed immediately
@@ -1879,6 +2158,28 @@ export default function AdminCompaniesPage() {
                         {c.assessment_unit_price != null ? "negotiated" : "tier price"}
                         {c.followup_doctor_price != null ? ` · follow-up ${iskFmt(c.followup_doctor_price)}` : ""}
                       </div>
+                      {c.applied_discount_code ? (
+                        <button
+                          onClick={() => removeDiscount(c)}
+                          className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100"
+                          title="Remove discount (resets to tier price)"
+                        >
+                          {c.applied_discount_code} ×
+                        </button>
+                      ) : discountCodes.length > 0 ? (
+                        <select
+                          className="mt-0.5 text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-500"
+                          value=""
+                          onChange={(e) => { if (e.target.value) applyDiscount(c, e.target.value); }}
+                        >
+                          <option value="">+ discount…</option>
+                          {discountCodes.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.code} (−{d.kind === "percent" ? `${d.value}%` : iskFmt(d.value)})
+                            </option>
+                          ))}
+                        </select>
+                      ) : null}
                     </div>
                     {/* Tier */}
                     <div>
@@ -1993,11 +2294,16 @@ export default function AdminCompaniesPage() {
                   </div>
                 </div>
 
-                {/* Expanded: invoices + work assignments + employee list */}
+                {/* Expanded: full company cockpit — invoices, income
+                    breakdown, itemized costs, work assignments,
+                    approvals, employees */}
                 {isExpanded && (
                   <div className="rounded-b-2xl overflow-hidden">
                     <CompanyInvoiceRows companyId={c.id} />
+                    <CompanyIncomeBreakdown c={c} />
+                    <CompanyCosts companyId={c.id} />
                     <CompanyAssignments companyId={c.id} />
+                    <CompanyApprovals companyId={c.id} />
                     <EmployeeRows companyId={c.id} />
                   </div>
                 )}

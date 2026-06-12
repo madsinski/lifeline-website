@@ -16,6 +16,18 @@ export async function GET(req: NextRequest) {
   if (!user || !(await isAnyActiveStaff(user.id))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+  // Two modes: by month (Accounting tab) or all months for one company
+  // (itemized costs block on the company card).
+  const companyId = req.nextUrl.searchParams.get("company_id");
+  if (companyId) {
+    const { data, error } = await supabaseAdmin
+      .from("accounting_adjustments")
+      .select("id, month, kind, description, amount_isk, company_id, created_at")
+      .eq("company_id", companyId)
+      .order("month", { ascending: true });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ adjustments: data || [] });
+  }
   const month = req.nextUrl.searchParams.get("month") || "";
   if (!MONTH_RE.test(month)) return NextResponse.json({ error: "bad_month" }, { status: 400 });
   const { data, error } = await supabaseAdmin

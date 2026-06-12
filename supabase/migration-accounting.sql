@@ -126,6 +126,11 @@ alter table accounting_expense_invoices
 alter table accounting_adjustments
   add column if not exists company_id uuid references companies(id) on delete set null;
 
+-- ── Applied discount code (added 2026-06-12): applying a code on the
+--    company card bakes the discounted price into assessment_unit_price
+--    and stores the code label here for display.
+alter table companies add column if not exists applied_discount_code text;
+
 -- ── Invoice direction (added 2026-06-12): the dump can receive OUR
 --    outgoing sales invoices (Lifeline → customer); the AI flags them
 --    direction='income' and they count as income, not cost.
