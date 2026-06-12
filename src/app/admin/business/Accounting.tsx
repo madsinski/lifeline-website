@@ -334,7 +334,7 @@ export default function Accounting() {
           } else {
             const inv = json.invoice;
             results[idx].status = "done";
-            results[idx].info = `${inv.direction === "income" ? "INCOME · " : ""}${inv.vendor || "unknown vendor"} · ${inv.direction === "income" ? "sales invoice" : CATEGORY_LABELS[inv.category] || inv.category} · ${isk(inv.amount_isk)} → ${String(inv.month).slice(0, 7)}${inv.ai_confidence ? ` (AI: ${inv.ai_confidence})` : ""}`;
+            results[idx].info = `${inv.direction === "income" ? "INCOME · " : ""}${inv.vendor || "unknown vendor"} · ${inv.direction === "income" ? "sales invoice" : CATEGORY_LABELS[inv.category] || inv.category} · ${isk(inv.amount_isk)} → ${String(inv.month).slice(0, 7)}${inv.company?.name ? ` · tagged ${inv.company.name}` : ""}${inv.ai_confidence ? ` (AI: ${inv.ai_confidence})` : ""}`;
           }
         } catch (e) {
           results[idx].status = "error";

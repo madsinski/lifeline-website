@@ -41,6 +41,7 @@ const extractionSchema = z.object({
   total_amount: z.number().nullable(),   // grand total incl. VAT
   currency: z.string().nullable(),       // ISK | USD | EUR | …
   client_count: z.number().nullable(),   // people/tests covered, if stated
+  related_company: z.string().nullable(), // customer company the service was FOR, if the invoice names it
   category: z.enum(EXPENSE_CATEGORIES),
   description: z.string().nullable(),    // one line, what was bought
   confidence: z.enum(["high", "medium", "low"]),
@@ -104,6 +105,7 @@ RULES
   • currency: the invoice currency code (ISK, USD, EUR, …). Icelandic invoices showing "kr." are ISK.
   • invoice_date: the issue date as YYYY-MM-DD.
   • client_count: if the invoice states a number of clients/tests/persons (e.g. line items "Blóðrannsókn × 14"), return that count; otherwise null. Never invent it.
+  • related_company: for COST invoices, if the document indicates which customer company/municipality the work was performed FOR (a project name, location like "Hafnarfjörður", a reference line) return that name; otherwise null. Never guess.
   • category: blood_tests for lab/blood work (Sameind, rannsóknarstofa), measurements for body-composition/measurement services, doctor for physician services, saas for software subscriptions, other otherwise.
   • description: one short line in English describing what was bought (e.g. "Blood panels for 14 clients, May 2026").
   • Put anything ambiguous (unreadable totals, unclear currency, multiple candidate totals) into warnings.
@@ -124,6 +126,62 @@ RULES
     maxOutputTokens: 2000,
   });
   return (result.experimental_output as z.infer<typeof extractionSchema>) || null;
+}
+
+// Auto-attach a fixed-cost invoice to a company when the evidence is
+// unambiguous: (1) the invoice names the customer and exactly one
+// company matches, or (2) exactly one company had an approved
+// measurement day / doctor-interview day in the invoice's month.
+// Multiple candidates → stay untagged (a wrong tag is worse than none).
+async function inferCompany(
+  extracted: z.infer<typeof extractionSchema> | null,
+  month: string,
+): Promise<{ id: string; name: string; reason: string } | null> {
+  if (!extracted || extracted.direction === "income") return null;
+  const { monthDate, nextMonthDate } = monthBounds(month);
+
+  if (extracted.related_company) {
+    const needle = extracted.related_company.toLowerCase().trim();
+    if (needle.length >= 4) {
+      const { data: comps } = await supabaseAdmin.from("companies").select("id, name");
+      const matches = (comps || []).filter((c) => {
+        const n = (c.name as string).toLowerCase();
+        return n.includes(needle) || needle.includes(n);
+      });
+      if (matches.length === 1) {
+        return { id: matches[0].id, name: matches[0].name, reason: `named on invoice ("${extracted.related_company}")` };
+      }
+    }
+  }
+
+  if (extracted.category === "measurements" || extracted.category === "blood_tests") {
+    const { data } = await supabaseAdmin
+      .from("body_comp_events")
+      .select("company_id, company:companies(name)")
+      .eq("approval_status", "approved")
+      .gte("event_date", monthDate)
+      .lt("event_date", nextMonthDate);
+    const unique = new Map((data || []).map((r) => [r.company_id as string, r]));
+    if (unique.size === 1) {
+      const r = [...unique.values()][0];
+      const name = ((r.company as unknown as { name?: string } | null)?.name) || "company";
+      return { id: r.company_id as string, name, reason: `only company with a measurement day in ${month}` };
+    }
+  } else if (extracted.category === "doctor") {
+    const { data } = await supabaseAdmin
+      .from("doctor_interview_proposals")
+      .select("company_id, company:companies(name)")
+      .eq("approval_status", "approved")
+      .gte("proposed_date", monthDate)
+      .lt("proposed_date", nextMonthDate);
+    const unique = new Map((data || []).map((r) => [r.company_id as string, r]));
+    if (unique.size === 1) {
+      const r = [...unique.values()][0];
+      const name = ((r.company as unknown as { name?: string } | null)?.name) || "company";
+      return { id: r.company_id as string, name, reason: `only company with a doctor-interview day in ${month}` };
+    }
+  }
+  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -232,6 +290,20 @@ export async function POST(req: NextRequest) {
       ? (forcedCategory as ExpenseCategory)
       : extracted?.category || "other";
 
+  // No explicit company tag → try to infer one (named on the invoice,
+  // or unique company activity in the month for fixed-cost categories).
+  let resolvedCompanyId = companyId || null;
+  if (!resolvedCompanyId) {
+    const inferred = await inferCompany(
+      extracted ? { ...extracted, category } : null,
+      month,
+    ).catch(() => null);
+    if (inferred) {
+      resolvedCompanyId = inferred.id;
+      warnings.push(`Auto-tagged to ${inferred.name} (${inferred.reason}) — edit if wrong.`);
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from("accounting_expense_invoices")
     .insert({
@@ -246,7 +318,7 @@ export async function POST(req: NextRequest) {
       invoice_number: extracted?.invoice_number || null,
       invoice_date: /^\d{4}-\d{2}-\d{2}$/.test(extracted?.invoice_date || "") ? extracted!.invoice_date : null,
       client_count: extracted?.client_count != null ? Math.round(extracted.client_count) : null,
-      company_id: companyId || null,
+      company_id: resolvedCompanyId,
       storage_path: storagePath,
       content_type: file.type,
       size_bytes: file.size,
