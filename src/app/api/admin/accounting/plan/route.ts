@@ -5,7 +5,10 @@
 // (src/lib/business-plan.ts, from the Excel workbook v1.0):
 //   health checks  = PayDay-invoiced assessment quantities this year
 //                  + paid B2C foundational bookings + manual offset
-//   subscribers    = clients with a paying coaching_tier + manual offset
+//   subscribers    = manual offset only for now — there is no
+//                    subscription/tier column in the database yet (the
+//                    app hasn't launched billing); wire a real count in
+//                    when subscriptions land
 // and derives pacing: YTD target, gap ("lacking"), required per month.
 //
 // Valuation card: DCF pre-money, EBITDA×10 EV milestones, and a live
@@ -72,7 +75,7 @@ export async function GET(req: NextRequest) {
     const yearEnd = `${year + 1}-01-01T00:00:00Z`;
     const currentMonth = now.toISOString().slice(0, 7);
 
-    const [settings, invQtyRes, b2cRes, subsRes, overview, monthReport] = await Promise.all([
+    const [settings, invQtyRes, b2cRes, overview, monthReport] = await Promise.all([
       getSettings(),
       supabaseAdmin
         .from("company_invoices")
@@ -88,10 +91,6 @@ export async function GET(req: NextRequest) {
         .eq("package", "foundational")
         .gte("scheduled_at", yearStart)
         .lt("scheduled_at", yearEnd),
-      supabaseAdmin
-        .from("clients")
-        .select("id", { count: "exact", head: true })
-        .in("coaching_tier", ["premium", "self-maintained"]),
       computeCompanyOverview(),
       computeMonthlyReport(currentMonth),
     ]);
@@ -99,7 +98,7 @@ export async function GET(req: NextRequest) {
     const invoicedQty = (invQtyRes.data || []).reduce((s, r) => s + ((r.quantity as number) || 0), 0);
     const b2cCount = b2cRes.count ?? 0;
     const healthChecksActual = invoicedQty + b2cCount + Math.round(settings.healthchecks_offset);
-    const subscribersActual = (subsRes.count ?? 0) + Math.round(settings.subscribers_offset);
+    const subscribersActual = Math.round(settings.subscribers_offset);
 
     const healthChecks = {
       ...pace(planFor(HEALTH_CHECK_PLAN, year), healthChecksActual, monthsElapsed),
@@ -107,7 +106,7 @@ export async function GET(req: NextRequest) {
     };
     const subscribers = {
       ...pace(planFor(SUBSCRIBER_PLAN, year), subscribersActual, monthsElapsed),
-      breakdown: { coaching_tier_clients: subsRes.count ?? 0, manual_offset: Math.round(settings.subscribers_offset) },
+      breakdown: { in_system: 0, manual_offset: Math.round(settings.subscribers_offset) },
       self_maintained_plan: planFor(SELF_MAINTAINED_PLAN, year),
     };
 

@@ -25,7 +25,7 @@ interface PlanData {
   year: number;
   plan_version: string;
   health_checks: Pace & { breakdown: { invoiced_b2b: number; b2c_paid: number; manual_offset: number } };
-  subscribers: Pace & { breakdown: { coaching_tier_clients: number; manual_offset: number }; self_maintained_plan: number };
+  subscribers: Pace & { breakdown: { in_system: number; manual_offset: number }; self_maintained_plan: number };
   valuation: {
     dcf: { pre_money_isk: number; wacc: number; sensitivity: Array<{ wacc: number; pre_money_isk: number }> };
     planned_raise: { seek_isk: number; post_money_isk: number; equity_offering_pct: number };
@@ -188,8 +188,7 @@ export default function Plan() {
           unit="subscribers"
           extra={
             <div className="text-[11px] text-gray-400 pt-1">
-              Breakdown: {data.subscribers.breakdown.coaching_tier_clients} paying coaching-tier clients ·{" "}
-              {data.subscribers.breakdown.manual_offset} manual offset{" "}
+              No subscription billing in the system yet — count is the manual offset ({data.subscribers.breakdown.manual_offset}){" "}
               <button className="text-emerald-700 hover:underline" disabled={busy}
                 onClick={() => editSetting("subscribers_offset", "Subscribers not visible in the system (manual offset)", data.subscribers.breakdown.manual_offset)}>
                 edit
