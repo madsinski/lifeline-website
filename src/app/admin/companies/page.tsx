@@ -548,6 +548,97 @@ function CompanyAssignments({ companyId }: { companyId: string }) {
   );
 }
 
+// Contact cell with manual registration: shows the claimed contact (or
+// draft) and lets staff type in a contact person directly — name,
+// email, phone land in contact_draft_*, and contact_person_id links up
+// when a client account with that email exists. Roster members can
+// also be promoted via "make contact" in the employee list.
+function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
+  const name = c.contact_full_name || c.contact_draft_name || null;
+  const email = c.contact_email || c.contact_draft_email || null;
+  const phone = c.contact_phone || c.contact_draft_phone || null;
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+
+  const save = async () => {
+    if (!form.name.trim() && !form.email.trim()) { alert("Need at least a name or an email."); return; }
+    setSaving(true);
+    try {
+      const update: Record<string, unknown> = {
+        contact_draft_name: form.name.trim() || null,
+        contact_draft_email: form.email.trim() || null,
+        contact_draft_phone: form.phone.trim() || null,
+      };
+      if (form.email.trim()) {
+        const { data: client } = await supabase
+          .from("clients_decrypted")
+          .select("id")
+          .eq("email", form.email.trim())
+          .maybeSingle();
+        if (client?.id) update.contact_person_id = client.id;
+      }
+      const { error } = await supabase.from("companies").update(update).eq("id", c.id);
+      if (error) { alert(`Failed: ${error.message}`); return; }
+      setEditing(false);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldCls = "w-full text-[11px] border border-gray-200 rounded px-1.5 py-1 bg-white";
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Contact</span>
+        {!editing ? (
+          <button
+            type="button"
+            onClick={() => { setForm({ name: name || "", email: email || "", phone: phone || "" }); setEditing(true); }}
+            className="text-[10px] text-gray-300 hover:text-emerald-700"
+            title="Register / edit contact person manually"
+          >
+            ✎ edit
+          </button>
+        ) : null}
+      </div>
+      {editing ? (
+        <div className="space-y-1 max-w-[220px]">
+          <input className={fieldCls} placeholder="Name" value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <input className={fieldCls} placeholder="Email" type="email" value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input className={fieldCls} placeholder="Phone" value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={saving} onClick={save}
+              className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button type="button" disabled={saving} onClick={() => setEditing(false)}
+              className="text-[11px] text-gray-500 hover:text-gray-700">
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : !name && !email && !phone ? (
+        <span className="text-gray-300 text-[13px]">—</span>
+      ) : (
+        <>
+          {name && <div className="text-[13px] font-medium text-gray-800 truncate" title={name}>{name}</div>}
+          {email && <div className={`text-[11px] text-gray-500 truncate ${name ? "mt-0.5" : ""}`} title={email}>{email}</div>}
+          {phone && (
+            <a href={`tel:${phone}`} className="block text-[11px] text-gray-500 hover:text-emerald-700 truncate mt-0.5" title={phone}>
+              {phone}
+            </a>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Recent PayDay invoices, shown inside the expanded company card so the
 // whole billing story lives on the company itself.
 function CompanyInvoiceRows({ companyId }: { companyId: string }) {
@@ -1673,9 +1764,15 @@ function DataDot({ m }: { m: MemberRow }) {
   return <span className="inline-flex items-center gap-1 text-xs text-red-700"><span className="w-2 h-2 rounded-full bg-red-500" />Incomplete</span>;
 }
 
-function EmployeeRows({ companyId }: { companyId: string }) {
+function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
+  companyId: string;
+  contactEmail?: string | null;
+  onContactChanged?: () => void;
+}) {
   const [members, setMembers] = useState<MemberRow[] | null>(null);
   const [err, setErr] = useState("");
+  const [sortByName, setSortByName] = useState(false);
+  const [settingContact, setSettingContact] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -1685,39 +1782,98 @@ function EmployeeRows({ companyId }: { companyId: string }) {
     })();
   }, [companyId]);
 
+  // Promote a roster member to company contact: copies their details
+  // into the contact_draft_* fields, and links contact_person_id when
+  // they already have a claimed client account (matched by email).
+  const makeContact = async (m: MemberRow) => {
+    if (!confirm(`Make ${m.full_name} the contact person for this company?`)) return;
+    setSettingContact(m.id);
+    try {
+      const update: Record<string, unknown> = {
+        contact_draft_name: m.full_name,
+        contact_draft_email: m.email,
+        contact_draft_phone: m.phone || null,
+      };
+      const { data: client } = await supabase
+        .from("clients_decrypted")
+        .select("id")
+        .eq("email", m.email)
+        .maybeSingle();
+      if (client?.id) update.contact_person_id = client.id;
+      const { error } = await supabase.from("companies").update(update).eq("id", companyId);
+      if (error) { alert(`Failed: ${error.message}`); return; }
+      onContactChanged?.();
+    } finally {
+      setSettingContact(null);
+    }
+  };
+
   if (err) return <div className="px-4 py-3 text-red-600 text-xs">{err}</div>;
   if (!members) return <div className="px-4 py-3 text-gray-500 text-xs">Loading employees…</div>;
   if (members.length === 0) return <div className="px-4 py-3 text-gray-500 text-xs italic">No employees on roster.</div>;
 
+  // Original ordering = whatever the roster RPC returns; the name sort
+  // is a non-destructive view on top of it.
+  const shown = sortByName
+    ? [...members].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "", "is"))
+    : members;
+
   return (
     <div className="divide-y divide-gray-100 border-t border-gray-100 bg-gray-50/50">
-      <div className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto] gap-3 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-100/60">
-        <div>Name</div>
+      <div className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto_auto] gap-3 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-100/60">
+        <button
+          type="button"
+          onClick={() => setSortByName((v) => !v)}
+          className="text-left uppercase tracking-wider font-semibold hover:text-gray-800 flex items-center gap-1"
+          title={sortByName ? "Back to original order" : "Sort by name"}
+        >
+          Name {sortByName ? "↓ A–Ö" : "↕"}
+        </button>
         <div>Email</div>
         <div>KT</div>
         <div>Phone</div>
         <div>Status</div>
         <div>Activity</div>
+        <div>Contact</div>
       </div>
-      {members.map((m) => (
-        <div key={m.id} className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto] gap-3 px-4 py-2 items-center text-sm">
-          <div className="font-medium text-gray-800 truncate">{m.full_name}</div>
-          <div className="text-gray-700 truncate">{m.email}</div>
-          <div className="text-xs text-gray-500 font-mono">•••••{m.kennitala_last4 || ""}</div>
-          <div className="text-gray-700">{m.phone || "—"}</div>
-          <div className="flex items-center gap-1.5">
-            <MemberStatus m={m} />
-            <DataDot m={m} />
+      {shown.map((m) => {
+        const isContact = !!contactEmail && m.email?.toLowerCase() === contactEmail.toLowerCase();
+        return (
+          <div key={m.id} className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto_auto] gap-3 px-4 py-2 items-center text-sm">
+            <div className="font-medium text-gray-800 truncate">{m.full_name}</div>
+            <div className="text-gray-700 truncate">{m.email}</div>
+            <div className="text-xs text-gray-500 font-mono">•••••{m.kennitala_last4 || ""}</div>
+            <div className="text-gray-700">{m.phone || "—"}</div>
+            <div className="flex items-center gap-1.5">
+              <MemberStatus m={m} />
+              <DataDot m={m} />
+            </div>
+            <div className="text-xs text-gray-500">
+              {m.completed_at
+                ? `Done ${new Date(m.completed_at).toLocaleDateString()}`
+                : m.invited_at
+                  ? `Invited ${new Date(m.invited_at).toLocaleDateString()}`
+                  : `Added ${new Date(m.created_at).toLocaleDateString()}`}
+            </div>
+            <div>
+              {isContact ? (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Contact
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={settingContact !== null}
+                  onClick={() => makeContact(m)}
+                  className="text-[11px] text-gray-400 hover:text-emerald-700 hover:underline disabled:opacity-50"
+                >
+                  {settingContact === m.id ? "…" : "make contact"}
+                </button>
+              )}
+            </div>
           </div>
-          <div className="text-xs text-gray-500">
-            {m.completed_at
-              ? `Done ${new Date(m.completed_at).toLocaleDateString()}`
-              : m.invited_at
-                ? `Invited ${new Date(m.invited_at).toLocaleDateString()}`
-                : `Added ${new Date(m.created_at).toLocaleDateString()}`}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -2215,41 +2371,7 @@ export default function AdminCompaniesPage() {
                         small text. Falls back to draft name/email for
                         unclaimed contacts. Phone is decrypted server-side
                         from clients.phone_enc. */}
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Contact</div>
-                      {(() => {
-                        const name = c.contact_full_name || c.contact_draft_name || null;
-                        const email = c.contact_email || c.contact_draft_email || null;
-                        // Phone source order: decrypted clients.phone_enc
-                        // (claimed contact), then admin-entered
-                        // contact_draft_phone (still in draft state).
-                        const phone = c.contact_phone || c.contact_draft_phone || null;
-                        if (!name && !email && !phone) return <span className="text-gray-300 text-[13px]">—</span>;
-                        return (
-                          <>
-                            {name && (
-                              <div className="text-[13px] font-medium text-gray-800 truncate" title={name}>
-                                {name}
-                              </div>
-                            )}
-                            {email && (
-                              <div className={`text-[11px] text-gray-500 truncate ${name ? 'mt-0.5' : ''}`} title={email}>
-                                {email}
-                              </div>
-                            )}
-                            {phone && (
-                              <a
-                                href={`tel:${phone}`}
-                                className="block text-[11px] text-gray-500 hover:text-emerald-700 truncate mt-0.5"
-                                title={phone}
-                              >
-                                {phone}
-                              </a>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
+                    <ContactCell c={c} onSaved={load} />
                     {/* Progress */}
                     <div>
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster progress</div>
@@ -2414,7 +2536,11 @@ export default function AdminCompaniesPage() {
                     <CompanyCosts companyId={c.id} memberCount={c.member_count || 0} />
                     <CompanyAssignments companyId={c.id} />
                     <CompanyApprovals companyId={c.id} />
-                    <EmployeeRows companyId={c.id} />
+                    <EmployeeRows
+                      companyId={c.id}
+                      contactEmail={c.contact_email || c.contact_draft_email || null}
+                      onContactChanged={load}
+                    />
                   </div>
                 )}
               </div>
