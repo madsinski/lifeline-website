@@ -106,10 +106,18 @@ function CompanyIncomeBreakdown({ c }: { c: CompanyRow }) {
       ? [{ label: `App subscription — ${members} × ${iskFmt(appPrice)}/mo`, total: members * appPrice, suffix: "/mo" }]
       : []),
   ];
+  const oneTimeTotal = members * (checkPrice + followupPrice);
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-        Income breakdown (expected, full roster)
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+          Income breakdown (expected, full roster)
+        </span>
+        {c.applied_discount_code ? (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+            {c.applied_discount_code} applied — prices already discounted
+          </span>
+        ) : null}
       </div>
       <div className="space-y-1">
         {lines.map((l) => (
@@ -118,20 +126,33 @@ function CompanyIncomeBreakdown({ c }: { c: CompanyRow }) {
             <span className="font-medium">{iskFmt(l.total)}{l.suffix}</span>
           </div>
         ))}
+        <div className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-900 pt-1 border-t border-gray-100">
+          <span>Total one-time income{c.app_enabled ? " (app billed monthly on top)" : ""}</span>
+          <span>{iskFmt(oneTimeTotal)}</span>
+        </div>
         {!c.app_enabled ? <div className="text-[11px] text-gray-400">App subscription not enabled for this company.</div> : null}
       </div>
     </div>
   );
 }
 
-// Itemized costs tagged to this company (cost invoices + manual
-// adjustments, all months) with inline amount editing and an
-// add-adjustment form — the manual cost knob Mads asked for.
-interface TaggedCost { id: string; month: string; vendor?: string | null; description: string | null; category?: string; amount_isk: number; kind?: string }
+// Itemized costs tagged to this company, structured around the three
+// FIXED per-check items (blood test, measurement, doctor interview):
+// each shows expected (roster × rate) vs recorded vs outstanding, and
+// takes PDF invoice uploads straight into that category. Other costs
+// and manual adjustments below, with inline amount editing.
+interface TaggedCost { id: string; month: string; vendor?: string | null; description: string | null; category?: string; amount_isk: number; kind?: string; file_url?: string | null }
 
-function CompanyCosts({ companyId }: { companyId: string }) {
+const FIXED_COST_ITEMS: Array<{ category: string; label: string; rateKey: string }> = [
+  { category: "blood_tests", label: "Blood tests", rateKey: "blood_test" },
+  { category: "measurements", label: "Measurements", rateKey: "measurement" },
+  { category: "doctor", label: "Doctor interviews", rateKey: "doctor_interview" },
+];
+
+function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCount: number }) {
   const [invoices, setInvoices] = useState<TaggedCost[] | null>(null);
   const [adjustments, setAdjustments] = useState<TaggedCost[]>([]);
+  const [rates, setRates] = useState<Record<string, number>>({});
   const [form, setForm] = useState({ description: "", amount: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -146,14 +167,22 @@ function CompanyCosts({ companyId }: { companyId: string }) {
   }, []);
 
   const load = useCallback(async () => {
-    const [invRes, adjRes] = await Promise.all([
+    const [invRes, adjRes, rateRes] = await Promise.all([
       authedFetch(`/api/admin/accounting/invoices?company_id=${companyId}`),
       authedFetch(`/api/admin/accounting/adjustments?company_id=${companyId}`),
+      authedFetch(`/api/admin/accounting/rates`),
     ]);
     const inv = invRes.ok ? await invRes.json() : { invoices: [] };
     const adj = adjRes.ok ? await adjRes.json() : { adjustments: [] };
+    const rts = rateRes.ok ? await rateRes.json() : { rates: [] };
     setInvoices(((inv.invoices || []) as Array<TaggedCost & { direction?: string }>).filter((r) => r.direction !== "income"));
     setAdjustments((adj.adjustments || []).filter((a: TaggedCost) => a.kind === "expense"));
+    // Latest effective rate per key (list is ordered newest-first per key)
+    const map: Record<string, number> = {};
+    for (const r of (rts.rates || []) as Array<{ rate_key: string; amount_isk: number }>) {
+      if (map[r.rate_key] === undefined) map[r.rate_key] = r.amount_isk;
+    }
+    setRates(map);
   }, [authedFetch, companyId]);
 
   useEffect(() => { queueMicrotask(load); }, [load]);
@@ -204,8 +233,31 @@ function CompanyCosts({ companyId }: { companyId: string }) {
     setBusy(false);
   };
 
+  // Per-line invoice upload: files straight into the category for this
+  // company; the AI extracts amount/date (month=auto).
+  const attachInvoice = async (category: string, file: File) => {
+    setBusy(true); setMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("month", "auto");
+      fd.append("category", category);
+      fd.append("company_id", companyId);
+      const res = await authedFetch(`/api/admin/accounting/invoices`, { method: "POST", body: fd });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      if (json.duplicate) setMsg("Already uploaded (duplicate invoice number).");
+    } catch (e) {
+      setMsg(`Upload failed: ${(e as Error).message}`);
+    }
+    await load();
+    setBusy(false);
+  };
+
   const total = (invoices || []).reduce((s, r) => s + r.amount_isk, 0)
     + adjustments.reduce((s, r) => s + r.amount_isk, 0);
+  const fixedCategories = FIXED_COST_ITEMS.map((f) => f.category);
+  const otherInvoices = (invoices || []).filter((r) => !fixedCategories.includes(r.category || ""));
 
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
@@ -216,7 +268,58 @@ function CompanyCosts({ companyId }: { companyId: string }) {
         <div className="text-xs text-gray-400">Loading…</div>
       ) : (
         <div className="space-y-1">
-          {invoices.map((r) => (
+          {FIXED_COST_ITEMS.map((item) => {
+            const rate = rates[item.rateKey] || 0;
+            const expected = memberCount * rate;
+            const rows = (invoices || []).filter((r) => r.category === item.category);
+            const recorded = rows.reduce((s, r) => s + r.amount_isk, 0);
+            const outstanding = Math.max(expected - recorded, 0);
+            return (
+              <div key={item.category} className="pb-1">
+                <div className="flex items-center justify-between gap-2 text-xs text-gray-800">
+                  <span className="font-medium">
+                    {item.label}
+                    <span className="text-gray-400 font-normal">
+                      {" "}· expected {memberCount} × {iskFmt(rate)} = {iskFmt(expected)}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2 whitespace-nowrap">
+                    <span className={outstanding > 0 ? "text-amber-600" : "text-emerald-700"}>
+                      {outstanding > 0 ? `${iskFmt(outstanding)} outstanding` : "covered"}
+                    </span>
+                    <label className="cursor-pointer text-[11px] font-medium px-2 py-0.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
+                      {busy ? "…" : "Attach PDF"}
+                      <input
+                        type="file" accept="application/pdf,image/png,image/jpeg" className="hidden" disabled={busy}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          e.target.value = "";
+                          if (f) attachInvoice(item.category, f);
+                        }}
+                      />
+                    </label>
+                  </span>
+                </div>
+                {rows.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-gray-600 pl-3">
+                    <span>
+                      {String(r.month).slice(0, 7)} · {r.vendor || "Invoice"}
+                      <span className="text-gray-400">{r.description ? ` · ${r.description}` : ""}</span>
+                    </span>
+                    <span className="flex items-center gap-2 whitespace-nowrap">
+                      <span className="font-medium">{iskFmt(r.amount_isk)}</span>
+                      {r.file_url ? <a href={r.file_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">PDF</a> : null}
+                      <button className="text-gray-500 hover:text-gray-800" disabled={busy} onClick={() => editAmount(r)}>edit</button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          {otherInvoices.length > 0 ? (
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Other costs</div>
+          ) : null}
+          {otherInvoices.map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
               <span>
                 {String(r.month).slice(0, 7)} · <span className="font-medium">{r.vendor || "Invoice"}</span>
@@ -224,6 +327,7 @@ function CompanyCosts({ companyId }: { companyId: string }) {
               </span>
               <span className="flex items-center gap-2 whitespace-nowrap">
                 <span className="font-medium">{iskFmt(r.amount_isk)}</span>
+                {r.file_url ? <a href={r.file_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">PDF</a> : null}
                 <button className="text-gray-500 hover:text-gray-800" disabled={busy} onClick={() => editAmount(r)}>edit</button>
               </span>
             </div>
@@ -240,14 +344,10 @@ function CompanyCosts({ companyId }: { companyId: string }) {
               </span>
             </div>
           ))}
-          {invoices.length === 0 && adjustments.length === 0 ? (
-            <div className="text-xs text-gray-400">No costs tagged to this company yet.</div>
-          ) : (
-            <div className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-900 pt-1 border-t border-gray-100">
-              <span>Total costs</span>
-              <span>{iskFmt(total)}</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-900 pt-1 border-t border-gray-100">
+            <span>Total recorded costs</span>
+            <span>{iskFmt(total)}</span>
+          </div>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <input
               className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white"
@@ -1828,32 +1928,42 @@ export default function AdminCompaniesPage() {
     })();
   }, []);
 
-  // Apply a discount code to a company: bakes the discounted price into
-  // assessment_unit_price (so invoices + projections use it) and labels
-  // the card. Removing the code resets to the tier price.
+  // Apply a discount code to a company. Percent codes discount ALL
+  // income items (health check, 3-month follow-up, app subscription) by
+  // baking the discounted prices into the company's price columns —
+  // invoices, the income breakdown, and expected income all read those.
+  // Fixed-amount codes apply to the health-check price only (a flat
+  // amount off every line would over-discount). Removing the code
+  // resets all prices to tier/defaults.
   const applyDiscount = async (c: CompanyRow, codeId: string) => {
     const code = discountCodes.find((d) => d.id === codeId);
     if (!code) return;
-    const base = c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(c.member_count || 1, 1), 1);
-    const discounted = code.kind === "percent"
-      ? Math.round(base * (1 - code.value / 100))
-      : Math.max(base - code.value, 0);
-    const { error } = await supabase.from("companies")
-      .update({ assessment_unit_price: discounted, applied_discount_code: code.code })
-      .eq("id", c.id);
+    const baseCheck = c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(c.member_count || 1, 1), 1);
+    const update: Record<string, unknown> = { applied_discount_code: code.code };
+    if (code.kind === "percent") {
+      const f = 1 - code.value / 100;
+      update.assessment_unit_price = Math.round(baseCheck * f);
+      update.followup_doctor_price = Math.round((c.followup_doctor_price ?? FOLLOWUP_DOCTOR_PRICE_ISK) * f);
+      update.app_price_isk_monthly = Math.round((c.app_price_isk_monthly ?? 3490) * f);
+    } else {
+      update.assessment_unit_price = Math.max(baseCheck - code.value, 0);
+    }
+    const { error } = await supabase.from("companies").update(update).eq("id", c.id);
     if (error) { alert(`Discount failed: ${error.message}`); return; }
-    setCompanies((prev) => prev.map((x) => x.id === c.id
-      ? { ...x, assessment_unit_price: discounted, applied_discount_code: code.code } : x));
+    setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, ...update } as CompanyRow : x));
   };
 
   const removeDiscount = async (c: CompanyRow) => {
-    if (!confirm(`Remove discount ${c.applied_discount_code}? Price resets to the tier price.`)) return;
-    const { error } = await supabase.from("companies")
-      .update({ assessment_unit_price: null, applied_discount_code: null })
-      .eq("id", c.id);
+    if (!confirm(`Remove discount ${c.applied_discount_code}? All prices reset to tier/default.`)) return;
+    const update = {
+      assessment_unit_price: null,
+      followup_doctor_price: null,
+      app_price_isk_monthly: 3490,
+      applied_discount_code: null,
+    };
+    const { error } = await supabase.from("companies").update(update).eq("id", c.id);
     if (error) { alert(`Failed: ${error.message}`); return; }
-    setCompanies((prev) => prev.map((x) => x.id === c.id
-      ? { ...x, assessment_unit_price: null, applied_discount_code: null } : x));
+    setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, ...update } : x));
   };
 
   const load = useCallback(async () => {
@@ -2301,7 +2411,7 @@ export default function AdminCompaniesPage() {
                   <div className="rounded-b-2xl overflow-hidden">
                     <CompanyInvoiceRows companyId={c.id} />
                     <CompanyIncomeBreakdown c={c} />
-                    <CompanyCosts companyId={c.id} />
+                    <CompanyCosts companyId={c.id} memberCount={c.member_count || 0} />
                     <CompanyAssignments companyId={c.id} />
                     <CompanyApprovals companyId={c.id} />
                     <EmployeeRows companyId={c.id} />

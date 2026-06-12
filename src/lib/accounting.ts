@@ -14,7 +14,7 @@
 //              manual adjustments
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { assessmentUnitPriceIsk } from "@/lib/b2b-pricing";
+import { assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
 
 export const ACCOUNTANT_EMAIL =
   process.env.ACCOUNTING_FIRM_EMAIL || "jfk@mmedia.is";
@@ -604,7 +604,7 @@ export async function computeCompanyOverview(): Promise<{
 }> {
   const today = new Date().toISOString().slice(0, 10);
   const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes, owedRes, staffRes] = await Promise.all([
-    supabaseAdmin.from("companies").select("id, name, assessment_unit_price").order("name"),
+    supabaseAdmin.from("companies").select("id, name, assessment_unit_price, followup_doctor_price").order("name"),
     supabaseAdmin.from("company_members").select("company_id"),
     supabaseAdmin
       .from("company_invoices")
@@ -646,7 +646,7 @@ export async function computeCompanyOverview(): Promise<{
       .order("name"),
   ]);
 
-  const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null }>;
+  const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null; followup_doctor_price?: number | null }>;
 
   const rates: Record<string, number> = {};
   for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
@@ -706,8 +706,11 @@ export async function computeCompanyOverview(): Promise<{
     const row = rowFor(c.id);
     row.member_count = members;
     totalMembers += members;
+    // One-time income per member: health check + 3-month follow-up.
+    // (App subscription is monthly and shown separately on the card.)
     const unitPrice = c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(members, 1), 1);
-    row.expected_income_isk = members * unitPrice;
+    const followupPrice = c.followup_doctor_price ?? FOLLOWUP_DOCTOR_PRICE_ISK;
+    row.expected_income_isk = members * (unitPrice + followupPrice);
     row.expected_cost_isk = members * perClientCost;
     row.expected_net_isk = row.expected_income_isk - row.expected_cost_isk;
   }
