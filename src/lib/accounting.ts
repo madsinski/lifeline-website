@@ -157,6 +157,8 @@ export interface MonthlyReport {
     invoice_number: string | null;
     invoice_date: string | null;
     client_count: number | null;
+    company_id: string | null;
+    company_name: string | null;
   }>;
   overheads: Array<{
     id: string;
@@ -254,7 +256,7 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
       .lt("slot_at", endISO),
     supabaseAdmin
       .from("accounting_expense_invoices")
-      .select("id, vendor, description, category, amount_isk, invoice_number, invoice_date, client_count")
+      .select("id, vendor, description, category, amount_isk, invoice_number, invoice_date, client_count, company_id, company:companies(name)")
       .eq("month", monthDate)
       .order("created_at", { ascending: true }),
     supabaseAdmin
@@ -350,6 +352,8 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
     invoice_number: (r.invoice_number as string | null) ?? null,
     invoice_date: (r.invoice_date as string | null) ?? null,
     client_count: (r.client_count as number | null) ?? null,
+    company_id: (r.company_id as string | null) ?? null,
+    company_name: ((r.company as unknown as { name?: string } | null)?.name) || null,
   }));
   const expenseInvoicesTotal = expenseInvoices.reduce((s, i) => s + i.amount_isk, 0);
 
@@ -454,7 +458,8 @@ export function reportToCsv(report: MonthlyReport): string {
       date: inv.invoice_date || lastDay,
       type: "expense",
       category: CATEGORY_LABELS[inv.category],
-      description: [inv.vendor, inv.description].filter(Boolean).join(" — ") || "Cost invoice",
+      description: [inv.vendor, inv.description, inv.company_name ? `(${inv.company_name})` : null]
+        .filter(Boolean).join(" — ") || "Cost invoice",
       reference: inv.invoice_number || "",
       amount_isk: inv.amount_isk,
     });
@@ -492,6 +497,86 @@ export function monthEndDate(month: string): string {
   const [y, m] = month.split("-").map(Number);
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return `${month}-${String(last).padStart(2, "0")}`;
+}
+
+// ── Per-company overview (all-time) ─────────────────────────────────
+//
+// Ties income to attributed costs per company so margin and
+// receivables are visible at a glance:
+//   invoiced    = company_invoices (status != cancelled)
+//   paid        = those with status 'paid'
+//   outstanding = invoiced − paid (drafts + sent, i.e. receivables)
+//   costs       = expense invoices + expense adjustments tagged with
+//                 the company (untagged costs roll up as "Unassigned")
+
+export interface CompanyOverviewRow {
+  company_id: string | null; // null = Unassigned costs bucket
+  company_name: string;
+  invoice_count: number;
+  invoiced_isk: number;
+  paid_isk: number;
+  outstanding_isk: number;
+  costs_isk: number;
+  net_isk: number; // invoiced − costs
+}
+
+export async function computeCompanyOverview(): Promise<{
+  rows: CompanyOverviewRow[];
+  companies: Array<{ id: string; name: string }>;
+}> {
+  const [companiesRes, invoicesRes, expRes, adjRes] = await Promise.all([
+    supabaseAdmin.from("companies").select("id, name").order("name"),
+    supabaseAdmin
+      .from("company_invoices")
+      .select("company_id, status, amount_total")
+      .neq("status", "cancelled"),
+    supabaseAdmin
+      .from("accounting_expense_invoices")
+      .select("company_id, amount_isk"),
+    supabaseAdmin
+      .from("accounting_adjustments")
+      .select("company_id, amount_isk")
+      .eq("kind", "expense"),
+  ]);
+
+  const companies = (companiesRes.data || []) as Array<{ id: string; name: string }>;
+  const byId = new Map<string | null, CompanyOverviewRow>();
+  const rowFor = (id: string | null): CompanyOverviewRow => {
+    let row = byId.get(id);
+    if (!row) {
+      row = {
+        company_id: id,
+        company_name: id ? (companies.find((c) => c.id === id)?.name || "Deleted company") : "Unassigned",
+        invoice_count: 0, invoiced_isk: 0, paid_isk: 0, outstanding_isk: 0,
+        costs_isk: 0, net_isk: 0,
+      };
+      byId.set(id, row);
+    }
+    return row;
+  };
+
+  for (const inv of invoicesRes.data || []) {
+    const row = rowFor((inv.company_id as string | null) ?? null);
+    const amount = (inv.amount_total as number) || 0;
+    row.invoice_count += 1;
+    row.invoiced_isk += amount;
+    if (inv.status === "paid") row.paid_isk += amount;
+  }
+  for (const e of expRes.data || []) {
+    rowFor((e.company_id as string | null) ?? null).costs_isk += (e.amount_isk as number) || 0;
+  }
+  for (const a of adjRes.data || []) {
+    rowFor((a.company_id as string | null) ?? null).costs_isk += (a.amount_isk as number) || 0;
+  }
+
+  const rows = Array.from(byId.values()).map((r) => ({
+    ...r,
+    outstanding_isk: r.invoiced_isk - r.paid_isk,
+    net_isk: r.invoiced_isk - r.costs_isk,
+  }));
+  // Biggest relationships first; the Unassigned bucket last.
+  rows.sort((a, b) => (a.company_id === null ? 1 : b.company_id === null ? -1 : b.invoiced_isk - a.invoiced_isk));
+  return { rows, companies };
 }
 
 // ── Report email (Icelandic, to the accounting firm) ────────────────

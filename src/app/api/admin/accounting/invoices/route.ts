@@ -43,7 +43,9 @@ const extractionSchema = z.object({
 });
 
 const SELECT_COLS =
-  "id, month, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, storage_path, content_type, size_bytes, ai_confidence, created_at";
+  "id, month, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, company_id, company:companies(name), storage_path, content_type, size_bytes, ai_confidence, created_at";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function withSignedUrls(rows: Array<Record<string, unknown>>) {
   return Promise.all(rows.map(async (r) => {
@@ -115,8 +117,12 @@ export async function POST(req: NextRequest) {
   const file = form?.get("file");
   const month = String(form?.get("month") || "");
   const forcedCategory = String(form?.get("category") || "");
+  const companyId = String(form?.get("company_id") || "");
   if (!(file instanceof File) || !MONTH_RE.test(month)) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
+  if (companyId && !UUID_RE.test(companyId)) {
+    return NextResponse.json({ error: "bad_company" }, { status: 400 });
   }
   if (!ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json({ error: "unsupported_type" }, { status: 415 });
@@ -190,6 +196,7 @@ export async function POST(req: NextRequest) {
       invoice_number: extracted?.invoice_number || null,
       invoice_date: /^\d{4}-\d{2}-\d{2}$/.test(extracted?.invoice_date || "") ? extracted!.invoice_date : null,
       client_count: extracted?.client_count != null ? Math.round(extracted.client_count) : null,
+      company_id: companyId || null,
       storage_path: storagePath,
       content_type: file.type,
       size_bytes: file.size,
@@ -241,6 +248,12 @@ export async function PATCH(req: NextRequest) {
     const n = body.client_count === null ? null : Number(body.client_count);
     if (n !== null && (!Number.isInteger(n) || n < 0)) return NextResponse.json({ error: "bad_count" }, { status: 400 });
     fields.client_count = n;
+  }
+  if (body.company_id !== undefined) {
+    if (body.company_id !== null && !UUID_RE.test(String(body.company_id))) {
+      return NextResponse.json({ error: "bad_company" }, { status: 400 });
+    }
+    fields.company_id = body.company_id;
   }
   if (body.month !== undefined) {
     const m = String(body.month);

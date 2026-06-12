@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   if (!MONTH_RE.test(month)) return NextResponse.json({ error: "bad_month" }, { status: 400 });
   const { data, error } = await supabaseAdmin
     .from("accounting_adjustments")
-    .select("id, month, kind, description, amount_isk, created_at")
+    .select("id, month, kind, description, amount_isk, company_id, created_at")
     .eq("month", monthBounds(month).monthDate)
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -37,8 +37,12 @@ export async function POST(req: NextRequest) {
   const kind = body?.kind === "income" ? "income" : body?.kind === "expense" ? "expense" : null;
   const description = String(body?.description || "").trim();
   const amount = Number(body?.amount_isk);
+  const companyId = body?.company_id ? String(body.company_id) : null;
   if (!MONTH_RE.test(month) || !kind || !description || !Number.isInteger(amount) || amount < 0) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
+  if (companyId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId)) {
+    return NextResponse.json({ error: "bad_company" }, { status: 400 });
   }
   const { data, error } = await supabaseAdmin
     .from("accounting_adjustments")
@@ -47,9 +51,10 @@ export async function POST(req: NextRequest) {
       kind,
       description,
       amount_isk: amount,
+      company_id: companyId,
       created_by: auth.id,
     })
-    .select("id, month, kind, description, amount_isk, created_at")
+    .select("id, month, kind, description, amount_isk, company_id, created_at")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, adjustment: data });

@@ -55,7 +55,14 @@ interface ExpenseInvoice {
   id: string; vendor: string | null; description: string | null; category: string;
   amount_isk: number; currency: string; invoice_number: string | null;
   invoice_date: string | null; client_count: number | null;
+  company_id: string | null; company?: { name?: string } | null;
   ai_confidence: string | null; file_url: string | null;
+}
+
+interface CompanyRow {
+  company_id: string | null; company_name: string; invoice_count: number;
+  invoiced_isk: number; paid_isk: number; outstanding_isk: number;
+  costs_isk: number; net_isk: number;
 }
 
 interface Overhead {
@@ -99,6 +106,8 @@ export default function Accounting() {
   const [invoices, setInvoices] = useState<ExpenseInvoice[]>([]);
   const [overheads, setOverheads] = useState<Overhead[]>([]);
   const [rates, setRates] = useState<CostRate[]>([]);
+  const [companyRows, setCompanyRows] = useState<CompanyRow[]>([]);
+  const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -119,11 +128,12 @@ export default function Accounting() {
     setLoading(true);
     setMsg("");
     try {
-      const [repRes, invRes, ovhRes, rateRes] = await Promise.all([
+      const [repRes, invRes, ovhRes, rateRes, compRes] = await Promise.all([
         authedFetch(`/api/admin/accounting/report?month=${month}`),
         authedFetch(`/api/admin/accounting/invoices?month=${month}`),
         authedFetch(`/api/admin/accounting/overheads`),
         authedFetch(`/api/admin/accounting/rates`),
+        authedFetch(`/api/admin/accounting/companies`),
       ]);
       const rep = await repRes.json();
       if (!repRes.ok) throw new Error(rep.error || "report failed");
@@ -135,6 +145,9 @@ export default function Accounting() {
       setOverheads(ovh.overheads || []);
       const rts = await rateRes.json();
       setRates(rts.rates || []);
+      const comp = await compRes.json();
+      setCompanyRows(comp.rows || []);
+      setCompanies(comp.companies || []);
     } catch (e) {
       setMsg(`Load failed: ${(e as Error).message}`);
     } finally {
@@ -197,10 +210,12 @@ export default function Accounting() {
 
   // ── Invoice upload + edit ───────────────────────────────────────
 
+  const [uploadCompany, setUploadCompany] = useState("");
   const uploadInvoice = (file: File) => {
     const form = new FormData();
     form.append("file", file);
     form.append("month", month);
+    if (uploadCompany) form.append("company_id", uploadCompany);
     act("upload", () => authedFetch(`/api/admin/accounting/invoices`, { method: "POST", body: form }),
       "Invoice uploaded and parsed.");
   };
@@ -222,24 +237,28 @@ export default function Accounting() {
         invoice_number: inv.invoice_number,
         invoice_date: inv.invoice_date,
         client_count: inv.client_count,
+        company_id: inv.company_id,
       }),
     }));
   };
 
   // ── Add-forms state ─────────────────────────────────────────────
 
-  const [newAdj, setNewAdj] = useState({ kind: "expense", description: "", amount: "" });
+  const [newAdj, setNewAdj] = useState({ kind: "expense", description: "", amount: "", company_id: "" });
   const addAdjustment = () => {
     const amount = parseInt(newAdj.amount, 10);
     if (!newAdj.description.trim() || !Number.isInteger(amount) || amount < 0) {
       setMsg("Adjustment needs a description and a non-negative ISK amount.");
       return;
     }
-    setNewAdj({ kind: newAdj.kind, description: "", amount: "" });
+    setNewAdj({ kind: newAdj.kind, description: "", amount: "", company_id: "" });
     act("add-adj", () => authedFetch(`/api/admin/accounting/adjustments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ month, kind: newAdj.kind, description: newAdj.description.trim(), amount_isk: amount }),
+      body: JSON.stringify({
+        month, kind: newAdj.kind, description: newAdj.description.trim(),
+        amount_isk: amount, company_id: newAdj.company_id || null,
+      }),
     }));
   };
 
@@ -352,6 +371,58 @@ export default function Accounting() {
         </div>
       </div>
 
+      {/* Per company (all-time) */}
+      <Section
+        title="Per company"
+        hint="All-time per company: invoiced (PayDay, excl. cancelled), paid, outstanding receivables, and costs tagged to the company. Net = invoiced − costs. Untagged costs land in Unassigned."
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-gray-700">
+            <thead>
+              <tr className="text-left text-gray-400 border-b border-gray-100">
+                <th className="py-1.5 pr-3 font-medium">Company</th>
+                <th className="py-1.5 pr-3 font-medium text-right">Invoiced</th>
+                <th className="py-1.5 pr-3 font-medium text-right">Paid</th>
+                <th className="py-1.5 pr-3 font-medium text-right">Outstanding</th>
+                <th className="py-1.5 pr-3 font-medium text-right">Costs</th>
+                <th className="py-1.5 font-medium text-right">Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {companyRows.map((r) => (
+                <tr key={r.company_id || "unassigned"} className="border-b border-gray-50">
+                  <td className={`py-1.5 pr-3 ${r.company_id ? "" : "text-gray-400 italic"}`}>
+                    {r.company_name}
+                    {r.invoice_count > 0 ? <span className="text-gray-400"> · {r.invoice_count} inv.</span> : null}
+                  </td>
+                  <td className="py-1.5 pr-3 text-right">{isk(r.invoiced_isk)}</td>
+                  <td className="py-1.5 pr-3 text-right">{isk(r.paid_isk)}</td>
+                  <td className={`py-1.5 pr-3 text-right ${r.outstanding_isk > 0 ? "text-amber-600 font-medium" : ""}`}>
+                    {isk(r.outstanding_isk)}
+                  </td>
+                  <td className="py-1.5 pr-3 text-right">{isk(r.costs_isk)}</td>
+                  <td className={`py-1.5 text-right font-medium ${r.net_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                    {isk(r.net_isk)}
+                  </td>
+                </tr>
+              ))}
+              {companyRows.length === 0 ? (
+                <tr><td colSpan={6} className="py-2 text-gray-400">No company invoices or tagged costs yet.</td></tr>
+              ) : (
+                <tr className="font-semibold text-gray-900">
+                  <td className="py-1.5 pr-3">Total</td>
+                  <td className="py-1.5 pr-3 text-right">{isk(companyRows.reduce((s, r) => s + r.invoiced_isk, 0))}</td>
+                  <td className="py-1.5 pr-3 text-right">{isk(companyRows.reduce((s, r) => s + r.paid_isk, 0))}</td>
+                  <td className="py-1.5 pr-3 text-right">{isk(companyRows.reduce((s, r) => s + r.outstanding_isk, 0))}</td>
+                  <td className="py-1.5 pr-3 text-right">{isk(companyRows.reduce((s, r) => s + r.costs_isk, 0))}</td>
+                  <td className="py-1.5 text-right">{isk(companyRows.reduce((s, r) => s + r.net_isk, 0))}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
       {/* Income */}
       <Section
         title="Income"
@@ -425,6 +496,11 @@ export default function Accounting() {
         title="Cost invoices"
         hint="Upload supplier PDFs (Sameind blood tests etc.) — fields are AI-extracted, then editable. One invoice can cover a whole month of clients."
         action={
+          <span className="flex items-center gap-2">
+            <select className={inputCls} value={uploadCompany} onChange={(e) => setUploadCompany(e.target.value)}>
+              <option value="">No company tag</option>
+              {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           <label className={`${btn} cursor-pointer`}>
             {busy === "upload" ? "Uploading…" : "Upload invoice"}
             <input
@@ -439,6 +515,7 @@ export default function Accounting() {
               }}
             />
           </label>
+          </span>
         }
       >
         <div className="space-y-2 text-xs text-gray-700">
@@ -462,6 +539,11 @@ export default function Accounting() {
                   onChange={(e) => setEditingInvoice({ ...editingInvoice, invoice_date: e.target.value || null })} />
                 <input className={inputCls} type="number" placeholder="Client count" value={editingInvoice.client_count ?? ""}
                   onChange={(e) => setEditingInvoice({ ...editingInvoice, client_count: e.target.value === "" ? null : parseInt(e.target.value, 10) })} />
+                <select className={inputCls} value={editingInvoice.company_id || ""}
+                  onChange={(e) => setEditingInvoice({ ...editingInvoice, company_id: e.target.value || null })}>
+                  <option value="">No company tag</option>
+                  {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
                 <div className="flex items-center gap-2 col-span-2 sm:col-span-2 justify-end">
                   <button className={btn} onClick={() => setEditingInvoice(null)}>Cancel</button>
                   <button className={btnPrimary} onClick={saveInvoice}>Save</button>
@@ -473,6 +555,7 @@ export default function Accounting() {
                   <span className="font-medium">{inv.vendor || "Unknown vendor"}</span>
                   <span className="text-gray-400">
                     {" "}· {CATEGORY_LABELS[inv.category] || inv.category}
+                    {inv.company?.name ? ` · ${inv.company.name}` : ""}
                     {inv.client_count != null ? ` · ${inv.client_count} clients` : ""}
                     {inv.invoice_number ? ` · #${inv.invoice_number}` : ""}
                     {inv.ai_confidence ? ` · AI: ${inv.ai_confidence}` : ""}
@@ -615,6 +698,11 @@ export default function Accounting() {
               onChange={(e) => setNewAdj({ ...newAdj, description: e.target.value })} />
             <input className={`${inputCls} w-28`} type="number" placeholder="Amount ISK" value={newAdj.amount}
               onChange={(e) => setNewAdj({ ...newAdj, amount: e.target.value })} />
+            <select className={inputCls} value={newAdj.company_id}
+              onChange={(e) => setNewAdj({ ...newAdj, company_id: e.target.value })}>
+              <option value="">No company tag</option>
+              {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
             <button className={btn} onClick={addAdjustment} disabled={busy !== null}>Add adjustment</button>
           </div>
         </div>

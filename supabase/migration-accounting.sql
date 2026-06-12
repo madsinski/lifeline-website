@@ -117,6 +117,15 @@ create table if not exists accounting_adjustments (
 create index if not exists idx_accounting_adjustments_month
   on accounting_adjustments (month);
 
+-- ── Per-company cost attribution (added 2026-06-12): tag a cost
+--    invoice or adjustment to a company so the per-company overview
+--    can show invoiced vs paid vs outstanding vs costs. Nullable —
+--    untagged costs roll up as "Unassigned".
+alter table accounting_expense_invoices
+  add column if not exists company_id uuid references companies(id) on delete set null;
+alter table accounting_adjustments
+  add column if not exists company_id uuid references companies(id) on delete set null;
+
 -- ── USD→ISK rate per month. Auto-fetched on first use, manually
 --    overridable from the UI.
 create table if not exists accounting_fx_rates (
