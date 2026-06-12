@@ -93,7 +93,7 @@ interface CompanyInvoiceRow {
 // 3-month follow-up doctor interviews, and the app subscription (when
 // enabled). Uses the company's negotiated prices with tier/default
 // fallbacks — the same numbers invoices are built from.
-function CompanyIncomeBreakdown({ c }: { c: CompanyRow }) {
+function CompanyIncomeBreakdown({ c, onReload }: { c: CompanyRow; onReload: () => void }) {
   const members = c.member_count || 0;
   if (members === 0) return null;
   const checkPrice = c.assessment_unit_price ?? assessmentUnitPriceIsk(members, 1);
@@ -109,15 +109,18 @@ function CompanyIncomeBreakdown({ c }: { c: CompanyRow }) {
   const oneTimeTotal = members * (checkPrice + followupPrice);
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-          Income breakdown (expected, full roster)
-        </span>
-        {c.applied_discount_code ? (
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
-            {c.applied_discount_code} applied — prices already discounted
+      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+        <span className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Pricing (expected, full roster)
           </span>
-        ) : null}
+          {c.applied_discount_code ? (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+              {c.applied_discount_code} applied — prices already discounted
+            </span>
+          ) : null}
+        </span>
+        <CommercialSettingsButton company={c} onReload={onReload} />
       </div>
       <div className="space-y-1">
         {lines.map((l) => (
@@ -1958,7 +1961,7 @@ function CommercialSettingsButton({ company, onReload }: { company: CompanyRow; 
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l9-3 9 3M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8M9 21V9h6v12" />
         </svg>
-        Pricing &amp; app
+        Change pricing
       </button>
 
       {open && (
@@ -2497,7 +2500,6 @@ export default function AdminCompaniesPage() {
                     {isParentWithSubs && (
                       <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
                     )}
-                    <CommercialSettingsButton company={c} onReload={load} />
                     <DocumentsButton companyId={c.id} />
                     <button
                       onClick={() => downloadCsv(c.id, c.name)}
@@ -2535,7 +2537,7 @@ export default function AdminCompaniesPage() {
                 {isExpanded && (
                   <div className="rounded-b-2xl overflow-hidden">
                     <CompanyInvoiceRows companyId={c.id} />
-                    <CompanyIncomeBreakdown c={c} />
+                    <CompanyIncomeBreakdown c={c} onReload={load} />
                     <CompanyCosts companyId={c.id} memberCount={c.member_count || 0} />
                     <CompanyAssignments companyId={c.id} />
                     <CompanyApprovals companyId={c.id} />
