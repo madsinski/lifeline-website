@@ -242,6 +242,52 @@ export default function Accounting() {
       "Invoice uploaded and parsed.");
   };
 
+  // Bulk dump: many PDFs at once, month="auto" — the AI files each
+  // invoice under its own invoice-date month, categorizes it, and the
+  // server skips duplicates (same vendor + invoice number). Three
+  // parallel workers keep it quick without hammering the model.
+  interface DumpItem { name: string; status: "queued" | "parsing" | "done" | "duplicate" | "error"; info: string }
+  const [dump, setDump] = useState<DumpItem[]>([]);
+  const dumpInvoices = async (files: File[]) => {
+    if (files.length === 0) return;
+    setBusy("dump");
+    setMsg("");
+    const results: DumpItem[] = files.map((f) => ({ name: f.name, status: "queued", info: "" }));
+    setDump([...results]);
+    let next = 0;
+    const worker = async () => {
+      while (next < files.length) {
+        const idx = next++;
+        results[idx].status = "parsing";
+        setDump([...results]);
+        try {
+          const form = new FormData();
+          form.append("file", files[idx]);
+          form.append("month", "auto");
+          if (uploadCompany) form.append("company_id", uploadCompany);
+          const res = await authedFetch(`/api/admin/accounting/invoices`, { method: "POST", body: form });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+          if (json.duplicate) {
+            results[idx].status = "duplicate";
+            results[idx].info = `${json.vendor || ""} #${json.invoice_number || ""} already in ${String(json.month).slice(0, 7)}`;
+          } else {
+            const inv = json.invoice;
+            results[idx].status = "done";
+            results[idx].info = `${inv.vendor || "unknown vendor"} · ${CATEGORY_LABELS[inv.category] || inv.category} · ${isk(inv.amount_isk)} → ${String(inv.month).slice(0, 7)}${inv.ai_confidence ? ` (AI: ${inv.ai_confidence})` : ""}`;
+          }
+        } catch (e) {
+          results[idx].status = "error";
+          results[idx].info = (e as Error).message;
+        }
+        setDump([...results]);
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    setBusy(null);
+    await refresh();
+  };
+
   const [editingInvoice, setEditingInvoice] = useState<ExpenseInvoice | null>(null);
   const saveInvoice = () => {
     if (!editingInvoice) return;
@@ -596,10 +642,56 @@ export default function Accounting() {
               }}
             />
           </label>
+          <label className={`${btnPrimary} cursor-pointer`}>
+            {busy === "dump" ? "Sorting…" : "Dump PDFs (AI sorts)"}
+            <input
+              type="file"
+              accept="application/pdf,image/png,image/jpeg"
+              multiple
+              className="hidden"
+              disabled={busy !== null}
+              onChange={(e) => {
+                const fs = Array.from(e.target.files || []);
+                e.target.value = "";
+                dumpInvoices(fs);
+              }}
+            />
+          </label>
           </span>
         }
       >
         <div className="space-y-2 text-xs text-gray-700">
+          {dump.length > 0 ? (
+            <div className="border border-gray-200 rounded-md bg-gray-50/70 p-2.5 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                  Dump — {dump.filter((d) => d.status === "done").length} filed,{" "}
+                  {dump.filter((d) => d.status === "duplicate").length} duplicates,{" "}
+                  {dump.filter((d) => d.status === "error").length} errors,{" "}
+                  {dump.filter((d) => d.status === "queued" || d.status === "parsing").length} remaining
+                </span>
+                {busy !== "dump" ? (
+                  <button className="text-gray-400 hover:text-gray-600" onClick={() => setDump([])}>clear</button>
+                ) : null}
+              </div>
+              {dump.map((d, i) => (
+                <div key={i} className="flex items-start justify-between gap-3">
+                  <span className="truncate text-gray-600" title={d.name}>{d.name}</span>
+                  <span className={`whitespace-nowrap text-right ${
+                    d.status === "done" ? "text-emerald-700"
+                    : d.status === "duplicate" ? "text-amber-600"
+                    : d.status === "error" ? "text-red-600"
+                    : "text-gray-400"
+                  }`}>
+                    {d.status === "queued" ? "queued" : d.status === "parsing" ? "parsing…" : d.info || d.status}
+                  </span>
+                </div>
+              ))}
+              <div className="text-[10px] text-gray-400 pt-0.5">
+                Invoices are filed under their own invoice-date month — switch the month picker to review them.
+              </div>
+            </div>
+          ) : null}
           {invoices.length === 0 ? <div className="text-gray-400">No cost invoices for this month yet.</div> : null}
           {invoices.map((inv) => (
             editingInvoice?.id === inv.id ? (

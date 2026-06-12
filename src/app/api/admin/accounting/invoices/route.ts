@@ -2,10 +2,14 @@
 //
 // GET    /api/admin/accounting/invoices?month=YYYY-MM — list + signed PDF URLs
 // POST   /api/admin/accounting/invoices — multipart upload (file, month,
-//        category?) → store PDF in the private accounting-invoices bucket,
-//        AI-extract vendor/amount/period/client-count, insert the row.
-//        Extraction is best-effort: if the model fails the invoice is still
-//        saved and the fields can be fixed via PATCH.
+//        category?, company_id?) → store PDF in the private
+//        accounting-invoices bucket, AI-extract vendor/amount/period/
+//        client-count, insert the row. month="auto" (bulk dump): the AI
+//        decides the accounting month from the invoice date, and
+//        duplicates (same vendor + invoice number already stored) are
+//        skipped with { duplicate: true }. Extraction is best-effort:
+//        if the model fails the invoice is still saved (in the current
+//        month when auto) and the fields can be fixed via PATCH.
 // PATCH  /api/admin/accounting/invoices — edit extracted fields by id
 // DELETE /api/admin/accounting/invoices?id=… — remove row + stored file
 //
@@ -76,7 +80,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ invoices: await withSignedUrls(data || []) });
 }
 
-async function extractInvoice(buffer: Buffer, contentType: string, month: string) {
+async function extractInvoice(buffer: Buffer, contentType: string, monthNote: string) {
   if (!process.env.OPENAI_API_KEY) return null;
   const systemPrompt = `You extract structured data from a COST invoice received by Lifeline Health ehf. (an Icelandic health company). The document is an invoice from a supplier — e.g. Sameind (blood-test lab, typically ~9.000 ISK per client, one invoice can cover many clients in a month), measurement providers, doctors, or SaaS vendors.
 
@@ -88,7 +92,7 @@ RULES
   • category: blood_tests for lab/blood work (Sameind, rannsóknarstofa), measurements for body-composition/measurement services, doctor for physician services, saas for software subscriptions, other otherwise.
   • description: one short line in English describing what was bought (e.g. "Blood panels for 14 clients, May 2026").
   • Put anything ambiguous (unreadable totals, unclear currency, multiple candidate totals) into warnings.
-  • This invoice is being booked into accounting month ${month}.`;
+  • ${monthNote}`;
   const result = await generateText({
     model: openai(MODEL),
     output: Output.object({ schema: extractionSchema }),
@@ -115,10 +119,11 @@ export async function POST(req: NextRequest) {
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
-  const month = String(form?.get("month") || "");
+  const monthParam = String(form?.get("month") || "");
+  const autoMonth = monthParam === "auto";
   const forcedCategory = String(form?.get("category") || "");
   const companyId = String(form?.get("company_id") || "");
-  if (!(file instanceof File) || !MONTH_RE.test(month)) {
+  if (!(file instanceof File) || (!autoMonth && !MONTH_RE.test(monthParam))) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
   if (companyId && !UUID_RE.test(companyId)) {
@@ -131,8 +136,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
   }
 
-  const { monthDate } = monthBounds(month);
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Extraction runs BEFORE storage so an auto-month dump can file the
+  // invoice under its own date and skip duplicates without leaving
+  // orphaned files. Best-effort — a failed parse still saves the row.
+  let extracted: z.infer<typeof extractionSchema> | null = null;
+  let extractError: string | null = null;
+  try {
+    extracted = await extractInvoice(
+      buffer, file.type,
+      autoMonth
+        ? "Determine the correct accounting month yourself from the invoice date — extract invoice_date carefully."
+        : `This invoice is being booked into accounting month ${monthParam}.`,
+    );
+  } catch (e) {
+    extractError = (e as Error).message;
+  }
+
+  const aiMonth = (extracted?.invoice_date || "").slice(0, 7);
+  const month = autoMonth
+    ? (MONTH_RE.test(aiMonth) ? aiMonth : new Date().toISOString().slice(0, 7))
+    : monthParam;
+  const { monthDate } = monthBounds(month);
+
+  // Dump dedupe: the same supplier invoice already stored → skip.
+  if (extracted?.invoice_number && extracted?.vendor) {
+    const { data: dup } = await supabaseAdmin
+      .from("accounting_expense_invoices")
+      .select("id, month, amount_isk")
+      .eq("invoice_number", extracted.invoice_number)
+      .ilike("vendor", extracted.vendor)
+      .maybeSingle();
+    if (dup) {
+      return NextResponse.json({
+        ok: true, duplicate: true, existing_id: dup.id,
+        month: dup.month, vendor: extracted.vendor, invoice_number: extracted.invoice_number,
+      });
+    }
+  }
+
   const id = crypto.randomUUID();
   const safeName = (file.name || "invoice").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
   const storagePath = `${month}/${id}-${safeName}`;
@@ -149,15 +192,6 @@ export async function POST(req: NextRequest) {
       .upload(storagePath, buffer, { contentType: file.type, upsert: false })).error;
   }
   if (upErr) return NextResponse.json({ error: `upload_failed: ${upErr.message}` }, { status: 500 });
-
-  // Best-effort AI extraction — a failed parse still saves the invoice.
-  let extracted: z.infer<typeof extractionSchema> | null = null;
-  let extractError: string | null = null;
-  try {
-    extracted = await extractInvoice(buffer, file.type, month);
-  } catch (e) {
-    extractError = (e as Error).message;
-  }
 
   const currency = (extracted?.currency || "ISK").toUpperCase();
   let amountIsk = 0;
