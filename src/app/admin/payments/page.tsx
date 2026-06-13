@@ -462,7 +462,24 @@ export default function AdminPaymentsPage() {
                       <button onClick={() => markRefunded(p.id)} className="text-xs font-medium text-gray-600 hover:underline">Refund</button>
                     )}
                     {p.pdf_url && (
-                      <a href={p.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blue-600 hover:underline">PDF</a>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          // The PayDay PDF proxy needs a Bearer token —
+                          // a bare link 403s. Fetch + open as blob.
+                          const url = p.pdf_url!;
+                          if (/^https?:\/\//.test(url)) { window.open(url, "_blank", "noreferrer"); return; }
+                          const { data: s } = await supabase.auth.getSession();
+                          const res = await fetch(url, {
+                            headers: s.session?.access_token ? { Authorization: `Bearer ${s.session.access_token}` } : {},
+                          });
+                          if (!res.ok) { setMsg(`PDF fetch failed (${res.status})`); return; }
+                          const blobUrl = URL.createObjectURL(await res.blob());
+                          window.open(blobUrl, "_blank", "noreferrer");
+                          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+                        }}
+                        className="text-xs font-medium text-blue-600 hover:underline"
+                      >PDF</button>
                     )}
                   </td>
                 </tr>

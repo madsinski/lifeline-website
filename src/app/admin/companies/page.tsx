@@ -164,7 +164,7 @@ const BLOOD_PROVIDERS = Object.keys(BLOOD_PROVIDER_RATES);
 
 interface CostItemState { status: string; provider: string | null; staff_id: string | null; unit_price_isk: number | null }
 
-function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCount: number }) {
+function CompanyCosts({ companyId, memberCount, onChanged }: { companyId: string; memberCount: number; onChanged?: () => void }) {
   const [invoices, setInvoices] = useState<TaggedCost[] | null>(null);
   const [adjustments, setAdjustments] = useState<TaggedCost[]>([]);
   const [rates, setRates] = useState<Record<string, number>>({});
@@ -219,6 +219,7 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
     });
     if (!res.ok) setMsg("Saving item state failed.");
     await load();
+    onChanged?.();
     setBusy(false);
   };
 
@@ -237,6 +238,7 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
     });
     if (!res.ok) setMsg("Update failed.");
     await load();
+    onChanged?.();
     setBusy(false);
   };
 
@@ -260,6 +262,7 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
     if (!res.ok) setMsg("Add failed.");
     setForm({ description: "", amount: "" });
     await load();
+    onChanged?.();
     setBusy(false);
   };
 
@@ -267,6 +270,7 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
     setBusy(true);
     await authedFetch(`/api/admin/accounting/adjustments?id=${id}`, { method: "DELETE" });
     await load();
+    onChanged?.();
     setBusy(false);
   };
 
@@ -288,6 +292,7 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
       setMsg(`Upload failed: ${(e as Error).message}`);
     }
     await load();
+    onChanged?.();
     setBusy(false);
   };
 
@@ -668,6 +673,22 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
 
 // Recent PayDay invoices, shown inside the expanded company card so the
 // whole billing story lives on the company itself.
+// The PayDay PDF proxy (/api/admin/invoices/[id]/pdf) requires a
+// Bearer token — a plain <a href> sends none and 403s. Fetch with the
+// session token and open the blob instead.
+async function openAuthedPdf(url: string) {
+  if (/^https?:\/\//.test(url)) { window.open(url, "_blank", "noreferrer"); return; }
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch(url, {
+    headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+  });
+  if (!res.ok) { alert(`PDF fetch failed (${res.status})`); return; }
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, "_blank", "noreferrer");
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+}
+
 function CompanyInvoiceRows({ companyId }: { companyId: string }) {
   const [rows, setRows] = useState<CompanyInvoiceRow[] | null>(null);
   useEffect(() => {
@@ -700,7 +721,13 @@ function CompanyInvoiceRows({ companyId }: { companyId: string }) {
                 {r.status}
               </span>
               {r.pdf_url ? (
-                <a href={r.pdf_url} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 hover:underline">PDF</a>
+                <button
+                  type="button"
+                  onClick={() => openAuthedPdf(r.pdf_url!)}
+                  className="text-[11px] text-emerald-700 hover:underline"
+                >
+                  PDF
+                </button>
               ) : null}
             </span>
           </div>
@@ -2089,8 +2116,9 @@ export default function AdminCompaniesPage() {
 
   // Side data for the unified view: per-company financials (accounting
   // module) + pending approval counts. Both best-effort — the roster
-  // view works without them.
-  useEffect(() => {
+  // view works without them. Exposed as a callback so cost/invoice
+  // mutations inside the card can refresh the Actual/Expected lines.
+  const loadSideData = useCallback(() => {
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -2125,6 +2153,8 @@ export default function AdminCompaniesPage() {
       } catch { /* non-blocking */ }
     })();
   }, []);
+
+  useEffect(() => { loadSideData(); }, [loadSideData]);
 
   // Apply a discount code to a company. Percent codes discount ALL
   // income items (health check, 3-month follow-up, app subscription) by
@@ -2593,7 +2623,7 @@ export default function AdminCompaniesPage() {
                   <div className="rounded-b-2xl overflow-hidden">
                     <CompanyInvoiceRows companyId={c.id} />
                     <CompanyIncomeBreakdown c={c} onReload={load} membersOverride={aggMembers} />
-                    <CompanyCosts companyId={c.id} memberCount={aggMembers} />
+                    <CompanyCosts companyId={c.id} memberCount={aggMembers} onChanged={loadSideData} />
                     <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
                     {children.length > 0 ? (
                       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
