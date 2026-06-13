@@ -688,7 +688,7 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
             <button
               type="button"
               onClick={() => onStepClick(JOURNEY_TARGETS[s.label] ?? null)}
-              className="flex flex-col items-center gap-1 w-14 shrink-0 group"
+              className="flex flex-col items-center gap-1 w-14 shrink-0 group rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
               title={s.hint}
             >
               <span
@@ -697,13 +697,13 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
                     ? "bg-emerald-500 border-emerald-500 text-white"
                     : i === currentIdx
                       ? "bg-amber-100 border-amber-400 text-amber-700"
-                      : "bg-white border-gray-200 text-gray-300"
+                      : "bg-white border-gray-300 text-gray-500"
                 }`}
               >
                 {s.done ? "✓" : i + 1}
               </span>
-              <span className={`text-[9px] leading-tight text-center ${
-                s.done ? "text-emerald-700" : i === currentIdx ? "text-amber-700 font-semibold" : "text-gray-300"
+              <span className={`text-[10px] leading-tight text-center ${
+                s.done ? "text-emerald-700" : i === currentIdx ? "text-amber-800 font-semibold" : "text-gray-500"
               }`}>
                 {s.label}
               </span>
@@ -718,7 +718,11 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
             ✓ All steps complete — relationship in management mode.
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-100 text-amber-900">
+          <button
+            type="button"
+            onClick={() => onStepClick(JOURNEY_TARGETS[current!.label] ?? null)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          >
             <span className="font-semibold">Next:</span> {current!.hint}
             {current!.label === "Follow-up" && followupDue ? (
               <>
@@ -732,7 +736,7 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
                 </button>
               </>
             ) : null}
-          </span>
+          </button>
         )}
       </div>
     </div>
@@ -1357,7 +1361,7 @@ function DocumentsButton({ companyId, docKinds = [] }: { companyId: string; docK
                 )}
                 <div className="flex justify-end">
                   <button onClick={submitUpload} disabled={uploading || !file}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
+                    className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
                     {uploading ? "Hleð upp…" : "Hlaða upp"}
                   </button>
                 </div>
@@ -2163,7 +2167,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
                   type="button"
                   disabled={settingContact !== null}
                   onClick={() => makeContact(m)}
-                  className="text-[11px] text-gray-400 hover:text-emerald-700 hover:underline disabled:opacity-50"
+                  className="text-[11px] text-gray-500 hover:text-emerald-700 underline underline-offset-2 disabled:opacity-50"
                 >
                   {settingContact === m.id ? "…" : "make contact"}
                 </button>
@@ -2540,7 +2544,7 @@ export default function AdminCompaniesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Link href="/admin/companies/create" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white px-3 py-2 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95 shadow-sm">
+          <Link href="/admin/companies/create" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 shadow-sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
@@ -2608,7 +2612,7 @@ export default function AdminCompaniesPage() {
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
               >
                 {/* Top gradient accent — same language as the client view */}
-                <div className="h-1 bg-gradient-to-r from-blue-500 to-emerald-500" />
+                <div className="h-1.5 bg-gradient-to-r from-blue-500 to-emerald-500" />
                 <div className="px-5 py-4">
                   {/* Header line: name + badges left, controls right */}
                   <div className="flex items-start justify-between gap-4">
@@ -2640,7 +2644,7 @@ export default function AdminCompaniesPage() {
                               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                               </svg>
-                              Bílag til {c.parent_name}
+                              Billed to {c.parent_name}
                             </span>
                           )}
                           {isParentWithSubs && (
@@ -2660,7 +2664,7 @@ export default function AdminCompaniesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 pt-1">
-                      <span className="text-[11px] text-gray-400 whitespace-nowrap hidden sm:inline">
+                      <span className="text-[11px] text-gray-500 whitespace-nowrap">
                         {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
                       </span>
                       <button
@@ -2770,9 +2774,9 @@ export default function AdminCompaniesPage() {
                       <div className="mt-3">
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                           {tiles.map((tile) => (
-                            <div key={tile.label} className="rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 min-w-0">
-                              <div className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 truncate">{tile.label}</div>
-                              <div className={`text-[12px] font-bold tabular-nums truncate ${tile.tone || "text-gray-900"}`} title={tile.value}>
+                            <div key={tile.label} className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 min-w-0">
+                              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 truncate">{tile.label}</div>
+                              <div className={`text-sm font-bold tabular-nums ${tile.tone || "text-gray-900"}`}>
                                 {tile.value}
                               </div>
                             </div>
@@ -2800,7 +2804,7 @@ export default function AdminCompaniesPage() {
                     <div className="rounded-b-2xl overflow-hidden">
                       <CardSection
                         title="Pricing"
-                        summary={`${iskFmt(aggFin("expected_income_isk"))} expected`}
+                        summary={aggMembers > 0 ? `${iskFmt(aggFin("expected_income_isk"))} expected` : "no roster yet"}
                         open={!!sec.pricing}
                         onToggle={t("pricing")}
                       >
