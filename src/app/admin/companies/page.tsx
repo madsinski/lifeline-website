@@ -629,6 +629,80 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-red-50 border-red-200 text-red-600",
 };
 
+// Lifecycle journey strip — the admin-side mirror of the client view's
+// setup steps. Shows where the relationship stands at a glance and the
+// single next action, so a card never needs decoding.
+function CompanyJourney({ invited, claimed, docsReady, members, completed, eventsScheduled, pendingCount, invoicedIsk, outstandingIsk }: {
+  invited: boolean;
+  claimed: boolean;
+  docsReady: number;
+  members: number;
+  completed: number;
+  eventsScheduled: boolean;
+  pendingCount: number;
+  invoicedIsk: number;
+  outstandingIsk: number;
+}) {
+  const steps: Array<{ label: string; done: boolean; hint: string }> = [
+    {
+      label: "Admin", done: claimed,
+      hint: invited
+        ? "Waiting for the company admin to claim the invite — re-invite from the Contact card if needed"
+        : "Invite the company admin (Contact card)",
+    },
+    { label: "Documents", done: docsReady >= 3, hint: `Collect signed documents — ${docsReady}/3 on file (Legal section)` },
+    { label: "Roster", done: members > 0, hint: "Add employees to the roster" },
+    {
+      label: "Scheduling", done: eventsScheduled,
+      hint: pendingCount > 0
+        ? "Approve the requested days (Approvals section)"
+        : "Waiting for measurement/doctor days to be proposed",
+    },
+    { label: "Assessments", done: members > 0 && completed >= members, hint: `Assessments in progress — ${completed}/${members} completed` },
+    { label: "Invoiced", done: invoicedIsk > 0, hint: "Generate the invoice (Invoices section)" },
+    { label: "Paid", done: invoicedIsk > 0 && outstandingIsk <= 0, hint: `Awaiting payment — ${Math.round(outstandingIsk).toLocaleString("is-IS")} kr. outstanding` },
+  ];
+  const currentIdx = steps.findIndex((s) => !s.done);
+  const allDone = currentIdx === -1;
+  return (
+    <div className="mt-3">
+      <div className="flex items-start">
+        {steps.map((s, i) => (
+          <div key={s.label} className={`flex items-start ${i < steps.length - 1 ? "flex-1" : ""}`}>
+            <div className="flex flex-col items-center gap-0.5 w-14 shrink-0">
+              <span
+                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border ${
+                  s.done
+                    ? "bg-emerald-500 border-emerald-500 text-white"
+                    : i === currentIdx
+                      ? "bg-amber-100 border-amber-400 text-amber-700"
+                      : "bg-white border-gray-200 text-gray-300"
+                }`}
+                title={s.hint}
+              >
+                {s.done ? "✓" : i + 1}
+              </span>
+              <span className={`text-[9px] leading-tight text-center ${
+                s.done ? "text-emerald-700" : i === currentIdx ? "text-amber-700 font-semibold" : "text-gray-300"
+              }`}>
+                {s.label}
+              </span>
+            </div>
+            {i < steps.length - 1 && <div className={`h-px flex-1 mt-2 ${s.done ? "bg-emerald-300" : "bg-gray-200"}`} />}
+          </div>
+        ))}
+      </div>
+      <div className="mt-1 text-[11px]">
+        {allDone ? (
+          <span className="text-emerald-700 font-medium">All steps complete — management mode. Next up: the 3-month doctor follow-up.</span>
+        ) : (
+          <span className="text-gray-600"><span className="font-semibold text-amber-700">Next:</span> {steps[currentIdx].hint}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // A sub-division folded into its mother company's card: compact
 // dropdown row with the division's contact person; expanding reveals
 // its employee roster. All money/invoices/approvals are handled at the
@@ -2600,7 +2674,19 @@ export default function AdminCompaniesPage() {
                     </div>
                   </div>
 
-                  {/* Data row: contact, progress, tier */}
+                  <CompanyJourney
+                    invited={c.status !== "draft"}
+                    claimed={!!c.registration_finalized_at}
+                    docsReady={REQUIRED_DOC_KINDS.filter((k) => (fin.get(c.id)?.doc_kinds || []).includes(k)).length}
+                    members={aggMembers}
+                    completed={(c.completed_count || 0) + children.reduce((s, x) => s + (x.completed_count || 0), 0)}
+                    eventsScheduled={(c.body_comp_event_count || 0) + children.reduce((s, x) => s + (x.body_comp_event_count || 0), 0) > 0}
+                    pendingCount={pendingCount}
+                    invoicedIsk={aggFin("invoiced_isk")}
+                    outstandingIsk={aggFin("outstanding_isk")}
+                  />
+
+                  {/* Data row: contact + roster */}
                   <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.2fr] gap-x-6 gap-y-2 items-start`}>
                     {/* Contact — name on top, then email + phone in muted
                         small text. Falls back to draft name/email for
@@ -2687,8 +2773,6 @@ export default function AdminCompaniesPage() {
                       onApplyDiscount={applyDiscount}
                       onRemoveDiscount={removeDiscount}
                     />
-                    <CompanyCosts companyId={c.id} memberCount={aggMembers} onChanged={loadSideData} />
-                    <CompanyInvoiceRows companyId={c.id} companyName={c.name} hasChildren={isParentWithSubs} />
                     {/* Legal — signed contract documents (ToS, DPA, service agreement) */}
                     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -2701,6 +2785,8 @@ export default function AdminCompaniesPage() {
                         <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
                       </div>
                     </div>
+                    <CompanyCosts companyId={c.id} memberCount={aggMembers} onChanged={loadSideData} />
+                    <CompanyInvoiceRows companyId={c.id} companyName={c.name} hasChildren={isParentWithSubs} />
                     <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
                     {children.length > 0 ? (
                       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
