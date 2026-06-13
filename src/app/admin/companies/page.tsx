@@ -779,8 +779,9 @@ async function openAuthedPdf(url: string) {
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
 }
 
-function CompanyInvoiceRows({ companyId }: { companyId: string }) {
+function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId: string; companyName: string; hasChildren: boolean }) {
   const [rows, setRows] = useState<CompanyInvoiceRow[] | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     supabase
       .from("company_invoices")
@@ -789,12 +790,28 @@ function CompanyInvoiceRows({ companyId }: { companyId: string }) {
       .order("created_at", { ascending: false })
       .limit(8)
       .then(({ data }) => setRows((data as CompanyInvoiceRow[]) || []));
-  }, [companyId]);
+  }, [companyId, reloadKey]);
   if (rows === null) return <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">Loading invoices…</div>;
-  if (rows.length === 0) return null;
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Invoices (PayDay)</div>
+      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Invoices (PayDay)</span>
+        <span className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="text-[11px] text-gray-400 hover:text-emerald-700"
+            title="Refresh the list (e.g. after generating an invoice)"
+          >
+            refresh
+          </button>
+          <GenerateInvoiceButton companyId={companyId} companyName={companyName} />
+          {hasChildren && <ConsolidatedInvoiceButton companyId={companyId} companyName={companyName} />}
+        </span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="text-xs text-gray-400">No invoices yet — generate the first one with the button above.</div>
+      ) : null}
       <div className="space-y-1">
         {rows.map((r) => (
           <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
@@ -2661,11 +2678,6 @@ export default function AdminCompaniesPage() {
                       </svg>
                       Client view
                     </Link>
-                    <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
-                    {isParentWithSubs && (
-                      <ConsolidatedInvoiceButton companyId={c.id} companyName={c.name} />
-                    )}
-                    <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
                     <div className="flex-1" />
                   </div>
                 </div>
@@ -2686,7 +2698,19 @@ export default function AdminCompaniesPage() {
                       onRemoveDiscount={removeDiscount}
                     />
                     <CompanyCosts companyId={c.id} memberCount={aggMembers} onChanged={loadSideData} />
-                    <CompanyInvoiceRows companyId={c.id} />
+                    <CompanyInvoiceRows companyId={c.id} companyName={c.name} hasChildren={isParentWithSubs} />
+                    {/* Legal — signed contract documents (ToS, DPA, service agreement) */}
+                    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Legal</span>
+                          <span className="block text-[11px] text-gray-400 mt-0.5">
+                            Signed ToS, DPA and service agreement for this company.
+                          </span>
+                        </span>
+                        <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
+                      </div>
+                    </div>
                     <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
                     {children.length > 0 ? (
                       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
