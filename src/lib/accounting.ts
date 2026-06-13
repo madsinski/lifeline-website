@@ -606,7 +606,7 @@ export async function computeCompanyOverview(): Promise<{
   reimbursements: ReimbursementRow[];
 }> {
   const today = new Date().toISOString().slice(0, 10);
-  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes, owedRes, staffRes, companyDocsRes] = await Promise.all([
+  const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes, owedRes, staffRes, companyDocsRes, incomeQtyRes] = await Promise.all([
     supabaseAdmin.from("companies").select("id, name, assessment_unit_price, followup_doctor_price, parent_company_id").order("name"),
     supabaseAdmin.from("company_members").select("company_id"),
     supabaseAdmin
@@ -650,6 +650,9 @@ export async function computeCompanyOverview(): Promise<{
     supabaseAdmin
       .from("company_documents")
       .select("company_id, kind"),
+    supabaseAdmin
+      .from("company_income_item_qty")
+      .select("company_id, item, qty"),
   ]);
 
   const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null; followup_doctor_price?: number | null; parent_company_id?: string | null }>;
@@ -771,6 +774,44 @@ export async function computeCompanyOverview(): Promise<{
     row.expected_income_isk = members * (unitPrice + followupPrice);
     row.expected_cost_isk = members * perClientCostFor(c.id);
     row.expected_net_isk = row.expected_income_isk - row.expected_cost_isk;
+  }
+
+  // Manual per-service quantity overrides (set in the Pricing block on
+  // the mother company's card) replace the roster-based quantities for
+  // the whole group. The override-bearing company's row carries the
+  // group's expected income and its divisions are zeroed so the card's
+  // aggregate is exact.
+  const qtyOverrides = new Map<string, Map<string, number>>();
+  for (const q of incomeQtyRes.data || []) {
+    const m = qtyOverrides.get(q.company_id as string) || new Map<string, number>();
+    m.set(q.item as string, q.qty as number);
+    qtyOverrides.set(q.company_id as string, m);
+  }
+  for (const [companyId, items] of qtyOverrides) {
+    const c = companyById.get(companyId);
+    if (!c) continue;
+    const kids = companies.filter((x) => x.parent_company_id === companyId);
+    const groupMembers = (memberCounts.get(companyId) || 0)
+      + kids.reduce((s, x) => s + (memberCounts.get(x.id) || 0), 0);
+    const parent = c.parent_company_id ? companyById.get(c.parent_company_id) : null;
+    const unitPrice = c.assessment_unit_price
+      ?? parent?.assessment_unit_price
+      ?? assessmentUnitPriceIsk(Math.max(groupMembers, 1), 1);
+    const followupPrice = c.followup_doctor_price
+      ?? parent?.followup_doctor_price
+      ?? FOLLOWUP_DOCTOR_PRICE_ISK;
+    const qtyCheck = items.get("health_check") ?? groupMembers;
+    const qtyFollow = items.get("followup") ?? groupMembers;
+    const row = rowFor(companyId);
+    row.expected_income_isk = qtyCheck * unitPrice + qtyFollow * followupPrice;
+    row.expected_net_isk = row.expected_income_isk - row.expected_cost_isk;
+    for (const kid of kids) {
+      const kr = byId.get(kid.id);
+      if (kr) {
+        kr.expected_income_isk = 0;
+        kr.expected_net_isk = -kr.expected_cost_isk;
+      }
+    }
   }
 
   const rows = Array.from(byId.values()).map((r) => ({

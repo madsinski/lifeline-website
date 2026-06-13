@@ -96,24 +96,81 @@ interface CompanyInvoiceRow {
 // fallbacks — the same numbers invoices are built from.
 function CompanyIncomeBreakdown({ c, onReload, membersOverride }: { c: CompanyRow; onReload: () => void; membersOverride?: number }) {
   const members = membersOverride ?? (c.member_count || 0);
+  // Per-service quantity overrides — auto = the group roster count;
+  // manual values persist in company_income_item_qty.
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [busy, setBusy] = useState(false);
+
+  const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    return fetch(path, {
+      ...init,
+      headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  }, []);
+
+  const load = useCallback(async () => {
+    const res = await authedFetch(`/api/admin/accounting/income-items?company_id=${c.id}`);
+    if (!res.ok) return;
+    const json = await res.json();
+    const map: Record<string, number> = {};
+    for (const it of (json.items || []) as Array<{ item: string; qty: number }>) map[it.item] = it.qty;
+    setQty(map);
+  }, [authedFetch, c.id]);
+
+  useEffect(() => { queueMicrotask(load); }, [load]);
+
+  const editQty = async (item: string, label: string) => {
+    const v = prompt(`${label} — number of employees (empty = auto, full roster ${members}):`,
+      qty[item] != null ? String(qty[item]) : "");
+    if (v === null) return;
+    const trimmed = v.replace(/[^\d]/g, "");
+    setBusy(true);
+    const res = await authedFetch(`/api/admin/accounting/income-items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company_id: c.id, item, qty: trimmed === "" ? null : parseInt(trimmed, 10) }),
+    });
+    if (!res.ok) alert("Saving quantity failed.");
+    await load();
+    onReload();
+    setBusy(false);
+  };
+
   if (members === 0) return null;
   const checkPrice = c.assessment_unit_price ?? assessmentUnitPriceIsk(members, 1);
   const followupPrice = c.followup_doctor_price ?? FOLLOWUP_DOCTOR_PRICE_ISK;
   const appPrice = c.app_price_isk_monthly ?? 3490;
+  const qtyCheck = qty["health_check"] ?? members;
+  const qtyFollow = qty["followup"] ?? members;
+  const qtyApp = qty["app"] ?? members;
+  const qtyBtn = (item: string, label: string, value: number, manual: boolean) => (
+    <>
+      <b>{value}</b>{manual ? " (manual)" : ""}{" "}
+      <button
+        type="button"
+        className="text-gray-300 hover:text-emerald-700"
+        title={`Change the number of employees for ${label} (empty = full roster)`}
+        disabled={busy}
+        onClick={() => editQty(item, label)}
+      >✎</button>
+    </>
+  );
   const lines = [
-    { label: `Health checks — ${members} × ${iskFmt(checkPrice)}`, total: members * checkPrice, suffix: "" },
-    { label: `3-month doctor follow-up — ${members} × ${iskFmt(followupPrice)}`, total: members * followupPrice, suffix: "" },
+    { key: "health_check", label: "Health checks", q: qtyCheck, manual: qty["health_check"] != null, price: checkPrice, suffix: "" },
+    { key: "followup", label: "3-month doctor follow-up", q: qtyFollow, manual: qty["followup"] != null, price: followupPrice, suffix: "" },
     ...(c.app_enabled
-      ? [{ label: `App subscription — ${members} × ${iskFmt(appPrice)}/mo`, total: members * appPrice, suffix: "/mo" }]
+      ? [{ key: "app", label: "App subscription", q: qtyApp, manual: qty["app"] != null, price: appPrice, suffix: "/mo" }]
       : []),
   ];
-  const oneTimeTotal = members * (checkPrice + followupPrice);
+  const oneTimeTotal = qtyCheck * checkPrice + qtyFollow * followupPrice;
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
       <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
         <span className="flex items-center gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            Pricing (expected, full roster)
+            Pricing (expected)
           </span>
           {c.applied_discount_code ? (
             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
@@ -125,16 +182,22 @@ function CompanyIncomeBreakdown({ c, onReload, membersOverride }: { c: CompanyRo
       </div>
       <div className="space-y-1">
         {lines.map((l) => (
-          <div key={l.label} className="flex items-center justify-between gap-2 text-xs text-gray-700">
-            <span>{l.label}</span>
-            <span className="font-medium">{iskFmt(l.total)}{l.suffix}</span>
+          <div key={l.key} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+            <span>
+              {l.label} — {qtyBtn(l.key, l.label, l.q, l.manual)} × {iskFmt(l.price)}{l.suffix}
+            </span>
+            <span className="font-medium">{iskFmt(l.q * l.price)}{l.suffix}</span>
           </div>
         ))}
         <div className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-900 pt-1 border-t border-gray-100">
           <span>Total one-time income{c.app_enabled ? " (app billed monthly on top)" : ""}</span>
           <span>{iskFmt(oneTimeTotal)}</span>
         </div>
-        {!c.app_enabled ? <div className="text-[11px] text-gray-400">App subscription not enabled for this company.</div> : null}
+        {!c.app_enabled ? (
+          <div className="text-[11px] text-gray-400">
+            App subscription not enabled — turn it on under „Change pricing“ above.
+          </div>
+        ) : null}
       </div>
     </div>
   );

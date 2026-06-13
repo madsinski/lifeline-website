@@ -207,6 +207,20 @@ alter table company_cost_item_status enable row level security;
 drop policy if exists "Block client access" on company_cost_item_status;
 create policy "Block client access" on company_cost_item_status for all using (false) with check (false);
 
+-- ── Per-company income quantity overrides (added 2026-06-13): the
+--    Pricing block auto-uses the group roster count per service; a row
+--    here replaces it (e.g. only 100 of 146 staff get the follow-up).
+create table if not exists company_income_item_qty (
+  company_id uuid not null references companies(id) on delete cascade,
+  item text not null check (item in ('health_check', 'followup', 'app')),
+  qty integer not null check (qty >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (company_id, item)
+);
+alter table company_income_item_qty enable row level security;
+drop policy if exists "Block client access" on company_income_item_qty;
+create policy "Block client access" on company_income_item_qty for all using (false) with check (false);
+
 -- ── Small key-value settings for the Plan tab (added 2026-06-12):
 --    cash balance, known liabilities, share count, and manual offsets
 --    for pre-platform health checks / subscribers. Edited in the UI.
