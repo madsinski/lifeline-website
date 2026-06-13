@@ -6,9 +6,16 @@
 //          milestone is { done: boolean, source: 'auto'|'manual'|null }.
 //      Merges auto-detected signals (station/doctor slots completed,
 //      biody activation, journey_checks) with admin ticks.
-// POST { member_id, milestone, done } — set/clear an admin tick.
+// POST { member_id|member_ids, milestone, done } — set/clear a tick.
+//   blood_test & questionnaire are SHARED with the employee account:
+//   for a member with a claimed client they write clients.journey_checks
+//   (the same key the account page ticks), so admin and employee stay
+//   in sync both ways. Members without a client, and the auto-derived
+//   milestones (measurement/doctor/app overrides), use
+//   company_member_milestones.
 //
-// Tables: supabase/migration-member-milestones.sql.
+// Tables: supabase/migration-member-milestones.sql; clients.journey_checks
+// (supabase/migration-journey-checks.sql).
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -107,20 +114,54 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
   if (ids.length === 0 || ids.some((id) => !UUID_RE.test(id)) || !(MILESTONES as readonly string[]).includes(milestone)) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
-  if (done) {
-    const now = new Date().toISOString();
-    const { error } = await supabaseAdmin
-      .from("company_member_milestones")
-      .upsert(ids.map((id) => ({ member_id: id, milestone, done_at: now, marked_by: auth.id })),
-        { onConflict: "member_id,milestone" });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  } else {
-    const { error } = await supabaseAdmin
-      .from("company_member_milestones")
-      .delete()
-      .in("member_id", ids)
-      .eq("milestone", milestone);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const now = new Date().toISOString();
+  const journeyBacked = milestone === "blood_test" || milestone === "questionnaire";
+
+  // Split into members with a claimed client (→ shared journey_checks)
+  // and members without (→ company_member_milestones fallback).
+  let withClient: Array<{ id: string; client_id: string }> = [];
+  let withoutClient: string[] = ids;
+  if (journeyBacked) {
+    const { data: mems } = await supabaseAdmin
+      .from("company_members").select("id, client_id").in("id", ids);
+    withClient = (mems || []).filter((m) => m.client_id).map((m) => ({ id: m.id as string, client_id: m.client_id as string }));
+    const claimed = new Set(withClient.map((m) => m.id));
+    withoutClient = ids.filter((id) => !claimed.has(id));
+
+    // Shared store: read-modify-write each client's journey_checks so we
+    // preserve the other keys (questionnaire/blood_test/results_viewed).
+    if (withClient.length > 0) {
+      const clientIds = withClient.map((m) => m.client_id);
+      const { data: clients } = await supabaseAdmin
+        .from("clients").select("id, journey_checks").in("id", clientIds);
+      const jcById = new Map((clients || []).map((c) => [c.id as string, (c.journey_checks as Record<string, unknown> | null) || {}]));
+      await Promise.all(withClient.map(async (m) => {
+        const jc = { ...(jcById.get(m.client_id) || {}) };
+        if (done) jc[milestone] = now; else delete jc[milestone];
+        await supabaseAdmin.from("clients").update({ journey_checks: jc }).eq("id", m.client_id);
+      }));
+      // Keep journey_checks authoritative for claimed members — clear any
+      // stale company_member_milestones rows for them.
+      await supabaseAdmin.from("company_member_milestones")
+        .delete().in("member_id", withClient.map((m) => m.id)).eq("milestone", milestone);
+    }
+  }
+
+  if (withoutClient.length > 0) {
+    if (done) {
+      const { error } = await supabaseAdmin
+        .from("company_member_milestones")
+        .upsert(withoutClient.map((id) => ({ member_id: id, milestone, done_at: now, marked_by: auth.id })),
+          { onConflict: "member_id,milestone" });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      const { error } = await supabaseAdmin
+        .from("company_member_milestones")
+        .delete()
+        .in("member_id", withoutClient)
+        .eq("milestone", milestone);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
   return NextResponse.json({ ok: true });
 }
