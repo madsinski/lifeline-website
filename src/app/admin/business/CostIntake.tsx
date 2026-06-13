@@ -130,6 +130,39 @@ export default function CostPage() {
   };
 
   // ── split one invoice across companies ─────────────────────────
+  // Expected recurring costs (next month) — overheads billed to the
+  // debit card that don't always have an invoice (Vercel, Claude, …).
+  const now = new Date();
+  const nmDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const nextMonth = `${nmDate.getUTCFullYear()}-${String(nmDate.getUTCMonth() + 1).padStart(2, "0")}`;
+  const nextMonthLabel = monthLabel(`${nextMonth}-01`);
+  const [recurring, setRecurring] = useState<Array<{ id: string; name: string; quantity: number; amount_usd: number | null; total_isk: number }>>([]);
+  const [recurringTotal, setRecurringTotal] = useState(0);
+  const [newRec, setNewRec] = useState({ name: "", amount: "" });
+  const loadRecurring = useCallback(async () => {
+    const res = await authedFetch(`/api/admin/accounting/report?month=${nextMonth}`);
+    if (res.ok) {
+      const j = await res.json();
+      setRecurring(j.report?.overheads || []);
+      setRecurringTotal(j.report?.totals?.overheads_isk || 0);
+    }
+  }, [authedFetch, nextMonth]);
+  useEffect(() => { queueMicrotask(loadRecurring); }, [loadRecurring]);
+  const addRecurring = async () => {
+    const amount = parseInt(newRec.amount, 10);
+    if (!newRec.name.trim() || !Number.isInteger(amount) || amount < 0) return;
+    await authedFetch(`/api/admin/accounting/overheads`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newRec.name.trim(), amount_isk: amount, quantity: 1 }),
+    });
+    setNewRec({ name: "", amount: "" });
+    await loadRecurring();
+  };
+  const removeRecurring = async (id: string) => {
+    await authedFetch(`/api/admin/accounting/overheads?id=${id}`, { method: "DELETE" });
+    await loadRecurring();
+  };
+
   const [splitFor, setSplitFor] = useState<CostInvoice | null>(null);
   const [allocs, setAllocs] = useState<Alloc[]>([]);
   const [splitBusy, setSplitBusy] = useState(false);
@@ -248,6 +281,32 @@ export default function CostPage() {
         </div>
       )}
 
+      {/* ── Expected recurring costs (next month) ── */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+          <span className="text-sm font-semibold text-gray-900">Expected recurring costs · {nextMonthLabel}</span>
+          <span className="text-sm font-bold text-gray-900">{isk(recurringTotal)}</span>
+        </div>
+        <p className="text-[11px] text-gray-400 mb-2">Subscriptions billed to the card that don&apos;t always have an invoice (Vercel, Claude, Medalia, …). Projected for next month.</p>
+        <div className="space-y-1">
+          {recurring.length === 0 ? <div className="text-xs text-gray-400">No recurring costs set.</div> : null}
+          {recurring.map((o) => (
+            <div key={o.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+              <span>{o.name}{o.quantity > 1 ? ` ×${o.quantity}` : ""}{o.amount_usd != null ? <span className="text-gray-400"> · ${o.amount_usd} USD</span> : null}</span>
+              <span className="flex items-center gap-2">
+                <span className="font-medium">{isk(o.total_isk)}</span>
+                <button onClick={() => removeRecurring(o.id)} className="text-red-500 hover:text-red-700" title="Remove">×</button>
+              </span>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-gray-100 mt-1">
+            <input className={`${selCls} flex-1 min-w-[140px]`} placeholder="Recurring cost (e.g. Notion)" value={newRec.name} onChange={(e) => setNewRec({ ...newRec, name: e.target.value })} />
+            <input className={`${selCls} w-28`} type="number" placeholder="ISK / month" value={newRec.amount} onChange={(e) => setNewRec({ ...newRec, amount: e.target.value })} />
+            <button onClick={addRecurring} className="text-xs font-medium px-2.5 py-1 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">Add</button>
+          </div>
+        </div>
+      </div>
+
       {/* ── Filters + grand total ── */}
       <div className="flex items-center gap-3 flex-wrap text-xs">
         <select className={selCls} value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
@@ -331,7 +390,7 @@ export default function CostPage() {
       {/* Split modal */}
       {splitFor && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setSplitFor(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-12" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-12" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-gray-100">
               <h3 className="text-base font-semibold text-gray-900">Split across companies</h3>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -339,15 +398,18 @@ export default function CostPage() {
               </p>
             </div>
             <div className="p-5 space-y-2">
+              <div className="grid grid-cols-[1fr_7rem_5rem_1.5rem] gap-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-0.5">
+                <span>Company</span><span>Amount ISK</span><span>Clients</span><span></span>
+              </div>
               {allocs.map((a, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <select className={`${selCls} flex-1`} value={a.company_id} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, company_id: e.target.value } : x))}>
+                <div key={i} className="grid grid-cols-[1fr_7rem_5rem_1.5rem] gap-2 items-center">
+                  <select className={`${selCls} min-w-0`} value={a.company_id} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, company_id: e.target.value } : x))}>
                     <option value="">Pick company…</option>
                     {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <input className={`${selCls} w-28`} type="number" placeholder="Amount ISK" value={a.amount} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
-                  <input className={`${selCls} w-20`} type="number" placeholder="Clients" value={a.clients} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, clients: e.target.value } : x))} />
-                  <button onClick={() => setAllocs((p) => p.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700">×</button>
+                  <input className={`${selCls} min-w-0`} type="number" placeholder="Amount" value={a.amount} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
+                  <input className={`${selCls} min-w-0`} type="number" placeholder="#" value={a.clients} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, clients: e.target.value } : x))} />
+                  <button onClick={() => setAllocs((p) => p.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 text-center">×</button>
                 </div>
               ))}
               <button onClick={() => setAllocs((p) => [...p, { company_id: "", amount: "", clients: "" }])} className="text-xs text-emerald-700 hover:underline">+ add company</button>
