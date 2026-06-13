@@ -607,7 +607,7 @@ export async function computeCompanyOverview(): Promise<{
 }> {
   const today = new Date().toISOString().slice(0, 10);
   const [companiesRes, membersRes, invoicesRes, expRes, adjRes, ratesRes, docDoneRes, docPaidRes, assignRes, owedRes, staffRes, companyDocsRes] = await Promise.all([
-    supabaseAdmin.from("companies").select("id, name, assessment_unit_price, followup_doctor_price").order("name"),
+    supabaseAdmin.from("companies").select("id, name, assessment_unit_price, followup_doctor_price, parent_company_id").order("name"),
     supabaseAdmin.from("company_members").select("company_id"),
     supabaseAdmin
       .from("company_invoices")
@@ -635,8 +635,9 @@ export async function computeCompanyOverview(): Promise<{
       .eq("category", "doctor")
       .eq("direction", "cost"),
     supabaseAdmin
-      .from("company_work_assignments")
-      .select("company_id, role, staff_id, client_count, staff:staff_id(name, email)"),
+      .from("company_cost_item_status")
+      .select("company_id, category, staff_id, staff:staff_id(name, email)")
+      .not("staff_id", "is", null),
     supabaseAdmin
       .from("accounting_expense_invoices")
       .select("paid_by, amount_isk, payer:staff!paid_by(name, email)")
@@ -652,7 +653,8 @@ export async function computeCompanyOverview(): Promise<{
       .select("company_id, kind"),
   ]);
 
-  const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null; followup_doctor_price?: number | null }>;
+  const companies = (companiesRes.data || []) as Array<{ id: string; name: string; assessment_unit_price?: number | null; followup_doctor_price?: number | null; parent_company_id?: string | null }>;
+  const companyById = new Map(companies.map((c) => [c.id, c]));
 
   const rates: Record<string, number> = {};
   for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
@@ -711,7 +713,20 @@ export async function computeCompanyOverview(): Promise<{
   }
 
   // Projections for every company with a roster, whether or not money
-  // has moved yet.
+  // has moved yet. Divisions inherit the MOTHER company's negotiated
+  // prices (deals are made at the parent level), and the tier fallback
+  // uses the whole group's headcount — a 14-person division of a
+  // 146-person group gets the group's tier, not the small-team price.
+  const groupHeadcount = (companyId: string): number => {
+    const own = memberCounts.get(companyId) || 0;
+    const c = companyById.get(companyId);
+    const rootId = c?.parent_company_id || companyId;
+    let total = memberCounts.get(rootId) || 0;
+    for (const x of companies) {
+      if (x.parent_company_id === rootId) total += memberCounts.get(x.id) || 0;
+    }
+    return Math.max(total, own, 1);
+  };
   let totalMembers = 0;
   for (const c of companies) {
     const members = memberCounts.get(c.id) || 0;
@@ -719,10 +734,15 @@ export async function computeCompanyOverview(): Promise<{
     const row = rowFor(c.id);
     row.member_count = members;
     totalMembers += members;
+    const parent = c.parent_company_id ? companyById.get(c.parent_company_id) : null;
     // One-time income per member: health check + 3-month follow-up.
     // (App subscription is monthly and shown separately on the card.)
-    const unitPrice = c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(members, 1), 1);
-    const followupPrice = c.followup_doctor_price ?? FOLLOWUP_DOCTOR_PRICE_ISK;
+    const unitPrice = c.assessment_unit_price
+      ?? parent?.assessment_unit_price
+      ?? assessmentUnitPriceIsk(groupHeadcount(c.id), 1);
+    const followupPrice = c.followup_doctor_price
+      ?? parent?.followup_doctor_price
+      ?? FOLLOWUP_DOCTOR_PRICE_ISK;
     row.expected_income_isk = members * (unitPrice + followupPrice);
     row.expected_cost_isk = members * perClientCost;
     row.expected_net_isk = row.expected_income_isk - row.expected_cost_isk;
@@ -749,13 +769,22 @@ export async function computeCompanyOverview(): Promise<{
     paid_isk: paidIsk,
   };
 
-  // Per-staff split: aggregate assignments per (staff, role). A null
-  // client_count means the company's whole roster.
+  // Per-staff split from the cost-item assignees on company cards: the
+  // staff member set on a company's measurements/doctor line covers
+  // that company's whole group roster (mother company + divisions).
+  const groupMembersOf = (companyId: string): number => {
+    let total = memberCounts.get(companyId) || 0;
+    for (const x of companies) {
+      if (x.parent_company_id === companyId) total += memberCounts.get(x.id) || 0;
+    }
+    return total;
+  };
   const splitMap = new Map<string, WorkSplitRow>();
   for (const a of assignRes.data || []) {
-    const role = a.role as "doctor" | "measurer";
+    if (a.category === "blood_tests") continue; // provider, not staff
+    const role: "doctor" | "measurer" = a.category === "doctor" ? "doctor" : "measurer";
     const staffId = a.staff_id as string;
-    const clients = (a.client_count as number | null) ?? (memberCounts.get(a.company_id as string) || 0);
+    const clients = groupMembersOf(a.company_id as string);
     const rate = role === "doctor" ? doctorRate : rates["measurement"] || 0;
     const key = `${staffId}:${role}`;
     const staffName =

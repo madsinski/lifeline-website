@@ -717,7 +717,7 @@ export default function Accounting() {
           {workSplit.length > 0 ? (
             <div className="mt-3 pt-2 border-t border-gray-100 space-y-1 text-xs text-gray-700">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                Split by assignment (set per company under Companies → Who does the work)
+                Split by assignment (set via the Staff picker on each company&apos;s measurement/doctor cost lines)
               </div>
               {workSplit.map((w) => (
                 <div key={`${w.staff_id}-${w.role}`} className="flex items-center justify-between gap-2">
@@ -733,7 +733,7 @@ export default function Accounting() {
             </div>
           ) : (
             <div className="mt-3 pt-2 border-t border-gray-100 text-[11px] text-gray-400">
-              No work assignments yet — expand a company under Companies and use „Who does the work“ to split the pool between Victor and Mads.
+              No staff assigned yet — expand a company under Companies and pick the staff member on its Measurements / Doctor interviews cost lines to split the pool between Victor and Mads.
             </div>
           )}
         </Section>

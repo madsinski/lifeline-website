@@ -182,6 +182,27 @@ alter table company_work_assignments enable row level security;
 drop policy if exists "Block client access" on company_work_assignments;
 create policy "Block client access" on company_work_assignments for all using (false) with check (false);
 
+-- ── Per-company fixed cost-item state (added 2026-06-13): manual
+--    status override for the blood-tests / measurements / doctor lines
+--    on the company card ('auto' = computed from expected vs recorded),
+--    plus who delivers each item: blood tests → provider (Sameind /
+--    Heilsugæslan), measurements & doctor interviews → a staff member.
+--    Replaces company_work_assignments as the doctor-salary-split
+--    source.
+create table if not exists company_cost_item_status (
+  company_id uuid not null references companies(id) on delete cascade,
+  category text not null check (category in ('blood_tests', 'measurements', 'doctor')),
+  status text not null default 'auto'
+    check (status in ('auto', 'outstanding', 'invoice_pending', 'covered', 'not_applicable')),
+  provider text,
+  staff_id uuid references staff(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  primary key (company_id, category)
+);
+alter table company_cost_item_status enable row level security;
+drop policy if exists "Block client access" on company_cost_item_status;
+create policy "Block client access" on company_cost_item_status for all using (false) with check (false);
+
 -- ── Small key-value settings for the Plan tab (added 2026-06-12):
 --    cash balance, known liabilities, share count, and manual offsets
 --    for pre-platform health checks / subscribers. Edited in the UI.

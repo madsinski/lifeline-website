@@ -153,10 +153,23 @@ const FIXED_COST_ITEMS: Array<{ category: string; label: string; rateKey: string
   { category: "doctor", label: "Doctor interviews", rateKey: "doctor_interview" },
 ];
 
+const COST_ITEM_STATUSES = [
+  { value: "auto", label: "Auto" },
+  { value: "outstanding", label: "Outstanding" },
+  { value: "invoice_pending", label: "Invoice pending" },
+  { value: "covered", label: "Covered" },
+  { value: "not_applicable", label: "Not applicable" },
+];
+const BLOOD_PROVIDERS = ["Sameind", "Heilsugæslan"];
+
+interface CostItemState { status: string; provider: string | null; staff_id: string | null }
+
 function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCount: number }) {
   const [invoices, setInvoices] = useState<TaggedCost[] | null>(null);
   const [adjustments, setAdjustments] = useState<TaggedCost[]>([]);
   const [rates, setRates] = useState<Record<string, number>>({});
+  const [itemState, setItemState] = useState<Record<string, CostItemState>>({});
+  const [staff, setStaff] = useState<Array<{ id: string; name: string | null; email: string; role: string }>>([]);
   const [form, setForm] = useState({ description: "", amount: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -171,14 +184,16 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
   }, []);
 
   const load = useCallback(async () => {
-    const [invRes, adjRes, rateRes] = await Promise.all([
+    const [invRes, adjRes, rateRes, itemRes] = await Promise.all([
       authedFetch(`/api/admin/accounting/invoices?company_id=${companyId}`),
       authedFetch(`/api/admin/accounting/adjustments?company_id=${companyId}`),
       authedFetch(`/api/admin/accounting/rates`),
+      authedFetch(`/api/admin/accounting/cost-items?company_id=${companyId}`),
     ]);
     const inv = invRes.ok ? await invRes.json() : { invoices: [] };
     const adj = adjRes.ok ? await adjRes.json() : { adjustments: [] };
     const rts = rateRes.ok ? await rateRes.json() : { rates: [] };
+    const items = itemRes.ok ? await itemRes.json() : { items: [], staff: [] };
     setInvoices(((inv.invoices || []) as Array<TaggedCost & { direction?: string }>).filter((r) => r.direction !== "income"));
     setAdjustments((adj.adjustments || []).filter((a: TaggedCost) => a.kind === "expense"));
     // Latest effective rate per key (list is ordered newest-first per key)
@@ -187,7 +202,25 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
       if (map[r.rate_key] === undefined) map[r.rate_key] = r.amount_isk;
     }
     setRates(map);
+    const st: Record<string, CostItemState> = {};
+    for (const it of (items.items || []) as Array<{ category: string; status: string; provider: string | null; staff_id: string | null }>) {
+      st[it.category] = { status: it.status, provider: it.provider, staff_id: it.staff_id };
+    }
+    setItemState(st);
+    setStaff(items.staff || []);
   }, [authedFetch, companyId]);
+
+  const saveItem = async (category: string, patch: Partial<CostItemState>) => {
+    setBusy(true); setMsg("");
+    const res = await authedFetch(`/api/admin/accounting/cost-items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company_id: companyId, category, ...patch }),
+    });
+    if (!res.ok) setMsg("Saving item state failed.");
+    await load();
+    setBusy(false);
+  };
 
   useEffect(() => { queueMicrotask(load); }, [load]);
 
@@ -278,19 +311,58 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
             const rows = (invoices || []).filter((r) => r.category === item.category);
             const recorded = rows.reduce((s, r) => s + r.amount_isk, 0);
             const outstanding = Math.max(expected - recorded, 0);
+            const state = itemState[item.category] || { status: "auto", provider: null, staff_id: null };
+            const effective = state.status === "auto"
+              ? (outstanding > 0 ? "outstanding" : "covered")
+              : state.status;
+            const statusTone = effective === "covered" || effective === "not_applicable"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-amber-200 bg-amber-50 text-amber-700";
             return (
               <div key={item.category} className="pb-1">
-                <div className="flex items-center justify-between gap-2 text-xs text-gray-800">
+                <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-gray-800">
                   <span className="font-medium">
                     {item.label}
                     <span className="text-gray-400 font-normal">
                       {" "}· expected {memberCount} × {iskFmt(rate)} = {iskFmt(expected)}
+                      {state.status === "auto" && outstanding > 0 ? ` · ${iskFmt(outstanding)} open` : ""}
                     </span>
                   </span>
-                  <span className="flex items-center gap-2 whitespace-nowrap">
-                    <span className={outstanding > 0 ? "text-amber-600" : "text-emerald-700"}>
-                      {outstanding > 0 ? `${iskFmt(outstanding)} outstanding` : "covered"}
-                    </span>
+                  <span className="flex items-center gap-2 whitespace-nowrap flex-wrap">
+                    {item.category === "blood_tests" ? (
+                      <select
+                        className="text-[11px] border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600"
+                        value={state.provider || ""}
+                        disabled={busy}
+                        onChange={(e) => saveItem(item.category, { provider: e.target.value || null })}
+                      >
+                        <option value="">Provider…</option>
+                        {BLOOD_PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    ) : (
+                      <select
+                        className="text-[11px] border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600"
+                        value={state.staff_id || ""}
+                        disabled={busy}
+                        onChange={(e) => saveItem(item.category, { staff_id: e.target.value || null })}
+                        title="Who does the work — drives the salary split in Accounting"
+                      >
+                        <option value="">Staff…</option>
+                        {staff.map((s) => <option key={s.id} value={s.id}>{s.name || s.email}</option>)}
+                      </select>
+                    )}
+                    <select
+                      className={`text-[11px] border rounded-md px-1.5 py-0.5 font-medium ${statusTone}`}
+                      value={state.status}
+                      disabled={busy}
+                      onChange={(e) => saveItem(item.category, { status: e.target.value })}
+                    >
+                      {COST_ITEM_STATUSES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.value === "auto" ? `Auto (${outstanding > 0 ? "outstanding" : "covered"})` : s.label}
+                        </option>
+                      ))}
+                    </select>
                     <label className="cursor-pointer text-[11px] font-medium px-2 py-0.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
                       {busy ? "…" : "Attach PDF"}
                       <input
@@ -440,119 +512,6 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
   draft: "bg-gray-50 border-gray-200 text-gray-500",
   cancelled: "bg-red-50 border-red-200 text-red-600",
 };
-
-// Who does the work for this company — doctor interviews and
-// measurements assigned to staff, for X clients or the whole roster
-// (client_count null). Drives the per-doctor salary split in the
-// Accounting tab. API: /api/admin/accounting/assignments.
-interface AssignmentRow {
-  id: string;
-  role: "doctor" | "measurer";
-  staff_id: string;
-  client_count: number | null;
-  staff?: { name?: string; email?: string } | null;
-}
-interface StaffOption { id: string; name: string | null; email: string; role: string }
-
-function CompanyAssignments({ companyId }: { companyId: string }) {
-  const [assignments, setAssignments] = useState<AssignmentRow[] | null>(null);
-  const [staff, setStaff] = useState<StaffOption[]>([]);
-  const [form, setForm] = useState({ role: "doctor", staff_id: "", count: "" });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    return fetch(path, {
-      ...init,
-      headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    });
-  }, []);
-
-  const load = useCallback(async () => {
-    const res = await authedFetch(`/api/admin/accounting/assignments?company_id=${companyId}`);
-    if (!res.ok) { setMsg("Failed to load assignments"); setAssignments([]); return; }
-    const json = await res.json();
-    setAssignments(json.assignments || []);
-    setStaff(json.staff || []);
-  }, [authedFetch, companyId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const add = async () => {
-    if (!form.staff_id) { setMsg("Pick a staff member."); return; }
-    const count = form.count.trim() === "" ? null : parseInt(form.count, 10);
-    if (count !== null && (!Number.isInteger(count) || count < 1)) { setMsg("Count must be a positive number or empty for the whole company."); return; }
-    setBusy(true); setMsg("");
-    try {
-      const res = await authedFetch(`/api/admin/accounting/assignments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company_id: companyId, role: form.role, staff_id: form.staff_id, client_count: count }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
-      setForm({ role: form.role, staff_id: "", count: "" });
-      await load();
-    } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
-  };
-
-  const remove = async (id: string) => {
-    setBusy(true);
-    await authedFetch(`/api/admin/accounting/assignments?id=${id}`, { method: "DELETE" });
-    await load();
-    setBusy(false);
-  };
-
-  return (
-    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-        Who does the work
-      </div>
-      {assignments === null ? (
-        <div className="text-xs text-gray-400">Loading…</div>
-      ) : (
-        <div className="space-y-1">
-          {assignments.map((a) => (
-            <div key={a.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
-              <span>
-                <span className="font-medium">{a.staff?.name || a.staff?.email || "Unknown"}</span>
-                <span className="text-gray-400">
-                  {" "}· {a.role === "doctor" ? "doctor interviews" : "measurements"}
-                  {" "}· {a.client_count != null ? `${a.client_count} clients` : "whole company"}
-                </span>
-              </span>
-              <button className="text-red-500 hover:text-red-700" disabled={busy} onClick={() => remove(a.id)}>×</button>
-            </div>
-          ))}
-          {assignments.length === 0 && <div className="text-xs text-gray-400">No one assigned yet.</div>}
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-2 mt-2">
-        <select className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white" value={form.role}
-          onChange={(e) => setForm({ ...form, role: e.target.value })}>
-          <option value="doctor">Doctor interviews</option>
-          <option value="measurer">Measurements</option>
-        </select>
-        <select className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white" value={form.staff_id}
-          onChange={(e) => setForm({ ...form, staff_id: e.target.value })}>
-          <option value="">Pick staff…</option>
-          {staff.map((s) => <option key={s.id} value={s.id}>{s.name || s.email} ({s.role})</option>)}
-        </select>
-        <input className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white w-32" type="number" min={1}
-          placeholder="Clients (all if empty)" value={form.count}
-          onChange={(e) => setForm({ ...form, count: e.target.value })} />
-        <button
-          className="text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          disabled={busy} onClick={add}
-        >
-          Assign
-        </button>
-        {msg && <span className="text-xs text-amber-700">{msg}</span>}
-      </div>
-    </div>
-  );
-}
 
 // A sub-division folded into its mother company's card: compact
 // dropdown row with the division's contact person; expanding reveals
@@ -739,13 +698,13 @@ function CompanyStatusPill({ c }: { c: CompanyRow }) {
   let dot = "bg-gray-400";
   let title = "Initial setup.";
   if (c.status === "draft") {
-    label = "Drög"; tone = "bg-amber-100 text-amber-800 border-amber-200"; dot = "bg-amber-500";
-    title = "Admin-created draft — contact person not yet invited.";
+    label = "Managed by Lifeline"; tone = "bg-amber-100 text-amber-800 border-amber-200"; dot = "bg-amber-500";
+    title = "Lifeline runs this company's setup — company admin not yet invited.";
   } else if (c.status === "contact_invited") {
     label = "Boð sent"; tone = "bg-blue-100 text-blue-800 border-blue-200"; dot = "bg-blue-500";
-    title = "Invite sent to contact person; awaiting claim + signature.";
+    title = "Invite sent to the company admin; awaiting claim + signature. Managed by Lifeline until claimed.";
   } else if (c.registration_finalized_at) {
-    label = "Ready"; tone = "bg-emerald-100 text-emerald-800 border-emerald-200"; dot = "bg-emerald-500";
+    label = "Managed by company admin"; tone = "bg-emerald-100 text-emerald-800 border-emerald-200"; dot = "bg-emerald-500";
     const finalizer = c.finalized_by_name || c.finalized_by_email || "a company admin";
     title = `Finalized by ${finalizer} on ${new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
   } else if (c.roster_confirmed_at && c.body_comp_event_count > 0 && c.blood_test_day_count > 0) {
@@ -868,7 +827,7 @@ function InviteContactButton({ companyId, draftEmail, status }: { companyId: str
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        {status === "draft" ? "Senda boð" : "Senda aftur"}
+        {status === "draft" ? "Invite company admin" : "Re-invite company admin"}
       </button>
       {open && (
         <div
@@ -1333,8 +1292,8 @@ function ConsolidatedInvoiceButton({ companyId, companyName }: { companyId: stri
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10M7 11h10M7 15h4M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
         </svg>
-        Samheildarreikningur
-      </button>
+        Invoice all divisions
+</button>
 
       {open && (
         <div
@@ -2443,10 +2402,17 @@ export default function AdminCompaniesPage() {
                         unclaimed contacts. Phone is decrypted server-side
                         from clients.phone_enc. */}
                     <ContactCell c={c} onSaved={load} />
-                    {/* Progress */}
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster progress</div>
-                      <RosterProgressCell c={c} />
+                    {/* Progress — compact card; counts include divisions */}
+                    <div className="rounded-lg border border-gray-200 bg-gray-50/70 px-2.5 py-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster</div>
+                      <RosterProgressCell
+                        c={{
+                          ...c,
+                          member_count: aggMembers,
+                          invited_count: (c.invited_count || 0) + children.reduce((s, x) => s + (x.invited_count || 0), 0),
+                          completed_count: (c.completed_count || 0) + children.reduce((s, x) => s + (x.completed_count || 0), 0),
+                        }}
+                      />
                     </div>
                     {/* Price per health check — the negotiated unit price
                         (Commercial settings) or the tier fallback for the
@@ -2607,7 +2573,6 @@ export default function AdminCompaniesPage() {
                     <CompanyInvoiceRows companyId={c.id} />
                     <CompanyIncomeBreakdown c={c} onReload={load} membersOverride={aggMembers} />
                     <CompanyCosts companyId={c.id} memberCount={aggMembers} />
-                    <CompanyAssignments companyId={c.id} />
                     <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
                     {children.length > 0 ? (
                       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
