@@ -120,7 +120,7 @@ export default function CostIntake() {
   return (
     <div className="px-8 pb-10 space-y-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Cost intake</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Cost</h1>
         <p className="text-sm text-gray-500">
           Drag in PDF cost invoices (new or old). Pick the company and what the cost is for — the AI reads the vendor, amount and date
           and files it into Accounting and the company&apos;s Costs section.

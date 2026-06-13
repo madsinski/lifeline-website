@@ -23,9 +23,9 @@ const tabs = [
   { key: "companies", label: "Companies" },
   { key: "approvals", label: "Scheduling" },
   { key: "payments", label: "Payments" },
+  { key: "cost-intake", label: "Cost" },
   { key: "discounts", label: "Discount codes" },
   { key: "accounting", label: "Accounting" },
-  { key: "cost-intake", label: "Cost intake" },
   { key: "plan", label: "Plan" },
 ];
 
