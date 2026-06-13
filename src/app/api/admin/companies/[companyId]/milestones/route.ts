@@ -18,7 +18,7 @@ const MILESTONES = ["measurement", "blood_test", "questionnaire", "doctor_review
 type Milestone = (typeof MILESTONES)[number];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Cell = { done: boolean; source: "auto" | "manual" | null };
+type Cell = { done: boolean; source: "auto" | "manual" | null; auto: boolean };
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ companyId: string }> }) {
   const { companyId } = await params;
@@ -71,9 +71,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   }
 
   const cell = (memberId: string, milestone: Milestone, autoDone: boolean): Cell => {
-    if (manual.has(`${memberId}:${milestone}`)) return { done: true, source: "manual" };
-    if (autoDone) return { done: true, source: "auto" };
-    return { done: false, source: null };
+    if (manual.has(`${memberId}:${milestone}`)) return { done: true, source: "manual", auto: autoDone };
+    if (autoDone) return { done: true, source: "auto", auto: true };
+    return { done: false, source: null, auto: false };
   };
 
   const result = (members || []).map((m) => {
@@ -99,23 +99,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
     return NextResponse.json({ error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }
   const body = await req.json().catch(() => ({}));
-  const memberId = String(body?.member_id || "");
   const milestone = String(body?.milestone || "");
   const done = body?.done === true;
-  if (!UUID_RE.test(memberId) || !(MILESTONES as readonly string[]).includes(milestone)) {
+  const ids: string[] = Array.isArray(body?.member_ids)
+    ? body.member_ids.map((x: unknown) => String(x))
+    : body?.member_id ? [String(body.member_id)] : [];
+  if (ids.length === 0 || ids.some((id) => !UUID_RE.test(id)) || !(MILESTONES as readonly string[]).includes(milestone)) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
   if (done) {
+    const now = new Date().toISOString();
     const { error } = await supabaseAdmin
       .from("company_member_milestones")
-      .upsert({ member_id: memberId, milestone, done_at: new Date().toISOString(), marked_by: auth.id },
+      .upsert(ids.map((id) => ({ member_id: id, milestone, done_at: now, marked_by: auth.id })),
         { onConflict: "member_id,milestone" });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   } else {
     const { error } = await supabaseAdmin
       .from("company_member_milestones")
       .delete()
-      .eq("member_id", memberId)
+      .in("member_id", ids)
       .eq("milestone", milestone);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }

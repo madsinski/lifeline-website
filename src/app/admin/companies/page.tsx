@@ -2044,7 +2044,7 @@ const MILESTONE_META: Array<{ key: MilestoneKey; short: string; full: string }> 
   { key: "app_access", short: "App", full: "App access activated" },
 ];
 type MilestoneKey = "measurement" | "blood_test" | "questionnaire" | "doctor_review" | "app_access";
-type MilestoneCell = { done: boolean; source: "auto" | "manual" | null };
+type MilestoneCell = { done: boolean; source: "auto" | "manual" | null; auto: boolean };
 type MemberMilestones = Record<string, Record<MilestoneKey, MilestoneCell>>;
 
 // A single tickable milestone circle. Auto-detected completions show a
@@ -2085,7 +2085,6 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
   const [err, setErr] = useState("");
   const [sortByName, setSortByName] = useState(false);
   const [settingContact, setSettingContact] = useState<string | null>(null);
-  const [busyCell, setBusyCell] = useState<string | null>(null);
 
   const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -2119,18 +2118,48 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
     loadMilestones();
   }, [companyId, loadMilestones]);
 
-  const toggleMilestone = async (memberId: string, key: MilestoneKey, currentlyDone: boolean) => {
-    const cellKey = `${memberId}:${key}`;
-    setBusyCell(cellKey);
+  // Optimistic: flip the cell locally now, persist in the background.
+  // Untick falls back to the auto signal (a manual tick can't erase an
+  // auto-detected completion). Reload only if the write fails.
+  const applyCell = (memberId: string, key: MilestoneKey, target: boolean) =>
+    setMilestones((prev) => {
+      const row = prev[memberId];
+      if (!row) return prev;
+      const cur = row[key];
+      const next: MilestoneCell = target
+        ? { done: true, source: "manual", auto: cur.auto }
+        : { done: cur.auto, source: cur.auto ? "auto" : null, auto: cur.auto };
+      return { ...prev, [memberId]: { ...row, [key]: next } };
+    });
+
+  const toggleMilestone = (memberId: string, key: MilestoneKey, currentlyDone: boolean) => {
+    const target = !currentlyDone;
+    applyCell(memberId, key, target);
+    authedFetch(`/api/admin/companies/${companyId}/milestones`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ member_id: memberId, milestone: key, done: target }),
+    }).then((res) => { if (!res.ok) loadMilestones(); }).catch(() => loadMilestones());
+  };
+
+  // Tick (or untick) an entire column at once. If everyone's already
+  // done, the action clears manual ticks; otherwise it marks all done.
+  const [bulkBusy, setBulkBusy] = useState<MilestoneKey | null>(null);
+  const toggleColumn = async (key: MilestoneKey, ids: string[]) => {
+    if (ids.length === 0) return;
+    const allDone = ids.every((id) => milestones[id]?.[key]?.done);
+    const target = !allDone;
+    setBulkBusy(key);
+    ids.forEach((id) => applyCell(id, key, target));
     try {
       await authedFetch(`/api/admin/companies/${companyId}/milestones`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ member_id: memberId, milestone: key, done: !currentlyDone }),
+        body: JSON.stringify({ member_ids: ids, milestone: key, done: target }),
       });
       await loadMilestones();
     } finally {
-      setBusyCell(null);
+      setBulkBusy(null);
     }
   };
 
@@ -2208,9 +2237,24 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
         >
           Name {sortByName ? "↓ A–Ö" : "↕"}
         </button>
-        {MILESTONE_META.map((mi) => (
-          <div key={mi.key} className="text-center text-[9px] leading-tight" title={mi.full}>{mi.short}</div>
-        ))}
+        {MILESTONE_META.map((mi) => {
+          const allIds = shown.map((m) => m.id);
+          const allDone = allIds.length > 0 && allIds.every((id) => milestones[id]?.[mi.key]?.done);
+          return (
+            <div key={mi.key} className="flex flex-col items-center gap-0.5" title={mi.full}>
+              <span className="text-[9px] leading-tight">{mi.short}</span>
+              <button
+                type="button"
+                disabled={bulkBusy !== null}
+                onClick={() => toggleColumn(mi.key, allIds)}
+                title={allDone ? `Untick ${mi.full} for everyone` : `Tick ${mi.full} for everyone`}
+                className="text-[8px] font-medium px-1 py-px rounded text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+              >
+                {bulkBusy === mi.key ? "…" : allDone ? "clear" : "all"}
+              </button>
+            </div>
+          );
+        })}
         <div>Status</div>
         <div className="text-right">Contact</div>
       </div>
@@ -2231,7 +2275,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
                   <div key={mi.key} className="flex justify-center">
                     <MilestoneCircle
                       cell={cell}
-                      busy={busyCell === `${m.id}:${mi.key}`}
+                      busy={bulkBusy === mi.key}
                       onToggle={() => toggleMilestone(m.id, mi.key, cell.done)}
                     />
                   </div>
