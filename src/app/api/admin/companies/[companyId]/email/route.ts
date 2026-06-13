@@ -25,7 +25,8 @@ const MILESTONE_LABEL: Record<string, string> = {
   measurement: "body-composition measurement",
   blood_test: "blood test",
   questionnaire: "health questionnaire",
-  doctor_review: "3-month doctor review",
+  doctor_review: "doctor interview",
+  followup: "3-month follow-up",
   app_access: "Lifeline app activation",
 };
 

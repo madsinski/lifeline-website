@@ -632,7 +632,8 @@ const EMAIL_MILESTONES: Array<{ key: string; label: string }> = [
   { key: "measurement", label: "Body measurement" },
   { key: "blood_test", label: "Blood test" },
   { key: "questionnaire", label: "Health questionnaire" },
-  { key: "doctor_review", label: "3-month doctor review" },
+  { key: "doctor_review", label: "Doctor interview" },
+  { key: "followup", label: "3-month follow-up" },
   { key: "app_access", label: "Lifeline app activation" },
 ];
 
@@ -824,13 +825,13 @@ function CompanyEmailButton({ companyId, companyName, member }: { companyId: str
 // handles them. Ends with the dated 3-month doctor follow-up.
 const JOURNEY_TARGETS: Record<string, string | null> = {
   Admin: null, Documents: "legal", Roster: "employees", Scheduling: "approvals",
-  Assessments: "employees", Invoiced: "invoices", Paid: "invoices", "Follow-up": "employees",
+  Assessments: "employees", "Doctor interview": "employees", Invoiced: "invoices", Paid: "invoices", "3-month follow-up": "employees",
 };
 
 // Roster milestone counts feeding the Assessments (step 5) and
 // Follow-up (step 8) journey steps — aggregated across the company and
 // its divisions.
-interface JourneyMilestones { total: number; measurement: number; blood_test: number; questionnaire: number; doctor_review: number; }
+interface JourneyMilestones { total: number; measurement: number; blood_test: number; questionnaire: number; doctor_review: number; followup: number; }
 
 function CompanyJourney({ invited, claimed, docsReady, members, ms, eventsScheduled, pendingCount, invoicedIsk, outstandingIsk, followupCompletedAt, onStepClick, onFollowupDone }: {
   invited: boolean;
@@ -846,12 +847,12 @@ function CompanyJourney({ invited, claimed, docsReady, members, ms, eventsSchedu
   onStepClick: (sectionKey: string | null) => void;
   onFollowupDone: () => void;
 }) {
-  // Assessments = the on-the-day items everyone goes through; done when
-  // every rostered employee has measurement + blood test + questionnaire.
+  // Assessments = the on-the-day data items (measurement + blood test +
+  // questionnaire). The doctor interview is its own step, and the
+  // 3-month follow-up a separate service step at the end.
   const assessmentsDone = ms.total > 0 && ms.measurement >= ms.total && ms.blood_test >= ms.total && ms.questionnaire >= ms.total;
-  // Follow-up = the 3-month doctor review across the roster (or a manual
-  // company-level stamp when there's no roster to track).
-  const followupAuto = ms.total > 0 && ms.doctor_review >= ms.total;
+  const doctorDone = ms.total > 0 && ms.doctor_review >= ms.total;
+  const followupAuto = ms.total > 0 && ms.followup >= ms.total;
   const steps: Array<{ label: string; done: boolean; hint: string }> = [
     {
       label: "Admin", done: claimed,
@@ -873,13 +874,19 @@ function CompanyJourney({ invited, claimed, docsReady, members, ms, eventsSchedu
         ? "Assessments — add the roster first"
         : `Assessments — measured ${ms.measurement}/${ms.total} · blood ${ms.blood_test}/${ms.total} · questionnaire ${ms.questionnaire}/${ms.total} (tick in Employees)`,
     },
+    {
+      label: "Doctor interview", done: doctorDone,
+      hint: ms.total === 0
+        ? "Doctor interview — part of the health assessment"
+        : `Doctor interview — ${ms.doctor_review}/${ms.total} done (tick in Employees)`,
+    },
     { label: "Invoiced", done: invoicedIsk > 0, hint: "Generate the invoice (Invoices section)" },
     { label: "Paid", done: invoicedIsk > 0 && outstandingIsk <= 0, hint: `Awaiting payment — ${Math.round(outstandingIsk).toLocaleString("is-IS")} kr. outstanding` },
     {
-      label: "Follow-up", done: !!followupCompletedAt || followupAuto,
+      label: "3-month follow-up", done: !!followupCompletedAt || followupAuto,
       hint: ms.total === 0
-        ? "3-month doctor review — once the roster is assessed"
-        : `3-month doctor review — ${ms.doctor_review}/${ms.total} done (tick in Employees)`,
+        ? "3-month follow-up — the separate follow-up service"
+        : `3-month follow-up — ${ms.followup}/${ms.total} done (tick in Employees)`,
     },
   ];
   const currentIdx = steps.findIndex((s) => !s.done);
@@ -929,7 +936,7 @@ function CompanyJourney({ invited, claimed, docsReady, members, ms, eventsSchedu
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
           >
             <span className="font-semibold">Next:</span> {current!.hint}
-            {current!.label === "Follow-up" ? (
+            {current!.label === "3-month follow-up" ? (
               <>
                 {" "}
                 <span
@@ -2247,10 +2254,11 @@ const MILESTONE_META: Array<{ key: MilestoneKey; short: string; full: string }> 
   { key: "measurement", short: "Meas", full: "Body measurement done" },
   { key: "blood_test", short: "Blood", full: "Blood test done" },
   { key: "questionnaire", short: "Quest", full: "Health questionnaire done" },
-  { key: "doctor_review", short: "Doctor", full: "3-month doctor review done" },
+  { key: "doctor_review", short: "Doctor", full: "Doctor interview (health assessment) done" },
+  { key: "followup", short: "3-mo", full: "3-month follow-up done" },
   { key: "app_access", short: "App", full: "App access activated" },
 ];
-type MilestoneKey = "measurement" | "blood_test" | "questionnaire" | "doctor_review" | "app_access";
+type MilestoneKey = "measurement" | "blood_test" | "questionnaire" | "doctor_review" | "followup" | "app_access";
 type MilestoneCell = { done: boolean; source: "auto" | "manual" | null; auto: boolean };
 type MemberMilestones = Record<string, Record<MilestoneKey, MilestoneCell>>;
 
@@ -2312,6 +2320,7 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
         blood_test: r.blood_test as MilestoneCell,
         questionnaire: r.questionnaire as MilestoneCell,
         doctor_review: r.doctor_review as MilestoneCell,
+        followup: r.followup as MilestoneCell,
         app_access: r.app_access as MilestoneCell,
       };
     }
@@ -2415,7 +2424,7 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
   const onboarded = members.filter((m) => m.completed_at).length;
   const milestoneCount = (key: MilestoneKey) => members.filter((m) => milestones[m.id]?.[key]?.done).length;
 
-  const GRID = "grid grid-cols-[minmax(140px,1.6fr)_repeat(5,2.25rem)_5.5rem_6rem] gap-2 items-center";
+  const GRID = "grid grid-cols-[minmax(140px,1.6fr)_repeat(6,2.25rem)_5.5rem_6rem] gap-2 items-center";
 
   return (
     <div className="border-t border-gray-100 bg-gray-50/50">
@@ -3073,9 +3082,9 @@ export default function AdminCompaniesPage() {
                     members={aggMembers}
                     ms={[c.id, ...children.map((x) => x.id)].reduce((a, id) => {
                       const s = msSummary.get(id);
-                      if (s) { a.total += s.total; a.measurement += s.measurement; a.blood_test += s.blood_test; a.questionnaire += s.questionnaire; a.doctor_review += s.doctor_review; }
+                      if (s) { a.total += s.total; a.measurement += s.measurement; a.blood_test += s.blood_test; a.questionnaire += s.questionnaire; a.doctor_review += s.doctor_review; a.followup += s.followup; }
                       return a;
-                    }, { total: 0, measurement: 0, blood_test: 0, questionnaire: 0, doctor_review: 0 })}
+                    }, { total: 0, measurement: 0, blood_test: 0, questionnaire: 0, doctor_review: 0, followup: 0 })}
                     eventsScheduled={(c.body_comp_event_count || 0) + children.reduce((s, x) => s + (x.body_comp_event_count || 0), 0) > 0}
                     pendingCount={pendingCount}
                     invoicedIsk={aggFin("invoiced_isk")}

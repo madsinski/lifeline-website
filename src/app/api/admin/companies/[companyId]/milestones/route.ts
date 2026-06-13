@@ -21,7 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isAnyActiveStaff, requireAdminAAL2 } from "@/lib/auth-helpers";
 
-const MILESTONES = ["measurement", "blood_test", "questionnaire", "doctor_review", "app_access"] as const;
+const MILESTONES = ["measurement", "blood_test", "questionnaire", "doctor_review", "followup", "app_access"] as const;
 type Milestone = (typeof MILESTONES)[number];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -92,6 +92,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
       blood_test: cell(m.id as string, "blood_test", !!cid && bloodClients.has(cid)),
       questionnaire: cell(m.id as string, "questionnaire", !!cid && questionnaireClients.has(cid)),
       doctor_review: cell(m.id as string, "doctor_review", !!cid && doctorClients.has(cid)),
+      followup: cell(m.id as string, "followup", false),
       app_access: cell(m.id as string, "app_access", !!cid && appClients.has(cid)),
     };
   });

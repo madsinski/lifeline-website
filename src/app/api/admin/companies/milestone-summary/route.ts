@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isAnyActiveStaff } from "@/lib/auth-helpers";
 
-type Counts = { total: number; measurement: number; blood_test: number; questionnaire: number; doctor_review: number; app_access: number };
+type Counts = { total: number; measurement: number; blood_test: number; questionnaire: number; doctor_review: number; followup: number; app_access: number };
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   for (const t of ticks || []) manual.add(`${t.member_id}:${t.milestone}`);
 
   const summary: Record<string, Counts> = {};
-  const bump = (cid: string): Counts => (summary[cid] ||= { total: 0, measurement: 0, blood_test: 0, questionnaire: 0, doctor_review: 0, app_access: 0 });
+  const bump = (cid: string): Counts => (summary[cid] ||= { total: 0, measurement: 0, blood_test: 0, questionnaire: 0, doctor_review: 0, followup: 0, app_access: 0 });
   const done = (memberId: string, milestone: string, autoDone: boolean) => manual.has(`${memberId}:${milestone}`) || autoDone;
 
   for (const m of list) {
@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
     if (done(m.id as string, "blood_test", !!clientId && blooded.has(clientId))) c.blood_test += 1;
     if (done(m.id as string, "questionnaire", !!clientId && questioned.has(clientId))) c.questionnaire += 1;
     if (done(m.id as string, "doctor_review", !!clientId && doctored.has(clientId))) c.doctor_review += 1;
+    if (done(m.id as string, "followup", false)) c.followup += 1;
     if (done(m.id as string, "app_access", !!clientId && apped.has(clientId))) c.app_access += 1;
   }
 

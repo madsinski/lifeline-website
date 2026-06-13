@@ -12,15 +12,22 @@
 -- can force-complete the auto ones; removing a tick falls back to the
 -- auto signal. API-mediated only (RLS blocks direct client access).
 
+-- doctor_review = the doctor interview that is part of the health
+-- assessment; followup = the separate 3-month follow-up service
+-- (manual tick — no distinct event table to auto-detect it).
 create table if not exists company_member_milestones (
   member_id uuid not null references company_members(id) on delete cascade,
   milestone text not null check (milestone in (
-    'measurement', 'blood_test', 'questionnaire', 'doctor_review', 'app_access'
+    'measurement', 'blood_test', 'questionnaire', 'doctor_review', 'app_access', 'followup'
   )),
   done_at timestamptz not null default now(),
   marked_by uuid,
   primary key (member_id, milestone)
 );
+-- Widen the allowed set on tables created before 'followup' existed.
+alter table company_member_milestones drop constraint if exists company_member_milestones_milestone_check;
+alter table company_member_milestones add constraint company_member_milestones_milestone_check
+  check (milestone in ('measurement', 'blood_test', 'questionnaire', 'doctor_review', 'app_access', 'followup'));
 create index if not exists idx_company_member_milestones_member
   on company_member_milestones (member_id);
 
