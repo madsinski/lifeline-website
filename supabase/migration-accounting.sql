@@ -126,6 +126,11 @@ alter table accounting_expense_invoices
 alter table accounting_adjustments
   add column if not exists company_id uuid references companies(id) on delete set null;
 
+-- ── 3-month follow-up tracking (added 2026-06-13): the journey strip's
+--    Follow-up step — due 3 months after last_round_completed_at,
+--    marked done from the card.
+alter table companies add column if not exists followup_completed_at timestamptz;
+
 -- ── Applied discount code (added 2026-06-12): applying a code on the
 --    company card bakes the discounted price into assessment_unit_price
 --    and stores the code label here for display.

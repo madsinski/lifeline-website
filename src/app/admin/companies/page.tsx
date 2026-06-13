@@ -37,6 +37,8 @@ interface CompanyRow {
   parent_company_id?: string | null;
   parent_name?: string | null;
   applied_discount_code?: string | null;
+  last_round_completed_at?: string | null;
+  followup_completed_at?: string | null;
 }
 
 interface MemberRow {
@@ -178,9 +180,6 @@ function CompanyIncomeBreakdown({ c, onReload, membersOverride, discountCodes = 
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
       <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
         <span className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            Pricing (expected)
-          </span>
           {c.applied_discount_code ? (
             <button
               type="button"
@@ -393,9 +392,6 @@ function CompanyCosts({ companyId, memberCount, onChanged }: { companyId: string
 
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-        Costs (itemized, all months)
-      </div>
       {invoices === null ? (
         <div className="text-xs text-gray-400">Loading…</div>
       ) : (
@@ -601,7 +597,7 @@ function CompanyApprovals({ companyIds }: { companyIds: string[] }) {
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Approvals</span>
+        <span className="text-[11px] text-gray-400">Requested days from this company and its divisions.</span>
         <Link href="/admin/business?tab=approvals" className="text-[11px] text-emerald-700 hover:underline">Approvals tab →</Link>
       </div>
       {items === null ? (
@@ -631,8 +627,14 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
 
 // Lifecycle journey strip — the admin-side mirror of the client view's
 // setup steps. Shows where the relationship stands at a glance and the
-// single next action, so a card never needs decoding.
-function CompanyJourney({ invited, claimed, docsReady, members, completed, eventsScheduled, pendingCount, invoicedIsk, outstandingIsk }: {
+// single next action; steps are clickable and jump to the section that
+// handles them. Ends with the dated 3-month doctor follow-up.
+const JOURNEY_TARGETS: Record<string, string | null> = {
+  Admin: null, Documents: "legal", Roster: "employees", Scheduling: "approvals",
+  Assessments: "employees", Invoiced: "invoices", Paid: "invoices", "Follow-up": null,
+};
+
+function CompanyJourney({ invited, claimed, docsReady, members, completed, eventsScheduled, pendingCount, invoicedIsk, outstandingIsk, lastRoundCompletedAt, followupCompletedAt, onStepClick, onFollowupDone }: {
   invited: boolean;
   claimed: boolean;
   docsReady: number;
@@ -642,7 +644,14 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
   pendingCount: number;
   invoicedIsk: number;
   outstandingIsk: number;
+  lastRoundCompletedAt: string | null;
+  followupCompletedAt: string | null;
+  onStepClick: (sectionKey: string | null) => void;
+  onFollowupDone: () => void;
 }) {
+  const followupDue = lastRoundCompletedAt
+    ? new Date(new Date(lastRoundCompletedAt).getTime() + 90 * 24 * 3600 * 1000)
+    : null;
   const steps: Array<{ label: string; done: boolean; hint: string }> = [
     {
       label: "Admin", done: claimed,
@@ -661,24 +670,35 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
     { label: "Assessments", done: members > 0 && completed >= members, hint: `Assessments in progress — ${completed}/${members} completed` },
     { label: "Invoiced", done: invoicedIsk > 0, hint: "Generate the invoice (Invoices section)" },
     { label: "Paid", done: invoicedIsk > 0 && outstandingIsk <= 0, hint: `Awaiting payment — ${Math.round(outstandingIsk).toLocaleString("is-IS")} kr. outstanding` },
+    {
+      label: "Follow-up", done: !!followupCompletedAt,
+      hint: followupDue
+        ? `3-month doctor follow-up due ${followupDue.toLocaleDateString("is-IS")}`
+        : "3-month doctor follow-up — due 3 months after assessments complete",
+    },
   ];
   const currentIdx = steps.findIndex((s) => !s.done);
   const allDone = currentIdx === -1;
+  const current = allDone ? null : steps[currentIdx];
   return (
     <div className="mt-3">
       <div className="flex items-start">
         {steps.map((s, i) => (
           <div key={s.label} className={`flex items-start ${i < steps.length - 1 ? "flex-1" : ""}`}>
-            <div className="flex flex-col items-center gap-0.5 w-14 shrink-0">
+            <button
+              type="button"
+              onClick={() => onStepClick(JOURNEY_TARGETS[s.label] ?? null)}
+              className="flex flex-col items-center gap-0.5 w-14 shrink-0 group"
+              title={s.hint}
+            >
               <span
-                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border ${
+                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border transition-transform group-hover:scale-110 ${
                   s.done
                     ? "bg-emerald-500 border-emerald-500 text-white"
                     : i === currentIdx
                       ? "bg-amber-100 border-amber-400 text-amber-700"
                       : "bg-white border-gray-200 text-gray-300"
                 }`}
-                title={s.hint}
               >
                 {s.done ? "✓" : i + 1}
               </span>
@@ -687,18 +707,61 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
               }`}>
                 {s.label}
               </span>
-            </div>
+            </button>
             {i < steps.length - 1 && <div className={`h-px flex-1 mt-2 ${s.done ? "bg-emerald-300" : "bg-gray-200"}`} />}
           </div>
         ))}
       </div>
       <div className="mt-1 text-[11px]">
         {allDone ? (
-          <span className="text-emerald-700 font-medium">All steps complete — management mode. Next up: the 3-month doctor follow-up.</span>
+          <span className="text-emerald-700 font-medium">All steps complete — relationship in management mode.</span>
         ) : (
-          <span className="text-gray-600"><span className="font-semibold text-amber-700">Next:</span> {steps[currentIdx].hint}</span>
+          <span className="text-gray-600">
+            <span className="font-semibold text-amber-700">Next:</span> {current!.hint}
+            {current!.label === "Follow-up" && followupDue ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={onFollowupDone}
+                  className="text-emerald-700 hover:underline font-medium"
+                >
+                  mark done
+                </button>
+              </>
+            ) : null}
+          </span>
         )}
       </div>
+    </div>
+  );
+}
+
+// Collapsible card section — accordion panel with a summary value in
+// the header so the expanded card reads as a one-screen index.
+function CardSection({ title, summary, open, onToggle, children }: {
+  title: string;
+  summary: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-t border-gray-100">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-3 px-5 py-2.5 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <svg className={`w-3 h-3 text-gray-400 transition-transform ${open ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">{title}</span>
+        </span>
+        <span className="text-[11px] text-gray-400 truncate">{summary}</span>
+      </button>
+      {open ? children : null}
     </div>
   );
 }
@@ -869,7 +932,7 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
       <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Invoices (PayDay)</span>
+        <span className="text-[11px] text-gray-400">PayDay invoices for this company.</span>
         <span className="flex items-center gap-2">
           <button
             type="button"
@@ -915,36 +978,6 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
         ))}
       </div>
     </div>
-  );
-}
-
-// One source of truth for the company lifecycle pill. Collapsing all the
-// branchy "Drög / Boð sent / Awaiting finalize / Ready / Setup" logic
-// into a single component keeps the table row skinny and consistent.
-function CompanyStatusPill({ c }: { c: CompanyRow }) {
-  let label = "Setup";
-  let tone = "bg-gray-100 text-gray-600 border-gray-200";
-  let dot = "bg-gray-400";
-  let title = "Initial setup.";
-  if (c.status === "draft") {
-    label = "Managed by Lifeline"; tone = "bg-amber-100 text-amber-800 border-amber-200"; dot = "bg-amber-500";
-    title = "Lifeline runs this company's setup — company admin not yet invited.";
-  } else if (c.status === "contact_invited") {
-    label = "Boð sent"; tone = "bg-blue-100 text-blue-800 border-blue-200"; dot = "bg-blue-500";
-    title = "Invite sent to the company admin; awaiting claim + signature. Managed by Lifeline until claimed.";
-  } else if (c.registration_finalized_at) {
-    label = "Managed by company admin"; tone = "bg-emerald-100 text-emerald-800 border-emerald-200"; dot = "bg-emerald-500";
-    const finalizer = c.finalized_by_name || c.finalized_by_email || "a company admin";
-    title = `Finalized by ${finalizer} on ${new Date(c.registration_finalized_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
-  } else if (c.roster_confirmed_at && c.body_comp_event_count > 0 && c.blood_test_day_count > 0) {
-    label = "Awaiting finalize"; tone = "bg-amber-100 text-amber-800 border-amber-200"; dot = "bg-amber-500";
-    title = "Roster confirmed; waiting for the contact person to finalize.";
-  }
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${tone}`} title={title}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-      {label}
-    </span>
   );
 }
 
@@ -2301,6 +2334,23 @@ export default function AdminCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Per-card accordion state: which sections are open (default: none —
+  // the expanded card reads as a one-screen index of summaries).
+  const [openSections, setOpenSections] = useState<Record<string, Record<string, boolean>>>({});
+  const toggleSection = (companyId: string, key: string) =>
+    setOpenSections((prev) => ({ ...prev, [companyId]: { ...prev[companyId], [key]: !prev[companyId]?.[key] } }));
+  // Journey-step click: expand the card and open exactly that section.
+  const focusSection = (companyId: string, key: string | null) => {
+    setExpanded((prev) => new Set(prev).add(companyId));
+    if (key) setOpenSections((prev) => ({ ...prev, [companyId]: { [key]: true } }));
+  };
+  const markFollowupDone = async (c: CompanyRow) => {
+    if (!confirm(`Mark the 3-month doctor follow-up as done for ${c.name}?`)) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("companies").update({ followup_completed_at: now }).eq("id", c.id);
+    if (error) { alert(`Failed: ${error.message}`); return; }
+    setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, followup_completed_at: now } : x));
+  };
   const [fin, setFin] = useState<Map<string, FinRow>>(new Map());
   const [pendingApprovals, setPendingApprovals] = useState<Map<string, number>>(new Map());
   const [discountCodes, setDiscountCodes] = useState<Array<{ id: string; code: string; kind: "percent" | "fixed"; value: number }>>([]);
@@ -2389,11 +2439,11 @@ export default function AdminCompaniesPage() {
     setLoading(true);
     const [rpcRes, tiersRes] = await Promise.all([
       supabase.rpc("list_all_companies"),
-      supabase.from("companies").select("id, name, default_tier, assessment_unit_price, followup_doctor_price, app_enabled, app_price_isk_monthly, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id, applied_discount_code"),
+      supabase.from("companies").select("id, name, default_tier, assessment_unit_price, followup_doctor_price, app_enabled, app_price_isk_monthly, status, contact_draft_email, contact_draft_name, contact_draft_phone, parent_company_id, applied_discount_code, last_round_completed_at, followup_completed_at"),
     ]);
     if (rpcRes.error) setError(rpcRes.error.message);
     else {
-      type ExtraRow = { id: string; name: string; default_tier: string | null; assessment_unit_price: number | null; followup_doctor_price: number | null; app_enabled: boolean | null; app_price_isk_monthly: number | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null; applied_discount_code: string | null };
+      type ExtraRow = { id: string; name: string; default_tier: string | null; assessment_unit_price: number | null; followup_doctor_price: number | null; app_enabled: boolean | null; app_price_isk_monthly: number | null; status: CompanyRow["status"]; contact_draft_email: string | null; contact_draft_name: string | null; contact_draft_phone: string | null; parent_company_id: string | null; applied_discount_code: string | null; last_round_completed_at: string | null; followup_completed_at: string | null };
       const extraMap = new Map<string, ExtraRow>((tiersRes.data || []).map((t: ExtraRow) => [t.id, t]));
       const rows = ((rpcRes.data || []) as CompanyRow[]).map((c) => {
         const extra = extraMap.get(c.id);
@@ -2413,6 +2463,8 @@ export default function AdminCompaniesPage() {
           parent_company_id: parentId,
           parent_name: parentName,
           applied_discount_code: extra?.applied_discount_code || null,
+          last_round_completed_at: extra?.last_round_completed_at || null,
+          followup_completed_at: extra?.followup_completed_at || null,
         };
       });
       // Tree order: parents first (sorted by name), each followed immediately
@@ -2599,7 +2651,6 @@ export default function AdminCompaniesPage() {
                           >
                             {c.name}
                           </button>
-                          <CompanyStatusPill c={c} />
                           {pendingCount > 0 && (
                             <Link
                               href="/admin/business?tab=approvals"
@@ -2684,6 +2735,10 @@ export default function AdminCompaniesPage() {
                     pendingCount={pendingCount}
                     invoicedIsk={aggFin("invoiced_isk")}
                     outstandingIsk={aggFin("outstanding_isk")}
+                    lastRoundCompletedAt={c.last_round_completed_at || null}
+                    followupCompletedAt={c.followup_completed_at || null}
+                    onStepClick={(key) => focusSection(c.id, key)}
+                    onFollowupDone={() => markFollowupDone(c)}
                   />
 
                   {/* Data row: contact + roster */}
@@ -2758,57 +2813,106 @@ export default function AdminCompaniesPage() {
 
                 </div>
 
-                {/* Expanded: full company cockpit — invoices, pricing,
-                    itemized costs, work assignments, approvals,
-                    divisions, employees. Money is parent-level; each
-                    division is a dropdown with its own contact +
-                    roster. */}
-                {isExpanded && (
-                  <div className="rounded-b-2xl overflow-hidden">
-                    <CompanyIncomeBreakdown
-                      c={c}
-                      onReload={load}
-                      membersOverride={aggMembers}
-                      discountCodes={discountCodes}
-                      onApplyDiscount={applyDiscount}
-                      onRemoveDiscount={removeDiscount}
-                    />
-                    {/* Legal — signed contract documents (ToS, DPA, service agreement) */}
-                    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span>
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Legal</span>
-                          <span className="block text-[11px] text-gray-400 mt-0.5">
-                            Signed ToS, DPA and service agreement for this company.
-                          </span>
-                        </span>
-                        <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
-                      </div>
+                {/* Expanded: accordion index of the company cockpit —
+                    every section collapsed behind a summary header.
+                    Journey steps open their section directly. */}
+                {isExpanded && (() => {
+                  const docsReadyCount = REQUIRED_DOC_KINDS.filter((k) => (fin.get(c.id)?.doc_kinds || []).includes(k)).length;
+                  const sec = openSections[c.id] || {};
+                  const t = (key: string) => () => toggleSection(c.id, key);
+                  return (
+                    <div className="rounded-b-2xl overflow-hidden">
+                      <CardSection
+                        title="Pricing"
+                        summary={`${iskFmt(aggFin("expected_income_isk"))} expected`}
+                        open={!!sec.pricing}
+                        onToggle={t("pricing")}
+                      >
+                        <CompanyIncomeBreakdown
+                          c={c}
+                          onReload={load}
+                          membersOverride={aggMembers}
+                          discountCodes={discountCodes}
+                          onApplyDiscount={applyDiscount}
+                          onRemoveDiscount={removeDiscount}
+                        />
+                      </CardSection>
+                      <CardSection
+                        title="Legal"
+                        summary={`${docsReadyCount}/3 documents signed`}
+                        open={!!sec.legal}
+                        onToggle={t("legal")}
+                      >
+                        <div className="px-5 py-3 bg-gray-50/60">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="text-[11px] text-gray-400">
+                              Signed ToS, DPA and service agreement for this company.
+                            </span>
+                            <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
+                          </div>
+                        </div>
+                      </CardSection>
+                      <CardSection
+                        title="Costs"
+                        summary={`${iskFmt(aggFin("costs_isk"))} recorded`}
+                        open={!!sec.costs}
+                        onToggle={t("costs")}
+                      >
+                        <CompanyCosts companyId={c.id} memberCount={aggMembers} onChanged={loadSideData} />
+                      </CardSection>
+                      <CardSection
+                        title="Invoices"
+                        summary={`${iskFmt(aggFin("invoiced_isk"))} invoiced${aggFin("outstanding_isk") > 0 ? ` · ${iskFmt(aggFin("outstanding_isk"))} outstanding` : ""}`}
+                        open={!!sec.invoices}
+                        onToggle={t("invoices")}
+                      >
+                        <CompanyInvoiceRows companyId={c.id} companyName={c.name} hasChildren={isParentWithSubs} />
+                      </CardSection>
+                      <CardSection
+                        title="Approvals"
+                        summary={pendingCount > 0 ? `${pendingCount} pending` : "none pending"}
+                        open={!!sec.approvals}
+                        onToggle={t("approvals")}
+                      >
+                        <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
+                      </CardSection>
+                      {children.length > 0 ? (
+                        <CardSection
+                          title="Divisions"
+                          summary={`${children.length} division${children.length > 1 ? "s" : ""}`}
+                          open={!!sec.divisions}
+                          onToggle={t("divisions")}
+                        >
+                          <div className="px-5 py-3 bg-gray-50/60">
+                            <div className="space-y-1.5">
+                              {children.map((d) => (
+                                <DivisionRow key={d.id} d={d} onContactChanged={load} />
+                              ))}
+                            </div>
+                          </div>
+                        </CardSection>
+                      ) : null}
+                      <CardSection
+                        title="Employees"
+                        summary={`${aggMembers} on roster`}
+                        open={!!sec.employees}
+                        onToggle={t("employees")}
+                      >
+                        {(c.member_count || 0) > 0 || children.length === 0 ? (
+                          <EmployeeRows
+                            companyId={c.id}
+                            contactEmail={c.contact_email || c.contact_draft_email || null}
+                            onContactChanged={load}
+                          />
+                        ) : (
+                          <div className="px-5 py-3 text-xs text-gray-400 bg-gray-50/60">
+                            No direct employees on the mother company — see the Divisions section.
+                          </div>
+                        )}
+                      </CardSection>
                     </div>
-                    <CompanyCosts companyId={c.id} memberCount={aggMembers} onChanged={loadSideData} />
-                    <CompanyInvoiceRows companyId={c.id} companyName={c.name} hasChildren={isParentWithSubs} />
-                    <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
-                    {children.length > 0 ? (
-                      <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                          Divisions ({children.length})
-                        </div>
-                        <div className="space-y-1.5">
-                          {children.map((d) => (
-                            <DivisionRow key={d.id} d={d} onContactChanged={load} />
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                    {(c.member_count || 0) > 0 || children.length === 0 ? (
-                      <EmployeeRows
-                        companyId={c.id}
-                        contactEmail={c.contact_email || c.contact_draft_email || null}
-                        onContactChanged={load}
-                      />
-                    ) : null}
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
