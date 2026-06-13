@@ -1189,6 +1189,20 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
     setReloadKey((k) => k + 1);
   };
 
+  const [importing, setImporting] = useState(false);
+  const importFromPayday = async () => {
+    setImporting(true); setMsg("");
+    try {
+      const res = await authedFetch(`/api/admin/companies/${companyId}/payday-import`, { method: "POST" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg(j.message || `Import failed: ${j.error || res.status}`); return; }
+      setMsg(`PayDay: ${j.imported} imported, ${j.updated} updated (${j.total} total).`);
+      setReloadKey((k) => k + 1);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   if (rows === null) return <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">Loading invoices…</div>;
   const inputCls = "text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white";
   return (
@@ -1197,14 +1211,18 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
         <span className="text-[11px] text-gray-400">PayDay invoices for this company.</span>
         <span className="flex items-center gap-2">
           <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="text-[11px] text-gray-400 hover:text-emerald-700" title="Refresh the list">refresh</button>
+          <button type="button" disabled={importing} onClick={importFromPayday} className="text-[11px] font-medium px-2 py-1 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50" title="Pull this company's invoices from PayDay (incl. ones made directly in PayDay)">
+            {importing ? "Importing…" : "Import from PayDay"}
+          </button>
           <button type="button" onClick={() => { setAttaching((v) => !v); setMsg(""); }} className="text-[11px] font-medium px-2 py-1 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
-            {attaching ? "Cancel" : "Attach PayDay PDF"}
+            {attaching ? "Cancel" : "Attach PDF"}
           </button>
           <GenerateInvoiceButton companyId={companyId} companyName={companyName} />
           {hasChildren && <ConsolidatedInvoiceButton companyId={companyId} companyName={companyName} />}
         </span>
       </div>
 
+      {msg && !attaching ? <div className="text-[11px] text-emerald-700 mb-1.5">{msg}</div> : null}
       {attaching ? (
         <div className="mb-2 rounded-md border border-gray-200 bg-white p-2.5 space-y-2">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Attach an invoice generated in PayDay</div>
