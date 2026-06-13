@@ -987,26 +987,6 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
   );
 }
 
-// Compact roster progress: one cell instead of three columns. Shows the
-// three counts + a mini bar coloured to completion ratio.
-function RosterProgressCell({ c }: { c: CompanyRow }) {
-  const total = Math.max(1, c.member_count);
-  const invitedPct = Math.min(100, Math.round((c.invited_count / total) * 100));
-  const completedPct = Math.min(100, Math.round((c.completed_count / total) * 100));
-  return (
-    <div className="min-w-[120px]">
-      <div className="flex items-baseline justify-between gap-2 text-[11px]">
-        <span className="font-semibold text-gray-900 tabular-nums">{c.completed_count}</span>
-        <span className="text-gray-400 tabular-nums">of {c.member_count} · {c.invited_count} inv.</span>
-      </div>
-      <div className="relative mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden" title={`${c.member_count} on roster · ${c.invited_count} invited · ${c.completed_count} completed`}>
-        <div className="absolute inset-y-0 left-0 bg-blue-400" style={{ width: `${invitedPct}%` }} />
-        <div className="absolute inset-y-0 left-0 bg-emerald-500" style={{ width: `${completedPct}%` }} />
-      </div>
-    </div>
-  );
-}
-
 // Overflow "more actions" menu. A button that toggles a fixed-position
 // popover anchored to the button via getBoundingClientRect. Using a
 // fixed overlay sidesteps table-cell clipping issues that ate our
@@ -2055,15 +2035,44 @@ function MemberStatus({ m }: { m: MemberRow }) {
   return <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Completed</span>;
 }
 
-function DataDot({ m }: { m: MemberRow }) {
-  if (!m.completed_at) return <span className="text-gray-300">—</span>;
-  if (m.profile_complete && m.biody_activated) {
-    return <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><span className="w-2 h-2 rounded-full bg-emerald-500" />Ready</span>;
-  }
-  if (m.profile_complete) {
-    return <span className="inline-flex items-center gap-1 text-xs text-amber-700"><span className="w-2 h-2 rounded-full bg-amber-500" />Needs activation</span>;
-  }
-  return <span className="inline-flex items-center gap-1 text-xs text-red-700"><span className="w-2 h-2 rounded-full bg-red-500" />Incomplete</span>;
+// The five process milestones tracked per employee. order = column order.
+const MILESTONE_META: Array<{ key: MilestoneKey; short: string; full: string }> = [
+  { key: "measurement", short: "Meas", full: "Body measurement done" },
+  { key: "blood_test", short: "Blood", full: "Blood test done" },
+  { key: "questionnaire", short: "Quest", full: "Health questionnaire done" },
+  { key: "doctor_review", short: "Doctor", full: "3-month doctor review done" },
+  { key: "app_access", short: "App", full: "App access activated" },
+];
+type MilestoneKey = "measurement" | "blood_test" | "questionnaire" | "doctor_review" | "app_access";
+type MilestoneCell = { done: boolean; source: "auto" | "manual" | null };
+type MemberMilestones = Record<string, Record<MilestoneKey, MilestoneCell>>;
+
+// A single tickable milestone circle. Auto-detected completions show a
+// lighter ring + "auto" tooltip; admin ticks are solid; both are
+// clickable (click sets/clears the admin tick — auto stays done).
+function MilestoneCircle({ cell, busy, onToggle }: { cell: MilestoneCell; busy: boolean; onToggle: () => void }) {
+  const title = cell.done
+    ? cell.source === "auto" ? "Done — detected automatically" : "Done — marked by staff (click to unmark)"
+    : "Not done — click to mark done";
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={busy}
+      title={title}
+      className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+        cell.done
+          ? cell.source === "auto"
+            ? "bg-emerald-100 border-emerald-400 text-emerald-600"
+            : "bg-emerald-500 border-emerald-500 text-white"
+          : "bg-white border-gray-300 text-transparent hover:border-emerald-400"
+      }`}
+    >
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </button>
+  );
 }
 
 function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
@@ -2072,9 +2081,34 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
   onContactChanged?: () => void;
 }) {
   const [members, setMembers] = useState<MemberRow[] | null>(null);
+  const [milestones, setMilestones] = useState<MemberMilestones>({});
   const [err, setErr] = useState("");
   const [sortByName, setSortByName] = useState(false);
   const [settingContact, setSettingContact] = useState<string | null>(null);
+  const [busyCell, setBusyCell] = useState<string | null>(null);
+
+  const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    return fetch(path, { ...init, headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+  }, []);
+
+  const loadMilestones = useCallback(async () => {
+    const res = await authedFetch(`/api/admin/companies/${companyId}/milestones`);
+    if (!res.ok) return;
+    const json = await res.json();
+    const map: MemberMilestones = {};
+    for (const r of (json.members || []) as Array<Record<string, unknown>>) {
+      map[r.member_id as string] = {
+        measurement: r.measurement as MilestoneCell,
+        blood_test: r.blood_test as MilestoneCell,
+        questionnaire: r.questionnaire as MilestoneCell,
+        doctor_review: r.doctor_review as MilestoneCell,
+        app_access: r.app_access as MilestoneCell,
+      };
+    }
+    setMilestones(map);
+  }, [authedFetch, companyId]);
 
   useEffect(() => {
     (async () => {
@@ -2082,7 +2116,23 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
       if (error) setErr(error.message);
       else setMembers((data || []) as MemberRow[]);
     })();
-  }, [companyId]);
+    loadMilestones();
+  }, [companyId, loadMilestones]);
+
+  const toggleMilestone = async (memberId: string, key: MilestoneKey, currentlyDone: boolean) => {
+    const cellKey = `${memberId}:${key}`;
+    setBusyCell(cellKey);
+    try {
+      await authedFetch(`/api/admin/companies/${companyId}/milestones`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: memberId, milestone: key, done: !currentlyDone }),
+      });
+      await loadMilestones();
+    } finally {
+      setBusyCell(null);
+    }
+  };
 
   // Promote a roster member to company contact: copies their details
   // into the contact_draft_* fields, and links contact_person_id when
@@ -2120,9 +2170,36 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
     ? [...members].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "", "is"))
     : members;
 
+  // Folded-in roster progress (this replaces the old standalone roster
+  // card) + per-milestone completion counts for the column headers.
+  const total = members.length;
+  const onboarded = members.filter((m) => m.completed_at).length;
+  const milestoneCount = (key: MilestoneKey) => members.filter((m) => milestones[m.id]?.[key]?.done).length;
+
+  const GRID = "grid grid-cols-[minmax(140px,1.6fr)_repeat(5,2.25rem)_5.5rem_4.5rem] gap-2 items-center";
+
   return (
-    <div className="divide-y divide-gray-100 border-t border-gray-100 bg-gray-50/50">
-      <div className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto_auto] gap-3 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-100/60">
+    <div className="border-t border-gray-100 bg-gray-50/50">
+      {/* Roster progress strip — folded in from the old roster card */}
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-900 tabular-nums">{onboarded}</span>
+          <span className="text-xs text-gray-500">of {total} onboarded</span>
+          <div className="relative w-28 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="absolute inset-y-0 left-0 bg-emerald-500" style={{ width: `${total ? Math.round((onboarded / total) * 100) : 0}%` }} />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+          {MILESTONE_META.map((mi) => (
+            <span key={mi.key} title={mi.full}>
+              {mi.short} <span className="font-semibold text-gray-700 tabular-nums">{milestoneCount(mi.key)}</span>/{total}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Column header */}
+      <div className={`${GRID} px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-100/60`}>
         <button
           type="button"
           onClick={() => setSortByName((v) => !v)}
@@ -2131,51 +2208,58 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
         >
           Name {sortByName ? "↓ A–Ö" : "↕"}
         </button>
-        <div>Email</div>
-        <div>KT</div>
-        <div>Phone</div>
+        {MILESTONE_META.map((mi) => (
+          <div key={mi.key} className="text-center text-[9px] leading-tight" title={mi.full}>{mi.short}</div>
+        ))}
         <div>Status</div>
-        <div>Activity</div>
-        <div>Contact</div>
+        <div className="text-right">Contact</div>
       </div>
-      {shown.map((m) => {
-        const isContact = !!contactEmail && m.email?.toLowerCase() === contactEmail.toLowerCase();
-        return (
-          <div key={m.id} className="grid grid-cols-[1.5fr_2fr_auto_auto_auto_auto_auto] gap-3 px-4 py-2 items-center text-sm">
-            <div className="font-medium text-gray-800 truncate">{m.full_name}</div>
-            <div className="text-gray-700 truncate">{m.email}</div>
-            <div className="text-xs text-gray-500 font-mono">•••••{m.kennitala_last4 || ""}</div>
-            <div className="text-gray-700">{m.phone || "—"}</div>
-            <div className="flex items-center gap-1.5">
-              <MemberStatus m={m} />
-              <DataDot m={m} />
+
+      <div className="divide-y divide-gray-100">
+        {shown.map((m) => {
+          const isContact = !!contactEmail && m.email?.toLowerCase() === contactEmail.toLowerCase();
+          const cells = milestones[m.id];
+          return (
+            <div key={m.id} className={`${GRID} px-4 py-2 text-sm`}>
+              <div className="min-w-0">
+                <div className="font-medium text-gray-800 truncate">{m.full_name || "—"}</div>
+                <div className="text-[11px] text-gray-500 truncate">{m.email}{m.phone ? ` · ${m.phone}` : ""}</div>
+              </div>
+              {MILESTONE_META.map((mi) => {
+                const cell = cells?.[mi.key] || { done: false, source: null };
+                return (
+                  <div key={mi.key} className="flex justify-center">
+                    <MilestoneCircle
+                      cell={cell}
+                      busy={busyCell === `${m.id}:${mi.key}`}
+                      onToggle={() => toggleMilestone(m.id, mi.key, cell.done)}
+                    />
+                  </div>
+                );
+              })}
+              <div className="flex items-center">
+                <MemberStatus m={m} />
+              </div>
+              <div className="text-right">
+                {isContact ? (
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Contact
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={settingContact !== null}
+                    onClick={() => makeContact(m)}
+                    className="text-[11px] text-gray-500 hover:text-emerald-700 underline underline-offset-2 disabled:opacity-50"
+                  >
+                    {settingContact === m.id ? "…" : "set contact"}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="text-xs text-gray-500">
-              {m.completed_at
-                ? `Done ${new Date(m.completed_at).toLocaleDateString()}`
-                : m.invited_at
-                  ? `Invited ${new Date(m.invited_at).toLocaleDateString()}`
-                  : `Added ${new Date(m.created_at).toLocaleDateString()}`}
-            </div>
-            <div>
-              {isContact ? (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Contact
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={settingContact !== null}
-                  onClick={() => makeContact(m)}
-                  className="text-[11px] text-gray-500 hover:text-emerald-700 underline underline-offset-2 disabled:opacity-50"
-                >
-                  {settingContact === m.id ? "…" : "make contact"}
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2733,25 +2817,11 @@ export default function AdminCompaniesPage() {
                     onFollowupDone={() => markFollowupDone(c)}
                   />
 
-                  {/* Data row: contact + roster */}
-                  <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.2fr] gap-x-6 gap-y-2 items-start`}>
-                    {/* Contact — name on top, then email + phone in muted
-                        small text. Falls back to draft name/email for
-                        unclaimed contacts. Phone is decrypted server-side
-                        from clients.phone_enc. */}
+                  {/* Contact — name + email/phone, manual editor, invite
+                      button. Roster progress now lives in the Employees
+                      section (folded into the milestone roster view). */}
+                  <div className="mt-3 max-w-sm">
                     <ContactCell c={c} onSaved={load} />
-                    {/* Progress — compact card; counts include divisions */}
-                    <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-2 py-1.5 max-w-[200px] self-start">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster</div>
-                      <RosterProgressCell
-                        c={{
-                          ...c,
-                          member_count: aggMembers,
-                          invited_count: (c.invited_count || 0) + children.reduce((s, x) => s + (x.invited_count || 0), 0),
-                          completed_count: (c.completed_count || 0) + children.reduce((s, x) => s + (x.completed_count || 0), 0),
-                        }}
-                      />
-                    </div>
                   </div>
 
                   {/* Financial stat tiles — aggregated across the mother
