@@ -134,13 +134,10 @@ export default function BulkBiodyButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors"
-        title="Hlaða upp lista af starfsmönnum og stofna Biody-snið með bráðabirgðagildum"
+        className="w-full text-left text-xs font-medium px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+        title="Upload an employee list and bulk-create Biody profiles with placeholder values"
       >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Biody fjölda-stofnun
+        Bulk create in Biody
       </button>
 
       {open && (

@@ -1866,8 +1866,8 @@ function EnsureGroupButton({ companyId }: { companyId: string }) {
     setBusy(false);
   };
   return (
-    <button onClick={click} disabled={busy} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors">
-      {busy ? "Creating…" : "Biody group"}
+    <button onClick={click} disabled={busy} className="w-full text-left text-xs font-medium px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+      {busy ? "Creating…" : "Create Biody group"}
     </button>
   );
 }
@@ -1896,7 +1896,7 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
     setBusy(false);
   };
   return (
-    <button onClick={click} disabled={busy} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors">
+    <button onClick={click} disabled={busy} className="w-full text-left text-xs font-medium px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
       {busy ? "Creating…" : "Create all in Biody"}
     </button>
   );
@@ -1906,8 +1906,8 @@ function DeleteCompanyButton({ company, onDone }: { company: CompanyRow; onDone:
   const [showModal, setShowModal] = useState(false);
   return (
     <>
-      <button onClick={() => setShowModal(true)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors">
-        Delete
+      <button onClick={() => setShowModal(true)} className="w-full text-left text-xs font-medium px-2.5 py-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors">
+        Delete company
       </button>
       {showModal && (
         <DeleteConfirmModal
@@ -2569,23 +2569,27 @@ export default function AdminCompaniesPage() {
                       </span>
                       <OverflowMenu label="Settings">
                         {() => (
-                          <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
+                          <div className="flex flex-col items-stretch gap-0.5 px-1.5 py-1.5">
+                            <Link
+                              href={`/business/${c.id}`}
+                              className="w-full text-left text-xs font-medium px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                              title="Open the company's own dashboard"
+                            >
+                              Client view
+                            </Link>
+                            <button
+                              onClick={() => downloadCsv(c.id, c.name)}
+                              className="w-full text-left text-xs font-medium px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                              title="Download employee roster as CSV"
+                            >
+                              Export roster CSV
+                            </button>
                             <BulkBiodyButton
                               companyId={c.id}
                               companyName={c.name}
                               parentName={c.parent_company_id ? c.parent_name || null : null}
                               hasChildren={isParentWithSubs}
                             />
-                            <button
-                              onClick={() => downloadCsv(c.id, c.name)}
-                              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                              title="Download employee roster as CSV"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                              </svg>
-                              Export CSV
-                            </button>
                             <EnsureGroupButton companyId={c.id} />
                             <BulkActivateButton companyId={c.id} />
                             <div className="border-t border-gray-100 my-0.5" />
@@ -2666,20 +2670,6 @@ export default function AdminCompaniesPage() {
                     );
                   })()}
 
-                  {/* Actions toolbar — primary actions are always visible */}
-                  <div className={`mt-3 pt-3 border-t ${isSub ? "border-slate-200" : "border-gray-100"} flex items-center gap-1.5 flex-wrap`}>
-                    <Link
-                      href={`/business/${c.id}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md border border-gray-300 text-gray-800 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors"
-                      title="Open company dashboard"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      Client view
-                    </Link>
-                    <div className="flex-1" />
-                  </div>
                 </div>
 
                 {/* Expanded: full company cockpit — invoices, pricing,
