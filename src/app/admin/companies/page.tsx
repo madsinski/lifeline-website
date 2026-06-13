@@ -625,6 +625,162 @@ const INVOICE_STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-red-50 border-red-200 text-red-600",
 };
 
+// Email composer — send reminders, the onboarding presentation, or a
+// custom message to the company admin or its employees. Backed by
+// /api/admin/companies/[id]/email.
+const EMAIL_MILESTONES: Array<{ key: string; label: string }> = [
+  { key: "measurement", label: "Body measurement" },
+  { key: "blood_test", label: "Blood test" },
+  { key: "questionnaire", label: "Health questionnaire" },
+  { key: "doctor_review", label: "3-month doctor review" },
+  { key: "app_access", label: "Lifeline app activation" },
+];
+
+function CompanyEmailButton({ companyId, companyName }: { companyId: string; companyName: string }) {
+  const [open, setOpen] = useState(false);
+  const [meta, setMeta] = useState<{ admin_email: string | null; employee_count: number; presentations: Array<{ slug: string; title: string }> } | null>(null);
+  const [audience, setAudience] = useState<"admin" | "all_employees" | "incomplete">("admin");
+  const [type, setType] = useState<"reminder" | "presentation" | "custom">("reminder");
+  const [milestone, setMilestone] = useState("measurement");
+  const [slug, setSlug] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<string>("");
+
+  const authedFetch = async (path: string, init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    return fetch(path, { ...init, headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+  };
+
+  const openModal = async () => {
+    setOpen(true); setResult("");
+    const res = await authedFetch(`/api/admin/companies/${companyId}/email`);
+    if (res.ok) {
+      const j = await res.json();
+      setMeta(j);
+      if (j.presentations?.[0]) setSlug(j.presentations[0].slug);
+    }
+  };
+
+  const send = async () => {
+    setSending(true); setResult("");
+    try {
+      const payload: Record<string, unknown> = { audience, type };
+      if (type === "reminder" || audience === "incomplete") payload.milestone = milestone;
+      if (type === "presentation") payload.presentation_slug = slug;
+      if (type === "custom") { payload.subject = subject; payload.message = message; }
+      const res = await authedFetch(`/api/admin/companies/${companyId}/email`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+      });
+      const j = await res.json();
+      if (!res.ok) { setResult(`Failed: ${j.error || res.status}`); return; }
+      setResult(`Sent to ${j.sent} recipient${j.sent === 1 ? "" : "s"}${j.failed_count ? ` · ${j.failed_count} failed` : ""}.`);
+    } catch (e) {
+      setResult(`Failed: ${(e as Error).message}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const fieldCls = "w-full text-sm border border-gray-200 rounded-md px-2.5 py-1.5 bg-white";
+  return (
+    <>
+      <button
+        onClick={openModal}
+        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
+        title="Email the company admin or employees"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        Email
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-12" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">Email — {companyName}</h3>
+              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Recipients */}
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Recipients</span>
+                <div className="mt-1 space-y-1 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={audience === "admin"} onChange={() => setAudience("admin")} />
+                    Company admin {meta?.admin_email ? <span className="text-gray-400 text-xs">({meta.admin_email})</span> : <span className="text-amber-600 text-xs">(no email on file)</span>}
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={audience === "all_employees"} onChange={() => setAudience("all_employees")} />
+                    All employees <span className="text-gray-400 text-xs">({meta?.employee_count ?? 0})</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={audience === "incomplete"} onChange={() => { setAudience("incomplete"); if (type === "presentation") setType("reminder"); }} />
+                    Employees missing a milestone
+                  </label>
+                </div>
+              </div>
+              {/* Type */}
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Email</span>
+                <div className="mt-1 space-y-1 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={type === "reminder"} onChange={() => setType("reminder")} /> Reminder to complete an item
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={type === "presentation"} disabled={audience === "incomplete"} onChange={() => setType("presentation")} /> Onboarding presentation
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" checked={type === "custom"} disabled={audience === "incomplete"} onChange={() => setType("custom")} /> Custom message
+                  </label>
+                </div>
+              </div>
+              {(type === "reminder" || audience === "incomplete") && (
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Milestone</span>
+                  <select className={fieldCls} value={milestone} onChange={(e) => setMilestone(e.target.value)}>
+                    {EMAIL_MILESTONES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+                  </select>
+                </div>
+              )}
+              {type === "presentation" && (
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Presentation</span>
+                  {meta?.presentations?.length ? (
+                    <select className={fieldCls} value={slug} onChange={(e) => setSlug(e.target.value)}>
+                      {meta.presentations.map((p) => <option key={p.slug} value={p.slug}>{p.title}</option>)}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-amber-600">No published presentations. Publish one under Admin → Presentations first.</p>
+                  )}
+                </div>
+              )}
+              {type === "custom" && (
+                <>
+                  <input className={fieldCls} placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                  <textarea className={`${fieldCls} h-28`} placeholder="Message" value={message} onChange={(e) => setMessage(e.target.value)} />
+                </>
+              )}
+              {result ? <div className="text-xs rounded-md px-3 py-2 border bg-emerald-50 border-emerald-200 text-emerald-900">{result}</div> : null}
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+              <button onClick={() => setOpen(false)} className="text-sm font-medium px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-50">Close</button>
+              <button onClick={send} disabled={sending} className="text-sm font-semibold px-4 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                {sending ? "Sending…" : "Send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // Lifecycle journey strip — the admin-side mirror of the client view's
 // setup steps. Shows where the relationship stands at a glance and the
 // single next action; steps are clickable and jump to the section that
@@ -2812,6 +2968,7 @@ export default function AdminCompaniesPage() {
                         </svg>
                         {isExpanded ? "Hide" : "Details"}
                       </button>
+                      <CompanyEmailButton companyId={c.id} companyName={c.name} />
                       <OverflowMenu label="Settings">
                         {() => (
                           <div className="flex flex-col items-stretch gap-0.5 px-1.5 py-1.5">
