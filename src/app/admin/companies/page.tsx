@@ -688,11 +688,11 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
             <button
               type="button"
               onClick={() => onStepClick(JOURNEY_TARGETS[s.label] ?? null)}
-              className="flex flex-col items-center gap-0.5 w-14 shrink-0 group"
+              className="flex flex-col items-center gap-1 w-14 shrink-0 group"
               title={s.hint}
             >
               <span
-                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold border transition-transform group-hover:scale-110 ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-transform group-hover:scale-110 ${
                   s.done
                     ? "bg-emerald-500 border-emerald-500 text-white"
                     : i === currentIdx
@@ -708,16 +708,18 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
                 {s.label}
               </span>
             </button>
-            {i < steps.length - 1 && <div className={`h-px flex-1 mt-2 ${s.done ? "bg-emerald-300" : "bg-gray-200"}`} />}
+            {i < steps.length - 1 && <div className={`h-0.5 rounded-full flex-1 mt-2.5 ${s.done ? "bg-emerald-300" : "bg-gray-100"}`} />}
           </div>
         ))}
       </div>
-      <div className="mt-1 text-[11px]">
+      <div className="mt-2 text-[11px]">
         {allDone ? (
-          <span className="text-emerald-700 font-medium">All steps complete — relationship in management mode.</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-800 font-medium">
+            ✓ All steps complete — relationship in management mode.
+          </span>
         ) : (
-          <span className="text-gray-600">
-            <span className="font-semibold text-amber-700">Next:</span> {current!.hint}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-100 text-amber-900">
+            <span className="font-semibold">Next:</span> {current!.hint}
             {current!.label === "Follow-up" && followupDue ? (
               <>
                 {" "}
@@ -751,15 +753,15 @@ function CardSection({ title, summary, open, onToggle, children }: {
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-3 px-5 py-2.5 text-left hover:bg-gray-50 transition-colors"
+        className={`w-full flex items-center justify-between gap-3 px-5 py-3 text-left transition-colors ${open ? "bg-gray-50/70" : "hover:bg-gray-50/60"}`}
       >
         <span className="flex items-center gap-2">
-          <svg className={`w-3 h-3 text-gray-400 transition-transform ${open ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-3 h-3 transition-transform ${open ? "rotate-90 text-emerald-600" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">{title}</span>
+          <span className={`text-[11px] font-semibold uppercase tracking-wider ${open ? "text-gray-700" : "text-gray-500"}`}>{title}</span>
         </span>
-        <span className="text-[11px] text-gray-400 truncate">{summary}</span>
+        <span className="text-[11px] text-gray-500 px-2 py-0.5 rounded-full bg-gray-100 truncate">{summary}</span>
       </button>
       {open ? children : null}
     </div>
@@ -775,7 +777,7 @@ function DivisionRow({ d, onContactChanged }: { d: CompanyRow; onContactChanged:
   const contactName = d.contact_full_name || d.contact_draft_name || null;
   const contactEmail = d.contact_email || d.contact_draft_email || null;
   return (
-    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+    <div className="border border-gray-100 rounded-lg bg-white shadow-sm overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -842,7 +844,7 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
 
   const fieldCls = "w-full text-[11px] border border-gray-200 rounded px-1.5 py-1 bg-white";
   return (
-    <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50/70 px-2.5 py-2">
+    <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-2">
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Contact</span>
         {!editing ? (
@@ -2603,51 +2605,20 @@ export default function AdminCompaniesPage() {
             return (
               <div
                 key={c.id}
-                className={
-                  isSub
-                    ? "relative ml-8 bg-slate-50/70 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-                    : "bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-                }
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
               >
-                {/* Connector from sub to parent area */}
-                {isSub && (
-                  <div className="absolute -left-6 top-0 bottom-0 w-6 pointer-events-none flex items-center justify-center">
-                    <div className="w-px h-full bg-slate-300" />
-                    <div className="absolute top-6 left-0 w-6 border-t border-slate-300" />
-                  </div>
-                )}
-
-                {/* Coloured left-edge stripe to emphasize parent vs sub */}
-                {!isSub && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-emerald-500 rounded-l-2xl" />
-                )}
-
-                <div className={`${isSub ? "p-3.5" : "pl-5 pr-4 py-4"}`}>
-                  {/* Header line: expand toggle + name + badges + date */}
+                {/* Top gradient accent — same language as the client view */}
+                <div className="h-1 bg-gradient-to-r from-blue-500 to-emerald-500" />
+                <div className="px-5 py-4">
+                  {/* Header line: name + badges left, controls right */}
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-2 min-w-0 flex-1">
-                      <button
-                        onClick={() => toggleExpand(c.id)}
-                        className={`mt-0.5 shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md border transition-colors ${
-                          isExpanded
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                            : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/40"
-                        }`}
-                        title={isExpanded ? "Hide details" : "Show pricing, costs, invoices, divisions and employees"}
-                      >
-                        <svg
-                          className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                        </svg>
-                        {isExpanded ? "Hide" : "Details"}
-                      </button>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => toggleExpand(c.id)}
-                            className={`font-bold text-gray-900 hover:underline text-left ${isSub ? "text-sm" : "text-base"}`}
+                            className="text-lg font-semibold text-gray-900 hover:text-emerald-700 text-left truncate transition-colors"
+                            title={isExpanded ? "Hide details" : "Show details"}
                           >
                             {c.name}
                           </button>
@@ -2689,9 +2660,26 @@ export default function AdminCompaniesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 pt-1">
-                      <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                      <span className="text-[11px] text-gray-400 whitespace-nowrap hidden sm:inline">
                         {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
                       </span>
+                      <button
+                        onClick={() => toggleExpand(c.id)}
+                        className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                          isExpanded
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/40"
+                        }`}
+                        title={isExpanded ? "Hide details" : "Show pricing, costs, invoices, divisions and employees"}
+                      >
+                        <svg
+                          className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                        {isExpanded ? "Hide" : "Details"}
+                      </button>
                       <OverflowMenu label="Settings">
                         {() => (
                           <div className="flex flex-col items-stretch gap-0.5 px-1.5 py-1.5">
@@ -2749,7 +2737,7 @@ export default function AdminCompaniesPage() {
                         from clients.phone_enc. */}
                     <ContactCell c={c} onSaved={load} />
                     {/* Progress — compact card; counts include divisions */}
-                    <div className="rounded-lg border border-gray-200 bg-gray-50/70 px-2 py-1.5 max-w-[200px] self-start">
+                    <div className="rounded-lg border border-gray-100 bg-gray-50/70 px-2 py-1.5 max-w-[200px] self-start">
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster</div>
                       <RosterProgressCell
                         c={{
@@ -2762,51 +2750,39 @@ export default function AdminCompaniesPage() {
                     </div>
                   </div>
 
-                  {/* Financials — accounting rollup tied to this company.
-                      "Actual" = PayDay invoiced/paid/outstanding + costs
-                      tagged in the Accounting tab. "Expected" = roster ×
-                      negotiated unit price vs roster × per-client cost
-                      rates (blood test + measurement + doctor interview).
-                      Hidden until there's a roster or money. */}
+                  {/* Financial stat tiles — aggregated across the mother
+                      company + divisions; expected values use the
+                      negotiated prices and quantity overrides. */}
                   {(() => {
-                    // Aggregated across the mother company + divisions —
-                    // money is handled at the parent level.
                     if (finRows.length === 0) return null;
-                    const invoiceCount = aggFin("invoice_count");
-                    const costs = aggFin("costs_isk");
-                    const hasActual = invoiceCount > 0 || costs > 0;
-                    const hasExpected = aggMembers > 0;
-                    if (!hasActual && !hasExpected) return null;
+                    const outstanding = aggFin("outstanding_isk");
+                    const net = aggFin("net_isk");
+                    const margin = aggFin("expected_net_isk");
+                    const tiles: Array<{ label: string; value: string; tone?: string }> = [
+                      { label: "Invoiced", value: iskFmt(aggFin("invoiced_isk")) },
+                      { label: "Paid", value: iskFmt(aggFin("paid_isk")) },
+                      { label: "Outstanding", value: iskFmt(outstanding), tone: outstanding > 0 ? "text-amber-600" : "text-gray-900" },
+                      { label: "Costs", value: iskFmt(aggFin("costs_isk")) },
+                      { label: "Net", value: iskFmt(net), tone: net < 0 ? "text-red-600" : "text-emerald-700" },
+                      { label: "Expected margin", value: iskFmt(margin), tone: margin < 0 ? "text-red-600" : "text-emerald-700" },
+                    ];
                     return (
-                      <div className="mt-3 space-y-1">
-                        {hasActual && (
-                          <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-600">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-14">Actual</span>
-                            <span>Invoiced <span className="font-semibold text-gray-900">{iskFmt(aggFin("invoiced_isk"))}</span></span>
-                            <span>Paid <span className="font-semibold text-gray-900">{iskFmt(aggFin("paid_isk"))}</span></span>
-                            <span className={aggFin("outstanding_isk") > 0 ? "text-amber-600" : ""}>
-                              Outstanding <span className="font-semibold">{iskFmt(aggFin("outstanding_isk"))}</span>
-                            </span>
-                            <span>Costs <span className="font-semibold text-gray-900">{iskFmt(costs)}</span></span>
-                            <span className={aggFin("net_isk") < 0 ? "text-red-600" : "text-emerald-700"}>
-                              Net <span className="font-semibold">{iskFmt(aggFin("net_isk"))}</span>
-                            </span>
-                            <Link href="/admin/business?tab=accounting" className="text-emerald-700 hover:underline">
-                              Accounting →
-                            </Link>
-                          </div>
-                        )}
-                        {hasExpected && (
-                          <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-gray-500">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 w-14">Expected</span>
-                            <span>{aggMembers} staff{children.length > 0 ? ` (incl. ${children.length} divisions)` : ""}</span>
-                            <span>Income <span className="font-semibold text-gray-700">{iskFmt(aggFin("expected_income_isk"))}</span></span>
-                            <span>Costs <span className="font-semibold text-gray-700">{iskFmt(aggFin("expected_cost_isk"))}</span></span>
-                            <span className={aggFin("expected_net_isk") < 0 ? "text-red-600" : "text-emerald-700"}>
-                              Margin <span className="font-semibold">{iskFmt(aggFin("expected_net_isk"))}</span>
-                            </span>
-                          </div>
-                        )}
+                      <div className="mt-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                          {tiles.map((tile) => (
+                            <div key={tile.label} className="rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 min-w-0">
+                              <div className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 truncate">{tile.label}</div>
+                              <div className={`text-[12px] font-bold tabular-nums truncate ${tile.tone || "text-gray-900"}`} title={tile.value}>
+                                {tile.value}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-1 text-right">
+                          <Link href="/admin/business?tab=accounting" className="text-[10px] text-emerald-700 hover:underline">
+                            Accounting →
+                          </Link>
+                        </div>
                       </div>
                     );
                   })()}
