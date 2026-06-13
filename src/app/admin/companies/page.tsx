@@ -90,6 +90,7 @@ interface CompanyInvoiceRow {
   status: string;
   issued_at: string | null;
   pdf_url: string | null;
+  pdf_storage_path: string | null;
 }
 
 // Itemized EXPECTED income per product for the roster: health checks,
@@ -824,7 +825,7 @@ function CompanyEmailButton({ companyId, companyName, member }: { companyId: str
 // single next action; steps are clickable and jump to the section that
 // handles them. Ends with the dated 3-month doctor follow-up.
 const JOURNEY_TARGETS: Record<string, string | null> = {
-  Admin: null, Documents: "legal", Roster: "employees", Scheduling: "approvals",
+  Admin: null, Documents: "legal", "Employee list": "employees", Scheduling: "approvals",
   Assessments: "employees", "Doctor interview": "employees", Invoiced: "invoices", Paid: "invoices", "3-month follow-up": "employees",
 };
 
@@ -861,7 +862,7 @@ function CompanyJourney({ invited, claimed, docsReady, members, ms, eventsSchedu
         : "Invite the company admin (top of card)",
     },
     { label: "Documents", done: docsReady >= 3, hint: `Collect signed documents — ${docsReady}/3 on file (Legal section)` },
-    { label: "Roster", done: members > 0, hint: "Add employees to the roster" },
+    { label: "Employee list", done: members > 0, hint: "Add employees to the roster" },
     {
       label: "Scheduling", done: eventsScheduled,
       hint: pendingCount > 0
@@ -1139,41 +1140,105 @@ async function openAuthedPdf(url: string) {
 function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId: string; companyName: string; hasChildren: boolean }) {
   const [rows, setRows] = useState<CompanyInvoiceRow[] | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [attaching, setAttaching] = useState(false);
+  const [form, setForm] = useState({ number: "", amount: "", status: "sent", date: new Date().toISOString().slice(0, 10), file: null as File | null });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
   useEffect(() => {
     supabase
       .from("company_invoices")
-      .select("id, payday_invoice_number, quantity, amount_total, status, issued_at, pdf_url")
+      .select("id, payday_invoice_number, quantity, amount_total, status, issued_at, pdf_url, pdf_storage_path")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
-      .limit(8)
+      .limit(12)
       .then(({ data }) => setRows((data as CompanyInvoiceRow[]) || []));
   }, [companyId, reloadKey]);
+
+  const authedFetch = async (path: string, init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    return fetch(path, { ...init, headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+  };
+
+  const submitAttach = async () => {
+    if (!form.file) { setMsg("Choose a PDF."); return; }
+    const amount = parseInt(form.amount, 10);
+    if (!Number.isInteger(amount) || amount < 0) { setMsg("Enter the invoice amount."); return; }
+    setBusy(true); setMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", form.file);
+      fd.append("invoice_number", form.number.trim());
+      fd.append("amount_total", String(amount));
+      fd.append("status", form.status);
+      fd.append("issued_at", form.date);
+      const res = await authedFetch(`/api/admin/companies/${companyId}/external-invoice`, { method: "POST", body: fd });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setMsg(`Failed: ${j.error || res.status}`); return; }
+      setForm({ number: "", amount: "", status: "sent", date: new Date().toISOString().slice(0, 10), file: null });
+      setAttaching(false);
+      setReloadKey((k) => k + 1);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeExternal = async (id: string) => {
+    if (!confirm("Remove this attached invoice and its PDF?")) return;
+    await authedFetch(`/api/admin/companies/${companyId}/external-invoice?id=${id}`, { method: "DELETE" });
+    setReloadKey((k) => k + 1);
+  };
+
   if (rows === null) return <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">Loading invoices…</div>;
+  const inputCls = "text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white";
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
       <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
         <span className="text-[11px] text-gray-400">PayDay invoices for this company.</span>
         <span className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setReloadKey((k) => k + 1)}
-            className="text-[11px] text-gray-400 hover:text-emerald-700"
-            title="Refresh the list (e.g. after generating an invoice)"
-          >
-            refresh
+          <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="text-[11px] text-gray-400 hover:text-emerald-700" title="Refresh the list">refresh</button>
+          <button type="button" onClick={() => { setAttaching((v) => !v); setMsg(""); }} className="text-[11px] font-medium px-2 py-1 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
+            {attaching ? "Cancel" : "Attach PayDay PDF"}
           </button>
           <GenerateInvoiceButton companyId={companyId} companyName={companyName} />
           {hasChildren && <ConsolidatedInvoiceButton companyId={companyId} companyName={companyName} />}
         </span>
       </div>
+
+      {attaching ? (
+        <div className="mb-2 rounded-md border border-gray-200 bg-white p-2.5 space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Attach an invoice generated in PayDay</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input className={`${inputCls} w-32`} placeholder="Invoice #" value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} />
+            <input className={`${inputCls} w-28`} type="number" placeholder="Amount ISK" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+            <input className={inputCls} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+            <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              <option value="sent">sent</option>
+              <option value="paid">paid</option>
+              <option value="draft">draft</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+            <label className="text-[11px] font-medium px-2 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer">
+              {form.file ? form.file.name.slice(0, 22) : "Choose PDF"}
+              <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setForm({ ...form, file: e.target.files?.[0] || null })} />
+            </label>
+            <button type="button" disabled={busy} onClick={submitAttach} className="text-xs font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+              {busy ? "Attaching…" : "Attach"}
+            </button>
+          </div>
+          {msg ? <div className="text-[11px] text-amber-700">{msg}</div> : null}
+        </div>
+      ) : null}
+
       {rows.length === 0 ? (
-        <div className="text-xs text-gray-400">No invoices yet — generate the first one with the button above.</div>
+        <div className="text-xs text-gray-400">No invoices yet — generate one, or attach a PayDay PDF made outside the admin.</div>
       ) : null}
       <div className="space-y-1">
         {rows.map((r) => (
           <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
             <span className="truncate">
               {r.payday_invoice_number || "no number"}
+              {r.pdf_storage_path ? <span className="ml-1 text-[9px] px-1 py-px rounded bg-blue-50 border border-blue-200 text-blue-700">attached</span> : null}
               <span className="text-gray-400">
                 {r.issued_at ? ` · ${new Date(r.issued_at).toLocaleDateString("is-IS")}` : ""}
                 {r.quantity ? ` · ${r.quantity} starfsmenn` : ""}
@@ -1185,13 +1250,10 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
                 {r.status}
               </span>
               {r.pdf_url ? (
-                <button
-                  type="button"
-                  onClick={() => openAuthedPdf(r.pdf_url!)}
-                  className="text-[11px] text-emerald-700 hover:underline"
-                >
-                  PDF
-                </button>
+                <button type="button" onClick={() => openAuthedPdf(r.pdf_url!)} className="text-[11px] text-emerald-700 hover:underline">PDF</button>
+              ) : null}
+              {r.pdf_storage_path ? (
+                <button type="button" onClick={() => removeExternal(r.id)} className="text-red-500 hover:text-red-700" title="Remove attached invoice">×</button>
               ) : null}
             </span>
           </div>
@@ -3196,7 +3258,7 @@ export default function AdminCompaniesPage() {
                         <CompanyInvoiceRows companyId={c.id} companyName={c.name} hasChildren={isParentWithSubs} />
                       </CardSection>
                       <CardSection
-                        title="Approvals"
+                        title="Scheduling"
                         summary={pendingCount > 0 ? `${pendingCount} pending` : "none pending"}
                         open={!!sec.approvals}
                         onToggle={t("approvals")}
@@ -3220,7 +3282,7 @@ export default function AdminCompaniesPage() {
                         </CardSection>
                       ) : null}
                       <CardSection
-                        title="Employees"
+                        title="Employee list"
                         summary={
                           (c.member_count || 0) > 0
                             ? `${c.member_count} on roster`
