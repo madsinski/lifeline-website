@@ -195,7 +195,6 @@ export default function BusinessPage() {
         <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900 mb-1">Business</h1>
-            <p className="text-sm text-gray-500">Companies → approvals → invoicing → payments → accounting</p>
           </div>
           <div className="flex items-start gap-4">
             <PaydayDiagButton />

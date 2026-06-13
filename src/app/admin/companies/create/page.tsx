@@ -65,11 +65,11 @@ export default function AdminCompanyCreatePage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    if (!name.trim()) { setErr("Nafn fyrirtækis vantar."); return; }
-    if (ktRequired && ktDigits.length !== 10) { setErr("Kennitala verður að vera 10 tölustafir fyrir efsta þrep."); return; }
-    if (!ktValid) { setErr("Kennitala verður að vera 10 tölustafir ef hún er slegin inn."); return; }
+    if (!name.trim()) { setErr("Company name is required."); return; }
+    if (ktRequired && ktDigits.length !== 10) { setErr("Kennitala must be 10 digits for a top-level company."); return; }
+    if (!ktValid) { setErr("Kennitala must be 10 digits if entered."); return; }
     if (contactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contactEmail.trim())) {
-      setErr("Ógilt netfang tengiliðs."); return;
+      setErr("Invalid contact email."); return;
     }
     setSubmitting(true);
     try {
@@ -102,7 +102,7 @@ export default function AdminCompanyCreatePage() {
         }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j?.ok) { setErr(j?.detail || j?.error || "Stofnun mistókst."); return; }
+      if (!res.ok || !j?.ok) { setErr(j?.detail || j?.error || "Creation failed."); return; }
       // No per-company detail route exists yet — send the admin back to
       // the list where they can invite the contact, attach documents
       // and send the TOS/DPA claim.
@@ -117,22 +117,23 @@ export default function AdminCompanyCreatePage() {
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
       <header>
-        <div className="text-xs text-gray-500 mb-1">
-          <Link href="/admin/companies" className="hover:underline">Fyrirtæki</Link> · Stofna drög
-        </div>
-        <h1 className="text-2xl font-semibold text-[#1F2937]">Stofna fyrirtæki (drög)</h1>
+        <Link href="/admin/companies" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-emerald-700 mb-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          Back to companies
+        </Link>
+        <h1 className="text-2xl font-semibold text-[#1F2937]">Create company (draft)</h1>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
-          Stofnar fyrirtæki sem Lifeline-teymið hefur unnið með áður, án þess að tengiliður þurfi strax að klára skráninguna.
-          Þegar þið eruð tilbúin að fá tengiliðinn formlega inn, sendið þið boðspóst af fyrirtækisíðunni — þar skrifar tengiliðurinn undir
-          þjónustuskilmála og gagnavinnslusamning og fyrirtækið fer úr <em>drögum</em> í <em>virkt</em>.
+          Create a company the Lifeline team has worked with, without the company admin having to finish registration right away.
+          When you&apos;re ready to bring the admin in, send the invite from the company page — they sign the terms of service and
+          data-processing agreement and the company moves from <em>draft</em> to <em>active</em>.
         </p>
       </header>
 
       <form onSubmit={submit} className="space-y-6">
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900">Fyrirtæki</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Company</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Nafn fyrirtækis" required>
+            <Field label="Company name" required>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
@@ -140,20 +141,20 @@ export default function AdminCompanyCreatePage() {
               <input
                 type="text" inputMode="numeric" maxLength={11}
                 value={kennitala} onChange={(e) => setKennitala(e.target.value)}
-                placeholder={ktRequired ? "5705692039" : "(erfist frá móðurfyrirtæki)"}
+                placeholder={ktRequired ? "5705692039" : "(inherited from parent)"}
                 className={`w-full px-3 py-2 border rounded-lg text-sm font-mono ${kennitala && !ktValid ? "border-red-300" : "border-gray-200"}`}
               />
               {kennitala && !ktValid ? (
-                <p className="text-[11px] text-red-600 mt-1">10 tölustafir.</p>
+                <p className="text-[11px] text-red-600 mt-1">10 digits.</p>
               ) : !ktRequired ? (
-                <p className="text-[11px] text-gray-500 mt-1">Ekki nauðsynlegt — undireining notar kennitölu móðurfyrirtækisins við reikningagerð.</p>
+                <p className="text-[11px] text-gray-500 mt-1">Not required — a division uses the parent company&apos;s kennitala for invoicing.</p>
               ) : null}
             </Field>
-            <Field label="Heimilisfang">
+            <Field label="Address">
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
-            <Field label="Símanúmer fyrirtækis">
+            <Field label="Company phone">
               <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
@@ -161,35 +162,35 @@ export default function AdminCompanyCreatePage() {
         </section>
 
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900">Þjónustustig</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Service tier</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Sjálfvalið stig">
+            <Field label="Default tier">
               <select value={tier} onChange={(e) => setTier(e.target.value as typeof tier)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-                <option value="">Ekki valið enn</option>
+                <option value="">Not set yet</option>
                 <option value="standard">Standard</option>
                 <option value="plus">Plus</option>
-                <option value="custom">Sérsamið</option>
+                <option value="custom">Custom</option>
               </select>
             </Field>
-            <Field label="Verð á starfsmann (ISK)">
+            <Field label="Price per employee (ISK)">
               <input
                 type="number" inputMode="numeric" min={0} step={100}
                 value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)}
-                placeholder="t.d. 24900"
+                placeholder="e.g. 24900"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm tabular-nums"
               />
-              <p className="text-[11px] text-gray-500 mt-1">Notað við reikningagerð. Er hægt að breyta síðar.</p>
+              <p className="text-[11px] text-gray-500 mt-1">Used for invoicing. Can be changed later.</p>
             </Field>
           </div>
         </section>
 
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Sveitarfélag eða móðurfyrirtæki (valkvætt)</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Municipality or parent company (optional)</h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Ef þetta fyrirtæki er undireining (t.d. grunnskóli hjá sveitarfélagi) veldu þá móðurfyrirtækið.
-              Reikningar ganga upp á móðurfyrirtækið og lagaleg undirritun (þjónustuskilmálar + DPA) gildir þar.
+              If this company is a division (e.g. a school under a municipality), pick its parent company.
+              Invoices roll up to the parent and the legal signature (terms of service + DPA) applies there.
             </p>
           </div>
           <select
@@ -197,12 +198,12 @@ export default function AdminCompanyCreatePage() {
             onChange={(e) => setParentId(e.target.value)}
             className="w-full max-w-md px-3 py-2 border border-gray-200 rounded-lg text-sm"
           >
-            <option value="">— Efsta þrep (sjálfstætt / móðurfyrirtæki) —</option>
+            <option value="">— Top level (standalone / parent) —</option>
             {parents.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           {parentId && (
             <div className="rounded-md bg-blue-50 border border-blue-100 p-3 text-xs text-blue-900">
-              Undireining valin. Reikningur og samningaundirskrift ganga sjálfkrafa upp á móðurfyrirtækið — þú þarft ekki að slá inn greiðslutengilið hér.
+              Division selected. Invoicing and the signed agreement roll up to the parent company automatically — you don&apos;t need to enter a billing contact here.
             </div>
           )}
         </section>
@@ -210,34 +211,34 @@ export default function AdminCompanyCreatePage() {
         {!parentId && (
           <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Greiðslutengiliður</h2>
+              <h2 className="text-sm font-semibold text-gray-900">Billing contact</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Sá aðili sem sér um reikninga fyrir fyrirtækið (og undireiningar þess, ef einhverjar).
-                Notaður sem netfang á PayDay-reikningum. Skildu eftir autt ef sami aðili og rekstrartengiliðurinn að neðan.
+                The person who handles invoices for the company (and its divisions, if any).
+                Used as the email on PayDay invoices. Leave blank if it&apos;s the same as the company admin below.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Nafn greiðslutengiliðs">
+              <Field label="Billing contact name">
                 <input type="text" value={billingName} onChange={(e) => setBillingName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </Field>
-              <Field label="Starfsheiti">
+              <Field label="Title">
                 <input type="text" value={billingRole} onChange={(e) => setBillingRole(e.target.value)}
-                  placeholder="t.d. Fjármálastjóri"
+                  placeholder="e.g. CFO"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </Field>
-              <Field label="Netfang">
+              <Field label="Email">
                 <input type="email" value={billingEmail} onChange={(e) => setBillingEmail(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </Field>
-              <Field label="Sími">
+              <Field label="Phone">
                 <input type="tel" value={billingPhone} onChange={(e) => setBillingPhone(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </Field>
               <div className="sm:col-span-2">
-                <Field label="Reikningsheimilisfang">
+                <Field label="Billing address">
                   <input type="text" value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)}
-                    placeholder="Ef frábrugðið skráðu heimilisfangi"
+                    placeholder="If different from the address above"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
                 </Field>
               </div>
@@ -247,27 +248,27 @@ export default function AdminCompanyCreatePage() {
 
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Tengiliður (drög)</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Company admin (draft)</h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Upplýsingar eru geymdar þar til þið smellið á <em>Senda boð</em> á fyrirtækisíðunni. Þá fær tengiliðurinn boðspóst
-              og skrifar undir þjónustuskilmála og gagnavinnslusamning.
+              Saved until you click <em>Invite company admin</em> on the company page. The admin then gets an invite email
+              and signs the terms of service and data-processing agreement.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Fullt nafn tengiliðs">
+            <Field label="Full name">
               <input type="text" value={contactName} onChange={(e) => setContactName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
-            <Field label="Starfsheiti">
+            <Field label="Title">
               <input type="text" value={contactRole} onChange={(e) => setContactRole(e.target.value)}
-                placeholder="t.d. Mannauðsstjóri"
+                placeholder="e.g. HR Manager"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
-            <Field label="Netfang">
+            <Field label="Email">
               <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
-            <Field label="Sími">
+            <Field label="Phone">
               <input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             </Field>
@@ -275,19 +276,19 @@ export default function AdminCompanyCreatePage() {
         </section>
 
         <section className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900">Athugasemdir (innanhúss)</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Notes (internal)</h2>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4}
-            placeholder="Samningasaga, tengingar, sérmál o.s.frv."
+            placeholder="Deal history, contacts, special cases, etc."
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
         </section>
 
         {err && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>}
 
         <div className="flex items-center justify-between gap-3">
-          <Link href="/admin/companies" className="text-sm text-gray-600 hover:underline">Hætta við</Link>
+          <Link href="/admin/companies" className="text-sm text-gray-600 hover:underline">Cancel</Link>
           <button type="submit" disabled={submitting}
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
-            {submitting ? "Stofnar…" : "Stofna drög"}
+            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+            {submitting ? "Creating…" : "Create draft"}
           </button>
         </div>
       </form>

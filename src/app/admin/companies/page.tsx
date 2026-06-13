@@ -2985,7 +2985,7 @@ export default function AdminCompaniesPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Admin stofna fyrirtæki
+            Create company
           </Link>
           <Link href="/business/signup" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
             Create new company link
