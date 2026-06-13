@@ -71,8 +71,18 @@ export async function GET(req: NextRequest) {
   if (!user || !(await isAnyActiveStaff(user.id))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  // Two modes: by month (Accounting tab) or all months for one company
-  // (itemized costs block on the company card).
+  // Three modes: ?all=1 (every cost invoice — the Cost page), by
+  // company_id (company card), or by month (Accounting tab).
+  if (req.nextUrl.searchParams.get("all")) {
+    const { data, error } = await supabaseAdmin
+      .from("accounting_expense_invoices")
+      .select(SELECT_COLS)
+      .order("month", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ invoices: await withSignedUrls(data || []) });
+  }
   const companyId = req.nextUrl.searchParams.get("company_id");
   if (companyId) {
     if (!UUID_RE.test(companyId)) return NextResponse.json({ error: "bad_company" }, { status: 400 });

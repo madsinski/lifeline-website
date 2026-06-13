@@ -1,37 +1,52 @@
 "use client";
 
-// Cost intake — drag-and-drop PDF invoices for costs (new or old).
-// Per file you choose the company it's for and the category
-// (measurement, blood test, …); the AI reads the vendor / amount /
-// date and the invoice lands in accounting_expense_invoices, flowing
-// into the company-card Costs section, the Accounting tab and the
-// monthly report. Backed by /api/admin/accounting/invoices (month=auto).
+// Cost page — every recorded cost, listed per month and categorized,
+// with an AI drag-and-drop intake at the top. Costs come from
+// accounting_expense_invoices (the AI-read PDFs) and flow into the
+// company-card Costs section, the Accounting tab and the monthly
+// report. Backed by /api/admin/accounting/invoices (?all=1 to list,
+// month=auto to upload, PATCH/DELETE to edit).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const CATEGORIES = [
-  { key: "", label: "Auto-detect" },
   { key: "measurements", label: "Measurements" },
   { key: "blood_tests", label: "Blood tests" },
   { key: "doctor", label: "Doctor" },
   { key: "saas", label: "SaaS / systems" },
   { key: "other", label: "Other" },
 ];
+const CAT_LABEL: Record<string, string> = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.label]));
+const CAT_STYLE: Record<string, string> = {
+  measurements: "bg-blue-50 text-blue-700 border-blue-200",
+  blood_tests: "bg-red-50 text-red-700 border-red-200",
+  doctor: "bg-violet-50 text-violet-700 border-violet-200",
+  saas: "bg-gray-100 text-gray-600 border-gray-200",
+  other: "bg-amber-50 text-amber-700 border-amber-200",
+};
 
 const isk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
+const IS_MONTHS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+const monthLabel = (m: string) => { const [y, mo] = m.slice(0, 7).split("-").map(Number); return `${IS_MONTHS[mo - 1]} ${y}`; };
 
-interface QueueItem {
-  id: string;
-  file: File;
-  companyId: string;
-  category: string;
-  status: "queued" | "uploading" | "done" | "duplicate" | "error";
-  info: string;
+interface CostInvoice {
+  id: string; month: string; vendor: string | null; description: string | null;
+  category: string; amount_isk: number; currency: string; invoice_number: string | null;
+  invoice_date: string | null; client_count: number | null; company_id: string | null;
+  company?: { name?: string } | null; direction?: string; file_url: string | null; ai_confidence: string | null;
 }
 
-export default function CostIntake() {
+interface QueueItem { id: string; file: File; companyId: string; category: string; status: "queued" | "uploading" | "done" | "duplicate" | "error"; info: string }
+
+export default function CostPage() {
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
+  const [invoices, setInvoices] = useState<CostInvoice[] | null>(null);
+  const [catFilter, setCatFilter] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [showIntake, setShowIntake] = useState(true);
+
+  // intake state
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [defaultCompany, setDefaultCompany] = useState("");
   const [defaultCategory, setDefaultCategory] = useState("");
@@ -46,163 +61,236 @@ export default function CostIntake() {
     return fetch(path, { ...init, headers: { ...(init?.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
   }, []);
 
+  const loadLedger = useCallback(async () => {
+    const res = await authedFetch(`/api/admin/accounting/invoices?all=1`);
+    if (res.ok) {
+      const j = await res.json();
+      setInvoices(((j.invoices || []) as CostInvoice[]).filter((r) => r.direction !== "income"));
+    } else setInvoices([]);
+  }, [authedFetch]);
+
   useEffect(() => {
     (async () => {
       const res = await authedFetch(`/api/admin/accounting/companies`);
       if (res.ok) { const j = await res.json(); setCompanies(j.companies || []); }
     })();
-  }, [authedFetch]);
+    queueMicrotask(loadLedger);
+  }, [authedFetch, loadLedger]);
 
+  // ── intake ──────────────────────────────────────────────────────
   const addFiles = useCallback((files: File[]) => {
     const pdfs = files.filter((f) => f.type === "application/pdf" || /\.(pdf|png|jpe?g)$/i.test(f.name));
-    setQueue((q) => [
-      ...q,
-      ...pdfs.map((file) => ({
-        id: `f${idRef.current++}`,
-        file,
-        companyId: defaultCompany,
-        category: defaultCategory,
-        status: "queued" as const,
-        info: "",
-      })),
-    ]);
+    setQueue((q) => [...q, ...pdfs.map((file) => ({ id: `f${idRef.current++}`, file, companyId: defaultCompany, category: defaultCategory, status: "queued" as const, info: "" }))]);
   }, [defaultCompany, defaultCategory]);
 
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault(); setDragging(false);
-    addFiles(Array.from(e.dataTransfer.files || []));
-  };
-
-  const update = (id: string, patch: Partial<QueueItem>) =>
-    setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+  const updateQ = (id: string, patch: Partial<QueueItem>) => setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
   const uploadOne = async (it: QueueItem) => {
-    update(it.id, { status: "uploading", info: "" });
+    updateQ(it.id, { status: "uploading", info: "" });
     try {
       const fd = new FormData();
-      fd.append("file", it.file);
-      fd.append("month", "auto");
+      fd.append("file", it.file); fd.append("month", "auto");
       if (it.category) fd.append("category", it.category);
       if (it.companyId) fd.append("company_id", it.companyId);
       const res = await authedFetch(`/api/admin/accounting/invoices`, { method: "POST", body: fd });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) { update(it.id, { status: "error", info: j.error || `HTTP ${res.status}` }); return; }
-      if (j.duplicate) {
-        update(it.id, { status: "duplicate", info: `Already uploaded (${j.vendor || ""} #${j.invoice_number || ""})` });
-        return;
-      }
+      if (!res.ok) { updateQ(it.id, { status: "error", info: j.error || `HTTP ${res.status}` }); return; }
+      if (j.duplicate) { updateQ(it.id, { status: "duplicate", info: `Already uploaded (${j.vendor || ""} #${j.invoice_number || ""})` }); return; }
       const inv = j.invoice;
-      const company = inv.company?.name ? ` → ${inv.company.name}` : "";
-      update(it.id, { status: "done", info: `${inv.vendor || "vendor?"} · ${isk(inv.amount_isk)} · ${String(inv.month).slice(0, 7)}${company}${inv.ai_confidence ? ` (AI: ${inv.ai_confidence})` : ""}` });
-    } catch (e) {
-      update(it.id, { status: "error", info: (e as Error).message });
-    }
+      updateQ(it.id, { status: "done", info: `${inv.vendor || "vendor?"} · ${isk(inv.amount_isk)} · ${String(inv.month).slice(0, 7)}${inv.company?.name ? ` → ${inv.company.name}` : ""}` });
+    } catch (e) { updateQ(it.id, { status: "error", info: (e as Error).message }); }
   };
 
   const uploadAll = async () => {
     setBusy(true);
     const pending = queue.filter((it) => it.status === "queued" || it.status === "error");
-    // Three at a time to be quick without hammering the model.
-    const workers = Array.from({ length: 3 }, async () => {
-      while (true) {
-        const next = pending.shift();
-        if (!next) break;
-        await uploadOne(next);
-      }
-    });
-    await Promise.all(workers);
+    await Promise.all(Array.from({ length: 3 }, async () => { while (true) { const n = pending.shift(); if (!n) break; await uploadOne(n); } }));
     setBusy(false);
+    await loadLedger();
   };
+
+  // ── ledger edits ────────────────────────────────────────────────
+  const patch = async (id: string, body: Record<string, unknown>) => {
+    await authedFetch(`/api/admin/accounting/invoices`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }) });
+    await loadLedger();
+  };
+  const editAmount = (r: CostInvoice) => {
+    const v = prompt(`Amount ISK for ${r.vendor || "this cost"}:`, String(r.amount_isk));
+    if (v === null) return;
+    const n = parseInt(v.replace(/[^\d]/g, ""), 10);
+    if (Number.isInteger(n) && n >= 0) patch(r.id, { amount_isk: n });
+  };
+  const removeInvoice = async (id: string) => {
+    if (!confirm("Delete this cost invoice?")) return;
+    await authedFetch(`/api/admin/accounting/invoices?id=${id}`, { method: "DELETE" });
+    await loadLedger();
+  };
+
+  // ── grouping ────────────────────────────────────────────────────
+  const filtered = (invoices || []).filter((r) =>
+    (!catFilter || r.category === catFilter) && (!companyFilter || r.company_id === companyFilter));
+  const byMonth = new Map<string, CostInvoice[]>();
+  for (const r of filtered) { const k = r.month.slice(0, 7); (byMonth.get(k) || byMonth.set(k, []).get(k)!).push(r); }
+  const months = [...byMonth.keys()].sort().reverse();
+  const grandTotal = filtered.reduce((s, r) => s + r.amount_isk, 0);
 
   const selCls = "text-xs border border-gray-200 rounded-md px-2 py-1 bg-white";
   const remaining = queue.filter((it) => it.status === "queued" || it.status === "error").length;
 
   return (
     <div className="px-8 pb-10 space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Cost</h1>
-        <p className="text-sm text-gray-500">
-          Drag in PDF cost invoices (new or old). Pick the company and what the cost is for — the AI reads the vendor, amount and date
-          and files it into Accounting and the company&apos;s Costs section.
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 mb-1">Cost</h1>
+          <p className="text-sm text-gray-500">Every recorded cost invoice, per month and categorized. Drag in PDFs to add new or old invoices — the AI reads them.</p>
+        </div>
+        <button onClick={() => setShowIntake((v) => !v)} className="text-xs font-medium px-3 py-1.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+          {showIntake ? "Hide intake" : "Add invoices"}
+        </button>
       </div>
 
-      {/* Defaults applied to dropped files */}
-      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Default for new files</span>
-        <label className="flex items-center gap-1.5">Company
-          <select className={selCls} value={defaultCompany} onChange={(e) => setDefaultCompany(e.target.value)}>
-            <option value="">Auto-detect</option>
-            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </label>
-        <label className="flex items-center gap-1.5">Category
-          <select className={selCls} value={defaultCategory} onChange={(e) => setDefaultCategory(e.target.value)}>
-            {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-          </select>
-        </label>
-      </div>
-
-      {/* Drop zone */}
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-        onClick={() => fileInput.current?.click()}
-        className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${
-          dragging ? "border-emerald-400 bg-emerald-50/60" : "border-gray-200 bg-gray-50/60 hover:border-emerald-300"
-        }`}
-      >
-        <svg className="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.9A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-        </svg>
-        <div className="text-sm font-medium text-gray-700">Drop cost-invoice PDFs here</div>
-        <div className="text-xs text-gray-400 mt-0.5">or click to choose files</div>
-        <input
-          ref={fileInput} type="file" accept="application/pdf,image/png,image/jpeg" multiple className="hidden"
-          onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }}
-        />
-      </div>
-
-      {queue.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-gray-500">
-              {queue.filter((q) => q.status === "done").length} filed · {queue.filter((q) => q.status === "duplicate").length} duplicates · {queue.filter((q) => q.status === "error").length} errors · {remaining} to go
-            </span>
-            <div className="flex gap-2">
-              <button onClick={() => setQueue((q) => q.filter((it) => it.status === "queued" || it.status === "error" || it.status === "uploading"))} className="text-[11px] text-gray-400 hover:text-gray-700">clear done</button>
-              <button onClick={uploadAll} disabled={busy || remaining === 0} className="text-xs font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
-                {busy ? "Uploading…" : `Upload ${remaining}`}
-              </button>
-            </div>
+      {/* ── Intake ── */}
+      {showIntake && (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Default for new files</span>
+            <label className="flex items-center gap-1.5">Company
+              <select className={selCls} value={defaultCompany} onChange={(e) => setDefaultCompany(e.target.value)}>
+                <option value="">Auto-detect</option>
+                {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5">Category
+              <select className={selCls} value={defaultCategory} onChange={(e) => setDefaultCategory(e.target.value)}>
+                <option value="">Auto-detect</option>
+                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+            </label>
           </div>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 bg-white">
-            {queue.map((it) => (
-              <div key={it.id} className="flex items-center gap-3 px-3 py-2 text-xs">
-                <span className="flex-1 min-w-0 truncate text-gray-700" title={it.file.name}>{it.file.name}</span>
-                {it.status === "queued" || it.status === "error" ? (
-                  <>
-                    <select className={selCls} value={it.companyId} onChange={(e) => update(it.id, { companyId: e.target.value })}>
-                      <option value="">Auto-detect company</option>
-                      {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    <select className={selCls} value={it.category} onChange={(e) => update(it.id, { category: e.target.value })}>
-                      {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-                    </select>
-                    <button onClick={() => uploadOne(it)} className="text-emerald-700 hover:underline">upload</button>
-                    <button onClick={() => setQueue((q) => q.filter((x) => x.id !== it.id))} className="text-red-500 hover:text-red-700">×</button>
-                  </>
-                ) : (
-                  <span className={`whitespace-nowrap ${
-                    it.status === "done" ? "text-emerald-700" : it.status === "duplicate" ? "text-amber-600" : "text-gray-400"
-                  }`}>
-                    {it.status === "uploading" ? "reading…" : it.info || it.status}
-                  </span>
-                )}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => { e.preventDefault(); setDragging(false); addFiles(Array.from(e.dataTransfer.files || [])); }}
+            onClick={() => fileInput.current?.click()}
+            className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${dragging ? "border-emerald-400 bg-emerald-50/60" : "border-gray-200 bg-gray-50/60 hover:border-emerald-300"}`}
+          >
+            <div className="text-sm font-medium text-gray-700">Drop cost-invoice PDFs here</div>
+            <div className="text-xs text-gray-400 mt-0.5">or click to choose files</div>
+            <input ref={fileInput} type="file" accept="application/pdf,image/png,image/jpeg" multiple className="hidden"
+              onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+          </div>
+          {queue.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-gray-500">{queue.filter((q) => q.status === "done").length} filed · {queue.filter((q) => q.status === "duplicate").length} dup · {queue.filter((q) => q.status === "error").length} err · {remaining} to go</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setQueue((q) => q.filter((it) => it.status === "queued" || it.status === "error" || it.status === "uploading"))} className="text-[11px] text-gray-400 hover:text-gray-700">clear done</button>
+                  <button onClick={uploadAll} disabled={busy || remaining === 0} className="text-xs font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">{busy ? "Uploading…" : `Upload ${remaining}`}</button>
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="border border-gray-100 rounded-lg divide-y divide-gray-100">
+                {queue.map((it) => (
+                  <div key={it.id} className="flex items-center gap-3 px-3 py-2 text-xs">
+                    <span className="flex-1 min-w-0 truncate text-gray-700" title={it.file.name}>{it.file.name}</span>
+                    {it.status === "queued" || it.status === "error" ? (
+                      <>
+                        <select className={selCls} value={it.companyId} onChange={(e) => updateQ(it.id, { companyId: e.target.value })}>
+                          <option value="">Auto company</option>
+                          {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <select className={selCls} value={it.category} onChange={(e) => updateQ(it.id, { category: e.target.value })}>
+                          <option value="">Auto category</option>
+                          {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                        </select>
+                        <button onClick={() => uploadOne(it)} className="text-emerald-700 hover:underline">upload</button>
+                        <button onClick={() => setQueue((q) => q.filter((x) => x.id !== it.id))} className="text-red-500 hover:text-red-700">×</button>
+                      </>
+                    ) : (
+                      <span className={`whitespace-nowrap ${it.status === "done" ? "text-emerald-700" : it.status === "duplicate" ? "text-amber-600" : "text-gray-400"}`}>{it.status === "uploading" ? "reading…" : it.info || it.status}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Filters + grand total ── */}
+      <div className="flex items-center gap-3 flex-wrap text-xs">
+        <select className={selCls} value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
+          <option value="">All categories</option>
+          {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+        </select>
+        <select className={selCls} value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)}>
+          <option value="">All companies</option>
+          {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <span className="ml-auto text-gray-600">Total <span className="font-bold text-gray-900">{isk(grandTotal)}</span> · {filtered.length} invoices</span>
+      </div>
+
+      {/* ── Monthly ledger ── */}
+      {invoices === null ? (
+        <div className="text-sm text-gray-400">Loading costs…</div>
+      ) : months.length === 0 ? (
+        <div className="text-sm text-gray-400">No cost invoices{catFilter || companyFilter ? " match the filter" : " yet — drop some PDFs above"}.</div>
+      ) : (
+        <div className="space-y-4">
+          {months.map((m) => {
+            const rows = byMonth.get(m)!;
+            const monthTotal = rows.reduce((s, r) => s + r.amount_isk, 0);
+            const catTotals = CATEGORIES.map((c) => ({ c, t: rows.filter((r) => r.category === c.key).reduce((s, r) => s + r.amount_isk, 0) })).filter((x) => x.t > 0);
+            return (
+              <div key={m} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                <div className="px-4 py-2.5 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+                  <span className="text-sm font-semibold text-gray-900">{monthLabel(m)}</span>
+                  <span className="flex items-center gap-2 flex-wrap">
+                    {catTotals.map(({ c, t }) => (
+                      <span key={c.key} className="text-[10px] text-gray-500">{c.label} <b className="text-gray-700">{isk(t)}</b></span>
+                    ))}
+                    <span className="text-sm font-bold text-gray-900 ml-1">{isk(monthTotal)}</span>
+                  </span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {rows.map((r) => (
+                    <div key={r.id} className="px-4 py-2 flex items-center justify-between gap-3 text-xs">
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-800 truncate">
+                          {r.vendor || "Unknown vendor"}
+                          {r.company?.name ? <span className="text-gray-400 font-normal"> · {r.company.name}</span> : null}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          {[r.description, r.invoice_number ? `#${r.invoice_number}` : null, r.invoice_date, r.client_count != null ? `${r.client_count} clients` : null].filter(Boolean).join(" · ") || "—"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        <select
+                          className={`text-[10px] rounded-full border px-1.5 py-0.5 ${CAT_STYLE[r.category] || CAT_STYLE.other}`}
+                          value={r.category}
+                          onChange={(e) => patch(r.id, { category: e.target.value })}
+                          title="Change category"
+                        >
+                          {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{CAT_LABEL[c.key]}</option>)}
+                        </select>
+                        <select
+                          className={selCls}
+                          value={r.company_id || ""}
+                          onChange={(e) => patch(r.id, { company_id: e.target.value || null })}
+                          title="Tag company"
+                        >
+                          <option value="">No company</option>
+                          {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <button onClick={() => editAmount(r)} className="font-semibold text-gray-900 hover:text-emerald-700" title="Edit amount">{isk(r.amount_isk)}</button>
+                        {r.file_url ? <a href={r.file_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">PDF</a> : null}
+                        <button onClick={() => removeInvoice(r.id)} className="text-red-500 hover:text-red-700" title="Delete">×</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
