@@ -12,6 +12,15 @@ import type { PurchaseOrderLineItem } from "./agreement-templates";
 
 export const FOLLOWUP_DOCTOR_PRICE_ISK = 12900;
 
+// Blood-test COST per client by provider (what the lab charges us).
+// Used by the company-card cost lines and the accounting projections;
+// a per-company manual override (company_cost_item_status.unit_price_isk)
+// wins over these defaults.
+export const BLOOD_PROVIDER_RATES: Record<string, number> = {
+  "Sameind": 9000,
+  "Heilsugæslan": 12500,
+};
+
 const SMALL_TEAM_MAX = 14; // 0–14 = small tier, 15+ = large tier
 
 /** Per-assessment unit price (ISK) for one employee. */

@@ -14,7 +14,7 @@
 //              manual adjustments
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
+import { assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK, BLOOD_PROVIDER_RATES } from "@/lib/b2b-pricing";
 
 export const ACCOUNTANT_EMAIL =
   process.env.ACCOUNTING_FIRM_EMAIL || "jfk@mmedia.is";
@@ -636,8 +636,7 @@ export async function computeCompanyOverview(): Promise<{
       .eq("direction", "cost"),
     supabaseAdmin
       .from("company_cost_item_status")
-      .select("company_id, category, staff_id, staff:staff_id(name, email)")
-      .not("staff_id", "is", null),
+      .select("company_id, category, staff_id, provider, unit_price_isk, staff:staff_id(name, email)"),
     supabaseAdmin
       .from("accounting_expense_invoices")
       .select("paid_by, amount_isk, payer:staff!paid_by(name, email)")
@@ -658,7 +657,33 @@ export async function computeCompanyOverview(): Promise<{
 
   const rates: Record<string, number> = {};
   for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
-  const perClientCost = (rates["blood_test"] || 0) + (rates["measurement"] || 0) + (rates["doctor_interview"] || 0);
+
+  // Per-company cost-item settings (provider, manual unit-price
+  // override) — divisions inherit the mother company's settings.
+  const itemMap = new Map<string, { provider: string | null; unit_price_isk: number | null }>();
+  for (const a of assignRes.data || []) {
+    itemMap.set(`${a.company_id}:${a.category}`, {
+      provider: (a.provider as string | null) ?? null,
+      unit_price_isk: (a.unit_price_isk as number | null) ?? null,
+    });
+  }
+  const itemFor = (companyId: string, category: string) => {
+    const own = itemMap.get(`${companyId}:${category}`);
+    if (own) return own;
+    const parentId = companyById.get(companyId)?.parent_company_id;
+    return parentId ? itemMap.get(`${parentId}:${category}`) : undefined;
+  };
+  // Effective per-client cost for a company: manual override > provider
+  // rate (blood tests: Sameind 9.000 / Heilsugæslan 12.500) > global rate.
+  const perClientCostFor = (companyId: string): number => {
+    const blood = itemFor(companyId, "blood_tests");
+    const bloodRate = blood?.unit_price_isk
+      ?? (blood?.provider ? BLOOD_PROVIDER_RATES[blood.provider] ?? rates["blood_test"] : rates["blood_test"])
+      ?? 0;
+    const measRate = itemFor(companyId, "measurements")?.unit_price_isk ?? rates["measurement"] ?? 0;
+    const docRate = itemFor(companyId, "doctor")?.unit_price_isk ?? rates["doctor_interview"] ?? 0;
+    return (bloodRate || 0) + measRate + docRate;
+  };
 
   const memberCounts = new Map<string, number>();
   for (const m of membersRes.data || []) {
@@ -744,7 +769,7 @@ export async function computeCompanyOverview(): Promise<{
       ?? parent?.followup_doctor_price
       ?? FOLLOWUP_DOCTOR_PRICE_ISK;
     row.expected_income_isk = members * (unitPrice + followupPrice);
-    row.expected_cost_isk = members * perClientCost;
+    row.expected_cost_isk = members * perClientCostFor(c.id);
     row.expected_net_isk = row.expected_income_isk - row.expected_cost_isk;
   }
 
@@ -781,6 +806,7 @@ export async function computeCompanyOverview(): Promise<{
   };
   const splitMap = new Map<string, WorkSplitRow>();
   for (const a of assignRes.data || []) {
+    if (!a.staff_id) continue;
     if (a.category === "blood_tests") continue; // provider, not staff
     const role: "doctor" | "measurer" = a.category === "doctor" ? "doctor" : "measurer";
     const staffId = a.staff_id as string;

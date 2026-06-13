@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK } from "@/lib/b2b-pricing";
+import { assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK, BLOOD_PROVIDER_RATES } from "@/lib/b2b-pricing";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import BulkBiodyButton from "./BulkBiodyButton";
 
@@ -160,9 +160,9 @@ const COST_ITEM_STATUSES = [
   { value: "covered", label: "Covered" },
   { value: "not_applicable", label: "Not applicable" },
 ];
-const BLOOD_PROVIDERS = ["Sameind", "Heilsugæslan"];
+const BLOOD_PROVIDERS = Object.keys(BLOOD_PROVIDER_RATES);
 
-interface CostItemState { status: string; provider: string | null; staff_id: string | null }
+interface CostItemState { status: string; provider: string | null; staff_id: string | null; unit_price_isk: number | null }
 
 function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCount: number }) {
   const [invoices, setInvoices] = useState<TaggedCost[] | null>(null);
@@ -203,8 +203,8 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
     }
     setRates(map);
     const st: Record<string, CostItemState> = {};
-    for (const it of (items.items || []) as Array<{ category: string; status: string; provider: string | null; staff_id: string | null }>) {
-      st[it.category] = { status: it.status, provider: it.provider, staff_id: it.staff_id };
+    for (const it of (items.items || []) as Array<{ category: string; status: string; provider: string | null; staff_id: string | null; unit_price_isk: number | null }>) {
+      st[it.category] = { status: it.status, provider: it.provider, staff_id: it.staff_id, unit_price_isk: it.unit_price_isk };
     }
     setItemState(st);
     setStaff(items.staff || []);
@@ -306,12 +306,17 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
       ) : (
         <div className="space-y-1">
           {FIXED_COST_ITEMS.map((item) => {
-            const rate = rates[item.rateKey] || 0;
+            const state = itemState[item.category] || { status: "auto", provider: null, staff_id: null, unit_price_isk: null };
+            // Rate priority: manual override > provider rate (blood
+            // tests: Sameind 9.000 / Heilsugæslan 12.500) > global rate.
+            const autoRate = item.category === "blood_tests" && state.provider
+              ? BLOOD_PROVIDER_RATES[state.provider] ?? (rates[item.rateKey] || 0)
+              : rates[item.rateKey] || 0;
+            const rate = state.unit_price_isk ?? autoRate;
             const expected = memberCount * rate;
             const rows = (invoices || []).filter((r) => r.category === item.category);
             const recorded = rows.reduce((s, r) => s + r.amount_isk, 0);
             const outstanding = Math.max(expected - recorded, 0);
-            const state = itemState[item.category] || { status: "auto", provider: null, staff_id: null };
             const effective = state.status === "auto"
               ? (outstanding > 0 ? "outstanding" : "covered")
               : state.status;
@@ -324,7 +329,23 @@ function CompanyCosts({ companyId, memberCount }: { companyId: string; memberCou
                   <span className="font-medium">
                     {item.label}
                     <span className="text-gray-400 font-normal">
-                      {" "}· expected {memberCount} × {iskFmt(rate)} = {iskFmt(expected)}
+                      {" "}· expected {memberCount} × {iskFmt(rate)}{state.unit_price_isk != null ? " (manual)" : ""}{" "}
+                      <button
+                        type="button"
+                        className="text-gray-300 hover:text-emerald-700"
+                        title={`Override the unit price for this company (empty = auto ${iskFmt(autoRate)})`}
+                        disabled={busy}
+                        onClick={() => {
+                          const v = prompt(
+                            `${item.label} — unit price ISK for this company (empty = auto ${iskFmt(autoRate)}):`,
+                            state.unit_price_isk != null ? String(state.unit_price_isk) : "",
+                          );
+                          if (v === null) return;
+                          const trimmed = v.replace(/[^\d]/g, "");
+                          saveItem(item.category, { unit_price_isk: trimmed === "" ? null : parseInt(trimmed, 10) });
+                        }}
+                      >✎</button>
+                      {" "}= {iskFmt(expected)}
                       {state.status === "auto" && outstanding > 0 ? ` · ${iskFmt(outstanding)} open` : ""}
                     </span>
                   </span>

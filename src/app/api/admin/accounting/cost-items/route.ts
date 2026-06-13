@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const [itemsRes, staffRes] = await Promise.all([
     supabaseAdmin
       .from("company_cost_item_status")
-      .select("category, status, provider, staff_id, staff:staff_id(name, email)")
+      .select("category, status, provider, staff_id, unit_price_isk, staff:staff_id(name, email)")
       .eq("company_id", companyId),
     supabaseAdmin
       .from("staff")
@@ -71,10 +71,17 @@ export async function POST(req: NextRequest) {
     }
     row.staff_id = body.staff_id;
   }
+  if (body.unit_price_isk !== undefined) {
+    const n = body.unit_price_isk === null ? null : Number(body.unit_price_isk);
+    if (n !== null && (!Number.isInteger(n) || n < 0)) {
+      return NextResponse.json({ error: "bad_price" }, { status: 400 });
+    }
+    row.unit_price_isk = n;
+  }
   const { data, error } = await supabaseAdmin
     .from("company_cost_item_status")
     .upsert(row, { onConflict: "company_id,category" })
-    .select("category, status, provider, staff_id")
+    .select("category, status, provider, staff_id, unit_price_isk")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, item: data });

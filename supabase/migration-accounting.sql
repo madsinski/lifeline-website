@@ -196,9 +196,13 @@ create table if not exists company_cost_item_status (
     check (status in ('auto', 'outstanding', 'invoice_pending', 'covered', 'not_applicable')),
   provider text,
   staff_id uuid references staff(id) on delete set null,
+  -- Manual per-company unit-cost override; null = provider/global rate.
+  unit_price_isk integer check (unit_price_isk >= 0),
   updated_at timestamptz not null default now(),
   primary key (company_id, category)
 );
+alter table company_cost_item_status
+  add column if not exists unit_price_isk integer check (unit_price_isk >= 0);
 alter table company_cost_item_status enable row level security;
 drop policy if exists "Block client access" on company_cost_item_status;
 create policy "Block client access" on company_cost_item_status for all using (false) with check (false);
