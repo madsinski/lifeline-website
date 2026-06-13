@@ -356,6 +356,43 @@ function mapInvoiceStatus(s: string | undefined): string {
 }
 const toPaymentStatus = (s: string) => (s === "paid" ? "succeeded" : s === "cancelled" ? "refunded" : "pending");
 
+
+const PD_HEADERS = async () => {
+  const token = await getToken();
+  return token ? { Authorization: `Bearer ${token}`, Accept: "application/json" } : null;
+};
+
+type PInv = { id: string; number?: string | number; status?: string; invoiceDate?: string; dueDate?: string; paidDate?: string; amountIncludingVat?: number; amountExcludingVat?: number; currencyCode?: string; customer?: { id?: string; name?: string } };
+
+// Distinct PayDay customers that have at least one invoice.
+export async function listPaydayCustomers(): Promise<{ ok: boolean; reason?: string; customers: Array<{ id: string; name: string }> }> {
+  const headers = await PD_HEADERS();
+  if (!headers) return { ok: false, reason: "payday_auth_failed", customers: [] };
+  const map = new Map<string, string>();
+  for (let page = 1; page <= 30; page++) {
+    const res = await fetch(`${PD_BASE}/invoices?perPage=100&page=${page}`, { headers });
+    if (!res.ok) return { ok: false, reason: `payday_list_http_${res.status}`, customers: [] };
+    const json = await res.json().catch(() => null) as { invoices?: PInv[]; pages?: number } | null;
+    for (const inv of json?.invoices || []) if (inv.customer?.id) map.set(inv.customer.id, inv.customer.name || "");
+    if (!json?.pages || page >= json.pages) break;
+  }
+  return { ok: true, customers: [...map.entries()].map(([id, name]) => ({ id, name })) };
+}
+
+// A PayDay customer's kennitala (ssn), to match against a company.
+export async function getPaydayCustomerSsn(customerId: string): Promise<string | null> {
+  const headers = await PD_HEADERS();
+  if (!headers) return null;
+  const res = await fetch(`${PD_BASE}/customers/${customerId}`, { headers });
+  if (!res.ok) return null;
+  const j = await res.json().catch(() => null) as { ssn?: string } | null;
+  return j?.ssn || null;
+}
+
+// Import (and reconcile) one company's PayDay invoices. Idempotent and
+// self-healing: matches existing rows by payday_invoice_id, prunes local
+// payday-sourced rows that no longer exist in PayDay (stale duplicates),
+// and keeps exactly one payments-ledger row per invoice.
 export async function importCompanyInvoicesFromPayday(
   companyId: string,
   createdBy: string,
@@ -365,11 +402,9 @@ export async function importCompanyInvoicesFromPayday(
   const customerId = company?.payday_customer_id as string | null;
   if (!customerId) return { ok: false, reason: "no_customer", imported: 0, updated: 0, total: 0 };
 
-  const token = await getToken();
-  if (!token) return { ok: false, reason: "payday_auth_failed", imported: 0, updated: 0, total: 0 };
-  const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+  const headers = await PD_HEADERS();
+  if (!headers) return { ok: false, reason: "payday_auth_failed", imported: 0, updated: 0, total: 0 };
 
-  type PInv = { id: string; number?: string | number; status?: string; invoiceDate?: string; dueDate?: string; paidDate?: string; amountIncludingVat?: number; amountExcludingVat?: number; currencyCode?: string; customer?: { id?: string } };
   const invoices: PInv[] = [];
   for (let page = 1; page <= 20; page++) {
     const res = await fetch(`${PD_BASE}/invoices?customerId=${customerId}&perPage=100&page=${page}`, { headers });
@@ -378,24 +413,30 @@ export async function importCompanyInvoicesFromPayday(
     invoices.push(...(json?.invoices || []).filter((x) => x.customer?.id === customerId));
     if (!json?.pages || page >= json.pages) break;
   }
+  const paydaySet = new Set(invoices.map((i) => i.id));
 
+  // Existing local rows for this company (only payday-sourced ones are
+  // candidates for matching/pruning; external attached PDFs are left alone).
   const { data: existing } = await supabaseAdmin
-    .from("company_invoices").select("id, payday_invoice_id").eq("company_id", companyId).not("payday_invoice_id", "is", null);
-  const byPayday = new Map((existing || []).map((r) => [r.payday_invoice_id as string, r.id as string]));
+    .from("company_invoices")
+    .select("id, payday_invoice_id, pdf_storage_path")
+    .eq("company_id", companyId);
+  const rows = existing || [];
+  const byPayday = new Map(rows.filter((r) => r.payday_invoice_id).map((r) => [r.payday_invoice_id as string, r.id as string]));
 
   let imported = 0, updated = 0;
+  const keptInvoiceIds: string[] = [];
   for (const inv of invoices) {
     const total = Math.round(inv.amountIncludingVat ?? 0);
     const net = Math.round(inv.amountExcludingVat ?? inv.amountIncludingVat ?? 0);
     const status = mapInvoiceStatus(inv.status);
     const paidAt = inv.paidDate ? new Date(inv.paidDate).toISOString() : null;
+    const number = inv.number != null ? String(inv.number) : null;
     const row = {
       status, currency: inv.currencyCode || "ISK", amount_net: net, amount_total: total,
       issued_at: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString() : new Date().toISOString(),
       due_at: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
-      paid_at: paidAt,
-      payday_invoice_number: inv.number != null ? String(inv.number) : null,
-      pdf_url: paydayPdfUrl(inv.id),
+      paid_at: paidAt, payday_invoice_number: number, pdf_url: paydayPdfUrl(inv.id),
     };
     let localId = byPayday.get(inv.id);
     if (localId) {
@@ -409,24 +450,42 @@ export async function importCompanyInvoicesFromPayday(
       if (localId) imported++;
     }
     if (!localId) continue;
+    keptInvoiceIds.push(localId);
 
-    // Mirror into the payments ledger (one row per invoice).
-    const pay = {
+    // Mirror into payments, de-duping any prior rows for this invoice
+    // (website mirror keyed by the payday id, or an earlier import).
+    const { data: prior } = await supabaseAdmin
+      .from("payments")
+      .select("id, related_id, provider_reference")
+      .eq("provider", "payday").eq("owner_company_id", companyId);
+    const refs = new Set([localId, inv.id, number].filter(Boolean) as string[]);
+    const matches = (prior || []).filter((p) =>
+      (p.related_id && refs.has(p.related_id as string)) || (p.provider_reference && refs.has(p.provider_reference as string)));
+    const payFields = {
       owner_type: "company", owner_id: companyId, owner_company_id: companyId,
-      owner_company_name: company?.name || null,
-      amount_isk: total, currency: row.currency,
-      description: `PayDay invoice ${row.payday_invoice_number || ""}`.trim(),
-      provider: "payday", provider_reference: row.payday_invoice_number,
-      status: toPaymentStatus(status), related_type: "company_invoice", related_id: localId,
-      paid_at: paidAt, pdf_url: row.pdf_url,
+      owner_company_name: company?.name || null, amount_isk: total, currency: row.currency,
+      description: `PayDay invoice ${number || ""}`.trim(), provider: "payday",
+      provider_reference: number, status: toPaymentStatus(status),
+      related_type: "company_invoice", related_id: localId, paid_at: paidAt, pdf_url: row.pdf_url,
     };
-    const { data: existingPay } = await supabaseAdmin
-      .from("payments").select("id").eq("related_type", "company_invoice").eq("related_id", localId).maybeSingle();
-    if (existingPay) {
-      await supabaseAdmin.from("payments").update({ status: pay.status, amount_isk: total, paid_at: paidAt, pdf_url: row.pdf_url }).eq("id", existingPay.id);
+    if (matches.length === 0) {
+      await supabaseAdmin.from("payments").insert(payFields);
     } else {
-      await supabaseAdmin.from("payments").insert(pay);
+      await supabaseAdmin.from("payments").update(payFields).eq("id", matches[0].id as string);
+      const extra = matches.slice(1).map((p) => p.id as string);
+      if (extra.length) await supabaseAdmin.from("payments").delete().in("id", extra);
     }
   }
+
+  // Prune stale payday-sourced rows that no longer exist in PayDay
+  // (the source of the duplicate-invoice problem), plus their payments.
+  const orphanIds = rows
+    .filter((r) => r.payday_invoice_id && !paydaySet.has(r.payday_invoice_id as string) && !r.pdf_storage_path)
+    .map((r) => r.id as string);
+  if (orphanIds.length) {
+    await supabaseAdmin.from("payments").delete().in("related_id", orphanIds).eq("provider", "payday");
+    await supabaseAdmin.from("company_invoices").delete().in("id", orphanIds);
+  }
+
   return { ok: true, imported, updated, total: invoices.length };
 }

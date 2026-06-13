@@ -56,7 +56,11 @@ function SyncPayDayButton({ onImported }: { onImported?: () => void }) {
       const res = await fetch("/api/admin/payments/payday-import", { method: "POST", headers: t ? { Authorization: `Bearer ${t}` } : {} });
       const j = await res.json();
       if (!res.ok) { setResult(`Import failed: ${j.error || res.status}`); }
-      else { setResult(`Imported ${j.imported} · updated ${j.updated} across ${j.companies} companies`); onImported?.(); }
+      else {
+        const unm = j.unmatched?.length ? ` · ${j.unmatched.length} unmatched (${j.unmatched.join(", ")})` : "";
+        setResult(`Imported ${j.imported} · updated ${j.updated} across ${j.companies} companies${unm}`);
+        onImported?.();
+      }
     } catch { setResult("Import failed"); }
     setImporting(false);
     setTimeout(() => setResult(null), 6000);
