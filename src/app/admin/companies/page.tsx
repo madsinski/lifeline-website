@@ -702,7 +702,7 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-12" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-base font-semibold text-gray-900">Email — {companyName}</h3>
               <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
@@ -773,7 +773,7 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
               {previewHtml ? (
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Preview</span>
-                  <iframe title="Email preview" srcDoc={previewHtml} className="mt-1 w-full h-72 border border-gray-200 rounded-md bg-white" />
+                  <iframe title="Email preview" srcDoc={previewHtml} className="mt-1 w-full h-[540px] border border-gray-200 rounded-md bg-white" />
                 </div>
               ) : null}
             </div>
@@ -806,27 +806,34 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
 // handles them. Ends with the dated 3-month doctor follow-up.
 const JOURNEY_TARGETS: Record<string, string | null> = {
   Admin: null, Documents: "legal", Roster: "employees", Scheduling: "approvals",
-  Assessments: "employees", Invoiced: "invoices", Paid: "invoices", "Follow-up": null,
+  Assessments: "employees", Invoiced: "invoices", Paid: "invoices", "Follow-up": "employees",
 };
 
-function CompanyJourney({ invited, claimed, docsReady, members, completed, eventsScheduled, pendingCount, invoicedIsk, outstandingIsk, lastRoundCompletedAt, followupCompletedAt, onStepClick, onFollowupDone }: {
+// Roster milestone counts feeding the Assessments (step 5) and
+// Follow-up (step 8) journey steps — aggregated across the company and
+// its divisions.
+interface JourneyMilestones { total: number; measurement: number; blood_test: number; questionnaire: number; doctor_review: number; }
+
+function CompanyJourney({ invited, claimed, docsReady, members, ms, eventsScheduled, pendingCount, invoicedIsk, outstandingIsk, followupCompletedAt, onStepClick, onFollowupDone }: {
   invited: boolean;
   claimed: boolean;
   docsReady: number;
   members: number;
-  completed: number;
+  ms: JourneyMilestones;
   eventsScheduled: boolean;
   pendingCount: number;
   invoicedIsk: number;
   outstandingIsk: number;
-  lastRoundCompletedAt: string | null;
   followupCompletedAt: string | null;
   onStepClick: (sectionKey: string | null) => void;
   onFollowupDone: () => void;
 }) {
-  const followupDue = lastRoundCompletedAt
-    ? new Date(new Date(lastRoundCompletedAt).getTime() + 90 * 24 * 3600 * 1000)
-    : null;
+  // Assessments = the on-the-day items everyone goes through; done when
+  // every rostered employee has measurement + blood test + questionnaire.
+  const assessmentsDone = ms.total > 0 && ms.measurement >= ms.total && ms.blood_test >= ms.total && ms.questionnaire >= ms.total;
+  // Follow-up = the 3-month doctor review across the roster (or a manual
+  // company-level stamp when there's no roster to track).
+  const followupAuto = ms.total > 0 && ms.doctor_review >= ms.total;
   const steps: Array<{ label: string; done: boolean; hint: string }> = [
     {
       label: "Admin", done: claimed,
@@ -842,14 +849,19 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
         ? "Approve the requested days (Approvals section)"
         : "Waiting for measurement/doctor days to be proposed",
     },
-    { label: "Assessments", done: members > 0 && completed >= members, hint: `Assessments in progress — ${completed}/${members} completed` },
+    {
+      label: "Assessments", done: assessmentsDone,
+      hint: ms.total === 0
+        ? "Assessments — add the roster first"
+        : `Assessments — measured ${ms.measurement}/${ms.total} · blood ${ms.blood_test}/${ms.total} · questionnaire ${ms.questionnaire}/${ms.total} (tick in Employees)`,
+    },
     { label: "Invoiced", done: invoicedIsk > 0, hint: "Generate the invoice (Invoices section)" },
     { label: "Paid", done: invoicedIsk > 0 && outstandingIsk <= 0, hint: `Awaiting payment — ${Math.round(outstandingIsk).toLocaleString("is-IS")} kr. outstanding` },
     {
-      label: "Follow-up", done: !!followupCompletedAt,
-      hint: followupDue
-        ? `3-month doctor follow-up due ${followupDue.toLocaleDateString("is-IS")}`
-        : "3-month doctor follow-up — due 3 months after assessments complete",
+      label: "Follow-up", done: !!followupCompletedAt || followupAuto,
+      hint: ms.total === 0
+        ? "3-month doctor review — once the roster is assessed"
+        : `3-month doctor review — ${ms.doctor_review}/${ms.total} done (tick in Employees)`,
     },
   ];
   const currentIdx = steps.findIndex((s) => !s.done);
@@ -899,16 +911,18 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
           >
             <span className="font-semibold">Next:</span> {current!.hint}
-            {current!.label === "Follow-up" && followupDue ? (
+            {current!.label === "Follow-up" ? (
               <>
                 {" "}
-                <button
-                  type="button"
-                  onClick={onFollowupDone}
-                  className="text-emerald-700 hover:underline font-medium"
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); onFollowupDone(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onFollowupDone(); } }}
+                  className="text-emerald-700 hover:underline font-medium cursor-pointer"
                 >
-                  mark done
-                </button>
+                  mark all done
+                </span>
               </>
             ) : null}
           </button>
@@ -951,7 +965,7 @@ function CardSection({ title, summary, open, onToggle, children }: {
 // dropdown row with the division's contact person; expanding reveals
 // its employee roster. All money/invoices/approvals are handled at the
 // parent level.
-function DivisionRow({ d, onContactChanged }: { d: CompanyRow; onContactChanged: () => void }) {
+function DivisionRow({ d, onContactChanged, onMilestoneChanged }: { d: CompanyRow; onContactChanged: () => void; onMilestoneChanged?: () => void }) {
   const [open, setOpen] = useState(false);
   const contactName = d.contact_full_name || d.contact_draft_name || null;
   const contactEmail = d.contact_email || d.contact_draft_email || null;
@@ -976,7 +990,7 @@ function DivisionRow({ d, onContactChanged }: { d: CompanyRow; onContactChanged:
         </span>
       </button>
       {open ? (
-        <EmployeeRows companyId={d.id} contactEmail={contactEmail} onContactChanged={onContactChanged} />
+        <EmployeeRows companyId={d.id} contactEmail={contactEmail} onContactChanged={onContactChanged} onMilestoneChanged={onMilestoneChanged} />
       ) : null}
     </div>
   );
@@ -2250,10 +2264,11 @@ function MilestoneCircle({ cell, busy, onToggle }: { cell: MilestoneCell; busy: 
   );
 }
 
-function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
+function EmployeeRows({ companyId, contactEmail, onContactChanged, onMilestoneChanged }: {
   companyId: string;
   contactEmail?: string | null;
   onContactChanged?: () => void;
+  onMilestoneChanged?: () => void;
 }) {
   const [members, setMembers] = useState<MemberRow[] | null>(null);
   const [milestones, setMilestones] = useState<MemberMilestones>({});
@@ -2314,7 +2329,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ member_id: memberId, milestone: key, done: target }),
-    }).then((res) => { if (!res.ok) loadMilestones(); }).catch(() => loadMilestones());
+    }).then((res) => { if (!res.ok) loadMilestones(); onMilestoneChanged?.(); }).catch(() => loadMilestones());
   };
 
   // Tick (or untick) an entire column at once. If everyone's already
@@ -2333,6 +2348,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
         body: JSON.stringify({ member_ids: ids, milestone: key, done: target }),
       });
       await loadMilestones();
+      onMilestoneChanged?.();
     } finally {
       setBulkBusy(null);
     }
@@ -2663,6 +2679,7 @@ export default function AdminCompaniesPage() {
   const [fin, setFin] = useState<Map<string, FinRow>>(new Map());
   const [pendingApprovals, setPendingApprovals] = useState<Map<string, number>>(new Map());
   const [discountCodes, setDiscountCodes] = useState<Array<{ id: string; code: string; kind: "percent" | "fixed"; value: number }>>([]);
+  const [msSummary, setMsSummary] = useState<Map<string, JourneyMilestones & { app_access: number }>>(new Map());
 
   // Side data for the unified view: per-company financials (accounting
   // module) + pending approval counts. Both best-effort — the roster
@@ -2695,6 +2712,14 @@ export default function AdminCompaniesPage() {
           }
         }
         setPendingApprovals(counts);
+        // Per-company milestone completion counts → journey steps 5 & 8.
+        const msRes = await fetch("/api/admin/companies/milestone-summary", {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        });
+        if (msRes.ok) {
+          const j = await msRes.json();
+          setMsSummary(new Map(Object.entries((j.summary || {}) as Record<string, JourneyMilestones & { app_access: number }>)));
+        }
         const { data: codes } = await supabase
           .from("discount_codes")
           .select("id, code, kind, value")
@@ -3026,12 +3051,15 @@ export default function AdminCompaniesPage() {
                     claimed={!!c.registration_finalized_at}
                     docsReady={REQUIRED_DOC_KINDS.filter((k) => (fin.get(c.id)?.doc_kinds || []).includes(k)).length}
                     members={aggMembers}
-                    completed={(c.completed_count || 0) + children.reduce((s, x) => s + (x.completed_count || 0), 0)}
+                    ms={[c.id, ...children.map((x) => x.id)].reduce((a, id) => {
+                      const s = msSummary.get(id);
+                      if (s) { a.total += s.total; a.measurement += s.measurement; a.blood_test += s.blood_test; a.questionnaire += s.questionnaire; a.doctor_review += s.doctor_review; }
+                      return a;
+                    }, { total: 0, measurement: 0, blood_test: 0, questionnaire: 0, doctor_review: 0 })}
                     eventsScheduled={(c.body_comp_event_count || 0) + children.reduce((s, x) => s + (x.body_comp_event_count || 0), 0) > 0}
                     pendingCount={pendingCount}
                     invoicedIsk={aggFin("invoiced_isk")}
                     outstandingIsk={aggFin("outstanding_isk")}
-                    lastRoundCompletedAt={c.last_round_completed_at || null}
                     followupCompletedAt={c.followup_completed_at || null}
                     onStepClick={(key) => focusSection(c.id, key)}
                     onFollowupDone={() => markFollowupDone(c)}
@@ -3156,7 +3184,7 @@ export default function AdminCompaniesPage() {
                           <div className="px-5 py-3 bg-gray-50/60">
                             <div className="space-y-1.5">
                               {children.map((d) => (
-                                <DivisionRow key={d.id} d={d} onContactChanged={load} />
+                                <DivisionRow key={d.id} d={d} onContactChanged={load} onMilestoneChanged={loadSideData} />
                               ))}
                             </div>
                           </div>
@@ -3179,6 +3207,7 @@ export default function AdminCompaniesPage() {
                             companyId={c.id}
                             contactEmail={c.contact_email || c.contact_draft_email || null}
                             onContactChanged={load}
+                            onMilestoneChanged={loadSideData}
                           />
                         ) : (
                           <div className="px-5 py-3 text-xs text-gray-500 bg-gray-50/60">
