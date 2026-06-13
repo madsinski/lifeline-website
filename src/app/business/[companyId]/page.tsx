@@ -1561,7 +1561,7 @@ function ContactPersonCard({
       <div className="min-w-0">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</div>
         <div className="font-semibold text-gray-900 leading-tight truncate">
-          {name || email || (primary ? "Primary contact" : "Co-admin")}
+          {name || email || (primary ? "Company admin" : "Co-admin")}
           {position && <span className="font-normal text-gray-500"> · {position}</span>}
         </div>
         <div className="text-xs text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
@@ -1618,7 +1618,7 @@ function CompanyHeaderCard({
                   email={primary.email}
                   phone={contactPhone}
                   position={contactPosition}
-                  label="Contact person"
+                  label="Company admin"
                   primary
                 />
               )}

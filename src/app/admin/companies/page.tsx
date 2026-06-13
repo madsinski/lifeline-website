@@ -645,8 +645,9 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
   const [slug, setSlug] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
+  const [sending, setSending] = useState<"" | "preview" | "test" | "send">("");
   const [result, setResult] = useState<string>("");
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   const authedFetch = async (path: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -655,7 +656,7 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
   };
 
   const openModal = async () => {
-    setOpen(true); setResult("");
+    setOpen(true); setResult(""); setPreviewHtml(null);
     const res = await authedFetch(`/api/admin/companies/${companyId}/email`);
     if (res.ok) {
       const j = await res.json();
@@ -664,10 +665,10 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
     }
   };
 
-  const send = async () => {
-    setSending(true); setResult("");
+  const run = async (mode: "preview" | "test" | "send") => {
+    setSending(mode); setResult("");
     try {
-      const payload: Record<string, unknown> = { audience, type };
+      const payload: Record<string, unknown> = { audience, type, mode };
       if (type === "reminder" || audience === "incomplete") payload.milestone = milestone;
       if (type === "presentation") payload.presentation_slug = slug;
       if (type === "custom") { payload.subject = subject; payload.message = message; }
@@ -676,11 +677,13 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
       });
       const j = await res.json();
       if (!res.ok) { setResult(`Failed: ${j.error || res.status}`); return; }
-      setResult(`Sent to ${j.sent} recipient${j.sent === 1 ? "" : "s"}${j.failed_count ? ` · ${j.failed_count} failed` : ""}.`);
+      if (mode === "preview") { setPreviewHtml(j.preview_html); setResult(""); }
+      else if (mode === "test") { setResult(`Test sent to ${j.test_to}.`); }
+      else { setResult(`Sent to ${j.sent} recipient${j.sent === 1 ? "" : "s"}${j.failed_count ? ` · ${j.failed_count} failed` : ""}.`); }
     } catch (e) {
       setResult(`Failed: ${(e as Error).message}`);
     } finally {
-      setSending(false);
+      setSending("");
     }
   };
 
@@ -767,12 +770,28 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
                 </>
               )}
               {result ? <div className="text-xs rounded-md px-3 py-2 border bg-emerald-50 border-emerald-200 text-emerald-900">{result}</div> : null}
+              {previewHtml ? (
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Preview</span>
+                  <iframe title="Email preview" srcDoc={previewHtml} className="mt-1 w-full h-72 border border-gray-200 rounded-md bg-white" />
+                </div>
+              ) : null}
             </div>
-            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
-              <button onClick={() => setOpen(false)} className="text-sm font-medium px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-50">Close</button>
-              <button onClick={send} disabled={sending} className="text-sm font-semibold px-4 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
-                {sending ? "Sending…" : "Send"}
-              </button>
+            <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between gap-2">
+              <div className="flex gap-2">
+                <button onClick={() => run("preview")} disabled={sending !== ""} className="text-sm font-medium px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  {sending === "preview" ? "…" : "Preview"}
+                </button>
+                <button onClick={() => run("test")} disabled={sending !== ""} className="text-sm font-medium px-3 py-1.5 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  {sending === "test" ? "…" : "Send test to me"}
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setOpen(false)} className="text-sm font-medium px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-50">Close</button>
+                <button onClick={() => run("send")} disabled={sending !== ""} className="text-sm font-semibold px-4 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                  {sending === "send" ? "Sending…" : "Send"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -812,8 +831,8 @@ function CompanyJourney({ invited, claimed, docsReady, members, completed, event
     {
       label: "Admin", done: claimed,
       hint: invited
-        ? "Waiting for the company admin to claim the invite — re-invite from the Contact card if needed"
-        : "Invite the company admin (Contact card)",
+        ? "Waiting for the company admin to claim the invite — re-invite from the company-admin section if needed"
+        : "Invite the company admin (top of card)",
     },
     { label: "Documents", done: docsReady >= 3, hint: `Collect signed documents — ${docsReady}/3 on file (Legal section)` },
     { label: "Roster", done: members > 0, hint: "Add employees to the roster" },
@@ -967,7 +986,7 @@ function DivisionRow({ d, onContactChanged }: { d: CompanyRow; onContactChanged:
 // draft) and lets staff type in a contact person directly — name,
 // email, phone land in contact_draft_*, and contact_person_id links up
 // when a client account with that email exists. Roster members can
-// also be promoted via "make contact" in the employee list.
+// also be promoted via "make admin" in the employee list.
 function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
   const name = c.contact_full_name || c.contact_draft_name || null;
   const email = c.contact_email || c.contact_draft_email || null;
@@ -1006,13 +1025,13 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
   return (
     <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-2">
       <div className="flex items-center gap-1.5 mb-0.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Contact</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Company admin</span>
         {!editing ? (
           <button
             type="button"
             onClick={() => { setForm({ name: name || "", email: email || "", phone: phone || "" }); setEditing(true); }}
             className="text-[10px] text-gray-300 hover:text-emerald-700"
-            title="Register / edit contact person manually"
+            title="Register / edit the company admin manually"
           >
             ✎ edit
           </button>
@@ -2323,7 +2342,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
   // into the contact_draft_* fields, and links contact_person_id when
   // they already have a claimed client account (matched by email).
   const makeContact = async (m: MemberRow) => {
-    if (!confirm(`Make ${m.full_name} the contact person for this company?`)) return;
+    if (!confirm(`Make ${m.full_name} the company admin for this company?`)) return;
     setSettingContact(m.id);
     try {
       const update: Record<string, unknown> = {
@@ -2412,7 +2431,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
           );
         })}
         <div>Status</div>
-        <div className="text-right">Contact</div>
+        <div className="text-right">Admin</div>
       </div>
 
       <div className="divide-y divide-gray-100">
@@ -2452,7 +2471,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged }: {
                     onClick={() => makeContact(m)}
                     className="text-[11px] text-gray-500 hover:text-emerald-700 underline underline-offset-2 disabled:opacity-50"
                   >
-                    {settingContact === m.id ? "…" : "set contact"}
+                    {settingContact === m.id ? "…" : "make admin"}
                   </button>
                 )}
               </div>
@@ -3145,7 +3164,13 @@ export default function AdminCompaniesPage() {
                       ) : null}
                       <CardSection
                         title="Employees"
-                        summary={`${aggMembers} on roster`}
+                        summary={
+                          (c.member_count || 0) > 0
+                            ? `${c.member_count} on roster`
+                            : children.length > 0
+                              ? `${aggMembers} across ${children.length} division${children.length > 1 ? "s" : ""}`
+                              : "0 on roster"
+                        }
                         open={!!sec.employees}
                         onToggle={t("employees")}
                       >
@@ -3156,8 +3181,10 @@ export default function AdminCompaniesPage() {
                             onContactChanged={load}
                           />
                         ) : (
-                          <div className="px-5 py-3 text-xs text-gray-400 bg-gray-50/60">
-                            No direct employees on the mother company — see the Divisions section.
+                          <div className="px-5 py-3 text-xs text-gray-500 bg-gray-50/60">
+                            This company has no direct employees — its {aggMembers} employee{aggMembers === 1 ? "" : "s"} are
+                            managed within the {children.length} division{children.length > 1 ? "s" : ""}. Open a division in
+                            the Divisions section above to see and manage its roster.
                           </div>
                         )}
                       </CardSection>

@@ -111,6 +111,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
   const body = await req.json().catch(() => ({}));
   const audience = String(body?.audience || "");
   const type = String(body?.type || "");
+  const mode = ["preview", "test", "send"].includes(String(body?.mode)) ? String(body.mode) : "send";
   const milestone = body?.milestone ? String(body.milestone) : null;
   if (!["admin", "all_employees", "incomplete"].includes(audience)) {
     return NextResponse.json({ error: "bad_audience" }, { status: 400 });
@@ -124,24 +125,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
 
   const { data: company } = await supabaseAdmin.from("companies").select("name").eq("id", companyId).maybeSingle();
   const companyName = company?.name || "your company";
-
-  // Resolve recipients
-  let recipients: Array<{ email: string; full_name: string | null }> = [];
   const toAdmin = audience === "admin";
-  if (toAdmin) {
-    const e = await adminEmail(companyId);
-    if (e) recipients = [{ email: e, full_name: null }];
-  } else if (audience === "incomplete") {
-    recipients = await incompleteRecipients(companyId, milestone!);
-  } else {
-    const { data: members } = await supabaseAdmin
-      .from("company_members").select("full_name, email").eq("company_id", companyId).not("email", "is", null);
-    recipients = (members || []).map((m) => ({ email: m.email as string, full_name: (m.full_name as string | null) ?? null }));
-  }
-  // De-dupe
-  const seen = new Set<string>();
-  recipients = recipients.filter((r) => r.email && !seen.has(r.email.toLowerCase()) && seen.add(r.email.toLowerCase()));
-  if (recipients.length === 0) return NextResponse.json({ error: "no_recipients" }, { status: 400 });
 
   // Build the email content
   let subject = "";
@@ -177,12 +161,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
     bodyTop = `<p style="margin:0 0 14px;white-space:pre-wrap;">${escapeHtml(message)}</p>`;
   }
 
-  // Send (each recipient individually)
-  let sent = 0;
-  const failed: string[] = [];
-  await Promise.all(recipients.map(async (r) => {
-    const greeting = r.full_name ? `<p style="margin:0 0 12px;">Hi ${escapeHtml(r.full_name.split(" ")[0])},</p>` : "";
-    const html = renderBrandedEmail({
+  const buildHtml = (firstName: string | null) => {
+    const greeting = firstName ? `<p style="margin:0 0 12px;">Hi ${escapeHtml(firstName)},</p>` : "";
+    return renderBrandedEmail({
       title: subject,
       accentLabel,
       accentTone: "emerald",
@@ -191,7 +172,45 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
       ctaUrl,
       footerNote: "Questions? Just reply to this email.",
     });
-    const res = await sendEmail({ to: r.email, subject, html });
+  };
+  // The greeting line only shows for employee audiences (admin emails
+  // are addressed to one named contact without a first-name greeting).
+  const sampleName = toAdmin ? null : "Anna";
+
+  // Preview: render the email without sending or resolving recipients.
+  if (mode === "preview") {
+    return NextResponse.json({ ok: true, subject, preview_html: buildHtml(sampleName) });
+  }
+
+  // Test: send only to the signed-in staff member.
+  if (mode === "test") {
+    const myEmail = user.email;
+    if (!myEmail) return NextResponse.json({ error: "no_self_email" }, { status: 400 });
+    const res = await sendEmail({ to: myEmail, subject: `[TEST] ${subject}`, html: buildHtml(sampleName) });
+    if (!res.ok) return NextResponse.json({ error: res.error || "send_failed" }, { status: 502 });
+    return NextResponse.json({ ok: true, test_to: myEmail, sent: 1 });
+  }
+
+  // Resolve recipients (send mode)
+  let recipients: Array<{ email: string; full_name: string | null }> = [];
+  if (toAdmin) {
+    const e = await adminEmail(companyId);
+    if (e) recipients = [{ email: e, full_name: null }];
+  } else if (audience === "incomplete") {
+    recipients = await incompleteRecipients(companyId, milestone!);
+  } else {
+    const { data: members } = await supabaseAdmin
+      .from("company_members").select("full_name, email").eq("company_id", companyId).not("email", "is", null);
+    recipients = (members || []).map((m) => ({ email: m.email as string, full_name: (m.full_name as string | null) ?? null }));
+  }
+  const seen = new Set<string>();
+  recipients = recipients.filter((r) => r.email && !seen.has(r.email.toLowerCase()) && seen.add(r.email.toLowerCase()));
+  if (recipients.length === 0) return NextResponse.json({ error: "no_recipients" }, { status: 400 });
+
+  let sent = 0;
+  const failed: string[] = [];
+  await Promise.all(recipients.map(async (r) => {
+    const res = await sendEmail({ to: r.email, subject, html: buildHtml(r.full_name ? r.full_name.split(" ")[0] : null) });
     if (res.ok) sent++; else failed.push(r.email);
   }));
 
