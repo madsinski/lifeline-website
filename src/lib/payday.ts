@@ -443,8 +443,10 @@ export async function importCompanyInvoicesFromPayday(
       await supabaseAdmin.from("company_invoices").update(row).eq("id", localId);
       updated++;
     } else {
+      // company_invoices has NOT NULL unit_price/quantity/vat_rate — the
+      // whole imported invoice is recorded as a single line.
       const { data: ins } = await supabaseAdmin.from("company_invoices")
-        .insert({ company_id: companyId, payday_invoice_id: inv.id, created_by: createdBy, ...row })
+        .insert({ company_id: companyId, payday_invoice_id: inv.id, created_by: createdBy, unit_price: total, quantity: 1, vat_rate: 0, ...row })
         .select("id").single();
       localId = ins?.id;
       if (localId) imported++;
