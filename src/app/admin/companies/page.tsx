@@ -1441,6 +1441,62 @@ function InviteContactButton({ companyId, draftEmail, status }: { companyId: str
 
 // Historic document upload for a company: ToS / DPA / purchase orders
 // / other PDFs that were signed offline before the digital flow.
+// Inline list of a company's signed documents, shown in the Legal
+// section row (the DocumentsButton modal is for upload/manage). Reuses
+// the same documents API; signed URLs open the PDFs.
+const DOC_KIND_LABEL: Record<string, string> = {
+  tos: "Terms of service", dpa: "Data-processing agreement", purchase_order: "Service agreement", other: "Other",
+};
+function CompanyLegalDocs({ companyId, reloadKey }: { companyId: string; reloadKey: number }) {
+  const [docs, setDocs] = useState<Array<{ id: string; kind: string; title: string | null; filename: string; signer_name: string | null; signed_at: string | null; signed_url: string | null }> | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/admin/companies/${companyId}/documents`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
+      const j = res.ok ? await res.json() : null;
+      setDocs(j?.ok ? (j.documents || []) : []);
+    })();
+  }, [companyId, reloadKey]);
+  if (docs === null) return <div className="text-[11px] text-gray-400 mt-2">Loading documents…</div>;
+  if (docs.length === 0) return <div className="text-[11px] text-gray-400 mt-2">No documents uploaded yet.</div>;
+  return (
+    <div className="mt-2 space-y-1">
+      {docs.map((d) => (
+        <div key={d.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+          <span className="min-w-0 truncate">
+            <span className="font-medium">{DOC_KIND_LABEL[d.kind] || d.kind}</span>
+            <span className="text-gray-400">
+              {d.title ? ` · ${d.title}` : ""}
+              {d.signer_name ? ` · ${d.signer_name}` : ""}
+              {d.signed_at ? ` · signed ${new Date(d.signed_at).toLocaleDateString("is-IS")}` : ""}
+            </span>
+          </span>
+          {d.signed_url ? (
+            <a href={d.signed_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline whitespace-nowrap">view</a>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Legal section body: inline document list + the upload/manage modal,
+// kept in sync (the modal bumps reloadKey on upload/delete).
+function CompanyLegalSection({ companyId, docKinds }: { companyId: string; docKinds: string[] }) {
+  const [reloadKey, setReloadKey] = useState(0);
+  return (
+    <div className="px-5 py-3 bg-gray-50/60">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="text-[11px] text-gray-400">Signed ToS, DPA and service agreement for this company.</span>
+        <DocumentsButton companyId={companyId} docKinds={docKinds} onChanged={() => setReloadKey((k) => k + 1)} />
+      </div>
+      <CompanyLegalDocs companyId={companyId} reloadKey={reloadKey} />
+    </div>
+  );
+}
+
 // Opens a modal with the existing list + upload form.
 type CompanyDocument = {
   id: string;
@@ -1460,7 +1516,7 @@ type CompanyDocument = {
 // readiness counter on the Documents button.
 const REQUIRED_DOC_KINDS = ["tos", "dpa", "purchase_order"] as const;
 
-function DocumentsButton({ companyId, docKinds = [] }: { companyId: string; docKinds?: string[] }) {
+function DocumentsButton({ companyId, docKinds = [], onChanged }: { companyId: string; docKinds?: string[]; onChanged?: () => void }) {
   const [open, setOpen] = useState(false);
   const [docs, setDocs] = useState<CompanyDocument[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -1513,14 +1569,15 @@ function DocumentsButton({ companyId, docKinds = [] }: { companyId: string; docK
       });
       const j = await res.json();
       if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Upphleðsla mistókst." }); return; }
-      setMsg({ kind: "ok", text: "Skjali hlaðið upp." });
+      setMsg({ kind: "ok", text: "Document uploaded." });
       setFile(null); setTitle(""); setSignerName(""); setSignedAt(""); setNote("");
       await load();
+      onChanged?.();
     } finally { setUploading(false); }
   };
 
   const deleteDoc = async (docId: string) => {
-    if (!confirm("Eyða þessu skjali?")) return;
+    if (!confirm("Delete this document?")) return;
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     const res = await fetch(`/api/admin/companies/${companyId}/documents/${docId}`, {
@@ -1528,8 +1585,9 @@ function DocumentsButton({ companyId, docKinds = [] }: { companyId: string; docK
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const j = await res.json().catch(() => ({}));
-    if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Eyðing mistókst." }); return; }
+    if (!res.ok || !j?.ok) { setMsg({ kind: "err", text: j?.detail || j?.error || "Delete failed." }); return; }
     await load();
+    onChanged?.();
   };
 
   const kindLabels: Record<CompanyDocument["kind"], string> = {
@@ -3250,14 +3308,7 @@ export default function AdminCompaniesPage() {
                         open={!!sec.legal}
                         onToggle={t("legal")}
                       >
-                        <div className="px-5 py-3 bg-gray-50/60">
-                          <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <span className="text-[11px] text-gray-400">
-                              Signed ToS, DPA and service agreement for this company.
-                            </span>
-                            <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
-                          </div>
-                        </div>
+                        <CompanyLegalSection companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
                       </CardSection>
                       <CardSection
                         title="Costs"
