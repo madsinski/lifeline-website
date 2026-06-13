@@ -94,7 +94,16 @@ interface CompanyInvoiceRow {
 // 3-month follow-up doctor interviews, and the app subscription (when
 // enabled). Uses the company's negotiated prices with tier/default
 // fallbacks — the same numbers invoices are built from.
-function CompanyIncomeBreakdown({ c, onReload, membersOverride }: { c: CompanyRow; onReload: () => void; membersOverride?: number }) {
+interface DiscountCodeOpt { id: string; code: string; kind: "percent" | "fixed"; value: number }
+
+function CompanyIncomeBreakdown({ c, onReload, membersOverride, discountCodes = [], onApplyDiscount, onRemoveDiscount }: {
+  c: CompanyRow;
+  onReload: () => void;
+  membersOverride?: number;
+  discountCodes?: DiscountCodeOpt[];
+  onApplyDiscount?: (c: CompanyRow, codeId: string) => void;
+  onRemoveDiscount?: (c: CompanyRow) => void;
+}) {
   const members = membersOverride ?? (c.member_count || 0);
   // Per-service quantity overrides — auto = the group roster count;
   // manual values persist in company_income_item_qty.
@@ -173,9 +182,27 @@ function CompanyIncomeBreakdown({ c, onReload, membersOverride }: { c: CompanyRo
             Pricing (expected)
           </span>
           {c.applied_discount_code ? (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
-              {c.applied_discount_code} applied — prices already discounted
-            </span>
+            <button
+              type="button"
+              onClick={() => onRemoveDiscount?.(c)}
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100"
+              title="Discount applied — prices below are already discounted. Click to remove (resets prices to tier/default)."
+            >
+              {c.applied_discount_code} applied ×
+            </button>
+          ) : discountCodes.length > 0 ? (
+            <select
+              className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-500"
+              value=""
+              onChange={(e) => { if (e.target.value) onApplyDiscount?.(c, e.target.value); }}
+            >
+              <option value="">+ discount…</option>
+              {discountCodes.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.code} (−{d.kind === "percent" ? `${d.value}%` : iskFmt(d.value)})
+                </option>
+              ))}
+            </select>
           ) : null}
         </span>
         <CommercialSettingsButton company={c} onReload={onReload} />
@@ -2510,7 +2537,7 @@ export default function AdminCompaniesPage() {
                   </div>
 
                   {/* Data row: contact, progress, tier */}
-                  <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.2fr_auto_auto] gap-x-6 gap-y-2 items-start`}>
+                  <div className={`mt-3 grid grid-cols-1 md:grid-cols-[1.6fr_1.2fr] gap-x-6 gap-y-2 items-start`}>
                     {/* Contact — name on top, then email + phone in muted
                         small text. Falls back to draft name/email for
                         unclaimed contacts. Phone is decrypted server-side
@@ -2527,57 +2554,6 @@ export default function AdminCompaniesPage() {
                           completed_count: (c.completed_count || 0) + children.reduce((s, x) => s + (x.completed_count || 0), 0),
                         }}
                       />
-                    </div>
-                    {/* Price per health check — the negotiated unit price
-                        (Commercial settings) or the tier fallback for the
-                        roster size. This is what the company actually pays
-                        per assessed employee. */}
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Price / check</div>
-                      <div className="text-[13px] font-semibold text-gray-800 whitespace-nowrap">
-                        {iskFmt(c.assessment_unit_price ?? assessmentUnitPriceIsk(Math.max(aggMembers, 1), 1))}
-                      </div>
-                      <div className="text-[10px] text-gray-400">
-                        {c.assessment_unit_price != null ? "negotiated" : "tier price"}
-                        {c.followup_doctor_price != null ? ` · follow-up ${iskFmt(c.followup_doctor_price)}` : ""}
-                      </div>
-                      {c.applied_discount_code ? (
-                        <button
-                          onClick={() => removeDiscount(c)}
-                          className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100"
-                          title="Remove discount (resets to tier price)"
-                        >
-                          {c.applied_discount_code} ×
-                        </button>
-                      ) : discountCodes.length > 0 ? (
-                        <select
-                          className="mt-0.5 text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-500"
-                          value=""
-                          onChange={(e) => { if (e.target.value) applyDiscount(c, e.target.value); }}
-                        >
-                          <option value="">+ discount…</option>
-                          {discountCodes.map((d) => (
-                            <option key={d.id} value={d.id}>
-                              {d.code} (−{d.kind === "percent" ? `${d.value}%` : iskFmt(d.value)})
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                    </div>
-                    {/* Tier */}
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Default tier</div>
-                      <select
-                        value={c.default_tier || ""}
-                        onChange={async (e) => {
-                          const tier = e.target.value || null;
-                          await supabase.from("companies").update({ default_tier: tier }).eq("id", c.id);
-                          setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, default_tier: tier } : x));
-                        }}
-                        className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white hover:border-gray-300 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200 outline-none"
-                      >
-                        {TIERS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                      </select>
                     </div>
                   </div>
 
@@ -2684,9 +2660,16 @@ export default function AdminCompaniesPage() {
                     roster. */}
                 {isExpanded && (
                   <div className="rounded-b-2xl overflow-hidden">
-                    <CompanyInvoiceRows companyId={c.id} />
-                    <CompanyIncomeBreakdown c={c} onReload={load} membersOverride={aggMembers} />
+                    <CompanyIncomeBreakdown
+                      c={c}
+                      onReload={load}
+                      membersOverride={aggMembers}
+                      discountCodes={discountCodes}
+                      onApplyDiscount={applyDiscount}
+                      onRemoveDiscount={removeDiscount}
+                    />
                     <CompanyCosts companyId={c.id} memberCount={aggMembers} onChanged={loadSideData} />
+                    <CompanyInvoiceRows companyId={c.id} />
                     <CompanyApprovals companyIds={[c.id, ...children.map((x) => x.id)]} />
                     {children.length > 0 ? (
                       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
