@@ -49,7 +49,7 @@ const extractionSchema = z.object({
 });
 
 const SELECT_COLS =
-  "id, month, direction, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, company_id, company:companies(name), paid_by, reimbursed_at, payer:staff!paid_by(name), storage_path, content_type, size_bytes, ai_confidence, created_at";
+  "id, month, direction, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, company_id, company:companies(name), paid_by, reimbursed_at, payer:staff!paid_by(name), split_group_id, storage_path, content_type, size_bytes, ai_confidence, created_at";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -436,8 +436,13 @@ export async function DELETE(req: NextRequest) {
     .maybeSingle();
   const { error } = await supabaseAdmin.from("accounting_expense_invoices").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Only remove the stored PDF if no split sibling still references it.
   if (row?.storage_path) {
-    await supabaseAdmin.storage.from(BUCKET).remove([row.storage_path]).catch(() => null);
+    const { count } = await supabaseAdmin
+      .from("accounting_expense_invoices")
+      .select("id", { count: "exact", head: true })
+      .eq("storage_path", row.storage_path);
+    if (!count) await supabaseAdmin.storage.from(BUCKET).remove([row.storage_path]).catch(() => null);
   }
   return NextResponse.json({ ok: true });
 }

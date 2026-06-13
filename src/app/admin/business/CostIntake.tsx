@@ -35,7 +35,10 @@ interface CostInvoice {
   category: string; amount_isk: number; currency: string; invoice_number: string | null;
   invoice_date: string | null; client_count: number | null; company_id: string | null;
   company?: { name?: string } | null; direction?: string; file_url: string | null; ai_confidence: string | null;
+  split_group_id: string | null;
 }
+
+interface Alloc { company_id: string; amount: string; clients: string }
 
 interface QueueItem { id: string; file: File; companyId: string; category: string; status: "queued" | "uploading" | "done" | "duplicate" | "error"; info: string }
 
@@ -124,6 +127,35 @@ export default function CostPage() {
     if (!confirm("Delete this cost invoice?")) return;
     await authedFetch(`/api/admin/accounting/invoices?id=${id}`, { method: "DELETE" });
     await loadLedger();
+  };
+
+  // ── split one invoice across companies ─────────────────────────
+  const [splitFor, setSplitFor] = useState<CostInvoice | null>(null);
+  const [allocs, setAllocs] = useState<Alloc[]>([]);
+  const [splitBusy, setSplitBusy] = useState(false);
+  const openSplit = (r: CostInvoice) => {
+    setSplitFor(r);
+    // Seed two even rows (first keeps the current company).
+    const half = Math.round(r.amount_isk / 2);
+    setAllocs([
+      { company_id: r.company_id || "", amount: String(half), clients: "" },
+      { company_id: "", amount: String(r.amount_isk - half), clients: "" },
+    ]);
+  };
+  const allocSum = allocs.reduce((s, a) => s + (parseInt(a.amount, 10) || 0), 0);
+  const submitSplit = async () => {
+    if (!splitFor) return;
+    const valid = allocs.filter((a) => a.company_id && (parseInt(a.amount, 10) || 0) >= 0);
+    if (valid.length < 1) return;
+    setSplitBusy(true);
+    try {
+      const res = await authedFetch(`/api/admin/accounting/invoices/split`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: splitFor.id, allocations: valid.map((a) => ({ company_id: a.company_id, amount_isk: parseInt(a.amount, 10) || 0, client_count: a.clients ? parseInt(a.clients, 10) : null })) }),
+      });
+      if (res.ok) { setSplitFor(null); await loadLedger(); }
+      else { const j = await res.json().catch(() => ({})); alert(`Split failed: ${j.error || res.status}`); }
+    } finally { setSplitBusy(false); }
   };
 
   // ── grouping ────────────────────────────────────────────────────
@@ -258,6 +290,7 @@ export default function CostPage() {
                         <div className="font-medium text-gray-800 truncate">
                           {r.vendor || "Unknown vendor"}
                           {r.company?.name ? <span className="text-gray-400 font-normal"> · {r.company.name}</span> : null}
+                          {r.split_group_id ? <span className="ml-1 text-[9px] px-1 py-px rounded bg-violet-50 border border-violet-200 text-violet-700">split</span> : null}
                         </div>
                         <div className="text-[11px] text-gray-500 truncate">
                           {[r.description, r.invoice_number ? `#${r.invoice_number}` : null, r.invoice_date, r.client_count != null ? `${r.client_count} clients` : null].filter(Boolean).join(" · ") || "—"}
@@ -282,6 +315,7 @@ export default function CostPage() {
                           {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                         <button onClick={() => editAmount(r)} className="font-semibold text-gray-900 hover:text-emerald-700" title="Edit amount">{isk(r.amount_isk)}</button>
+                        <button onClick={() => openSplit(r)} className="text-gray-400 hover:text-emerald-700" title="Split this invoice across companies">split</button>
                         {r.file_url ? <a href={r.file_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">PDF</a> : null}
                         <button onClick={() => removeInvoice(r.id)} className="text-red-500 hover:text-red-700" title="Delete">×</button>
                       </div>
@@ -291,6 +325,43 @@ export default function CostPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Split modal */}
+      {splitFor && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setSplitFor(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-12" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900">Split across companies</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {splitFor.vendor || "Invoice"} · {isk(splitFor.amount_isk)}{splitFor.client_count != null ? ` · ${splitFor.client_count} clients` : ""}. Each company gets its own cost line sharing this PDF.
+              </p>
+            </div>
+            <div className="p-5 space-y-2">
+              {allocs.map((a, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <select className={`${selCls} flex-1`} value={a.company_id} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, company_id: e.target.value } : x))}>
+                    <option value="">Pick company…</option>
+                    {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <input className={`${selCls} w-28`} type="number" placeholder="Amount ISK" value={a.amount} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
+                  <input className={`${selCls} w-20`} type="number" placeholder="Clients" value={a.clients} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, clients: e.target.value } : x))} />
+                  <button onClick={() => setAllocs((p) => p.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700">×</button>
+                </div>
+              ))}
+              <button onClick={() => setAllocs((p) => [...p, { company_id: "", amount: "", clients: "" }])} className="text-xs text-emerald-700 hover:underline">+ add company</button>
+              <div className={`text-xs pt-1 ${allocSum === splitFor.amount_isk ? "text-emerald-700" : "text-amber-600"}`}>
+                Allocated {isk(allocSum)} of {isk(splitFor.amount_isk)}{allocSum !== splitFor.amount_isk ? ` · ${allocSum > splitFor.amount_isk ? "over" : "under"} by ${isk(Math.abs(allocSum - splitFor.amount_isk))}` : " ✓"}
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+              <button onClick={() => setSplitFor(null)} className="text-sm font-medium px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button onClick={submitSplit} disabled={splitBusy || allocs.filter((a) => a.company_id).length < 1} className="text-sm font-semibold px-4 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                {splitBusy ? "Splitting…" : "Split invoice"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
