@@ -113,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
   const type = String(body?.type || "");
   const mode = ["preview", "test", "send"].includes(String(body?.mode)) ? String(body.mode) : "send";
   const milestone = body?.milestone ? String(body.milestone) : null;
-  if (!["admin", "all_employees", "incomplete"].includes(audience)) {
+  if (!["admin", "all_employees", "incomplete", "member"].includes(audience)) {
     return NextResponse.json({ error: "bad_audience" }, { status: 400 });
   }
   if (!["reminder", "presentation", "custom"].includes(type)) {
@@ -196,6 +196,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
   if (toAdmin) {
     const e = await adminEmail(companyId);
     if (e) recipients = [{ email: e, full_name: null }];
+  } else if (audience === "member") {
+    const memberId = String(body?.member_id || "");
+    if (!UUID_RE.test(memberId)) return NextResponse.json({ error: "bad_member" }, { status: 400 });
+    const { data: m } = await supabaseAdmin
+      .from("company_members").select("full_name, email").eq("id", memberId).eq("company_id", companyId).maybeSingle();
+    if (m?.email) recipients = [{ email: m.email as string, full_name: (m.full_name as string | null) ?? null }];
   } else if (audience === "incomplete") {
     recipients = await incompleteRecipients(companyId, milestone!);
   } else {

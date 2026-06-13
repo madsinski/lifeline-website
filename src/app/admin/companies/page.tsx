@@ -636,10 +636,10 @@ const EMAIL_MILESTONES: Array<{ key: string; label: string }> = [
   { key: "app_access", label: "Lifeline app activation" },
 ];
 
-function CompanyEmailButton({ companyId, companyName }: { companyId: string; companyName: string }) {
+function CompanyEmailButton({ companyId, companyName, member }: { companyId: string; companyName: string; member?: { id: string; name: string | null; email: string | null } }) {
   const [open, setOpen] = useState(false);
   const [meta, setMeta] = useState<{ admin_email: string | null; employee_count: number; presentations: Array<{ slug: string; title: string }> } | null>(null);
-  const [audience, setAudience] = useState<"admin" | "all_employees" | "incomplete">("admin");
+  const [audience, setAudience] = useState<"admin" | "all_employees" | "incomplete" | "member">(member ? "member" : "admin");
   const [type, setType] = useState<"reminder" | "presentation" | "custom">("reminder");
   const [milestone, setMilestone] = useState("measurement");
   const [slug, setSlug] = useState("");
@@ -669,6 +669,7 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
     setSending(mode); setResult("");
     try {
       const payload: Record<string, unknown> = { audience, type, mode };
+      if (member) payload.member_id = member.id;
       if (type === "reminder" || audience === "incomplete") payload.milestone = milestone;
       if (type === "presentation") payload.presentation_slug = slug;
       if (type === "custom") { payload.subject = subject; payload.message = message; }
@@ -690,21 +691,34 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
   const fieldCls = "w-full text-sm border border-gray-200 rounded-md px-2.5 py-1.5 bg-white";
   return (
     <>
-      <button
-        onClick={openModal}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
-        title="Email the company admin or employees"
-      >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-        Email
-      </button>
+      {member ? (
+        <button
+          onClick={openModal}
+          disabled={!member.email}
+          className="text-gray-400 hover:text-emerald-700 disabled:opacity-30 disabled:hover:text-gray-400"
+          title={member.email ? `Email ${member.name || member.email}` : "No email on file"}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </button>
+      ) : (
+        <button
+          onClick={openModal}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
+          title="Email the company admin or employees"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Email
+        </button>
+      )}
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">Email — {companyName}</h3>
+              <h3 className="text-base font-semibold text-gray-900">Email — {member ? (member.name || "employee") : companyName}</h3>
               <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -712,21 +726,25 @@ function CompanyEmailButton({ companyId, companyName }: { companyId: string; com
             <div className="p-5 space-y-4">
               {/* Recipients */}
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Recipients</span>
-                <div className="mt-1 space-y-1 text-sm">
-                  <label className="flex items-center gap-2">
-                    <input type="radio" checked={audience === "admin"} onChange={() => setAudience("admin")} />
-                    Company admin {meta?.admin_email ? <span className="text-gray-400 text-xs">({meta.admin_email})</span> : <span className="text-amber-600 text-xs">(no email on file)</span>}
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="radio" checked={audience === "all_employees"} onChange={() => setAudience("all_employees")} />
-                    All employees <span className="text-gray-400 text-xs">({meta?.employee_count ?? 0})</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="radio" checked={audience === "incomplete"} onChange={() => { setAudience("incomplete"); if (type === "presentation") setType("reminder"); }} />
-                    Employees missing a milestone
-                  </label>
-                </div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Recipient{member ? "" : "s"}</span>
+                {member ? (
+                  <div className="mt-1 text-sm text-gray-700">{member.name || "—"} <span className="text-gray-400">{member.email}</span></div>
+                ) : (
+                  <div className="mt-1 space-y-1 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input type="radio" checked={audience === "admin"} onChange={() => setAudience("admin")} />
+                      Company admin {meta?.admin_email ? <span className="text-gray-400 text-xs">({meta.admin_email})</span> : <span className="text-amber-600 text-xs">(no email on file)</span>}
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="radio" checked={audience === "all_employees"} onChange={() => setAudience("all_employees")} />
+                      All employees <span className="text-gray-400 text-xs">({meta?.employee_count ?? 0})</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="radio" checked={audience === "incomplete"} onChange={() => { setAudience("incomplete"); if (type === "presentation") setType("reminder"); }} />
+                      Employees missing a milestone
+                    </label>
+                  </div>
+                )}
               </div>
               {/* Type */}
               <div>
@@ -990,7 +1008,7 @@ function DivisionRow({ d, onContactChanged, onMilestoneChanged }: { d: CompanyRo
         </span>
       </button>
       {open ? (
-        <EmployeeRows companyId={d.id} contactEmail={contactEmail} onContactChanged={onContactChanged} onMilestoneChanged={onMilestoneChanged} />
+        <EmployeeRows companyId={d.id} companyName={d.name} contactEmail={contactEmail} onContactChanged={onContactChanged} onMilestoneChanged={onMilestoneChanged} />
       ) : null}
     </div>
   );
@@ -2264,8 +2282,9 @@ function MilestoneCircle({ cell, busy, onToggle }: { cell: MilestoneCell; busy: 
   );
 }
 
-function EmployeeRows({ companyId, contactEmail, onContactChanged, onMilestoneChanged }: {
+function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, onMilestoneChanged }: {
   companyId: string;
+  companyName: string;
   contactEmail?: string | null;
   onContactChanged?: () => void;
   onMilestoneChanged?: () => void;
@@ -2396,7 +2415,7 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged, onMilestoneCh
   const onboarded = members.filter((m) => m.completed_at).length;
   const milestoneCount = (key: MilestoneKey) => members.filter((m) => milestones[m.id]?.[key]?.done).length;
 
-  const GRID = "grid grid-cols-[minmax(140px,1.6fr)_repeat(5,2.25rem)_5.5rem_4.5rem] gap-2 items-center";
+  const GRID = "grid grid-cols-[minmax(140px,1.6fr)_repeat(5,2.25rem)_5.5rem_6rem] gap-2 items-center";
 
   return (
     <div className="border-t border-gray-100 bg-gray-50/50">
@@ -2475,10 +2494,11 @@ function EmployeeRows({ companyId, contactEmail, onContactChanged, onMilestoneCh
               <div className="flex items-center">
                 <MemberStatus m={m} />
               </div>
-              <div className="text-right">
+              <div className="flex items-center justify-end gap-2">
+                <CompanyEmailButton companyId={companyId} companyName={companyName} member={{ id: m.id, name: m.full_name, email: m.email }} />
                 {isContact ? (
                   <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Contact
+                    Admin
                   </span>
                 ) : (
                   <button
@@ -3205,6 +3225,7 @@ export default function AdminCompaniesPage() {
                         {(c.member_count || 0) > 0 || children.length === 0 ? (
                           <EmployeeRows
                             companyId={c.id}
+                            companyName={c.name}
                             contactEmail={c.contact_email || c.contact_draft_email || null}
                             onContactChanged={load}
                             onMilestoneChanged={loadSideData}
