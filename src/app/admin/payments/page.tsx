@@ -31,29 +31,43 @@ type Payment = {
 type Filter = "all" | "pending" | "succeeded" | "refunded" | "failed";
 type OwnerFilter = "all" | "client" | "company";
 
-function SyncPayDayButton() {
+function SyncPayDayButton({ onImported }: { onImported?: () => void }) {
   const [syncing, setSyncing] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const token = async () => (await supabase.auth.getSession()).data.session?.access_token;
   const click = async () => {
-    setSyncing(true);
-    setResult(null);
+    setSyncing(true); setResult(null);
     try {
-      const { data: s } = await supabase.auth.getSession();
-      const t = s.session?.access_token;
-      const res = await fetch("/api/admin/invoices/sync", {
-        method: "POST",
-        headers: t ? { Authorization: `Bearer ${t}` } : {},
-      });
+      const t = await token();
+      const res = await fetch("/api/admin/invoices/sync", { method: "POST", headers: t ? { Authorization: `Bearer ${t}` } : {} });
       const j = await res.json();
       setResult(`${j.synced || 0} invoice(s) updated${j.errors?.length ? ` · ${j.errors.length} error(s)` : ""}`);
     } catch { setResult("Sync failed"); }
     setSyncing(false);
-    setTimeout(() => setResult(null), 4000);
+    setTimeout(() => setResult(null), 5000);
+  };
+  // Pull every company's invoices from PayDay (incl. ones created
+  // directly in PayDay) into the payments ledger.
+  const importAll = async () => {
+    setImporting(true); setResult(null);
+    try {
+      const t = await token();
+      const res = await fetch("/api/admin/payments/payday-import", { method: "POST", headers: t ? { Authorization: `Bearer ${t}` } : {} });
+      const j = await res.json();
+      if (!res.ok) { setResult(`Import failed: ${j.error || res.status}`); }
+      else { setResult(`Imported ${j.imported} · updated ${j.updated} across ${j.companies} companies`); onImported?.(); }
+    } catch { setResult("Import failed"); }
+    setImporting(false);
+    setTimeout(() => setResult(null), 6000);
   };
   return (
     <div className="flex items-center gap-2">
       {result && <span className="text-xs text-emerald-600">{result}</span>}
-      <button onClick={click} disabled={syncing} className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
+      <button onClick={importAll} disabled={importing || syncing} className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 disabled:opacity-50" title="Pull all companies' invoices from PayDay, including ones made directly in PayDay">
+        {importing ? "Importing…" : "Import from PayDay"}
+      </button>
+      <button onClick={click} disabled={syncing || importing} className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
         {syncing ? "Syncing…" : "Sync PayDay status"}
       </button>
     </div>
@@ -299,7 +313,7 @@ export default function AdminPaymentsPage() {
           <h1 className="text-2xl font-semibold text-[#1F2937]">Payments</h1>
           <p className="text-sm text-[#6B7280]">All Straumur + PayDay activity across clients and companies.</p>
         </div>
-        <SyncPayDayButton />
+        <SyncPayDayButton onImported={load} />
       </header>
 
       {msg && (

@@ -339,3 +339,94 @@ export function paydayPdfUrl(invoiceId: string): string {
   // Route through our API proxy which adds the Bearer token
   return `/api/admin/invoices/${invoiceId}/pdf`;
 }
+
+// ─── Import a company's invoices from PayDay ─────────────────────────────────
+// Pulls every invoice for the company's PayDay customer (incl. ones made
+// directly in PayDay), upserts into company_invoices by payday_invoice_id, and
+// mirrors each into the payments ledger so it shows on the Payments page too.
+
+const PD_BASE = process.env.PAYDAY_BASE_URL || "https://api.payday.is";
+
+function mapInvoiceStatus(s: string | undefined): string {
+  const u = (s || "").toUpperCase();
+  if (u === "PAID") return "paid";
+  if (u === "CANCELLED" || u === "CREDIT" || u === "DELETED") return "cancelled";
+  if (u === "DRAFT") return "draft";
+  return "sent";
+}
+const toPaymentStatus = (s: string) => (s === "paid" ? "succeeded" : s === "cancelled" ? "refunded" : "pending");
+
+export async function importCompanyInvoicesFromPayday(
+  companyId: string,
+  createdBy: string,
+): Promise<{ ok: boolean; reason?: string; imported: number; updated: number; total: number }> {
+  const { data: company } = await supabaseAdmin
+    .from("companies").select("name, payday_customer_id").eq("id", companyId).maybeSingle();
+  const customerId = company?.payday_customer_id as string | null;
+  if (!customerId) return { ok: false, reason: "no_customer", imported: 0, updated: 0, total: 0 };
+
+  const token = await getToken();
+  if (!token) return { ok: false, reason: "payday_auth_failed", imported: 0, updated: 0, total: 0 };
+  const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+
+  type PInv = { id: string; number?: string | number; status?: string; invoiceDate?: string; dueDate?: string; paidDate?: string; amountIncludingVat?: number; amountExcludingVat?: number; currencyCode?: string; customer?: { id?: string } };
+  const invoices: PInv[] = [];
+  for (let page = 1; page <= 20; page++) {
+    const res = await fetch(`${PD_BASE}/invoices?customerId=${customerId}&perPage=100&page=${page}`, { headers });
+    if (!res.ok) return { ok: false, reason: `payday_list_http_${res.status}`, imported: 0, updated: 0, total: 0 };
+    const json = await res.json().catch(() => null) as { invoices?: PInv[]; pages?: number } | null;
+    invoices.push(...(json?.invoices || []).filter((x) => x.customer?.id === customerId));
+    if (!json?.pages || page >= json.pages) break;
+  }
+
+  const { data: existing } = await supabaseAdmin
+    .from("company_invoices").select("id, payday_invoice_id").eq("company_id", companyId).not("payday_invoice_id", "is", null);
+  const byPayday = new Map((existing || []).map((r) => [r.payday_invoice_id as string, r.id as string]));
+
+  let imported = 0, updated = 0;
+  for (const inv of invoices) {
+    const total = Math.round(inv.amountIncludingVat ?? 0);
+    const net = Math.round(inv.amountExcludingVat ?? inv.amountIncludingVat ?? 0);
+    const status = mapInvoiceStatus(inv.status);
+    const paidAt = inv.paidDate ? new Date(inv.paidDate).toISOString() : null;
+    const row = {
+      status, currency: inv.currencyCode || "ISK", amount_net: net, amount_total: total,
+      issued_at: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString() : new Date().toISOString(),
+      due_at: inv.dueDate ? new Date(inv.dueDate).toISOString() : null,
+      paid_at: paidAt,
+      payday_invoice_number: inv.number != null ? String(inv.number) : null,
+      pdf_url: paydayPdfUrl(inv.id),
+    };
+    let localId = byPayday.get(inv.id);
+    if (localId) {
+      await supabaseAdmin.from("company_invoices").update(row).eq("id", localId);
+      updated++;
+    } else {
+      const { data: ins } = await supabaseAdmin.from("company_invoices")
+        .insert({ company_id: companyId, payday_invoice_id: inv.id, created_by: createdBy, ...row })
+        .select("id").single();
+      localId = ins?.id;
+      if (localId) imported++;
+    }
+    if (!localId) continue;
+
+    // Mirror into the payments ledger (one row per invoice).
+    const pay = {
+      owner_type: "company", owner_id: companyId, owner_company_id: companyId,
+      owner_company_name: company?.name || null,
+      amount_isk: total, currency: row.currency,
+      description: `PayDay invoice ${row.payday_invoice_number || ""}`.trim(),
+      provider: "payday", provider_reference: row.payday_invoice_number,
+      status: toPaymentStatus(status), related_type: "company_invoice", related_id: localId,
+      paid_at: paidAt, pdf_url: row.pdf_url,
+    };
+    const { data: existingPay } = await supabaseAdmin
+      .from("payments").select("id").eq("related_type", "company_invoice").eq("related_id", localId).maybeSingle();
+    if (existingPay) {
+      await supabaseAdmin.from("payments").update({ status: pay.status, amount_isk: total, paid_at: paidAt, pdf_url: row.pdf_url }).eq("id", existingPay.id);
+    } else {
+      await supabaseAdmin.from("payments").insert(pay);
+    }
+  }
+  return { ok: true, imported, updated, total: invoices.length };
+}
