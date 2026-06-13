@@ -864,16 +864,15 @@ function RosterProgressCell({ c }: { c: CompanyRow }) {
   const invitedPct = Math.min(100, Math.round((c.invited_count / total) * 100));
   const completedPct = Math.min(100, Math.round((c.completed_count / total) * 100));
   return (
-    <div className="min-w-[160px]">
-      <div className="flex items-baseline justify-between gap-2 text-[12px]">
+    <div className="min-w-[120px]">
+      <div className="flex items-baseline justify-between gap-2 text-[11px]">
         <span className="font-semibold text-gray-900 tabular-nums">{c.completed_count}</span>
-        <span className="text-gray-400 tabular-nums">of {c.member_count}</span>
+        <span className="text-gray-400 tabular-nums">of {c.member_count} · {c.invited_count} inv.</span>
       </div>
       <div className="relative mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden" title={`${c.member_count} on roster · ${c.invited_count} invited · ${c.completed_count} completed`}>
         <div className="absolute inset-y-0 left-0 bg-blue-400" style={{ width: `${invitedPct}%` }} />
         <div className="absolute inset-y-0 left-0 bg-emerald-500" style={{ width: `${completedPct}%` }} />
       </div>
-      <div className="mt-1 text-[10px] text-gray-400 tabular-nums">{c.invited_count} invited</div>
     </div>
   );
 }
@@ -882,7 +881,7 @@ function RosterProgressCell({ c }: { c: CompanyRow }) {
 // popover anchored to the button via getBoundingClientRect. Using a
 // fixed overlay sidesteps table-cell clipping issues that ate our
 // earlier dropdowns.
-function OverflowMenu({ children }: { children: (close: () => void) => ReactNode }) {
+function OverflowMenu({ children, label }: { children: (close: () => void) => ReactNode; label?: string }) {
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -899,14 +898,25 @@ function OverflowMenu({ children }: { children: (close: () => void) => ReactNode
       <button
         ref={btnRef}
         onClick={toggle}
-        className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500"
+        className={label
+          ? "inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          : "p-1.5 rounded-md hover:bg-gray-100 text-gray-500"}
         title="Fleiri aðgerðir"
       >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <circle cx="4" cy="10" r="1.75" />
-          <circle cx="10" cy="10" r="1.75" />
-          <circle cx="16" cy="10" r="1.75" />
-        </svg>
+        {label ? (
+          <>
+            {label}
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </>
+        ) : (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <circle cx="4" cy="10" r="1.75" />
+            <circle cx="10" cy="10" r="1.75" />
+            <circle cx="16" cy="10" r="1.75" />
+          </svg>
+        )}
       </button>
       {open && rect && (
         <>
@@ -2475,8 +2485,12 @@ export default function AdminCompaniesPage() {
                     <div className="flex items-start gap-2 min-w-0 flex-1">
                       <button
                         onClick={() => toggleExpand(c.id)}
-                        className="mt-0.5 shrink-0 p-1 rounded hover:bg-gray-100 text-gray-400"
-                        title={isExpanded ? "Hide employees" : "Show employees"}
+                        className={`mt-0.5 shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md border transition-colors ${
+                          isExpanded
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/40"
+                        }`}
+                        title={isExpanded ? "Hide details" : "Show pricing, costs, invoices, divisions and employees"}
                       >
                         <svg
                           className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`}
@@ -2484,6 +2498,7 @@ export default function AdminCompaniesPage() {
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                         </svg>
+                        {isExpanded ? "Hide" : "Details"}
                       </button>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -2531,8 +2546,36 @@ export default function AdminCompaniesPage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-[11px] text-gray-500 whitespace-nowrap shrink-0 pt-1">
-                      {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
+                    <div className="flex items-center gap-2 shrink-0 pt-1">
+                      <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                        {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
+                      </span>
+                      <OverflowMenu label="Settings">
+                        {() => (
+                          <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
+                            <BulkBiodyButton
+                              companyId={c.id}
+                              companyName={c.name}
+                              parentName={c.parent_company_id ? c.parent_name || null : null}
+                              hasChildren={isParentWithSubs}
+                            />
+                            <button
+                              onClick={() => downloadCsv(c.id, c.name)}
+                              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                              title="Download employee roster as CSV"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                              </svg>
+                              Export CSV
+                            </button>
+                            <EnsureGroupButton companyId={c.id} />
+                            <BulkActivateButton companyId={c.id} />
+                            <div className="border-t border-gray-100 my-0.5" />
+                            <DeleteCompanyButton company={c} onDone={load} />
+                          </div>
+                        )}
+                      </OverflowMenu>
                     </div>
                   </div>
 
@@ -2544,7 +2587,7 @@ export default function AdminCompaniesPage() {
                         from clients.phone_enc. */}
                     <ContactCell c={c} onSaved={load} />
                     {/* Progress — compact card; counts include divisions */}
-                    <div className="rounded-lg border border-gray-200 bg-gray-50/70 px-2.5 py-2">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50/70 px-2 py-1.5 max-w-[200px] self-start">
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Roster</div>
                       <RosterProgressCell
                         c={{
@@ -2616,7 +2659,7 @@ export default function AdminCompaniesPage() {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
-                      Open
+                      Client view
                     </Link>
                     <GenerateInvoiceButton companyId={c.id} companyName={c.name} />
                     {isParentWithSubs && (
@@ -2624,32 +2667,6 @@ export default function AdminCompaniesPage() {
                     )}
                     <DocumentsButton companyId={c.id} docKinds={fin.get(c.id)?.doc_kinds || []} />
                     <div className="flex-1" />
-                    <OverflowMenu>
-                      {() => (
-                        <div className="flex flex-col items-stretch gap-1.5 px-2 py-2">
-                          <BulkBiodyButton
-                            companyId={c.id}
-                            companyName={c.name}
-                            parentName={c.parent_company_id ? c.parent_name || null : null}
-                            hasChildren={isParentWithSubs}
-                          />
-                          <button
-                            onClick={() => downloadCsv(c.id, c.name)}
-                            className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                            title="Download employee roster as CSV"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                            </svg>
-                            Export CSV
-                          </button>
-                          <EnsureGroupButton companyId={c.id} />
-                          <BulkActivateButton companyId={c.id} />
-                          <div className="border-t border-gray-100 my-0.5" />
-                          <DeleteCompanyButton company={c} onDone={load} />
-                        </div>
-                      )}
-                    </OverflowMenu>
                   </div>
                 </div>
 
