@@ -17,13 +17,15 @@ const DiscountCodesContent = dynamic(() => import("./DiscountCodes"), { loading:
 const ApprovalsContent = dynamic(() => import("./Approvals"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const AccountingContent = dynamic(() => import("./Accounting"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const PlanContent = dynamic(() => import("./Plan"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const CostIntakeContent = dynamic(() => import("./CostIntake"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 
 const tabs = [
   { key: "companies", label: "Companies" },
-  { key: "approvals", label: "Approvals" },
+  { key: "approvals", label: "Scheduling" },
   { key: "payments", label: "Payments" },
   { key: "discounts", label: "Discount codes" },
   { key: "accounting", label: "Accounting" },
+  { key: "cost-intake", label: "Cost intake" },
   { key: "plan", label: "Plan" },
 ];
 
@@ -215,6 +217,7 @@ export default function BusinessPage() {
       {tab === "payments" && <PaymentsContent />}
       {tab === "discounts" && <DiscountCodesContent />}
       {tab === "accounting" && <AccountingContent />}
+      {tab === "cost-intake" && <CostIntakeContent />}
       {tab === "plan" && <PlanContent />}
     </div>
   );
