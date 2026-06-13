@@ -23,6 +23,9 @@ interface Company {
   current_round_id: string | null;
   contact_phone: string | null;
   contact_position: string | null;
+  contact_draft_name: string | null;
+  contact_draft_email: string | null;
+  contact_draft_phone: string | null;
 }
 
 interface AssessmentRound {
@@ -132,7 +135,7 @@ export default function BusinessDashboardPage() {
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
     const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: ag }, { data: po }, { data: il }] = await Promise.all([
-      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id, contact_phone, contact_position").eq("id", companyId).maybeSingle(),
+      supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id, contact_phone, contact_position, contact_draft_name, contact_draft_email, contact_draft_phone").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
         .select("id, event_date, start_time, end_time, location, room_notes, break_start, break_end, slot_minutes, slot_capacity, status, approval_status")
@@ -432,10 +435,27 @@ export default function BusinessDashboardPage() {
               ? "Management mode — your registration is complete."
               : ""
           }
-          primary={admins.find((a) => a.is_primary) || null}
+          primary={
+            admins.find((a) => a.is_primary)
+            // No claimed primary admin yet — fall back to the manually
+            // registered contact (contact_draft_*) so the person still
+            // shows in the header card.
+            || ((company.contact_draft_name || company.contact_draft_email)
+              ? {
+                  user_id: "draft-contact",
+                  full_name: company.contact_draft_name,
+                  email: company.contact_draft_email,
+                  added_at: company.created_at,
+                  is_primary: true,
+                  phone: company.contact_draft_phone,
+                  position: null,
+                  kennitala_last4: null,
+                }
+              : null)
+          }
           admins={admins}
           onReload={loadAdmins}
-          contactPhone={company.contact_phone}
+          contactPhone={company.contact_phone || company.contact_draft_phone}
           contactPosition={company.contact_position}
           viewerIsStaff={viewerIsStaff}
         />
