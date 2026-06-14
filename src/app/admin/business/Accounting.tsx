@@ -66,6 +66,14 @@ interface ReimbursementRow {
   staff_id: string; staff_name: string; invoice_count: number; total_isk: number;
 }
 
+interface PositionData {
+  cash: number;
+  revenue: number;
+  internal: { reimbursements: Array<{ name: string; amount_isk: number }>; thorvaldur_isk: number; total_isk: number };
+  external: { health_checks_outstanding_isk: number; biody_isk: number; total_isk: number };
+  net_position_isk: number;
+}
+
 interface TotalsOverview {
   income: {
     payday_invoiced_isk: number; payday_paid_isk: number; payday_outstanding_isk: number;
@@ -157,6 +165,7 @@ export default function Accounting() {
   const [staffList, setStaffList] = useState<Array<{ id: string; name: string | null; email: string }>>([]);
   const [reimbursements, setReimbursements] = useState<ReimbursementRow[]>([]);
   const [totals, setTotals] = useState<TotalsOverview | null>(null);
+  const [position, setPosition] = useState<PositionData | null>(null);
   // Overview scope: all time / picker year / picker month, optional
   // single-company lens, and the itemized line view.
   const [scope, setScope] = useState<"all" | "year" | "month">("all");
@@ -209,12 +218,29 @@ export default function Accounting() {
       setWorkSplit(comp.work_split || []);
       setStaffList(comp.staff || []);
       setReimbursements(comp.reimbursements || []);
+      const posRes = await authedFetch(`/api/admin/accounting/position`);
+      setPosition(posRes.ok ? await posRes.json() : null);
     } catch (e) {
       setMsg(`Load failed: ${(e as Error).message}`);
     } finally {
       setLoading(false);
     }
   }, [authedFetch, month]);
+
+  // Edit a position setting (cash / Biody liability / Þorvaldur) via the
+  // shared plan-settings endpoint, then refresh the panel.
+  const editPosition = useCallback(async (key: string, label: string, current: number) => {
+    const v = prompt(`${label} (ISK):`, String(current));
+    if (v === null) return;
+    const value = Number(v.replace(/[. ]/g, "").replace(",", "."));
+    if (!Number.isFinite(value)) { setMsg("Not a number."); return; }
+    const res = await authedFetch(`/api/admin/accounting/plan`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key, value }),
+    });
+    if (!res.ok) { setMsg("Save failed."); return; }
+    const posRes = await authedFetch(`/api/admin/accounting/position`);
+    setPosition(posRes.ok ? await posRes.json() : position);
+  }, [authedFetch, position]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -482,6 +508,63 @@ export default function Accounting() {
         <div className="text-xs rounded-md px-3 py-2 border bg-amber-50 border-amber-200 text-amber-900">
           {report.warnings.map((w, i) => <div key={i}>{w}</div>)}
         </div>
+      ) : null}
+
+      {/* Financial position */}
+      {position ? (
+        <Section
+          title="Financial position"
+          hint="What we hold and what we owe — internal (founders/staff who fronted costs) and external (unpaid health-check costs + Biody)."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-3 text-xs text-gray-700">
+            {/* Holdings */}
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Holdings</div>
+              <div className="flex justify-between">
+                <span>
+                  Bank balance{" "}
+                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("cash_balance_isk", "Bank balance", position.cash)}>edit</button>
+                </span>
+                <span className="font-medium">{isk(position.cash)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Total revenue to date</span>
+                <span className="font-medium text-emerald-700">{isk(position.revenue)}</span>
+              </div>
+            </div>
+            {/* Debt */}
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Debt</div>
+              <div className="font-medium text-gray-500 pt-0.5">Internal (founders / staff)</div>
+              {position.internal.reimbursements.map((r) => (
+                <div key={r.name} className="flex justify-between"><span className="pl-3">{r.name} (out-of-pocket)</span><span>{isk(r.amount_isk)}</span></div>
+              ))}
+              <div className="flex justify-between">
+                <span className="pl-3">
+                  Þorvaldur Arnarsson{" "}
+                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("internal_debt_thorvaldur_isk", "Owed to Þorvaldur Arnarsson", position.internal.thorvaldur_isk)}>edit</button>
+                </span>
+                <span>{isk(position.internal.thorvaldur_isk)}</span>
+              </div>
+              <div className="flex justify-between font-medium"><span className="pl-3">Internal total</span><span className="text-amber-600">{isk(position.internal.total_isk)}</span></div>
+
+              <div className="font-medium text-gray-500 pt-1">External</div>
+              <div className="flex justify-between"><span className="pl-3">Unpaid health-check costs (not yet invoiced)</span><span>{isk(position.external.health_checks_outstanding_isk)}</span></div>
+              <div className="flex justify-between">
+                <span className="pl-3">
+                  Biody machines{" "}
+                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("other_liabilities_isk", "Biody machines liability", position.external.biody_isk)}>edit</button>
+                </span>
+                <span>{isk(position.external.biody_isk)}</span>
+              </div>
+              <div className="flex justify-between font-medium"><span className="pl-3">External total</span><span className="text-amber-600">{isk(position.external.total_isk)}</span></div>
+            </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-gray-200 flex items-center justify-between text-sm">
+            <span className="text-gray-600">Net position (bank − internal − external)</span>
+            <span className={`font-bold ${position.net_position_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>{isk(position.net_position_isk)}</span>
+          </div>
+        </Section>
       ) : null}
 
       {/* Business overview (filterable) */}
