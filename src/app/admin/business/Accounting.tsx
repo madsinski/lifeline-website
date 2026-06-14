@@ -82,7 +82,14 @@ interface PositionData {
   };
   external: {
     health_checks_outstanding_isk: number;
-    health_check_breakdown: Array<{ key: string; label: string; outstanding_isk: number }>;
+    health_check_breakdown: Array<{ company_id: string; company_name: string; category: string; label: string; provider: string | null; head_count: number; rate_isk: number; outstanding_isk: number }>;
+    health_check_lines: Array<{
+      company_id: string; company_name: string; category: "measurements" | "blood_tests"; label: string;
+      provider: string | null; head_count: number; head_count_overridden: boolean; rate_isk: number;
+      expected_isk: number; status: string; paid: boolean; applicable: boolean; unpaid_isk: number;
+    }>;
+    health_check_expected_isk: number;
+    health_check_paid_isk: number;
     biody_isk: number;
     total_isk: number;
   };
@@ -264,6 +271,18 @@ export default function Accounting() {
     const res = await authedFetch(`/api/admin/accounting/plan`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, value: next ? 1 : 0 }),
+    });
+    if (!res.ok) { setMsg("Save failed."); return; }
+    const posRes = await authedFetch(`/api/admin/accounting/position`);
+    setPosition(posRes.ok ? await posRes.json() : position);
+  }, [authedFetch, position]);
+
+  // Update a company's health-check cost line (paid/unpaid status or head
+  // count) from the Financial position panel, then refresh.
+  const saveCostItem = useCallback(async (companyId: string, category: string, patch: Record<string, unknown>) => {
+    const res = await authedFetch(`/api/admin/accounting/cost-items`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company_id: companyId, category, ...patch }),
     });
     if (!res.ok) { setMsg("Save failed."); return; }
     const posRes = await authedFetch(`/api/admin/accounting/position`);
@@ -599,24 +618,66 @@ export default function Accounting() {
                 <div className="w-20 text-right font-medium text-amber-600">{isk(position.internal.active_isk)}</div>
                 <div className="w-20 text-right font-medium text-gray-400">{isk(position.internal.deferred_isk)}</div>
 
-                {/* External — itemised unpaid health-check costs + Biody */}
+                {/* External — expected health-check supplier costs per
+                    company (head count × rate), each paid or unpaid + Biody */}
                 <div className="col-span-3 font-medium text-gray-500 pt-1">External</div>
-                <div className="col-span-3 pl-3 text-[11px] text-gray-400">Unpaid health-check costs (not yet invoiced)</div>
-                {position.external.health_check_breakdown.length ? (
-                  position.external.health_check_breakdown.map((b) => (
-                    <Fragment key={b.key}>
-                      <div className="pl-6">{b.label}</div>
-                      <div className="w-20 text-right">{isk(b.outstanding_isk)}</div>
-                      <div className="w-20 text-right text-gray-300">—</div>
-                    </Fragment>
-                  ))
+                <div className="col-span-3 pl-3 text-[11px] text-gray-400">
+                  Expected health-check costs · measurements {isk(2000)}/head, blood tests {isk(9000)} Sameind / {isk(12500)} Heilsugæslan
+                </div>
+                {position.external.health_check_lines.length ? (
+                  position.external.health_check_lines.map((l) => {
+                    const sel = l.paid ? "paid" : !l.applicable ? "na" : "unpaid";
+                    const muted = l.paid || !l.applicable;
+                    return (
+                      <Fragment key={`${l.company_id}:${l.category}`}>
+                        <div className={`pl-3 ${muted ? "text-gray-400" : ""}`}>
+                          <span className="font-medium">{l.company_name}</span> · {l.label}
+                          <span className="text-gray-400">
+                            {" "}{l.head_count}×{isk(l.rate_isk)}{l.provider ? ` ${l.provider}` : ""}{" "}
+                            <button
+                              type="button" className="text-gray-300 hover:text-emerald-700"
+                              title="Override the head count for this company (empty = roster headcount)"
+                              onClick={() => {
+                                const v = prompt(`${l.company_name} — ${l.label}: number of people (empty = roster headcount):`, String(l.head_count));
+                                if (v === null) return;
+                                const t = v.replace(/[^\d]/g, "");
+                                saveCostItem(l.company_id, l.category, { head_count: t === "" ? null : parseInt(t, 10) });
+                              }}
+                            >✎</button>
+                          </span>{" "}
+                          <select
+                            className="text-[10px] border border-gray-200 rounded px-1 py-0 bg-white text-gray-600 align-middle"
+                            value={sel}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              const status = v === "paid" ? "covered" : v === "na" ? "not_applicable" : "outstanding";
+                              saveCostItem(l.company_id, l.category, { status });
+                            }}
+                          >
+                            <option value="unpaid">unpaid</option>
+                            <option value="paid">paid</option>
+                            <option value="na">n/a</option>
+                          </select>
+                        </div>
+                        <div className="w-20 text-right">
+                          {l.paid ? <span className="text-emerald-600">paid</span>
+                            : !l.applicable ? <span className="text-gray-300">n/a</span>
+                            : isk(l.unpaid_isk)}
+                        </div>
+                        <div className="w-20 text-right text-gray-300">—</div>
+                      </Fragment>
+                    );
+                  })
                 ) : (
                   <>
-                    <div className="pl-6 text-gray-400">All health-check costs invoiced</div>
+                    <div className="pl-3 text-gray-400">No companies set up for health-check costs yet</div>
                     <div className="w-20 text-right text-gray-300">—</div>
                     <div className="w-20 text-right text-gray-300">—</div>
                   </>
                 )}
+                <div className="pl-3 font-medium">Health-check subtotal (unpaid)</div>
+                <div className="w-20 text-right font-medium text-amber-600">{isk(position.external.health_checks_outstanding_isk)}</div>
+                <div className="w-20 text-right text-gray-300">—</div>
                 <div className="pl-3">
                   Biody machines{" "}
                   <button className="text-emerald-700 hover:underline" onClick={() => editPosition("other_liabilities_isk", "Biody machines liability", position.external.biody_isk)}>edit</button>

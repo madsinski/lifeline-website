@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isAnyActiveStaff } from "@/lib/auth-helpers";
-import { computeTotalsOverview, computeCompanyOverview } from "@/lib/accounting";
+import { computeTotalsOverview, computeCompanyOverview, computeHealthCheckDebt } from "@/lib/accounting";
 
 export const maxDuration = 60;
 
@@ -29,10 +29,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   try {
-    const [settingsRes, totals, overview] = await Promise.all([
+    const [settingsRes, totals, overview, hcDebt] = await Promise.all([
       supabaseAdmin.from("accounting_settings").select("key, value_numeric"),
       computeTotalsOverview(),
       computeCompanyOverview(),
+      computeHealthCheckDebt(),
     ]);
     const s: Record<string, number> = {};
     for (const r of settingsRes.data || []) s[r.key as string] = Number(r.value_numeric) || 0;
@@ -45,10 +46,22 @@ export async function GET(req: NextRequest) {
     // Þorvaldur Arnarsson invoice, but the money is owed to Victor.
     const victorManual = Math.round(s.internal_debt_thorvaldur_isk || 0);
     const revenue = totals.income.total_received_isk;
-    const healthChecksOutstanding = totals.costs.per_check_outstanding_isk;
-    const healthCheckBreakdown = totals.costs.per_check_breakdown
-      .filter((b) => b.outstanding_isk > 0)
-      .map((b) => ({ key: b.key, label: b.label, outstanding_isk: b.outstanding_isk }));
+    // External health-check debt is now the per-company sum of UNPAID
+    // measurement + blood-test lines (head count × rate), not the old
+    // global per-check accrual.
+    const healthChecksOutstanding = hcDebt.unpaid_total_isk;
+    const healthCheckBreakdown = hcDebt.lines
+      .filter((l) => l.unpaid_isk > 0)
+      .map((l) => ({
+        company_id: l.company_id,
+        company_name: l.company_name,
+        category: l.category,
+        label: l.label,
+        provider: l.provider,
+        head_count: l.head_count,
+        rate_isk: l.rate_isk,
+        outstanding_isk: l.unpaid_isk,
+      }));
 
     // Defer flags — a deferred bucket is a founder loan we're in no hurry to
     // repay; it sits in its own column and drops out of net position.
@@ -83,6 +96,25 @@ export async function GET(req: NextRequest) {
       external: {
         health_checks_outstanding_isk: healthChecksOutstanding,
         health_check_breakdown: healthCheckBreakdown,
+        // Full per-company × cost-line list (paid + unpaid + N/A) so the
+        // panel can show and edit each company's status / head count.
+        health_check_lines: hcDebt.lines.map((l) => ({
+          company_id: l.company_id,
+          company_name: l.company_name,
+          category: l.category,
+          label: l.label,
+          provider: l.provider,
+          head_count: l.head_count,
+          head_count_overridden: l.head_count_overridden,
+          rate_isk: l.rate_isk,
+          expected_isk: l.expected_isk,
+          status: l.status,
+          paid: l.paid,
+          applicable: l.applicable,
+          unpaid_isk: l.unpaid_isk,
+        })),
+        health_check_expected_isk: hcDebt.expected_total_isk,
+        health_check_paid_isk: hcDebt.paid_total_isk,
         biody_isk: biody,
         total_isk: externalTotal,
       },

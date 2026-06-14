@@ -891,6 +891,158 @@ export async function computeCompanyOverview(): Promise<{
   };
 }
 
+// ── Expected external health-check debt, per company ─────────────────
+//
+// The external supplier cost of running each company's health checks:
+//   measurements — 2.000 ISK / head (body composition)
+//   blood tests  — 9.000 (Sameind) / 12.500 (Heilsugæslan) ISK / head,
+//                  by the company's chosen provider (or a manual override)
+// Doctor interviews are deliberately EXCLUDED — that is founders' own
+// labour (the doctor pool / internal debt), not an external supplier bill.
+//
+// Per company × cost line we know the head count and whether the bill has
+// been settled:
+//   head count = company_cost_item_status.head_count override, else the
+//                group roster headcount (mother company + divisions —
+//                employees are listed under the divisions)
+//   status     = 'covered' → paid (no debt); 'not_applicable' → the company
+//                has no such cost (e.g. BBA Fjeldco has no measurement);
+//                anything else → unpaid, counts toward external debt.
+// Expected external debt = Σ (unpaid lines: head count × rate).
+
+export interface HealthCheckCostLine {
+  company_id: string;
+  company_name: string;
+  category: "measurements" | "blood_tests";
+  label: string;
+  provider: string | null;
+  head_count: number;
+  head_count_overridden: boolean;
+  rate_isk: number;
+  expected_isk: number;
+  status: string;      // raw company_cost_item_status.status
+  paid: boolean;       // status === 'covered'
+  applicable: boolean; // status !== 'not_applicable'
+  unpaid_isk: number;  // applicable && !paid ? expected : 0
+}
+
+export interface HealthCheckDebt {
+  lines: HealthCheckCostLine[];
+  expected_total_isk: number; // all applicable lines
+  paid_total_isk: number;
+  unpaid_total_isk: number;   // the external health-check debt
+  measurement_rate_isk: number;
+  blood_rates: Record<string, number>;
+}
+
+const HC_COST_LINES: Array<{ category: "measurements" | "blood_tests"; label: string; rateKey: string }> = [
+  { category: "measurements", label: "Measurements", rateKey: "measurement" },
+  { category: "blood_tests", label: "Blood tests", rateKey: "blood_test" },
+];
+
+export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
+  const today = new Date().toISOString().slice(0, 10);
+  const [companiesRes, membersRes, statusRes, ratesRes] = await Promise.all([
+    supabaseAdmin.from("companies").select("id, name, parent_company_id").order("name"),
+    supabaseAdmin.from("company_members").select("company_id"),
+    // select("*") so a not-yet-applied head_count migration can't 500 this.
+    supabaseAdmin.from("company_cost_item_status").select("*"),
+    supabaseAdmin
+      .from("accounting_cost_rates")
+      .select("rate_key, amount_isk, effective_from")
+      .lte("effective_from", today)
+      .order("effective_from", { ascending: true }),
+  ]);
+
+  const companies = (companiesRes.data || []) as Array<{ id: string; name: string; parent_company_id?: string | null }>;
+  const rates: Record<string, number> = {};
+  for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
+
+  const memberCounts = new Map<string, number>();
+  for (const m of membersRes.data || []) {
+    const id = m.company_id as string;
+    memberCounts.set(id, (memberCounts.get(id) || 0) + 1);
+  }
+  // Group roster headcount: a mother company's own members + all of its
+  // divisions' members.
+  const groupHeadcount = (companyId: string): number => {
+    let total = memberCounts.get(companyId) || 0;
+    for (const x of companies) {
+      if (x.parent_company_id === companyId) total += memberCounts.get(x.id) || 0;
+    }
+    return total;
+  };
+
+  type StatusRow = { company_id: string; category: string; status?: string | null; provider?: string | null; unit_price_isk?: number | null; head_count?: number | null };
+  const statusMap = new Map<string, StatusRow>();
+  for (const s of (statusRes.data || []) as StatusRow[]) {
+    statusMap.set(`${s.company_id}:${s.category}`, s);
+  }
+
+  const lines: HealthCheckCostLine[] = [];
+  // Only mother companies carry a health-check cost line — the group
+  // headcount already folds the divisions in, so iterating divisions too
+  // would double-count.
+  const roots = companies.filter((c) => !c.parent_company_id);
+  for (const c of roots) {
+    for (const item of HC_COST_LINES) {
+      const st = statusMap.get(`${c.id}:${item.category}`);
+      const status = (st?.status as string) || "auto";
+      const applicable = status !== "not_applicable";
+      // A company with no roster, no override and no explicit status set is
+      // not part of the health-check programme — skip it entirely so the
+      // panel isn't flooded with empty companies.
+      const headOverride = st?.head_count != null ? Number(st.head_count) : null;
+      const head = headOverride ?? groupHeadcount(c.id);
+      const hasStatusRow = st != null && status !== "auto";
+      if (head <= 0 && !hasStatusRow) continue;
+
+      const provider = (st?.provider as string | null) ?? null;
+      const rate = st?.unit_price_isk != null
+        ? Number(st.unit_price_isk)
+        : item.category === "blood_tests"
+          ? (provider ? BLOOD_PROVIDER_RATES[provider] ?? (rates[item.rateKey] || 0) : rates[item.rateKey] || 0)
+          : rates[item.rateKey] || 0;
+      const expected = applicable ? head * rate : 0;
+      const paid = status === "covered";
+      const unpaid = applicable && !paid ? expected : 0;
+      lines.push({
+        company_id: c.id,
+        company_name: c.name,
+        category: item.category,
+        label: item.label,
+        provider,
+        head_count: head,
+        head_count_overridden: headOverride != null,
+        rate_isk: rate,
+        expected_isk: expected,
+        status,
+        paid,
+        applicable,
+        unpaid_isk: unpaid,
+      });
+    }
+  }
+
+  lines.sort((a, b) =>
+    (b.unpaid_isk - a.unpaid_isk) ||
+    a.company_name.localeCompare(b.company_name) ||
+    a.category.localeCompare(b.category));
+
+  const expectedTotal = lines.reduce((s, l) => s + l.expected_isk, 0);
+  const unpaidTotal = lines.reduce((s, l) => s + l.unpaid_isk, 0);
+  const paidTotal = lines.filter((l) => l.paid).reduce((s, l) => s + l.expected_isk, 0);
+
+  return {
+    lines,
+    expected_total_isk: expectedTotal,
+    paid_total_isk: paidTotal,
+    unpaid_total_isk: unpaidTotal,
+    measurement_rate_isk: rates["measurement"] || 0,
+    blood_rates: BLOOD_PROVIDER_RATES,
+  };
+}
+
 // ── All-time totals overview ─────────────────────────────────────────
 //
 // The whole-business picture, not per month: every króna invoiced and
