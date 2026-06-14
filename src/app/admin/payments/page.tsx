@@ -31,28 +31,16 @@ type Payment = {
 type Filter = "all" | "pending" | "succeeded" | "refunded" | "failed";
 type OwnerFilter = "all" | "client" | "company";
 
-function SyncPayDayButton({ onImported }: { onImported?: () => void }) {
-  const [syncing, setSyncing] = useState(false);
+// Pull every company's invoices from PayDay (incl. ones created
+// directly in PayDay). This also reconciles statuses and de-dupes, so a
+// separate status-sync is no longer needed.
+function PaydayImportButton({ onImported }: { onImported?: () => void }) {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const token = async () => (await supabase.auth.getSession()).data.session?.access_token;
-  const click = async () => {
-    setSyncing(true); setResult(null);
-    try {
-      const t = await token();
-      const res = await fetch("/api/admin/invoices/sync", { method: "POST", headers: t ? { Authorization: `Bearer ${t}` } : {} });
-      const j = await res.json();
-      setResult(`${j.synced || 0} invoice(s) updated${j.errors?.length ? ` · ${j.errors.length} error(s)` : ""}`);
-    } catch { setResult("Sync failed"); }
-    setSyncing(false);
-    setTimeout(() => setResult(null), 5000);
-  };
-  // Pull every company's invoices from PayDay (incl. ones created
-  // directly in PayDay) into the payments ledger.
   const importAll = async () => {
     setImporting(true); setResult(null);
     try {
-      const t = await token();
+      const t = (await supabase.auth.getSession()).data.session?.access_token;
       const res = await fetch("/api/admin/payments/payday-import", { method: "POST", headers: t ? { Authorization: `Bearer ${t}` } : {} });
       const j = await res.json();
       if (!res.ok) { setResult(`Import failed: ${j.error || res.status}`); }
@@ -68,11 +56,8 @@ function SyncPayDayButton({ onImported }: { onImported?: () => void }) {
   return (
     <div className="flex items-center gap-2">
       {result && <span className="text-xs text-emerald-600">{result}</span>}
-      <button onClick={importAll} disabled={importing || syncing} className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 disabled:opacity-50" title="Pull all companies' invoices from PayDay, including ones made directly in PayDay">
+      <button onClick={importAll} disabled={importing} className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 disabled:opacity-50" title="Pull all companies' invoices from PayDay (incl. ones made directly in PayDay) and reconcile statuses">
         {importing ? "Importing…" : "Import from PayDay"}
-      </button>
-      <button onClick={click} disabled={syncing || importing} className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
-        {syncing ? "Syncing…" : "Sync PayDay status"}
       </button>
     </div>
   );
@@ -182,6 +167,17 @@ export default function AdminPaymentsPage() {
     for (const r of rows) c[r.status]++;
     return c;
   }, [rows]);
+
+  // Revenue summary across the ledger (respects the owner filter so you
+  // can see company vs client revenue, but not the status filter).
+  const totals = useMemo(() => {
+    const scope = rows.filter((r) => owner === "all" || r.owner_type === owner);
+    const sum = (s: Payment["status"]) => scope.filter((r) => r.status === s).reduce((a, r) => a + (r.amount_isk || 0), 0);
+    const received = sum("succeeded");
+    const pending = sum("pending");
+    const refunded = sum("refunded");
+    return { received, pending, refunded, net: received - refunded };
+  }, [rows, owner]);
 
   async function bulkDelete(opts: { all?: boolean }) {
     const ids = Array.from(selected);
@@ -317,8 +313,23 @@ export default function AdminPaymentsPage() {
           <h1 className="text-2xl font-semibold text-[#1F2937]">Payments</h1>
           <p className="text-sm text-[#6B7280]">All Straumur + PayDay activity across clients and companies.</p>
         </div>
-        <SyncPayDayButton onImported={load} />
+        <PaydayImportButton onImported={load} />
       </header>
+
+      {/* Revenue summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {([
+          { label: "Revenue received", value: totals.received, tone: "text-emerald-700" },
+          { label: "Outstanding", value: totals.pending, tone: totals.pending > 0 ? "text-amber-600" : "text-gray-900" },
+          { label: "Refunded", value: totals.refunded, tone: "text-gray-500" },
+          { label: "Net revenue", value: totals.net, tone: "text-gray-900" },
+        ] as const).map((t) => (
+          <div key={t.label} className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t.label}</div>
+            <div className={`text-lg font-bold tabular-nums ${t.tone}`}>{Math.round(t.value).toLocaleString("is-IS")} kr.</div>
+          </div>
+        ))}
+      </div>
 
       {msg && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
