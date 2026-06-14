@@ -178,10 +178,14 @@ export interface MonthlyReport {
     fx_missing: boolean;
   }>;
   expense_adjustments: Array<{ id: string; description: string; amount_isk: number }>;
+  // Founders' salaries for this month (gross + employer on-costs), set
+  // per-month in the Accounting tab. is_set=false → no row → counts as 0.
+  founder_salaries: { amount_isk: number; note: string | null; is_set: boolean };
   totals: {
     income_isk: number;
     expense_invoices_isk: number;
     overheads_isk: number;
+    founder_salaries_isk: number;
     expenses_isk: number;
     net_isk: number;
   };
@@ -399,8 +403,20 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
   });
   const overheadsTotal = overheads.reduce((s, o) => s + o.total_isk, 0);
 
+  // Founders' salaries for this month (own table; guarded so a not-yet-
+  // applied migration can't break the report).
+  let founderSalaries = { amount_isk: 0, note: null as string | null, is_set: false };
+  try {
+    const { data: fs } = await supabaseAdmin
+      .from("accounting_founder_salaries")
+      .select("amount_isk, note")
+      .eq("month", monthDate)
+      .maybeSingle();
+    if (fs) founderSalaries = { amount_isk: Number(fs.amount_isk) || 0, note: (fs.note as string | null) ?? null, is_set: true };
+  } catch { /* table absent pre-migration → treat as unset */ }
+
   const incomeTotal = b2bTotal + b2cTotal + otherInvoiced.total_isk + incomeAdjTotal;
-  const expensesTotal = cogs.total_isk + expenseInvoicesTotal + overheadsTotal + expenseAdjTotal;
+  const expensesTotal = cogs.total_isk + expenseInvoicesTotal + overheadsTotal + expenseAdjTotal + founderSalaries.amount_isk;
 
   return {
     month,
@@ -417,10 +433,12 @@ export async function computeMonthlyReport(month: string): Promise<MonthlyReport
     expense_invoices: expenseInvoices,
     overheads,
     expense_adjustments: expenseAdjustments,
+    founder_salaries: founderSalaries,
     totals: {
       income_isk: incomeTotal,
       expense_invoices_isk: expenseInvoicesTotal,
       overheads_isk: overheadsTotal,
+      founder_salaries_isk: founderSalaries.amount_isk,
       expenses_isk: expensesTotal,
       net_isk: incomeTotal - expensesTotal,
     },
@@ -511,6 +529,13 @@ export function reportToCsv(report: MonthlyReport): string {
   }
   for (const a of report.expense_adjustments) {
     lines.push({ date: lastDay, type: "expense", category: "Leiðrétting", description: a.description, reference: "", amount_isk: a.amount_isk });
+  }
+  if (report.founder_salaries.amount_isk > 0) {
+    lines.push({
+      date: lastDay, type: "expense", category: "Laun eigenda",
+      description: report.founder_salaries.note || "Laun eigenda (með launatengdum gjöldum)",
+      reference: "", amount_isk: report.founder_salaries.amount_isk,
+    });
   }
 
   const header = ["Dagsetning", "Tegund", "Flokkur", "Lýsing", "Tilvísun", "Upphæð ISK"];
@@ -1426,6 +1451,7 @@ export function reportEmailBodyHtml(report: MonthlyReport): string {
       ${row(`Læknisviðtöl (${report.cogs.doctor_interviews.count} × ${report.cogs.doctor_interviews.rate_isk} kr.)`, "−" + fmt(report.cogs.doctor_interviews.total_isk))}
       ${row("Kostnaðarreikningar", "−" + fmt(t.expense_invoices_isk))}
       ${row("Fastur kostnaður (kerfi/áskriftir)", "−" + fmt(t.overheads_isk))}
+      ${t.founder_salaries_isk > 0 ? row("Laun eigenda (með launatengdum gjöldum)", "−" + fmt(t.founder_salaries_isk)) : ""}
       ${row("Gjöld alls", "−" + fmt(t.expenses_isk), true)}
       ${row("Afkoma mánaðar", (t.net_isk < 0 ? "−" : "") + fmt(Math.abs(t.net_isk)), true)}
     </table>

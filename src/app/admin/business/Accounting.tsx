@@ -44,7 +44,8 @@ interface Report {
     total_isk: number;
   };
   expense_adjustments: Array<{ id: string; description: string; amount_isk: number }>;
-  totals: { income_isk: number; expense_invoices_isk: number; overheads_isk: number; expenses_isk: number; net_isk: number };
+  founder_salaries?: { amount_isk: number; note: string | null; is_set: boolean };
+  totals: { income_isk: number; expense_invoices_isk: number; overheads_isk: number; founder_salaries_isk?: number; expenses_isk: number; net_isk: number };
   warnings: string[];
 }
 
@@ -156,6 +157,8 @@ interface CostRate {
 
 const isk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
 const currentMonth = () => new Date().toISOString().slice(0, 7);
+const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthLabel = (key: string) => MONTHS_EN[parseInt(key.slice(5, 7), 10) - 1] || key;
 
 function Section({ title, hint, children, action }: {
   title: string; hint?: string; children: React.ReactNode; action?: React.ReactNode;
@@ -181,6 +184,116 @@ const inputCls = "text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white
 const btnXs = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50";
 const btnXsActive = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50";
 const selXs = "text-[11px] border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500";
+
+// Founders' salaries, editable month by month. Each month holds a total
+// company cost (gross + employer on-costs); a month left unset counts as 0.
+function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged }: {
+  authedFetch: (path: string, init?: RequestInit) => Promise<Response>;
+  initialYear: number;
+  currentMonthKey: string;
+  onChanged: () => void;
+}) {
+  const [year, setYear] = useState(initialYear);
+  const [data, setData] = useState<{ default_isk: number; months: Array<{ month: string; amount_isk: number; is_set: boolean; note: string | null }> } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async () => {
+    const res = await authedFetch(`/api/admin/accounting/founder-salaries?year=${year}`);
+    setData(res.ok ? await res.json() : null);
+  }, [authedFetch, year]);
+
+  useEffect(() => { queueMicrotask(load); }, [load]);
+
+  const setMonthAmount = async (monthKey: string, amount: number | null) => {
+    setBusy(true); setMsg("");
+    const res = await authedFetch(`/api/admin/accounting/founder-salaries`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month: monthKey, amount_isk: amount }),
+    });
+    if (!res.ok) setMsg("Save failed.");
+    await load();
+    onChanged();
+    setBusy(false);
+  };
+
+  const editDefault = async () => {
+    if (!data) return;
+    const v = prompt("Default monthly founders' salary (ISK) — pre-fill suggestion only:", String(data.default_isk));
+    if (v === null) return;
+    const n = parseInt(v.replace(/[^\d]/g, ""), 10);
+    if (!Number.isInteger(n) || n < 0) { setMsg("Bad amount."); return; }
+    setBusy(true);
+    const res = await authedFetch(`/api/admin/accounting/plan`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "founder_salary_default_isk", value: n }),
+    });
+    if (!res.ok) setMsg("Save failed.");
+    await load();
+    setBusy(false);
+  };
+
+  const def = data?.default_isk ?? 1600000;
+  const yearTotal = (data?.months || []).reduce((s, m) => s + m.amount_isk, 0);
+
+  return (
+    <div className="space-y-2 text-xs text-gray-700">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <button type="button" className={btnXs} onClick={() => setYear(year - 1)} disabled={busy}>←</button>
+          <span className="font-semibold text-gray-800">{year}</span>
+          <button type="button" className={btnXs} onClick={() => setYear(year + 1)} disabled={busy}>→</button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500">Default / month</span>
+          <span className="font-medium tabular-nums">{isk(def)}</span>
+          <button type="button" className={btnXs} onClick={editDefault} disabled={busy}>Edit</button>
+        </div>
+      </div>
+      <table className="w-full border-collapse">
+        <tbody>
+          {(data?.months || []).map((m) => {
+            const isCurrent = m.month === currentMonthKey;
+            return (
+              <tr key={m.month} className={`border-b border-gray-50 ${isCurrent ? "bg-emerald-50/40" : ""}`}>
+                <td className="py-1">
+                  <span className="font-medium text-gray-800">{monthLabel(m.month)}</span>
+                  {isCurrent ? <span className="text-emerald-600"> · this month</span> : null}
+                </td>
+                <td className="py-1 text-right tabular-nums w-28">
+                  {m.is_set ? <span className="font-medium text-gray-900">{isk(m.amount_isk)}</span> : <span className="text-gray-400">not set</span>}
+                </td>
+                <td className="py-1 text-right whitespace-nowrap w-44">
+                  <button
+                    type="button" className={btnXs} disabled={busy}
+                    onClick={() => {
+                      const v = prompt(`${monthLabel(m.month)} ${m.month.slice(0, 4)} — founders' salary total for the company (ISK):`, String(m.is_set ? m.amount_isk : def));
+                      if (v === null) return;
+                      const n = parseInt(v.replace(/[^\d]/g, ""), 10);
+                      if (!Number.isInteger(n) || n < 0) { setMsg("Bad amount."); return; }
+                      setMonthAmount(m.month, n);
+                    }}
+                  >{m.is_set ? "Edit" : "Set"}</button>{" "}
+                  {m.is_set ? (
+                    <button type="button" className={btnXs} disabled={busy} onClick={() => setMonthAmount(m.month, null)}>Clear</button>
+                  ) : (
+                    <button type="button" className={btnXs} disabled={busy} onClick={() => setMonthAmount(m.month, def)}>Use default</button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+          <tr className="font-semibold text-gray-900">
+            <td className="py-1.5">{year} total</td>
+            <td className="py-1.5 text-right tabular-nums">{isk(yearTotal)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      {msg ? <div className="text-amber-700">{msg}</div> : null}
+    </div>
+  );
+}
 
 export default function Accounting() {
   const [month, setMonth] = useState(currentMonth());
@@ -1356,6 +1469,19 @@ export default function Accounting() {
             <button className={btn} onClick={addOverhead} disabled={busy !== null}>Add overhead</button>
           </div>
         </div>
+      </Section>
+
+      {/* Founders' salaries */}
+      <Section
+        title="Founders' salaries"
+        hint="Total monthly company cost for the two founders (gross + employer on-costs: pension, tryggingagjald, vacation). Editable per month; a month left unset counts as 0. Flows into the month's expenses and the Plan tab's burn / runway."
+      >
+        <FounderSalaries
+          authedFetch={authedFetch}
+          initialYear={Number(month.slice(0, 4))}
+          currentMonthKey={month}
+          onChanged={refresh}
+        />
       </Section>
 
       {/* Adjustments */}

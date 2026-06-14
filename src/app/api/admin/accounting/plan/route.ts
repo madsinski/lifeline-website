@@ -33,6 +33,7 @@ const SETTING_KEYS = [
   "cash_balance_isk", "other_liabilities_isk", "total_shares",
   "healthchecks_offset", "subscribers_offset", "internal_debt_thorvaldur_isk",
   "internal_reimb_deferred", "internal_manual_deferred", "external_biody_deferred",
+  "founder_salary_default_isk",
 ] as const;
 
 async function getSettings(): Promise<Record<string, number>> {
@@ -142,7 +143,7 @@ export async function GET(req: NextRequest) {
     const receivables = overview.rows.reduce((s, r) => s + (r.outstanding_isk || 0), 0);
     const doctorAccrued = Math.max(overview.doctor_pool.performed_isk - overview.doctor_pool.paid_isk, 0);
     const reimbursementsOwed = overview.reimbursements.reduce((s, r) => s + r.total_isk, 0);
-    const burn = monthReport.totals.overheads_isk || 0;
+    const burn = (monthReport.totals.overheads_isk || 0) + (monthReport.totals.founder_salaries_isk || 0);
     const capacity = Math.round(
       settings.cash_balance_isk + receivables - settings.other_liabilities_isk - doctorAccrued - reimbursementsOwed,
     );
