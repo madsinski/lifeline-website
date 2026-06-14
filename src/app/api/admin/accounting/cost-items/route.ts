@@ -87,6 +87,9 @@ export async function POST(req: NextRequest) {
     }
     row.head_count = n;
   }
+  if (body.deferred !== undefined) {
+    row.deferred = Boolean(body.deferred);
+  }
   const { data, error } = await supabaseAdmin
     .from("company_cost_item_status")
     .upsert(row, { onConflict: "company_id,category" })

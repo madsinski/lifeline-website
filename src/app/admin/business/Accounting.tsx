@@ -15,7 +15,7 @@
 // Download CSV / Send to accountant produce the same DK-importable
 // semicolon CSV the monthly cron (1st, 07:00 UTC) emails automatically.
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -86,13 +86,18 @@ interface PositionData {
     health_check_lines: Array<{
       company_id: string; company_name: string; category: "measurements" | "blood_tests"; label: string;
       provider: string | null; head_count: number; head_count_overridden: boolean; rate_isk: number;
-      expected_isk: number; status: string; paid: boolean; applicable: boolean; unpaid_isk: number;
+      expected_isk: number; status: string; paid: boolean; applicable: boolean; deferred: boolean; unpaid_isk: number;
     }>;
     health_check_expected_isk: number;
     health_check_paid_isk: number;
     biody_isk: number;
+    biody_deferred: boolean;
     total_isk: number;
+    active_isk: number;
+    deferred_isk: number;
   };
+  total_owed_now_isk: number;
+  total_deferred_isk: number;
   net_position_isk: number;
 }
 
@@ -172,6 +177,10 @@ function Section({ title, hint, children, action }: {
 const btn = "text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50";
 const btnPrimary = "text-xs font-medium px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50";
 const inputCls = "text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500";
+// Compact controls for the dense Financial-position table.
+const btnXs = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50";
+const btnXsActive = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50";
+const selXs = "text-[11px] border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500";
 
 export default function Accounting() {
   const [month, setMonth] = useState(currentMonth());
@@ -561,92 +570,115 @@ export default function Accounting() {
       {position ? (
         <Section
           title="Financial position"
-          hint="What we hold and what we owe — internal (founders/staff who fronted costs) and external (unpaid health-check costs + Biody)."
+          hint="What we hold and what we owe. Defer any debt line to move it out of the net-position total into the Deferred column."
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-3 text-xs text-gray-700">
-            {/* Holdings */}
-            <div className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Holdings</div>
-              <div className="flex justify-between">
-                <span>
-                  Bank balance{" "}
-                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("cash_balance_isk", "Bank balance", position.cash)}>edit</button>
-                </span>
-                <span className="font-medium">{isk(position.cash)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total revenue to date</span>
-                <span className="font-medium text-emerald-700">{isk(position.revenue)}</span>
-              </div>
+          {/* Holdings */}
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs text-gray-700 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">Bank balance</span>
+              <span className="font-semibold text-gray-900 tabular-nums">{isk(position.cash)}</span>
+              <button type="button" className={btnXs} onClick={() => editPosition("cash_balance_isk", "Bank balance", position.cash)}>Edit</button>
             </div>
-            {/* Debt — two amount columns: Owed now vs Deferred (internal
-                buckets can be deferred as founder loans). */}
-            <div className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Debt</div>
-              <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 items-baseline">
-                <div></div>
-                <div className="w-20 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">Owed now</div>
-                <div className="w-20 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">Deferred</div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">Total revenue to date</span>
+              <span className="font-semibold text-emerald-700 tabular-nums">{isk(position.revenue)}</span>
+            </div>
+          </div>
 
+          {/* Debt table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-gray-700 border-collapse">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+                  <th className="text-left font-semibold py-1.5">Liability</th>
+                  <th className="text-right font-semibold py-1.5 w-28">Owed now</th>
+                  <th className="text-right font-semibold py-1.5 w-28">Deferred</th>
+                  <th className="text-right font-semibold py-1.5 w-44">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                 {/* Internal */}
-                <div className="col-span-3 font-medium text-gray-500 pt-0.5">Internal (founders / staff)</div>
+                <tr>
+                  <td colSpan={4} className="pt-2.5 pb-0.5 font-semibold text-gray-500">Internal · founders / staff</td>
+                </tr>
                 {position.internal.reimb_total_isk > 0 ? (
-                  <>
-                    <div className="pl-3">
-                      {position.internal.reimbursements.length
-                        ? position.internal.reimbursements.map((r) => r.name).join(", ")
-                        : "Out-of-pocket"}{" "}
-                      <span className="text-gray-400">(Future Medical Systems)</span>{" "}
-                      <button className="text-emerald-700 hover:underline" onClick={() => toggleDefer("internal_reimb_deferred", !position.internal.reimb_deferred)}>
-                        {position.internal.reimb_deferred ? "↩ activate" : "defer →"}
+                  <tr>
+                    <td className="py-1">
+                      <span className="font-medium text-gray-800">
+                        {position.internal.reimbursements.length
+                          ? position.internal.reimbursements.map((r) => r.name).join(", ")
+                          : "Out-of-pocket"}
+                      </span>
+                      <span className="text-gray-400"> · Future Medical Systems</span>
+                    </td>
+                    <td className="text-right tabular-nums">{position.internal.reimb_deferred ? "—" : isk(position.internal.reimb_total_isk)}</td>
+                    <td className="text-right tabular-nums text-gray-400">{position.internal.reimb_deferred ? isk(position.internal.reimb_total_isk) : "—"}</td>
+                    <td className="text-right">
+                      <button type="button" className={position.internal.reimb_deferred ? btnXsActive : btnXs}
+                        onClick={() => toggleDefer("internal_reimb_deferred", !position.internal.reimb_deferred)}>
+                        {position.internal.reimb_deferred ? "Activate" : "Defer"}
                       </button>
-                    </div>
-                    <div className="w-20 text-right">{position.internal.reimb_deferred ? "—" : isk(position.internal.reimb_total_isk)}</div>
-                    <div className="w-20 text-right text-gray-400">{position.internal.reimb_deferred ? isk(position.internal.reimb_total_isk) : "—"}</div>
-                  </>
+                    </td>
+                  </tr>
                 ) : null}
-                <div className="pl-3">
-                  {position.internal.manual_label}{" "}
-                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("internal_debt_thorvaldur_isk", position.internal.manual_label, position.internal.manual_isk)}>edit</button>{" "}
-                  <button className="text-emerald-700 hover:underline" onClick={() => toggleDefer("internal_manual_deferred", !position.internal.manual_deferred)}>
-                    {position.internal.manual_deferred ? "↩ activate" : "defer →"}
-                  </button>
-                </div>
-                <div className="w-20 text-right">{position.internal.manual_deferred ? "—" : isk(position.internal.manual_isk)}</div>
-                <div className="w-20 text-right text-gray-400">{position.internal.manual_deferred ? isk(position.internal.manual_isk) : "—"}</div>
-                <div className="pl-3 font-medium">Internal subtotal</div>
-                <div className="w-20 text-right font-medium text-amber-600">{isk(position.internal.active_isk)}</div>
-                <div className="w-20 text-right font-medium text-gray-400">{isk(position.internal.deferred_isk)}</div>
+                <tr>
+                  <td className="py-1"><span className="font-medium text-gray-800">{position.internal.manual_label}</span></td>
+                  <td className="text-right tabular-nums">{position.internal.manual_deferred ? "—" : isk(position.internal.manual_isk)}</td>
+                  <td className="text-right tabular-nums text-gray-400">{position.internal.manual_deferred ? isk(position.internal.manual_isk) : "—"}</td>
+                  <td className="text-right whitespace-nowrap">
+                    <button type="button" className={btnXs} onClick={() => editPosition("internal_debt_thorvaldur_isk", position.internal.manual_label, position.internal.manual_isk)}>Edit</button>{" "}
+                    <button type="button" className={position.internal.manual_deferred ? btnXsActive : btnXs}
+                      onClick={() => toggleDefer("internal_manual_deferred", !position.internal.manual_deferred)}>
+                      {position.internal.manual_deferred ? "Activate" : "Defer"}
+                    </button>
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100 font-medium">
+                  <td className="py-1 text-gray-500">Internal subtotal</td>
+                  <td className="text-right tabular-nums text-amber-600">{isk(position.internal.active_isk)}</td>
+                  <td className="text-right tabular-nums text-gray-400">{isk(position.internal.deferred_isk)}</td>
+                  <td></td>
+                </tr>
 
-                {/* External — expected health-check supplier costs per
-                    company (head count × rate), each paid or unpaid + Biody */}
-                <div className="col-span-3 font-medium text-gray-500 pt-1">External</div>
-                <div className="col-span-3 pl-3 text-[11px] text-gray-400">
-                  Expected health-check costs · measurements {isk(2000)}/head, blood tests {isk(9000)} Sameind / {isk(12500)} Heilsugæslan
-                </div>
+                {/* External */}
+                <tr>
+                  <td colSpan={4} className="pt-3 pb-0.5 font-semibold text-gray-500">
+                    External · health-check supplier costs
+                    <span className="font-normal text-gray-400"> — measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</span>
+                  </td>
+                </tr>
                 {position.external.health_check_lines.length ? (
                   position.external.health_check_lines.map((l) => {
                     const sel = l.paid ? "paid" : !l.applicable ? "na" : "unpaid";
-                    const muted = l.paid || !l.applicable;
+                    const showDefer = l.applicable && !l.paid; // only a real unpaid debt can be deferred
                     return (
-                      <Fragment key={`${l.company_id}:${l.category}`}>
-                        <div className={`pl-3 ${muted ? "text-gray-400" : ""}`}>
-                          <span className="font-medium">{l.company_name}</span> · {l.label}
-                          <span className="text-gray-400">
-                            {" "}{l.head_count}×{isk(l.rate_isk)}{l.provider ? ` ${l.provider}` : ""}{" "}
-                            <button
-                              type="button" className="text-gray-300 hover:text-emerald-700"
-                              title="Override the head count for this company (empty = roster headcount)"
-                              onClick={() => {
-                                const v = prompt(`${l.company_name} — ${l.label}: number of people (empty = roster headcount):`, String(l.head_count));
-                                if (v === null) return;
-                                const t = v.replace(/[^\d]/g, "");
-                                saveCostItem(l.company_id, l.category, { head_count: t === "" ? null : parseInt(t, 10) });
-                              }}
-                            >✎</button>
-                          </span>{" "}
+                      <tr key={`${l.company_id}:${l.category}`} className="align-top">
+                        <td className="py-1">
+                          <span className="font-medium text-gray-800">{l.company_name}</span>
+                          <span className="text-gray-500"> · {l.label}</span>
+                          <span className="text-gray-400"> · {l.head_count}×{isk(l.rate_isk)}{l.provider ? ` ${l.provider}` : ""}</span>
+                          <button
+                            type="button" className="ml-1 text-gray-300 hover:text-emerald-700"
+                            title="Override the head count for this company (empty = roster headcount)"
+                            onClick={() => {
+                              const v = prompt(`${l.company_name} — ${l.label}: number of people (empty = roster headcount):`, String(l.head_count));
+                              if (v === null) return;
+                              const t = v.replace(/[^\d]/g, "");
+                              saveCostItem(l.company_id, l.category, { head_count: t === "" ? null : parseInt(t, 10) });
+                            }}
+                          >✎</button>
+                        </td>
+                        <td className="text-right tabular-nums">
+                          {l.paid ? <span className="text-emerald-600">paid</span>
+                            : !l.applicable ? <span className="text-gray-300">n/a</span>
+                            : l.deferred ? "—" : isk(l.unpaid_isk)}
+                        </td>
+                        <td className="text-right tabular-nums text-gray-400">
+                          {showDefer && l.deferred ? isk(l.unpaid_isk) : "—"}
+                        </td>
+                        <td className="text-right whitespace-nowrap">
                           <select
-                            className="text-[10px] border border-gray-200 rounded px-1 py-0 bg-white text-gray-600 align-middle"
+                            className={selXs}
                             value={sel}
                             onChange={(e) => {
                               const v = e.target.value;
@@ -654,48 +686,61 @@ export default function Accounting() {
                               saveCostItem(l.company_id, l.category, { status });
                             }}
                           >
-                            <option value="unpaid">unpaid</option>
-                            <option value="paid">paid</option>
-                            <option value="na">n/a</option>
-                          </select>
-                        </div>
-                        <div className="w-20 text-right">
-                          {l.paid ? <span className="text-emerald-600">paid</span>
-                            : !l.applicable ? <span className="text-gray-300">n/a</span>
-                            : isk(l.unpaid_isk)}
-                        </div>
-                        <div className="w-20 text-right text-gray-300">—</div>
-                      </Fragment>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
+                            <option value="na">N/A</option>
+                          </select>{" "}
+                          {showDefer ? (
+                            <button type="button" className={l.deferred ? btnXsActive : btnXs}
+                              onClick={() => saveCostItem(l.company_id, l.category, { deferred: !l.deferred })}>
+                              {l.deferred ? "Activate" : "Defer"}
+                            </button>
+                          ) : null}
+                        </td>
+                      </tr>
                     );
                   })
                 ) : (
-                  <>
-                    <div className="pl-3 text-gray-400">No companies set up for health-check costs yet</div>
-                    <div className="w-20 text-right text-gray-300">—</div>
-                    <div className="w-20 text-right text-gray-300">—</div>
-                  </>
+                  <tr><td colSpan={4} className="py-1 text-gray-400">No companies set up for health-check costs yet</td></tr>
                 )}
-                <div className="pl-3 font-medium">Health-check subtotal (unpaid)</div>
-                <div className="w-20 text-right font-medium text-amber-600">{isk(position.external.health_checks_outstanding_isk)}</div>
-                <div className="w-20 text-right text-gray-300">—</div>
-                <div className="pl-3">
-                  Biody machines{" "}
-                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("other_liabilities_isk", "Biody machines liability", position.external.biody_isk)}>edit</button>
-                </div>
-                <div className="w-20 text-right">{isk(position.external.biody_isk)}</div>
-                <div className="w-20 text-right text-gray-300">—</div>
-                <div className="pl-3 font-medium">External subtotal</div>
-                <div className="w-20 text-right font-medium text-amber-600">{isk(position.external.total_isk)}</div>
-                <div className="w-20 text-right text-gray-300">—</div>
-              </div>
-            </div>
+                {/* Biody */}
+                <tr>
+                  <td className="py-1"><span className="font-medium text-gray-800">Biody machines</span></td>
+                  <td className="text-right tabular-nums">{position.external.biody_deferred ? "—" : isk(position.external.biody_isk)}</td>
+                  <td className="text-right tabular-nums text-gray-400">{position.external.biody_deferred ? isk(position.external.biody_isk) : "—"}</td>
+                  <td className="text-right whitespace-nowrap">
+                    <button type="button" className={btnXs} onClick={() => editPosition("other_liabilities_isk", "Biody machines liability", position.external.biody_isk)}>Edit</button>{" "}
+                    <button type="button" className={position.external.biody_deferred ? btnXsActive : btnXs}
+                      onClick={() => toggleDefer("external_biody_deferred", !position.external.biody_deferred)}>
+                      {position.external.biody_deferred ? "Activate" : "Defer"}
+                    </button>
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100 font-medium">
+                  <td className="py-1 text-gray-500">External subtotal</td>
+                  <td className="text-right tabular-nums text-amber-600">{isk(position.external.active_isk)}</td>
+                  <td className="text-right tabular-nums text-gray-400">{isk(position.external.deferred_isk)}</td>
+                  <td></td>
+                </tr>
+
+                {/* Grand total */}
+                <tr className="border-t-2 border-gray-200 font-semibold text-gray-800">
+                  <td className="py-1.5">Total debt</td>
+                  <td className="text-right tabular-nums text-amber-700">{isk(position.total_owed_now_isk)}</td>
+                  <td className="text-right tabular-nums text-gray-500">{isk(position.total_deferred_isk)}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+
+          {/* Net position */}
           <div className="mt-3 pt-2 border-t border-gray-200 flex items-center justify-between text-sm">
             <span className="text-gray-600">
-              Net position (bank − internal owed now − external)
-              {position.internal.deferred_isk > 0 ? (
-                <span className="text-gray-400"> · {isk(position.internal.deferred_isk)} deferred</span>
-              ) : null}
+              Net position{" "}
+              <span className="text-gray-400">
+                (bank − owed now{position.total_deferred_isk > 0 ? `; ${isk(position.total_deferred_isk)} deferred` : ""})
+              </span>
             </span>
             <span className={`font-bold ${position.net_position_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>{isk(position.net_position_isk)}</span>
           </div>

@@ -63,10 +63,13 @@ export async function GET(req: NextRequest) {
         outstanding_isk: l.unpaid_isk,
       }));
 
-    // Defer flags — a deferred bucket is a founder loan we're in no hurry to
-    // repay; it sits in its own column and drops out of net position.
+    // Defer flags — a deferred line is a debt we're in no hurry to settle;
+    // it sits in its own column and drops out of net position. Internal
+    // buckets + Biody use numeric settings; per-company health-check lines
+    // carry their own `deferred` flag (computed in computeHealthCheckDebt).
     const reimbDeferred = (s.internal_reimb_deferred || 0) >= 1;
     const manualDeferred = (s.internal_manual_deferred || 0) >= 1;
+    const biodyDeferred = (s.external_biody_deferred || 0) >= 1;
 
     // Founders/staff who fronted costs (out-of-pocket cost invoices not
     // yet reimbursed) — Victor's Future Medical Systems invoices land here.
@@ -76,7 +79,15 @@ export async function GET(req: NextRequest) {
     const internalTotal = reimbTotal + victorManual;
     const internalDeferred = (reimbDeferred ? reimbTotal : 0) + (manualDeferred ? victorManual : 0);
     const internalActive = internalTotal - internalDeferred;
+
+    // External: per-company health-check lines (each individually deferrable)
+    // + the Biody liability (its own defer flag).
     const externalTotal = healthChecksOutstanding + biody;
+    const externalDeferred = hcDebt.unpaid_deferred_isk + (biodyDeferred ? biody : 0);
+    const externalActive = externalTotal - externalDeferred;
+
+    const totalDeferred = internalDeferred + externalDeferred;
+    const totalOwedNow = internalActive + externalActive;
 
     return NextResponse.json({
       cash,
@@ -97,7 +108,7 @@ export async function GET(req: NextRequest) {
         health_checks_outstanding_isk: healthChecksOutstanding,
         health_check_breakdown: healthCheckBreakdown,
         // Full per-company × cost-line list (paid + unpaid + N/A) so the
-        // panel can show and edit each company's status / head count.
+        // panel can show and edit each company's status / head count / defer.
         health_check_lines: hcDebt.lines.map((l) => ({
           company_id: l.company_id,
           company_name: l.company_name,
@@ -111,14 +122,20 @@ export async function GET(req: NextRequest) {
           status: l.status,
           paid: l.paid,
           applicable: l.applicable,
+          deferred: l.deferred,
           unpaid_isk: l.unpaid_isk,
         })),
         health_check_expected_isk: hcDebt.expected_total_isk,
         health_check_paid_isk: hcDebt.paid_total_isk,
         biody_isk: biody,
+        biody_deferred: biodyDeferred,
         total_isk: externalTotal,
+        active_isk: externalActive,
+        deferred_isk: externalDeferred,
       },
-      net_position_isk: cash - internalActive - externalTotal,
+      total_owed_now_isk: totalOwedNow,
+      total_deferred_isk: totalDeferred,
+      net_position_isk: cash - totalOwedNow,
     });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

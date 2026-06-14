@@ -923,14 +923,17 @@ export interface HealthCheckCostLine {
   status: string;      // raw company_cost_item_status.status
   paid: boolean;       // status === 'covered'
   applicable: boolean; // status !== 'not_applicable'
+  deferred: boolean;   // moved to the Deferred column, out of net position
   unpaid_isk: number;  // applicable && !paid ? expected : 0
 }
 
 export interface HealthCheckDebt {
   lines: HealthCheckCostLine[];
-  expected_total_isk: number; // all applicable lines
+  expected_total_isk: number;       // all applicable lines
   paid_total_isk: number;
-  unpaid_total_isk: number;   // the external health-check debt
+  unpaid_total_isk: number;         // the full external health-check debt
+  unpaid_active_isk: number;        // unpaid AND not deferred (hits net position)
+  unpaid_deferred_isk: number;      // unpaid AND deferred
   measurement_rate_isk: number;
   blood_rates: Record<string, number>;
 }
@@ -973,7 +976,7 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
     return total;
   };
 
-  type StatusRow = { company_id: string; category: string; status?: string | null; provider?: string | null; unit_price_isk?: number | null; head_count?: number | null };
+  type StatusRow = { company_id: string; category: string; status?: string | null; provider?: string | null; unit_price_isk?: number | null; head_count?: number | null; deferred?: boolean | null };
   const statusMap = new Map<string, StatusRow>();
   for (const s of (statusRes.data || []) as StatusRow[]) {
     statusMap.set(`${s.company_id}:${s.category}`, s);
@@ -1005,6 +1008,7 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
           : rates[item.rateKey] || 0;
       const expected = applicable ? head * rate : 0;
       const paid = status === "covered";
+      const deferred = Boolean(st?.deferred);
       const unpaid = applicable && !paid ? expected : 0;
       lines.push({
         company_id: c.id,
@@ -1019,6 +1023,7 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
         status,
         paid,
         applicable,
+        deferred,
         unpaid_isk: unpaid,
       });
     }
@@ -1031,6 +1036,7 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
 
   const expectedTotal = lines.reduce((s, l) => s + l.expected_isk, 0);
   const unpaidTotal = lines.reduce((s, l) => s + l.unpaid_isk, 0);
+  const unpaidDeferred = lines.filter((l) => l.deferred).reduce((s, l) => s + l.unpaid_isk, 0);
   const paidTotal = lines.filter((l) => l.paid).reduce((s, l) => s + l.expected_isk, 0);
 
   return {
@@ -1038,6 +1044,8 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
     expected_total_isk: expectedTotal,
     paid_total_isk: paidTotal,
     unpaid_total_isk: unpaidTotal,
+    unpaid_active_isk: unpaidTotal - unpaidDeferred,
+    unpaid_deferred_isk: unpaidDeferred,
     measurement_rate_isk: rates["measurement"] || 0,
     blood_rates: BLOOD_PROVIDER_RATES,
   };
