@@ -176,7 +176,9 @@ export default function AdminPaymentsPage() {
     const received = sum("succeeded");
     const pending = sum("pending");
     const refunded = sum("refunded");
-    return { received, pending, refunded, net: received - refunded };
+    // Revenue = paid only (refunded payments count as 0). Invoiced =
+    // paid + still-outstanding (refunded/failed excluded).
+    return { received, pending, refunded, invoiced: received + pending };
   }, [rows, owner]);
 
   async function bulkDelete(opts: { all?: boolean }) {
@@ -319,10 +321,10 @@ export default function AdminPaymentsPage() {
       {/* Revenue summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {([
-          { label: "Revenue received", value: totals.received, tone: "text-emerald-700" },
+          { label: "Revenue (paid)", value: totals.received, tone: "text-emerald-700" },
           { label: "Outstanding", value: totals.pending, tone: totals.pending > 0 ? "text-amber-600" : "text-gray-900" },
-          { label: "Refunded", value: totals.refunded, tone: "text-gray-500" },
-          { label: "Net revenue", value: totals.net, tone: "text-gray-900" },
+          { label: "Refunded", value: totals.refunded, tone: "text-gray-400" },
+          { label: "Total invoiced", value: totals.invoiced, tone: "text-gray-900" },
         ] as const).map((t) => (
           <div key={t.label} className="rounded-xl border border-gray-200 bg-white px-4 py-3">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t.label}</div>
@@ -408,6 +410,7 @@ export default function AdminPaymentsPage() {
                 <th className="px-4 py-3 text-left font-medium">Paid by</th>
                 <th className="px-4 py-3 text-left font-medium">Description</th>
                 <th className="px-4 py-3 text-right font-medium">Amount</th>
+                <th className="px-4 py-3 text-right font-medium">Paid</th>
                 <th className="px-4 py-3 text-left font-medium">Provider</th>
                 <th className="px-4 py-3 text-right font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -480,6 +483,9 @@ export default function AdminPaymentsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-900 font-medium text-right whitespace-nowrap">
                     {p.amount_isk.toLocaleString("is-IS")} {p.currency}
+                  </td>
+                  <td className={`px-4 py-3 font-medium text-right whitespace-nowrap ${p.status === "succeeded" ? "text-emerald-700" : "text-gray-300"}`}>
+                    {(p.status === "succeeded" ? p.amount_isk : 0).toLocaleString("is-IS")} {p.currency}
                   </td>
                   <td className="px-4 py-3 text-gray-600 capitalize">{p.provider}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">{statusPill(p.status)}</td>
