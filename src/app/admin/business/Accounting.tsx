@@ -15,7 +15,7 @@
 // Download CSV / Send to accountant produce the same DK-importable
 // semicolon CSV the monthly cron (1st, 07:00 UTC) emails automatically.
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -69,8 +69,23 @@ interface ReimbursementRow {
 interface PositionData {
   cash: number;
   revenue: number;
-  internal: { reimbursements: Array<{ name: string; amount_isk: number }>; thorvaldur_isk: number; total_isk: number };
-  external: { health_checks_outstanding_isk: number; biody_isk: number; total_isk: number };
+  internal: {
+    reimbursements: Array<{ name: string; amount_isk: number }>;
+    reimb_total_isk: number;
+    reimb_deferred: boolean;
+    manual_isk: number;
+    manual_label: string;
+    manual_deferred: boolean;
+    total_isk: number;
+    active_isk: number;
+    deferred_isk: number;
+  };
+  external: {
+    health_checks_outstanding_isk: number;
+    health_check_breakdown: Array<{ key: string; label: string; outstanding_isk: number }>;
+    biody_isk: number;
+    total_isk: number;
+  };
   net_position_isk: number;
 }
 
@@ -236,6 +251,19 @@ export default function Accounting() {
     if (!Number.isFinite(value)) { setMsg("Not a number."); return; }
     const res = await authedFetch(`/api/admin/accounting/plan`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key, value }),
+    });
+    if (!res.ok) { setMsg("Save failed."); return; }
+    const posRes = await authedFetch(`/api/admin/accounting/position`);
+    setPosition(posRes.ok ? await posRes.json() : position);
+  }, [authedFetch, position]);
+
+  // Defer / un-defer an internal-debt bucket (founder loan we're in no hurry
+  // to repay). Stored as a numeric 0/1 setting; deferred amounts drop out of
+  // the net-position math and move to the Deferred column.
+  const toggleDefer = useCallback(async (key: string, next: boolean) => {
+    const res = await authedFetch(`/api/admin/accounting/plan`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value: next ? 1 : 0 }),
     });
     if (!res.ok) { setMsg("Save failed."); return; }
     const posRes = await authedFetch(`/api/admin/accounting/position`);
@@ -532,36 +560,82 @@ export default function Accounting() {
                 <span className="font-medium text-emerald-700">{isk(position.revenue)}</span>
               </div>
             </div>
-            {/* Debt */}
+            {/* Debt — two amount columns: Owed now vs Deferred (internal
+                buckets can be deferred as founder loans). */}
             <div className="space-y-1">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Debt</div>
-              <div className="font-medium text-gray-500 pt-0.5">Internal (founders / staff)</div>
-              {position.internal.reimbursements.map((r) => (
-                <div key={r.name} className="flex justify-between"><span className="pl-3">{r.name} (out-of-pocket)</span><span>{isk(r.amount_isk)}</span></div>
-              ))}
-              <div className="flex justify-between">
-                <span className="pl-3">
-                  Þorvaldur Arnarsson{" "}
-                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("internal_debt_thorvaldur_isk", "Owed to Þorvaldur Arnarsson", position.internal.thorvaldur_isk)}>edit</button>
-                </span>
-                <span>{isk(position.internal.thorvaldur_isk)}</span>
-              </div>
-              <div className="flex justify-between font-medium"><span className="pl-3">Internal total</span><span className="text-amber-600">{isk(position.internal.total_isk)}</span></div>
+              <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 items-baseline">
+                <div></div>
+                <div className="w-20 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">Owed now</div>
+                <div className="w-20 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">Deferred</div>
 
-              <div className="font-medium text-gray-500 pt-1">External</div>
-              <div className="flex justify-between"><span className="pl-3">Unpaid health-check costs (not yet invoiced)</span><span>{isk(position.external.health_checks_outstanding_isk)}</span></div>
-              <div className="flex justify-between">
-                <span className="pl-3">
+                {/* Internal */}
+                <div className="col-span-3 font-medium text-gray-500 pt-0.5">Internal (founders / staff)</div>
+                {position.internal.reimb_total_isk > 0 ? (
+                  <>
+                    <div className="pl-3">
+                      {position.internal.reimbursements.length
+                        ? position.internal.reimbursements.map((r) => r.name).join(", ")
+                        : "Out-of-pocket"}{" "}
+                      <span className="text-gray-400">(Future Medical Systems)</span>{" "}
+                      <button className="text-emerald-700 hover:underline" onClick={() => toggleDefer("internal_reimb_deferred", !position.internal.reimb_deferred)}>
+                        {position.internal.reimb_deferred ? "↩ activate" : "defer →"}
+                      </button>
+                    </div>
+                    <div className="w-20 text-right">{position.internal.reimb_deferred ? "—" : isk(position.internal.reimb_total_isk)}</div>
+                    <div className="w-20 text-right text-gray-400">{position.internal.reimb_deferred ? isk(position.internal.reimb_total_isk) : "—"}</div>
+                  </>
+                ) : null}
+                <div className="pl-3">
+                  {position.internal.manual_label}{" "}
+                  <button className="text-emerald-700 hover:underline" onClick={() => editPosition("internal_debt_thorvaldur_isk", position.internal.manual_label, position.internal.manual_isk)}>edit</button>{" "}
+                  <button className="text-emerald-700 hover:underline" onClick={() => toggleDefer("internal_manual_deferred", !position.internal.manual_deferred)}>
+                    {position.internal.manual_deferred ? "↩ activate" : "defer →"}
+                  </button>
+                </div>
+                <div className="w-20 text-right">{position.internal.manual_deferred ? "—" : isk(position.internal.manual_isk)}</div>
+                <div className="w-20 text-right text-gray-400">{position.internal.manual_deferred ? isk(position.internal.manual_isk) : "—"}</div>
+                <div className="pl-3 font-medium">Internal subtotal</div>
+                <div className="w-20 text-right font-medium text-amber-600">{isk(position.internal.active_isk)}</div>
+                <div className="w-20 text-right font-medium text-gray-400">{isk(position.internal.deferred_isk)}</div>
+
+                {/* External — itemised unpaid health-check costs + Biody */}
+                <div className="col-span-3 font-medium text-gray-500 pt-1">External</div>
+                <div className="col-span-3 pl-3 text-[11px] text-gray-400">Unpaid health-check costs (not yet invoiced)</div>
+                {position.external.health_check_breakdown.length ? (
+                  position.external.health_check_breakdown.map((b) => (
+                    <Fragment key={b.key}>
+                      <div className="pl-6">{b.label}</div>
+                      <div className="w-20 text-right">{isk(b.outstanding_isk)}</div>
+                      <div className="w-20 text-right text-gray-300">—</div>
+                    </Fragment>
+                  ))
+                ) : (
+                  <>
+                    <div className="pl-6 text-gray-400">All health-check costs invoiced</div>
+                    <div className="w-20 text-right text-gray-300">—</div>
+                    <div className="w-20 text-right text-gray-300">—</div>
+                  </>
+                )}
+                <div className="pl-3">
                   Biody machines{" "}
                   <button className="text-emerald-700 hover:underline" onClick={() => editPosition("other_liabilities_isk", "Biody machines liability", position.external.biody_isk)}>edit</button>
-                </span>
-                <span>{isk(position.external.biody_isk)}</span>
+                </div>
+                <div className="w-20 text-right">{isk(position.external.biody_isk)}</div>
+                <div className="w-20 text-right text-gray-300">—</div>
+                <div className="pl-3 font-medium">External subtotal</div>
+                <div className="w-20 text-right font-medium text-amber-600">{isk(position.external.total_isk)}</div>
+                <div className="w-20 text-right text-gray-300">—</div>
               </div>
-              <div className="flex justify-between font-medium"><span className="pl-3">External total</span><span className="text-amber-600">{isk(position.external.total_isk)}</span></div>
             </div>
           </div>
           <div className="mt-3 pt-2 border-t border-gray-200 flex items-center justify-between text-sm">
-            <span className="text-gray-600">Net position (bank − internal − external)</span>
+            <span className="text-gray-600">
+              Net position (bank − internal owed now − external)
+              {position.internal.deferred_isk > 0 ? (
+                <span className="text-gray-400"> · {isk(position.internal.deferred_isk)} deferred</span>
+              ) : null}
+            </span>
             <span className={`font-bold ${position.net_position_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>{isk(position.net_position_isk)}</span>
           </div>
         </Section>

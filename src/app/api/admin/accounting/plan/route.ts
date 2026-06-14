@@ -32,6 +32,7 @@ export const maxDuration = 60;
 const SETTING_KEYS = [
   "cash_balance_isk", "other_liabilities_isk", "total_shares",
   "healthchecks_offset", "subscribers_offset", "internal_debt_thorvaldur_isk",
+  "internal_reimb_deferred", "internal_manual_deferred",
 ] as const;
 
 async function getSettings(): Promise<Record<string, number>> {

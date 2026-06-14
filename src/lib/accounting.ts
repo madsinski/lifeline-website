@@ -922,6 +922,14 @@ export interface TotalsOverview {
     per_check_expected_isk: number;  // checks done × per-check cost
     per_check_recorded_isk: number;  // cost invoices in those three categories
     per_check_outstanding_isk: number; // expected − recorded (no invoice yet)
+    per_check_breakdown: Array<{      // itemised per component (blood/measurement/doctor)
+      key: string;
+      label: string;
+      rate_isk: number;
+      expected_isk: number;
+      recorded_isk: number;
+      outstanding_isk: number;
+    }>;
     manual_liabilities_isk: number;  // settings: Biody machines etc.
     outstanding_total_isk: number;   // per-check outstanding + manual + unreimbursed
     grand_total_isk: number;         // recorded + per-check outstanding + manual
@@ -1150,16 +1158,44 @@ export async function computeTotalsOverview(filter: OverviewFilter = {}): Promis
     + (hcB2cRes.count ?? 0)
     + (includeAllTimeOnly ? Math.round(settings.healthchecks_offset || 0) : 0);
   const perCheckExpected = checksDone * perCheck;
-  const perCheckRecorded = costRows
-    .filter((r) => ["blood_tests", "measurements", "doctor"].includes(r.category as string))
-    .reduce((s, r) => s + ((r.amount_isk as number) || 0), 0);
-  const perCheckOutstanding = Math.max(perCheckExpected - perCheckRecorded, 0);
-  if (perCheckOutstanding > 0) {
+  // Itemise the per-check accrual by component (blood test / measurement /
+  // doctor interview): each carries its own rate and its own already-recorded
+  // supplier invoices, so the outstanding is clamped per component (you can't
+  // net an over-recorded doctor cost against an under-recorded blood cost —
+  // different vendors).
+  const PER_CHECK_COMPONENTS: Array<{ key: string; rateKey: string; cat: string; label: string }> = [
+    { key: "blood_test", rateKey: "blood_test", cat: "blood_tests", label: "Blood tests" },
+    { key: "measurement", rateKey: "measurement", cat: "measurements", label: "Measurements (Biody)" },
+    { key: "doctor_interview", rateKey: "doctor_interview", cat: "doctor", label: "Doctor interviews" },
+  ];
+  const recordedByCat: Record<string, number> = {};
+  for (const r of costRows) {
+    const c = r.category as string;
+    recordedByCat[c] = (recordedByCat[c] || 0) + ((r.amount_isk as number) || 0);
+  }
+  const perCheckBreakdown = PER_CHECK_COMPONENTS.map((comp) => {
+    const rate = rates[comp.rateKey] || 0;
+    const expected = checksDone * rate;
+    const recorded = recordedByCat[comp.cat] || 0;
+    const outstanding = Math.max(expected - recorded, 0);
+    return {
+      key: comp.key,
+      label: comp.label,
+      rate_isk: rate,
+      expected_isk: expected,
+      recorded_isk: recorded,
+      outstanding_isk: outstanding,
+    };
+  });
+  const perCheckRecorded = perCheckBreakdown.reduce((s, b) => s + b.recorded_isk, 0);
+  const perCheckOutstanding = perCheckBreakdown.reduce((s, b) => s + b.outstanding_isk, 0);
+  for (const b of perCheckBreakdown) {
+    if (b.outstanding_isk <= 0) continue;
     costItems.push({
       date: "",
-      label: `Per-check costs not yet invoiced (${checksDone} checks × ${perCheck} − recorded)`,
+      label: `${b.label} not yet invoiced (${checksDone} × ${b.rate_isk}${b.recorded_isk ? ` − ${b.recorded_isk} recorded` : ""})`,
       category: "accrual",
-      amount_isk: perCheckOutstanding,
+      amount_isk: b.outstanding_isk,
       note: "outstanding",
     });
   }
@@ -1197,6 +1233,7 @@ export async function computeTotalsOverview(filter: OverviewFilter = {}): Promis
       per_check_expected_isk: perCheckExpected,
       per_check_recorded_isk: perCheckRecorded,
       per_check_outstanding_isk: perCheckOutstanding,
+      per_check_breakdown: perCheckBreakdown,
       manual_liabilities_isk: manualLiabilities,
       outstanding_total_isk: outstandingTotal,
       grand_total_isk: grandTotal,
