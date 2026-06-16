@@ -150,6 +150,10 @@ export const DECK_CSS = `
     radial-gradient(520px 440px at 2% 98%, rgba(207,20,123,.08), transparent 60%),
     var(--bg);
 }
+/* Fjarlækningar kickers stand on their own — no leading dash (the uppercase,
+   letter-spaced cyan label already reads as a kicker). */
+.lldeck[data-design="fjarlaekningar"] .kicker::before,
+.lldeck .brand-fjar .kicker::before{display:none;}
 
 /* World Class — red brand (#D03C3C) on near-black, for the Lifeline × World
    Class partnership deck. Per-slide via .brand-wc, deck-wide via data-design. */
