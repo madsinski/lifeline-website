@@ -96,6 +96,10 @@ interface PositionData {
       id: string; company_id: string | null; vendor: string | null; invoice_number: string | null;
       invoice_date: string | null; amount_isk: number | null; currency: string | null; status: string; category: string;
     }>;
+    health_check_categories: Array<{
+      company_id: string; company_name: string; category: string; label: string;
+      is_internal: boolean; head_count: number; rate_isk: number; expected_isk: number; unpaid_isk: number;
+    }>;
     health_check_expected_isk: number;
     health_check_paid_isk: number;
     biody_isk: number;
@@ -886,6 +890,7 @@ export default function Accounting() {
                     const invs = position.external.health_check_invoices.filter((v) => v.company_id === co.company_id);
                     const invoiced = invs.reduce((s, v) => s + (v.amount_isk || 0), 0);
                     const gap = co.expected_isk - invoiced;
+                    const cats = position.external.health_check_categories.filter((c) => c.company_id === co.company_id);
                     return (
                       <Fragment key={co.company_id}>
                         <tr className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
@@ -901,6 +906,19 @@ export default function Accounting() {
                           <td className="text-right tabular-nums text-gray-400">{co.unpaid_deferred_isk ? isk(co.unpaid_deferred_isk) : "—"}</td>
                           <td></td>
                         </tr>
+                        {cats.map((c) => (
+                          <tr key={`${co.company_id}:${c.category}`} className="border-b border-gray-50">
+                            <td className="py-0.5 pl-4">
+                              <span className="text-gray-300">↳ </span>
+                              <span className={c.is_internal ? "text-gray-500" : "text-gray-700"}>{c.label}</span>
+                              <span className="text-gray-400"> · {c.head_count}×{isk(c.rate_isk)} = {isk(c.expected_isk)}</span>
+                              {c.is_internal ? <span className="ml-1 text-[10px] text-gray-400">internal salary</span> : null}
+                            </td>
+                            <td className="text-right tabular-nums">{c.is_internal ? <span className="text-gray-400">{isk(c.expected_isk)}</span> : (c.unpaid_isk ? isk(c.unpaid_isk) : "—")}</td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+                        ))}
                         {invs.map((v) => (
                           <tr key={v.id} className="border-b border-gray-50">
                             <td className="py-0.5 pl-4">

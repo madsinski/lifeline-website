@@ -147,6 +147,7 @@ export async function GET(req: NextRequest) {
           unpaid_isk: l.unpaid_isk,
         })),
         health_check_company_subtotals: hcDebt.company_subtotals,
+        health_check_categories: hcDebt.company_categories,
         // Actual invoices behind the expected cost (grouped per company in the UI).
         health_check_invoices: hcInvoices.map((v) => ({
           id: v.id,

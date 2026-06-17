@@ -975,9 +975,26 @@ export interface HealthCheckCompanySubtotal {
   line_count: number;
 }
 
+// Per-company itemisation by cost component. Blood tests + measurements are the
+// external supplier costs (count toward the external debt); doctor is the
+// founders' interview salary cost (head × doctor_interview rate), shown for
+// visibility and flagged internal so it isn't double-counted as a supplier debt.
+export interface HealthCheckCategoryLine {
+  company_id: string;
+  company_name: string;
+  category: string;
+  label: string;
+  is_internal: boolean;
+  head_count: number;
+  rate_isk: number;
+  expected_isk: number;
+  unpaid_isk: number;
+}
+
 export interface HealthCheckDebt {
   lines: HealthCheckCostLine[];
   company_subtotals: HealthCheckCompanySubtotal[];
+  company_categories: HealthCheckCategoryLine[];
   expected_total_isk: number;       // all applicable lines
   paid_total_isk: number;
   unpaid_total_isk: number;         // the full external health-check debt
@@ -1118,9 +1135,48 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
   for (const [cid, set] of membersByCompany) subMap.get(cid)!.member_count = set.size;
   const companySubtotals = Array.from(subMap.values()).sort((a, b) => a.company_name.localeCompare(b.company_name));
 
+  // Per-company itemisation: blood tests + measurements (from the member lines)
+  // and the internal doctor-interview salary cost (head × doctor rate).
+  const doctorRate = rates["doctor_interview"] || 0;
+  const catAgg = new Map<string, { expected: number; unpaid: number; head: number }>();
+  for (const l of lines) {
+    const key = `${l.company_id}:${l.category}`;
+    const a = catAgg.get(key) || { expected: 0, unpaid: 0, head: 0 };
+    a.expected += l.expected_isk; a.unpaid += l.unpaid_isk; a.head += 1;
+    catAgg.set(key, a);
+  }
+  const companyCategories: HealthCheckCategoryLine[] = [];
+  for (const co of companySubtotals) {
+    const blood = catAgg.get(`${co.company_id}:blood_tests`);
+    const meas = catAgg.get(`${co.company_id}:measurements`);
+    companyCategories.push({
+      company_id: co.company_id, company_name: co.company_name,
+      category: "blood_tests", label: "Blood tests", is_internal: false,
+      head_count: blood?.head || 0, rate_isk: rates["blood_test"] || 0,
+      expected_isk: blood?.expected || 0, unpaid_isk: blood?.unpaid || 0,
+    });
+    companyCategories.push({
+      company_id: co.company_id, company_name: co.company_name,
+      category: "measurements", label: "Measurements", is_internal: false,
+      head_count: meas?.head || 0, rate_isk: rates["measurement"] || 0,
+      expected_isk: meas?.expected || 0, unpaid_isk: meas?.unpaid || 0,
+    });
+    const docSt = companyStatusMap.get(`${co.company_id}:doctor`);
+    const docStatus = (docSt?.status as string) || "auto";
+    const docApplicable = docStatus !== "not_applicable";
+    const docRate = docSt?.unit_price_isk != null ? Number(docSt.unit_price_isk) : doctorRate;
+    companyCategories.push({
+      company_id: co.company_id, company_name: co.company_name,
+      category: "doctor", label: "Doctor (salary)", is_internal: true,
+      head_count: co.member_count, rate_isk: docRate,
+      expected_isk: docApplicable ? co.member_count * docRate : 0, unpaid_isk: 0,
+    });
+  }
+
   return {
     lines,
     company_subtotals: companySubtotals,
+    company_categories: companyCategories,
     expected_total_isk: expectedTotal,
     paid_total_isk: paidTotal,
     unpaid_total_isk: unpaidTotal,
