@@ -35,7 +35,7 @@ interface CostInvoice {
   category: string; amount_isk: number; currency: string; invoice_number: string | null;
   invoice_date: string | null; client_count: number | null; company_id: string | null;
   company?: { name?: string } | null; direction?: string; file_url: string | null; ai_confidence: string | null;
-  split_group_id: string | null;
+  split_group_id: string | null; status?: string;
 }
 
 interface Alloc { company_id: string; amount: string; clients: string }
@@ -55,6 +55,9 @@ export default function CostPage() {
   const [defaultCategory, setDefaultCategory] = useState("");
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Dropped files wait here until the company-assignment popup is confirmed.
+  const [assignFiles, setAssignFiles] = useState<File[] | null>(null);
+  const [assignCompany, setAssignCompany] = useState("");
   const idRef = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -81,10 +84,19 @@ export default function CostPage() {
   }, [authedFetch, loadLedger]);
 
   // ── intake ──────────────────────────────────────────────────────
+  // Dropping/choosing files opens the company-assignment popup first; the
+  // files only enter the upload queue once a company (or auto-detect) is picked.
   const addFiles = useCallback((files: File[]) => {
     const pdfs = files.filter((f) => f.type === "application/pdf" || /\.(pdf|png|jpe?g)$/i.test(f.name));
-    setQueue((q) => [...q, ...pdfs.map((file) => ({ id: `f${idRef.current++}`, file, companyId: defaultCompany, category: defaultCategory, status: "queued" as const, info: "" }))]);
-  }, [defaultCompany, defaultCategory]);
+    if (pdfs.length === 0) return;
+    setAssignCompany(defaultCompany);
+    setAssignFiles(pdfs);
+  }, [defaultCompany]);
+  const confirmAssign = () => {
+    if (!assignFiles) return;
+    setQueue((q) => [...q, ...assignFiles.map((file) => ({ id: `f${idRef.current++}`, file, companyId: assignCompany, category: defaultCategory, status: "queued" as const, info: "" }))]);
+    setAssignFiles(null);
+  };
 
   const updateQ = (id: string, patch: Partial<QueueItem>) => setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
@@ -136,18 +148,41 @@ export default function CostPage() {
   const nmDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   const nextMonth = `${nmDate.getUTCFullYear()}-${String(nmDate.getUTCMonth() + 1).padStart(2, "0")}`;
   const nextMonthLabel = monthLabel(`${nextMonth}-01`);
-  const [recurring, setRecurring] = useState<Array<{ id: string; name: string; quantity: number; amount_usd: number | null; total_isk: number }>>([]);
+  const [overheads, setOverheads] = useState<Array<{ id: string; name: string; amount_isk: number | null; amount_usd: number | null; quantity: number; active: boolean; status: string; note: string | null }>>([]);
+  const [recTotalsById, setRecTotalsById] = useState<Record<string, number>>({});
   const [recurringTotal, setRecurringTotal] = useState(0);
+  const [expandedRec, setExpandedRec] = useState<string | null>(null);
   const [newRec, setNewRec] = useState({ name: "", amount: "" });
   const loadRecurring = useCallback(async () => {
-    const res = await authedFetch(`/api/admin/accounting/report?month=${nextMonth}`);
-    if (res.ok) {
-      const j = await res.json();
-      setRecurring(j.report?.overheads || []);
+    // Report gives the FX-converted total for ACTIVE items (next-month accrual);
+    // the overheads list gives every item incl. paused/cancelled + status.
+    const [repRes, ovRes] = await Promise.all([
+      authedFetch(`/api/admin/accounting/report?month=${nextMonth}`),
+      authedFetch(`/api/admin/accounting/overheads`),
+    ]);
+    if (repRes.ok) {
+      const j = await repRes.json();
+      const tot: Record<string, number> = {};
+      for (const o of (j.report?.overheads || [])) tot[o.id] = o.total_isk;
+      setRecTotalsById(tot);
       setRecurringTotal(j.report?.totals?.overheads_isk || 0);
     }
+    if (ovRes.ok) { const j = await ovRes.json(); setOverheads(j.overheads || []); }
   }, [authedFetch, nextMonth]);
   useEffect(() => { queueMicrotask(loadRecurring); }, [loadRecurring]);
+  const setOverheadStatus = async (id: string, status: string) => {
+    await authedFetch(`/api/admin/accounting/overheads`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
+    await loadRecurring();
+  };
+  // Invoices tied to a recurring item by vendor-name match (e.g. the "Medalia"
+  // overhead ↔ "Medalia ehf." invoices), newest first.
+  const invoicesForOverhead = (name: string) => {
+    const n = name.trim().toLowerCase().split(/\s+/)[0];
+    if (!n) return [] as CostInvoice[];
+    return (invoices || [])
+      .filter((r) => (r.vendor || "").toLowerCase().includes(n))
+      .sort((a, b) => (b.invoice_date || b.month).localeCompare(a.invoice_date || a.month));
+  };
   const addRecurring = async () => {
     const amount = parseInt(newRec.amount, 10);
     if (!newRec.name.trim() || !Number.isInteger(amount) || amount < 0) return;
@@ -289,16 +324,48 @@ export default function CostPage() {
         </div>
         <p className="text-[11px] text-gray-400 mb-2">Subscriptions billed to the card that don&apos;t always have an invoice (Vercel, Claude, Medalia, …). Projected for next month.</p>
         <div className="space-y-1">
-          {recurring.length === 0 ? <div className="text-xs text-gray-400">No recurring costs set.</div> : null}
-          {recurring.map((o) => (
-            <div key={o.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
-              <span>{o.name}{o.quantity > 1 ? ` ×${o.quantity}` : ""}{o.amount_usd != null ? <span className="text-gray-400"> · ${o.amount_usd} USD</span> : null}</span>
-              <span className="flex items-center gap-2">
-                <span className="font-medium">{isk(o.total_isk)}</span>
-                <button onClick={() => removeRecurring(o.id)} className="text-red-500 hover:text-red-700" title="Remove">×</button>
-              </span>
-            </div>
-          ))}
+          {overheads.length === 0 ? <div className="text-xs text-gray-400">No recurring costs set.</div> : null}
+          {overheads.map((o) => {
+            const total = recTotalsById[o.id] ?? (o.amount_isk != null ? o.amount_isk * o.quantity : 0);
+            const tied = invoicesForOverhead(o.name);
+            const open = expandedRec === o.id;
+            const dim = o.status !== "active";
+            return (
+              <div key={o.id} className="border-b border-gray-50 last:border-0 py-0.5">
+                <div className={`flex items-center justify-between gap-2 text-xs ${dim ? "text-gray-400" : "text-gray-700"}`}>
+                  <button onClick={() => setExpandedRec(open ? null : o.id)} className="flex items-center gap-1 min-w-0 text-left hover:text-emerald-700" title="Show invoice history">
+                    <span className="text-gray-300">{open ? "▾" : "▸"}</span>
+                    <span className={`truncate ${dim ? "line-through" : ""}`}>{o.name}{o.quantity > 1 ? ` ×${o.quantity}` : ""}</span>
+                    {o.amount_usd != null ? <span className="text-gray-400"> · ${o.amount_usd} USD</span> : null}
+                    {tied.length ? <span className="text-[10px] text-emerald-600"> · {tied.length} inv</span> : null}
+                  </button>
+                  <span className="flex items-center gap-2 whitespace-nowrap">
+                    <span className={dim ? "" : "font-medium"}>{total ? isk(total) : (o.amount_usd != null ? `$${o.amount_usd}` : "—")}</span>
+                    <select className={`${selCls} !py-0.5`} value={o.status} onChange={(e) => setOverheadStatus(o.id, e.target.value)} title="Status">
+                      <option value="active">Active</option>
+                      <option value="paused">Paused</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <button onClick={() => removeRecurring(o.id)} className="text-red-500 hover:text-red-700" title="Remove">×</button>
+                  </span>
+                </div>
+                {open ? (
+                  <div className="pl-5 pt-1 space-y-0.5">
+                    {tied.length === 0 ? <div className="text-[11px] text-gray-400">No invoices tied to this item yet — drop a {o.name} PDF above.</div> : tied.map((inv) => (
+                      <div key={inv.id} className="flex items-center justify-between gap-2 text-[11px] text-gray-600">
+                        <span className="truncate">{inv.invoice_date || inv.month.slice(0, 7)} · {inv.vendor}{inv.invoice_number ? ` · #${inv.invoice_number}` : ""}</span>
+                        <span className="flex items-center gap-2 whitespace-nowrap">
+                          <span className="font-medium text-gray-700">{isk(inv.amount_isk)}</span>
+                          <span className={inv.status === "paid" ? "text-emerald-600" : "text-amber-600"}>{inv.status === "paid" ? "paid" : "outstanding"}</span>
+                          {inv.file_url ? <a href={inv.file_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">PDF</a> : null}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
           <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-gray-100 mt-1">
             <input className={`${selCls} flex-1 min-w-[140px]`} placeholder="Recurring cost (e.g. Notion)" value={newRec.name} onChange={(e) => setNewRec({ ...newRec, name: e.target.value })} />
             <input className={`${selCls} w-28`} type="number" placeholder="ISK / month" value={newRec.amount} onChange={(e) => setNewRec({ ...newRec, amount: e.target.value })} />
@@ -330,6 +397,7 @@ export default function CostPage() {
           {months.map((m) => {
             const rows = byMonth.get(m)!;
             const monthTotal = rows.reduce((s, r) => s + r.amount_isk, 0);
+            const outstanding = rows.filter((r) => (r.status || "outstanding") !== "paid").reduce((s, r) => s + r.amount_isk, 0);
             const catTotals = CATEGORIES.map((c) => ({ c, t: rows.filter((r) => r.category === c.key).reduce((s, r) => s + r.amount_isk, 0) })).filter((x) => x.t > 0);
             return (
               <div key={m} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -339,6 +407,7 @@ export default function CostPage() {
                     {catTotals.map(({ c, t }) => (
                       <span key={c.key} className="text-[10px] text-gray-500">{c.label} <b className="text-gray-700">{isk(t)}</b></span>
                     ))}
+                    {outstanding > 0 ? <span className="text-[10px] rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-700">{isk(outstanding)} outstanding</span> : null}
                     <span className="text-sm font-bold text-gray-900 ml-1">{isk(monthTotal)}</span>
                   </span>
                 </div>
@@ -373,6 +442,11 @@ export default function CostPage() {
                           <option value="">No company</option>
                           {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
+                        <button
+                          onClick={() => patch(r.id, { status: r.status === "paid" ? "outstanding" : "paid" })}
+                          className={`text-[10px] rounded-full border px-1.5 py-0.5 ${r.status === "paid" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}
+                          title="Toggle paid / outstanding"
+                        >{r.status === "paid" ? "paid" : "outstanding"}</button>
                         <button onClick={() => editAmount(r)} className="font-semibold text-gray-900 hover:text-emerald-700" title="Edit amount">{isk(r.amount_isk)}</button>
                         <button onClick={() => openSplit(r)} className="text-gray-400 hover:text-emerald-700" title="Split this invoice across companies">split</button>
                         {r.file_url ? <a href={r.file_url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">PDF</a> : null}
@@ -384,6 +458,31 @@ export default function CostPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Company-assignment popup (on drop) */}
+      {assignFiles && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setAssignFiles(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-16" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900">Which company do these invoices belong to?</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{assignFiles.length} file{assignFiles.length > 1 ? "s" : ""} · you can still change each one in the queue before uploading.</p>
+            </div>
+            <div className="p-5 space-y-3">
+              <select className={`${selCls} w-full`} value={assignCompany} onChange={(e) => setAssignCompany(e.target.value)} autoFocus>
+                <option value="">Auto-detect from the invoice</option>
+                {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <ul className="text-[11px] text-gray-500 list-disc pl-4 max-h-32 overflow-y-auto">
+                {assignFiles.map((f, i) => <li key={i} className="truncate">{f.name}</li>)}
+              </ul>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+              <button onClick={() => setAssignFiles(null)} className="text-sm font-medium px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button onClick={confirmAssign} className="text-sm font-semibold px-4 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">Add to queue</button>
+            </div>
+          </div>
         </div>
       )}
 

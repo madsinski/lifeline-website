@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
   const { data, error } = await supabaseAdmin
     .from("accounting_overheads")
-    .select("id, name, amount_isk, amount_usd, quantity, active, effective_from, effective_to, note, created_at")
+    .select("id, name, amount_isk, amount_usd, quantity, active, status, effective_from, effective_to, note, created_at")
     .order("active", { ascending: false })
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -33,6 +33,7 @@ type OverheadPatch = {
   amount_usd?: number | null;
   quantity?: number;
   active?: boolean;
+  status?: string;
   effective_to?: string | null;
   note?: string | null;
 };
@@ -57,6 +58,12 @@ function sanitize(body: Record<string, unknown>, forCreate: boolean): OverheadPa
     if (!Number.isInteger(out.quantity) || out.quantity < 1) return null;
   }
   if (body.active !== undefined) out.active = Boolean(body.active);
+  if (body.status !== undefined) {
+    const st = String(body.status);
+    if (!["active", "paused", "cancelled"].includes(st)) return null;
+    out.status = st;
+    out.active = st === "active"; // keep the legacy flag (report accrual) in sync
+  }
   if (body.effective_to !== undefined) {
     out.effective_to = body.effective_to === null ? null : String(body.effective_to);
     if (out.effective_to !== null && !/^\d{4}-\d{2}-\d{2}$/.test(out.effective_to)) return null;
@@ -80,7 +87,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from("accounting_overheads")
     .insert(fields)
-    .select("id, name, amount_isk, amount_usd, quantity, active, effective_from, effective_to, note")
+    .select("id, name, amount_isk, amount_usd, quantity, active, status, effective_from, effective_to, note")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, overhead: data });
@@ -101,7 +108,7 @@ export async function PATCH(req: NextRequest) {
     .from("accounting_overheads")
     .update(fields)
     .eq("id", id)
-    .select("id, name, amount_isk, amount_usd, quantity, active, effective_from, effective_to, note")
+    .select("id, name, amount_isk, amount_usd, quantity, active, status, effective_from, effective_to, note")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, overhead: data });
