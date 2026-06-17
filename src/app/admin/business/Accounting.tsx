@@ -767,8 +767,15 @@ export default function Accounting() {
                 {/* External */}
                 <tr className="bg-emerald-50">
                   <td colSpan={4} className="border-y border-emerald-200 px-3 py-2">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">External · Health-check supplier costs</div>
-                    <div className="text-[11px] text-emerald-700/70">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">External</div>
+                    <div className="text-[11px] text-emerald-700/70">Suppliers and equipment</div>
+                  </td>
+                </tr>
+                {/* External · sub-section 1: health-check supplier costs */}
+                <tr>
+                  <td colSpan={4} className="px-3 pt-2.5 pb-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Health-check supplier costs</div>
+                    <div className="text-[10px] text-gray-400">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
                   </td>
                 </tr>
                 {position.external.health_check_lines.length ? (
@@ -831,6 +838,12 @@ export default function Accounting() {
                 ) : (
                   <tr><td colSpan={4} className="py-1 text-gray-400">No companies set up for health-check costs yet</td></tr>
                 )}
+                {/* External · sub-section 2: other costs */}
+                <tr>
+                  <td colSpan={4} className="px-3 pt-2.5 pb-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Other costs</div>
+                  </td>
+                </tr>
                 {/* Biody */}
                 <tr className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${position.external.health_check_lines.length % 2 ? "bg-gray-50/50" : ""}`}>
                   <td className="py-1"><span className="font-medium text-gray-800">Biody machines</span></td>
