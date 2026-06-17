@@ -754,6 +754,10 @@ export default function Accounting() {
 
   return (
     <div className="px-8 pb-10 space-y-4">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Accounting</h1>
+        <p className="text-sm text-gray-500">Monthly P&amp;L from operations and uploaded invoices. Send to the accounting firm at month-end.</p>
+      </div>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <input
@@ -788,18 +792,19 @@ export default function Accounting() {
       {position ? (
         <Section
           title="Financial position"
-          hint="What we hold and what we owe. Defer any debt line to move it out of the net-position total into the Deferred column."
+          hint="Cash on hand minus what we owe. Deferred liabilities sit aside and aren't counted in net position."
+          action={<button type="button" className={btn} onClick={() => editPosition("cash_balance_isk", "Bank balance", position.cash)}>Edit bank balance</button>}
         >
-          {/* Holdings */}
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs text-gray-700 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">Bank balance</span>
-              <span className="font-semibold text-gray-900 tabular-nums">{isk(position.cash)}</span>
-              <button type="button" className={btnXs} onClick={() => editPosition("cash_balance_isk", "Bank balance", position.cash)}>Edit</button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">Total revenue to date</span>
-              <span className="font-semibold text-emerald-700 tabular-nums">{isk(position.revenue)}</span>
+          {/* Hero: net position + the four headline figures */}
+          <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Net position</div>
+            <div className={`text-2xl font-bold tabular-nums ${position.net_position_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>{isk(position.net_position_isk)}</div>
+            <div className="text-[11px] text-gray-400">bank − owed now{position.total_deferred_isk > 0 ? ` · ${isk(position.total_deferred_isk)} deferred (set aside)` : ""}</div>
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div><div className="text-gray-500">Bank balance</div><div className="font-semibold text-gray-900 tabular-nums">{isk(position.cash)}</div></div>
+              <div><div className="text-gray-500">Revenue to date</div><div className="font-semibold text-emerald-700 tabular-nums">{isk(position.revenue)}</div></div>
+              <div><div className="text-gray-500">Owed now</div><div className="font-semibold text-amber-700 tabular-nums">{isk(position.total_owed_now_isk)}</div></div>
+              <div><div className="text-gray-500">Deferred</div><div className="font-semibold text-gray-500 tabular-nums">{isk(position.total_deferred_isk)}</div></div>
             </div>
           </div>
 
@@ -816,14 +821,14 @@ export default function Accounting() {
               </thead>
               <tbody>
                 {/* Internal */}
-                <tr className="bg-emerald-50">
-                  <td colSpan={4} className="border-y border-emerald-200 px-3 py-2">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Internal</div>
-                    <div className="text-[11px] text-emerald-700/70">Founders / staff</div>
+                <tr>
+                  <td colSpan={4} className="px-3 pt-3 pb-1">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">Internal</div>
+                    <div className="text-[10px] text-gray-400">Founders / staff</div>
                   </td>
                 </tr>
                 {position.internal.reimb_total_isk > 0 ? (
-                  <tr className="border-b border-gray-100 bg-gray-50/50 transition-colors hover:bg-emerald-50/40">
+                  <tr className="border-b border-gray-100 transition-colors hover:bg-emerald-50/40">
                     <td className="py-1">
                       <div className="font-medium text-gray-800">Future Medical Systems</div>
                       <div className="text-[11px] text-gray-400">
@@ -861,7 +866,7 @@ export default function Accounting() {
                     </div>
                   </td>
                 </tr>
-                <tr className="border-t-2 border-amber-300 bg-amber-50/70 font-semibold">
+                <tr className="border-t border-gray-200 bg-gray-50 font-medium">
                   <td className="py-1.5 text-gray-700 font-semibold">Internal subtotal</td>
                   <td className="text-right tabular-nums text-amber-700 font-semibold">{isk(position.internal.active_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{isk(position.internal.deferred_isk)}</td>
@@ -869,10 +874,10 @@ export default function Accounting() {
                 </tr>
 
                 {/* External */}
-                <tr className="bg-emerald-50">
-                  <td colSpan={4} className="border-y border-emerald-200 px-3 py-2">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">External</div>
-                    <div className="text-[11px] text-emerald-700/70">Suppliers and equipment</div>
+                <tr>
+                  <td colSpan={4} className="px-3 pt-3 pb-1">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">External</div>
+                    <div className="text-[10px] text-gray-400">Suppliers and equipment</div>
                   </td>
                 </tr>
                 {/* External · sub-section 1: health-check supplier costs */}
@@ -886,14 +891,14 @@ export default function Accounting() {
                     with the actual supplier invoices shown beneath it and an
                     expected-vs-invoiced gap. Toggle each invoice paid/outstanding. */}
                 {position.external.health_check_company_subtotals.length ? (
-                  position.external.health_check_company_subtotals.map((co, i) => {
+                  position.external.health_check_company_subtotals.map((co) => {
                     const invs = position.external.health_check_invoices.filter((v) => v.company_id === co.company_id);
                     const invoiced = invs.reduce((s, v) => s + (v.amount_isk || 0), 0);
                     const gap = co.expected_isk - invoiced;
                     const cats = position.external.health_check_categories.filter((c) => c.company_id === co.company_id);
                     return (
                       <Fragment key={co.company_id}>
-                        <tr className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
+                        <tr className="border-b border-gray-100 transition-colors hover:bg-emerald-50/40">
                           <td className="py-1">
                             <div className="font-medium text-gray-800">{co.company_name}</div>
                             <div className="text-[10px] text-gray-400">
@@ -952,7 +957,7 @@ export default function Accounting() {
                   </td>
                 </tr>
                 {/* Biody */}
-                <tr className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${position.external.health_check_lines.length % 2 ? "bg-gray-50/50" : ""}`}>
+                <tr className="border-b border-gray-100 transition-colors hover:bg-emerald-50/40">
                   <td className="py-1"><span className="font-medium text-gray-800">Biody machines</span></td>
                   <td className="text-right tabular-nums">{position.external.biody_deferred ? "—" : isk(position.external.biody_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{position.external.biody_deferred ? isk(position.external.biody_isk) : "—"}</td>
@@ -966,7 +971,7 @@ export default function Accounting() {
                     </div>
                   </td>
                 </tr>
-                <tr className="border-t-2 border-amber-300 bg-amber-50/70 font-semibold">
+                <tr className="border-t border-gray-200 bg-gray-50 font-medium">
                   <td className="py-1.5 text-gray-700 font-semibold">External subtotal</td>
                   <td className="text-right tabular-nums text-amber-700 font-semibold">{isk(position.external.active_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{isk(position.external.deferred_isk)}</td>
@@ -974,25 +979,14 @@ export default function Accounting() {
                 </tr>
 
                 {/* Grand total */}
-                <tr className="border-t-2 border-gray-300 bg-gray-100 font-semibold text-gray-800">
+                <tr className="border-t-2 border-gray-400 bg-gray-100 font-bold text-gray-900">
                   <td className="py-1.5">Total debt</td>
-                  <td className="text-right tabular-nums text-amber-700">{isk(position.total_owed_now_isk)}</td>
+                  <td className="text-right tabular-nums text-amber-700 font-bold">{isk(position.total_owed_now_isk)}</td>
                   <td className="text-right tabular-nums text-gray-500">{isk(position.total_deferred_isk)}</td>
                   <td></td>
                 </tr>
               </tbody>
             </table>
-          </div>
-
-          {/* Net position */}
-          <div className="mt-3 pt-2 border-t border-gray-200 flex items-center justify-between text-sm">
-            <span className="text-gray-600">
-              Net position{" "}
-              <span className="text-gray-400">
-                (bank − owed now{position.total_deferred_isk > 0 ? `; ${isk(position.total_deferred_isk)} deferred` : ""})
-              </span>
-            </span>
-            <span className={`font-bold ${position.net_position_isk < 0 ? "text-red-600" : "text-emerald-700"}`}>{isk(position.net_position_isk)}</span>
           </div>
         </Section>
       ) : null}
