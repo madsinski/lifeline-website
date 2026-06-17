@@ -63,10 +63,6 @@ interface ExpenseInvoice {
   ai_confidence: string | null; file_url: string | null;
 }
 
-interface ReimbursementRow {
-  staff_id: string; staff_name: string; invoice_count: number; total_isk: number;
-}
-
 interface PositionData {
   cash: number;
   revenue: number;
@@ -318,7 +314,6 @@ export default function Accounting() {
   const [doctorPool, setDoctorPool] = useState<DoctorPool | null>(null);
   const [workSplit, setWorkSplit] = useState<WorkSplitRow[]>([]);
   const [staffList, setStaffList] = useState<Array<{ id: string; name: string | null; email: string }>>([]);
-  const [reimbursements, setReimbursements] = useState<ReimbursementRow[]>([]);
   const [totals, setTotals] = useState<TotalsOverview | null>(null);
   const [position, setPosition] = useState<PositionData | null>(null);
   // Overview scope: all time / picker year / picker month, optional
@@ -372,7 +367,6 @@ export default function Accounting() {
       setDoctorPool(comp.doctor_pool || null);
       setWorkSplit(comp.work_split || []);
       setStaffList(comp.staff || []);
-      setReimbursements(comp.reimbursements || []);
       const posRes = await authedFetch(`/api/admin/accounting/position`);
       setPosition(posRes.ok ? await posRes.json() : null);
     } catch (e) {
@@ -731,12 +725,12 @@ export default function Accounting() {
                 {position.internal.reimb_total_isk > 0 ? (
                   <tr className="border-b border-gray-100 bg-gray-50/50 transition-colors hover:bg-emerald-50/40">
                     <td className="py-1">
-                      <span className="font-medium text-gray-800">
-                        {position.internal.reimbursements.length
+                      <div className="font-medium text-gray-800">Future Medical Systems</div>
+                      <div className="text-[11px] text-gray-400">
+                        Owed to {position.internal.reimbursements.length
                           ? position.internal.reimbursements.map((r) => r.name).join(", ")
-                          : "Out-of-pocket"}
-                      </span>
-                      <span className="text-gray-400"> · Future Medical Systems</span>
+                          : "Victor Guðmundsson"}
+                      </div>
                     </td>
                     <td className="text-right tabular-nums">{position.internal.reimb_deferred ? "—" : isk(position.internal.reimb_total_isk)}</td>
                     <td className="text-right tabular-nums text-gray-400">{position.internal.reimb_deferred ? isk(position.internal.reimb_total_isk) : "—"}</td>
@@ -751,7 +745,10 @@ export default function Accounting() {
                   </tr>
                 ) : null}
                 <tr className="border-b border-gray-100 transition-colors hover:bg-emerald-50/40">
-                  <td className="py-1"><span className="font-medium text-gray-800">{position.internal.manual_label}</span></td>
+                  <td className="py-1">
+                    <div className="font-medium text-gray-800">{position.internal.manual_label}</div>
+                    <div className="text-[11px] text-gray-400">Owed to Victor Guðmundsson</div>
+                  </td>
                   <td className="text-right tabular-nums">{position.internal.manual_deferred ? "—" : isk(position.internal.manual_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{position.internal.manual_deferred ? isk(position.internal.manual_isk) : "—"}</td>
                   <td className="text-right">
@@ -1180,107 +1177,6 @@ export default function Accounting() {
           )}
         </Section>
       ) : null}
-
-      {/* Reimbursements owed */}
-      {reimbursements.length > 0 ? (
-        <Section
-          title="Owed to founders / staff"
-          hint="Cost invoices paid out-of-pocket (set the Paid-by field on an invoice). Subtracted from investing capacity on the Plan tab. Mark each invoice reimbursed when the company pays the person back."
-        >
-          <div className="space-y-1.5 text-xs text-gray-700">
-            {reimbursements.map((r) => (
-              <div key={r.staff_id} className="flex items-center justify-between gap-2">
-                <span>
-                  <span className="font-medium">{r.staff_name}</span>
-                  <span className="text-gray-400"> · {r.invoice_count} invoice{r.invoice_count > 1 ? "s" : ""} paid personally</span>
-                </span>
-                <span className="font-semibold text-amber-600">{isk(r.total_isk)}</span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-gray-100 font-semibold text-gray-900">
-              <span>Total owed</span>
-              <span>{isk(reimbursements.reduce((s, r) => s + r.total_isk, 0))}</span>
-            </div>
-          </div>
-        </Section>
-      ) : null}
-
-      {/* Income */}
-      <Section
-        title="Income"
-        hint="B2B invoices on invoiced basis (issued this month, PayDay); B2C card payments on paid basis. PayDay mirror rows in payments are excluded to avoid double counting."
-      >
-        <div className="space-y-1.5 text-xs text-gray-700">
-          {report?.income.b2b_invoices.map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between gap-2 border-b border-gray-50 pb-1.5">
-              <span>
-                {inv.company_name}
-                <span className="text-gray-400"> · {inv.invoice_number || "no number"} · {inv.status}</span>
-              </span>
-              <span className="font-medium">{isk(inv.amount_isk)}</span>
-            </div>
-          ))}
-          {report && report.income.b2b_invoices.length === 0 ? (
-            <div className="text-gray-400">No B2B invoices issued this month.</div>
-          ) : null}
-          <div className="flex items-center justify-between gap-2 pt-1">
-            <span>B2C card payments ({report?.income.b2c_payments.count ?? 0})</span>
-            <span className="font-medium">{isk(report?.income.b2c_payments.total_isk ?? 0)}</span>
-          </div>
-          {report && report.income.other_invoiced.count > 0 ? (
-            <div className="flex items-center justify-between gap-2">
-              <span>
-                Scanned sales invoices ({report.income.other_invoiced.count})
-                <span className="text-gray-400"> · {report.income.other_invoiced.lines.map((l) => l.customer).filter(Boolean).join(", ")}</span>
-              </span>
-              <span className="font-medium">{isk(report.income.other_invoiced.total_isk)}</span>
-            </div>
-          ) : null}
-          {report?.income.adjustments.map((a) => (
-            <div key={a.id} className="flex items-center justify-between gap-2">
-              <span className="text-gray-500">Adjustment: {a.description}</span>
-              <span className="flex items-center gap-2">
-                <span className="font-medium">{isk(a.amount_isk)}</span>
-                <button
-                  className="text-red-500 hover:text-red-700"
-                  onClick={() => act("del-adj", () => authedFetch(`/api/admin/accounting/adjustments?id=${a.id}`, { method: "DELETE" }))}
-                >×</button>
-              </span>
-            </div>
-          ))}
-          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-gray-100 font-semibold text-gray-900">
-            <span>Total income</span>
-            <span>{isk(report?.income.total_isk ?? 0)}</span>
-          </div>
-        </div>
-      </Section>
-
-      {/* Derived costs */}
-      <Section
-        title="Per-client costs (derived)"
-        hint="Counted from slots marked completed in admin (station slots + doctor slots) × the effective rate. Use adjustments for anything the counts miss."
-      >
-        <div className="space-y-1.5 text-xs text-gray-700">
-          <div className="flex items-center justify-between gap-2">
-            <span>
-              Measurements: {report?.cogs.measurements.count ?? 0} × {isk(report?.cogs.measurements.rate_isk ?? 0)}
-              {report && report.cogs.measurements.pending_count > 0 ? (
-                <span className="text-amber-600"> · {report.cogs.measurements.pending_count} booked but not marked completed</span>
-              ) : null}
-            </span>
-            <span className="font-medium">{isk(report?.cogs.measurements.total_isk ?? 0)}</span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <span>
-              Doctor interviews: {report?.cogs.doctor_interviews.count ?? 0} × {isk(report?.cogs.doctor_interviews.rate_isk ?? 0)}
-              {report && report.cogs.doctor_interviews.pending_count > 0 ? (
-                <span className="text-amber-600"> · {report.cogs.doctor_interviews.pending_count} booked but not marked completed</span>
-              ) : null}
-            </span>
-            <span className="font-medium">{isk(report?.cogs.doctor_interviews.total_isk ?? 0)}</span>
-          </div>
-        </div>
-      </Section>
 
       {/* Cost invoices */}
       <Section

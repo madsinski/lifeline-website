@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
         reimb_deferred: reimbDeferred,
         // Manual line — owed to Victor (covered the Þorvaldur Arnarsson invoice).
         manual_isk: victorManual,
-        manual_label: "Victor — covered Þorvaldur Arnarsson invoice",
+        manual_label: "Þorvaldur Arnarsson",
         manual_deferred: manualDeferred,
         total_isk: internalTotal,
         active_isk: internalActive,
