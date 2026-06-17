@@ -782,94 +782,23 @@ export default function Accounting() {
                     <div className="text-[10px] text-gray-400">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
                   </td>
                 </tr>
+                {/* Interim: one summary row per company (the per-client lines
+                    flooded the panel). Being rebuilt to one row per supplier
+                    INVOICE, linked to a company, via the PDF intake. */}
                 {position.external.health_check_company_subtotals.length ? (
-                  position.external.health_check_company_subtotals.map((co) => {
-                    const coLines = position.external.health_check_lines
-                      .filter((l) => l.company_id === co.company_id)
-                      .sort((a, b) => (a.sort_order - b.sort_order) || a.client_name.localeCompare(b.client_name) || a.category.localeCompare(b.category));
-                    return (
-                      <Fragment key={co.company_id}>
-                        {/* Company group header */}
-                        <tr className="bg-gray-50/70">
-                          <td colSpan={4} className="px-3 py-1 text-[11px] font-semibold text-gray-600">
-                            {co.company_name}
-                            <span className="ml-1 font-normal text-gray-400">· {co.member_count} {co.member_count === 1 ? "client" : "clients"}</span>
-                          </td>
-                        </tr>
-                        {coLines.map((l, i) => {
-                          const sel = l.paid ? "paid" : !l.applicable ? "na" : "unpaid";
-                          const showDefer = l.applicable && !l.paid; // only a real unpaid debt can be deferred
-                          return (
-                            <tr key={`${l.member_id}:${l.category}`} className={`align-top border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
-                              <td className="py-1">
-                                <div>
-                                  {l.client_href
-                                    ? <Link href={l.client_href} className="font-medium text-emerald-700 hover:underline">{l.client_name}</Link>
-                                    : <span className="font-medium text-gray-800">{l.client_name}</span>}
-                                  <span className="text-gray-500"> · {l.label}</span>
-                                  <span className="text-gray-400"> · {isk(l.rate_isk)}{l.provider ? ` ${l.provider}` : ""}</span>
-                                  {!l.client_id ? <span className="ml-1 text-[10px] text-amber-600">not onboarded</span> : null}
-                                </div>
-                                <input
-                                  type="text"
-                                  defaultValue={l.note ?? ""}
-                                  placeholder="Add note…"
-                                  className="mt-0.5 w-full max-w-[18rem] rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-gray-600 hover:border-gray-200 focus:border-emerald-300 focus:outline-none"
-                                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                                  onBlur={(e) => {
-                                    const v = e.target.value.trim();
-                                    if (v !== (l.note ?? "")) saveCostItem(l.member_id, l.category, { note: v || null });
-                                  }}
-                                />
-                              </td>
-                              <td className="text-right tabular-nums">
-                                {l.paid ? <span className="text-emerald-600">paid</span>
-                                  : !l.applicable ? <span className="text-gray-300">n/a</span>
-                                  : l.deferred ? "—" : isk(l.unpaid_isk)}
-                              </td>
-                              <td className="text-right tabular-nums text-gray-400">
-                                {showDefer && l.deferred ? isk(l.unpaid_isk) : "—"}
-                              </td>
-                              <td className="text-right">
-                                <div className={actionCell}>
-                                  <select
-                                    className={selXs}
-                                    value={sel}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      const status = v === "paid" ? "covered" : v === "na" ? "not_applicable" : "outstanding";
-                                      saveCostItem(l.member_id, l.category, { status });
-                                    }}
-                                  >
-                                    <option value="unpaid">Unpaid</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="na">N/A</option>
-                                  </select>
-                                  {showDefer ? (
-                                    <button type="button" className={l.deferred ? btnToggleActive : btnToggle}
-                                      onClick={() => saveCostItem(l.member_id, l.category, { deferred: !l.deferred })}>
-                                      {l.deferred ? "Activate" : "Defer"}
-                                    </button>
-                                  ) : (
-                                    <span className="min-w-[4.25rem]" aria-hidden="true" />
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {/* Company rollup */}
-                        <tr className="border-b border-gray-200">
-                          <td className="py-1 pl-3 text-[11px] text-gray-400">{co.company_name} subtotal</td>
-                          <td className="text-right tabular-nums text-gray-600">{isk(co.unpaid_active_isk)}</td>
-                          <td className="text-right tabular-nums text-gray-400">{co.unpaid_deferred_isk ? isk(co.unpaid_deferred_isk) : "—"}</td>
-                          <td></td>
-                        </tr>
-                      </Fragment>
-                    );
-                  })
+                  position.external.health_check_company_subtotals.map((co, i) => (
+                    <tr key={co.company_id} className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
+                      <td className="py-1">
+                        <span className="font-medium text-gray-800">{co.company_name}</span>
+                        <span className="text-gray-400"> · {co.member_count} {co.member_count === 1 ? "client" : "clients"} expected</span>
+                      </td>
+                      <td className="text-right tabular-nums">{co.unpaid_active_isk ? isk(co.unpaid_active_isk) : "—"}</td>
+                      <td className="text-right tabular-nums text-gray-400">{co.unpaid_deferred_isk ? isk(co.unpaid_deferred_isk) : "—"}</td>
+                      <td></td>
+                    </tr>
+                  ))
                 ) : (
-                  <tr><td colSpan={4} className="py-1 text-gray-400">No clients set up for health-check costs yet</td></tr>
+                  <tr><td colSpan={4} className="py-1 text-gray-400">No companies set up for health-check costs yet</td></tr>
                 )}
                 {/* External · sub-section 2: other costs */}
                 <tr>
