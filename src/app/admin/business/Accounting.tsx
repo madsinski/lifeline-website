@@ -991,6 +991,19 @@ export default function Accounting() {
         </Section>
       ) : null}
 
+      {/* Founders' salaries — sits with the Financial position founder-money story */}
+      <Section
+        title="Founders' salaries"
+        hint="Total monthly company cost for the two founders (gross + employer on-costs: pension, tryggingagjald, vacation). Editable per month; a month left unset counts as 0. Flows into the month's expenses and the Plan tab's burn / runway."
+      >
+        <FounderSalaries
+          authedFetch={authedFetch}
+          initialYear={Number(month.slice(0, 4))}
+          currentMonthKey={month}
+          onChanged={refresh}
+        />
+      </Section>
+
       {/* Business overview (filterable) */}
       {totals ? (
         <Section
@@ -1200,22 +1213,22 @@ export default function Accounting() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div>
               <div className="text-gray-400 mb-0.5">Expected pool</div>
-              <div className="font-bold text-gray-900">{isk(doctorPool.expected_isk)}</div>
+              <div className="font-bold text-gray-900 tabular-nums">{isk(doctorPool.expected_isk)}</div>
               <div className="text-[11px] text-gray-500">{doctorPool.expected_count} roster members × {isk(doctorPool.rate_isk)}</div>
             </div>
             <div>
               <div className="text-gray-400 mb-0.5">Earned (interviews done)</div>
-              <div className="font-bold text-gray-900">{isk(doctorPool.performed_isk)}</div>
+              <div className="font-bold text-gray-900 tabular-nums">{isk(doctorPool.performed_isk)}</div>
               <div className="text-[11px] text-gray-500">{doctorPool.performed_count} completed doctor slots</div>
             </div>
             <div>
               <div className="text-gray-400 mb-0.5">Paid out</div>
-              <div className="font-bold text-gray-900">{isk(doctorPool.paid_isk)}</div>
+              <div className="font-bold text-gray-900 tabular-nums">{isk(doctorPool.paid_isk)}</div>
               <div className="text-[11px] text-gray-500">Doctor-category cost invoices</div>
             </div>
             <div>
               <div className="text-gray-400 mb-0.5">Unpaid vs expected</div>
-              <div className={`font-bold ${doctorPool.expected_isk - doctorPool.paid_isk > 0 ? "text-amber-600" : "text-gray-900"}`}>
+              <div className={`font-bold tabular-nums ${doctorPool.expected_isk - doctorPool.paid_isk > 0 ? "text-amber-600" : "text-gray-900"}`}>
                 {isk(doctorPool.expected_isk - doctorPool.paid_isk)}
               </div>
               <div className="text-[11px] text-gray-500">Future liability if all interviews happen</div>
@@ -1499,19 +1512,6 @@ export default function Accounting() {
             <button className={btn} onClick={addOverhead} disabled={busy !== null}>Add overhead</button>
           </div>
         </div>
-      </Section>
-
-      {/* Founders' salaries */}
-      <Section
-        title="Founders' salaries"
-        hint="Total monthly company cost for the two founders (gross + employer on-costs: pension, tryggingagjald, vacation). Editable per month; a month left unset counts as 0. Flows into the month's expenses and the Plan tab's burn / runway."
-      >
-        <FounderSalaries
-          authedFetch={authedFetch}
-          initialYear={Number(month.slice(0, 4))}
-          currentMonthKey={month}
-          onChanged={refresh}
-        />
       </Section>
 
       {/* Adjustments */}
