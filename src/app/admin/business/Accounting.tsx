@@ -184,6 +184,10 @@ const inputCls = "text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white
 const btnXs = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50";
 const btnXsActive = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50";
 const selXs = "text-[11px] border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500";
+// Right-aligned action cluster + equal-width toggle so the Actions column lines up row to row.
+const actionCell = "flex items-center justify-end gap-1.5";
+const btnToggle = btnXs + " min-w-[4.25rem] justify-center";
+const btnToggleActive = btnXsActive + " min-w-[4.25rem] justify-center";
 
 // Founders' salaries, editable month by month. Each month holds a total
 // company cost (gross + employer on-costs); a month left unset counts as 0.
@@ -711,12 +715,10 @@ export default function Accounting() {
               </thead>
               <tbody>
                 {/* Internal */}
-                <tr>
-                  <td colSpan={4} className="pt-4 pb-2">
-                    <div className="rounded-md border-l-2 border-emerald-500 bg-gray-50 px-3 py-1.5">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Internal</div>
-                      <div className="text-[11px] text-gray-400">Founders / staff</div>
-                    </div>
+                <tr className="bg-emerald-50">
+                  <td colSpan={4} className="border-y border-emerald-200 px-3 py-2">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Internal</div>
+                    <div className="text-[11px] text-emerald-700/70">Founders / staff</div>
                   </td>
                 </tr>
                 {position.internal.reimb_total_isk > 0 ? (
@@ -732,10 +734,12 @@ export default function Accounting() {
                     <td className="text-right tabular-nums">{position.internal.reimb_deferred ? "—" : isk(position.internal.reimb_total_isk)}</td>
                     <td className="text-right tabular-nums text-gray-400">{position.internal.reimb_deferred ? isk(position.internal.reimb_total_isk) : "—"}</td>
                     <td className="text-right">
-                      <button type="button" className={position.internal.reimb_deferred ? btnXsActive : btnXs}
-                        onClick={() => toggleDefer("internal_reimb_deferred", !position.internal.reimb_deferred)}>
-                        {position.internal.reimb_deferred ? "Activate" : "Defer"}
-                      </button>
+                      <div className={actionCell}>
+                        <button type="button" className={position.internal.reimb_deferred ? btnToggleActive : btnToggle}
+                          onClick={() => toggleDefer("internal_reimb_deferred", !position.internal.reimb_deferred)}>
+                          {position.internal.reimb_deferred ? "Activate" : "Defer"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ) : null}
@@ -743,12 +747,14 @@ export default function Accounting() {
                   <td className="py-1"><span className="font-medium text-gray-800">{position.internal.manual_label}</span></td>
                   <td className="text-right tabular-nums">{position.internal.manual_deferred ? "—" : isk(position.internal.manual_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{position.internal.manual_deferred ? isk(position.internal.manual_isk) : "—"}</td>
-                  <td className="text-right whitespace-nowrap">
-                    <button type="button" className={btnXs} onClick={() => editPosition("internal_debt_thorvaldur_isk", position.internal.manual_label, position.internal.manual_isk)}>Edit</button>{" "}
-                    <button type="button" className={position.internal.manual_deferred ? btnXsActive : btnXs}
-                      onClick={() => toggleDefer("internal_manual_deferred", !position.internal.manual_deferred)}>
-                      {position.internal.manual_deferred ? "Activate" : "Defer"}
-                    </button>
+                  <td className="text-right">
+                    <div className={actionCell}>
+                      <button type="button" className={btnXs} onClick={() => editPosition("internal_debt_thorvaldur_isk", position.internal.manual_label, position.internal.manual_isk)}>Edit</button>
+                      <button type="button" className={position.internal.manual_deferred ? btnToggleActive : btnToggle}
+                        onClick={() => toggleDefer("internal_manual_deferred", !position.internal.manual_deferred)}>
+                        {position.internal.manual_deferred ? "Activate" : "Defer"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <tr className="border-t-2 border-amber-300 bg-amber-50/70 font-semibold">
@@ -759,12 +765,10 @@ export default function Accounting() {
                 </tr>
 
                 {/* External */}
-                <tr>
-                  <td colSpan={4} className="pt-4 pb-2">
-                    <div className="rounded-md border-l-2 border-emerald-500 bg-gray-50 px-3 py-1.5">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-700">External · Health-check supplier costs</div>
-                      <div className="text-[11px] text-gray-400">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
-                    </div>
+                <tr className="bg-emerald-50">
+                  <td colSpan={4} className="border-y border-emerald-200 px-3 py-2">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">External · Health-check supplier costs</div>
+                    <div className="text-[11px] text-emerald-700/70">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
                   </td>
                 </tr>
                 {position.external.health_check_lines.length ? (
@@ -796,26 +800,30 @@ export default function Accounting() {
                         <td className="text-right tabular-nums text-gray-400">
                           {showDefer && l.deferred ? isk(l.unpaid_isk) : "—"}
                         </td>
-                        <td className="text-right whitespace-nowrap">
-                          <select
-                            className={selXs}
-                            value={sel}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              const status = v === "paid" ? "covered" : v === "na" ? "not_applicable" : "outstanding";
-                              saveCostItem(l.company_id, l.category, { status });
-                            }}
-                          >
-                            <option value="unpaid">Unpaid</option>
-                            <option value="paid">Paid</option>
-                            <option value="na">N/A</option>
-                          </select>{" "}
-                          {showDefer ? (
-                            <button type="button" className={l.deferred ? btnXsActive : btnXs}
-                              onClick={() => saveCostItem(l.company_id, l.category, { deferred: !l.deferred })}>
-                              {l.deferred ? "Activate" : "Defer"}
-                            </button>
-                          ) : null}
+                        <td className="text-right">
+                          <div className={actionCell}>
+                            <select
+                              className={selXs}
+                              value={sel}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const status = v === "paid" ? "covered" : v === "na" ? "not_applicable" : "outstanding";
+                                saveCostItem(l.company_id, l.category, { status });
+                              }}
+                            >
+                              <option value="unpaid">Unpaid</option>
+                              <option value="paid">Paid</option>
+                              <option value="na">N/A</option>
+                            </select>
+                            {showDefer ? (
+                              <button type="button" className={l.deferred ? btnToggleActive : btnToggle}
+                                onClick={() => saveCostItem(l.company_id, l.category, { deferred: !l.deferred })}>
+                                {l.deferred ? "Activate" : "Defer"}
+                              </button>
+                            ) : (
+                              <span className="min-w-[4.25rem]" aria-hidden="true" />
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -828,12 +836,14 @@ export default function Accounting() {
                   <td className="py-1"><span className="font-medium text-gray-800">Biody machines</span></td>
                   <td className="text-right tabular-nums">{position.external.biody_deferred ? "—" : isk(position.external.biody_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{position.external.biody_deferred ? isk(position.external.biody_isk) : "—"}</td>
-                  <td className="text-right whitespace-nowrap">
-                    <button type="button" className={btnXs} onClick={() => editPosition("other_liabilities_isk", "Biody machines liability", position.external.biody_isk)}>Edit</button>{" "}
-                    <button type="button" className={position.external.biody_deferred ? btnXsActive : btnXs}
-                      onClick={() => toggleDefer("external_biody_deferred", !position.external.biody_deferred)}>
-                      {position.external.biody_deferred ? "Activate" : "Defer"}
-                    </button>
+                  <td className="text-right">
+                    <div className={actionCell}>
+                      <button type="button" className={btnXs} onClick={() => editPosition("other_liabilities_isk", "Biody machines liability", position.external.biody_isk)}>Edit</button>
+                      <button type="button" className={position.external.biody_deferred ? btnToggleActive : btnToggle}
+                        onClick={() => toggleDefer("external_biody_deferred", !position.external.biody_deferred)}>
+                        {position.external.biody_deferred ? "Activate" : "Defer"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <tr className="border-t-2 border-amber-300 bg-amber-50/70 font-semibold">
