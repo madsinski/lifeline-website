@@ -195,6 +195,52 @@ const actionCell = "flex items-center justify-end gap-1.5";
 const btnToggle = btnXs + " min-w-[4.25rem] justify-center";
 const btnToggleActive = btnXsActive + " min-w-[4.25rem] justify-center";
 
+// Approximate Icelandic payroll breakdown of the founders' all-in monthly
+// company cost (gross + employer on-costs), split evenly between the two
+// founders. 2025 withholding brackets + personal credit (confirm each year).
+// Employer on-costs: pension 11.5% + tryggingagjald 6.35% (+ séreign employer
+// 2% when on). Employee: pension 4% (+ séreign 4% when on), then income tax.
+const PAYROLL = {
+  employerPension: 0.115, tryggingagjald: 0.0635,
+  employeePension: 0.04, sereignEmployee: 0.04, sereignEmployer: 0.02,
+  brackets: [
+    { upTo: 472005, rate: 0.3149 },
+    { upTo: 1325127, rate: 0.3799 },
+    { upTo: Infinity, rate: 0.4629 },
+  ],
+  personalCredit: 68691,
+  founders: 2,
+};
+function incomeTaxPerPerson(base: number): number {
+  let tax = 0, prev = 0;
+  for (const b of PAYROLL.brackets) {
+    if (base <= prev) break;
+    tax += (Math.min(base, b.upTo) - prev) * b.rate;
+    prev = b.upTo;
+  }
+  return Math.max(0, tax - PAYROLL.personalCredit);
+}
+function salaryBreakdown(allIn: number, sereign: boolean) {
+  const employerRate = PAYROLL.employerPension + PAYROLL.tryggingagjald + (sereign ? PAYROLL.sereignEmployer : 0);
+  const gross = allIn / (1 + employerRate);
+  const perGross = gross / PAYROLL.founders;
+  const employeePensionPer = PAYROLL.employeePension * perGross;
+  const employeeSereignPer = sereign ? PAYROLL.sereignEmployee * perGross : 0;
+  const taxPer = incomeTaxPerPerson(perGross - employeePensionPer - employeeSereignPer);
+  const netPer = perGross - employeePensionPer - employeeSereignPer - taxPer;
+  return {
+    gross,
+    employerPension: PAYROLL.employerPension * gross,
+    tryggingagjald: PAYROLL.tryggingagjald * gross,
+    employerSereign: sereign ? PAYROLL.sereignEmployer * gross : 0,
+    employeePension: employeePensionPer * PAYROLL.founders,
+    employeeSereign: employeeSereignPer * PAYROLL.founders,
+    tax: taxPer * PAYROLL.founders,
+    net: netPer * PAYROLL.founders,
+    perGross, netPer,
+  };
+}
+
 // Founders' salaries, editable month by month. Each month holds a total
 // company cost (gross + employer on-costs); a month left unset counts as 0.
 function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged }: {
@@ -204,9 +250,10 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
   onChanged: () => void;
 }) {
   const [year, setYear] = useState(initialYear);
-  const [data, setData] = useState<{ default_isk: number; months: Array<{ month: string; amount_isk: number; is_set: boolean; note: string | null }> } | null>(null);
+  const [data, setData] = useState<{ default_isk: number; months: Array<{ month: string; amount_isk: number; is_set: boolean; note: string | null; sereign: boolean }> } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await authedFetch(`/api/admin/accounting/founder-salaries?year=${year}`);
@@ -224,6 +271,17 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
     if (!res.ok) setMsg("Save failed.");
     await load();
     onChanged();
+    setBusy(false);
+  };
+
+  const setSereign = async (monthKey: string, val: boolean) => {
+    setBusy(true); setMsg("");
+    const res = await authedFetch(`/api/admin/accounting/founder-salaries`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month: monthKey, sereign: val }),
+    });
+    if (!res.ok) setMsg("Save failed.");
+    await load();
     setBusy(false);
   };
 
@@ -264,33 +322,65 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
         <tbody>
           {(data?.months || []).map((m) => {
             const isCurrent = m.month === currentMonthKey;
+            const open = expanded === m.month;
+            const bd = m.is_set ? salaryBreakdown(m.amount_isk, m.sereign) : null;
             return (
-              <tr key={m.month} className={`border-b border-gray-50 ${isCurrent ? "bg-emerald-50/40" : ""}`}>
-                <td className="py-1">
-                  <span className="font-medium text-gray-800">{monthLabel(m.month)}</span>
-                  {isCurrent ? <span className="text-emerald-600"> · this month</span> : null}
-                </td>
-                <td className="py-1 text-right tabular-nums w-28">
-                  {m.is_set ? <span className="font-medium text-gray-900">{isk(m.amount_isk)}</span> : <span className="text-gray-400">not set</span>}
-                </td>
-                <td className="py-1 text-right whitespace-nowrap w-44">
-                  <button
-                    type="button" className={btnXs} disabled={busy}
-                    onClick={() => {
-                      const v = prompt(`${monthLabel(m.month)} ${m.month.slice(0, 4)} — founders' salary total for the company (ISK):`, String(m.is_set ? m.amount_isk : def));
-                      if (v === null) return;
-                      const n = parseInt(v.replace(/[^\d]/g, ""), 10);
-                      if (!Number.isInteger(n) || n < 0) { setMsg("Bad amount."); return; }
-                      setMonthAmount(m.month, n);
-                    }}
-                  >{m.is_set ? "Edit" : "Set"}</button>{" "}
-                  {m.is_set ? (
-                    <button type="button" className={btnXs} disabled={busy} onClick={() => setMonthAmount(m.month, null)}>Clear</button>
-                  ) : (
-                    <button type="button" className={btnXs} disabled={busy} onClick={() => setMonthAmount(m.month, def)}>Use default</button>
-                  )}
-                </td>
-              </tr>
+              <Fragment key={m.month}>
+                <tr className={`border-b border-gray-50 ${isCurrent ? "bg-emerald-50/40" : ""}`}>
+                  <td className="py-1">
+                    {m.is_set ? (
+                      <button type="button" onClick={() => setExpanded(open ? null : m.month)} className="inline-flex items-center gap-1 hover:text-emerald-700" title="Show payroll breakdown">
+                        <span className="text-gray-300">{open ? "▾" : "▸"}</span>
+                        <span className="font-medium text-gray-800">{monthLabel(m.month)}</span>
+                      </button>
+                    ) : <span className="font-medium text-gray-800 pl-3.5">{monthLabel(m.month)}</span>}
+                    {isCurrent ? <span className="text-emerald-600"> · this month</span> : null}
+                  </td>
+                  <td className="py-1 text-right tabular-nums w-28">
+                    {m.is_set ? <span className="font-medium text-gray-900">{isk(m.amount_isk)}</span> : <span className="text-gray-400">not set</span>}
+                  </td>
+                  <td className="py-1 text-right whitespace-nowrap w-44">
+                    <button
+                      type="button" className={btnXs} disabled={busy}
+                      onClick={() => {
+                        const v = prompt(`${monthLabel(m.month)} ${m.month.slice(0, 4)} — founders' salary total for the company (ISK):`, String(m.is_set ? m.amount_isk : def));
+                        if (v === null) return;
+                        const n = parseInt(v.replace(/[^\d]/g, ""), 10);
+                        if (!Number.isInteger(n) || n < 0) { setMsg("Bad amount."); return; }
+                        setMonthAmount(m.month, n);
+                      }}
+                    >{m.is_set ? "Edit" : "Set"}</button>{" "}
+                    {m.is_set ? (
+                      <button type="button" className={btnXs} disabled={busy} onClick={() => setMonthAmount(m.month, null)}>Clear</button>
+                    ) : (
+                      <button type="button" className={btnXs} disabled={busy} onClick={() => setMonthAmount(m.month, def)}>Use default</button>
+                    )}
+                  </td>
+                </tr>
+                {open && bd ? (
+                  <tr className="bg-gray-50/60">
+                    <td colSpan={3} className="px-3 py-2">
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[11px] text-gray-600 max-w-md">
+                        <span className="text-gray-400">All-in company cost</span><span className="text-right tabular-nums font-medium text-gray-800">{isk(m.amount_isk)}</span>
+                        <span>Gross salary (both)</span><span className="text-right tabular-nums">{isk(bd.gross)}</span>
+                        <span>Employer pension 11.5%</span><span className="text-right tabular-nums">{isk(bd.employerPension)}</span>
+                        <span>Tryggingagjald 6.35%</span><span className="text-right tabular-nums">{isk(bd.tryggingagjald)}</span>
+                        {m.sereign ? <><span>Séreign employer 2%</span><span className="text-right tabular-nums">{isk(bd.employerSereign)}</span></> : null}
+                        <span>Employee pension 4%</span><span className="text-right tabular-nums">{isk(bd.employeePension)}</span>
+                        {m.sereign ? <><span>Séreign employee 4%</span><span className="text-right tabular-nums">{isk(bd.employeeSereign)}</span></> : null}
+                        <span>Income tax (staðgreiðsla)</span><span className="text-right tabular-nums">{isk(bd.tax)}</span>
+                        <span className="font-semibold text-gray-800">Net to founders</span><span className="text-right tabular-nums font-semibold text-emerald-700">{isk(bd.net)}</span>
+                        <span className="text-gray-400">Per founder (split ×{PAYROLL.founders})</span><span className="text-right tabular-nums text-gray-500">{isk(bd.perGross)} gross · {isk(bd.netPer)} net</span>
+                      </div>
+                      <label className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-600">
+                        <input type="checkbox" checked={m.sereign} disabled={busy} onChange={(e) => setSereign(m.month, e.target.checked)} />
+                        Include séreignarsparnaður (3rd-pillar: employee 4% + employer 2%)
+                      </label>
+                      <div className="mt-1 text-[10px] text-gray-400">Approximate — 2025 brackets + personal credit, 2 founders splitting evenly. Confirm with your accountant.</div>
+                    </td>
+                  </tr>
+                ) : null}
+              </Fragment>
             );
           })}
           <tr className="font-semibold text-gray-900">
