@@ -720,7 +720,7 @@ export default function Accounting() {
                   </td>
                 </tr>
                 {position.internal.reimb_total_isk > 0 ? (
-                  <tr>
+                  <tr className="border-b border-gray-100 bg-gray-50/50 transition-colors hover:bg-emerald-50/40">
                     <td className="py-1">
                       <span className="font-medium text-gray-800">
                         {position.internal.reimbursements.length
@@ -739,7 +739,7 @@ export default function Accounting() {
                     </td>
                   </tr>
                 ) : null}
-                <tr>
+                <tr className="border-b border-gray-100 transition-colors hover:bg-emerald-50/40">
                   <td className="py-1"><span className="font-medium text-gray-800">{position.internal.manual_label}</span></td>
                   <td className="text-right tabular-nums">{position.internal.manual_deferred ? "—" : isk(position.internal.manual_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{position.internal.manual_deferred ? isk(position.internal.manual_isk) : "—"}</td>
@@ -751,7 +751,7 @@ export default function Accounting() {
                     </button>
                   </td>
                 </tr>
-                <tr className="border-t border-gray-100 font-medium">
+                <tr className="border-t border-gray-200 bg-gray-100/60 font-medium">
                   <td className="py-1 text-gray-500">Internal subtotal</td>
                   <td className="text-right tabular-nums text-amber-600">{isk(position.internal.active_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{isk(position.internal.deferred_isk)}</td>
@@ -768,11 +768,11 @@ export default function Accounting() {
                   </td>
                 </tr>
                 {position.external.health_check_lines.length ? (
-                  position.external.health_check_lines.map((l) => {
+                  position.external.health_check_lines.map((l, i) => {
                     const sel = l.paid ? "paid" : !l.applicable ? "na" : "unpaid";
                     const showDefer = l.applicable && !l.paid; // only a real unpaid debt can be deferred
                     return (
-                      <tr key={`${l.company_id}:${l.category}`} className="align-top">
+                      <tr key={`${l.company_id}:${l.category}`} className={`align-top border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
                         <td className="py-1">
                           <span className="font-medium text-gray-800">{l.company_name}</span>
                           <span className="text-gray-500"> · {l.label}</span>
@@ -824,7 +824,7 @@ export default function Accounting() {
                   <tr><td colSpan={4} className="py-1 text-gray-400">No companies set up for health-check costs yet</td></tr>
                 )}
                 {/* Biody */}
-                <tr>
+                <tr className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${position.external.health_check_lines.length % 2 ? "bg-gray-50/50" : ""}`}>
                   <td className="py-1"><span className="font-medium text-gray-800">Biody machines</span></td>
                   <td className="text-right tabular-nums">{position.external.biody_deferred ? "—" : isk(position.external.biody_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{position.external.biody_deferred ? isk(position.external.biody_isk) : "—"}</td>
@@ -836,7 +836,7 @@ export default function Accounting() {
                     </button>
                   </td>
                 </tr>
-                <tr className="border-t border-gray-100 font-medium">
+                <tr className="border-t border-gray-200 bg-gray-100/60 font-medium">
                   <td className="py-1 text-gray-500">External subtotal</td>
                   <td className="text-right tabular-nums text-amber-600">{isk(position.external.active_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{isk(position.external.deferred_isk)}</td>
@@ -844,7 +844,7 @@ export default function Accounting() {
                 </tr>
 
                 {/* Grand total */}
-                <tr className="border-t-2 border-gray-200 font-semibold text-gray-800">
+                <tr className="border-t-2 border-gray-300 bg-gray-100 font-semibold text-gray-800">
                   <td className="py-1.5">Total debt</td>
                   <td className="text-right tabular-nums text-amber-700">{isk(position.total_owed_now_isk)}</td>
                   <td className="text-right tabular-nums text-gray-500">{isk(position.total_deferred_isk)}</td>
