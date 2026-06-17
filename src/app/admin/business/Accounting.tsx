@@ -712,7 +712,12 @@ export default function Accounting() {
               <tbody>
                 {/* Internal */}
                 <tr>
-                  <td colSpan={4} className="pt-2.5 pb-0.5 font-semibold text-gray-500">Internal · founders / staff</td>
+                  <td colSpan={4} className="pt-4 pb-2">
+                    <div className="rounded-md border-l-2 border-emerald-500 bg-gray-50 px-3 py-1.5">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Internal</div>
+                      <div className="text-[11px] text-gray-400">Founders / staff</div>
+                    </div>
+                  </td>
                 </tr>
                 {position.internal.reimb_total_isk > 0 ? (
                   <tr>
@@ -755,9 +760,11 @@ export default function Accounting() {
 
                 {/* External */}
                 <tr>
-                  <td colSpan={4} className="pt-3 pb-0.5 font-semibold text-gray-500">
-                    External · health-check supplier costs
-                    <span className="font-normal text-gray-400"> — measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</span>
+                  <td colSpan={4} className="pt-4 pb-2">
+                    <div className="rounded-md border-l-2 border-emerald-500 bg-gray-50 px-3 py-1.5">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-700">External · Health-check supplier costs</div>
+                      <div className="text-[11px] text-gray-400">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
+                    </div>
                   </td>
                 </tr>
                 {position.external.health_check_lines.length ? (
