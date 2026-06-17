@@ -18,6 +18,9 @@ import { getUserFromRequest, isAnyActiveStaff, requireAdminAAL2 } from "@/lib/au
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CATEGORIES = ["blood_tests", "measurements", "doctor"];
+// Per-member (per-client) cost lines exist only for these two categories;
+// `doctor` stays company-level (it feeds the salary split).
+const MEMBER_CATEGORIES = ["blood_tests", "measurements"];
 const STATUSES = ["auto", "outstanding", "invoice_pending", "covered", "not_applicable"];
 
 export async function GET(req: NextRequest) {
@@ -50,8 +53,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }
   const body = await req.json().catch(() => ({}));
-  const companyId = String(body?.company_id || "");
   const category = String(body?.category || "");
+
+  // Per-MEMBER (per-client) cost line → client_cost_item_status, keyed on
+  // company_members.id. The accounting Financial-position panel posts
+  // member_id; the company card (and the doctor split) post company_id below.
+  if (body?.member_id !== undefined) {
+    const memberId = String(body.member_id || "");
+    if (!UUID_RE.test(memberId) || !MEMBER_CATEGORIES.includes(category)) {
+      return NextResponse.json({ error: "bad_request" }, { status: 400 });
+    }
+    const m: Record<string, unknown> = { member_id: memberId, category, updated_at: new Date().toISOString() };
+    if (body.status !== undefined) {
+      if (!STATUSES.includes(String(body.status))) return NextResponse.json({ error: "bad_status" }, { status: 400 });
+      m.status = body.status;
+    }
+    if (body.provider !== undefined) {
+      m.provider = body.provider === null ? null : String(body.provider).trim().slice(0, 80) || null;
+    }
+    if (body.staff_id !== undefined) {
+      if (body.staff_id !== null && !UUID_RE.test(String(body.staff_id))) {
+        return NextResponse.json({ error: "bad_staff" }, { status: 400 });
+      }
+      m.staff_id = body.staff_id;
+    }
+    if (body.unit_price_isk !== undefined) {
+      const n = body.unit_price_isk === null ? null : Number(body.unit_price_isk);
+      if (n !== null && (!Number.isInteger(n) || n < 0)) {
+        return NextResponse.json({ error: "bad_price" }, { status: 400 });
+      }
+      m.unit_price_isk = n;
+    }
+    if (body.deferred !== undefined) m.deferred = Boolean(body.deferred);
+    if (body.note !== undefined) {
+      m.note = body.note === null ? null : String(body.note).trim().slice(0, 1000) || null;
+    }
+    if (body.sort_order !== undefined) {
+      const n = Number(body.sort_order);
+      if (!Number.isInteger(n) || n < 0) return NextResponse.json({ error: "bad_sort_order" }, { status: 400 });
+      m.sort_order = n;
+    }
+    const { data, error } = await supabaseAdmin
+      .from("client_cost_item_status")
+      .upsert(m, { onConflict: "member_id,category" })
+      .select("*")
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, item: data });
+  }
+
+  const companyId = String(body?.company_id || "");
   if (!UUID_RE.test(companyId) || !CATEGORIES.includes(category)) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }

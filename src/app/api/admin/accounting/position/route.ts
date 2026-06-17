@@ -53,12 +53,13 @@ export async function GET(req: NextRequest) {
     const healthCheckBreakdown = hcDebt.lines
       .filter((l) => l.unpaid_isk > 0)
       .map((l) => ({
+        member_id: l.member_id,
+        client_name: l.client_name,
         company_id: l.company_id,
         company_name: l.company_name,
         category: l.category,
         label: l.label,
         provider: l.provider,
-        head_count: l.head_count,
         rate_isk: l.rate_isk,
         outstanding_isk: l.unpaid_isk,
       }));
@@ -110,21 +111,27 @@ export async function GET(req: NextRequest) {
         // Full per-company × cost-line list (paid + unpaid + N/A) so the
         // panel can show and edit each company's status / head count / defer.
         health_check_lines: hcDebt.lines.map((l) => ({
+          member_id: l.member_id,
+          client_id: l.client_id,
+          client_name: l.client_name,
+          client_href: l.client_href,
           company_id: l.company_id,
           company_name: l.company_name,
+          member_company_id: l.member_company_id,
           category: l.category,
           label: l.label,
           provider: l.provider,
-          head_count: l.head_count,
-          head_count_overridden: l.head_count_overridden,
           rate_isk: l.rate_isk,
           expected_isk: l.expected_isk,
           status: l.status,
           paid: l.paid,
           applicable: l.applicable,
           deferred: l.deferred,
+          note: l.note,
+          sort_order: l.sort_order,
           unpaid_isk: l.unpaid_isk,
         })),
+        health_check_company_subtotals: hcDebt.company_subtotals,
         health_check_expected_isk: hcDebt.expected_total_isk,
         health_check_paid_isk: hcDebt.paid_total_isk,
         biody_isk: biody,

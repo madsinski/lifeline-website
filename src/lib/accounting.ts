@@ -935,25 +935,49 @@ export async function computeCompanyOverview(): Promise<{
 //                anything else → unpaid, counts toward external debt.
 // Expected external debt = Σ (unpaid lines: head count × rate).
 
+// One cost line PER ROSTER MEMBER (per client), per category. Keyed on
+// company_members.id — client_id is null until the member onboards, so the
+// roster-row id is the only stable identity. The per-member editable overlay
+// lives in client_cost_item_status; it falls back to the company-level default
+// row in company_cost_item_status, then to the rate table.
 export interface HealthCheckCostLine {
-  company_id: string;
+  member_id: string;            // company_members.id — stable line key
+  client_id: string | null;    // clients.id once onboarded, else null
+  client_name: string;         // company_members.full_name (always present)
+  client_href: string | null;  // /admin/clients/<client_id> or null
+  company_id: string;          // ROOT (mother) company this rolls into
   company_name: string;
+  member_company_id: string;   // the division/company the member is listed under
   category: "measurements" | "blood_tests";
   label: string;
   provider: string | null;
-  head_count: number;
-  head_count_overridden: boolean;
-  rate_isk: number;
+  rate_isk: number;            // per-head rate (each member is 1 head)
+  expected_isk: number;        // applicable ? rate : 0
+  status: string;              // member override → company default → 'auto'
+  paid: boolean;               // status === 'covered'
+  applicable: boolean;         // status !== 'not_applicable'
+  deferred: boolean;           // moved to the Deferred column, out of net position
+  note: string | null;         // free-text note on this client's cost line
+  sort_order: number;          // manual ordering within the company group
+  unpaid_isk: number;          // applicable && !paid ? expected : 0
+}
+
+// Per-company rollup of the member cost lines, so the UI doesn't re-derive
+// the grouping.
+export interface HealthCheckCompanySubtotal {
+  company_id: string;
+  company_name: string;
   expected_isk: number;
-  status: string;      // raw company_cost_item_status.status
-  paid: boolean;       // status === 'covered'
-  applicable: boolean; // status !== 'not_applicable'
-  deferred: boolean;   // moved to the Deferred column, out of net position
-  unpaid_isk: number;  // applicable && !paid ? expected : 0
+  paid_isk: number;
+  unpaid_active_isk: number;
+  unpaid_deferred_isk: number;
+  member_count: number;
+  line_count: number;
 }
 
 export interface HealthCheckDebt {
   lines: HealthCheckCostLine[];
+  company_subtotals: HealthCheckCompanySubtotal[];
   expected_total_isk: number;       // all applicable lines
   paid_total_isk: number;
   unpaid_total_isk: number;         // the full external health-check debt
@@ -970,11 +994,14 @@ const HC_COST_LINES: Array<{ category: "measurements" | "blood_tests"; label: st
 
 export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
   const today = new Date().toISOString().slice(0, 10);
-  const [companiesRes, membersRes, statusRes, ratesRes] = await Promise.all([
+  const [companiesRes, membersRes, companyStatusRes, memberStatusRes, ratesRes] = await Promise.all([
     supabaseAdmin.from("companies").select("id, name, parent_company_id").order("name"),
-    supabaseAdmin.from("company_members").select("company_id"),
-    // select("*") so a not-yet-applied head_count migration can't 500 this.
+    supabaseAdmin.from("company_members").select("id, company_id, full_name, client_id"),
+    // select("*") so a not-yet-applied column migration can't 500 this.
     supabaseAdmin.from("company_cost_item_status").select("*"),
+    // Per-member overrides. Tolerate the table not existing yet (migration not
+    // applied) — fall back to the company default for every member.
+    supabaseAdmin.from("client_cost_item_status").select("*"),
     supabaseAdmin
       .from("accounting_cost_rates")
       .select("rate_key, amount_isk, effective_from")
@@ -983,80 +1010,85 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
   ]);
 
   const companies = (companiesRes.data || []) as Array<{ id: string; name: string; parent_company_id?: string | null }>;
+  const companyById = new Map(companies.map((c) => [c.id, c] as const));
+  // A member listed under a division belongs to the mother company's group.
+  const rootOf = (companyId: string) => {
+    const c = companyById.get(companyId);
+    if (!c) return null;
+    return c.parent_company_id ? (companyById.get(c.parent_company_id) ?? c) : c;
+  };
+
   const rates: Record<string, number> = {};
   for (const r of ratesRes.data || []) rates[r.rate_key as string] = r.amount_isk as number;
 
-  const memberCounts = new Map<string, number>();
-  for (const m of membersRes.data || []) {
-    const id = m.company_id as string;
-    memberCounts.set(id, (memberCounts.get(id) || 0) + 1);
-  }
-  // Group roster headcount: a mother company's own members + all of its
-  // divisions' members.
-  const groupHeadcount = (companyId: string): number => {
-    let total = memberCounts.get(companyId) || 0;
-    for (const x of companies) {
-      if (x.parent_company_id === companyId) total += memberCounts.get(x.id) || 0;
-    }
-    return total;
-  };
+  type CompanyStatusRow = { company_id: string; category: string; status?: string | null; provider?: string | null; unit_price_isk?: number | null; deferred?: boolean | null };
+  type MemberStatusRow = { member_id: string; category: string; status?: string | null; provider?: string | null; unit_price_isk?: number | null; deferred?: boolean | null; note?: string | null; sort_order?: number | null };
+  type MemberRow = { id: string; company_id: string; full_name?: string | null; client_id?: string | null };
 
-  type StatusRow = { company_id: string; category: string; status?: string | null; provider?: string | null; unit_price_isk?: number | null; head_count?: number | null; deferred?: boolean | null };
-  const statusMap = new Map<string, StatusRow>();
-  for (const s of (statusRes.data || []) as StatusRow[]) {
-    statusMap.set(`${s.company_id}:${s.category}`, s);
+  const companyStatusMap = new Map<string, CompanyStatusRow>();
+  for (const s of (companyStatusRes.data || []) as CompanyStatusRow[]) {
+    companyStatusMap.set(`${s.company_id}:${s.category}`, s);
+  }
+  const memberStatusMap = new Map<string, MemberStatusRow>();
+  for (const s of (memberStatusRes.error ? [] : (memberStatusRes.data || [])) as MemberStatusRow[]) {
+    memberStatusMap.set(`${s.member_id}:${s.category}`, s);
   }
 
   const lines: HealthCheckCostLine[] = [];
-  // Only mother companies carry a health-check cost line — the group
-  // headcount already folds the divisions in, so iterating divisions too
-  // would double-count.
-  const roots = companies.filter((c) => !c.parent_company_id);
-  for (const c of roots) {
+  for (const m of (membersRes.data || []) as MemberRow[]) {
+    const root = rootOf(m.company_id);
+    if (!root) continue;
     for (const item of HC_COST_LINES) {
-      const st = statusMap.get(`${c.id}:${item.category}`);
-      const status = (st?.status as string) || "auto";
+      const coDef = companyStatusMap.get(`${root.id}:${item.category}`);
+      const ovr = memberStatusMap.get(`${m.id}:${item.category}`);
+      const status = (ovr?.status as string) || (coDef?.status as string) || "auto";
       const applicable = status !== "not_applicable";
-      // A company with no roster, no override and no explicit status set is
-      // not part of the health-check programme — skip it entirely so the
-      // panel isn't flooded with empty companies.
-      const headOverride = st?.head_count != null ? Number(st.head_count) : null;
-      const head = headOverride ?? groupHeadcount(c.id);
-      const hasStatusRow = st != null && status !== "auto";
-      if (head <= 0 && !hasStatusRow) continue;
+      // No skip: every rostered member is expected to incur both cost lines
+      // (auto = unpaid) until marked covered / not-applicable, matching the old
+      // per-company behaviour where any company with a roster carried the debt.
+      // A company-level not_applicable default propagates here via coDef.
 
-      const provider = (st?.provider as string | null) ?? null;
-      const rate = st?.unit_price_isk != null
-        ? Number(st.unit_price_isk)
-        : item.category === "blood_tests"
-          ? (provider ? BLOOD_PROVIDER_RATES[provider] ?? (rates[item.rateKey] || 0) : rates[item.rateKey] || 0)
-          : rates[item.rateKey] || 0;
-      const expected = applicable ? head * rate : 0;
+      const provider = (ovr?.provider as string | null) ?? (coDef?.provider as string | null) ?? null;
+      const rate = ovr?.unit_price_isk != null
+        ? Number(ovr.unit_price_isk)
+        : coDef?.unit_price_isk != null
+          ? Number(coDef.unit_price_isk)
+          : item.category === "blood_tests"
+            ? (provider ? BLOOD_PROVIDER_RATES[provider] ?? (rates[item.rateKey] || 0) : rates[item.rateKey] || 0)
+            : rates[item.rateKey] || 0;
+      const expected = applicable ? rate : 0; // one head per member
       const paid = status === "covered";
-      const deferred = Boolean(st?.deferred);
+      const deferred = ovr?.deferred != null ? Boolean(ovr.deferred) : Boolean(coDef?.deferred);
       const unpaid = applicable && !paid ? expected : 0;
       lines.push({
-        company_id: c.id,
-        company_name: c.name,
+        member_id: m.id,
+        client_id: (m.client_id as string | null) ?? null,
+        client_name: (m.full_name as string) || "Unnamed member",
+        client_href: m.client_id ? `/admin/clients/${m.client_id}` : null,
+        company_id: root.id,
+        company_name: root.name,
+        member_company_id: m.company_id,
         category: item.category,
         label: item.label,
         provider,
-        head_count: head,
-        head_count_overridden: headOverride != null,
         rate_isk: rate,
         expected_isk: expected,
         status,
         paid,
         applicable,
         deferred,
+        note: (ovr?.note as string | null) ?? null,
+        sort_order: ovr?.sort_order != null ? Number(ovr.sort_order) : 0,
         unpaid_isk: unpaid,
       });
     }
   }
 
+  // Order: group by company, then manual sort_order, then client name.
   lines.sort((a, b) =>
-    (b.unpaid_isk - a.unpaid_isk) ||
     a.company_name.localeCompare(b.company_name) ||
+    (a.sort_order - b.sort_order) ||
+    a.client_name.localeCompare(b.client_name) ||
     a.category.localeCompare(b.category));
 
   const expectedTotal = lines.reduce((s, l) => s + l.expected_isk, 0);
@@ -1064,8 +1096,31 @@ export async function computeHealthCheckDebt(): Promise<HealthCheckDebt> {
   const unpaidDeferred = lines.filter((l) => l.deferred).reduce((s, l) => s + l.unpaid_isk, 0);
   const paidTotal = lines.filter((l) => l.paid).reduce((s, l) => s + l.expected_isk, 0);
 
+  // Per-company rollup so the UI renders subtotals without re-grouping.
+  const subMap = new Map<string, HealthCheckCompanySubtotal>();
+  const membersByCompany = new Map<string, Set<string>>();
+  for (const l of lines) {
+    let sub = subMap.get(l.company_id);
+    if (!sub) {
+      sub = { company_id: l.company_id, company_name: l.company_name, expected_isk: 0, paid_isk: 0, unpaid_active_isk: 0, unpaid_deferred_isk: 0, member_count: 0, line_count: 0 };
+      subMap.set(l.company_id, sub);
+      membersByCompany.set(l.company_id, new Set());
+    }
+    sub.expected_isk += l.expected_isk;
+    if (l.paid) sub.paid_isk += l.expected_isk;
+    if (l.unpaid_isk > 0) {
+      if (l.deferred) sub.unpaid_deferred_isk += l.unpaid_isk;
+      else sub.unpaid_active_isk += l.unpaid_isk;
+    }
+    sub.line_count += 1;
+    membersByCompany.get(l.company_id)!.add(l.member_id);
+  }
+  for (const [cid, set] of membersByCompany) subMap.get(cid)!.member_count = set.size;
+  const companySubtotals = Array.from(subMap.values()).sort((a, b) => a.company_name.localeCompare(b.company_name));
+
   return {
     lines,
+    company_subtotals: companySubtotals,
     expected_total_isk: expectedTotal,
     paid_total_isk: paidTotal,
     unpaid_total_isk: unpaidTotal,

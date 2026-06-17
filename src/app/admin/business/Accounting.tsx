@@ -15,7 +15,7 @@
 // Download CSV / Send to accountant produce the same DK-importable
 // semicolon CSV the monthly cron (1st, 07:00 UTC) emails automatically.
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -83,11 +83,18 @@ interface PositionData {
   };
   external: {
     health_checks_outstanding_isk: number;
-    health_check_breakdown: Array<{ company_id: string; company_name: string; category: string; label: string; provider: string | null; head_count: number; rate_isk: number; outstanding_isk: number }>;
+    health_check_breakdown: Array<{ member_id: string; client_name: string; company_id: string; company_name: string; category: string; label: string; provider: string | null; rate_isk: number; outstanding_isk: number }>;
     health_check_lines: Array<{
-      company_id: string; company_name: string; category: "measurements" | "blood_tests"; label: string;
-      provider: string | null; head_count: number; head_count_overridden: boolean; rate_isk: number;
-      expected_isk: number; status: string; paid: boolean; applicable: boolean; deferred: boolean; unpaid_isk: number;
+      member_id: string; client_id: string | null; client_name: string; client_href: string | null;
+      company_id: string; company_name: string; member_company_id: string;
+      category: "measurements" | "blood_tests"; label: string;
+      provider: string | null; rate_isk: number; expected_isk: number;
+      status: string; paid: boolean; applicable: boolean; deferred: boolean;
+      note: string | null; sort_order: number; unpaid_isk: number;
+    }>;
+    health_check_company_subtotals: Array<{
+      company_id: string; company_name: string; expected_isk: number; paid_isk: number;
+      unpaid_active_isk: number; unpaid_deferred_isk: number; member_count: number; line_count: number;
     }>;
     health_check_expected_isk: number;
     health_check_paid_isk: number;
@@ -405,10 +412,10 @@ export default function Accounting() {
 
   // Update a company's health-check cost line (paid/unpaid status or head
   // count) from the Financial position panel, then refresh.
-  const saveCostItem = useCallback(async (companyId: string, category: string, patch: Record<string, unknown>) => {
+  const saveCostItem = useCallback(async (memberId: string, category: string, patch: Record<string, unknown>) => {
     const res = await authedFetch(`/api/admin/accounting/cost-items`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ company_id: companyId, category, ...patch }),
+      body: JSON.stringify({ member_id: memberId, category, ...patch }),
     });
     if (!res.ok) { setMsg("Save failed."); return; }
     const posRes = await authedFetch(`/api/admin/accounting/position`);
@@ -778,65 +785,94 @@ export default function Accounting() {
                     <div className="text-[10px] text-gray-400">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
                   </td>
                 </tr>
-                {position.external.health_check_lines.length ? (
-                  position.external.health_check_lines.map((l, i) => {
-                    const sel = l.paid ? "paid" : !l.applicable ? "na" : "unpaid";
-                    const showDefer = l.applicable && !l.paid; // only a real unpaid debt can be deferred
+                {position.external.health_check_company_subtotals.length ? (
+                  position.external.health_check_company_subtotals.map((co) => {
+                    const coLines = position.external.health_check_lines
+                      .filter((l) => l.company_id === co.company_id)
+                      .sort((a, b) => (a.sort_order - b.sort_order) || a.client_name.localeCompare(b.client_name) || a.category.localeCompare(b.category));
                     return (
-                      <tr key={`${l.company_id}:${l.category}`} className={`align-top border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
-                        <td className="py-1">
-                          <span className="font-medium text-gray-800">{l.company_name}</span>
-                          <span className="text-gray-500"> · {l.label}</span>
-                          <span className="text-gray-400"> · {l.head_count}×{isk(l.rate_isk)}{l.provider ? ` ${l.provider}` : ""}</span>
-                          <button
-                            type="button" className="ml-1 text-gray-300 hover:text-emerald-700"
-                            title="Override the head count for this company (empty = roster headcount)"
-                            onClick={() => {
-                              const v = prompt(`${l.company_name} — ${l.label}: number of people (empty = roster headcount):`, String(l.head_count));
-                              if (v === null) return;
-                              const t = v.replace(/[^\d]/g, "");
-                              saveCostItem(l.company_id, l.category, { head_count: t === "" ? null : parseInt(t, 10) });
-                            }}
-                          >✎</button>
-                        </td>
-                        <td className="text-right tabular-nums">
-                          {l.paid ? <span className="text-emerald-600">paid</span>
-                            : !l.applicable ? <span className="text-gray-300">n/a</span>
-                            : l.deferred ? "—" : isk(l.unpaid_isk)}
-                        </td>
-                        <td className="text-right tabular-nums text-gray-400">
-                          {showDefer && l.deferred ? isk(l.unpaid_isk) : "—"}
-                        </td>
-                        <td className="text-right">
-                          <div className={actionCell}>
-                            <select
-                              className={selXs}
-                              value={sel}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                const status = v === "paid" ? "covered" : v === "na" ? "not_applicable" : "outstanding";
-                                saveCostItem(l.company_id, l.category, { status });
-                              }}
-                            >
-                              <option value="unpaid">Unpaid</option>
-                              <option value="paid">Paid</option>
-                              <option value="na">N/A</option>
-                            </select>
-                            {showDefer ? (
-                              <button type="button" className={l.deferred ? btnToggleActive : btnToggle}
-                                onClick={() => saveCostItem(l.company_id, l.category, { deferred: !l.deferred })}>
-                                {l.deferred ? "Activate" : "Defer"}
-                              </button>
-                            ) : (
-                              <span className="min-w-[4.25rem]" aria-hidden="true" />
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                      <Fragment key={co.company_id}>
+                        {/* Company group header */}
+                        <tr className="bg-gray-50/70">
+                          <td colSpan={4} className="px-3 py-1 text-[11px] font-semibold text-gray-600">
+                            {co.company_name}
+                            <span className="ml-1 font-normal text-gray-400">· {co.member_count} {co.member_count === 1 ? "client" : "clients"}</span>
+                          </td>
+                        </tr>
+                        {coLines.map((l, i) => {
+                          const sel = l.paid ? "paid" : !l.applicable ? "na" : "unpaid";
+                          const showDefer = l.applicable && !l.paid; // only a real unpaid debt can be deferred
+                          return (
+                            <tr key={`${l.member_id}:${l.category}`} className={`align-top border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
+                              <td className="py-1">
+                                <div>
+                                  {l.client_href
+                                    ? <Link href={l.client_href} className="font-medium text-emerald-700 hover:underline">{l.client_name}</Link>
+                                    : <span className="font-medium text-gray-800">{l.client_name}</span>}
+                                  <span className="text-gray-500"> · {l.label}</span>
+                                  <span className="text-gray-400"> · {isk(l.rate_isk)}{l.provider ? ` ${l.provider}` : ""}</span>
+                                  {!l.client_id ? <span className="ml-1 text-[10px] text-amber-600">not onboarded</span> : null}
+                                </div>
+                                <input
+                                  type="text"
+                                  defaultValue={l.note ?? ""}
+                                  placeholder="Add note…"
+                                  className="mt-0.5 w-full max-w-[18rem] rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-gray-600 hover:border-gray-200 focus:border-emerald-300 focus:outline-none"
+                                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                                  onBlur={(e) => {
+                                    const v = e.target.value.trim();
+                                    if (v !== (l.note ?? "")) saveCostItem(l.member_id, l.category, { note: v || null });
+                                  }}
+                                />
+                              </td>
+                              <td className="text-right tabular-nums">
+                                {l.paid ? <span className="text-emerald-600">paid</span>
+                                  : !l.applicable ? <span className="text-gray-300">n/a</span>
+                                  : l.deferred ? "—" : isk(l.unpaid_isk)}
+                              </td>
+                              <td className="text-right tabular-nums text-gray-400">
+                                {showDefer && l.deferred ? isk(l.unpaid_isk) : "—"}
+                              </td>
+                              <td className="text-right">
+                                <div className={actionCell}>
+                                  <select
+                                    className={selXs}
+                                    value={sel}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      const status = v === "paid" ? "covered" : v === "na" ? "not_applicable" : "outstanding";
+                                      saveCostItem(l.member_id, l.category, { status });
+                                    }}
+                                  >
+                                    <option value="unpaid">Unpaid</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="na">N/A</option>
+                                  </select>
+                                  {showDefer ? (
+                                    <button type="button" className={l.deferred ? btnToggleActive : btnToggle}
+                                      onClick={() => saveCostItem(l.member_id, l.category, { deferred: !l.deferred })}>
+                                      {l.deferred ? "Activate" : "Defer"}
+                                    </button>
+                                  ) : (
+                                    <span className="min-w-[4.25rem]" aria-hidden="true" />
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {/* Company rollup */}
+                        <tr className="border-b border-gray-200">
+                          <td className="py-1 pl-3 text-[11px] text-gray-400">{co.company_name} subtotal</td>
+                          <td className="text-right tabular-nums text-gray-600">{isk(co.unpaid_active_isk)}</td>
+                          <td className="text-right tabular-nums text-gray-400">{co.unpaid_deferred_isk ? isk(co.unpaid_deferred_isk) : "—"}</td>
+                          <td></td>
+                        </tr>
+                      </Fragment>
                     );
                   })
                 ) : (
-                  <tr><td colSpan={4} className="py-1 text-gray-400">No companies set up for health-check costs yet</td></tr>
+                  <tr><td colSpan={4} className="py-1 text-gray-400">No clients set up for health-check costs yet</td></tr>
                 )}
                 {/* External · sub-section 2: other costs */}
                 <tr>
