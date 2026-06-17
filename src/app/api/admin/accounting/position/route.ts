@@ -38,6 +38,21 @@ export async function GET(req: NextRequest) {
     const s: Record<string, number> = {};
     for (const r of settingsRes.data || []) s[r.key as string] = Number(r.value_numeric) || 0;
 
+    // Actual supplier invoices behind the derived health-check cost, shown
+    // alongside the expected per-company figure. `status` is the paid/
+    // outstanding overlay (net position still runs off the derived cost).
+    // Tolerate the status column not being migrated yet → no invoices shown.
+    const hcInvRes = await supabaseAdmin
+      .from("accounting_expense_invoices")
+      .select("id, company_id, vendor, invoice_number, invoice_date, amount_isk, currency, status, category")
+      .in("category", ["blood_tests", "measurements"])
+      .eq("direction", "cost")
+      .order("invoice_date", { ascending: false });
+    const hcInvoices = (hcInvRes.error ? [] : (hcInvRes.data || [])) as Array<{
+      id: string; company_id: string | null; vendor: string | null; invoice_number: string | null;
+      invoice_date: string | null; amount_isk: number | null; currency: string | null; status: string | null; category: string;
+    }>;
+
     const cash = Math.round(s.cash_balance_isk || 0);
     const biody = Math.round(s.other_liabilities_isk || 0);
     // Manual internal line: an invoice Victor covered out of pocket
@@ -132,6 +147,18 @@ export async function GET(req: NextRequest) {
           unpaid_isk: l.unpaid_isk,
         })),
         health_check_company_subtotals: hcDebt.company_subtotals,
+        // Actual invoices behind the expected cost (grouped per company in the UI).
+        health_check_invoices: hcInvoices.map((v) => ({
+          id: v.id,
+          company_id: v.company_id,
+          vendor: v.vendor,
+          invoice_number: v.invoice_number,
+          invoice_date: v.invoice_date,
+          amount_isk: v.amount_isk,
+          currency: v.currency,
+          status: v.status || "outstanding",
+          category: v.category,
+        })),
         health_check_expected_isk: hcDebt.expected_total_isk,
         health_check_paid_isk: hcDebt.paid_total_isk,
         biody_isk: biody,

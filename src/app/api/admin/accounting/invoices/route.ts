@@ -49,7 +49,7 @@ const extractionSchema = z.object({
 });
 
 const SELECT_COLS =
-  "id, month, direction, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, company_id, company:companies(name), paid_by, reimbursed_at, payer:staff!paid_by(name), split_group_id, storage_path, content_type, size_bytes, ai_confidence, created_at";
+  "id, month, direction, vendor, description, category, amount_isk, currency, amount_original, invoice_number, invoice_date, client_count, company_id, company:companies(name), paid_by, reimbursed_at, payer:staff!paid_by(name), split_group_id, storage_path, content_type, size_bytes, ai_confidence, status, created_at";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -403,6 +403,12 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "bad_direction" }, { status: 400 });
     }
     fields.direction = body.direction;
+  }
+  if (body.status !== undefined) {
+    if (body.status !== "outstanding" && body.status !== "paid") {
+      return NextResponse.json({ error: "bad_status" }, { status: 400 });
+    }
+    fields.status = body.status;
   }
   if (body.month !== undefined) {
     const m = String(body.month);

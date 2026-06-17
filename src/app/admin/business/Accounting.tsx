@@ -92,6 +92,10 @@ interface PositionData {
       company_id: string; company_name: string; expected_isk: number; paid_isk: number;
       unpaid_active_isk: number; unpaid_deferred_isk: number; member_count: number; line_count: number;
     }>;
+    health_check_invoices: Array<{
+      id: string; company_id: string | null; vendor: string | null; invoice_number: string | null;
+      invoice_date: string | null; amount_isk: number | null; currency: string | null; status: string; category: string;
+    }>;
     health_check_expected_isk: number;
     health_check_paid_isk: number;
     biody_isk: number;
@@ -186,7 +190,6 @@ const inputCls = "text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white
 // Compact controls for the dense Financial-position table.
 const btnXs = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50";
 const btnXsActive = "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50";
-const selXs = "text-[11px] border border-gray-200 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500";
 // Right-aligned action cluster + equal-width toggle so the Actions column lines up row to row.
 const actionCell = "flex items-center justify-end gap-1.5";
 const btnToggle = btnXs + " min-w-[4.25rem] justify-center";
@@ -406,10 +409,13 @@ export default function Accounting() {
 
   // Update a company's health-check cost line (paid/unpaid status or head
   // count) from the Financial position panel, then refresh.
-  const saveCostItem = useCallback(async (memberId: string, category: string, patch: Record<string, unknown>) => {
-    const res = await authedFetch(`/api/admin/accounting/cost-items`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ member_id: memberId, category, ...patch }),
+  // Toggle a health-check supplier invoice paid/outstanding. The column is the
+  // single shared source of truth, so the change is reflected wherever the
+  // invoice is read (month breakdown, companies page) on next load.
+  const setInvoiceStatus = useCallback(async (id: string, status: string) => {
+    const res = await authedFetch(`/api/admin/accounting/invoices`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
     });
     if (!res.ok) { setMsg("Save failed."); return; }
     const posRes = await authedFetch(`/api/admin/accounting/position`);
@@ -782,21 +788,52 @@ export default function Accounting() {
                     <div className="text-[10px] text-gray-400">Measurements {isk(2000)}/head · blood {isk(9000)} Sameind / {isk(12500)} Heilsugæslan</div>
                   </td>
                 </tr>
-                {/* Interim: one summary row per company (the per-client lines
-                    flooded the panel). Being rebuilt to one row per supplier
-                    INVOICE, linked to a company, via the PDF intake. */}
+                {/* Per company: the DERIVED expected cost (drives net position),
+                    with the actual supplier invoices shown beneath it and an
+                    expected-vs-invoiced gap. Toggle each invoice paid/outstanding. */}
                 {position.external.health_check_company_subtotals.length ? (
-                  position.external.health_check_company_subtotals.map((co, i) => (
-                    <tr key={co.company_id} className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
-                      <td className="py-1">
-                        <span className="font-medium text-gray-800">{co.company_name}</span>
-                        <span className="text-gray-400"> · {co.member_count} {co.member_count === 1 ? "client" : "clients"} expected</span>
-                      </td>
-                      <td className="text-right tabular-nums">{co.unpaid_active_isk ? isk(co.unpaid_active_isk) : "—"}</td>
-                      <td className="text-right tabular-nums text-gray-400">{co.unpaid_deferred_isk ? isk(co.unpaid_deferred_isk) : "—"}</td>
-                      <td></td>
-                    </tr>
-                  ))
+                  position.external.health_check_company_subtotals.map((co, i) => {
+                    const invs = position.external.health_check_invoices.filter((v) => v.company_id === co.company_id);
+                    const invoiced = invs.reduce((s, v) => s + (v.amount_isk || 0), 0);
+                    const gap = co.expected_isk - invoiced;
+                    return (
+                      <Fragment key={co.company_id}>
+                        <tr className={`border-b border-gray-100 transition-colors hover:bg-emerald-50/40 ${i % 2 ? "bg-gray-50/50" : ""}`}>
+                          <td className="py-1">
+                            <div className="font-medium text-gray-800">{co.company_name}</div>
+                            <div className="text-[10px] text-gray-400">
+                              {co.member_count} {co.member_count === 1 ? "client" : "clients"} expected · expected {isk(co.expected_isk)} · invoiced {isk(invoiced)}
+                              {gap > 0 ? <span className="text-amber-600"> · {isk(gap)} un-invoiced</span>
+                                : gap < 0 ? <span className="text-amber-600"> · {isk(-gap)} over</span> : null}
+                            </div>
+                          </td>
+                          <td className="text-right tabular-nums">{co.unpaid_active_isk ? isk(co.unpaid_active_isk) : "—"}</td>
+                          <td className="text-right tabular-nums text-gray-400">{co.unpaid_deferred_isk ? isk(co.unpaid_deferred_isk) : "—"}</td>
+                          <td></td>
+                        </tr>
+                        {invs.map((v) => (
+                          <tr key={v.id} className="border-b border-gray-50">
+                            <td className="py-0.5 pl-4">
+                              <span className="text-gray-300">↳ </span>
+                              <span className="text-gray-700">{v.vendor || "Invoice"}</span>
+                              <span className="text-gray-400"> · {v.invoice_number || "no #"}{v.invoice_date ? ` · ${v.invoice_date}` : ""} · {isk(v.amount_isk || 0)}</span>
+                              <span className={`ml-1 text-[10px] ${v.status === "paid" ? "text-emerald-600" : "text-amber-600"}`}>{v.status === "paid" ? "paid" : "outstanding"}</span>
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td className="text-right">
+                              <div className={actionCell}>
+                                <button type="button" className={v.status === "paid" ? btnToggleActive : btnToggle}
+                                  onClick={() => setInvoiceStatus(v.id, v.status === "paid" ? "outstanding" : "paid")}>
+                                  {v.status === "paid" ? "Paid" : "Mark paid"}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    );
+                  })
                 ) : (
                   <tr><td colSpan={4} className="py-1 text-gray-400">No companies set up for health-check costs yet</td></tr>
                 )}
