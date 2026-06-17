@@ -751,9 +751,9 @@ export default function Accounting() {
                     </button>
                   </td>
                 </tr>
-                <tr className="border-t border-gray-200 bg-gray-100/60 font-medium">
-                  <td className="py-1 text-gray-500">Internal subtotal</td>
-                  <td className="text-right tabular-nums text-amber-600">{isk(position.internal.active_isk)}</td>
+                <tr className="border-t-2 border-amber-300 bg-amber-50/70 font-semibold">
+                  <td className="py-1.5 text-gray-700 font-semibold">Internal subtotal</td>
+                  <td className="text-right tabular-nums text-amber-700 font-semibold">{isk(position.internal.active_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{isk(position.internal.deferred_isk)}</td>
                   <td></td>
                 </tr>
@@ -836,9 +836,9 @@ export default function Accounting() {
                     </button>
                   </td>
                 </tr>
-                <tr className="border-t border-gray-200 bg-gray-100/60 font-medium">
-                  <td className="py-1 text-gray-500">External subtotal</td>
-                  <td className="text-right tabular-nums text-amber-600">{isk(position.external.active_isk)}</td>
+                <tr className="border-t-2 border-amber-300 bg-amber-50/70 font-semibold">
+                  <td className="py-1.5 text-gray-700 font-semibold">External subtotal</td>
+                  <td className="text-right tabular-nums text-amber-700 font-semibold">{isk(position.external.active_isk)}</td>
                   <td className="text-right tabular-nums text-gray-400">{isk(position.external.deferred_isk)}</td>
                   <td></td>
                 </tr>
