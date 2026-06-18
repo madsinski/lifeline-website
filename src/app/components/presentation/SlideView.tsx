@@ -38,11 +38,37 @@ function HeadTag({ tag }: { tag?: string }) {
   return <span className="tag-pill">{tag}</span>;
 }
 
-function PhoneImg({ src, alt }: { src?: string; alt?: string }) {
+/** Enlarged phone mockup in a portal — the whole device frame scales up with
+ *  the screenshot inside (not the bare image). Literal styles since it renders
+ *  outside the .lldeck scope. Click / Escape closes. */
+function PhoneLightbox({ src, alt, onClose }: { src: string; alt?: string; onClose: () => void }) {
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); } }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={alt || "App screenshot"} onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 10060, background: "rgba(3,16,12,.93)", display: "grid", placeItems: "center", padding: "3vmin", cursor: "zoom-out" }}>
+      <div style={{ height: "min(92vh, 820px)", aspectRatio: "9 / 19", border: "9px solid #0c100f", borderRadius: 40, overflow: "hidden", background: "#0c100f", boxShadow: "0 40px 90px -24px rgba(0,0,0,.85)" }}>
+        <img src={src} alt={alt || ""} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function PhoneImg({ src, alt, zoomable }: { src?: string; alt?: string; zoomable?: boolean }) {
+  const [open, setOpen] = React.useState(false);
+  const clickable = !!(zoomable && src);
   return (
-    <div className="phone-shot">
-      {src ? <img src={src} alt={alt || ""} /> : <div className="phone-ph">No image yet</div>}
-    </div>
+    <>
+      <div className={`phone-shot${clickable ? " is-zoomable" : ""}`} title={clickable ? "Smelltu til að stækka" : undefined}
+        onClick={clickable ? () => setOpen(true) : undefined}>
+        {src ? <img src={src} alt={alt || ""} /> : <div className="phone-ph">No image yet</div>}
+      </div>
+      {open && src && <PhoneLightbox src={src} alt={alt} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
@@ -450,7 +476,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
               </ul>
             )}
           </div>
-          <PhoneImg src={s.phone} />
+          <PhoneImg src={s.phone} zoomable={zoomable} />
         </div>
       );
 
@@ -465,7 +491,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
             </ul>
           </div>
           <div className="phone-row showcase">
-            {(s.phones || []).slice(0, 3).map((p, i) => <PhoneImg key={i} src={p} />)}
+            {(s.phones || []).slice(0, 3).map((p, i) => <PhoneImg key={i} src={p} zoomable={zoomable} />)}
           </div>
         </div>
       );
@@ -479,7 +505,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
           <div className="phone-trio">
             {(s.trio || []).slice(0, 3).map((p, i) => (
               <div key={i} className="phone-trio-item">
-                <PhoneImg src={p?.value} />
+                <PhoneImg src={p?.value} zoomable={zoomable} />
                 {p?.caption && <p>{p.caption}</p>}
               </div>
             ))}
@@ -490,7 +516,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
     case "coaching":
       return (
         <div className="body two" style={{ gridTemplateColumns: ".8fr 1.2fr" }}>
-          <div className="coach-phone"><PhoneImg src={s.phone} /></div>
+          <div className="coach-phone"><PhoneImg src={s.phone} zoomable={zoomable} /></div>
           <div>
             {s.kicker && <span className="kicker">{s.kicker}</span>}
             <h2>{rich(s.heading)}</h2>

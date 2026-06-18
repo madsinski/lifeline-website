@@ -306,6 +306,8 @@ export const DECK_CSS = `
 .lldeck .phone-shot{border:6px solid rgba(255,255,255,.16);border-radius:30px;overflow:hidden;background:var(--dark2);box-shadow:0 30px 60px -22px rgba(0,0,0,.6);width:clamp(150px,16cqw,240px);aspect-ratio:9/19;margin:0 auto;}
 .lldeck .light .phone-shot{border-color:#fff;box-shadow:var(--shadow);}
 .lldeck .phone-shot img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}
+.lldeck .phone-shot.is-zoomable{cursor:zoom-in;transition:transform .18s ease,box-shadow .18s ease;}
+.lldeck .phone-shot.is-zoomable:hover{transform:translateY(-4px);box-shadow:0 38px 70px -22px rgba(0,0,0,.7);}
 .lldeck .phone-row{display:flex;gap:.8rem;justify-content:center;align-items:flex-end;}
 .lldeck .phone-row .phone-shot{width:clamp(90px,11cqw,165px);margin:0;}
 .lldeck .phone-row .phone-shot:nth-child(2){width:clamp(104px,12.5cqw,188px);margin-bottom:14px;}
