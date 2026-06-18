@@ -326,6 +326,7 @@ export const DECK_CSS = `
 .lldeck .member{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.5rem;}
 .lldeck .member .photo{width:clamp(78px,9cqw,132px);height:clamp(78px,9cqw,132px);border-radius:50%;object-fit:cover;object-position:center top;border:3px solid #fff;background:#dfeae6;box-shadow:var(--shadow);}
 .lldeck .member .ph-empty{display:grid;place-items:center;color:var(--muted);font-size:.7rem;}
+.lldeck .member .ph-initials{display:grid;place-items:center;color:#fff;font-weight:800;font-size:clamp(1.5rem,3cqw,2.4rem);letter-spacing:.02em;background:linear-gradient(135deg,var(--emerald),var(--emerald-dark));}
 .lldeck .member .flag{font-size:clamp(.58rem,.72cqw,.68rem);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--emerald-dark);}
 .lldeck .dark .member .flag{color:var(--on-dark-accent);}
 .lldeck .member h4{font-size:clamp(.88rem,1.1cqw,1.04rem);font-weight:700;line-height:1.2;}

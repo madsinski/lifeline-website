@@ -46,12 +46,16 @@ function PhoneImg({ src, alt }: { src?: string; alt?: string }) {
   );
 }
 
+function memberInitials(name?: string): string {
+  return (name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0] || "").join("").toUpperCase();
+}
+
 function MemberCard({ m }: { m: MemberItem }) {
   return (
     <div className="member">
       {m.photo
         ? <img className="photo" src={m.photo} alt={m.name} />
-        : <div className="photo ph-empty">No photo</div>}
+        : <div className="photo ph-initials" aria-hidden>{memberInitials(m.name)}</div>}
       {m.flag && <span className="flag">{m.flag}</span>}
       <h4>{m.name}</h4>
       <span className="role">{m.role}</span>
