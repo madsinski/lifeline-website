@@ -1,4 +1,22 @@
 import type { IconKey, BrandKey } from "@/lib/presentations/types";
+import {
+  Activity, ClipboardList, ShieldCheck, Smartphone, Stethoscope, BarChart3,
+  Users, Sparkles, Dumbbell, Leaf, Moon, Brain, Target, Lock, Calendar, Apple, Smile,
+  Droplet, ScanLine, Bone, PersonStanding, Gauge, Wind, Accessibility, Hand,
+  Utensils, Soup, Flame, Snowflake, Cylinder, Flower2, type LucideIcon,
+} from "lucide-react";
+
+// IconKey → Lucide icon. Clean, consistent 24px stroke set. Keys without a
+// good library match fall through to a small custom glyph in Icon().
+const ICONS: Partial<Record<IconKey, LucideIcon>> = {
+  pulse: Activity, clip: ClipboardList, shield: ShieldCheck, phone: Smartphone,
+  doc: Stethoscope, chart: BarChart3, users: Users, spark: Sparkles,
+  dumbbell: Dumbbell, leaf: Leaf, moon: Moon, brain: Brain, target: Target,
+  lock: Lock, cal: Calendar, apple: Apple, smile: Smile,
+  drop: Droplet, scan: ScanLine, bone: Bone, body: PersonStanding, gauge: Gauge,
+  lungs: Wind, stretch: Accessibility, hand: Hand, fork: Utensils, meal: Soup,
+  flame: Flame, snow: Snowflake, oxygen: Cylinder, lotus: Flower2,
+};
 
 // One hidden <svg> with all reusable symbols (the Lifeline wordmark + the line
 // icons). Rendered once per deck; slides reference symbols via <use>.
@@ -44,38 +62,6 @@ export function DeckDefs() {
           <path fill="currentColor" d="M.783.194 0 31.767h7.085l4.345-18.975h.274l-1.331 18.975h7.045L26.148.194h-6.225l-4.462 19.87h-.274L16.48.193H10.49l-4.736 19.87H5.48L7.046.193H.783ZM32.05 11.86l-2.113 14.113c-.157 1.011-.314 1.556-1.175 1.556-.587 0-.783-.273-.783-.856 0-.155.04-.389.079-.7L30.17 11.86c.157-.972.314-1.555 1.096-1.555.666 0 .9.272.9.933 0 .078-.078.272-.117.622Zm5.637.621c.235-1.477.352-2.527.352-3.266 0-2.994-1.996-3.344-6.028-3.344-6.028 0-6.772.972-7.633 6.61l-1.957 12.831c-.235 1.633-.313 2.8-.313 3.422 0 2.838 1.957 3.188 5.989 3.188 5.91 0 6.81-.894 7.672-6.61l1.918-12.83ZM52.07 12.987c.274-1.789.391-2.917.391-3.305 0-2.528-1.096-3.81-3.17-3.81-.94 0-2.075.466-3.366 1.36l.156-1.205h-5.715l-3.835 25.74h5.675l2.975-19.597c.157-1.01.43-1.438 1.135-1.438.548 0 .783.233.783.816 0 .078 0 .311-.04.622l-.665 4.394h5.128l.548-3.577ZM55.277.194 50.54 31.767h5.675L60.992.194h-5.715ZM70.261.194l-1.056 7.038c-1.057-.894-1.958-1.36-3.093-1.36-3.836 0-4.736 2.915-5.362 7.115l-1.8 11.82c-.236 1.477-.392 2.566-.392 3.266 0 2.45 1.33 3.81 3.64 3.81 1.174 0 2.231-.466 3.484-1.36l.463 1.244h5.095L75.976.194h-5.715Zm-1.8 12.015-1.996 13.337c-.157.972-.431 1.438-1.175 1.438-.548 0-.783-.233-.783-.816 0-.078 0-.273.04-.622l1.996-13.337c.156-1.01.47-1.439 1.174-1.439.509 0 .822.311.822.778 0 .117-.039.311-.078.661ZM98.113 6.532c.195-1.283.313-2.333.313-3.11C98.426.194 96.156 0 91.458 0c-3.483 0-5.636.039-6.967 1.439-1.057 1.127-1.33 2.76-1.683 5.093L79.99 25.39c-.235 1.478-.313 2.644-.313 3.46 0 2.8 2.426 3.15 6.967 3.15 3.444 0 5.558-.117 6.85-1.4 1.174-1.166 1.409-2.838 1.761-5.21l1.096-7.038h-6.654l-1.018 6.844c-.156 1.01-.352 1.594-1.252 1.594-.627 0-.861-.272-.861-.933 0-.156 0-.39.039-.661l2.779-18.47c.156-.971.313-1.555 1.174-1.555.705 0 .979.272.979.933 0 .04-.04.234-.079.623l-.626 4.199h6.615l.666-4.394ZM100.971.194l-4.736 31.573h5.676L106.686.194h-5.715ZM119.831 12.481c.235-1.516.352-2.605.352-3.266 0-2.994-1.996-3.344-6.028-3.344-6.067 0-6.772 1.011-7.633 6.61l-.352 2.294h5.715l.43-2.916c.157-1.01.314-1.555 1.214-1.555.626 0 .783.272.783.933 0 0-.039.194-.118.622l-.509 3.383-5.48 2.955c-2.152 1.166-2.896 2.138-3.248 4.588l-.392 2.527c-.195 1.322-.352 2.411-.352 3.266 0 2.294 1.057 3.344 3.366 3.344 1.331 0 2.505-.466 3.836-1.322l.463 1.167h5.056l2.897-19.286Zm-6.928 8.204-.822 5.288c-.157 1.05-.353 1.556-1.175 1.556-.587 0-.783-.273-.783-.856 0-.194.04-.428.079-.7l.391-2.605c.157-1.088.313-1.827 1.292-2.255l1.018-.428ZM120.038 22.513l-.43 2.8c-.235 1.593-.314 2.76-.314 3.42 0 2.84 1.957 3.19 5.989 3.19 5.872 0 6.811-.895 7.672-6.61l.313-2.334c.118-.7.235-1.4.235-2.06 0-1.284-.587-2.217-1.722-2.878l-2.192-1.244c-1.566-.894-2.584-1.089-2.584-2.41 0-.273.079-.545.118-.895l.235-1.633c.156-1.01.352-1.555 1.096-1.555.665 0 .9.272.9.933 0 .039-.039.233-.117.622l-.431 2.916h5.715l.352-2.294c.235-1.438.352-2.527.352-3.266 0-2.994-1.996-3.344-6.028-3.344-5.245 0-6.732.661-7.476 5.56l-.43 2.683c-.157 1.167-.274 1.983-.274 2.45 0 1.555.822 2.372 2.661 3.344l2.075 1.127c1.448.778 1.8 1.128 1.8 1.983 0 .04 0 .272-.078.739l-.352 2.216c-.157 1.011-.313 1.556-1.174 1.556-.588 0-.783-.273-.783-.856 0-.194.039-.428.078-.7l.509-3.46h-5.715ZM134.813 22.513l-.431 2.8c-.235 1.593-.313 2.76-.313 3.42 0 2.84 1.957 3.19 5.989 3.19 5.871 0 6.811-.895 7.672-6.61l.313-2.334c.117-.7.235-1.4.235-2.06 0-1.284-.587-2.217-1.723-2.878l-2.191-1.244c-1.566-.894-2.584-1.089-2.584-2.41 0-.273.078-.545.118-.895l.234-1.633c.157-1.01.353-1.555 1.096-1.555.666 0 .901.272.901.933 0 .039-.039.233-.118.622l-.43 2.916h5.714l.353-2.294c.235-1.438.352-2.527.352-3.266 0-2.994-1.996-3.344-6.028-3.344-5.245 0-6.732.661-7.476 5.56l-.431 2.683c-.156 1.167-.274 1.983-.274 2.45 0 1.555.822 2.372 2.662 3.344l2.075 1.127c1.448.778 1.8 1.128 1.8 1.983 0 .04 0 .272-.078.739l-.352 2.216c-.157 1.011-.314 1.556-1.175 1.556-.587 0-.783-.273-.783-.856 0-.194.04-.428.079-.7l.509-3.46h-5.715Z" />
         </symbol>
 
-        <symbol id="i-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6" /></symbol>
-        <symbol id="i-clip" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="12" height="17" rx="2" /><path d="M9 4h6v3H9z" /><path d="M9 11h6M9 15h4" /></symbol>
-        <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" /><path d="M9 12l2 2 4-4" /></symbol>
-        <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 18h4" /></symbol>
-        <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 3v6a4 4 0 008 0V3M9 3v6" /><path d="M9 13v3a5 5 0 0010 0v-2" /><circle cx="19" cy="11" r="2" /></symbol>
-        <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 19V5M4 19h16" /><path d="M8 16v-4M12 16V8M16 16v-6" /></symbol>
-        <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0112 0" /><path d="M16 6a3 3 0 010 6M21 20a6 6 0 00-4-5.6" /></symbol>
-        <symbol id="i-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" /><circle cx="12" cy="12" r="2.5" /></symbol>
-        <symbol id="i-dumbbell" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12" /></symbol>
-        <symbol id="i-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 19c0-8 6-13 14-13 0 8-5 14-13 14-1 0-1 0-1-1z" /><path d="M5 19c2-4 5-7 9-9" /></symbol>
-        <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 14a8 8 0 11-9-9 6 6 0 009 9z" /></symbol>
-        <symbol id="i-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 5a3 3 0 00-5 2 3 3 0 00-1 5 3 3 0 003 4 2.5 2.5 0 003-2V5z" /><path d="M12 5a3 3 0 015 2 3 3 0 011 5 3 3 0 01-3 4 2.5 2.5 0 01-3-2V5z" /></symbol>
-        <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="1" /></symbol>
-        <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></symbol>
-        <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></symbol>
-        <symbol id="i-apple" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z" /><path d="M10 2c1 .5 2 2 2 5" /></symbol>
-        <symbol id="i-smile" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M8 14.5s1.5 2 4 2 4-2 4-2" /><path d="M9 9.5h.01M15 9.5h.01" /></symbol>
-        <symbol id="i-drop" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3.5c3.8 4.8 6 8 6 10.5a6 6 0 0 1-12 0c0-2.5 2.2-5.7 6-10.5z" /></symbol>
-        <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 8V6.5A2.5 2.5 0 0 1 6.5 4H8M16 4h1.5A2.5 2.5 0 0 1 20 6.5V8M20 16v1.5a2.5 2.5 0 0 1-2.5 2.5H16M8 20H6.5A2.5 2.5 0 0 1 4 17.5V16" /><path d="M4 12h16" /></symbol>
-        <symbol id="i-bone" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9.8 14.2l4.4-4.4" /><circle cx="7.6" cy="16.4" r="2.1" /><circle cx="10" cy="14" r="2.1" /><circle cx="14" cy="10" r="2.1" /><circle cx="16.4" cy="7.6" r="2.1" /></symbol>
-        <symbol id="i-body" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="4.5" r="2" /><path d="M12 6.5v8M12 9l-5 2.5M12 9l5 2.5M12 14.5l-3 6M12 14.5l3 6" /></symbol>
-        <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 16a7 7 0 0 1 14 0" /><path d="M12 16l4.5-3.5" /><circle cx="12" cy="16" r="1.2" /></symbol>
-        <symbol id="i-lungs" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v8" /><path d="M8.5 10.5C7 11.5 6 13.5 6 16.5c0 2 .8 3 2 3s2.2-1 2.2-3v-4.2c0-1-.7-1.8-1.7-1.8z" /><path d="M15.5 10.5c1.5 1 2.5 3 2.5 6 0 2-.8 3-2 3s-2.2-1-2.2-3v-4.2c0-1 .7-1.8 1.7-1.8z" /></symbol>
-        <symbol id="i-stretch" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="14" cy="4.5" r="2" /><path d="M14 6.5l-2.5 4.5 4 2.5M11.5 11l-4.5 1.5M11.5 11l1 9.5M15.5 13.5l1.5 7" /></symbol>
-        <symbol id="i-hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V10M11 10V4.5a1.5 1.5 0 0 1 3 0V10M14 10.5V6a1.5 1.5 0 0 1 3 0v7a6 6 0 0 1-6 6 5.5 5.5 0 0 1-4.6-2.5L5 13.5a1.5 1.5 0 0 1 2.2-2L8 12.5" /></symbol>
-        <symbol id="i-stomach" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 4.8v4.2a3.5 3.5 0 0 0 3.5 3.5A3.5 3.5 0 0 1 13 19.5h-2.6" /><path d="M10 4.8a2 2 0 0 1 3.6 0" /></symbol>
-        <symbol id="i-fork" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 3v6a1.8 1.8 0 0 0 3.6 0V3M9.3 11v10" /><path d="M16 3c-1.4 0-2.3 2-2.3 4.8 0 2.2 1.5 3.2 1.5 3.2L15 21" /></symbol>
-        <symbol id="i-meal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 14a7.5 7.5 0 0 1 15 0z" /><path d="M3.5 14h17M12 6.5V5.2" /></symbol>
-        <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3s5 4 5 9a5 5 0 0 1-10 0c0-2 1-3.2 1.6-3.8.2 1 1 1.6 1.9 1.6.7-2.6-.8-4.6 1.5-6.8z" /></symbol>
-        <symbol id="i-snow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" /><path d="M12 6.5l-2.2-2M12 6.5l2.2-2M12 17.5l-2.2 2M12 17.5l2.2 2" /></symbol>
-        <symbol id="i-oxygen" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="10" rx="5" /><path d="M12 10.2v3.6M10.2 12h3.6" /></symbol>
-        <symbol id="i-lotus" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20c-4-1-7-3.8-7-6.8 2 0 3.3.6 4.3 1.7C9 12 10.4 9.7 12 7c1.6 2.7 3 5 2.7 7.9 1-1.1 2.3-1.7 4.3-1.7 0 3-3 5.8-7 6.8z" /></symbol>
       </defs>
     </svg>
   );
@@ -110,9 +96,13 @@ export function Logo({ brand }: { brand?: BrandKey } = {}) {
 }
 
 export function Icon({ name }: { name: IconKey }) {
+  const Glyph = ICONS[name];
+  if (Glyph) return <Glyph width="100%" height="100%" strokeWidth={2} aria-hidden="true" />;
+  // "stomach" (digestive) has no good library match — clean custom glyph.
   return (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">
-      <use href={`#i-${name}`} />
+    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 4.6c0 2.2.5 3.5 2.7 3.7 3 .3 5.3 2.2 5.3 5.1 0 3-2.4 5.2-5.6 5.2-2.2 0-3.9-1.1-4.4-2.9" />
+      <path d="M9 4.6a1.6 1.6 0 0 1 3.1-.2" />
     </svg>
   );
 }
