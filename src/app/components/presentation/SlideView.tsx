@@ -745,9 +745,9 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
 /** Full slide: themed <section> + background layers + header chrome + body. */
 export function SlideView({ slide, zoomable }: { slide: Slide; zoomable?: boolean }) {
   const hasBg = (slide.type === "title" || slide.type === "closing") && !!slide.bg;
-  // Full-bleed illustrations and the clusters layout carry their own branding,
-  // so the corner logo is suppressed to avoid collisions / double branding.
-  const noHead = slide.type === "fullbleed" || slide.type === "clusters";
+  // Full-bleed illustrations carry their own baked-in title, so the corner
+  // logo is suppressed there to avoid collisions.
+  const noHead = slide.type === "fullbleed";
   return (
     <>
       {hasBg && <div className="slide-bg" style={{ backgroundImage: `url(${slide.bg})` }} />}
