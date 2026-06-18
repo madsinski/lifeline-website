@@ -394,6 +394,25 @@ export const DECK_CSS = `
 .lldeck .fb-hint{position:absolute;left:50%;top:clamp(10px,1.6cqw,18px);transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:.5em;background:#10b981;color:#03120e;border-radius:999px;padding:.5em 1.1em;font-size:clamp(11px,1.05cqw,15px);font-weight:800;box-shadow:0 6px 20px rgba(16,185,129,.4);pointer-events:none;animation:fbpulse 2.6s ease-in-out infinite;}
 .lldeck .fb-hint svg{width:1.1em;height:1.1em;}
 @keyframes fbpulse{0%,100%{opacity:.9}50%{opacity:1}}
+/* clusters — central hub flanked by editable cluster cards */
+.lldeck .clusters-wrap{position:absolute;inset:0;display:grid;grid-template-columns:1fr auto 1fr;gap:clamp(.9rem,2.2cqw,2.3rem);align-items:center;padding:clamp(1.4rem,4cqw,3.4rem);}
+.lldeck .clusters-col{display:flex;flex-direction:column;gap:clamp(.6rem,1.5cqh,1.2rem);}
+.lldeck .cl-card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:clamp(.7rem,1.25cqw,1.1rem) clamp(.8rem,1.4cqw,1.25rem);}
+.lldeck .cl-head{display:flex;align-items:center;gap:.55rem;margin-bottom:.5rem;}
+.lldeck .cl-ic{flex:none;display:grid;place-items:center;width:clamp(28px,2.5cqw,40px);height:clamp(28px,2.5cqw,40px);border-radius:11px;color:#fff;}
+.lldeck .cl-ic svg{width:58%;height:58%;}
+.lldeck .cl-head h3{font-size:clamp(.92rem,1.2cqw,1.3rem);font-weight:800;color:var(--ink);line-height:1.15;}
+.lldeck .cl-items{display:grid;grid-template-columns:1fr 1fr;gap:.32rem .7rem;}
+.lldeck .cl-item{display:flex;align-items:center;gap:.42rem;min-width:0;}
+.lldeck .cl-chip{flex:none;display:grid;place-items:center;width:clamp(19px,1.7cqw,27px);height:clamp(19px,1.7cqw,27px);border-radius:50%;background:color-mix(in srgb, currentColor 15%, transparent);}
+.lldeck .cl-chip svg{width:56%;height:56%;}
+.lldeck .cl-label{font-size:clamp(.68rem,.9cqw,.94rem);color:var(--muted);line-height:1.15;}
+.lldeck .clusters-hub{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:clamp(178px,19cqw,288px);aspect-ratio:1;border-radius:50%;padding:clamp(1rem,2cqw,1.6rem);color:#fff;background:radial-gradient(circle at 40% 32%, var(--emerald), var(--emerald-dark));box-shadow:0 30px 70px -24px rgba(4,120,87,.55), inset 0 0 0 3px rgba(255,255,255,.55);}
+.lldeck .clusters-hub h2{color:#fff;font-size:clamp(1.4rem,2.7cqw,2.5rem);line-height:1;}
+.lldeck .clusters-hub h2 .grad{-webkit-text-fill-color:#fff;background:none;color:#fff;}
+.lldeck .clusters-hub p{color:#eafaf3;font-size:clamp(.7rem,1cqw,1rem);margin-top:.35rem;}
+.lldeck .cl-hub-kicker{font-size:clamp(.56rem,.72cqw,.7rem);letter-spacing:.16em;text-transform:uppercase;color:#bbf7d6;font-weight:800;margin-bottom:.35rem;}
+.lldeck .cl-hub-note{margin-top:.5rem;font-size:clamp(.6rem,.82cqw,.8rem);color:#cdeede;max-width:22ch;}
 /* hero-image (edge-bleed) */
 .lldeck .hero-img{position:absolute;top:0;right:0;bottom:0;width:42%;background-size:cover;background-position:center;z-index:0;display:grid;place-items:center;background-color:var(--dark2);}
 .lldeck .hero-ph{color:var(--on-dark-muted);font-size:.8rem;}

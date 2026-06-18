@@ -583,6 +583,45 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
         </div>
       );
 
+    case "clusters": {
+      const cls = s.clusters || [];
+      const PAL = ["#10B981", "#0EA5A3", "#06B6D4", "#0E9F6E", "#0891B2", "#16A34A"];
+      const half = Math.ceil(cls.length / 2);
+      const renderCard = (c: NonNullable<Slide["clusters"]>[number], idx: number) => {
+        const color = PAL[idx % PAL.length];
+        return (
+          <div className="cl-card" key={idx}>
+            <div className="cl-head">
+              <span className="cl-ic" style={{ background: color }}><Icon name={c.icon} /></span>
+              <h3>{c.title}</h3>
+            </div>
+            {!!(c.items || []).length && (
+              <div className="cl-items">
+                {c.items!.map((it, j) => (
+                  <span className="cl-item" key={j} style={{ color }}>
+                    <span className="cl-chip"><Icon name={it.icon} /></span>
+                    <span className="cl-label">{it.label}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+      return (
+        <div className="clusters-wrap">
+          <div className="clusters-col">{cls.slice(0, half).map((c, i) => renderCard(c, i))}</div>
+          <div className="clusters-hub">
+            {s.kicker && <span className="cl-hub-kicker">{s.kicker}</span>}
+            {s.heading && <h2>{rich(s.heading)}</h2>}
+            {s.lead && <p>{s.lead}</p>}
+            {s.footnote && <span className="cl-hub-note">{s.footnote}</span>}
+          </div>
+          <div className="clusters-col">{cls.slice(half).map((c, i) => renderCard(c, i + half))}</div>
+        </div>
+      );
+    }
+
     case "fullbleed":
       return <FullbleedView s={s} zoomable={zoomable} />;
 
@@ -706,14 +745,19 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
 /** Full slide: themed <section> + background layers + header chrome + body. */
 export function SlideView({ slide, zoomable }: { slide: Slide; zoomable?: boolean }) {
   const hasBg = (slide.type === "title" || slide.type === "closing") && !!slide.bg;
+  // Full-bleed illustrations and the clusters layout carry their own branding,
+  // so the corner logo is suppressed to avoid collisions / double branding.
+  const noHead = slide.type === "fullbleed" || slide.type === "clusters";
   return (
     <>
       {hasBg && <div className="slide-bg" style={{ backgroundImage: `url(${slide.bg})` }} />}
       {hasBg && <div className="slide-bg-ov" />}
-      <div className="slide-head">
-        {slide.type === "team-branch" ? <span /> : <Logo brand={slide.brand} />}
-        <HeadTag tag={slide.tag} />
-      </div>
+      {!noHead && (
+        <div className="slide-head">
+          {slide.type === "team-branch" ? <span /> : <Logo brand={slide.brand} />}
+          <HeadTag tag={slide.tag} />
+        </div>
+      )}
       <SlideBody s={slide} zoomable={zoomable} />
       {/* footnote already handled inside some bodies; title/closing render it here */}
       {(slide.type === "title" || slide.type === "closing") && slide.footnote && (

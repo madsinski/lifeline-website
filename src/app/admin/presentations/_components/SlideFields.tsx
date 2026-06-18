@@ -15,12 +15,15 @@ function isScalarList(f: FieldDef): boolean {
   return !!f.itemFields && f.itemFields.length === 1 && f.itemFields[0].key === "value";
 }
 function isTranslatableSub(sf: SubFieldDef): boolean {
-  return (sf.kind === "text" || sf.kind === "textarea") && !sf.noTranslate;
+  if (sf.kind === "text" || sf.kind === "textarea") return !sf.noTranslate;
+  if (sf.kind === "list") return (sf.itemFields || []).some(isTranslatableSub);
+  return false;
 }
 
 function defaultForSub(sf: SubFieldDef): unknown {
   if (sf.kind === "icon") return "target";
   if (sf.kind === "select") return sf.options?.[0]?.value ?? "";
+  if (sf.kind === "list") return [];
   return "";
 }
 function defaultItem(f: FieldDef): unknown {
@@ -284,8 +287,9 @@ function HotspotField({ value, image, onChange }: { value: Hotspot[]; image?: st
   );
 }
 
-function SubControl({ def, value, presentationId, onChange }: { def: SubFieldDef; value: unknown; presentationId: string; onChange: (v: unknown) => void }) {
+function SubControl({ def, value, presentationId, onChange, textOnly }: { def: SubFieldDef; value: unknown; presentationId: string; onChange: (v: unknown) => void; textOnly?: boolean }) {
   const v = (value ?? "") as string;
+  if (def.kind === "list") return <ListEditor field={def as unknown as FieldDef} value={(value as unknown[]) ?? []} presentationId={presentationId} onChange={(arr) => onChange(arr)} textOnly={textOnly} />;
   if (def.kind === "textarea") return <textarea rows={2} value={v} onChange={(e) => onChange(e.target.value)} className={inputCls} />;
   if (def.kind === "image") return <ImageField value={v} role={def.imageRole || "photo"} presentationId={presentationId} onChange={onChange} />;
   if (def.kind === "icon") return (
@@ -335,7 +339,7 @@ function ListEditor({ field, value, presentationId, onChange, textOnly }: { fiel
             )}
           </div>
           {scalar && scalarSub ? (
-            <SubControl def={scalarSub} value={item} presentationId={presentationId} onChange={(v) => update(i, v)} />
+            <SubControl def={scalarSub} value={item} presentationId={presentationId} onChange={(v) => update(i, v)} textOnly={textOnly} />
           ) : (
             <div className="space-y-2">
               {subFields.map((sf) => (
@@ -346,6 +350,7 @@ function ListEditor({ field, value, presentationId, onChange, textOnly }: { fiel
                     value={(item as Record<string, unknown>)?.[sf.key]}
                     presentationId={presentationId}
                     onChange={(v) => update(i, { ...(item as Record<string, unknown>), [sf.key]: v })}
+                    textOnly={textOnly}
                   />
                 </div>
               ))}

@@ -44,7 +44,8 @@ export type IconKey =
   | "target" | "lock" | "cal" | "apple" | "smile"
   // medical / wellness modalities
   | "drop" | "scan" | "bone" | "body" | "gauge" | "lungs"
-  | "stretch" | "hand" | "stomach" | "fork" | "meal";
+  | "stretch" | "hand" | "stomach" | "fork" | "meal"
+  | "flame" | "snow" | "oxygen" | "lotus";
 
 export const ICON_OPTIONS: { value: IconKey; label: string }[] = [
   { value: "pulse", label: "Pulse / heartbeat" },
@@ -75,6 +76,10 @@ export const ICON_OPTIONS: { value: IconKey; label: string }[] = [
   { value: "stomach", label: "Stomach / digestive" },
   { value: "fork", label: "Cutlery" },
   { value: "meal", label: "Meal / dish" },
+  { value: "flame", label: "Flame / sauna" },
+  { value: "snow", label: "Snowflake / ice bath" },
+  { value: "oxygen", label: "Oxygen chamber / HBOT" },
+  { value: "lotus", label: "Lotus / yoga" },
 ];
 
 export type PillarKey = "exercise" | "nutrition" | "sleep" | "mental";
@@ -111,7 +116,7 @@ export type SlideType =
   | "app-showcase" | "trio" | "coaching" | "timeline" | "closing"
   // from-scratch layout primitives
   | "statement" | "metric" | "feature-rows" | "hero-image" | "checklist"
-  | "report" | "fan" | "fullbleed";
+  | "report" | "fan" | "fullbleed" | "clusters";
 
 export interface Slide {
   id: string;
@@ -154,6 +159,8 @@ export interface Slide {
   // fullbleed — clickable focus areas; each zooms into that region of the image
   // with an optional caption. x,y,w,h in % of the image.
   hotspots?: { x: number; y: number; w: number; h: number; title?: string; body?: string }[];
+  // clusters — hub (heading/lead/footnote) flanked by editable cluster cards
+  clusters?: { icon: IconKey; title: string; items?: { icon: IconKey; label: string }[] }[];
   // fan — two labelled groups of cards (e.g. Clients / Collaborations).
   // Each card: title (value), optional body, optional newline-separated points.
   fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string; points?: string }[];
@@ -198,10 +205,14 @@ export type ImageRole = "background" | "photo" | "phone";
 export interface SubFieldDef {
   key: string;
   label: string;
-  kind: "text" | "textarea" | "image" | "icon" | "select";
+  kind: "text" | "textarea" | "image" | "icon" | "select" | "list";
   imageRole?: ImageRole;
   options?: { value: string; label: string }[];
   noTranslate?: boolean; // text field that should NOT be translated (names, numeric values)
+  // for kind === "list" (nested list, e.g. cluster items)
+  itemFields?: SubFieldDef[];
+  itemLabel?: string;
+  max?: number;
 }
 
 export interface FieldDef {
@@ -442,6 +453,23 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "hotspots", label: "Focus areas (click to zoom)", kind: "text", noTranslate: true, help: "Clickable regions that enlarge part of the image with a caption — draw them on the image below." },
     ],
   },
+  clusters: {
+    type: "clusters", label: "Hub + clusters", description: "A central hub flanked by cluster cards, each with icon items.",
+    fields: [
+      F.kicker,
+      { key: "heading", label: "Hub · title", kind: "text", help: "Wrap a word in ==double equals== for the gradient accent." },
+      { key: "lead", label: "Hub · subtitle", kind: "text" },
+      { key: "footnote", label: "Hub · note (small line)", kind: "text" },
+      { key: "clusters", label: "Clusters", kind: "list", itemLabel: "cluster", max: 6, itemFields: [
+        { key: "icon", label: "Icon", kind: "icon" },
+        { key: "title", label: "Title", kind: "text" },
+        { key: "items", label: "Items", kind: "list", itemLabel: "item", itemFields: [
+          { key: "icon", label: "Icon", kind: "icon" },
+          { key: "label", label: "Label", kind: "text" },
+        ] },
+      ] },
+    ],
+  },
   checklist: {
     type: "checklist", label: "Checklist", description: "Big two-column list of checked items.",
     fields: [
@@ -483,7 +511,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
 export const SLIDE_TYPE_ORDER: SlideType[] = [
   "title", "statement", "metric", "stats", "cards", "feature-rows",
   "checklist", "quote", "story", "team", "team-branch", "pillars", "steps", "bullets",
-  "phone-feature", "report", "fan", "app-showcase", "trio", "coaching", "timeline", "hero-image", "fullbleed", "closing",
+  "phone-feature", "report", "fan", "app-showcase", "trio", "coaching", "timeline", "hero-image", "fullbleed", "clusters", "closing",
 ];
 
 // ----------------------------------------------------------------------------
@@ -562,5 +590,10 @@ export function makeBlankSlide(type: SlideType): Slide {
         fan2Title: "Group two", fan2Icon: "leaf", fan2: [{ value: "Third", body: "Short description." }] };
     case "fullbleed":
       return { ...base, theme: "dark", kicker: "", heading: "", image: "", fit: "cover" };
+    case "clusters":
+      return { ...base, theme: "light", kicker: "Section", heading: "Hub", lead: "Subtitle", clusters: [
+        { icon: "pulse", title: "Cluster one", items: [{ icon: "drop", label: "Item" }, { icon: "scan", label: "Item" }] },
+        { icon: "leaf", title: "Cluster two", items: [{ icon: "apple", label: "Item" }] },
+      ] };
   }
 }

@@ -72,6 +72,10 @@ export function DeckDefs() {
         <symbol id="i-stomach" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 4.8v4.2a3.5 3.5 0 0 0 3.5 3.5A3.5 3.5 0 0 1 13 19.5h-2.6" /><path d="M10 4.8a2 2 0 0 1 3.6 0" /></symbol>
         <symbol id="i-fork" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 3v6a1.8 1.8 0 0 0 3.6 0V3M9.3 11v10" /><path d="M16 3c-1.4 0-2.3 2-2.3 4.8 0 2.2 1.5 3.2 1.5 3.2L15 21" /></symbol>
         <symbol id="i-meal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 14a7.5 7.5 0 0 1 15 0z" /><path d="M3.5 14h17M12 6.5V5.2" /></symbol>
+        <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3s5 4 5 9a5 5 0 0 1-10 0c0-2 1-3.2 1.6-3.8.2 1 1 1.6 1.9 1.6.7-2.6-.8-4.6 1.5-6.8z" /></symbol>
+        <symbol id="i-snow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" /><path d="M12 6.5l-2.2-2M12 6.5l2.2-2M12 17.5l-2.2 2M12 17.5l2.2 2" /></symbol>
+        <symbol id="i-oxygen" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="10" rx="5" /><path d="M12 10.2v3.6M10.2 12h3.6" /></symbol>
+        <symbol id="i-lotus" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20c-4-1-7-3.8-7-6.8 2 0 3.3.6 4.3 1.7C9 12 10.4 9.7 12 7c1.6 2.7 3 5 2.7 7.9 1-1.1 2.3-1.7 4.3-1.7 0 3-3 5.8-7 6.8z" /></symbol>
       </defs>
     </svg>
   );
