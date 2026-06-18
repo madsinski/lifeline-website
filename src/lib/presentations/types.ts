@@ -137,6 +137,9 @@ export interface Slide {
   numbered?: boolean;     // report — render the bullets as a numbered list
   highlight?: string;     // report — spotlight region(s) of the screenshot: "x,y,w,h" rects in % of the image, ";"-separated
   fit?: "contain" | "cover"; // fullbleed — how the image fills the slide (default cover)
+  // fullbleed — clickable focus areas; each zooms into that region of the image
+  // with an optional caption. x,y,w,h in % of the image.
+  hotspots?: { x: number; y: number; w: number; h: number; title?: string; body?: string }[];
   // fan — two labelled groups of cards (e.g. Clients / Collaborations).
   // Each card: title (value), optional body, optional newline-separated points.
   fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string; points?: string }[];
@@ -417,11 +420,12 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     ],
   },
   fullbleed: {
-    type: "fullbleed", label: "Full-bleed image", description: "A full-slide image or illustration, with an optional caption.",
+    type: "fullbleed", label: "Full-bleed image", description: "A full-slide image or illustration, with an optional caption and click-to-zoom focus areas.",
     fields: [
       { key: "image", label: "Image", kind: "image", imageRole: "background" },
       { key: "fit", label: "Fit", kind: "select", noTranslate: true, options: [{ value: "cover", label: "Cover (fill)" }, { value: "contain", label: "Contain (show all)" }] },
       F.kicker, F.heading,
+      { key: "hotspots", label: "Focus areas (click to zoom)", kind: "text", noTranslate: true, help: "Clickable regions that enlarge part of the image with a caption — draw them on the image below." },
     ],
   },
   checklist: {

@@ -154,6 +154,90 @@ function ZoomHint({ onClick }: { onClick: () => void }) {
   );
 }
 
+/** Magnifier-plus glyph, shared by the zoom hint and hotspot badges. */
+function ZoomGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3M11 8v6M8 11h6" />
+    </svg>
+  );
+}
+
+/** Full-screen zoom into ONE region of an image, with an optional caption.
+ *  Uses a background-image crop so the region fills the viewport crisply
+ *  (needs a high-res master image). Portals to <body>, so colours are literal
+ *  (CSS vars don't resolve outside the .lldeck scope). */
+function FocusView({ src, rect, title, body, onClose }: { src: string; rect: HighlightRect; title?: string; body?: string; onClose: () => void }) {
+  const [aspect, setAspect] = React.useState(16 / 9);
+  React.useEffect(() => {
+    const im = new window.Image();
+    im.onload = () => { if (im.naturalHeight) setAspect(im.naturalWidth / im.naturalHeight); };
+    im.src = src;
+  }, [src]);
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); } }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+  const rectAspect = aspect * (rect.w / rect.h);
+  const bgSize = `${(10000 / rect.w).toFixed(2)}% ${(10000 / rect.h).toFixed(2)}%`;
+  const bgPos = `${rect.w >= 100 ? 0 : (rect.x / (100 - rect.w) * 100).toFixed(2)}% ${rect.h >= 100 ? 0 : (rect.y / (100 - rect.h) * 100).toFixed(2)}%`;
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={title || "Focus area"} onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 10060, background: "rgba(3,16,12,.94)", display: "grid", placeItems: "center", padding: "4vmin", cursor: "zoom-out" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", gap: "1.1rem", alignItems: "center", maxWidth: "94vw" }}>
+        <div style={{ width: `min(94vw, ${(78 * rectAspect).toFixed(1)}vh)`, aspectRatio: String(rectAspect), maxHeight: "76vh",
+          backgroundImage: `url(${src})`, backgroundSize: bgSize, backgroundPosition: bgPos, backgroundRepeat: "no-repeat",
+          borderRadius: 14, border: "2px solid #34d399", boxShadow: "0 24px 80px -20px rgba(0,0,0,.85)" }} />
+        {(title || body) && (
+          <div style={{ textAlign: "center", color: "#eafaf3", maxWidth: "62ch" }}>
+            {title && <div style={{ fontSize: "clamp(1.1rem,2.4vw,1.7rem)", fontWeight: 800 }}>{title}</div>}
+            {body && <p style={{ marginTop: ".45rem", color: "#bfe7d8", fontSize: "clamp(.92rem,1.5vw,1.08rem)", lineHeight: 1.5 }}>{body}</p>}
+          </div>
+        )}
+        <span style={{ fontSize: ".8rem", color: "#7fb8a6" }}>Smelltu til að loka · Esc</span>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/** Full-bleed image slide. When interactive (zoomable), the image opens in a
+ *  lightbox on click, and any focus areas become clickable zoom-in hotspots. */
+function FullbleedView({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
+  const [focus, setFocus] = React.useState<number | null>(null);
+  const [zoom, setZoom] = React.useState(false);
+  const img = s.image;
+  const spots = (zoomable && s.hotspots) ? s.hotspots : [];
+  const objectFit = s.fit === "contain" ? "contain" : "cover";
+  return (
+    <div className="fullbleed">
+      {img
+        ? <img src={img} alt={s.heading || "Illustration"} style={{ objectFit, cursor: zoomable && !spots.length ? "zoom-in" : "default" }}
+            onClick={zoomable && !spots.length ? () => setZoom(true) : undefined} />
+        : <span className="hero-ph">No image yet</span>}
+      {img && spots.map((h, i) => (
+        <button key={i} type="button" className="fb-hotspot" aria-label={h.title || `Skoða svæði ${i + 1}`}
+          style={{ left: `${h.x}%`, top: `${h.y}%`, width: `${h.w}%`, height: `${h.h}%` }} onClick={() => setFocus(i)}>
+          <span className="fb-hotspot-badge"><ZoomGlyph /></span>
+        </button>
+      ))}
+      {(s.kicker || s.heading) && (
+        <div className="fb-cap">
+          {s.kicker && <span className="kicker">{s.kicker}</span>}
+          {s.heading && <h2>{rich(s.heading)}</h2>}
+        </div>
+      )}
+      {spots.length > 0 && <span className="fb-hint"><ZoomGlyph /> Smelltu á svæði til að skoða nánar</span>}
+      {focus !== null && img && spots[focus] && (
+        <FocusView src={img} rect={spots[focus]} title={spots[focus].title} body={spots[focus].body} onClose={() => setFocus(null)} />
+      )}
+      {zoom && img && <Lightbox src={img} alt={s.heading || "Illustration"} highlights={[]} onClose={() => setZoom(false)} />}
+    </div>
+  );
+}
+
 /** Renders the inner content of a single slide (without the <section> shell). */
 function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
   const [zoom, setZoom] = React.useState(false);
@@ -470,19 +554,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
       );
 
     case "fullbleed":
-      return (
-        <div className="fullbleed">
-          {s.image
-            ? <img src={s.image} alt={s.heading || "Illustration"} style={{ objectFit: s.fit === "contain" ? "contain" : "cover" }} />
-            : <span className="hero-ph">No image yet</span>}
-          {(s.kicker || s.heading) && (
-            <div className="fb-cap">
-              {s.kicker && <span className="kicker">{s.kicker}</span>}
-              {s.heading && <h2>{rich(s.heading)}</h2>}
-            </div>
-          )}
-        </div>
-      );
+      return <FullbleedView s={s} zoomable={zoomable} />;
 
     case "hero-image":
       return (

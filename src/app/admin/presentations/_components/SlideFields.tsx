@@ -202,6 +202,88 @@ function HighlightAreaField({ value, image, onChange }: { value?: string; image?
   );
 }
 
+// ---- hotspot picker (full-bleed focus areas) -------------------------------
+// Draw clickable zoom regions on the image; each carries an optional title and
+// body shown when the area is opened in the deck. Stored as objects on the slide.
+type Hotspot = { x: number; y: number; w: number; h: number; title?: string; body?: string };
+const MAX_HOTSPOTS = 10;
+
+function HotspotField({ value, image, onChange }: { value: Hotspot[]; image?: string; onChange: (v: Hotspot[]) => void }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<({ idx: number } & ({ kind: "draw" | "resize"; ax: number; ay: number } | { kind: "move"; dx: number; dy: number; w: number; h: number })) | null>(null);
+  const spots = value || [];
+
+  if (!image) return <p className="text-[11px] text-gray-400">Add an image first, then draw the focus areas here.</p>;
+
+  function pct(e: React.PointerEvent) {
+    const b = boxRef.current!.getBoundingClientRect();
+    return { x: Math.max(0, Math.min(100, ((e.clientX - b.left) / b.width) * 100)), y: Math.max(0, Math.min(100, ((e.clientY - b.top) / b.height) * 100)) };
+  }
+  const round = (r: Hotspot): Hotspot => ({ ...r, x: Math.round(r.x * 10) / 10, y: Math.round(r.y * 10) / 10, w: Math.round(r.w * 10) / 10, h: Math.round(r.h * 10) / 10 });
+  function setAt(idx: number, patch: Partial<Hotspot>) { const c = spots.slice(); c[idx] = round({ ...c[idx], ...patch }); onChange(c); }
+  function remove(idx: number) { onChange(spots.filter((_, i) => i !== idx)); }
+  function fromCorners(a: { x: number; y: number }, b: { x: number; y: number }): Pick<Hotspot, "x" | "y" | "w" | "h"> {
+    return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.max(1, Math.abs(a.x - b.x)), h: Math.max(1, Math.abs(a.y - b.y)) };
+  }
+  function onDown(e: React.PointerEvent) {
+    e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const p = pct(e); const t = e.target as HTMLElement;
+    if (t.dataset.handle) {
+      const [corner, is] = t.dataset.handle.split(":"); const idx = Number(is); const r = spots[idx]; if (!r) return;
+      drag.current = { kind: "resize", idx, ax: corner.includes("e") ? r.x : r.x + r.w, ay: corner.includes("s") ? r.y : r.y + r.h };
+    } else if (t.dataset.rect !== undefined) {
+      const idx = Number(t.dataset.rect); const r = spots[idx]; if (!r) return;
+      drag.current = { kind: "move", idx, dx: p.x - r.x, dy: p.y - r.y, w: r.w, h: r.h };
+    } else if (spots.length < MAX_HOTSPOTS) {
+      const idx = spots.length; onChange([...spots, round({ x: p.x, y: p.y, w: 1, h: 1 })]); drag.current = { kind: "draw", idx, ax: p.x, ay: p.y };
+    }
+  }
+  function onMove(e: React.PointerEvent) {
+    const d = drag.current; if (!d) return; const p = pct(e);
+    if (d.kind === "move") setAt(d.idx, { x: Math.max(0, Math.min(100 - d.w, p.x - d.dx)), y: Math.max(0, Math.min(100 - d.h, p.y - d.dy)) });
+    else setAt(d.idx, fromCorners({ x: d.ax, y: d.ay }, p));
+  }
+  function onUp() { drag.current = null; }
+
+  const HANDLES = [
+    { id: "nw", style: { left: 0, top: 0, cursor: "nwse-resize", transform: "translate(-50%,-50%)" } },
+    { id: "ne", style: { right: 0, top: 0, cursor: "nesw-resize", transform: "translate(50%,-50%)" } },
+    { id: "sw", style: { left: 0, bottom: 0, cursor: "nesw-resize", transform: "translate(-50%,50%)" } },
+    { id: "se", style: { right: 0, bottom: 0, cursor: "nwse-resize", transform: "translate(50%,50%)" } },
+  ] as { id: string; style: React.CSSProperties }[];
+
+  return (
+    <div className="space-y-2">
+      <div ref={boxRef} className="relative w-full touch-none select-none overflow-hidden rounded-md border border-gray-200"
+        style={{ cursor: spots.length < MAX_HOTSPOTS ? "crosshair" : "default" }}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+        <img src={image} alt="" className="block w-full" draggable={false} />
+        {spots.map((r, i) => (
+          <div key={i} data-rect={i} className="absolute border-2 border-emerald-500 bg-emerald-400/20"
+            style={{ left: `${r.x}%`, top: `${r.y}%`, width: `${r.w}%`, height: `${r.h}%`, cursor: "move", borderRadius: 6 }}>
+            <span className="pointer-events-none absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white" style={{ transform: "translate(-50%,-50%)" }}>{i + 1}</span>
+            {HANDLES.map((h) => (
+              <span key={h.id} data-handle={`${h.id}:${i}`} className="absolute h-2.5 w-2.5 rounded-sm border border-white bg-emerald-500" style={h.style} />
+            ))}
+          </div>
+        ))}
+      </div>
+      {spots.length === 0 && <p className="text-[11px] text-gray-400">Drag on the image to draw a focus area.</p>}
+      {spots.map((r, i) => (
+        <div key={i} className="rounded-md border border-gray-200 bg-gray-50/60 p-2.5">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Focus area {i + 1}</span>
+            <button type="button" onClick={() => remove(i)} className="px-1 text-gray-400 hover:text-red-500">✕</button>
+          </div>
+          <input value={r.title ?? ""} onChange={(e) => setAt(i, { title: e.target.value })} placeholder="Title" className={`${inputCls} mb-1.5`} />
+          <textarea rows={2} value={r.body ?? ""} onChange={(e) => setAt(i, { body: e.target.value })} placeholder="Body (shown when opened)" className={inputCls} />
+        </div>
+      ))}
+      <p className="text-[11px] text-gray-400">Drag to draw a focus area (up to {MAX_HOTSPOTS}); drag to move, corners to resize. Clicking one in the deck zooms into that region.</p>
+    </div>
+  );
+}
+
 function SubControl({ def, value, presentationId, onChange }: { def: SubFieldDef; value: unknown; presentationId: string; onChange: (v: unknown) => void }) {
   const v = (value ?? "") as string;
   if (def.kind === "textarea") return <textarea rows={2} value={v} onChange={(e) => onChange(e.target.value)} className={inputCls} />;
@@ -313,7 +395,10 @@ export function SlideFields({ slide, presentationId, onChange, textOnly }: { sli
             {f.kind === "text" && key === "highlight" && (
               <HighlightAreaField value={(raw as string) ?? ""} image={slide.image} onChange={(v) => setField(key, v)} />
             )}
-            {f.kind === "text" && key !== "highlight" && <input value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
+            {f.kind === "text" && key === "hotspots" && (
+              <HotspotField value={(raw as Hotspot[]) ?? []} image={slide.image} onChange={(v) => setField(key, v)} />
+            )}
+            {f.kind === "text" && key !== "highlight" && key !== "hotspots" && <input value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
             {f.kind === "textarea" && <textarea rows={key === "heading" ? 2 : 3} value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
             {f.kind === "image" && <ImageField value={(raw as string) ?? ""} role={f.imageRole || "photo"} presentationId={presentationId} onChange={(v) => setField(key, v)} />}
             {f.kind === "icon" && (

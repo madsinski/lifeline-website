@@ -383,6 +383,14 @@ export const DECK_CSS = `
 .lldeck .fb-cap h2{color:#fff;max-width:24ch;margin-top:.4rem;}
 .lldeck .fb-cap .kicker{color:var(--on-dark-accent);}
 .lldeck .fb-cap .kicker::before{background:var(--on-dark-accent);}
+/* full-bleed clickable focus areas (hotspots) */
+.lldeck .fb-hotspot{position:absolute;z-index:3;border:2px solid rgba(110,231,183,.85);border-radius:10px;background:rgba(16,185,129,.10);cursor:zoom-in;padding:0;transition:background .15s,border-color .15s;}
+.lldeck .fb-hotspot:hover,.lldeck .fb-hotspot:focus-visible{background:rgba(16,185,129,.24);border-color:#6ee7b7;outline:none;}
+.lldeck .fb-hotspot-badge{position:absolute;top:6px;right:6px;display:grid;place-items:center;width:clamp(22px,2cqw,30px);height:clamp(22px,2cqw,30px);border-radius:50%;background:#10b981;color:#03120e;box-shadow:0 4px 12px rgba(0,0,0,.35);}
+.lldeck .fb-hotspot-badge svg{width:58%;height:58%;}
+.lldeck .fb-hint{position:absolute;left:50%;top:clamp(10px,1.6cqw,18px);transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:.5em;background:#10b981;color:#03120e;border-radius:999px;padding:.5em 1.1em;font-size:clamp(11px,1.05cqw,15px);font-weight:800;box-shadow:0 6px 20px rgba(16,185,129,.4);pointer-events:none;animation:fbpulse 2.6s ease-in-out infinite;}
+.lldeck .fb-hint svg{width:1.1em;height:1.1em;}
+@keyframes fbpulse{0%,100%{opacity:.9}50%{opacity:1}}
 /* hero-image (edge-bleed) */
 .lldeck .hero-img{position:absolute;top:0;right:0;bottom:0;width:42%;background-size:cover;background-position:center;z-index:0;display:grid;place-items:center;background-color:var(--dark2);}
 .lldeck .hero-ph{color:var(--on-dark-muted);font-size:.8rem;}
