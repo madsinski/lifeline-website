@@ -97,7 +97,7 @@ export type SlideType =
   | "app-showcase" | "trio" | "coaching" | "timeline" | "closing"
   // from-scratch layout primitives
   | "statement" | "metric" | "feature-rows" | "hero-image" | "checklist"
-  | "report" | "fan";
+  | "report" | "fan" | "fullbleed";
 
 export interface Slide {
   id: string;
@@ -136,6 +136,7 @@ export interface Slide {
   image?: string;         // hero-image — edge-bleed image
   numbered?: boolean;     // report — render the bullets as a numbered list
   highlight?: string;     // report — spotlight region(s) of the screenshot: "x,y,w,h" rects in % of the image, ";"-separated
+  fit?: "contain" | "cover"; // fullbleed — how the image fills the slide (default cover)
   // fan — two labelled groups of cards (e.g. Clients / Collaborations).
   // Each card: title (value), optional body, optional newline-separated points.
   fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string; points?: string }[];
@@ -415,6 +416,14 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "tagline", label: "Tagline line", kind: "text" },
     ],
   },
+  fullbleed: {
+    type: "fullbleed", label: "Full-bleed image", description: "A full-slide image or illustration, with an optional caption.",
+    fields: [
+      { key: "image", label: "Image", kind: "image", imageRole: "background" },
+      { key: "fit", label: "Fit", kind: "select", noTranslate: true, options: [{ value: "cover", label: "Cover (fill)" }, { value: "contain", label: "Contain (show all)" }] },
+      F.kicker, F.heading,
+    ],
+  },
   checklist: {
     type: "checklist", label: "Checklist", description: "Big two-column list of checked items.",
     fields: [
@@ -456,7 +465,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
 export const SLIDE_TYPE_ORDER: SlideType[] = [
   "title", "statement", "metric", "stats", "cards", "feature-rows",
   "checklist", "quote", "story", "team", "team-branch", "pillars", "steps", "bullets",
-  "phone-feature", "report", "fan", "app-showcase", "trio", "coaching", "timeline", "hero-image", "closing",
+  "phone-feature", "report", "fan", "app-showcase", "trio", "coaching", "timeline", "hero-image", "fullbleed", "closing",
 ];
 
 // ----------------------------------------------------------------------------
@@ -533,5 +542,7 @@ export function makeBlankSlide(type: SlideType): Slide {
       return { ...base, theme: "light", kicker: "Section", heading: "Two ==groups== of cards.",
         fan1Title: "Group one", fan1Icon: "shield", fan1: [{ value: "First", body: "Short description." }, { value: "Second", body: "Short description." }],
         fan2Title: "Group two", fan2Icon: "leaf", fan2: [{ value: "Third", body: "Short description." }] };
+    case "fullbleed":
+      return { ...base, theme: "dark", kicker: "", heading: "", image: "", fit: "cover" };
   }
 }

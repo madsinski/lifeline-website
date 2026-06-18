@@ -376,6 +376,13 @@ export const DECK_CSS = `
 .lldeck .frow h3{font-size:clamp(.98rem,1.7cqw,1.5rem);}
 .lldeck .frow p{color:var(--muted);font-size:clamp(.78rem,1.05cqw,1.08rem);}
 .lldeck .dark .frow p{color:var(--on-dark-muted);}
+/* full-bleed image / illustration */
+.lldeck .fullbleed{position:absolute;inset:0;z-index:0;background:var(--dark1);display:grid;place-items:center;}
+.lldeck .fullbleed img{width:100%;height:100%;object-position:center;display:block;}
+.lldeck .fb-cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(1.1rem,4cqw,3rem);background:linear-gradient(0deg,rgba(3,18,14,.82),rgba(3,18,14,.34) 60%,transparent);}
+.lldeck .fb-cap h2{color:#fff;max-width:24ch;margin-top:.4rem;}
+.lldeck .fb-cap .kicker{color:var(--on-dark-accent);}
+.lldeck .fb-cap .kicker::before{background:var(--on-dark-accent);}
 /* hero-image (edge-bleed) */
 .lldeck .hero-img{position:absolute;top:0;right:0;bottom:0;width:42%;background-size:cover;background-position:center;z-index:0;display:grid;place-items:center;background-color:var(--dark2);}
 .lldeck .hero-ph{color:var(--on-dark-muted);font-size:.8rem;}

@@ -469,6 +469,21 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
         </div>
       );
 
+    case "fullbleed":
+      return (
+        <div className="fullbleed">
+          {s.image
+            ? <img src={s.image} alt={s.heading || "Illustration"} style={{ objectFit: s.fit === "contain" ? "contain" : "cover" }} />
+            : <span className="hero-ph">No image yet</span>}
+          {(s.kicker || s.heading) && (
+            <div className="fb-cap">
+              {s.kicker && <span className="kicker">{s.kicker}</span>}
+              {s.heading && <h2>{rich(s.heading)}</h2>}
+            </div>
+          )}
+        </div>
+      );
+
     case "hero-image":
       return (
         <>
