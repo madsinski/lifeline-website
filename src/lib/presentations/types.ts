@@ -41,7 +41,10 @@ export const DEFAULT_DESIGN: DesignId = "lifeline";
 export type IconKey =
   | "pulse" | "clip" | "shield" | "phone" | "doc" | "chart"
   | "users" | "spark" | "dumbbell" | "leaf" | "moon" | "brain"
-  | "target" | "lock" | "cal" | "apple" | "smile";
+  | "target" | "lock" | "cal" | "apple" | "smile"
+  // medical / wellness modalities
+  | "drop" | "scan" | "bone" | "body" | "gauge" | "lungs"
+  | "stretch" | "hand" | "stomach" | "fork" | "meal";
 
 export const ICON_OPTIONS: { value: IconKey; label: string }[] = [
   { value: "pulse", label: "Pulse / heartbeat" },
@@ -61,6 +64,17 @@ export const ICON_OPTIONS: { value: IconKey; label: string }[] = [
   { value: "cal", label: "Calendar" },
   { value: "apple", label: "Apple" },
   { value: "smile", label: "Smiley face" },
+  { value: "drop", label: "Blood drop" },
+  { value: "scan", label: "Scan / MRI" },
+  { value: "bone", label: "Bone" },
+  { value: "body", label: "Body composition" },
+  { value: "gauge", label: "Gauge / performance" },
+  { value: "lungs", label: "Lungs" },
+  { value: "stretch", label: "Stretch / mobility" },
+  { value: "hand", label: "Hand / therapy" },
+  { value: "stomach", label: "Stomach / digestive" },
+  { value: "fork", label: "Cutlery" },
+  { value: "meal", label: "Meal / dish" },
 ];
 
 export type PillarKey = "exercise" | "nutrition" | "sleep" | "mental";
