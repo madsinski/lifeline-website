@@ -1,15 +1,66 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- editor thumbnails preview CMS/storage image URLs; plain <img> is intentional. */
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { iconNames } from "lucide-react/dynamic";
 import {
-  SLIDE_SCHEMAS, ICON_OPTIONS,
+  SLIDE_SCHEMAS,
   type Slide, type FieldDef, type SubFieldDef, type ImageRole,
 } from "@/lib/presentations/types";
+import { Icon } from "@/app/components/presentation/DeckAssets";
 import { ImagePicker } from "./ImagePicker";
 
 const inputCls = "w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none";
 const labelCls = "block text-xs font-medium text-gray-500 mb-1";
+
+// ---- searchable icon picker (full Lucide library) -------------------------
+const ICON_NAME_SET = new Set<string>(iconNames);
+const SUGGESTED_ICONS = [
+  "activity", "heart-pulse", "stethoscope", "droplet", "syringe", "pill", "bone", "brain",
+  "scan-line", "microscope", "test-tube", "flask-conical", "thermometer", "dumbbell", "bike",
+  "footprints", "accessibility", "person-standing", "gauge", "wind", "leaf", "salad", "apple",
+  "carrot", "soup", "utensils", "flame", "snowflake", "cylinder", "flower-2", "moon", "bed",
+  "sun", "shield-check", "clipboard-list", "file-text", "chart-column", "target", "users",
+  "calendar", "smartphone", "sparkles", "smile", "hand", "hand-heart", "baby", "eye",
+].filter((n) => ICON_NAME_SET.has(n));
+
+function IconPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const results = useMemo(() => {
+    const s = q.trim().toLowerCase().replace(/\s+/g, "-");
+    if (!s) return SUGGESTED_ICONS;
+    const out: string[] = [];
+    for (const n of iconNames) { if (n.includes(s)) { out.push(n); if (out.length >= 60) break; } }
+    return out;
+  }, [q]);
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm hover:bg-gray-50">
+        <span className="flex h-5 w-5 flex-none items-center justify-center text-emerald-600">{value ? <Icon name={value} /> : null}</span>
+        <span className="truncate text-gray-700">{value || "Choose icon"}</span>
+        <span className="ml-auto text-gray-400">▾</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 mt-1 w-full min-w-[248px] rounded-md border border-gray-200 bg-white p-2 shadow-lg">
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search 1,900+ icons…" className={inputCls} />
+            <div className="mt-2 grid max-h-56 grid-cols-6 gap-1 overflow-auto">
+              {results.map((n) => (
+                <button key={n} type="button" title={n} onClick={() => { onChange(n); setOpen(false); setQ(""); }}
+                  className={`flex h-9 items-center justify-center rounded hover:bg-emerald-50 ${n === value ? "bg-emerald-100 ring-1 ring-emerald-400" : ""}`}>
+                  <span className="flex h-5 w-5 items-center justify-center text-gray-700"><Icon name={n} /></span>
+                </button>
+              ))}
+            </div>
+            {!results.length && <p className="p-2 text-xs text-gray-400">No matches for “{q}”.</p>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function isScalarList(f: FieldDef): boolean {
   return !!f.itemFields && f.itemFields.length === 1 && f.itemFields[0].key === "value";
@@ -292,11 +343,7 @@ function SubControl({ def, value, presentationId, onChange, textOnly }: { def: S
   if (def.kind === "list") return <ListEditor field={def as unknown as FieldDef} value={(value as unknown[]) ?? []} presentationId={presentationId} onChange={(arr) => onChange(arr)} textOnly={textOnly} />;
   if (def.kind === "textarea") return <textarea rows={2} value={v} onChange={(e) => onChange(e.target.value)} className={inputCls} />;
   if (def.kind === "image") return <ImageField value={v} role={def.imageRole || "photo"} presentationId={presentationId} onChange={onChange} />;
-  if (def.kind === "icon") return (
-    <select value={v} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-      {ICON_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  );
+  if (def.kind === "icon") return <IconPicker value={v} onChange={(n) => onChange(n)} />;
   if (def.kind === "select") return (
     <select value={v} onChange={(e) => onChange(e.target.value)} className={inputCls}>
       {(def.options || []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -407,9 +454,7 @@ export function SlideFields({ slide, presentationId, onChange, textOnly }: { sli
             {f.kind === "textarea" && <textarea rows={key === "heading" ? 2 : 3} value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
             {f.kind === "image" && <ImageField value={(raw as string) ?? ""} role={f.imageRole || "photo"} presentationId={presentationId} onChange={(v) => setField(key, v)} />}
             {f.kind === "icon" && (
-              <select value={(raw as string) ?? "target"} onChange={(e) => setField(key, e.target.value)} className={inputCls}>
-                {ICON_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <IconPicker value={(raw as string) ?? ""} onChange={(n) => setField(key, n)} />
             )}
             {f.kind === "select" && (
               <select value={String(raw ?? f.options?.[0]?.value ?? "")} onChange={(e) => setField(key, e.target.value)} className={inputCls}>

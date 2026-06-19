@@ -5,6 +5,7 @@ import {
   Droplet, ScanLine, Bone, PersonStanding, Gauge, Wind, Accessibility, Hand,
   Utensils, Soup, Flame, Snowflake, Cylinder, Flower2, type LucideIcon,
 } from "lucide-react";
+import { DynamicIcon } from "lucide-react/dynamic";
 
 // IconKey → Lucide icon. Clean, consistent 24px stroke set. Keys without a
 // good library match fall through to a small custom glyph in Icon().
@@ -96,13 +97,18 @@ export function Logo({ brand }: { brand?: BrandKey } = {}) {
 }
 
 export function Icon({ name }: { name: IconKey }) {
+  // 1) curated semantic alias → static Lucide icon (instant, SSR-rendered)
   const Glyph = ICONS[name];
   if (Glyph) return <Glyph width="100%" height="100%" strokeWidth={2} aria-hidden="true" />;
-  // "stomach" (digestive) has no good library match — clean custom glyph.
-  return (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 4.6c0 2.2.5 3.5 2.7 3.7 3 .3 5.3 2.2 5.3 5.1 0 3-2.4 5.2-5.6 5.2-2.2 0-3.9-1.1-4.4-2.9" />
-      <path d="M9 4.6a1.6 1.6 0 0 1 3.1-.2" />
-    </svg>
-  );
+  // 2) "stomach" (digestive) has no good library match — clean custom glyph.
+  if (name === "stomach") {
+    return (
+      <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M9 4.6c0 2.2.5 3.5 2.7 3.7 3 .3 5.3 2.2 5.3 5.1 0 3-2.4 5.2-5.6 5.2-2.2 0-3.9-1.1-4.4-2.9" />
+        <path d="M9 4.6a1.6 1.6 0 0 1 3.1-.2" />
+      </svg>
+    );
+  }
+  // 3) any other value is a Lucide icon name (kebab) — code-split, loaded on demand.
+  return <DynamicIcon name={name as never} width="100%" height="100%" strokeWidth={2} aria-hidden="true" />;
 }

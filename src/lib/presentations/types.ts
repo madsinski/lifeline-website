@@ -38,14 +38,10 @@ export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
 
 export const DEFAULT_DESIGN: DesignId = "lifeline";
 
-export type IconKey =
-  | "pulse" | "clip" | "shield" | "phone" | "doc" | "chart"
-  | "users" | "spark" | "dumbbell" | "leaf" | "moon" | "brain"
-  | "target" | "lock" | "cal" | "apple" | "smile"
-  // medical / wellness modalities
-  | "drop" | "scan" | "bone" | "body" | "gauge" | "lungs"
-  | "stretch" | "hand" | "stomach" | "fork" | "meal"
-  | "flame" | "snow" | "oxygen" | "lotus";
+// Any Lucide icon name (kebab-case, e.g. "heart-pulse") is valid, plus the
+// legacy semantic aliases below (pulse, doc, drop, …) kept for existing decks.
+// The editor offers a searchable picker over the full Lucide library.
+export type IconKey = string;
 
 export const ICON_OPTIONS: { value: IconKey; label: string }[] = [
   { value: "pulse", label: "Pulse / heartbeat" },
