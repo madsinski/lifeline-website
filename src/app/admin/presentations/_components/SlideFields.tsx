@@ -2,11 +2,11 @@
 /* eslint-disable @next/next/no-img-element -- editor thumbnails preview CMS/storage image URLs; plain <img> is intentional. */
 
 import { useMemo, useRef, useState } from "react";
-import { iconNames } from "lucide-react/dynamic";
 import {
   SLIDE_SCHEMAS,
   type Slide, type FieldDef, type SubFieldDef, type ImageRole,
 } from "@/lib/presentations/types";
+import { LUCIDE_ICON_NAMES as iconNames } from "@/lib/presentations/lucide-icon-names";
 import { Icon } from "@/app/components/presentation/DeckAssets";
 import { ImagePicker } from "./ImagePicker";
 
