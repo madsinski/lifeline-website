@@ -10,8 +10,35 @@
 // truth for QA. Keep it scannable: short imperatives, one action per step.
 
 import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "business_testing_guide_progress_v1";
+
+// Phase tags the tester can attach a note to. Keep the labels in sync with
+// the <Phase> titles below — they're shown verbatim in the admin review tab.
+const FEEDBACK_PHASES = [
+  "General / overall",
+  "1 · Create a company account",
+  "2 · Accept terms + create company",
+  "3 · Welcome screen",
+  "4 · Staff creates draft + claim link",
+  "5 · Contact claims the company",
+  "6 · Build the employee roster",
+  "7 · Schedule the services",
+  "8 · Invite a co-admin",
+  "9 · Sign the service agreement",
+  "10 · Send invites + onboard employee",
+  "11 · Admin oversight",
+];
+
+interface FeedbackRow {
+  id: string;
+  created_at: string;
+  step_label: string | null;
+  body: string;
+  status: string;
+  admin_note?: string | null;
+}
 
 function useChecklist() {
   const [done, setDone] = useState<Record<string, boolean>>({});
@@ -198,6 +225,132 @@ function Callout({ tone, title, children }: { tone: "amber" | "blue" | "emerald"
     <div className={`rounded-lg border px-3.5 py-3 text-[13px] leading-relaxed ${styles[tone]}`}>
       <p className="font-semibold mb-0.5">{title}</p>
       <div className="opacity-90">{children}</div>
+    </div>
+  );
+}
+
+// Tester feedback composer + the submitter's own running list of notes.
+// Posts to /api/admin/business/test-feedback; any active staff may submit,
+// and GET (for non-admins) returns only their own rows — so this list is
+// each tester's personal history, while Mads sees everything in the
+// admin "Test feedback" tab.
+function FeedbackComposer() {
+  const [phase, setPhase] = useState(FEEDBACK_PHASES[0]);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mine, setMine] = useState<FeedbackRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const authHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }
+      : { "Content-Type": "application/json" };
+  }, []);
+
+  const loadMine = useCallback(async () => {
+    try {
+      const headers = await authHeaders();
+      const res = await fetch("/api/admin/business/test-feedback", { headers });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(j.feedback)) setMine(j.feedback);
+    } catch { /* best effort */ } finally { setLoaded(true); }
+  }, [authHeaders]);
+
+  useEffect(() => { loadMine(); }, [loadMine]);
+
+  const submit = async () => {
+    const text = body.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const headers = await authHeaders();
+      const res = await fetch("/api/admin/business/test-feedback", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          body: text,
+          step_label: phase === FEEDBACK_PHASES[0] ? null : phase,
+          step_key: phase === FEEDBACK_PHASES[0] ? null : phase.split(" ")[0],
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(j.error || "Could not submit — try again."); return; }
+      setBody("");
+      setPhase(FEEDBACK_PHASES[0]);
+      loadMine();
+    } catch {
+      setError("Network error — try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fmtDate = (iso: string) => {
+    try { return new Date(iso).toLocaleString("is-IS", { dateStyle: "short", timeStyle: "short" }); }
+    catch { return iso; }
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 mt-6">
+      <h3 className="text-sm font-bold text-gray-900 mb-1">Tester feedback</h3>
+      <p className="text-[12px] text-gray-500 mb-3">
+        Hit a bug, confusing copy, or something that didn&apos;t match the steps? Leave a note — it goes straight to the
+        admin review tab. Optionally tag which phase it&apos;s about.
+      </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+        <select
+          value={phase}
+          onChange={(e) => setPhase(e.target.value)}
+          className="rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-[13px] text-gray-700 sm:w-56 flex-shrink-0 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+        >
+          {FEEDBACK_PHASES.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="What happened? Include the route and what you expected vs. saw."
+          rows={3}
+          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-y"
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <span className="text-[11px] text-red-600">{error}</span>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={busy || !body.trim()}
+          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+        >
+          {busy ? "Sending…" : "Submit feedback"}
+        </button>
+      </div>
+
+      {loaded && mine.length > 0 && (
+        <div className="mt-4 border-t border-gray-100 pt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Your notes ({mine.length})</p>
+          <ul className="space-y-2">
+            {mine.map((f) => (
+              <li key={f.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <span className="text-[11px] font-medium text-gray-500">
+                    {f.step_label || "General"} · {fmtDate(f.created_at)}
+                  </span>
+                  <Pill tone={f.status === "resolved" ? "emerald" : "amber"}>{f.status}</Pill>
+                </div>
+                <p className="text-[13px] text-gray-700 whitespace-pre-wrap">{f.body}</p>
+                {f.admin_note && (
+                  <p className="mt-1 text-[12px] text-emerald-800 bg-emerald-50 rounded px-2 py-1">
+                    <strong>Admin reply:</strong> {f.admin_note}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -540,6 +693,8 @@ export default function TestingGuide() {
           / drop it in the team channel. Include whether you were on Path A (self-signup) or Path B (claim link).
         </Callout>
       </div>
+
+      <FeedbackComposer />
 
       <p className="mt-6 text-xs text-gray-400">
         Found a step that no longer matches the app? This guide lives at

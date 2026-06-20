@@ -19,6 +19,7 @@ const AccountingContent = dynamic(() => import("./Accounting"), { loading: () =>
 const PlanContent = dynamic(() => import("./Plan"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const CostIntakeContent = dynamic(() => import("./CostIntake"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 const TestingGuideContent = dynamic(() => import("./TestingGuide"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const TestFeedbackContent = dynamic(() => import("./TestFeedback"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
 
 const tabs = [
   { key: "companies", label: "Companies" },
@@ -29,6 +30,7 @@ const tabs = [
   { key: "accounting", label: "Accounting" },
   { key: "plan", label: "Plan" },
   { key: "guide", label: "Testing guide" },
+  { key: "feedback", label: "Test feedback" },
 ];
 
 interface PaydayTestResult {
@@ -221,6 +223,7 @@ export default function BusinessPage() {
       {tab === "cost-intake" && <CostIntakeContent />}
       {tab === "plan" && <PlanContent />}
       {tab === "guide" && <div className="px-8"><TestingGuideContent /></div>}
+      {tab === "feedback" && <TestFeedbackContent />}
     </div>
   );
 }
