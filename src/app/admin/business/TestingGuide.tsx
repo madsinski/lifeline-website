@@ -59,7 +59,27 @@ function Pill({ children, tone = "gray" }: { children: React.ReactNode; tone?: "
   );
 }
 
-function Route({ children }: { children: React.ReactNode }) {
+// Production base for the public business portal. Admin routes are on the
+// same origin, so a relative `to` works for both.
+const SITE = "https://www.lifelinehealth.is";
+
+// A route reference. Pass `to` (a path) to make it a clickable link that
+// opens the real page in a new tab — used for the static entry points a
+// tester actually navigates to. Routes with params ({companyId}/{token})
+// are reached via redirect or email, so they stay as plain, unlinked code.
+function Route({ children, to }: { children: React.ReactNode; to?: string }) {
+  if (to) {
+    return (
+      <a
+        href={`${SITE}${to}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded bg-emerald-50 px-1.5 py-0.5 text-[12px] font-mono text-emerald-700 underline underline-offset-2 hover:bg-emerald-100 transition-colors"
+      >
+        {children}
+      </a>
+    );
+  }
   return (
     <code className="rounded bg-gray-100 px-1.5 py-0.5 text-[12px] font-mono text-gray-700">
       {children}
@@ -214,29 +234,6 @@ export default function TestingGuide() {
         </div>
       </div>
 
-      {/* Quick links — where to go */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5">
-        <h3 className="text-sm font-bold text-gray-900 mb-2">Where to go</h3>
-        <p className="text-[12px] text-gray-500 mb-3">
-          <Pill tone="gray">public</Pill> = no login · <Pill tone="blue">company admin</Pill> = the company contact ·
-          {" "}<Pill tone="emerald">staff</Pill> = you, in the admin app
-        </p>
-        <ul className="space-y-1.5 text-[13px] text-gray-700">
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">public</Pill> Start (Path A signup) — <Route>/business/login?mode=signup</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Create company (3-step) — <Route>/business/signup</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Company switcher / home — <Route>/business</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Dashboard — <Route>/business/&#123;companyId&#125;</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Welcome — <Route>/business/&#123;companyId&#125;/welcome</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Sign agreement — <Route>/business/&#123;companyId&#125;/sign</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">invite link</Pill> Employee onboarding — <Route>/business/onboard/&#123;token&#125;</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">invite link</Pill> Co-admin setup — <Route>/business/co-admin-setup</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">claim link</Pill> Claim a staff-created company (Path B) — <Route>/business/claim/&#123;token&#125;</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="emerald">staff</Pill> Create company + claim link (Path B) — <Route>/admin/companies/create</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="emerald">staff</Pill> Oversight hub (this page) — <Route>/admin/business</Route></li>
-          <li className="flex flex-wrap items-center gap-2"><Pill tone="emerald">staff</Pill> Company list / drill-down — <Route>/admin/companies</Route></li>
-        </ul>
-      </div>
-
       {/* Test data */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5">
         <h3 className="text-sm font-bold text-gray-900 mb-1">Test data — dummy kennitölur</h3>
@@ -278,8 +275,9 @@ export default function TestingGuide() {
         <h4 className="text-[13px] font-bold text-gray-900 mt-4 mb-1.5">Roster CSV — ready for bulk upload</h4>
         <p className="text-[12px] text-gray-500 mb-2">
           Copy this into the roster bulk-upload (or save as a <code className="font-mono text-[11px]">.csv</code>). Five employees, each with a
-          valid personal kennitala. <strong>Change the email base</strong> to an inbox you control — every invite goes to that one address via the
-          <code className="font-mono text-[11px]"> +alias</code> trick.
+          valid personal kennitala. Emails use <code className="font-mono text-[11px]">contact+x@lifelinehealth.is</code>, so every invite lands in
+          the <code className="font-mono text-[11px]">contact@lifelinehealth.is</code> inbox via the <code className="font-mono text-[11px]">+alias</code> trick —
+          make sure you can read that mailbox before sending invites.
         </p>
         <CopyBlock text={ROSTER_CSV} />
       </div>
@@ -305,7 +303,7 @@ export default function TestingGuide() {
             sends a claim link (Path B). Test both.
           </li>
           <li>
-            Clean up after a run from <Route>/admin/companies</Route> (archive the test company) so the dashboard stays readable.
+            Clean up after a run from <Route to="/admin/companies">/admin/companies</Route> (archive the test company) so the dashboard stays readable.
           </li>
         </ul>
       </div>
@@ -315,7 +313,7 @@ export default function TestingGuide() {
       <div className="space-y-2.5">
         <Phase n={1} title="Create a company account" subtitle="Public signup + email confirmation" defaultOpen>
           <p className="text-[13px] text-gray-500 mb-2">
-            Start at <Route>/business/login?mode=signup</Route> &nbsp;<Pill tone="gray">public</Pill>
+            Start at <Route to="/business/login?mode=signup">/business/login?mode=signup</Route> &nbsp;<Pill tone="gray">public</Pill>
           </p>
           <div className="divide-y divide-gray-100">
             <Step id="a1-signup" done={done} toggle={toggle}>
@@ -326,7 +324,7 @@ export default function TestingGuide() {
               until the email is verified.
             </Step>
             <Step id="a1-login" done={done} toggle={toggle}>
-              Sign back in at <Route>/business/login</Route>. Try the <strong>&quot;Forgot your password?&quot;</strong> link too.
+              Sign back in at <Route to="/business/login">/business/login</Route>. Try the <strong>&quot;Forgot your password?&quot;</strong> link too.
             </Step>
           </div>
         </Phase>
@@ -366,14 +364,14 @@ export default function TestingGuide() {
       <div className="space-y-2.5">
         <Phase n={4} title="Staff creates a draft + claim link" subtitle="Admin side">
           <p className="text-[13px] text-gray-500 mb-2">
-            From <Route>/admin/companies/create</Route> &nbsp;<Pill tone="emerald">staff / AAL2</Pill>
+            From <Route to="/admin/companies/create">/admin/companies/create</Route> &nbsp;<Pill tone="emerald">staff / AAL2</Pill>
           </p>
           <div className="divide-y divide-gray-100">
             <Step id="b4-create" done={done} toggle={toggle}>
               Create a draft company: company name + contact draft (name, email, role). This generates a one-time <strong>claim token</strong>.
             </Step>
             <Step id="b4-invite" done={done} toggle={toggle}>
-              Send / copy the claim link. Confirm the company shows as <Pill tone="amber">contact_invited</Pill> in <Route>/admin/companies</Route>.
+              Send / copy the claim link. Confirm the company shows as <Pill tone="amber">contact_invited</Pill> in <Route to="/admin/companies">/admin/companies</Route>.
             </Step>
           </div>
         </Phase>
@@ -390,7 +388,7 @@ export default function TestingGuide() {
               <strong>Session guard:</strong> while signed in as a different user, open the link and confirm the amber &quot;sign out&quot; warning appears.
             </Step>
             <Step id="b5-login" done={done} toggle={toggle}>
-              Submit → confirm redirect to <Route>/business/login?claimed=1</Route> and that you can sign in.
+              Submit → confirm redirect to <Route to="/business/login?claimed=1">/business/login?claimed=1</Route> and that you can sign in.
             </Step>
           </div>
         </Phase>
@@ -447,7 +445,7 @@ export default function TestingGuide() {
               As the co-admin (fresh window), set a password + profile (name, position, phone, kennitala) and confirm you reach the same dashboard.
             </Step>
             <Step id="c8-switcher" done={done} toggle={toggle}>
-              If your test user now admins 2+ companies, confirm <Route>/business</Route> shows the company switcher.
+              If your test user now admins 2+ companies, confirm <Route to="/business">/business</Route> shows the company switcher.
             </Step>
           </div>
         </Phase>
@@ -593,13 +591,13 @@ const COMPANY_KT = [
 // Ready-to-paste roster for the bulk upload. Header uses the parser's
 // recognised aliases (name/kennitala/email/phone — see src/lib/parse-roster.ts;
 // note "full_name" with an underscore is NOT recognised). Emails use a
-// +alias so every invite lands in one inbox you control — change the base
-// address to one you can actually receive mail at before sending invites.
+// contact+x@lifelinehealth.is +alias so every invite lands in the
+// contact@lifelinehealth.is inbox — confirm you can read it before sending.
 const ROSTER_CSV = [
   "name,kennitala,email,phone",
-  "Anna Jónsdóttir,140585-2119,lifeline.test+anna@gmail.com,6612345",
-  "Bjarni Ólafsson,030792-3439,lifeline.test+bjarni@gmail.com,6623456",
-  "Dagný Sigurðardóttir,250478-1279,lifeline.test+dagny@gmail.com,6634567",
-  "Einar Þórsson,190301-4510,lifeline.test+einar@gmail.com,6645678",
-  "Freyja Gunnarsdóttir,081166-2779,lifeline.test+freyja@gmail.com,6656789",
+  "Anna Jónsdóttir,140585-2119,contact+anna@lifelinehealth.is,6612345",
+  "Bjarni Ólafsson,030792-3439,contact+bjarni@lifelinehealth.is,6623456",
+  "Dagný Sigurðardóttir,250478-1279,contact+dagny@lifelinehealth.is,6634567",
+  "Einar Þórsson,190301-4510,contact+einar@lifelinehealth.is,6645678",
+  "Freyja Gunnarsdóttir,081166-2779,contact+freyja@lifelinehealth.is,6656789",
 ].join("\n");
