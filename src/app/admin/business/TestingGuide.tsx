@@ -67,6 +67,37 @@ function Route({ children }: { children: React.ReactNode }) {
   );
 }
 
+function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1500);
+        } catch { /* clipboard blocked — user can select manually */ }
+      }}
+      className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
+    >
+      {copied ? "Copied!" : label}
+    </button>
+  );
+}
+
+function CopyBlock({ text }: { text: string }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">roster.csv</span>
+        <CopyButton text={text} label="Copy CSV" />
+      </div>
+      <pre className="overflow-x-auto px-3 py-2.5 text-[12px] leading-relaxed font-mono text-gray-700 whitespace-pre">{text}</pre>
+    </div>
+  );
+}
+
 interface StepProps {
   id: string;
   done: Record<string, boolean>;
@@ -181,6 +212,76 @@ export default function TestingGuide() {
             Reset
           </button>
         </div>
+      </div>
+
+      {/* Quick links — where to go */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5">
+        <h3 className="text-sm font-bold text-gray-900 mb-2">Where to go</h3>
+        <p className="text-[12px] text-gray-500 mb-3">
+          <Pill tone="gray">public</Pill> = no login · <Pill tone="blue">company admin</Pill> = the company contact ·
+          {" "}<Pill tone="emerald">staff</Pill> = you, in the admin app
+        </p>
+        <ul className="space-y-1.5 text-[13px] text-gray-700">
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">public</Pill> Start (Path A signup) — <Route>/business/login?mode=signup</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Create company (3-step) — <Route>/business/signup</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Company switcher / home — <Route>/business</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Dashboard — <Route>/business/&#123;companyId&#125;</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Welcome — <Route>/business/&#123;companyId&#125;/welcome</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="blue">company admin</Pill> Sign agreement — <Route>/business/&#123;companyId&#125;/sign</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">invite link</Pill> Employee onboarding — <Route>/business/onboard/&#123;token&#125;</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">invite link</Pill> Co-admin setup — <Route>/business/co-admin-setup</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="gray">claim link</Pill> Claim a staff-created company (Path B) — <Route>/business/claim/&#123;token&#125;</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="emerald">staff</Pill> Create company + claim link (Path B) — <Route>/admin/companies/create</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="emerald">staff</Pill> Oversight hub (this page) — <Route>/admin/business</Route></li>
+          <li className="flex flex-wrap items-center gap-2"><Pill tone="emerald">staff</Pill> Company list / drill-down — <Route>/admin/companies</Route></li>
+        </ul>
+      </div>
+
+      {/* Test data */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5">
+        <h3 className="text-sm font-bold text-gray-900 mb-1">Test data — dummy kennitölur</h3>
+        <p className="text-[12px] text-gray-500 mb-3">
+          All checksum-valid (they pass the app&apos;s validator) but fictional. Personal numbers go on the contact person + employees;
+          company numbers go in the company-kennitala field at signup.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Personal</span>
+              <CopyButton text={PERSONAL_KT.join("\n")} label="Copy all" />
+            </div>
+            <ul className="space-y-1">
+              {PERSONAL_KT.map((kt) => (
+                <li key={kt} className="flex items-center justify-between gap-2">
+                  <code className="font-mono text-[13px] text-gray-700">{kt}</code>
+                  <CopyButton text={kt} />
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Company</span>
+              <CopyButton text={COMPANY_KT.join("\n")} label="Copy all" />
+            </div>
+            <ul className="space-y-1">
+              {COMPANY_KT.map((kt) => (
+                <li key={kt} className="flex items-center justify-between gap-2">
+                  <code className="font-mono text-[13px] text-gray-700">{kt}</code>
+                  <CopyButton text={kt} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <h4 className="text-[13px] font-bold text-gray-900 mt-4 mb-1.5">Roster CSV — ready for bulk upload</h4>
+        <p className="text-[12px] text-gray-500 mb-2">
+          Copy this into the roster bulk-upload (or save as a <code className="font-mono text-[11px]">.csv</code>). Five employees, each with a
+          valid personal kennitala. <strong>Change the email base</strong> to an inbox you control — every invite goes to that one address via the
+          <code className="font-mono text-[11px]"> +alias</code> trick.
+        </p>
+        <CopyBlock text={ROSTER_CSV} />
       </div>
 
       {/* Before you start */}
@@ -468,3 +569,37 @@ const STEP_IDS = {
 } as const;
 
 const STEP_IDS_LIST = Object.keys(STEP_IDS);
+
+// Dummy kennitölur — all pass the checksum in src/lib/kennitala.ts
+// (verified). Personal numbers use 1900s/2000s birthdates; company numbers
+// use the day+40 convention. None correspond to a real person/company.
+// Regenerate with the same checksum algorithm if you need more.
+const PERSONAL_KT = [
+  "140585-2119",
+  "030792-3439",
+  "250478-1279",
+  "190301-4510",
+  "081166-2779",
+];
+
+const COMPANY_KT = [
+  "511299-3069",
+  "450680-1179",
+  "631055-2229",
+  "491278-4049",
+  "551190-1539",
+];
+
+// Ready-to-paste roster for the bulk upload. Header uses the parser's
+// recognised aliases (name/kennitala/email/phone — see src/lib/parse-roster.ts;
+// note "full_name" with an underscore is NOT recognised). Emails use a
+// +alias so every invite lands in one inbox you control — change the base
+// address to one you can actually receive mail at before sending invites.
+const ROSTER_CSV = [
+  "name,kennitala,email,phone",
+  "Anna Jónsdóttir,140585-2119,lifeline.test+anna@gmail.com,6612345",
+  "Bjarni Ólafsson,030792-3439,lifeline.test+bjarni@gmail.com,6623456",
+  "Dagný Sigurðardóttir,250478-1279,lifeline.test+dagny@gmail.com,6634567",
+  "Einar Þórsson,190301-4510,lifeline.test+einar@gmail.com,6645678",
+  "Freyja Gunnarsdóttir,081166-2779,lifeline.test+freyja@gmail.com,6656789",
+].join("\n");
