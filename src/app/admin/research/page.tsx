@@ -3,7 +3,7 @@
 // Research module — cohorts, longitudinal Medalia exports, trends, AI analysis.
 // Backend: /api/admin/research/* . Schema: supabase/migration-research-data-schema.sql
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, Fragment, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, type Domain } from "@/lib/research/clinical";
@@ -30,6 +30,10 @@ interface Flag {
   baseline_pct: number | null; delta_pct: number | null; trend: FlagTrendPoint[];
 }
 interface Series { feature: string; obs_type: string; display: string | null; unit: string | null; domain: Domain; points: TrendPoint[]; }
+interface FeatureDetail {
+  feature: string; unit: string | null; timepoints: string[];
+  rows: { patient: string; gender: string | null; values: Record<string, number | string | boolean | null> }[];
+}
 interface CohortDetail {
   cohort: { id: string; name: string; pathway: string | null };
   exports: { id: string; timepoint_label: string; export_type: string; exported_at: string | null; patient_count: number; observation_count: number; answer_count: number }[];
@@ -171,6 +175,13 @@ export default function ResearchPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function loadFeature(feature: string): Promise<FeatureDetail | null> {
+    if (!selectedId) return null;
+    const res = await authedFetch(`/api/admin/research/feature?cohortId=${selectedId}&feature=${encodeURIComponent(feature)}`);
+    if (!res.ok) return null;
+    return res.json();
+  }
+
   async function openEmployerReport() {
     if (!selectedId) return;
     setMsg(null);
@@ -256,7 +267,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} onLoadFeature={loadFeature} />}
     </div>
   );
 }
@@ -340,6 +351,37 @@ const METHOD = {
   ),
 } as const;
 
+// Per-patient values behind one variable (UUID + value at each timepoint).
+function FeatureDetailTable({ feature, state }: { feature: string; state: FeatureDetail | "loading" | "error" | undefined }) {
+  if (state === undefined || state === "loading") return <div className="text-xs text-gray-400 py-2">Loading per-patient values…</div>;
+  if (state === "error") return <div className="text-xs text-red-500 py-2">Could not load values.</div>;
+  const unit = canonicalUnit(feature, state.unit);
+  const fmt = (v: unknown) => (v === null || v === undefined ? "—" : typeof v === "boolean" ? (v ? "yes" : "no") : String(v));
+  return (
+    <div className="max-h-72 overflow-y-auto rounded border border-gray-100 bg-white">
+      <table className="w-full text-[11px]">
+        <thead className="sticky top-0 bg-gray-50">
+          <tr className="text-left text-gray-400">
+            <th className="py-1 px-2 font-medium">Patient UUID</th>
+            <th className="py-1 px-2 font-medium">Sex</th>
+            {state.timepoints.map((t) => <th key={t} className="py-1 px-2 font-medium">{t}{unit ? ` (${unit})` : ""}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {state.rows.map((r) => (
+            <tr key={r.patient} className="border-t border-gray-50">
+              <td className="py-1 px-2 font-mono text-gray-600">{r.patient}</td>
+              <td className="py-1 px-2 text-gray-500">{r.gender || "—"}</td>
+              {state.timepoints.map((t) => <td key={t} className="py-1 px-2 tabular-nums text-gray-700">{fmt(r.values[t])}</td>)}
+            </tr>
+          ))}
+          {!state.rows.length && <tr><td className="py-2 px-2 text-gray-400" colSpan={2 + state.timepoints.length}>No values recorded.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function flagTone(pct: number) {
   if (pct >= 50) return { bar: "bg-red-500", text: "text-red-700", chip: "bg-red-50" };
   if (pct >= 25) return { bar: "bg-amber-500", text: "text-amber-700", chip: "bg-amber-50" };
@@ -361,11 +403,27 @@ function deltaTitle(feature: string, delta: number | null): string {
 
 type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "data";
 
-function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport }: {
+function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport, onLoadFeature }: {
   detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
   onDeleteTimepoint: (exportId: string, label: string) => void; onEmployerReport: () => void;
+  onLoadFeature: (feature: string) => Promise<FeatureDetail | null>;
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [featCache, setFeatCache] = useState<Record<string, FeatureDetail | "loading" | "error">>({});
+
+  async function toggleFeature(feature: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(feature)) next.delete(feature); else next.add(feature);
+      return next;
+    });
+    if (!featCache[feature]) {
+      setFeatCache((c) => ({ ...c, [feature]: "loading" }));
+      const data = await onLoadFeature(feature);
+      setFeatCache((c) => ({ ...c, [feature]: data ?? "error" }));
+    }
+  }
   const d = detail.demographics;
   const multiTimepoint = detail.exports.length > 1;
   const moveByFeature = new Map(detail.movements.map((m) => [m.feature, m]));
@@ -494,25 +552,42 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                             {seriesByDomain(dom).map((s) => {
                               const mv = moveByFeature.get(s.feature);
                               const unit = canonicalUnit(s.feature, s.unit);
+                              const isOpen = expanded.has(s.feature);
+                              const cols = 4 + (multiTimepoint ? 2 : 0);
                               return (
-                                <tr key={s.feature} className="border-t border-gray-50">
-                                  <td className="py-1 pr-4 text-gray-800">{s.feature}{unit ? <span className="text-gray-400"> ({unit})</span> : null}</td>
-                                  <td className="py-1 pr-4 text-gray-700">{latestMean(s) ?? "-"}</td>
-                                  <td className="py-1 pr-4 text-gray-500">{latestN(s)}</td>
-                                  <td className="py-1 pr-4 text-[11px] text-gray-400">{referenceNote(s.feature)}</td>
-                                  {multiTimepoint && (
-                                    <td className={`py-1 pr-4 tabular-nums ${deltaTone(s.feature, mv?.delta ?? null)}`} title={deltaTitle(s.feature, mv?.delta ?? null)}>
-                                      {mv?.delta != null ? `${mv.delta > 0 ? "+" : ""}${mv.delta}${mv.effect_size != null ? ` (d=${mv.effect_size})` : ""}` : "-"}
+                                <Fragment key={s.feature}>
+                                  <tr className="border-t border-gray-50">
+                                    <td className="py-1 pr-4 text-gray-800">
+                                      <button type="button" onClick={() => toggleFeature(s.feature)}
+                                        className="inline-flex items-center gap-1 hover:text-emerald-700" title="Show per-patient values">
+                                        <span className="w-3 text-gray-400">{isOpen ? "▾" : "▸"}</span>
+                                        {s.feature}{unit ? <span className="text-gray-400"> ({unit})</span> : null}
+                                      </button>
                                     </td>
+                                    <td className="py-1 pr-4 text-gray-700">{latestMean(s) ?? "-"}</td>
+                                    <td className="py-1 pr-4 text-gray-500">{latestN(s)}</td>
+                                    <td className="py-1 pr-4 text-[11px] text-gray-400">{referenceNote(s.feature)}</td>
+                                    {multiTimepoint && (
+                                      <td className={`py-1 pr-4 tabular-nums ${deltaTone(s.feature, mv?.delta ?? null)}`} title={deltaTitle(s.feature, mv?.delta ?? null)}>
+                                        {mv?.delta != null ? `${mv.delta > 0 ? "+" : ""}${mv.delta}${mv.effect_size != null ? ` (d=${mv.effect_size})` : ""}` : "-"}
+                                      </td>
+                                    )}
+                                    {multiTimepoint && (
+                                      <td className="py-1 pr-4 text-xs tabular-nums text-gray-600">
+                                        {mv?.p != null
+                                          ? <span><span className={mv.p < 0.05 ? "text-gray-900 font-medium" : ""}>{mv.p < 0.001 ? "<.001" : mv.p.toFixed(3)}{sigStars(mv.p)}</span>{mv.q != null ? <span className="text-gray-400"> ({mv.q < 0.001 ? "q<.001" : `q=${mv.q.toFixed(3)}`})</span> : null}</span>
+                                          : "-"}
+                                      </td>
+                                    )}
+                                  </tr>
+                                  {isOpen && (
+                                    <tr>
+                                      <td colSpan={cols} className="pb-3 pr-4">
+                                        <FeatureDetailTable feature={s.feature} state={featCache[s.feature]} />
+                                      </td>
+                                    </tr>
                                   )}
-                                  {multiTimepoint && (
-                                    <td className="py-1 pr-4 text-xs tabular-nums text-gray-600">
-                                      {mv?.p != null
-                                        ? <span><span className={mv.p < 0.05 ? "text-gray-900 font-medium" : ""}>{mv.p < 0.001 ? "<.001" : mv.p.toFixed(3)}{sigStars(mv.p)}</span>{mv.q != null ? <span className="text-gray-400"> ({mv.q < 0.001 ? "q<.001" : `q=${mv.q.toFixed(3)}`})</span> : null}</span>
-                                        : "-"}
-                                    </td>
-                                  )}
-                                </tr>
+                                </Fragment>
                               );
                             })}
                           </tbody>
