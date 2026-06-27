@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { DOMAIN_LABELS, DOMAIN_ORDER, REFERENCE_NOTE, type Domain } from "@/lib/research/clinical";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -20,11 +21,14 @@ interface Movement {
   delta: number | null; pct_change: number | null; effect_size: number | null; n_baseline: number; n_latest: number;
 }
 interface Completeness { feature: string; obs_type: string; n: number; n_missing: number; pct_missing: number; }
+interface Flag { key: string; label: string; domain: Domain; hits: number; eligible: number; pct: number; }
+interface Series { feature: string; obs_type: string; display: string | null; unit: string | null; domain: Domain; points: TrendPoint[]; }
 interface CohortDetail {
   cohort: { id: string; name: string; pathway: string | null };
   exports: { id: string; timepoint_label: string; export_type: string; exported_at: string | null; patient_count: number; observation_count: number; answer_count: number }[];
   demographics: { n: number; genders: Record<string, number>; groups: Record<string, number>; age: { min: number; median: number; max: number } | null };
-  series: { feature: string; obs_type: string; display: string | null; unit: string | null; points: TrendPoint[] }[];
+  series: Series[];
+  flags: Flag[];
   movements: Movement[];
   completeness: Completeness[];
   aiAnalyses: { id: string; model: string | null; summary_md: string; created_at: string }[];
@@ -222,103 +226,205 @@ export default function ResearchPage() {
   );
 }
 
+function flagTone(pct: number) {
+  if (pct >= 50) return { bar: "bg-red-500", text: "text-red-700", chip: "bg-red-50" };
+  if (pct >= 25) return { bar: "bg-amber-500", text: "text-amber-700", chip: "bg-amber-50" };
+  if (pct > 0) return { bar: "bg-yellow-400", text: "text-yellow-700", chip: "bg-yellow-50" };
+  return { bar: "bg-emerald-500", text: "text-emerald-700", chip: "bg-emerald-50" };
+}
+
+type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "data";
+
 function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload }: {
   detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
 }) {
+  const [tab, setTab] = useState<TabKey>("overview");
   const d = detail.demographics;
-  const topMovers = detail.movements.filter((m) => m.effect_size !== null).slice(0, 12);
+  const multiTimepoint = detail.exports.length > 1;
+  const moveByFeature = new Map(detail.movements.map((m) => [m.feature, m]));
+  const seriesByDomain = (dom: Domain) => detail.series.filter((s) => s.domain === dom);
+  const latestMean = (s: Series) => s.points[s.points.length - 1]?.mean ?? null;
+  const latestN = (s: Series) => s.points[s.points.length - 1]?.n ?? 0;
+
+  const tabs: { k: TabKey; label: string }[] = [
+    { k: "overview", label: "Clinical overview" },
+    { k: "domains", label: "By domain" },
+    { k: "longitudinal", label: "Longitudinal" },
+    { k: "ai", label: "AI analysis" },
+    { k: "data", label: "Data & export" },
+  ];
+
   return (
-    <section className="rounded-2xl bg-white shadow-sm border border-gray-100 p-6 space-y-6">
-      <div className="flex items-start justify-between">
+    <section className="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+      {/* header */}
+      <div className="flex items-start justify-between p-6 pb-0">
         <div>
           <h2 className="text-xl font-bold text-gray-900">{detail.cohort.name}</h2>
-          {detail.cohort.pathway && <p className="text-sm text-gray-500">{detail.cohort.pathway}</p>}
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => onDownload("excel")} className="text-xs rounded-lg bg-emerald-600 text-white px-3 py-1.5 font-medium hover:bg-emerald-700">Download Excel (.xlsx)</button>
-          <button onClick={() => onDownload("long")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV long</button>
-          <button onClick={() => onDownload("answers")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV answers</button>
-          <button onClick={onDelete} className="text-xs rounded-lg border border-red-200 text-red-600 px-3 py-1.5 hover:bg-red-50">Delete</button>
-        </div>
-      </div>
-
-      {/* demographics + timepoints */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="rounded-xl bg-gray-50 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-2">Demographics</div>
-          <div className="text-sm text-gray-800">{d.n} patients{d.age ? ` - age ${d.age.min}-${d.age.max} (median ${d.age.median})` : ""}</div>
-          <div className="text-xs text-gray-600 mt-1">{Object.entries(d.genders).map(([k, v]) => `${v} ${k}`).join(", ")}</div>
-          {Object.keys(d.groups).length > 1 && (
-            <div className="text-xs text-gray-600 mt-1">Groups: {Object.entries(d.groups).map(([k, v]) => `${k} (${v})`).join(", ")}</div>
-          )}
-        </div>
-        <div className="rounded-xl bg-gray-50 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-2">Timepoints</div>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-sm text-gray-500">
+            {d.n} patients{d.age ? ` · age ${d.age.min}-${d.age.max} (median ${d.age.median})` : ""} · {Object.entries(d.genders).map(([k, v]) => `${v} ${k}`).join(", ")}
+            {Object.keys(d.groups).length > 1 ? ` · ${Object.entries(d.groups).map(([k, v]) => `${k.split(" - ")[0]} (${v})`).join(", ")}` : ""}
+          </p>
+          <div className="flex flex-wrap gap-1.5 mt-2">
             {detail.exports.map((e) => (
-              <span key={e.timepoint_label} className="text-xs rounded-lg bg-white border border-gray-200 px-2 py-1">
-                {e.timepoint_label} - {e.patient_count}p - {e.export_type === "no_bloods" ? "no bloods" : "full"}
+              <span key={e.timepoint_label} className="text-[11px] rounded-full bg-gray-100 text-gray-600 px-2 py-0.5">
+                {e.timepoint_label} · {e.patient_count}p · {e.export_type === "no_bloods" ? "no bloods" : "full"}
               </span>
             ))}
           </div>
         </div>
+        <button onClick={onDelete} className="text-xs rounded-lg border border-red-200 text-red-600 px-3 py-1.5 hover:bg-red-50">Delete</button>
       </div>
 
-      {/* top movers */}
-      <div>
-        <div className="text-xs font-medium text-gray-500 mb-2">Top movers (baseline to latest)</div>
-        {topMovers.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-gray-400">
-                <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
-                <th className="py-1 pr-4">Delta</th><th className="py-1 pr-4">% change</th><th className="py-1 pr-4">Effect size</th>
-              </tr></thead>
-              <tbody>
-                {topMovers.map((m) => (
-                  <tr key={m.feature} className="border-t border-gray-50">
-                    <td className="py-1 pr-4 text-gray-800">{m.feature}</td>
-                    <td className="py-1 pr-4 text-gray-600">{m.baseline_mean ?? "-"}</td>
-                    <td className="py-1 pr-4 text-gray-600">{m.latest_mean ?? "-"}</td>
-                    <td className={`py-1 pr-4 ${(m.delta ?? 0) > 0 ? "text-emerald-600" : (m.delta ?? 0) < 0 ? "text-red-600" : "text-gray-500"}`}>{m.delta ?? "-"}</td>
-                    <td className="py-1 pr-4 text-gray-600">{m.pct_change !== null ? `${m.pct_change}%` : "-"}</td>
-                    <td className="py-1 pr-4 font-medium text-gray-800">{m.effect_size ?? "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : <p className="text-xs text-gray-400">Needs at least two timepoints to compute movement.</p>}
-      </div>
-
-      {/* completeness */}
-      <div>
-        <div className="text-xs font-medium text-gray-500 mb-2">Completeness at latest timepoint</div>
-        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
-          {detail.completeness.filter((c) => c.pct_missing > 0).slice(0, 16).map((c) => (
-            <div key={c.feature} className="flex items-center gap-2 text-xs">
-              <span className="w-40 truncate text-gray-700">{c.feature}</span>
-              <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div className={`h-full ${c.pct_missing >= 50 ? "bg-red-500" : "bg-amber-400"}`} style={{ width: `${c.pct_missing}%` }} />
-              </div>
-              <span className={c.pct_missing >= 50 ? "text-red-600" : "text-gray-500"}>{c.pct_missing}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* AI */}
-      <div className="rounded-xl border border-gray-100 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-semibold text-gray-900">AI trend analysis</div>
-          <button onClick={onAI} disabled={aiBusy}
-            className="text-xs rounded-lg bg-gray-900 text-white px-3 py-1.5 hover:bg-gray-800 disabled:opacity-50">
-            {aiBusy ? "Analyzing..." : "Analyze with AI"}
+      {/* tabs */}
+      <div className="flex gap-1 px-6 mt-4 border-b border-gray-100">
+        {tabs.map((t) => (
+          <button key={t.k} onClick={() => setTab(t.k)}
+            className={`text-sm px-3 py-2 -mb-px border-b-2 ${tab === t.k ? "border-emerald-500 text-gray-900 font-medium" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+            {t.label}
           </button>
-        </div>
-        {detail.aiAnalyses.length ? (
-          <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{detail.aiAnalyses[0].summary_md}</div>
-        ) : <p className="text-xs text-gray-400">No analysis yet. Aggregate stats only are sent to the model - no per-patient data.</p>}
+        ))}
+      </div>
+
+      <div className="p-6">
+        {/* ---------- CLINICAL OVERVIEW ---------- */}
+        {tab === "overview" && (
+          <div className="space-y-5">
+            <p className="text-xs text-gray-500">Share of patients crossing each clinical threshold at the latest timepoint. Denominators vary — conditional screeners are only asked of some patients.</p>
+            {DOMAIN_ORDER.filter((dom) => detail.flags.some((f) => f.domain === dom)).map((dom) => (
+              <div key={dom}>
+                <div className="text-xs font-semibold text-gray-700 mb-2">{DOMAIN_LABELS[dom]}</div>
+                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                  {detail.flags.filter((f) => f.domain === dom).map((f) => {
+                    const tone = flagTone(f.pct);
+                    return (
+                      <div key={f.key} className="flex items-center gap-3 text-xs">
+                        <span className="flex-1 text-gray-700">{f.label}</span>
+                        <div className="w-24 h-2 rounded-full bg-gray-100 overflow-hidden">
+                          <div className={`h-full ${tone.bar}`} style={{ width: `${f.pct}%` }} />
+                        </div>
+                        <span className={`w-20 text-right font-medium ${tone.text}`}>{f.pct}% ({f.hits}/{f.eligible})</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {!detail.flags.length && <p className="text-sm text-gray-400">No flag-eligible data yet.</p>}
+          </div>
+        )}
+
+        {/* ---------- BY DOMAIN ---------- */}
+        {tab === "domains" && (
+          <div className="space-y-5">
+            {DOMAIN_ORDER.filter((dom) => seriesByDomain(dom).length).map((dom) => (
+              <div key={dom}>
+                <div className="text-xs font-semibold text-gray-700 mb-2">{DOMAIN_LABELS[dom]}</div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="text-left text-[11px] text-gray-400">
+                      <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Mean</th><th className="py-1 pr-4">n</th>
+                      <th className="py-1 pr-4">Reference range</th>{multiTimepoint && <th className="py-1 pr-4">Δ baseline→latest</th>}
+                    </tr></thead>
+                    <tbody>
+                      {seriesByDomain(dom).map((s) => {
+                        const mv = moveByFeature.get(s.feature);
+                        return (
+                          <tr key={s.feature} className="border-t border-gray-50">
+                            <td className="py-1 pr-4 text-gray-800">{s.feature}{s.unit ? <span className="text-gray-400"> ({s.unit})</span> : null}</td>
+                            <td className="py-1 pr-4 text-gray-700">{latestMean(s) ?? "-"}</td>
+                            <td className="py-1 pr-4 text-gray-500">{latestN(s)}</td>
+                            <td className="py-1 pr-4 text-[11px] text-gray-400">{REFERENCE_NOTE[s.feature] || ""}</td>
+                            {multiTimepoint && (
+                              <td className={`py-1 pr-4 ${(mv?.delta ?? 0) > 0 ? "text-emerald-600" : (mv?.delta ?? 0) < 0 ? "text-red-600" : "text-gray-400"}`}>
+                                {mv?.delta != null ? `${mv.delta > 0 ? "+" : ""}${mv.delta}${mv.effect_size != null ? ` (d=${mv.effect_size})` : ""}` : "-"}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ---------- LONGITUDINAL ---------- */}
+        {tab === "longitudinal" && (
+          <div className="space-y-3">
+            {!multiTimepoint && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3">
+                Only a baseline timepoint so far. Upload the next export (3mo / 6mo …) to unlock trend movement and effect sizes.
+              </div>
+            )}
+            <div className="text-xs font-medium text-gray-500">Top movers (baseline → latest, ranked by effect size)</div>
+            {detail.movements.filter((m) => m.effect_size !== null).length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left text-xs text-gray-400">
+                    <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
+                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change</th><th className="py-1 pr-4">Effect size (d)</th>
+                  </tr></thead>
+                  <tbody>
+                    {detail.movements.filter((m) => m.effect_size !== null).slice(0, 20).map((m) => (
+                      <tr key={m.feature} className="border-t border-gray-50">
+                        <td className="py-1 pr-4 text-gray-800">{m.feature}</td>
+                        <td className="py-1 pr-4 text-gray-600">{m.baseline_mean ?? "-"}</td>
+                        <td className="py-1 pr-4 text-gray-600">{m.latest_mean ?? "-"}</td>
+                        <td className={`py-1 pr-4 ${(m.delta ?? 0) > 0 ? "text-emerald-600" : (m.delta ?? 0) < 0 ? "text-red-600" : "text-gray-500"}`}>{m.delta ?? "-"}</td>
+                        <td className="py-1 pr-4 text-gray-600">{m.pct_change !== null ? `${m.pct_change}%` : "-"}</td>
+                        <td className="py-1 pr-4 font-medium text-gray-800">{m.effect_size ?? "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <p className="text-xs text-gray-400">No movement yet — needs at least two timepoints.</p>}
+          </div>
+        )}
+
+        {/* ---------- AI ---------- */}
+        {tab === "ai" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-gray-900">AI trend analysis</div>
+              <button onClick={onAI} disabled={aiBusy}
+                className="text-xs rounded-lg bg-gray-900 text-white px-3 py-1.5 hover:bg-gray-800 disabled:opacity-50">
+                {aiBusy ? "Analyzing..." : detail.aiAnalyses.length ? "Re-run analysis" : "Analyze with AI"}
+              </button>
+            </div>
+            {detail.aiAnalyses.length ? (
+              <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{detail.aiAnalyses[0].summary_md}</div>
+            ) : <p className="text-xs text-gray-400">No analysis yet. Aggregate stats only are sent to the model — no per-patient data leaves the database.</p>}
+          </div>
+        )}
+
+        {/* ---------- DATA & EXPORT ---------- */}
+        {tab === "data" && (
+          <div className="space-y-5">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => onDownload("excel")} className="text-sm rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700">Download Excel (.xlsx)</button>
+              <button onClick={() => onDownload("long")} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50">CSV (long)</button>
+              <button onClick={() => onDownload("answers")} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50">CSV (answers)</button>
+            </div>
+            <p className="text-xs text-gray-500">Excel has 4 sheets — Wide (units in headers, missing data flagged red), Long, Answers, Dictionary.</p>
+            <div>
+              <div className="text-xs font-medium text-gray-500 mb-2">Completeness at latest timepoint (worst first)</div>
+              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+                {detail.completeness.filter((c) => c.pct_missing > 0).slice(0, 20).map((c) => (
+                  <div key={c.feature} className="flex items-center gap-2 text-xs">
+                    <span className="w-44 truncate text-gray-700">{c.feature}</span>
+                    <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div className={`h-full ${c.pct_missing >= 50 ? "bg-red-500" : "bg-amber-400"}`} style={{ width: `${c.pct_missing}%` }} />
+                    </div>
+                    <span className={c.pct_missing >= 50 ? "text-red-600" : "text-gray-500"}>{c.pct_missing}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

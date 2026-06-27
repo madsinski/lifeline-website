@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
+import { featureDomain, FLAGS, flagCrosses } from "@/lib/research/clinical";
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
     obs_type: points[0].obs_type,
     display: points[0].display,
     unit: points[0].unit,
+    domain: featureDomain(feature),
     points,
   }));
 
@@ -78,6 +80,32 @@ export async function GET(req: NextRequest) {
     }))
     .sort((a, b) => b.pct_missing - a.pct_missing);
 
+  // clinical flag prevalence at the latest timepoint (per-patient values + gender)
+  const genderById: Record<string, string | null> = {};
+  for (const p of patients || []) genderById[p.medalia_patient_id] = p.gender;
+  const flagFeatures = [...new Set(FLAGS.map((f) => f.feature))];
+  const { data: latestObs } = await supabaseAdmin
+    .from("research_observations")
+    .select("medalia_patient_id, feature, value_num, value_bool")
+    .eq("cohort_id", id)
+    .eq("timepoint_order", latestOrder)
+    .in("feature", flagFeatures);
+  const valsByPatient = new Map<string, Record<string, number | boolean | null>>();
+  for (const o of latestObs || []) {
+    if (!valsByPatient.has(o.medalia_patient_id)) valsByPatient.set(o.medalia_patient_id, {});
+    valsByPatient.get(o.medalia_patient_id)![o.feature] = o.value_num ?? o.value_bool ?? null;
+  }
+  const flags = FLAGS.map((def) => {
+    let eligible = 0, hits = 0;
+    for (const [pid, fv] of valsByPatient) {
+      if (def.feature in fv && fv[def.feature] !== null) {
+        eligible++;
+        if (flagCrosses(def, fv[def.feature], genderById[pid] ?? null)) hits++;
+      }
+    }
+    return { key: def.key, label: def.label, domain: def.domain, hits, eligible, pct: eligible ? Math.round((100 * hits) / eligible) : 0 };
+  }).filter((f) => f.eligible > 0).sort((a, b) => b.pct - a.pct);
+
   const { data: aiAnalyses } = await supabaseAdmin
     .from("research_ai_analyses")
     .select("id, scope, model, summary_md, created_at")
@@ -97,6 +125,7 @@ export async function GET(req: NextRequest) {
         : null,
     },
     series,
+    flags,
     movements,
     completeness,
     aiAnalyses: aiAnalyses || [],
