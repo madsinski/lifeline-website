@@ -93,7 +93,7 @@ export function featureDirection(feature: string): Direction {
   if (NEUTRAL.has(feature)) return "neutral";
   // heuristics for uncatalogued variants
   if (/_1_10$/.test(feature)) return "up";                       // lifeline wellness scores (10 = best)
-  if (/_(medical|behavioural)_score$/.test(feature)) return "up"; // health sub-scores
+  if (/_(medical|behaviour(al)?)_score$/.test(feature)) return "up"; // health sub-scores (note: sleep uses "behaviour", others "behavioural")
   if (/_total$/.test(feature)) return "up";
   if (/(phq|gad|audit|pgsi|cudq|cius|beds|assist)/.test(feature)) return "down";
   return "neutral";
@@ -161,11 +161,21 @@ export const REFERENCE_NOTE: Record<string, string> = {
   lifstilseinkunn: "lifestyle grade 0-10 — higher is better",
 };
 
-/** Reference note with sensible fallbacks for the lifeline 0-10 wellness scores. */
+/** Reference note with sensible fallbacks for the lifeline 0-10 sub-scores.
+ *  "medical" sub-scores quantify medical problems/barriers that prevent optimal
+ *  functioning in a category (low = more medical barriers); "behavioural"
+ *  sub-scores reflect habits. Both run 0-10, higher = better. */
 export function referenceNote(feature: string): string {
   if (REFERENCE_NOTE[feature]) return REFERENCE_NOTE[feature];
+  const cat = /sleep|svefn/.test(feature) ? "sleep"
+    : /exercise|hreyfing/.test(feature) ? "physical activity"
+    : /nutrition|naering/.test(feature) ? "nutrition" : null;
+  if (/_medical_score$/.test(feature))
+    return cat ? `medical barriers to ${cat} — 0-10, higher = fewer medical issues limiting it` : "medical-barriers sub-score — 0-10, higher = fewer issues";
+  if (/_behaviour(al)?_score$/.test(feature))
+    return cat ? `${cat} habits & behaviours — 0-10, higher = healthier` : "behavioural sub-score — 0-10, higher is better";
   if (/_1_10$/.test(feature)) return "0-10 wellness scale — higher is better";
-  if (/_(medical|behavioural)_score$/.test(feature) || /_total$/.test(feature)) return "0-10 sub-score — higher is better";
+  if (/_total$/.test(feature)) return cat ? `${cat} overall — 0-10, higher is better` : "0-10 total — higher is better";
   return "";
 }
 
@@ -186,11 +196,11 @@ export interface FlagDef {
 export const FLAGS: FlagDef[] = [
   // --- foundations (Lifeline 0-10 sub-scores; <6/10 = "needs attention". These
   //     are internal operational thresholds, not validated clinical cutoffs) ---
-  { key: "sleep_med_low", label: "Suboptimal sleep — medical (<6/10)", domain: "sleep", feature: "lifeline_health_sleep_medical_score", cutoff: 6, lowIsBad: true },
+  { key: "sleep_med_low", label: "Medical issues impairing sleep (<6/10)", domain: "sleep", feature: "lifeline_health_sleep_medical_score", cutoff: 6, lowIsBad: true },
   { key: "sleep_beh_low", label: "Poor sleep habits — behavioural (<6/10)", domain: "sleep", feature: "lifeline_health_sleep_behaviour_score", cutoff: 6, lowIsBad: true },
-  { key: "exer_med_low", label: "Low fitness — medical (<6/10)", domain: "exercise", feature: "lifeline_health_exercise_medical_score", cutoff: 6, lowIsBad: true },
+  { key: "exer_med_low", label: "Medical issues limiting activity (<6/10)", domain: "exercise", feature: "lifeline_health_exercise_medical_score", cutoff: 6, lowIsBad: true },
   { key: "exer_beh_low", label: "Low activity — behavioural (<6/10)", domain: "exercise", feature: "lifeline_health_exercise_behavioural_score", cutoff: 6, lowIsBad: true },
-  { key: "nutr_med_low", label: "Poor nutrition — medical (<6/10)", domain: "nutrition", feature: "lifeline_health_nutrition_medical_score", cutoff: 6, lowIsBad: true },
+  { key: "nutr_med_low", label: "Medical issues affecting nutrition (<6/10)", domain: "nutrition", feature: "lifeline_health_nutrition_medical_score", cutoff: 6, lowIsBad: true },
   { key: "nutr_beh_low", label: "Poor nutrition habits — behavioural (<6/10)", domain: "nutrition", feature: "lifeline_health_nutrition_behavioural_score", cutoff: 6, lowIsBad: true },
   // --- mental wellness ---
   { key: "phq9_mod", label: "Moderate+ depression (PHQ-9 ≥10)", domain: "mental", feature: "phq9", cutoff: 10 },
