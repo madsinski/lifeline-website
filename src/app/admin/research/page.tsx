@@ -340,7 +340,7 @@ const METHOD = {
     <>Each bar = <b>share of patients whose value crosses the threshold</b> at that timepoint.
     Denominator = patients who have that measure (conditional screeners are asked of only some, so denominators vary).
     Baseline→latest shows the change in <b>percentage points (pp)</b>; green = fewer affected.
-    Clinical cutoffs are standard (e.g. PHQ-9 ≥10, GAD-7 ≥10, HbA1c ≥42 mmol/mol, HOMA-IR ≥2.5, BP ≥140);
+    Blood-test &amp; measurement flags use the <b>Lifeline reference ranges</b> (shared with the app — fhir-health-dashboard bloodMarkers.ts) and fire when a value leaves the optimal/green band: e.g. HbA1c ≥39, cholesterol ≥5.2, body fat M ≥20% / F ≥28%, BP ≥120. Validated instruments (PHQ-9 ≥10, GAD-7 ≥10, AUDIT-C) keep their standard cutoffs;
     the 0–10 lifestyle sub-scores use an internal &lt;6/10 “needs attention” mark.
     <span className="block mt-1"><b>Sex-specific cutoffs</b> are applied per patient where reference ranges differ — body fat (M ≥25% / F ≥32%), HDL (M &lt;1.0 / F &lt;1.3), AUDIT-C (M ≥4 / F ≥3) — so the aggregate is not skewed by the cohort’s sex mix.</span>
     <span className="block mt-1 text-gray-400">clinical.ts FLAGS · flagCrosses()</span></>

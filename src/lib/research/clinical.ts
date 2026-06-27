@@ -130,22 +130,30 @@ export function canonicalUnit(feature: string, fallback?: string | null): string
 // REFERENCE RANGES — display-only notes (audited against standard cutoffs;
 // Iceland uses IFCC HbA1c in mmol/mol and mmol/L lipids).
 // ---------------------------------------------------------------------------
+// Reference ranges UNIFIED with the Lifeline app (fhir-health-dashboard
+// src/lib/bloodMarkers.ts + getBodyCompRange). "optimal" = green band; the
+// upper value is the borderline (yellow) band. Sex-specific where the app is.
 export const REFERENCE_NOTE: Record<string, string> = {
-  hba1c: "normal <42, prediabetes 42-47, diabetes ≥48 mmol/mol",
-  glucose: "fasting normal <5.6, impaired 5.6-6.9, diabetes ≥7.0 mmol/L",
-  insulin: "fasting typical ~2-25 mIU/L",
-  homa_ir: "insulin resistance ≥2.5 (lower better)",
-  total_cholesterol: "desirable <5.0 mmol/L (lower better)",
-  hdl_cholesterol: "low if <1.0 (M) / <1.3 (F) mmol/L — higher better",
-  triglycerides: "normal <1.7 mmol/L (lower better)",
-  alt: "elevated ≥45 U/L (lower better)",
-  ast: "elevated ≥40 U/L (lower better)",
+  hba1c: "Lifeline: optimal 20–39, borderline 39–46 mmol/mol (lower better)",
+  glucose: "Lifeline: optimal 3.9–5.6, borderline 5.6–6.9 mmol/L (lower better)",
+  insulin: "Lifeline: optimal 2–25 mIU/L (lower within range better)",
+  homa_ir: "Lifeline: optimal <1.9, borderline 1.9–2.9 (lower better)",
+  total_cholesterol: "Lifeline: optimal <5.2, borderline 5.2–6.2 mmol/L (lower better)",
+  hdl_cholesterol: "Lifeline: optimal ≥1.0 (M) / ≥1.3 (F) mmol/L (higher better)",
+  triglycerides: "Lifeline: optimal <1.7, borderline 1.7–2.3 mmol/L (lower better)",
+  alt: "Lifeline: optimal ≤41 (M) / ≤33 (F) U/L (lower better)",
+  ast: "Lifeline: optimal ≤40 (M) / ≤32 (F) U/L (lower better)",
   metabolic_health: "composite score — higher is better",
-  bmi: "normal 18.5-24.9, overweight 25-29.9, obese ≥30 (lower better)",
-  fat_mass_percent: "high if ≥25% (M) / ≥32% (F) — lower better",
-  skeletal_muscle_mass_percent: "higher is better",
-  bp_systolic_avg: "normal <120, elevated 120-139, hypertension ≥140 mmHg",
-  bp_diastolic_avg: "normal <80, hypertension ≥90 mmHg",
+  bmi: "Lifeline: optimal <25, overweight 25–30, obese >30 (lower better)",
+  fat_mass_percent: "Lifeline optimal: M 10–20%, F 18–28% (lower above optimal)",
+  fat_mass_kg: "no universal range — track the trend",
+  skeletal_muscle_mass_percent: "Lifeline optimal: M 40–44%, F 31–36% (higher better)",
+  weight: "no universal range — track the trend",
+  height: "reference measure",
+  bp_systolic_avg: "Lifeline: optimal <120, borderline 120–139, high ≥140 mmHg",
+  bp_diastolic_avg: "Lifeline: optimal <80, borderline 80–89, high ≥90 mmHg",
+  bp_systolic: "Lifeline: optimal <120, borderline 120–139, high ≥140 mmHg",
+  bp_diastolic: "Lifeline: optimal <80, borderline 80–89, high ≥90 mmHg",
   heart_health_score_2: "cardiovascular RISK score — lower is better",
   phq9: "0-4 none, 5-9 mild, 10-14 moderate, 15+ mod-severe (lower better)",
   phq2: "≥3 positive depression screen",
@@ -159,7 +167,7 @@ export const REFERENCE_NOTE: Record<string, string> = {
   lifeline_health_screen_use_cius_14: "higher = more compulsive use (lower better)",
   lifeline_health_beds_7: "BEDS-7 binge-eating screen — higher = more symptoms (lower better)",
   pwi: "Personal Wellness Index 0-10 — higher is better",
-  lifstilseinkunn: "lifestyle grade 0-10 — summary of the four foundations (higher is better)",
+  lifstilseinkunn: "Lífstílseinkunn (Wellness Pulse) 0–10: good ≥7.5, fair 5–7.5, low <5 — summary of the four foundations",
 };
 
 /** Reference note with sensible fallbacks for the lifeline 0-10 sub-scores.
@@ -207,15 +215,17 @@ export const FLAGS: FlagDef[] = [
   { key: "phq9_mod", label: "Moderate+ depression (PHQ-9 ≥10)", domain: "mental", feature: "phq9", cutoff: 10 },
   { key: "gad7_mod", label: "Moderate+ anxiety (GAD-7 ≥10)", domain: "mental", feature: "lifeline_health_anxiety_gad_7", cutoff: 10 },
   { key: "pwi_low", label: "Low wellbeing (PWI <6/10)", domain: "mental", feature: "pwi", cutoff: 6, lowIsBad: true },
-  { key: "hba1c_pre", label: "Prediabetes+ (HbA1c ≥42)", domain: "metabolic", feature: "hba1c", cutoff: 42 },
-  { key: "glucose_imp", label: "Impaired fasting glucose (≥5.6)", domain: "metabolic", feature: "glucose", cutoff: 5.6 },
-  { key: "homa_ir", label: "Insulin resistance (HOMA-IR ≥2.5)", domain: "metabolic", feature: "homa_ir", cutoff: 2.5 },
-  { key: "chol_high", label: "High total cholesterol (≥5.0)", domain: "metabolic", feature: "total_cholesterol", cutoff: 5.0 },
-  { key: "tg_high", label: "High triglycerides (≥1.7)", domain: "metabolic", feature: "triglycerides", cutoff: 1.7 },
-  { key: "hdl_low", label: "Low HDL (<1.0 M / <1.3 F)", domain: "metabolic", feature: "hdl_cholesterol", genderCutoff: { male: 1.0, female: 1.3 }, lowIsBad: true },
-  { key: "bmi_obese", label: "Obese (BMI ≥30)", domain: "body", feature: "bmi", cutoff: 30 },
-  { key: "bodyfat_high", label: "High body fat (M ≥25% / F ≥32%)", domain: "body", feature: "fat_mass_percent", genderCutoff: { male: 25, female: 32 } },
-  { key: "bp_sys_high", label: "Elevated systolic BP (≥140)", domain: "cardio", feature: "bp_systolic_avg", cutoff: 140 },
+  // Metabolic / body / cardio flags fire when a value leaves the Lifeline
+  // OPTIMAL (green) band — unified with the app's reference ranges.
+  { key: "hba1c_pre", label: "HbA1c above optimal (≥39 mmol/mol)", domain: "metabolic", feature: "hba1c", cutoff: 39 },
+  { key: "glucose_imp", label: "Glucose above optimal (≥5.6)", domain: "metabolic", feature: "glucose", cutoff: 5.6 },
+  { key: "homa_ir", label: "HOMA-IR above optimal (≥1.9)", domain: "metabolic", feature: "homa_ir", cutoff: 1.9 },
+  { key: "chol_high", label: "Total cholesterol above optimal (≥5.2)", domain: "metabolic", feature: "total_cholesterol", cutoff: 5.2 },
+  { key: "tg_high", label: "Triglycerides above optimal (≥1.7)", domain: "metabolic", feature: "triglycerides", cutoff: 1.7 },
+  { key: "hdl_low", label: "HDL below optimal (M <1.0 / F <1.3)", domain: "metabolic", feature: "hdl_cholesterol", genderCutoff: { male: 1.0, female: 1.3 }, lowIsBad: true },
+  { key: "bmi_obese", label: "BMI above optimal (≥25)", domain: "body", feature: "bmi", cutoff: 25 },
+  { key: "bodyfat_high", label: "Body fat above optimal (M ≥20% / F ≥28%)", domain: "body", feature: "fat_mass_percent", genderCutoff: { male: 20, female: 28 } },
+  { key: "bp_sys_high", label: "Systolic BP above optimal (≥120)", domain: "cardio", feature: "bp_systolic_avg", cutoff: 120 },
   { key: "audit_c_pos", label: "Hazardous drinking (AUDIT-C ≥4 M / ≥3 F)", domain: "addiction", feature: "lifeline_health_audit_c", genderCutoff: { male: 4, female: 3 } },
   { key: "nicotine", label: "Nicotine use", domain: "addiction", feature: "lifeline_health_nicotine_use", boolTrue: true },
 ];
