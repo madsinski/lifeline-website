@@ -126,7 +126,25 @@ export default function ResearchPage() {
     if (res.ok) { setDetail(null); setSelectedId(null); await loadCohorts(); }
   }
 
-  function exportUrl(sheet: string) { return `/api/admin/research/export?cohortId=${selectedId}&sheet=${sheet}`; }
+  async function downloadCsv(sheet: string) {
+    if (!selectedId) return;
+    setMsg(null);
+    const res = await authedFetch(`/api/admin/research/export?cohortId=${selectedId}&sheet=${sheet}`);
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setMsg(j.detail || j.error || "Export failed");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${detail?.cohort.name || "cohort"}_${sheet}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
@@ -198,13 +216,13 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} exportUrl={exportUrl} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadCsv} />}
     </div>
   );
 }
 
-function CohortDashboard({ detail, onAI, aiBusy, onDelete, exportUrl }: {
-  detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; exportUrl: (s: string) => string;
+function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload }: {
+  detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
 }) {
   const d = detail.demographics;
   const topMovers = detail.movements.filter((m) => m.effect_size !== null).slice(0, 12);
@@ -216,9 +234,9 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, exportUrl }: {
           {detail.cohort.pathway && <p className="text-sm text-gray-500">{detail.cohort.pathway}</p>}
         </div>
         <div className="flex gap-2">
-          <a href={exportUrl("long")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV long</a>
-          <a href={exportUrl("wide")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV wide</a>
-          <a href={exportUrl("answers")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV answers</a>
+          <button onClick={() => onDownload("long")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV long</button>
+          <button onClick={() => onDownload("wide")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV wide</button>
+          <button onClick={() => onDownload("answers")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV answers</button>
           <button onClick={onDelete} className="text-xs rounded-lg border border-red-200 text-red-600 px-3 py-1.5 hover:bg-red-50">Delete</button>
         </div>
       </div>
