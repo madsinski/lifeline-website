@@ -427,7 +427,11 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
   const d = detail.demographics;
   const multiTimepoint = detail.exports.length > 1;
   const moveByFeature = new Map(detail.movements.map((m) => [m.feature, m]));
-  const seriesByDomain = (dom: Domain) => detail.series.filter((s) => s.domain === dom);
+  // lífstílseinkunn is shown separately as the foundations summary, so keep it out of the domain tables.
+  const SUMMARY = "lifstilseinkunn";
+  const summarySeries = detail.series.find((s) => s.feature === SUMMARY);
+  const summaryMv = moveByFeature.get(SUMMARY);
+  const seriesByDomain = (dom: Domain) => detail.series.filter((s) => s.domain === dom && s.feature !== SUMMARY);
   const latestMean = (s: Series) => s.points[s.points.length - 1]?.mean ?? null;
   const latestN = (s: Series) => s.points[s.points.length - 1]?.n ?? 0;
 
@@ -523,6 +527,29 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
         {/* ---------- BY DOMAIN ---------- */}
         {tab === "domains" && (
           <div className="space-y-6">
+            {summarySeries && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <button type="button" onClick={() => toggleFeature(SUMMARY)} className="inline-flex items-center gap-1 text-sm font-bold text-emerald-900 hover:text-emerald-700" title="Show per-patient values">
+                      <span className="w-3 text-emerald-500">{expanded.has(SUMMARY) ? "▾" : "▸"}</span>
+                      Lífstílseinkunn — lifestyle score
+                    </button>
+                    <div className="text-[11px] text-emerald-700 mt-0.5">Overall summary of the four health foundations (sleep, exercise, nutrition, mental wellness). 0–10, higher is better.</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-2xl font-bold text-emerald-900 tabular-nums leading-none">{latestMean(summarySeries) ?? "—"}<span className="text-sm font-normal text-emerald-600">/10</span></div>
+                    {multiTimepoint && summaryMv?.delta != null && (
+                      <div className={`text-[11px] mt-1 ${deltaTone(SUMMARY, summaryMv.delta)}`} title={deltaTitle(SUMMARY, summaryMv.delta)}>
+                        {summaryMv.baseline_mean} → {summaryMv.latest_mean} ({summaryMv.delta > 0 ? "+" : ""}{summaryMv.delta}{summaryMv.pct_change != null ? `, ${summaryMv.pct_change}%` : ""})
+                        {summaryMv.p != null && <span className="text-emerald-700"> · p={summaryMv.p < 0.001 ? "<.001" : summaryMv.p.toFixed(3)}{sigStars(summaryMv.p)}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {expanded.has(SUMMARY) && <div className="mt-3"><FeatureDetailTable feature={SUMMARY} state={featCache[SUMMARY]} /></div>}
+              </div>
+            )}
             {multiTimepoint && (
               <p className="text-[11px] text-gray-400">
                 Δ is baseline→latest (green = improvement for that metric, direction-aware). p = paired t-test on per-patient change; q = Benjamini-Hochberg FDR across features. <span className="font-medium">*</span> p&lt;.05 <span className="font-medium">**</span> p&lt;.01 <span className="font-medium">***</span> p&lt;.001. With small n and many features, lean on q and effect size, not raw p alone.

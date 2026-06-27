@@ -52,7 +52,7 @@ export function featureDomain(feature: string): Domain {
   if (/(sleep|svefn|caffine|caffeine)/.test(f)) return "sleep";
   if (/(exercise|hreyfing)/.test(f)) return "exercise";
   if (/(nutrition|naering)/.test(f)) return "nutrition";
-  if (/(audit|alcohol|nicotine|gambling|pgsi|cudq|food_addiction|other_substance|assist|fikn|screen_use|cius)/.test(f)) return "addiction";
+  if (/(audit|alcohol|nicotine|gambling|pgsi|cudq|beds|food_addiction|other_substance|assist|fikn|screen_use|cius)/.test(f)) return "addiction";
   if (/(phq|gad|anxiety|depression|andlegt|pwi)/.test(f)) return "mental";
   // downstream
   if (/(hba1c|glucose|insulin|homa|cholesterol|triglyc|hdl|\balt\b|\bast\b|metabolic_health|diabetic)/.test(f)) return "metabolic";
@@ -157,8 +157,9 @@ export const REFERENCE_NOTE: Record<string, string> = {
   lifeline_health_cudq_5_score: "higher = more cannabis-use risk (lower better)",
   lifeline_health_screen_use_cius_5: "higher = more compulsive use (lower better)",
   lifeline_health_screen_use_cius_14: "higher = more compulsive use (lower better)",
+  lifeline_health_beds_7: "BEDS-7 binge-eating screen — higher = more symptoms (lower better)",
   pwi: "Personal Wellness Index 0-10 — higher is better",
-  lifstilseinkunn: "lifestyle grade 0-10 — higher is better",
+  lifstilseinkunn: "lifestyle grade 0-10 — summary of the four foundations (higher is better)",
 };
 
 /** Reference note with sensible fallbacks for the lifeline 0-10 sub-scores.
