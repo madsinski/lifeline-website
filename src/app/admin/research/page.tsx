@@ -38,7 +38,7 @@ interface DataQuality {
   excludedPatients: string[];
   excludedFeatures: string[];
   patients: { patient: string; gender: string | null; present: number; total: number; completenessPct: number; excluded: boolean; suggested: boolean }[];
-  features: { feature: string; present: number; total: number; missingPct: number; excluded: boolean; suggested: boolean }[];
+  features: { feature: string; present: number; total: number; missingPct: number; conditional?: boolean; excluded: boolean; suggested: boolean }[];
 }
 interface CohortDetail {
   cohort: { id: string; name: string; pathway: string | null };
@@ -423,7 +423,7 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-xs text-gray-500 max-w-2xl">
-          Review and choose which <b>patients (rows)</b> and <b>variables (columns)</b> are included in the analysis. Excluded items are removed from all trends, flags, significance and exports. Suggested exclusions (⚠) flag near-empty patients (&lt;50% complete) and sparse variables (over half of patients missing a value).
+          Review and choose which <b>patients (rows)</b> and <b>variables (columns)</b> are included in the analysis. Excluded items are removed from all trends, flags, significance and exports. Suggested exclusions (⚠) flag near-empty patients (&lt;50% complete) and sparse variables (over half of patients missing a value). <b>Conditional</b> questionnaires (e.g. the full AUDIT-10 / CIUS-14, only asked when the short screen is positive) are tagged and <b>not</b> suggested — their missingness is by design; use the unified 0–10 score for whole-cohort analysis.
         </p>
         <div className="flex gap-2 shrink-0">
           <button onClick={useSuggested} className="text-xs rounded-lg border border-amber-300 text-amber-700 px-3 py-1.5 hover:bg-amber-50">Select suggested</button>
@@ -465,8 +465,12 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
                 {dq.features.map((f) => (
                   <tr key={f.feature} className={`border-t border-gray-50 ${exF.has(f.feature) ? "bg-red-50" : f.suggested ? "bg-amber-50" : ""}`}>
                     <td className="py-1 px-2"><input type="checkbox" checked={exF.has(f.feature)} onChange={() => toggle(exF, f.feature, setExF)} /></td>
-                    <td className="py-1 px-2 text-gray-700">{f.feature}{f.suggested && <span className="ml-1 text-amber-600" title="Mostly missing — suggested for exclusion">⚠</span>}</td>
-                    <td className={`py-1 px-2 tabular-nums ${f.missingPct > 50 ? "text-red-600" : "text-gray-600"}`}>{f.missingPct}% ({f.total - f.present}/{f.total})</td>
+                    <td className="py-1 px-2 text-gray-700">
+                      {f.feature}
+                      {f.suggested && <span className="ml-1 text-amber-600" title="Mostly missing — suggested for exclusion">⚠</span>}
+                      {f.conditional && <span className="ml-1 text-[9px] uppercase tracking-wide text-sky-600 bg-sky-50 rounded px-1 py-0.5" title="Conditional questionnaire: only administered when the screen is positive — missing means screened negative, not data loss. Use the unified 0–10 score for whole-cohort analysis.">conditional</span>}
+                    </td>
+                    <td className={`py-1 px-2 tabular-nums ${f.missingPct > 50 && !f.conditional ? "text-red-600" : "text-gray-600"}`}>{f.missingPct}% ({f.total - f.present}/{f.total})</td>
                   </tr>
                 ))}
               </tbody>

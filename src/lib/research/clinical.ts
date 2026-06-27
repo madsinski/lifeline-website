@@ -170,12 +170,42 @@ export const REFERENCE_NOTE: Record<string, string> = {
   lifstilseinkunn: "Lífstílseinkunn (Wellness Pulse) 0–10: good ≥7.5, fair 5–7.5, low <5 — summary of the four foundations",
 };
 
+// ---------------------------------------------------------------------------
+// GATED QUESTIONNAIRES. Each family has a short GATE screener (asked of
+// everyone), a longer FULL instrument (only administered when the screen is
+// positive — so it is sparse BY DESIGN, "missing" = screened negative), and a
+// unified 0–10 SCORE computed from whichever applies (gate or full). The 0–10
+// score is the complete, analysis-ready measure for the whole cohort; the full
+// instrument is for sub-analysis of the screen-positive subset only.
+// ---------------------------------------------------------------------------
+export interface GatedFamily { label: string; gate: string; full: string; score: string; }
+export const GATED_FAMILIES: GatedFamily[] = [
+  { label: "Depression", gate: "phq2", full: "phq9", score: "lifeline_health_depression_score_1_10" },
+  { label: "Anxiety", gate: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", score: "lifeline_health_anxiety_score_1_10" },
+  { label: "Alcohol", gate: "lifeline_health_audit_c", full: "lifeline_health_audit_10", score: "lifeline_health_alcohol_addiction_1_10" },
+  { label: "Screen use", gate: "lifeline_health_screen_use_cius_5", full: "lifeline_health_screen_use_cius_14", score: "lifeline_health_screen_use_1_10" },
+  { label: "Cannabis", gate: "lifeline_health_cudq_5_score", full: "lifeline_health_cudq_5_score", score: "lifeline_health_other_substance_addiction_1_10" },
+];
+// Full instruments that are conditional on a positive screen (sparse by design).
+export const CONDITIONAL_FEATURES = new Set<string>([
+  "phq9", "lifeline_health_anxiety_gad_7", "lifeline_health_audit_10",
+  "lifeline_health_screen_use_cius_14", "lifeline_health_cudq_5_score",
+  "lifeline_health_gambling_pgsi", "lifeline_health_beds_7",
+]);
+export const isConditional = (feature: string): boolean => CONDITIONAL_FEATURES.has(feature);
+// feature -> the family whose unified 0–10 score should be used instead
+const SCORE_FOR: Record<string, string> = Object.fromEntries(
+  GATED_FAMILIES.filter((g) => g.full !== g.score).map((g) => [g.full, g.score]),
+);
+export const unifiedScoreFor = (feature: string): string | null => SCORE_FOR[feature] ?? null;
+
 /** Reference note with sensible fallbacks for the lifeline 0-10 sub-scores.
  *  "medical" sub-scores quantify medical problems/barriers that prevent optimal
  *  functioning in a category (low = more medical barriers); "behavioural"
  *  sub-scores reflect habits. Both run 0-10, higher = better. */
 export function referenceNote(feature: string): string {
-  if (REFERENCE_NOTE[feature]) return REFERENCE_NOTE[feature];
+  const cond = isConditional(feature) ? " · conditional (only if screen positive)" : "";
+  if (REFERENCE_NOTE[feature]) return REFERENCE_NOTE[feature] + cond;
   const cat = /sleep|svefn/.test(feature) ? "sleep"
     : /exercise|hreyfing/.test(feature) ? "physical activity"
     : /nutrition|naering/.test(feature) ? "nutrition" : null;

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchRead } from "@/lib/research/access";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
-import { featureDomain, FLAGS, flagCrosses } from "@/lib/research/clinical";
+import { featureDomain, FLAGS, flagCrosses, isConditional } from "@/lib/research/clinical";
 import { pairedTTest, benjaminiHochberg } from "@/lib/research/stats";
 
 async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
@@ -215,8 +215,11 @@ export async function GET(req: NextRequest) {
   const dqFeatureRows = [...dqFeatures].map((feature) => {
     const present = presentByFeature.get(feature)?.size ?? 0;
     const missingPct = Math.round((100 * (totalDqPatients - present)) / totalDqPatients);
-    return { feature, present, total: totalDqPatients, missingPct,
-      excluded: exFeatures.has(feature), suggested: missingPct > 50 };
+    const conditional = isConditional(feature);
+    // Don't suggest excluding conditional instruments — their missingness is by
+    // design (screened negative), not a data problem.
+    return { feature, present, total: totalDqPatients, missingPct, conditional,
+      excluded: exFeatures.has(feature), suggested: missingPct > 50 && !conditional };
   }).sort((a, b) => b.missingPct - a.missingPct);
 
   const { data: aiAnalyses } = await supabaseAdmin

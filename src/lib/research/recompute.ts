@@ -39,7 +39,28 @@ export async function recomputeCohortTrends(cohortId: string): Promise<number> {
   const patientsAtTp: Record<string, number> = {};
   for (const [tp, set] of patientsByTp) patientsAtTp[tp] = set.size;
 
-  const stats = computeTrendStats(included, patientsAtTp);
+  // Collapse to ONE value per (patient, feature, timepoint) so n counts distinct
+  // patients, not raw observations — some measurements (BP panels, repeat
+  // readings) are recorded multiple times. Numeric repeats are averaged.
+  const byKey = new Map<string, Row[]>();
+  for (const o of included) {
+    const k = `${o.medalia_patient_id}|${o.feature}|${o.timepoint_order}`;
+    (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(o);
+  }
+  const deduped: TrendInputObs[] = [];
+  for (const rows of byKey.values()) {
+    const nums = rows.map((r) => r.value_num).filter((v): v is number => v !== null && v !== undefined);
+    const bools = rows.map((r) => r.value_bool).filter((v): v is boolean => v !== null && v !== undefined);
+    const f = rows[0];
+    deduped.push({
+      feature: f.feature, obs_type: f.obs_type, display: f.display, unit: f.unit,
+      timepoint_label: f.timepoint_label, timepoint_order: f.timepoint_order,
+      value_num: nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null,
+      value_bool: bools.length ? bools[bools.length - 1] : null,
+    });
+  }
+
+  const stats = computeTrendStats(deduped, patientsAtTp);
 
   // replace cached trends for this cohort
   await supabaseAdmin.from("research_trends").delete().eq("cohort_id", cohortId);
