@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { DOMAIN_LABELS, DOMAIN_ORDER, REFERENCE_NOTE, type Domain } from "@/lib/research/clinical";
+import { DOMAIN_LABELS, DOMAIN_ORDER, referenceNote, canonicalUnit, changeIsGood, type Domain } from "@/lib/research/clinical";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -243,6 +243,18 @@ function flagTone(pct: number) {
   return { bar: "bg-emerald-500", text: "text-emerald-700", chip: "bg-emerald-50" };
 }
 
+// Colour a delta by whether it is an improvement for THIS feature (direction-aware),
+// not merely by its sign — lower BP/HbA1c is good, higher HDL/sleep is good.
+function deltaTone(feature: string, delta: number | null): string {
+  const good = changeIsGood(feature, delta);
+  if (good === null) return "text-gray-500";
+  return good ? "text-emerald-600" : "text-red-600";
+}
+function deltaTitle(feature: string, delta: number | null): string {
+  const good = changeIsGood(feature, delta);
+  return good === null ? "" : good ? "improvement" : "worsening";
+}
+
 type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "data";
 
 function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint }: {
@@ -342,14 +354,15 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                     <tbody>
                       {seriesByDomain(dom).map((s) => {
                         const mv = moveByFeature.get(s.feature);
+                        const unit = canonicalUnit(s.feature, s.unit);
                         return (
                           <tr key={s.feature} className="border-t border-gray-50">
-                            <td className="py-1 pr-4 text-gray-800">{s.feature}{s.unit ? <span className="text-gray-400"> ({s.unit})</span> : null}</td>
+                            <td className="py-1 pr-4 text-gray-800">{s.feature}{unit ? <span className="text-gray-400"> ({unit})</span> : null}</td>
                             <td className="py-1 pr-4 text-gray-700">{latestMean(s) ?? "-"}</td>
                             <td className="py-1 pr-4 text-gray-500">{latestN(s)}</td>
-                            <td className="py-1 pr-4 text-[11px] text-gray-400">{REFERENCE_NOTE[s.feature] || ""}</td>
+                            <td className="py-1 pr-4 text-[11px] text-gray-400">{referenceNote(s.feature)}</td>
                             {multiTimepoint && (
-                              <td className={`py-1 pr-4 ${(mv?.delta ?? 0) > 0 ? "text-emerald-600" : (mv?.delta ?? 0) < 0 ? "text-red-600" : "text-gray-400"}`}>
+                              <td className={`py-1 pr-4 ${deltaTone(s.feature, mv?.delta ?? null)}`} title={deltaTitle(s.feature, mv?.delta ?? null)}>
                                 {mv?.delta != null ? `${mv.delta > 0 ? "+" : ""}${mv.delta}${mv.effect_size != null ? ` (d=${mv.effect_size})` : ""}` : "-"}
                               </td>
                             )}
@@ -378,19 +391,23 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-400">
                     <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
-                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change</th><th className="py-1 pr-4">Effect size (d)</th>
+                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change</th><th className="py-1 pr-4">Effect size (d)</th><th className="py-1 pr-4">Direction</th>
                   </tr></thead>
                   <tbody>
-                    {detail.movements.filter((m) => m.effect_size !== null).slice(0, 20).map((m) => (
-                      <tr key={m.feature} className="border-t border-gray-50">
-                        <td className="py-1 pr-4 text-gray-800">{m.feature}</td>
-                        <td className="py-1 pr-4 text-gray-600">{m.baseline_mean ?? "-"}</td>
-                        <td className="py-1 pr-4 text-gray-600">{m.latest_mean ?? "-"}</td>
-                        <td className={`py-1 pr-4 ${(m.delta ?? 0) > 0 ? "text-emerald-600" : (m.delta ?? 0) < 0 ? "text-red-600" : "text-gray-500"}`}>{m.delta ?? "-"}</td>
-                        <td className="py-1 pr-4 text-gray-600">{m.pct_change !== null ? `${m.pct_change}%` : "-"}</td>
-                        <td className="py-1 pr-4 font-medium text-gray-800">{m.effect_size ?? "-"}</td>
-                      </tr>
-                    ))}
+                    {detail.movements.filter((m) => m.effect_size !== null).slice(0, 20).map((m) => {
+                      const good = changeIsGood(m.feature, m.delta);
+                      return (
+                        <tr key={m.feature} className="border-t border-gray-50">
+                          <td className="py-1 pr-4 text-gray-800">{m.feature}</td>
+                          <td className="py-1 pr-4 text-gray-600">{m.baseline_mean ?? "-"}</td>
+                          <td className="py-1 pr-4 text-gray-600">{m.latest_mean ?? "-"}</td>
+                          <td className={`py-1 pr-4 ${deltaTone(m.feature, m.delta)}`}>{m.delta != null ? `${m.delta > 0 ? "+" : ""}${m.delta}` : "-"}</td>
+                          <td className="py-1 pr-4 text-gray-600">{m.pct_change !== null ? `${m.pct_change}%` : "-"}</td>
+                          <td className="py-1 pr-4 font-medium text-gray-800">{m.effect_size ?? "-"}</td>
+                          <td className={`py-1 pr-4 text-xs ${deltaTone(m.feature, m.delta)}`}>{good === null ? "—" : good ? "improved" : "worsened"}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

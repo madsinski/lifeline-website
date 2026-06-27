@@ -15,6 +15,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdminAAL2 } from "@/lib/auth-helpers";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
+import { featureDirection, changeIsGood } from "@/lib/research/clinical";
 
 export const maxDuration = 120;
 
@@ -34,7 +35,7 @@ const schema = z.object({
 
 const SYSTEM = `You are a careful health-research data analyst for Lifeline Health, an Icelandic preventive-health company.
 You are given ONLY aggregate, de-identified statistics for a longitudinal cohort (means, medians, SD, baseline->latest deltas, standardized effect sizes, missingness, demographics). You never see individual patient records.
-Interpret the trends conservatively and honestly. A standardized effect size (|d|) below ~0.2 is trivial, 0.2-0.5 small, 0.5-0.8 moderate, >0.8 large. Always weight conclusions by n and missingness — many instruments are conditional screeners (BEDS-7, AUDIT, CUDQ, CIUS) so high missingness is by-design, not data loss. Flag multiple-comparison risk when many features are scanned. Do not invent clinical claims beyond what the numbers support. Be specific and use the feature names given.`;
+Each movement carries a "better_when" field (higher/lower/n/a) and an "improved" boolean — USE THESE for direction; do not infer good/bad from the sign of the delta (a lower HbA1c, BP, or PHQ-9 is an improvement; a higher HDL or wellness score is an improvement). Interpret the trends conservatively and honestly. A standardized effect size (|d|) below ~0.2 is trivial, 0.2-0.5 small, 0.5-0.8 moderate, >0.8 large. Always weight conclusions by n and missingness — many instruments are conditional screeners (BEDS-7, AUDIT, CUDQ, CIUS) so high missingness is by-design, not data loss. Flag multiple-comparison risk when many features are scanned. Do not invent clinical claims beyond what the numbers support. Be specific and use the feature names given.`;
 
 export async function POST(req: NextRequest) {
   const auth = await requireAdminAAL2(req);
@@ -73,8 +74,14 @@ export async function POST(req: NextRequest) {
     n_patients: (patients || []).length,
     genders, groups,
     timepoints: [...new Set(trends.map((t) => t.timepoint_label))],
-    // only timepoints with >=2 points produce a movement; cap the list for the prompt
-    movements: movements.slice(0, 40),
+    // only timepoints with >=2 points produce a movement; cap the list for the prompt.
+    // direction/improved are pre-computed so the model never misreads a drop
+    // (e.g. lower HbA1c/BP/PHQ-9 is GOOD; higher HDL/sleep is GOOD).
+    movements: movements.slice(0, 40).map((m) => {
+      const dir = featureDirection(m.feature);
+      const good = changeIsGood(m.feature, m.delta);
+      return { ...m, better_when: dir === "up" ? "higher" : dir === "down" ? "lower" : "n/a", improved: good };
+    }),
   };
 
   let parsed: z.infer<typeof schema>;
