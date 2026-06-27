@@ -125,9 +125,19 @@ export default function ResearchPage() {
   }
 
   async function deleteCohort(id: string) {
-    if (!confirm("Delete this cohort and all its exports?")) return;
+    if (!confirm("Delete this cohort and ALL its timepoints?")) return;
     const res = await authedFetch(`/api/admin/research/cohorts?id=${id}`, { method: "DELETE" });
     if (res.ok) { setDetail(null); setSelectedId(null); await loadCohorts(); }
+  }
+
+  async function deleteTimepoint(exportId: string, label: string) {
+    if (!confirm(`Delete the "${label}" timepoint? This removes that upload only; other timepoints stay.`)) return;
+    const res = await authedFetch(`/api/admin/research/timepoint?id=${exportId}`, { method: "DELETE" });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { setMsg(j.detail || j.error || "Delete failed"); return; }
+    setMsg(`Deleted timepoint "${label}".`);
+    await loadCohorts();
+    if (selectedId) await loadDetail(selectedId);
   }
 
   async function downloadFile(sheet: string) {
@@ -221,7 +231,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} />}
     </div>
   );
 }
@@ -235,8 +245,9 @@ function flagTone(pct: number) {
 
 type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "data";
 
-function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload }: {
+function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint }: {
   detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
+  onDeleteTimepoint: (exportId: string, label: string) => void;
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const d = detail.demographics;
@@ -266,8 +277,11 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload }: {
           </p>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {detail.exports.map((e) => (
-              <span key={e.timepoint_label} className="text-[11px] rounded-full bg-gray-100 text-gray-600 px-2 py-0.5">
+              <span key={e.timepoint_label} className="group inline-flex items-center gap-1 text-[11px] rounded-full bg-gray-100 text-gray-600 pl-2 pr-1 py-0.5">
                 {e.timepoint_label} · {e.patient_count}p · {e.export_type === "no_bloods" ? "no bloods" : "full"}
+                <button onClick={() => onDeleteTimepoint(e.id, e.timepoint_label)}
+                  title={`Delete ${e.timepoint_label} timepoint`}
+                  className="ml-0.5 w-4 h-4 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 leading-none">×</button>
               </span>
             ))}
           </div>
@@ -355,7 +369,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload }: {
           <div className="space-y-3">
             {!multiTimepoint && (
               <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3">
-                Only a baseline timepoint so far. Upload the next export (3mo / 6mo …) to unlock trend movement and effect sizes.
+                Only a baseline timepoint so far. Upload a follow-up dataset (3mo / 6mo …) to unlock trend movement and effect sizes.
               </div>
             )}
             <div className="text-xs font-medium text-gray-500">Top movers (baseline → latest, ranked by effect size)</div>
