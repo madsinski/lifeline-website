@@ -9,35 +9,101 @@
 // update the relevant <Step>/<Phase> below so this stays the source of
 // truth for QA. Keep it scannable: short imperatives, one action per step.
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, createContext, useContext } from "react";
 import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "business_testing_guide_progress_v1";
 
-// Phase tags the tester can attach a note to. Keep the labels in sync with
-// the <Phase> titles below — they're shown verbatim in the admin review tab.
-const FEEDBACK_PHASES = [
-  "General / overall",
-  "1 · Create a company account",
-  "2 · Accept terms + create company",
-  "3 · Welcome screen",
-  "4 · Staff creates draft + claim link",
-  "5 · Contact claims the company",
-  "6 · Build the employee roster",
-  "7 · Schedule the services",
-  "8 · Invite a co-admin",
-  "9 · Sign the service agreement",
-  "10 · Send invites + onboard employee",
-  "11 · Admin oversight",
-];
-
 interface FeedbackRow {
   id: string;
   created_at: string;
+  step_key?: string | null;
   step_label: string | null;
   body: string;
   status: string;
   admin_note?: string | null;
+}
+
+// Shared feedback state so the per-section boxes can submit and show the
+// tester's own notes for that section without each making its own request.
+// step_key is `phase-<n>`; step_label is the section title (shown to admins).
+const FeedbackCtx = createContext<{
+  notes: FeedbackRow[];
+  submit: (key: string, label: string, body: string) => Promise<boolean>;
+} | null>(null);
+
+function PhaseFeedback({ fbKey, fbLabel }: { fbKey: string; fbLabel: string }) {
+  const ctx = useContext(FeedbackCtx);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [justSent, setJustSent] = useState(false);
+
+  if (!ctx) return null;
+  const mine = ctx.notes.filter((n) => (n.step_key ?? "") === fbKey);
+
+  const onSubmit = async () => {
+    const text = body.trim();
+    if (!text || busy) return;
+    setBusy(true); setErr(null);
+    const ok = await ctx.submit(fbKey, fbLabel, text);
+    if (ok) { setBody(""); setJustSent(true); window.setTimeout(() => setJustSent(false), 2500); }
+    else setErr("Could not submit — try again.");
+    setBusy(false);
+  };
+
+  const fmtDate = (iso: string) => {
+    try { return new Date(iso).toLocaleString("is-IS", { dateStyle: "short", timeStyle: "short" }); }
+    catch { return iso; }
+  };
+
+  return (
+    <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+        Feedback on this section
+      </p>
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="Bug, confusing copy, or a mismatch with the steps? Note the route + expected vs. actual."
+        rows={2}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-y bg-white"
+      />
+      <div className="mt-1.5 flex items-center justify-between gap-3">
+        <span className="text-[11px] text-red-600">
+          {err}
+          {justSent && <span className="text-emerald-600">Sent — thanks!</span>}
+        </span>
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={busy || !body.trim()}
+          className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+        >
+          {busy ? "Sending…" : "Submit"}
+        </button>
+      </div>
+
+      {mine.length > 0 && (
+        <ul className="mt-2 space-y-1.5 border-t border-gray-200 pt-2">
+          {mine.map((f) => (
+            <li key={f.id} className="rounded-md bg-white border border-gray-100 px-2.5 py-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-gray-400">{fmtDate(f.created_at)}</span>
+                <Pill tone={f.status === "resolved" ? "emerald" : "amber"}>{f.status}</Pill>
+              </div>
+              <p className="text-[12px] text-gray-700 whitespace-pre-wrap">{f.body}</p>
+              {f.admin_note && (
+                <p className="mt-1 text-[11px] text-emerald-800 bg-emerald-50 rounded px-2 py-1">
+                  <strong>Admin reply:</strong> {f.admin_note}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function useChecklist() {
@@ -145,6 +211,65 @@ function CopyBlock({ text }: { text: string }) {
   );
 }
 
+// Dummy kennitölur for the signup fields. All checksum-valid (pass
+// src/lib/kennitala.ts) but fictional. Lives in the signup phase where the
+// company + contact-person kennitala are first entered.
+function KennitalaCard() {
+  return (
+    <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+      <p className="text-[12px] font-semibold text-gray-700 mb-2">
+        Test kennitölur — all checksum-valid but fictional
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Personal (contact)</span>
+            <CopyButton text={PERSONAL_KT.join("\n")} label="Copy all" />
+          </div>
+          <ul className="space-y-1">
+            {PERSONAL_KT.map((kt) => (
+              <li key={kt} className="flex items-center justify-between gap-2">
+                <code className="font-mono text-[13px] text-gray-700">{kt}</code>
+                <CopyButton text={kt} />
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Company</span>
+            <CopyButton text={COMPANY_KT.join("\n")} label="Copy all" />
+          </div>
+          <ul className="space-y-1">
+            {COMPANY_KT.map((kt) => (
+              <li key={kt} className="flex items-center justify-between gap-2">
+                <code className="font-mono text-[13px] text-gray-700">{kt}</code>
+                <CopyButton text={kt} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Ready-to-paste roster for the bulk upload. Lives in the roster phase.
+function RosterCsvCard() {
+  return (
+    <div className="mt-3">
+      <p className="text-[12px] font-semibold text-gray-700 mb-1">Roster CSV — ready for bulk upload</p>
+      <p className="text-[12px] text-gray-500 mb-2">
+        Paste into the roster bulk-upload (or save as a <code className="font-mono text-[11px]">.csv</code>). Five employees, each with a
+        valid personal kennitala. Emails use <code className="font-mono text-[11px]">contact+x@lifelinehealth.is</code>, so every invite lands in
+        the <code className="font-mono text-[11px]">contact@lifelinehealth.is</code> inbox via the <code className="font-mono text-[11px]">+alias</code> trick —
+        make sure you can read that mailbox before sending invites.
+      </p>
+      <CopyBlock text={ROSTER_CSV} />
+    </div>
+  );
+}
+
 interface StepProps {
   id: string;
   done: Record<string, boolean>;
@@ -185,9 +310,11 @@ interface PhaseProps {
   subtitle?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  // Per-section feedback box. On by default; pass false to omit.
+  feedback?: boolean;
 }
 
-function Phase({ n, title, subtitle, children, defaultOpen = false }: PhaseProps) {
+function Phase({ n, title, subtitle, children, defaultOpen = false, feedback = true }: PhaseProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -210,7 +337,12 @@ function Phase({ n, title, subtitle, children, defaultOpen = false }: PhaseProps
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {open && <div className="border-t border-gray-100 px-4 py-3 sm:px-5">{children}</div>}
+      {open && (
+        <div className="border-t border-gray-100 px-4 py-3 sm:px-5">
+          {children}
+          {feedback && <PhaseFeedback fbKey={`phase-${n}`} fbLabel={`${n} · ${title}`} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -229,18 +361,12 @@ function Callout({ tone, title, children }: { tone: "amber" | "blue" | "emerald"
   );
 }
 
-// Tester feedback composer + the submitter's own running list of notes.
-// Posts to /api/admin/business/test-feedback; any active staff may submit,
-// and GET (for non-admins) returns only their own rows — so this list is
-// each tester's personal history, while Mads sees everything in the
-// admin "Test feedback" tab.
-function FeedbackComposer() {
-  const [phase, setPhase] = useState(FEEDBACK_PHASES[0]);
-  const [body, setBody] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [mine, setMine] = useState<FeedbackRow[]>([]);
-  const [loaded, setLoaded] = useState(false);
+// Shared feedback state for the per-section boxes. One GET on mount loads
+// the tester's own notes (POST any active staff; GET returns only-own for
+// non-admins — see the API route); submit posts then refreshes. Mads sees
+// every tester's notes in the admin "Test feedback" tab.
+function useFeedback() {
+  const [notes, setNotes] = useState<FeedbackRow[]>([]);
 
   const authHeaders = useCallback(async (): Promise<Record<string, string>> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -249,120 +375,46 @@ function FeedbackComposer() {
       : { "Content-Type": "application/json" };
   }, []);
 
-  const loadMine = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
       const headers = await authHeaders();
       const res = await fetch("/api/admin/business/test-feedback", { headers });
       const j = await res.json().catch(() => ({}));
-      if (res.ok && Array.isArray(j.feedback)) setMine(j.feedback);
-    } catch { /* best effort */ } finally { setLoaded(true); }
+      if (res.ok && Array.isArray(j.feedback)) setNotes(j.feedback);
+    } catch { /* best effort */ }
   }, [authHeaders]);
 
-  useEffect(() => { loadMine(); }, [loadMine]);
+  // Deferred a tick so the fetch kickoff isn't a synchronous effect body
+  // (set-state-in-effect lint rule); load() sets state only after its await.
+  useEffect(() => { queueMicrotask(() => { load(); }); }, [load]);
 
-  const submit = async () => {
-    const text = body.trim();
-    if (!text || busy) return;
-    setBusy(true);
-    setError(null);
+  const submit = useCallback(async (key: string, label: string, body: string): Promise<boolean> => {
     try {
       const headers = await authHeaders();
       const res = await fetch("/api/admin/business/test-feedback", {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          body: text,
-          step_label: phase === FEEDBACK_PHASES[0] ? null : phase,
-          step_key: phase === FEEDBACK_PHASES[0] ? null : phase.split(" ")[0],
-        }),
+        body: JSON.stringify({ body, step_key: key, step_label: label }),
       });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(j.error || "Could not submit — try again."); return; }
-      setBody("");
-      setPhase(FEEDBACK_PHASES[0]);
-      loadMine();
-    } catch {
-      setError("Network error — try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
+      if (!res.ok) return false;
+      await load();
+      return true;
+    } catch { return false; }
+  }, [authHeaders, load]);
 
-  const fmtDate = (iso: string) => {
-    try { return new Date(iso).toLocaleString("is-IS", { dateStyle: "short", timeStyle: "short" }); }
-    catch { return iso; }
-  };
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 mt-6">
-      <h3 className="text-sm font-bold text-gray-900 mb-1">Tester feedback</h3>
-      <p className="text-[12px] text-gray-500 mb-3">
-        Hit a bug, confusing copy, or something that didn&apos;t match the steps? Leave a note — it goes straight to the
-        admin review tab. Optionally tag which phase it&apos;s about.
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-        <select
-          value={phase}
-          onChange={(e) => setPhase(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-[13px] text-gray-700 sm:w-56 flex-shrink-0 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-        >
-          {FEEDBACK_PHASES.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="What happened? Include the route and what you expected vs. saw."
-          rows={3}
-          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-y"
-        />
-      </div>
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="text-[11px] text-red-600">{error}</span>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={busy || !body.trim()}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-        >
-          {busy ? "Sending…" : "Submit feedback"}
-        </button>
-      </div>
-
-      {loaded && mine.length > 0 && (
-        <div className="mt-4 border-t border-gray-100 pt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Your notes ({mine.length})</p>
-          <ul className="space-y-2">
-            {mine.map((f) => (
-              <li key={f.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <span className="text-[11px] font-medium text-gray-500">
-                    {f.step_label || "General"} · {fmtDate(f.created_at)}
-                  </span>
-                  <Pill tone={f.status === "resolved" ? "emerald" : "amber"}>{f.status}</Pill>
-                </div>
-                <p className="text-[13px] text-gray-700 whitespace-pre-wrap">{f.body}</p>
-                {f.admin_note && (
-                  <p className="mt-1 text-[12px] text-emerald-800 bg-emerald-50 rounded px-2 py-1">
-                    <strong>Admin reply:</strong> {f.admin_note}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
+  return { notes, submit };
 }
 
 export default function TestingGuide() {
   const { done, toggle, reset } = useChecklist();
+  const feedback = useFeedback();
 
   const total = Object.keys(STEP_IDS).length;
   const completed = STEP_IDS_LIST.filter((id) => done[id]).length;
   const pct = total ? Math.round((completed / total) * 100) : 0;
 
   return (
+    <FeedbackCtx.Provider value={feedback}>
     <div className="max-w-3xl pb-12">
       {/* Header card */}
       <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 text-white mb-5">
@@ -387,80 +439,6 @@ export default function TestingGuide() {
         </div>
       </div>
 
-      {/* Test data */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5">
-        <h3 className="text-sm font-bold text-gray-900 mb-1">Test data — dummy kennitölur</h3>
-        <p className="text-[12px] text-gray-500 mb-3">
-          All checksum-valid (they pass the app&apos;s validator) but fictional. Personal numbers go on the contact person + employees;
-          company numbers go in the company-kennitala field at signup.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Personal</span>
-              <CopyButton text={PERSONAL_KT.join("\n")} label="Copy all" />
-            </div>
-            <ul className="space-y-1">
-              {PERSONAL_KT.map((kt) => (
-                <li key={kt} className="flex items-center justify-between gap-2">
-                  <code className="font-mono text-[13px] text-gray-700">{kt}</code>
-                  <CopyButton text={kt} />
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Company</span>
-              <CopyButton text={COMPANY_KT.join("\n")} label="Copy all" />
-            </div>
-            <ul className="space-y-1">
-              {COMPANY_KT.map((kt) => (
-                <li key={kt} className="flex items-center justify-between gap-2">
-                  <code className="font-mono text-[13px] text-gray-700">{kt}</code>
-                  <CopyButton text={kt} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <h4 className="text-[13px] font-bold text-gray-900 mt-4 mb-1.5">Roster CSV — ready for bulk upload</h4>
-        <p className="text-[12px] text-gray-500 mb-2">
-          Copy this into the roster bulk-upload (or save as a <code className="font-mono text-[11px]">.csv</code>). Five employees, each with a
-          valid personal kennitala. Emails use <code className="font-mono text-[11px]">contact+x@lifelinehealth.is</code>, so every invite lands in
-          the <code className="font-mono text-[11px]">contact@lifelinehealth.is</code> inbox via the <code className="font-mono text-[11px]">+alias</code> trick —
-          make sure you can read that mailbox before sending invites.
-        </p>
-        <CopyBlock text={ROSTER_CSV} />
-      </div>
-
-      {/* Before you start */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-5 space-y-3">
-        <h3 className="text-sm font-bold text-gray-900">Before you start</h3>
-        <ul className="space-y-1.5 text-[13px] text-gray-600 leading-relaxed list-disc pl-4">
-          <li>
-            Use a <strong>real inbox you control</strong> (e.g. a <code className="font-mono text-[12px]">+test</code> Gmail alias) — signup
-            and invites send confirmation emails you must click.
-          </li>
-          <li>
-            Test in an <strong>incognito window</strong> so your admin session doesn&apos;t collide with the company-admin
-            and employee sessions. The flow warns you if you&apos;re signed in as the wrong user, but separate windows are cleaner.
-          </li>
-          <li>
-            You&apos;ll need <strong>valid Icelandic kennitölur</strong> (they&apos;re checksum-validated). Use a kennitala generator
-            or known test numbers — a random 10 digits will be rejected.
-          </li>
-          <li>
-            There are <strong>two ways a company starts</strong>: it signs up itself (Path A), or Lifeline staff pre-creates it and
-            sends a claim link (Path B). Test both.
-          </li>
-          <li>
-            Clean up after a run from <Route to="/admin/companies">/admin/companies</Route> (archive the test company) so the dashboard stays readable.
-          </li>
-        </ul>
-      </div>
-
       {/* The two entry paths */}
       <h3 className="text-sm font-bold text-gray-900 mb-2 mt-6">Path A — Company signs itself up</h3>
       <div className="space-y-2.5">
@@ -468,7 +446,11 @@ export default function TestingGuide() {
           <p className="text-[13px] text-gray-500 mb-2">
             Start at <Route to="/business/login?mode=signup">/business/login?mode=signup</Route> &nbsp;<Pill tone="gray">public</Pill>
           </p>
-          <div className="divide-y divide-gray-100">
+          <Callout tone="amber" title="Use an incognito window">
+            Test in an incognito window so your admin session doesn&apos;t collide with the company-admin and employee sessions. The flow warns
+            you if you&apos;re signed in as the wrong user, but separate windows are cleaner.
+          </Callout>
+          <div className="divide-y divide-gray-100 mt-2">
             <Step id="a1-signup" done={done} toggle={toggle}>
               On the <strong>Create account</strong> tab, enter full name, email, password (+ confirm) and submit.
             </Step>
@@ -499,6 +481,7 @@ export default function TestingGuide() {
               Submit → confirm you land on <Route>/business/&#123;companyId&#125;/welcome</Route>.
             </Step>
           </div>
+          <KennitalaCard />
         </Phase>
 
         <Phase n={3} title="Welcome screen" subtitle="First-run landing">
@@ -552,7 +535,7 @@ export default function TestingGuide() {
         <Phase n={6} title="Build the employee roster" subtitle="Dashboard → Roster">
           <div className="divide-y divide-gray-100">
             <Step id="c6-bulk" done={done} toggle={toggle}>
-              <strong>Bulk upload:</strong> upload a CSV (columns: full_name, email, optional phone / kennitala_last4). Confirm members appear with status <Pill tone="amber">Invited</Pill>.
+              <strong>Bulk upload:</strong> paste the CSV below (columns: <code className="font-mono text-[12px]">name, kennitala, email, phone</code>). Confirm members appear with status <Pill tone="amber">Invited</Pill>.
             </Step>
             <Step id="c6-single" done={done} toggle={toggle}>
               <strong>Add one manually</strong> and confirm it joins the roster.
@@ -564,6 +547,7 @@ export default function TestingGuide() {
               <strong>Gate check:</strong> before signing the agreement, try to send invites — confirm it&apos;s blocked (invites require a signed agreement).
             </Step>
           </div>
+          <RosterCsvCard />
         </Phase>
 
         <Phase n={7} title="Schedule the services" subtitle="Body comp · blood tests · doctor interviews · lectures">
@@ -669,6 +653,9 @@ export default function TestingGuide() {
             <Step id="d11-accounting" done={done} toggle={toggle}>
               <strong>Accounting tab:</strong> confirm the company shows in the P&amp;L rollup. The overview strip at the top should reflect this month&apos;s net + outstanding + pending approvals.
             </Step>
+            <Step id="d11-cleanup" done={done} toggle={toggle}>
+              <strong>Clean up:</strong> archive the test company from <Route to="/admin/companies">/admin/companies</Route> so the dashboard stays readable.
+            </Step>
           </div>
         </Phase>
       </div>
@@ -689,18 +676,17 @@ export default function TestingGuide() {
           That&apos;s intended — don&apos;t file it as a bug.
         </Callout>
         <Callout tone="emerald" title="How to report what you find">
-          Note the exact route, what you did, what you expected, and what happened (a screenshot helps). Send it to Mads
-          / drop it in the team channel. Include whether you were on Path A (self-signup) or Path B (claim link).
+          Use the <strong>Feedback on this section</strong> box at the bottom of whichever section it relates to — it goes straight to the
+          admin review tab. Note the exact route, expected vs. actual, and whether you were on Path A (self-signup) or Path B (claim link).
         </Callout>
       </div>
-
-      <FeedbackComposer />
 
       <p className="mt-6 text-xs text-gray-400">
         Found a step that no longer matches the app? This guide lives at
         {" "}<code className="font-mono">src/app/admin/business/TestingGuide.tsx</code> — flag it so we keep it accurate.
       </p>
     </div>
+    </FeedbackCtx.Provider>
   );
 }
 
@@ -718,7 +704,7 @@ const STEP_IDS = {
   "c8-invite": 1, "c8-setup": 1, "c8-switcher": 1,
   "c9-config": 1, "c9-addons": 1, "c9-discount": 1, "c9-vat": 1, "c9-docs": 1, "c9-sign": 1,
   "c10-send": 1, "c10-verify": 1, "c10-consent": 1, "c10-profile": 1, "c10-account": 1, "c10-roster": 1,
-  "d11-companies": 1, "d11-approvals": 1, "d11-pricing": 1, "d11-payments": 1, "d11-accounting": 1,
+  "d11-companies": 1, "d11-approvals": 1, "d11-pricing": 1, "d11-payments": 1, "d11-accounting": 1, "d11-cleanup": 1,
 } as const;
 
 const STEP_IDS_LIST = Object.keys(STEP_IDS);
