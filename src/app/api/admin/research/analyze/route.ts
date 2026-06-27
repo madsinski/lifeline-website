@@ -13,7 +13,7 @@ import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { requireAdminAAL2 } from "@/lib/auth-helpers";
+import { requireResearchWrite } from "@/lib/research/access";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
 import { featureDirection, changeIsGood } from "@/lib/research/clinical";
 
@@ -38,7 +38,7 @@ You are given ONLY aggregate, de-identified statistics for a longitudinal cohort
 Each movement carries a "better_when" field (higher/lower/n/a) and an "improved" boolean — USE THESE for direction; do not infer good/bad from the sign of the delta (a lower HbA1c, BP, or PHQ-9 is an improvement; a higher HDL or wellness score is an improvement). Interpret the trends conservatively and honestly. A standardized effect size (|d|) below ~0.2 is trivial, 0.2-0.5 small, 0.5-0.8 moderate, >0.8 large. Always weight conclusions by n and missingness — many instruments are conditional screeners (BEDS-7, AUDIT, CUDQ, CIUS) so high missingness is by-design, not data loss. Flag multiple-comparison risk when many features are scanned. Do not invent clinical claims beyond what the numbers support. Be specific and use the feature names given.`;
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminAAL2(req);
+  const auth = await requireResearchWrite(req);
   if (typeof auth === "string") {
     return NextResponse.json({ error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }

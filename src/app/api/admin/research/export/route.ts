@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireResearchRead } from "@/lib/research/access";
 import { buildResearchWorkbook, type WbObservation, type WbAnswer } from "@/lib/research/workbook";
 
 export const maxDuration = 120;
@@ -33,8 +33,8 @@ async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ dat
 }
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
+  const user = await requireResearchRead(req);
+  if (!user) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const cohortId = req.nextUrl.searchParams.get("cohortId");

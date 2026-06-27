@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireResearchRead } from "@/lib/research/access";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
 import { featureDomain, FLAGS, flagCrosses } from "@/lib/research/clinical";
 import { pairedTTest, benjaminiHochberg } from "@/lib/research/stats";
@@ -23,8 +23,8 @@ async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ dat
 }
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
+  const user = await requireResearchRead(req);
+  if (!user) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const id = req.nextUrl.searchParams.get("id");

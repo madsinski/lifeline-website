@@ -2,14 +2,14 @@
 // POST   /api/admin/research/cohorts — create a cohort
 // DELETE /api/admin/research/cohorts?id=… — delete a cohort (cascades exports/obs/answers)
 //
-// Research data excludes lawyer / medical_advisor, so reads gate on isStaff
-// (write-authorized staff) rather than isAnyActiveStaff.
+// medical_advisor has full research access; lawyer is excluded. Reads gate on
+// requireResearchRead, writes on requireResearchWrite (see lib/research/access).
 //
 // Tables: supabase/migration-research-data-schema.sql
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff, requireAdminAAL2 } from "@/lib/auth-helpers";
+import { requireResearchRead, requireResearchWrite } from "@/lib/research/access";
 
 function slugify(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -17,8 +17,8 @@ function slugify(s: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
+  const user = await requireResearchRead(req);
+  if (!user) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const { data: cohorts, error } = await supabaseAdmin
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminAAL2(req);
+  const auth = await requireResearchWrite(req);
   if (typeof auth === "string") {
     return NextResponse.json({ error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const auth = await requireAdminAAL2(req);
+  const auth = await requireResearchWrite(req);
   if (typeof auth === "string") {
     return NextResponse.json({ error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }

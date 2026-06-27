@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { requireAdminAAL2 } from "@/lib/auth-helpers";
+import { requireResearchWrite } from "@/lib/research/access";
 import { parseMedaliaExport, type MedaliaExport } from "@/lib/research/parse";
 import { recomputeCohortTrends } from "@/lib/research/recompute";
 
@@ -39,7 +39,7 @@ async function chunkInsert(table: string, rows: Record<string, unknown>[], size 
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminAAL2(req);
+  const auth = await requireResearchWrite(req);
   if (typeof auth === "string") {
     return NextResponse.json({ error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }

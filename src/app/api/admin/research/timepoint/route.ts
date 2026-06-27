@@ -7,11 +7,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { requireAdminAAL2 } from "@/lib/auth-helpers";
+import { requireResearchWrite } from "@/lib/research/access";
 import { recomputeCohortTrends } from "@/lib/research/recompute";
 
 export async function DELETE(req: NextRequest) {
-  const auth = await requireAdminAAL2(req);
+  const auth = await requireResearchWrite(req);
   if (typeof auth === "string") {
     return NextResponse.json({ error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }

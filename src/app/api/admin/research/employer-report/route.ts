@@ -1,12 +1,12 @@
 // GET /api/admin/research/employer-report?cohortId=…  → layman, aggregate-only
-// HTML summary for the cohort's employer. Needs 2+ timepoints. Gated on isStaff
-// (staff generate it, then share with the employer).
+// HTML summary for the cohort's employer. Needs 2+ timepoints. Read-gated
+// (staff + medical_advisor generate it, then share with the employer).
 //
 // Tables: supabase/migration-research-data-schema.sql
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireResearchRead } from "@/lib/research/access";
 import { featureDirection, changeIsGood, canonicalUnit, FLAGS, flagCrosses } from "@/lib/research/clinical";
 import { buildEmployerReport, type MetricChange, type RiskChange } from "@/lib/research/employer-report";
 
@@ -26,8 +26,8 @@ const pctChange = (b: number | null, l: number | null) =>
   b === null || l === null || b === 0 ? null : Math.round(((l - b) / Math.abs(b)) * 1000) / 10;
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireResearchRead(req);
+  if (!user) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const id = req.nextUrl.searchParams.get("cohortId");
   if (!id) return NextResponse.json({ error: "bad_request", detail: "cohortId required" }, { status: 400 });
 
