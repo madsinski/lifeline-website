@@ -126,7 +126,7 @@ export default function ResearchPage() {
     if (res.ok) { setDetail(null); setSelectedId(null); await loadCohorts(); }
   }
 
-  async function downloadCsv(sheet: string) {
+  async function downloadFile(sheet: string) {
     if (!selectedId) return;
     setMsg(null);
     const res = await authedFetch(`/api/admin/research/export?cohortId=${selectedId}&sheet=${sheet}`);
@@ -138,8 +138,9 @@ export default function ResearchPage() {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+    const ext = sheet === "excel" ? "xlsx" : "csv";
     a.href = url;
-    a.download = `${detail?.cohort.name || "cohort"}_${sheet}.csv`;
+    a.download = `${detail?.cohort.name || "cohort"}_${sheet === "excel" ? "research" : sheet}.${ext}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -216,7 +217,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadCsv} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} />}
     </div>
   );
 }
@@ -234,8 +235,8 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload }: {
           {detail.cohort.pathway && <p className="text-sm text-gray-500">{detail.cohort.pathway}</p>}
         </div>
         <div className="flex gap-2">
+          <button onClick={() => onDownload("excel")} className="text-xs rounded-lg bg-emerald-600 text-white px-3 py-1.5 font-medium hover:bg-emerald-700">Download Excel (.xlsx)</button>
           <button onClick={() => onDownload("long")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV long</button>
-          <button onClick={() => onDownload("wide")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV wide</button>
           <button onClick={() => onDownload("answers")} className="text-xs rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">CSV answers</button>
           <button onClick={onDelete} className="text-xs rounded-lg border border-red-200 text-red-600 px-3 py-1.5 hover:bg-red-50">Delete</button>
         </div>

@@ -16,6 +16,7 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.101.0",
     "ai": "^6.0.175",
+    "exceljs": "^4.4.0",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",

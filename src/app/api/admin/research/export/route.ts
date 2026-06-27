@@ -9,6 +9,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { buildResearchWorkbook, type WbObservation, type WbAnswer } from "@/lib/research/workbook";
+
+export const maxDuration = 120;
 
 const csvCell = (v: unknown): string => {
   if (v === null || v === undefined) return "";
@@ -40,8 +43,27 @@ export async function GET(req: NextRequest) {
   if (!cohortId) return NextResponse.json({ error: "bad_request", detail: "cohortId required" }, { status: 400 });
 
   const { data: cohort } = await supabaseAdmin
-    .from("research_cohorts").select("slug").eq("id", cohortId).single();
+    .from("research_cohorts").select("slug, name").eq("id", cohortId).single();
   const slug = cohort?.slug || "cohort";
+
+  // ---- full multi-sheet Excel workbook (default) ----
+  if (sheet === "excel" || sheet === "xlsx") {
+    const observations = await pageAll<WbObservation>((from, to) =>
+      supabaseAdmin.from("research_observations")
+        .select("medalia_patient_id, timepoint_label, timepoint_order, obs_type, code, feature, display, observed_at, value_num, value_text, value_bool, unit")
+        .eq("cohort_id", cohortId).range(from, to));
+    const ans = await pageAll<WbAnswer>((from, to) =>
+      supabaseAdmin.from("research_answers")
+        .select("medalia_patient_id, questionnaire_title, authored_at, link_id, question_text, value_text")
+        .eq("cohort_id", cohortId).range(from, to));
+    const buf = await buildResearchWorkbook(cohort?.name || slug, observations, ans);
+    return new NextResponse(new Uint8Array(buf), {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${slug}_research.xlsx"`,
+      },
+    });
+  }
 
   let csv: string;
   let name: string;
