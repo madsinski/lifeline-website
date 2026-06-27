@@ -32,8 +32,10 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "bad_request", detail: "cohortId required" }, { status: 400 });
 
   const { data: cohort } = await supabaseAdmin
-    .from("research_cohorts").select("name, slug, pathway").eq("id", id).single();
+    .from("research_cohorts").select("name, slug, pathway, excluded_patients, excluded_features").eq("id", id).single();
   if (!cohort) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const exPatients = new Set<string>((cohort.excluded_patients as string[] | null) ?? []);
+  const exFeatures = new Set<string>((cohort.excluded_features as string[] | null) ?? []);
 
   const { data: exports } = await supabaseAdmin
     .from("research_exports").select("timepoint_label, timepoint_order, exported_at, patient_count")
@@ -102,6 +104,7 @@ export async function GET(req: NextRequest) {
   );
   const valsTp = new Map<number, Map<string, Record<string, number | boolean | null>>>();
   for (const o of flagObs) {
+    if (exPatients.has(o.medalia_patient_id)) continue;
     if (!valsTp.has(o.timepoint_order)) valsTp.set(o.timepoint_order, new Map());
     const pm = valsTp.get(o.timepoint_order)!;
     if (!pm.has(o.medalia_patient_id)) pm.set(o.medalia_patient_id, {});
@@ -123,10 +126,12 @@ export async function GET(req: NextRequest) {
     { key: "gad7_mod", label: "Anxiety (screen)" },
     { key: "nicotine", label: "Nicotine use" },
   ];
-  const risks: RiskChange[] = RISK.map(({ key, label }) => {
-    const b = prevalence(key, minOrder), l = prevalence(key, latestOrder);
-    return { label, baselinePct: b, latestPct: l, deltaPp: b === null || l === null ? null : l - b, improved: b === null || l === null ? null : l < b ? true : l > b ? false : null };
-  }).filter((r) => r.baselinePct !== null && r.latestPct !== null);
+  const risks: RiskChange[] = RISK
+    .filter(({ key }) => { const def = FLAGS.find((f) => f.key === key); return def && !exFeatures.has(def.feature); })
+    .map(({ key, label }) => {
+      const b = prevalence(key, minOrder), l = prevalence(key, latestOrder);
+      return { label, baselinePct: b, latestPct: l, deltaPp: b === null || l === null ? null : l - b, improved: b === null || l === null ? null : l < b ? true : l > b ? false : null };
+    }).filter((r) => r.baselinePct !== null && r.latestPct !== null);
 
   const all = [...foundations, ...outcomes];
   const measuresImproved = all.filter((m) => m.improved === true).length;
@@ -139,7 +144,7 @@ export async function GET(req: NextRequest) {
     latestLabel: lastExp.timepoint_label,
     baselineDate: baseExp.exported_at ? String(baseExp.exported_at).slice(0, 10) : null,
     latestDate: lastExp.exported_at ? String(lastExp.exported_at).slice(0, 10) : null,
-    participants: lastExp.patient_count,
+    participants: Math.max(0, lastExp.patient_count - exPatients.size),
     timepoints: orders.length,
     measuresImproved, measuresTotal,
     foundations, outcomes, risks,

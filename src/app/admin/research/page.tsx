@@ -34,8 +34,15 @@ interface FeatureDetail {
   feature: string; unit: string | null; timepoints: string[];
   rows: { patient: string; gender: string | null; values: Record<string, number | string | boolean | null> }[];
 }
+interface DataQuality {
+  excludedPatients: string[];
+  excludedFeatures: string[];
+  patients: { patient: string; gender: string | null; present: number; total: number; completenessPct: number; excluded: boolean; suggested: boolean }[];
+  features: { feature: string; present: number; total: number; missingPct: number; excluded: boolean; suggested: boolean }[];
+}
 interface CohortDetail {
   cohort: { id: string; name: string; pathway: string | null };
+  dataQuality?: DataQuality;
   exports: { id: string; timepoint_label: string; export_type: string; exported_at: string | null; patient_count: number; observation_count: number; answer_count: number }[];
   demographics: { n: number; genders: Record<string, number>; groups: Record<string, number>; age: { min: number; median: number; max: number } | null };
   series: Series[];
@@ -175,6 +182,19 @@ export default function ResearchPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function saveExclusions(excludedPatients: string[], excludedFeatures: string[]) {
+    if (!selectedId) return;
+    setMsg(null);
+    const res = await authedFetch("/api/admin/research/exclusions", {
+      method: "POST",
+      body: JSON.stringify({ cohortId: selectedId, excludedPatients, excludedFeatures }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { setMsg(j.detail || j.error || "Could not save exclusions"); return; }
+    setMsg(`Applied: ${excludedPatients.length} patient(s) and ${excludedFeatures.length} variable(s) excluded. Analysis recomputed.`);
+    await loadDetail(selectedId);
+  }
+
   async function loadFeature(feature: string): Promise<FeatureDetail | null> {
     if (!selectedId) return null;
     const res = await authedFetch(`/api/admin/research/feature?cohortId=${selectedId}&feature=${encodeURIComponent(feature)}`);
@@ -267,7 +287,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} onLoadFeature={loadFeature} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} onLoadFeature={loadFeature} onSaveExclusions={saveExclusions} />}
     </div>
   );
 }
@@ -382,6 +402,82 @@ function FeatureDetailTable({ feature, state }: { feature: string; state: Featur
   );
 }
 
+// Review & select which patients (rows) and variables (columns) to include/exclude.
+function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave: (p: string[], f: string[]) => Promise<void> }) {
+  const [exP, setExP] = useState<Set<string>>(new Set(dq?.excludedPatients ?? []));
+  const [exF, setExF] = useState<Set<string>>(new Set(dq?.excludedFeatures ?? []));
+  const [saving, setSaving] = useState(false);
+  if (!dq) return <p className="text-sm text-gray-400">No data-quality information yet.</p>;
+  const toggle = (set: Set<string>, key: string, setter: (s: Set<string>) => void) => {
+    const n = new Set(set); if (n.has(key)) n.delete(key); else n.add(key); setter(n);
+  };
+  const useSuggested = () => {
+    setExP(new Set([...exP, ...dq.patients.filter((p) => p.suggested).map((p) => p.patient)]));
+    setExF(new Set([...exF, ...dq.features.filter((f) => f.suggested).map((f) => f.feature)]));
+  };
+  const dirty = JSON.stringify([...exP].sort()) !== JSON.stringify([...dq.excludedPatients].sort())
+    || JSON.stringify([...exF].sort()) !== JSON.stringify([...dq.excludedFeatures].sort());
+  const apply = async () => { setSaving(true); await onSave([...exP], [...exF]); setSaving(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-xs text-gray-500 max-w-2xl">
+          Review and choose which <b>patients (rows)</b> and <b>variables (columns)</b> are included in the analysis. Excluded items are removed from all trends, flags, significance and exports. Suggested exclusions (⚠) flag near-empty patients (&lt;50% complete) and sparse variables (over half of patients missing a value).
+        </p>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={useSuggested} className="text-xs rounded-lg border border-amber-300 text-amber-700 px-3 py-1.5 hover:bg-amber-50">Select suggested</button>
+          <button onClick={apply} disabled={saving || !dirty} className="text-xs rounded-lg bg-emerald-600 text-white px-4 py-1.5 font-medium hover:bg-emerald-700 disabled:opacity-50">{saving ? "Applying…" : "Apply exclusions"}</button>
+        </div>
+      </div>
+      <div className="text-[11px] text-gray-500">{exP.size} patient(s) and {exF.size} variable(s) marked for exclusion{dirty ? " (unsaved)" : ""}.</div>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        {/* patients */}
+        <div>
+          <div className="text-xs font-semibold text-gray-700 mb-2">Patients (rows) — completeness at latest timepoint</div>
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-100">
+            <table className="w-full text-[11px]">
+              <thead className="sticky top-0 bg-gray-50"><tr className="text-left text-gray-400">
+                <th className="py-1 px-2 font-medium">Exclude</th><th className="py-1 px-2 font-medium">Patient UUID</th><th className="py-1 px-2 font-medium">Complete</th>
+              </tr></thead>
+              <tbody>
+                {dq.patients.map((p) => (
+                  <tr key={p.patient} className={`border-t border-gray-50 ${exP.has(p.patient) ? "bg-red-50" : p.suggested ? "bg-amber-50" : ""}`}>
+                    <td className="py-1 px-2"><input type="checkbox" checked={exP.has(p.patient)} onChange={() => toggle(exP, p.patient, setExP)} /></td>
+                    <td className="py-1 px-2 font-mono text-gray-600">{p.patient}{p.suggested && <span className="ml-1 text-amber-600" title="Near-empty — suggested for exclusion">⚠</span>}</td>
+                    <td className={`py-1 px-2 tabular-nums ${p.completenessPct < 50 ? "text-red-600" : "text-gray-600"}`}>{p.completenessPct}% ({p.present}/{p.total})</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {/* features */}
+        <div>
+          <div className="text-xs font-semibold text-gray-700 mb-2">Variables (columns) — missingness at latest timepoint</div>
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-100">
+            <table className="w-full text-[11px]">
+              <thead className="sticky top-0 bg-gray-50"><tr className="text-left text-gray-400">
+                <th className="py-1 px-2 font-medium">Exclude</th><th className="py-1 px-2 font-medium">Variable</th><th className="py-1 px-2 font-medium">Missing</th>
+              </tr></thead>
+              <tbody>
+                {dq.features.map((f) => (
+                  <tr key={f.feature} className={`border-t border-gray-50 ${exF.has(f.feature) ? "bg-red-50" : f.suggested ? "bg-amber-50" : ""}`}>
+                    <td className="py-1 px-2"><input type="checkbox" checked={exF.has(f.feature)} onChange={() => toggle(exF, f.feature, setExF)} /></td>
+                    <td className="py-1 px-2 text-gray-700">{f.feature}{f.suggested && <span className="ml-1 text-amber-600" title="Mostly missing — suggested for exclusion">⚠</span>}</td>
+                    <td className={`py-1 px-2 tabular-nums ${f.missingPct > 50 ? "text-red-600" : "text-gray-600"}`}>{f.missingPct}% ({f.total - f.present}/{f.total})</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function flagTone(pct: number) {
   if (pct >= 50) return { bar: "bg-red-500", text: "text-red-700", chip: "bg-red-50" };
   if (pct >= 25) return { bar: "bg-amber-500", text: "text-amber-700", chip: "bg-amber-50" };
@@ -401,12 +497,13 @@ function deltaTitle(feature: string, delta: number | null): string {
   return good === null ? "" : good ? "improvement" : "worsening";
 }
 
-type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "data";
+type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "quality" | "data";
 
-function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport, onLoadFeature }: {
+function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport, onLoadFeature, onSaveExclusions }: {
   detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
   onDeleteTimepoint: (exportId: string, label: string) => void; onEmployerReport: () => void;
   onLoadFeature: (feature: string) => Promise<FeatureDetail | null>;
+  onSaveExclusions: (excludedPatients: string[], excludedFeatures: string[]) => Promise<void>;
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -440,6 +537,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
     { k: "domains", label: "By domain" },
     { k: "longitudinal", label: "Longitudinal" },
     { k: "ai", label: "AI analysis" },
+    { k: "quality", label: "Data quality" },
     { k: "data", label: "Data & export" },
   ];
 
@@ -685,6 +783,13 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
               <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{detail.aiAnalyses[0].summary_md}</div>
             ) : <p className="text-xs text-gray-400">No analysis yet. Aggregate stats only are sent to the model — no per-patient data leaves the database.</p>}
           </div>
+        )}
+
+        {/* ---------- DATA QUALITY ---------- */}
+        {tab === "quality" && (
+          <DataQualityPanel
+            key={(detail.dataQuality?.excludedPatients.join() || "") + "|" + (detail.dataQuality?.excludedFeatures.join() || "")}
+            dq={detail.dataQuality} onSave={onSaveExclusions} />
         )}
 
         {/* ---------- DATA & EXPORT ---------- */}

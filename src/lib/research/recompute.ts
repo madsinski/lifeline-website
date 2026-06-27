@@ -1,33 +1,45 @@
 // Recompute cached trend aggregates for a cohort from its observations.
-// Called after every ingest. Server-only (uses the service-role client).
+// Called after every ingest and whenever exclusions change. Respects the
+// cohort's excluded patients (rows) and excluded features (columns).
+// Server-only (uses the service-role client).
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { computeTrendStats, type TrendInputObs } from "@/lib/research/trends";
 
 export async function recomputeCohortTrends(cohortId: string): Promise<number> {
-  // patient count per timepoint (denominator for missing %)
-  const { data: exports } = await supabaseAdmin
-    .from("research_exports")
-    .select("timepoint_label, patient_count")
-    .eq("cohort_id", cohortId);
-  const patientsAtTp: Record<string, number> = {};
-  for (const e of exports ?? []) patientsAtTp[e.timepoint_label] = e.patient_count ?? 0;
+  const { data: cohort } = await supabaseAdmin
+    .from("research_cohorts").select("excluded_patients, excluded_features").eq("id", cohortId).single();
+  const exPatients = new Set<string>((cohort?.excluded_patients as string[] | null) ?? []);
+  const exFeatures = new Set<string>((cohort?.excluded_features as string[] | null) ?? []);
 
   // pull numeric-capable observations (paged to avoid the 1000-row default cap)
-  const obs: TrendInputObs[] = [];
+  type Row = TrendInputObs & { medalia_patient_id: string };
+  const obs: Row[] = [];
   const PAGE = 1000;
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabaseAdmin
       .from("research_observations")
-      .select("feature, obs_type, display, unit, timepoint_label, timepoint_order, value_num, value_bool")
+      .select("medalia_patient_id, feature, obs_type, display, unit, timepoint_label, timepoint_order, value_num, value_bool")
       .eq("cohort_id", cohortId)
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
-    obs.push(...(data as TrendInputObs[]));
+    obs.push(...(data as Row[]));
     if (data.length < PAGE) break;
   }
 
-  const stats = computeTrendStats(obs, patientsAtTp);
+  // drop excluded patients (rows) and excluded features (columns)
+  const included = obs.filter((o) => !exPatients.has(o.medalia_patient_id) && !exFeatures.has(o.feature));
+
+  // denominator for missing % = distinct INCLUDED patients per timepoint
+  const patientsByTp = new Map<string, Set<string>>();
+  for (const o of included) {
+    if (!patientsByTp.has(o.timepoint_label)) patientsByTp.set(o.timepoint_label, new Set());
+    patientsByTp.get(o.timepoint_label)!.add(o.medalia_patient_id);
+  }
+  const patientsAtTp: Record<string, number> = {};
+  for (const [tp, set] of patientsByTp) patientsAtTp[tp] = set.size;
+
+  const stats = computeTrendStats(included, patientsAtTp);
 
   // replace cached trends for this cohort
   await supabaseAdmin.from("research_trends").delete().eq("cohort_id", cohortId);

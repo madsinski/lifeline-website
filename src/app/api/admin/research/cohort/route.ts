@@ -31,8 +31,10 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "bad_request", detail: "id required" }, { status: 400 });
 
   const { data: cohort, error: cErr } = await supabaseAdmin
-    .from("research_cohorts").select("id, name, slug, description, pathway, created_at").eq("id", id).single();
+    .from("research_cohorts").select("id, name, slug, description, pathway, created_at, excluded_patients, excluded_features").eq("id", id).single();
   if (cErr || !cohort) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const exPatients = new Set<string>((cohort.excluded_patients as string[] | null) ?? []);
+  const exFeatures = new Set<string>((cohort.excluded_features as string[] | null) ?? []);
 
   const { data: exports } = await supabaseAdmin
     .from("research_exports")
@@ -57,7 +59,7 @@ export async function GET(req: NextRequest) {
   for (const t of (trends || []) as unknown as TrendStat[]) {
     (seriesMap.get(t.feature) ?? seriesMap.set(t.feature, []).get(t.feature)!).push(t);
   }
-  const series = [...seriesMap.entries()].map(([feature, points]) => ({
+  const series = [...seriesMap.entries()].filter(([feature]) => !exFeatures.has(feature)).map(([feature, points]) => ({
     feature,
     obs_type: points[0].obs_type,
     display: points[0].display,
@@ -66,13 +68,14 @@ export async function GET(req: NextRequest) {
     points,
   }));
 
-  const movements = computeMovements((trends || []) as unknown as TrendStat[]);
+  const movements = computeMovements(((trends || []) as unknown as TrendStat[]).filter((t) => !exFeatures.has(t.feature)));
+  const includedPatients = (patients || []).filter((p) => !exPatients.has(p.medalia_patient_id));
 
   // demographics
   const genders: Record<string, number> = {};
   const groups: Record<string, number> = {};
   const ages: number[] = [];
-  for (const p of patients || []) {
+  for (const p of includedPatients) {
     genders[p.gender || "unknown"] = (genders[p.gender || "unknown"] || 0) + 1;
     groups[p.group_name || "(none)"] = (groups[p.group_name || "(none)"] || 0) + 1;
     if (typeof p.latest_age === "number") ages.push(p.latest_age);
@@ -82,7 +85,7 @@ export async function GET(req: NextRequest) {
   // completeness: missing % per feature at the latest timepoint
   const latestOrder = Math.max(0, ...(exports || []).map((e) => e.timepoint_order));
   const completeness = ((trends || []) as unknown as TrendStat[])
-    .filter((t) => t.timepoint_order === latestOrder)
+    .filter((t) => t.timepoint_order === latestOrder && !exFeatures.has(t.feature))
     .map((t) => ({
       feature: t.feature,
       obs_type: t.obs_type,
@@ -110,6 +113,7 @@ export async function GET(req: NextRequest) {
   // timepoint_order -> patient -> feature -> value
   const valsByTpPatient = new Map<number, Map<string, Record<string, number | boolean | null>>>();
   for (const o of flagObs) {
+    if (exPatients.has(o.medalia_patient_id)) continue;
     if (!valsByTpPatient.has(o.timepoint_order)) valsByTpPatient.set(o.timepoint_order, new Map());
     const pm = valsByTpPatient.get(o.timepoint_order)!;
     if (!pm.has(o.medalia_patient_id)) pm.set(o.medalia_patient_id, {});
@@ -126,7 +130,7 @@ export async function GET(req: NextRequest) {
     }
     return { eligible, hits, pct: eligible ? Math.round((100 * hits) / eligible) : 0 };
   };
-  const flags = FLAGS.map((def) => {
+  const flags = FLAGS.filter((def) => !exFeatures.has(def.feature)).map((def) => {
     const trend = orders.map((order) => ({ timepoint_label: labelByOrder[order], order, ...prevalenceAt(def, order) }));
     const latest = prevalenceAt(def, latestOrder);
     const base = minOrder !== latestOrder ? prevalenceAt(def, minOrder) : null;
@@ -151,6 +155,7 @@ export async function GET(req: NextRequest) {
     const byFeat = new Map<string, Map<string, { b?: number; l?: number }>>();
     for (const o of pairObs) {
       if (o.value_num === null || o.value_num === undefined) continue;
+      if (exPatients.has(o.medalia_patient_id) || exFeatures.has(o.feature)) continue;
       if (!byFeat.has(o.feature)) byFeat.set(o.feature, new Map());
       const pm = byFeat.get(o.feature)!;
       if (!pm.has(o.medalia_patient_id)) pm.set(o.medalia_patient_id, {});
@@ -174,6 +179,46 @@ export async function GET(req: NextRequest) {
     n_pairs: significance[m.feature]?.n ?? null,
   }));
 
+  // ---- data quality: per-patient completeness & per-feature missingness at the
+  //      latest timepoint (computed over ALL data so the user can review what to
+  //      include/exclude; suggestions flag the obvious cases) ----
+  const dqObs = await pageAll<{ medalia_patient_id: string; feature: string; value_num: number | null; value_text: string | null; value_bool: boolean | null }>(
+    (from, to) => supabaseAdmin
+      .from("research_observations")
+      .select("medalia_patient_id, feature, value_num, value_text, value_bool")
+      .eq("cohort_id", id).eq("timepoint_order", latestOrder).range(from, to),
+  );
+  const presentByPatient = new Map<string, Set<string>>();
+  const presentByFeature = new Map<string, Set<string>>();
+  const dqPatients = new Set<string>();
+  const dqFeatures = new Set<string>();
+  for (const o of dqObs) {
+    dqPatients.add(o.medalia_patient_id);
+    dqFeatures.add(o.feature);
+    const has = o.value_num !== null || o.value_text !== null || o.value_bool !== null;
+    if (!has) continue;
+    if (!presentByPatient.has(o.medalia_patient_id)) presentByPatient.set(o.medalia_patient_id, new Set());
+    presentByPatient.get(o.medalia_patient_id)!.add(o.feature);
+    if (!presentByFeature.has(o.feature)) presentByFeature.set(o.feature, new Set());
+    presentByFeature.get(o.feature)!.add(o.medalia_patient_id);
+  }
+  const totalFeatures = dqFeatures.size || 1;
+  const totalDqPatients = dqPatients.size || 1;
+  const genderByIdAll: Record<string, string | null> = {};
+  for (const p of patients || []) genderByIdAll[p.medalia_patient_id] = p.gender;
+  const dqPatientRows = [...dqPatients].map((pid) => {
+    const present = presentByPatient.get(pid)?.size ?? 0;
+    const completenessPct = Math.round((100 * present) / totalFeatures);
+    return { patient: pid, gender: genderByIdAll[pid] ?? null, present, total: totalFeatures, completenessPct,
+      excluded: exPatients.has(pid), suggested: completenessPct < 50 };
+  }).sort((a, b) => a.completenessPct - b.completenessPct);
+  const dqFeatureRows = [...dqFeatures].map((feature) => {
+    const present = presentByFeature.get(feature)?.size ?? 0;
+    const missingPct = Math.round((100 * (totalDqPatients - present)) / totalDqPatients);
+    return { feature, present, total: totalDqPatients, missingPct,
+      excluded: exFeatures.has(feature), suggested: missingPct > 50 };
+  }).sort((a, b) => b.missingPct - a.missingPct);
+
   const { data: aiAnalyses } = await supabaseAdmin
     .from("research_ai_analyses")
     .select("id, scope, model, summary_md, created_at")
@@ -184,8 +229,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     cohort,
     exports: exports || [],
+    dataQuality: {
+      excludedPatients: [...exPatients],
+      excludedFeatures: [...exFeatures],
+      patients: dqPatientRows,
+      features: dqFeatureRows,
+    },
     demographics: {
-      n: (patients || []).length,
+      n: includedPatients.length,
       genders,
       groups,
       age: ages.length
