@@ -3,7 +3,7 @@
 // Research module — cohorts, longitudinal Medalia exports, trends, AI analysis.
 // Backend: /api/admin/research/* . Schema: supabase/migration-research-data-schema.sql
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, type Domain } from "@/lib/research/clinical";
 import { sigStars } from "@/lib/research/stats";
@@ -257,6 +257,68 @@ export default function ResearchPage() {
   );
 }
 
+// "?" popover so the medical advisor can audit exactly how each figure is computed.
+function InfoTip({ title, children }: { title?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-block align-middle">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="How this is calculated"
+        className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold leading-none hover:bg-gray-300">?</button>
+      {open && (
+        <>
+          <span className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <span className="absolute z-40 left-5 -top-1 w-80 rounded-lg border border-gray-200 bg-white shadow-xl p-3 text-[11px] leading-relaxed text-gray-700 font-normal normal-case text-left block">
+            {title && <span className="block font-semibold text-gray-900 mb-1">{title}</span>}
+            {children}
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
+// Method descriptions — kept in lock-step with the implementation so they can be validated.
+const METHOD = {
+  mean: (
+    <>Cohort <b>mean</b> of the measured value at that timepoint; <b>n</b> = patients with a value.
+    Median, SD, min and max use the same set. Sample SD = √(Σ(x−x̄)²/(n−1)).
+    <span className="block mt-1 text-gray-400">src/lib/research/trends.ts</span></>
+  ),
+  delta: (
+    <><b>Δ = latest mean − baseline mean</b>, in the metric’s own units. Coloured green when the change is in the
+    beneficial direction for that specific metric (e.g. lower HbA1c/BP, higher HDL/sleep), red otherwise.
+    Direction was set per metric and verified empirically.
+    <span className="block mt-1 text-gray-400">computeMovements() · clinical.ts featureDirection()</span></>
+  ),
+  pctChange: <><b>% change = (latest − baseline) ÷ |baseline| × 100.</b></>,
+  effect: (
+    <><b>Standardised effect size</b> (Cohen’s-d style): d = (latest mean − baseline mean) ÷ pooled SD,
+    pooled SD = √((SD_baseline² + SD_latest²)/2). Rule of thumb: |d| ≈ 0.2 small, 0.5 medium, 0.8 large.
+    <span className="block mt-1 text-gray-400">trends.ts computeMovements()</span></>
+  ),
+  pq: (
+    <><b>p</b> — paired two-sample <b>t-test</b> on each patient’s own change (same people at both timepoints):
+    t = mean(d) ÷ (SD(d)/√n), df = n−1; two-tailed p from the Student-t distribution via the regularised
+    incomplete beta function. n = paired patients.
+    <span className="block mt-1"><b>q</b> — Benjamini–Hochberg false-discovery-rate adjustment across all features
+    tested (controls for multiple comparisons). With small n and many measures, prefer q and effect size over raw p.</span>
+    <span className="block mt-0.5">Stars: * p&lt;.05, ** p&lt;.01, *** p&lt;.001.</span>
+    <span className="block mt-1 text-gray-400">src/lib/research/stats.ts (tTestP via incomplete beta, pairedTTest, benjaminiHochberg)</span></>
+  ),
+  flags: (
+    <>Each bar = <b>share of patients whose value crosses the threshold</b> at that timepoint.
+    Denominator = patients who have that measure (conditional screeners are asked of only some, so denominators vary).
+    Baseline→latest shows the change in <b>percentage points (pp)</b>; green = fewer affected.
+    Clinical cutoffs are standard (e.g. PHQ-9 ≥10, GAD-7 ≥10, HbA1c ≥42 mmol/mol, HOMA-IR ≥2.5, BP ≥140);
+    the 0–10 lifestyle sub-scores use an internal &lt;6/10 “needs attention” mark.
+    <span className="block mt-1 text-gray-400">clinical.ts FLAGS · flagCrosses()</span></>
+  ),
+  completeness: (
+    <><b>Missing %</b> = patients without a value for that measure ÷ patients at the latest timepoint × 100.
+    High missingness on conditional screeners is by design (only asked when a parent screener triggers), not data loss.</>
+  ),
+} as const;
+
 function flagTone(pct: number) {
   if (pct >= 50) return { bar: "bg-red-500", text: "text-red-700", chip: "bg-red-50" };
   if (pct >= 25) return { bar: "bg-amber-500", text: "text-amber-700", chip: "bg-amber-50" };
@@ -338,6 +400,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
           <div className="space-y-6">
             <p className="text-xs text-gray-500">
               Share of patients crossing each clinical or lifestyle threshold{multiTimepoint ? ", shown as baseline → latest with the change in percentage points (green = fewer affected)" : " at the latest timepoint"}. This is a curated set of decision-relevant thresholds — see the <span className="font-medium text-gray-600">By domain</span> tab for every variable. Denominators vary: conditional screeners and lifestyle sub-scores are only recorded for some patients.
+              <InfoTip title="How prevalence & change are calculated">{METHOD.flags}</InfoTip>
             </p>
             {DOMAIN_GROUPS.map((g) => {
               const groupFlags = detail.flags.filter((f) => g.domains.includes(f.domain));
@@ -401,10 +464,10 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead><tr className="text-left text-[11px] text-gray-400">
-                            <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Mean</th><th className="py-1 pr-4">n</th>
+                            <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Mean<InfoTip title="Mean & spread">{METHOD.mean}</InfoTip></th><th className="py-1 pr-4">n</th>
                             <th className="py-1 pr-4">Reference range</th>
-                            {multiTimepoint && <th className="py-1 pr-4">Δ baseline→latest</th>}
-                            {multiTimepoint && <th className="py-1 pr-4">p (q)</th>}
+                            {multiTimepoint && <th className="py-1 pr-4">Δ baseline→latest<InfoTip title="Δ and effect size">{METHOD.delta}{METHOD.effect}</InfoTip></th>}
+                            {multiTimepoint && <th className="py-1 pr-4">p (q)<InfoTip title="Significance (p and q)">{METHOD.pq}</InfoTip></th>}
                           </tr></thead>
                           <tbody>
                             {seriesByDomain(dom).map((s) => {
@@ -450,13 +513,13 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                 Only a baseline timepoint so far. Upload a follow-up dataset (3mo / 6mo …) to unlock trend movement and effect sizes.
               </div>
             )}
-            <div className="text-xs font-medium text-gray-500">Top movers (baseline → latest, ranked by effect size)</div>
+            <div className="text-xs font-medium text-gray-500">Top movers (baseline → latest, ranked by effect size)<InfoTip title="How movement is measured">{METHOD.delta}{METHOD.effect}{METHOD.pq}</InfoTip></div>
             {detail.movements.filter((m) => m.effect_size !== null).length ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-400">
                     <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
-                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change</th><th className="py-1 pr-4">d</th><th className="py-1 pr-4">p (q)</th><th className="py-1 pr-4">Direction</th>
+                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change<InfoTip title="% change">{METHOD.pctChange}</InfoTip></th><th className="py-1 pr-4">d<InfoTip title="Effect size">{METHOD.effect}</InfoTip></th><th className="py-1 pr-4">p (q)<InfoTip title="Significance (p and q)">{METHOD.pq}</InfoTip></th><th className="py-1 pr-4">Direction</th>
                   </tr></thead>
                   <tbody>
                     {detail.movements.filter((m) => m.effect_size !== null).slice(0, 20).map((m) => {
@@ -489,7 +552,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
         {tab === "ai" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-gray-900">AI trend analysis</div>
+              <div className="text-sm font-semibold text-gray-900">AI trend analysis<InfoTip title="What the AI sees">Only the <b>computed aggregate statistics</b> are sent to the model (means, baseline→latest deltas, effect sizes, missingness, demographics) — never any per-patient data. Each metric is tagged with its beneficial direction so the model cannot misread a good drop (e.g. lower HbA1c) as bad. The narrative is interpretation, not new computation; rely on the numeric tabs to validate.</InfoTip></div>
               <button onClick={onAI} disabled={aiBusy}
                 className="text-xs rounded-lg bg-gray-900 text-white px-3 py-1.5 hover:bg-gray-800 disabled:opacity-50">
                 {aiBusy ? "Analyzing..." : detail.aiAnalyses.length ? "Re-run analysis" : "Analyze with AI"}
@@ -515,7 +578,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
               Excel has 4 sheets — Wide (units in headers, missing data flagged red), Long, Answers, Dictionary.
             </p>
             <div>
-              <div className="text-xs font-medium text-gray-500 mb-2">Completeness at latest timepoint (worst first)</div>
+              <div className="text-xs font-medium text-gray-500 mb-2">Completeness at latest timepoint (worst first)<InfoTip title="Missing data">{METHOD.completeness}</InfoTip></div>
               <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
                 {detail.completeness.filter((c) => c.pct_missing > 0).slice(0, 20).map((c) => (
                   <div key={c.feature} className="flex items-center gap-2 text-xs">
