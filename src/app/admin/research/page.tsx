@@ -66,11 +66,13 @@ export default function ResearchPage() {
   const [uploading, setUploading] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
 
-  const loadCohorts = useCallback(async () => {
+  const loadCohorts = useCallback(async (): Promise<CohortSummary[]> => {
     const res = await authedFetch("/api/admin/research/cohorts");
     const j = await res.json().catch(() => ({}));
-    setCohorts(j.cohorts || []);
+    const list: CohortSummary[] = j.cohorts || [];
+    setCohorts(list);
     setLoading(false);
+    return list;
   }, []);
 
   const loadDetail = useCallback(async (id: string) => {
@@ -82,9 +84,10 @@ export default function ResearchPage() {
     else setMsg(j.error || "Failed to load cohort");
   }, []);
 
-  // loadCohorts sets state only after its await; disable the synchronous-setState heuristic.
+  // On mount: load the cohort list, then auto-open the most recent cohort
+  // (the API returns them newest-first). State is only set after the await.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { loadCohorts(); }, [loadCohorts]);
+  useEffect(() => { loadCohorts().then((list) => { if (list.length) loadDetail(list[0].id); }); }, [loadCohorts, loadDetail]);
 
   async function onFile(f: File | null) {
     setFile(f); setFilePreview(null);
