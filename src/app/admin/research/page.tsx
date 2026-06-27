@@ -4,6 +4,7 @@
 // Backend: /api/admin/research/* . Schema: supabase/migration-research-data-schema.sql
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, type Domain } from "@/lib/research/clinical";
 import { sigStars } from "@/lib/research/stats";
@@ -261,20 +262,36 @@ export default function ResearchPage() {
 }
 
 // "?" popover so the medical advisor can audit exactly how each figure is computed.
+// Rendered in a portal to <body> with fixed positioning so it floats above the
+// layout and never expands a table/overflow container (no stray scrollbars).
 function InfoTip({ title, children }: { title?: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  function toggle(e: { currentTarget: HTMLElement }) {
+    if (open) { setOpen(false); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    const W = 320, estH = 230;
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 12));
+    const top = r.bottom + estH > window.innerHeight - 8 ? Math.max(8, r.top - estH - 6) : r.bottom + 6;
+    setPos({ top, left });
+    setOpen(true);
+  }
+
   return (
     <span className="relative inline-block align-middle">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="How this is calculated"
+      <button type="button" onClick={toggle} aria-label="How this is calculated"
         className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold leading-none hover:bg-gray-300">?</button>
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <>
-          <span className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <span className="absolute z-40 left-5 -top-1 w-80 rounded-lg border border-gray-200 bg-white shadow-xl p-3 text-[11px] leading-relaxed text-gray-700 font-normal normal-case text-left block">
-            {title && <span className="block font-semibold text-gray-900 mb-1">{title}</span>}
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div role="tooltip" style={{ top: pos.top, left: pos.left, maxHeight: "calc(100vh - 1rem)" }}
+            className="fixed z-[70] w-80 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl p-3 text-[11px] leading-relaxed text-gray-700 font-normal normal-case text-left">
+            {title && <div className="font-semibold text-gray-900 mb-1">{title}</div>}
             {children}
-          </span>
-        </>
+          </div>
+        </>,
+        document.body,
       )}
     </span>
   );
