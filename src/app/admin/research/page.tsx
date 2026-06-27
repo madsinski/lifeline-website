@@ -167,6 +167,21 @@ export default function ResearchPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function openEmployerReport() {
+    if (!selectedId) return;
+    setMsg(null);
+    const res = await authedFetch(`/api/admin/research/employer-report?cohortId=${selectedId}`);
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setMsg(j.detail || j.error || "Could not generate employer summary");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <header>
@@ -237,7 +252,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} />}
     </div>
   );
 }
@@ -263,9 +278,9 @@ function deltaTitle(feature: string, delta: number | null): string {
 
 type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "data";
 
-function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint }: {
+function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport }: {
   detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
-  onDeleteTimepoint: (exportId: string, label: string) => void;
+  onDeleteTimepoint: (exportId: string, label: string) => void; onEmployerReport: () => void;
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
   const d = detail.demographics;
@@ -490,11 +505,15 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
         {tab === "data" && (
           <div className="space-y-5">
             <div className="flex flex-wrap gap-2">
+              <button onClick={onEmployerReport} className="text-sm rounded-lg bg-gray-900 text-white px-4 py-2 font-medium hover:bg-gray-800">Employer summary (report)</button>
               <button onClick={() => onDownload("excel")} className="text-sm rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700">Download Excel (.xlsx)</button>
               <button onClick={() => onDownload("long")} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50">CSV (long)</button>
               <button onClick={() => onDownload("answers")} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50">CSV (answers)</button>
             </div>
-            <p className="text-xs text-gray-500">Excel has 4 sheets — Wide (units in headers, missing data flagged red), Long, Answers, Dictionary.</p>
+            <p className="text-xs text-gray-500">
+              <span className="font-medium text-gray-600">Employer summary</span> — a layman-friendly, aggregate-only results report (opens in a new tab; print to PDF to share). Needs 2+ timepoints.
+              Excel has 4 sheets — Wide (units in headers, missing data flagged red), Long, Answers, Dictionary.
+            </p>
             <div>
               <div className="text-xs font-medium text-gray-500 mb-2">Completeness at latest timepoint (worst first)</div>
               <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
