@@ -322,7 +322,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
         {tab === "overview" && (
           <div className="space-y-6">
             <p className="text-xs text-gray-500">
-              Share of patients crossing each clinical threshold{multiTimepoint ? ", shown as baseline → latest with the change in percentage points (green = fewer affected)" : " at the latest timepoint"}. Denominators vary — conditional screeners are only asked of some patients.
+              Share of patients crossing each clinical or lifestyle threshold{multiTimepoint ? ", shown as baseline → latest with the change in percentage points (green = fewer affected)" : " at the latest timepoint"}. This is a curated set of decision-relevant thresholds — see the <span className="font-medium text-gray-600">By domain</span> tab for every variable. Denominators vary: conditional screeners and lifestyle sub-scores are only recorded for some patients.
             </p>
             {DOMAIN_GROUPS.map((g) => {
               const groupFlags = detail.flags.filter((f) => g.domains.includes(f.domain));

@@ -184,8 +184,18 @@ export interface FlagDef {
 }
 
 export const FLAGS: FlagDef[] = [
+  // --- foundations (Lifeline 0-10 sub-scores; <6/10 = "needs attention". These
+  //     are internal operational thresholds, not validated clinical cutoffs) ---
+  { key: "sleep_med_low", label: "Suboptimal sleep — medical (<6/10)", domain: "sleep", feature: "lifeline_health_sleep_medical_score", cutoff: 6, lowIsBad: true },
+  { key: "sleep_beh_low", label: "Poor sleep habits — behavioural (<6/10)", domain: "sleep", feature: "lifeline_health_sleep_behaviour_score", cutoff: 6, lowIsBad: true },
+  { key: "exer_med_low", label: "Low fitness — medical (<6/10)", domain: "exercise", feature: "lifeline_health_exercise_medical_score", cutoff: 6, lowIsBad: true },
+  { key: "exer_beh_low", label: "Low activity — behavioural (<6/10)", domain: "exercise", feature: "lifeline_health_exercise_behavioural_score", cutoff: 6, lowIsBad: true },
+  { key: "nutr_med_low", label: "Poor nutrition — medical (<6/10)", domain: "nutrition", feature: "lifeline_health_nutrition_medical_score", cutoff: 6, lowIsBad: true },
+  { key: "nutr_beh_low", label: "Poor nutrition habits — behavioural (<6/10)", domain: "nutrition", feature: "lifeline_health_nutrition_behavioural_score", cutoff: 6, lowIsBad: true },
+  // --- mental wellness ---
   { key: "phq9_mod", label: "Moderate+ depression (PHQ-9 ≥10)", domain: "mental", feature: "phq9", cutoff: 10 },
   { key: "gad7_mod", label: "Moderate+ anxiety (GAD-7 ≥10)", domain: "mental", feature: "lifeline_health_anxiety_gad_7", cutoff: 10 },
+  { key: "pwi_low", label: "Low wellbeing (PWI <6/10)", domain: "mental", feature: "pwi", cutoff: 6, lowIsBad: true },
   { key: "hba1c_pre", label: "Prediabetes+ (HbA1c ≥42)", domain: "metabolic", feature: "hba1c", cutoff: 42 },
   { key: "glucose_imp", label: "Impaired fasting glucose (≥5.6)", domain: "metabolic", feature: "glucose", cutoff: 5.6 },
   { key: "homa_ir", label: "Insulin resistance (HOMA-IR ≥2.5)", domain: "metabolic", feature: "homa_ir", cutoff: 2.5 },
