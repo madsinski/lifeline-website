@@ -331,6 +331,7 @@ const METHOD = {
     Baseline→latest shows the change in <b>percentage points (pp)</b>; green = fewer affected.
     Clinical cutoffs are standard (e.g. PHQ-9 ≥10, GAD-7 ≥10, HbA1c ≥42 mmol/mol, HOMA-IR ≥2.5, BP ≥140);
     the 0–10 lifestyle sub-scores use an internal &lt;6/10 “needs attention” mark.
+    <span className="block mt-1"><b>Sex-specific cutoffs</b> are applied per patient where reference ranges differ — body fat (M ≥25% / F ≥32%), HDL (M &lt;1.0 / F &lt;1.3), AUDIT-C (M ≥4 / F ≥3) — so the aggregate is not skewed by the cohort’s sex mix.</span>
     <span className="block mt-1 text-gray-400">clinical.ts FLAGS · flagCrosses()</span></>
   ),
   completeness: (

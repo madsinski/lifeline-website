@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
   const RISK: { key: string; label: string }[] = [
     { key: "bp_sys_high", label: "Raised blood pressure" },
     { key: "homa_ir", label: "Insulin resistance" },
-    { key: "bodyfat_high", label: "High body fat" },
+    { key: "bodyfat_high", label: "High body fat (sex-adjusted)" },
     { key: "chol_high", label: "High cholesterol" },
     { key: "phq9_mod", label: "Low mood (depression screen)" },
     { key: "gad7_mod", label: "Anxiety (screen)" },

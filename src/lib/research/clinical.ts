@@ -213,7 +213,7 @@ export const FLAGS: FlagDef[] = [
   { key: "tg_high", label: "High triglycerides (≥1.7)", domain: "metabolic", feature: "triglycerides", cutoff: 1.7 },
   { key: "hdl_low", label: "Low HDL (<1.0 M / <1.3 F)", domain: "metabolic", feature: "hdl_cholesterol", genderCutoff: { male: 1.0, female: 1.3 }, lowIsBad: true },
   { key: "bmi_obese", label: "Obese (BMI ≥30)", domain: "body", feature: "bmi", cutoff: 30 },
-  { key: "bodyfat_high", label: "High body fat (≥30%)", domain: "body", feature: "fat_mass_percent", cutoff: 30 },
+  { key: "bodyfat_high", label: "High body fat (M ≥25% / F ≥32%)", domain: "body", feature: "fat_mass_percent", genderCutoff: { male: 25, female: 32 } },
   { key: "bp_sys_high", label: "Elevated systolic BP (≥140)", domain: "cardio", feature: "bp_systolic_avg", cutoff: 140 },
   { key: "audit_c_pos", label: "Hazardous drinking (AUDIT-C ≥4 M / ≥3 F)", domain: "addiction", feature: "lifeline_health_audit_c", genderCutoff: { male: 4, female: 3 } },
   { key: "nicotine", label: "Nicotine use", domain: "addiction", feature: "lifeline_health_nicotine_use", boolTrue: true },
