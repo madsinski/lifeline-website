@@ -9,6 +9,18 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
 import { featureDomain, FLAGS, flagCrosses } from "@/lib/research/clinical";
+import { pairedTTest, benjaminiHochberg } from "@/lib/research/stats";
+
+async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
+  const out: T[] = []; const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data } = await build(from, from + PAGE - 1);
+    if (!data || data.length === 0) break;
+    out.push(...data);
+    if (data.length < PAGE) break;
+  }
+  return out;
+}
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
@@ -80,31 +92,87 @@ export async function GET(req: NextRequest) {
     }))
     .sort((a, b) => b.pct_missing - a.pct_missing);
 
-  // clinical flag prevalence at the latest timepoint (per-patient values + gender)
+  const minOrder = Math.min(0, ...(exports || []).map((e) => e.timepoint_order));
+  const orders = [...new Set((exports || []).map((e) => e.timepoint_order))].sort((a, b) => a - b);
+  const labelByOrder: Record<number, string> = {};
+  for (const e of exports || []) labelByOrder[e.timepoint_order] = e.timepoint_label;
   const genderById: Record<string, string | null> = {};
   for (const p of patients || []) genderById[p.medalia_patient_id] = p.gender;
+
+  // ---- clinical flag prevalence at EVERY timepoint (trend), per-patient + gender ----
   const flagFeatures = [...new Set(FLAGS.map((f) => f.feature))];
-  const { data: latestObs } = await supabaseAdmin
-    .from("research_observations")
-    .select("medalia_patient_id, feature, value_num, value_bool")
-    .eq("cohort_id", id)
-    .eq("timepoint_order", latestOrder)
-    .in("feature", flagFeatures);
-  const valsByPatient = new Map<string, Record<string, number | boolean | null>>();
-  for (const o of latestObs || []) {
-    if (!valsByPatient.has(o.medalia_patient_id)) valsByPatient.set(o.medalia_patient_id, {});
-    valsByPatient.get(o.medalia_patient_id)![o.feature] = o.value_num ?? o.value_bool ?? null;
+  const flagObs = await pageAll<{ medalia_patient_id: string; feature: string; value_num: number | null; value_bool: boolean | null; timepoint_order: number }>(
+    (from, to) => supabaseAdmin
+      .from("research_observations")
+      .select("medalia_patient_id, feature, value_num, value_bool, timepoint_order")
+      .eq("cohort_id", id).in("feature", flagFeatures).range(from, to),
+  );
+  // timepoint_order -> patient -> feature -> value
+  const valsByTpPatient = new Map<number, Map<string, Record<string, number | boolean | null>>>();
+  for (const o of flagObs) {
+    if (!valsByTpPatient.has(o.timepoint_order)) valsByTpPatient.set(o.timepoint_order, new Map());
+    const pm = valsByTpPatient.get(o.timepoint_order)!;
+    if (!pm.has(o.medalia_patient_id)) pm.set(o.medalia_patient_id, {});
+    pm.get(o.medalia_patient_id)![o.feature] = o.value_num ?? o.value_bool ?? null;
   }
-  const flags = FLAGS.map((def) => {
+  const prevalenceAt = (def: typeof FLAGS[number], order: number) => {
+    const pm = valsByTpPatient.get(order);
     let eligible = 0, hits = 0;
-    for (const [pid, fv] of valsByPatient) {
+    if (pm) for (const [pid, fv] of pm) {
       if (def.feature in fv && fv[def.feature] !== null) {
         eligible++;
         if (flagCrosses(def, fv[def.feature], genderById[pid] ?? null)) hits++;
       }
     }
-    return { key: def.key, label: def.label, domain: def.domain, hits, eligible, pct: eligible ? Math.round((100 * hits) / eligible) : 0 };
+    return { eligible, hits, pct: eligible ? Math.round((100 * hits) / eligible) : 0 };
+  };
+  const flags = FLAGS.map((def) => {
+    const trend = orders.map((order) => ({ timepoint_label: labelByOrder[order], order, ...prevalenceAt(def, order) }));
+    const latest = prevalenceAt(def, latestOrder);
+    const base = minOrder !== latestOrder ? prevalenceAt(def, minOrder) : null;
+    return {
+      key: def.key, label: def.label, domain: def.domain,
+      hits: latest.hits, eligible: latest.eligible, pct: latest.pct,
+      baseline_pct: base && base.eligible ? base.pct : null,
+      delta_pct: base && base.eligible ? latest.pct - base.pct : null,
+      trend,
+    };
   }).filter((f) => f.eligible > 0).sort((a, b) => b.pct - a.pct);
+
+  // ---- per-feature paired significance (baseline -> latest), only with 2+ timepoints ----
+  const significance: Record<string, { n: number; p: number; q: number; meanDelta: number }> = {};
+  if (minOrder !== latestOrder) {
+    const pairObs = await pageAll<{ medalia_patient_id: string; feature: string; timepoint_order: number; value_num: number | null }>(
+      (from, to) => supabaseAdmin
+        .from("research_observations")
+        .select("medalia_patient_id, feature, timepoint_order, value_num")
+        .eq("cohort_id", id).in("timepoint_order", [minOrder, latestOrder]).range(from, to),
+    );
+    const byFeat = new Map<string, Map<string, { b?: number; l?: number }>>();
+    for (const o of pairObs) {
+      if (o.value_num === null || o.value_num === undefined) continue;
+      if (!byFeat.has(o.feature)) byFeat.set(o.feature, new Map());
+      const pm = byFeat.get(o.feature)!;
+      if (!pm.has(o.medalia_patient_id)) pm.set(o.medalia_patient_id, {});
+      const slot = pm.get(o.medalia_patient_id)!;
+      if (o.timepoint_order === minOrder) slot.b = o.value_num; else if (o.timepoint_order === latestOrder) slot.l = o.value_num;
+    }
+    const feats: string[] = []; const pv: number[] = []; const tmp: Record<string, { n: number; p: number; meanDelta: number }> = {};
+    for (const [feat, pm] of byFeat) {
+      const deltas: number[] = [];
+      for (const slot of pm.values()) if (slot.b !== undefined && slot.l !== undefined) deltas.push(slot.l - slot.b);
+      const res = pairedTTest(deltas);
+      if (res) { feats.push(feat); pv.push(res.p); tmp[feat] = { n: res.n, p: res.p, meanDelta: Math.round(res.meanDelta * 100) / 100 }; }
+    }
+    const q = benjaminiHochberg(pv);
+    feats.forEach((f, i) => { significance[f] = { ...tmp[f], q: Math.round(q[i] * 1000) / 1000 }; });
+  }
+  const movementsOut = movements.map((m) => ({
+    ...m,
+    p: significance[m.feature]?.p ?? null,
+    q: significance[m.feature]?.q ?? null,
+    n_pairs: significance[m.feature]?.n ?? null,
+  }));
 
   const { data: aiAnalyses } = await supabaseAdmin
     .from("research_ai_analyses")
@@ -126,7 +194,7 @@ export async function GET(req: NextRequest) {
     },
     series,
     flags,
-    movements,
+    movements: movementsOut,
     completeness,
     aiAnalyses: aiAnalyses || [],
   });

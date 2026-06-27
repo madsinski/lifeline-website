@@ -5,7 +5,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { DOMAIN_LABELS, DOMAIN_ORDER, referenceNote, canonicalUnit, changeIsGood, type Domain } from "@/lib/research/clinical";
+import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, type Domain } from "@/lib/research/clinical";
+import { sigStars } from "@/lib/research/stats";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -19,9 +20,14 @@ interface Movement {
   feature: string; display: string | null; unit: string | null; obs_type: string;
   baseline_label: string; latest_label: string; baseline_mean: number | null; latest_mean: number | null;
   delta: number | null; pct_change: number | null; effect_size: number | null; n_baseline: number; n_latest: number;
+  p?: number | null; q?: number | null; n_pairs?: number | null;
 }
 interface Completeness { feature: string; obs_type: string; n: number; n_missing: number; pct_missing: number; }
-interface Flag { key: string; label: string; domain: Domain; hits: number; eligible: number; pct: number; }
+interface FlagTrendPoint { timepoint_label: string; order: number; pct: number; hits: number; eligible: number; }
+interface Flag {
+  key: string; label: string; domain: Domain; hits: number; eligible: number; pct: number;
+  baseline_pct: number | null; delta_pct: number | null; trend: FlagTrendPoint[];
+}
 interface Series { feature: string; obs_type: string; display: string | null; unit: string | null; domain: Domain; points: TrendPoint[]; }
 interface CohortDetail {
   cohort: { id: string; name: string; pathway: string | null };
@@ -314,66 +320,110 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
       <div className="p-6">
         {/* ---------- CLINICAL OVERVIEW ---------- */}
         {tab === "overview" && (
-          <div className="space-y-5">
-            <p className="text-xs text-gray-500">Share of patients crossing each clinical threshold at the latest timepoint. Denominators vary — conditional screeners are only asked of some patients.</p>
-            {DOMAIN_ORDER.filter((dom) => detail.flags.some((f) => f.domain === dom)).map((dom) => (
-              <div key={dom}>
-                <div className="text-xs font-semibold text-gray-700 mb-2">{DOMAIN_LABELS[dom]}</div>
-                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
-                  {detail.flags.filter((f) => f.domain === dom).map((f) => {
-                    const tone = flagTone(f.pct);
-                    return (
-                      <div key={f.key} className="flex items-center gap-3 text-xs">
-                        <span className="flex-1 text-gray-700">{f.label}</span>
-                        <div className="w-24 h-2 rounded-full bg-gray-100 overflow-hidden">
-                          <div className={`h-full ${tone.bar}`} style={{ width: `${f.pct}%` }} />
-                        </div>
-                        <span className={`w-20 text-right font-medium ${tone.text}`}>{f.pct}% ({f.hits}/{f.eligible})</span>
+          <div className="space-y-6">
+            <p className="text-xs text-gray-500">
+              Share of patients crossing each clinical threshold{multiTimepoint ? ", shown as baseline → latest with the change in percentage points (green = fewer affected)" : " at the latest timepoint"}. Denominators vary — conditional screeners are only asked of some patients.
+            </p>
+            {DOMAIN_GROUPS.map((g) => {
+              const groupFlags = detail.flags.filter((f) => g.domains.includes(f.domain));
+              if (!groupFlags.length) return null;
+              return (
+                <div key={g.key} className="space-y-3">
+                  <div className="flex items-baseline gap-2 border-b border-gray-100 pb-1">
+                    <h3 className="text-sm font-bold text-gray-900">{g.label}</h3>
+                    {g.sublabel && <span className="text-[11px] text-gray-400">— {g.sublabel}</span>}
+                  </div>
+                  {g.domains.filter((dom) => groupFlags.some((f) => f.domain === dom)).map((dom) => (
+                    <div key={dom}>
+                      <div className="text-xs font-semibold text-gray-600 mb-1.5">{DOMAIN_LABELS[dom]}</div>
+                      <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                        {groupFlags.filter((f) => f.domain === dom).map((f) => {
+                          const tone = flagTone(f.pct);
+                          return (
+                            <div key={f.key} className="flex items-center gap-2 text-xs">
+                              <span className="flex-1 text-gray-700">{f.label}</span>
+                              {f.baseline_pct != null && <span className="text-[11px] text-gray-400 tabular-nums">{f.baseline_pct}%→</span>}
+                              <div className="w-16 h-2 rounded-full bg-gray-100 overflow-hidden">
+                                <div className={`h-full ${tone.bar}`} style={{ width: `${f.pct}%` }} />
+                              </div>
+                              <span className={`w-12 text-right font-medium tabular-nums ${tone.text}`}>{f.pct}%</span>
+                              {f.delta_pct != null
+                                ? <span className={`w-14 text-right tabular-nums ${f.delta_pct < 0 ? "text-emerald-600" : f.delta_pct > 0 ? "text-red-600" : "text-gray-400"}`}>{f.delta_pct > 0 ? "+" : ""}{f.delta_pct}pp</span>
+                                : <span className="w-14 text-right text-gray-300 tabular-nums">{f.hits}/{f.eligible}</span>}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {!detail.flags.length && <p className="text-sm text-gray-400">No flag-eligible data yet.</p>}
           </div>
         )}
 
         {/* ---------- BY DOMAIN ---------- */}
         {tab === "domains" && (
-          <div className="space-y-5">
-            {DOMAIN_ORDER.filter((dom) => seriesByDomain(dom).length).map((dom) => (
-              <div key={dom}>
-                <div className="text-xs font-semibold text-gray-700 mb-2">{DOMAIN_LABELS[dom]}</div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="text-left text-[11px] text-gray-400">
-                      <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Mean</th><th className="py-1 pr-4">n</th>
-                      <th className="py-1 pr-4">Reference range</th>{multiTimepoint && <th className="py-1 pr-4">Δ baseline→latest</th>}
-                    </tr></thead>
-                    <tbody>
-                      {seriesByDomain(dom).map((s) => {
-                        const mv = moveByFeature.get(s.feature);
-                        const unit = canonicalUnit(s.feature, s.unit);
-                        return (
-                          <tr key={s.feature} className="border-t border-gray-50">
-                            <td className="py-1 pr-4 text-gray-800">{s.feature}{unit ? <span className="text-gray-400"> ({unit})</span> : null}</td>
-                            <td className="py-1 pr-4 text-gray-700">{latestMean(s) ?? "-"}</td>
-                            <td className="py-1 pr-4 text-gray-500">{latestN(s)}</td>
-                            <td className="py-1 pr-4 text-[11px] text-gray-400">{referenceNote(s.feature)}</td>
-                            {multiTimepoint && (
-                              <td className={`py-1 pr-4 ${deltaTone(s.feature, mv?.delta ?? null)}`} title={deltaTitle(s.feature, mv?.delta ?? null)}>
-                                {mv?.delta != null ? `${mv.delta > 0 ? "+" : ""}${mv.delta}${mv.effect_size != null ? ` (d=${mv.effect_size})` : ""}` : "-"}
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+          <div className="space-y-6">
+            {multiTimepoint && (
+              <p className="text-[11px] text-gray-400">
+                Δ is baseline→latest (green = improvement for that metric, direction-aware). p = paired t-test on per-patient change; q = Benjamini-Hochberg FDR across features. <span className="font-medium">*</span> p&lt;.05 <span className="font-medium">**</span> p&lt;.01 <span className="font-medium">***</span> p&lt;.001. With small n and many features, lean on q and effect size, not raw p alone.
+              </p>
+            )}
+            {DOMAIN_GROUPS.map((g) => {
+              const groupDomains = g.domains.filter((dom) => seriesByDomain(dom).length);
+              if (!groupDomains.length) return null;
+              return (
+                <div key={g.key} className="space-y-4">
+                  <div className="flex items-baseline gap-2 border-b border-gray-100 pb-1">
+                    <h3 className="text-sm font-bold text-gray-900">{g.label}</h3>
+                    {g.sublabel && <span className="text-[11px] text-gray-400">— {g.sublabel}</span>}
+                  </div>
+                  {groupDomains.map((dom) => (
+                    <div key={dom}>
+                      <div className="text-xs font-semibold text-gray-600 mb-2">{DOMAIN_LABELS[dom]}</div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead><tr className="text-left text-[11px] text-gray-400">
+                            <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Mean</th><th className="py-1 pr-4">n</th>
+                            <th className="py-1 pr-4">Reference range</th>
+                            {multiTimepoint && <th className="py-1 pr-4">Δ baseline→latest</th>}
+                            {multiTimepoint && <th className="py-1 pr-4">p (q)</th>}
+                          </tr></thead>
+                          <tbody>
+                            {seriesByDomain(dom).map((s) => {
+                              const mv = moveByFeature.get(s.feature);
+                              const unit = canonicalUnit(s.feature, s.unit);
+                              return (
+                                <tr key={s.feature} className="border-t border-gray-50">
+                                  <td className="py-1 pr-4 text-gray-800">{s.feature}{unit ? <span className="text-gray-400"> ({unit})</span> : null}</td>
+                                  <td className="py-1 pr-4 text-gray-700">{latestMean(s) ?? "-"}</td>
+                                  <td className="py-1 pr-4 text-gray-500">{latestN(s)}</td>
+                                  <td className="py-1 pr-4 text-[11px] text-gray-400">{referenceNote(s.feature)}</td>
+                                  {multiTimepoint && (
+                                    <td className={`py-1 pr-4 tabular-nums ${deltaTone(s.feature, mv?.delta ?? null)}`} title={deltaTitle(s.feature, mv?.delta ?? null)}>
+                                      {mv?.delta != null ? `${mv.delta > 0 ? "+" : ""}${mv.delta}${mv.effect_size != null ? ` (d=${mv.effect_size})` : ""}` : "-"}
+                                    </td>
+                                  )}
+                                  {multiTimepoint && (
+                                    <td className="py-1 pr-4 text-xs tabular-nums text-gray-600">
+                                      {mv?.p != null
+                                        ? <span><span className={mv.p < 0.05 ? "text-gray-900 font-medium" : ""}>{mv.p < 0.001 ? "<.001" : mv.p.toFixed(3)}{sigStars(mv.p)}</span>{mv.q != null ? <span className="text-gray-400"> ({mv.q < 0.001 ? "q<.001" : `q=${mv.q.toFixed(3)}`})</span> : null}</span>
+                                        : "-"}
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -391,7 +441,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-400">
                     <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
-                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change</th><th className="py-1 pr-4">Effect size (d)</th><th className="py-1 pr-4">Direction</th>
+                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change</th><th className="py-1 pr-4">d</th><th className="py-1 pr-4">p (q)</th><th className="py-1 pr-4">Direction</th>
                   </tr></thead>
                   <tbody>
                     {detail.movements.filter((m) => m.effect_size !== null).slice(0, 20).map((m) => {
@@ -399,11 +449,16 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                       return (
                         <tr key={m.feature} className="border-t border-gray-50">
                           <td className="py-1 pr-4 text-gray-800">{m.feature}</td>
-                          <td className="py-1 pr-4 text-gray-600">{m.baseline_mean ?? "-"}</td>
-                          <td className="py-1 pr-4 text-gray-600">{m.latest_mean ?? "-"}</td>
-                          <td className={`py-1 pr-4 ${deltaTone(m.feature, m.delta)}`}>{m.delta != null ? `${m.delta > 0 ? "+" : ""}${m.delta}` : "-"}</td>
-                          <td className="py-1 pr-4 text-gray-600">{m.pct_change !== null ? `${m.pct_change}%` : "-"}</td>
-                          <td className="py-1 pr-4 font-medium text-gray-800">{m.effect_size ?? "-"}</td>
+                          <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.baseline_mean ?? "-"}</td>
+                          <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.latest_mean ?? "-"}</td>
+                          <td className={`py-1 pr-4 tabular-nums ${deltaTone(m.feature, m.delta)}`}>{m.delta != null ? `${m.delta > 0 ? "+" : ""}${m.delta}` : "-"}</td>
+                          <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.pct_change !== null ? `${m.pct_change}%` : "-"}</td>
+                          <td className="py-1 pr-4 font-medium text-gray-800 tabular-nums">{m.effect_size ?? "-"}</td>
+                          <td className="py-1 pr-4 text-xs tabular-nums text-gray-600">
+                            {m.p != null
+                              ? <span><span className={m.p < 0.05 ? "text-gray-900 font-medium" : ""}>{m.p < 0.001 ? "<.001" : m.p.toFixed(3)}{sigStars(m.p)}</span>{m.q != null ? <span className="text-gray-400"> ({m.q < 0.001 ? "q<.001" : `q=${m.q.toFixed(3)}`})</span> : null}</span>
+                              : "-"}
+                          </td>
                           <td className={`py-1 pr-4 text-xs ${deltaTone(m.feature, m.delta)}`}>{good === null ? "—" : good ? "improved" : "worsened"}</td>
                         </tr>
                       );

@@ -14,28 +14,50 @@
 // codes get friendly names (hba1c, bmi, ...); questionnaire scores keep their
 // raw code (phq9, lifeline_health_anxiety_gad_7, ...).
 
-export type Domain = "mental" | "metabolic" | "body" | "cardio" | "substance" | "lifestyle" | "other";
+// Domains are split into the FOUR HEALTH FOUNDATIONS we actively coach
+// (sleep, exercise, nutrition, mental wellness — which includes addiction) and
+// the DOWNSTREAM outcomes we expect those lifestyle changes to move (labs,
+// cardiovascular, body composition).
+export type Domain =
+  | "sleep" | "exercise" | "nutrition" | "mental" | "addiction"   // foundations
+  | "metabolic" | "cardio" | "body"                               // downstream
+  | "other";
 
 export const DOMAIN_LABELS: Record<Domain, string> = {
-  mental: "Mental health",
+  sleep: "Sleep",
+  exercise: "Exercise",
+  nutrition: "Nutrition",
+  mental: "Mental wellness",
+  addiction: "Addiction",
   metabolic: "Metabolic & labs",
-  body: "Body composition",
   cardio: "Cardiovascular",
-  substance: "Substance & addiction",
-  lifestyle: "Lifestyle & behaviour",
+  body: "Body composition",
   other: "Other",
 };
 
-export const DOMAIN_ORDER: Domain[] = ["mental", "metabolic", "cardio", "body", "substance", "lifestyle", "other"];
+// Grouping for the UI: foundations (what we coach) shown first, then the
+// downstream measurements we expect them to change.
+export interface DomainGroup { key: string; label: string; sublabel: string; domains: Domain[]; }
+export const DOMAIN_GROUPS: DomainGroup[] = [
+  { key: "foundations", label: "Health foundations", sublabel: "what we coach", domains: ["sleep", "exercise", "nutrition", "mental", "addiction"] },
+  { key: "outcomes", label: "Downstream measurements", sublabel: "what we expect coaching to change", domains: ["metabolic", "cardio", "body"] },
+  { key: "other", label: "Other", sublabel: "", domains: ["other"] },
+];
+
+export const DOMAIN_ORDER: Domain[] = DOMAIN_GROUPS.flatMap((g) => g.domains);
 
 export function featureDomain(feature: string): Domain {
   const f = feature.toLowerCase();
-  if (/(phq|gad|anxiety|depression|andlegt|sleep|svefn|pwi)/.test(f)) return "mental";
+  // foundations
+  if (/(sleep|svefn|caffine|caffeine)/.test(f)) return "sleep";
+  if (/(exercise|hreyfing)/.test(f)) return "exercise";
+  if (/(nutrition|naering)/.test(f)) return "nutrition";
+  if (/(audit|alcohol|nicotine|gambling|pgsi|cudq|food_addiction|other_substance|assist|fikn|screen_use|cius)/.test(f)) return "addiction";
+  if (/(phq|gad|anxiety|depression|andlegt|pwi)/.test(f)) return "mental";
+  // downstream
   if (/(hba1c|glucose|insulin|homa|cholesterol|triglyc|hdl|\balt\b|\bast\b|metabolic_health|diabetic)/.test(f)) return "metabolic";
   if (/(bp_|blood_pressure|heart_health)/.test(f)) return "cardio";
   if (/(bmi|weight|height|fat_mass|skeletal_muscle)/.test(f)) return "body";
-  if (/(audit|alcohol|nicotine|gambling|pgsi|cudq|food_addiction|other_substance|assist|fikn|caffine|caffeine)/.test(f)) return "substance";
-  if (/(screen_use|cius|exercise|hreyfing|nutrition|naering|lifstil)/.test(f)) return "lifestyle";
   return "other";
 }
 
@@ -173,8 +195,8 @@ export const FLAGS: FlagDef[] = [
   { key: "bmi_obese", label: "Obese (BMI ≥30)", domain: "body", feature: "bmi", cutoff: 30 },
   { key: "bodyfat_high", label: "High body fat (≥30%)", domain: "body", feature: "fat_mass_percent", cutoff: 30 },
   { key: "bp_sys_high", label: "Elevated systolic BP (≥140)", domain: "cardio", feature: "bp_systolic_avg", cutoff: 140 },
-  { key: "audit_c_pos", label: "Hazardous drinking (AUDIT-C ≥4 M / ≥3 F)", domain: "substance", feature: "lifeline_health_audit_c", genderCutoff: { male: 4, female: 3 } },
-  { key: "nicotine", label: "Nicotine use", domain: "substance", feature: "lifeline_health_nicotine_use", boolTrue: true },
+  { key: "audit_c_pos", label: "Hazardous drinking (AUDIT-C ≥4 M / ≥3 F)", domain: "addiction", feature: "lifeline_health_audit_c", genderCutoff: { male: 4, female: 3 } },
+  { key: "nicotine", label: "Nicotine use", domain: "addiction", feature: "lifeline_health_nicotine_use", boolTrue: true },
 ];
 
 export function flagCrosses(def: FlagDef, value: number | boolean | null, gender: string | null): boolean {
