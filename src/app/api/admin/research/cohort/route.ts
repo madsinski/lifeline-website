@@ -206,10 +206,13 @@ export async function GET(req: NextRequest) {
   const totalDqPatients = dqPatients.size || 1;
   const genderByIdAll: Record<string, string | null> = {};
   for (const p of patients || []) genderByIdAll[p.medalia_patient_id] = p.gender;
+  const allDqFeatures = [...dqFeatures].sort();
   const dqPatientRows = [...dqPatients].map((pid) => {
-    const present = presentByPatient.get(pid)?.size ?? 0;
+    const presentSet = presentByPatient.get(pid) ?? new Set<string>();
+    const present = presentSet.size;
     const completenessPct = Math.round((100 * present) / totalFeatures);
-    return { patient: pid, gender: genderByIdAll[pid] ?? null, present, total: totalFeatures, completenessPct,
+    const missing = allDqFeatures.filter((f) => !presentSet.has(f));
+    return { patient: pid, gender: genderByIdAll[pid] ?? null, present, total: totalFeatures, completenessPct, missing,
       excluded: exPatients.has(pid), suggested: completenessPct < 50 };
   }).sort((a, b) => a.completenessPct - b.completenessPct);
   const dqFeatureRows = [...dqFeatures].map((feature) => {

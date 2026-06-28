@@ -37,7 +37,7 @@ interface FeatureDetail {
 interface DataQuality {
   excludedPatients: string[];
   excludedFeatures: string[];
-  patients: { patient: string; gender: string | null; present: number; total: number; completenessPct: number; excluded: boolean; suggested: boolean }[];
+  patients: { patient: string; gender: string | null; present: number; total: number; completenessPct: number; missing: string[]; excluded: boolean; suggested: boolean }[];
   features: { feature: string; present: number; total: number; missingPct: number; conditional?: boolean; excluded: boolean; suggested: boolean }[];
 }
 interface CohortDetail {
@@ -407,6 +407,7 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
   const [exP, setExP] = useState<Set<string>>(new Set(dq?.excludedPatients ?? []));
   const [exF, setExF] = useState<Set<string>>(new Set(dq?.excludedFeatures ?? []));
   const [saving, setSaving] = useState(false);
+  const [openP, setOpenP] = useState<string | null>(null);
   if (!dq) return <p className="text-sm text-gray-400">No data-quality information yet.</p>;
   const toggle = (set: Set<string>, key: string, setter: (s: Set<string>) => void) => {
     const n = new Set(set); if (n.has(key)) n.delete(key); else n.add(key); setter(n);
@@ -443,11 +444,40 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
               </tr></thead>
               <tbody>
                 {dq.patients.map((p) => (
-                  <tr key={p.patient} className={`border-t border-gray-50 ${exP.has(p.patient) ? "bg-red-50" : p.suggested ? "bg-amber-50" : ""}`}>
-                    <td className="py-1 px-2"><input type="checkbox" checked={exP.has(p.patient)} onChange={() => toggle(exP, p.patient, setExP)} /></td>
-                    <td className="py-1 px-2 font-mono text-gray-600">{p.patient}{p.suggested && <span className="ml-1 text-amber-600" title="Near-empty — suggested for exclusion">⚠</span>}</td>
-                    <td className={`py-1 px-2 tabular-nums ${p.completenessPct < 50 ? "text-red-600" : "text-gray-600"}`}>{p.completenessPct}% ({p.present}/{p.total})</td>
-                  </tr>
+                  <Fragment key={p.patient}>
+                    <tr className={`border-t border-gray-50 ${exP.has(p.patient) ? "bg-red-50" : p.suggested ? "bg-amber-50" : ""}`}>
+                      <td className="py-1 px-2"><input type="checkbox" checked={exP.has(p.patient)} onChange={() => toggle(exP, p.patient, setExP)} /></td>
+                      <td className="py-1 px-2 font-mono text-gray-600">
+                        <button type="button" onClick={() => setOpenP(openP === p.patient ? null : p.patient)} className="inline-flex items-center gap-1 hover:text-emerald-700" title="Show which variables are missing">
+                          <span className="w-3 text-gray-400">{openP === p.patient ? "▾" : "▸"}</span>{p.patient}
+                        </button>
+                        {p.suggested && <span className="ml-1 text-amber-600" title="Near-empty — suggested for exclusion">⚠</span>}
+                      </td>
+                      <td className={`py-1 px-2 tabular-nums ${p.completenessPct < 50 ? "text-red-600" : "text-gray-600"}`}>{p.completenessPct}% ({p.present}/{p.total})</td>
+                    </tr>
+                    {openP === p.patient && (
+                      <tr className="bg-gray-50/60">
+                        <td colSpan={3} className="px-3 py-2">
+                          {p.missing.length === 0
+                            ? <span className="text-[11px] text-emerald-700">All variables present.</span>
+                            : (
+                              <div>
+                                <div className="text-[10px] text-gray-500 mb-1">{p.missing.length} missing variable(s) — click one to exclude that column for the whole cohort:</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {p.missing.map((f) => (
+                                    <button key={f} type="button" onClick={() => toggle(exF, f, setExF)}
+                                      title="Toggle exclusion of this variable"
+                                      className={`text-[10px] rounded px-1.5 py-0.5 border ${exF.has(f) ? "bg-red-100 border-red-300 text-red-700 line-through" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}>
+                                      {f}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
