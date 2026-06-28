@@ -33,7 +33,7 @@ interface Series { feature: string; obs_type: string; display: string | null; un
 interface FeatureDetail {
   feature: string; unit: string | null; timepoints: string[];
   gating?: { label: string; negativeAnswers: string[] } | null;
-  rows: { patient: string; gender: string | null; values: Record<string, number | string | boolean | null>; gateAnswer?: string | null }[];
+  rows: { patient: string; index: number; gender: string | null; values: Record<string, number | string | boolean | null>; gateAnswer?: string | null }[];
 }
 interface DataQuality {
   excludedPatients: string[];
@@ -394,11 +394,11 @@ function FeatureDetailTable({ feature, state }: { feature: string; state: Featur
           </tr>
         </thead>
         <tbody>
-          {state.rows.map((r, i) => {
+          {state.rows.map((r) => {
             const missingGate = gating && hasValue(r) && !r.gateAnswer;
             return (
             <tr key={r.patient} className={`border-t border-gray-50 ${missingGate ? "bg-red-50" : ""}`}>
-              <td className="py-1 px-2 tabular-nums text-gray-400">{i + 1}</td>
+              <td className="py-1 px-2 tabular-nums text-gray-400">{r.index}</td>
               <td className="py-1 px-2 font-mono text-gray-600">{r.patient}</td>
               <td className="py-1 px-2 text-gray-500">{r.gender || "—"}</td>
               {state.timepoints.map((t) => <td key={t} className="py-1 px-2 tabular-nums text-gray-700">{fmt(r.values[t])}</td>)}

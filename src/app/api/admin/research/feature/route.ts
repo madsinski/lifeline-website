@@ -39,6 +39,10 @@ export async function GET(req: NextRequest) {
     .from("research_patients").select("medalia_patient_id, gender").eq("cohort_id", cohortId);
   const genderById: Record<string, string | null> = {};
   for (const p of patients || []) genderById[p.medalia_patient_id] = p.gender;
+  // Stable cohort-wide patient number (by sorted UUID) so #1 is the same patient
+  // in every variable's dropdown, even when a variable has fewer patients.
+  const orderedUuids = (patients || []).map((p) => p.medalia_patient_id).sort((a, b) => a.localeCompare(b));
+  const indexByPatient = new Map(orderedUuids.map((u, i) => [u, i + 1]));
 
   // observations for this feature
   const obs = await pageAll<{ medalia_patient_id: string; timepoint_label: string; value_num: number | null; value_text: string | null; value_bool: boolean | null; unit: string | null }>(
@@ -75,10 +79,10 @@ export async function GET(req: NextRequest) {
 
   const rows = [...byPatient.entries()]
     .map(([patient, values]) => ({
-      patient, gender: genderById[patient] ?? null, values,
+      patient, index: indexByPatient.get(patient) ?? 0, gender: genderById[patient] ?? null, values,
       gateAnswer: rule ? (gateByPatient.get(patient) ?? null) : undefined,
     }))
-    .sort((a, b) => a.patient.localeCompare(b.patient));
+    .sort((a, b) => a.index - b.index);
 
   return NextResponse.json({
     feature, unit, timepoints, rows,
