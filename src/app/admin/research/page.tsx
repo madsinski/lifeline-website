@@ -22,12 +22,15 @@ interface Movement {
   baseline_label: string; latest_label: string; baseline_mean: number | null; latest_mean: number | null;
   delta: number | null; pct_change: number | null; effect_size: number | null; n_baseline: number; n_latest: number;
   p?: number | null; q?: number | null; n_pairs?: number | null;
+  ci?: [number, number] | null; wilcoxon_p?: number | null; responder_pct?: number | null;
 }
+interface FlagTransitions { improved: number; worsened: number; stableFlagged: number; paired: number; p: number; }
 interface Completeness { feature: string; obs_type: string; n: number; n_missing: number; pct_missing: number; }
 interface FlagTrendPoint { timepoint_label: string; order: number; pct: number; hits: number; eligible: number; }
 interface Flag {
   key: string; label: string; domain: Domain; hits: number; eligible: number; pct: number;
   baseline_pct: number | null; delta_pct: number | null; trend: FlagTrendPoint[];
+  transitions?: FlagTransitions | null;
 }
 interface Series { feature: string; obs_type: string; display: string | null; unit: string | null; domain: Domain; points: TrendPoint[]; }
 interface FeatureDetail {
@@ -50,6 +53,8 @@ interface CohortDetail {
   flags: Flag[];
   movements: Movement[];
   completeness: Completeness[];
+  retention?: { byTimepoint: { timepoint_label: string; order: number; n: number }[]; retainedN: number | null; baselineN: number | null; retainedPct: number | null };
+  healthIndex?: { baseline: number | null; latest: number | null };
   aiAnalyses: { id: string; model: string | null; summary_md: string; created_at: string }[];
 }
 
@@ -657,6 +662,38 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
               Share of patients crossing each clinical or lifestyle threshold{multiTimepoint ? ", shown as baseline → latest with the change in percentage points (green = fewer affected)" : " at the latest timepoint"}. This is a curated set of decision-relevant thresholds — see the <span className="font-medium text-gray-600">By domain</span> tab for every variable. Denominators vary: conditional screeners and lifestyle sub-scores are only recorded for some patients.
               <InfoTip title="How prevalence & change are calculated">{METHOD.flags}</InfoTip>
             </p>
+            {(detail.healthIndex?.latest != null || detail.retention?.retainedPct != null) && (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {detail.healthIndex?.latest != null && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-emerald-900">Workforce Health Index</div>
+                      <div className="text-[11px] text-emerald-700">0–100 composite of the lifestyle foundations (higher is better)</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-emerald-900 tabular-nums leading-none">{detail.healthIndex.latest}<span className="text-sm font-normal text-emerald-600">/100</span></div>
+                      {detail.healthIndex.baseline != null && (
+                        <div className={`text-[11px] mt-1 ${detail.healthIndex.latest >= detail.healthIndex.baseline ? "text-emerald-600" : "text-red-600"}`}>
+                          {detail.healthIndex.baseline} → {detail.healthIndex.latest} ({detail.healthIndex.latest - detail.healthIndex.baseline > 0 ? "+" : ""}{detail.healthIndex.latest - detail.healthIndex.baseline})
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {detail.retention?.retainedPct != null && (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-gray-900">Retention</div>
+                      <div className="text-[11px] text-gray-500">participants present at both baseline and latest</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900 tabular-nums leading-none">{detail.retention.retainedPct}%</div>
+                      <div className="text-[11px] text-gray-500 mt-1">{detail.retention.retainedN}/{detail.retention.baselineN} retained</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {DOMAIN_GROUPS.map((g) => {
               const groupFlags = detail.flags.filter((f) => g.domains.includes(f.domain));
               if (!groupFlags.length) return null;
@@ -683,6 +720,11 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                               {f.delta_pct != null
                                 ? <span className={`w-14 text-right tabular-nums ${f.delta_pct < 0 ? "text-emerald-600" : f.delta_pct > 0 ? "text-red-600" : "text-gray-400"}`}>{f.delta_pct > 0 ? "+" : ""}{f.delta_pct}pp</span>
                                 : <span className="w-14 text-right text-gray-300 tabular-nums">{f.hits}/{f.eligible}</span>}
+                              {f.transitions && (f.transitions.improved || f.transitions.worsened)
+                                ? <span className="w-24 text-right text-[10px] tabular-nums text-gray-500" title={`McNemar p=${f.transitions.p}`}>
+                                    <span className="text-emerald-600">↓{f.transitions.improved}</span> <span className="text-red-600">↑{f.transitions.worsened}</span>{f.transitions.p < 0.05 ? <span className="text-gray-900 font-bold"> *</span> : null}
+                                  </span>
+                                : <span className="w-24" />}
                             </div>
                           );
                         })}
@@ -816,7 +858,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-400">
                     <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
-                    <th className="py-1 pr-4">Δ</th><th className="py-1 pr-4">% change<InfoTip title="% change">{METHOD.pctChange}</InfoTip></th><th className="py-1 pr-4">d<InfoTip title="Effect size">{METHOD.effect}</InfoTip></th><th className="py-1 pr-4">p (q)<InfoTip title="Significance (p and q)">{METHOD.pq}</InfoTip></th><th className="py-1 pr-4">Direction</th>
+                    <th className="py-1 pr-4">Δ (95% CI)<InfoTip title="Change & confidence interval">{METHOD.delta}<span className="block mt-1">95% CI = the plausible range for the true mean change (paired t). If it excludes 0, the change is significant at p&lt;.05.</span></InfoTip></th><th className="py-1 pr-4">% change<InfoTip title="% change">{METHOD.pctChange}</InfoTip></th><th className="py-1 pr-4">d<InfoTip title="Effect size">{METHOD.effect}</InfoTip></th><th className="py-1 pr-4">Responders<InfoTip title="Responder rate">% of paired patients whose change is in the beneficial direction AND at least half a baseline SD in size (a clinically-meaningful-change proxy).</InfoTip></th><th className="py-1 pr-4">p (q)<InfoTip title="Significance (p, q, Wilcoxon)">{METHOD.pq}<span className="block mt-1">Wilcoxon = non-parametric paired test (for non-normal/ordinal scores); shown in the tooltip alongside p.</span></InfoTip></th><th className="py-1 pr-4">Direction</th>
                   </tr></thead>
                   <tbody>
                     {detail.movements.filter((m) => m.effect_size !== null).slice(0, 20).map((m) => {
@@ -826,10 +868,14 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                           <td className="py-1 pr-4 text-gray-800">{m.feature}</td>
                           <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.baseline_mean ?? "-"}</td>
                           <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.latest_mean ?? "-"}</td>
-                          <td className={`py-1 pr-4 tabular-nums ${deltaTone(m.feature, m.delta)}`}>{m.delta != null ? `${m.delta > 0 ? "+" : ""}${m.delta}` : "-"}</td>
+                          <td className={`py-1 pr-4 tabular-nums ${deltaTone(m.feature, m.delta)}`}>
+                            {m.delta != null ? `${m.delta > 0 ? "+" : ""}${m.delta}` : "-"}
+                            {m.ci ? <span className="text-gray-400 text-[10px]"> [{m.ci[0]}, {m.ci[1]}]</span> : null}
+                          </td>
                           <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.pct_change !== null ? `${m.pct_change}%` : "-"}</td>
                           <td className="py-1 pr-4 font-medium text-gray-800 tabular-nums">{m.effect_size ?? "-"}</td>
-                          <td className="py-1 pr-4 text-xs tabular-nums text-gray-600">
+                          <td className="py-1 pr-4 tabular-nums text-gray-700">{m.responder_pct != null ? `${m.responder_pct}%` : "-"}</td>
+                          <td className="py-1 pr-4 text-xs tabular-nums text-gray-600" title={m.wilcoxon_p != null ? `Wilcoxon p=${m.wilcoxon_p < 0.001 ? "<.001" : m.wilcoxon_p.toFixed(3)}` : undefined}>
                             {m.p != null
                               ? <span><span className={m.p < 0.05 ? "text-gray-900 font-medium" : ""}>{m.p < 0.001 ? "<.001" : m.p.toFixed(3)}{sigStars(m.p)}</span>{m.q != null ? <span className="text-gray-400"> ({m.q < 0.001 ? "q<.001" : `q=${m.q.toFixed(3)}`})</span> : null}</span>
                               : "-"}

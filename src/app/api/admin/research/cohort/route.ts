@@ -9,7 +9,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchRead } from "@/lib/research/access";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
 import { featureDomain, FLAGS, flagCrosses, isConditional } from "@/lib/research/clinical";
-import { pairedTTest, benjaminiHochberg } from "@/lib/research/stats";
+import { pairedTTest, benjaminiHochberg, wilcoxonSignedRank, mcnemar } from "@/lib/research/stats";
+import { featureDirection } from "@/lib/research/clinical";
 
 async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
   const out: T[] = []; const PAGE = 1000;
@@ -130,22 +131,44 @@ export async function GET(req: NextRequest) {
     }
     return { eligible, hits, pct: eligible ? Math.round((100 * hits) / eligible) : 0 };
   };
+  const multiTimepoint = minOrder !== latestOrder;
+  // paired flag transitions (band-shift) + McNemar test over patients present at both timepoints
+  const transitionsFor = (def: typeof FLAGS[number]) => {
+    const pmB = valsByTpPatient.get(minOrder), pmL = valsByTpPatient.get(latestOrder);
+    if (!multiTimepoint || !pmB || !pmL) return null;
+    let improved = 0, worsened = 0, stableFlagged = 0, paired = 0;
+    for (const [pid, fvB] of pmB) {
+      const fvL = pmL.get(pid);
+      if (!fvL) continue;
+      if (!(def.feature in fvB) || fvB[def.feature] === null) continue;
+      if (!(def.feature in fvL) || fvL[def.feature] === null) continue;
+      paired++;
+      const posB = flagCrosses(def, fvB[def.feature], genderById[pid] ?? null);
+      const posL = flagCrosses(def, fvL[def.feature], genderById[pid] ?? null);
+      if (posB && !posL) improved++; else if (!posB && posL) worsened++; else if (posB && posL) stableFlagged++;
+    }
+    const m = mcnemar(improved, worsened);
+    return { improved, worsened, stableFlagged, paired, p: Math.round(m.p * 1000) / 1000 };
+  };
   const flags = FLAGS.filter((def) => !exFeatures.has(def.feature)).map((def) => {
     const trend = orders.map((order) => ({ timepoint_label: labelByOrder[order], order, ...prevalenceAt(def, order) }));
     const latest = prevalenceAt(def, latestOrder);
-    const base = minOrder !== latestOrder ? prevalenceAt(def, minOrder) : null;
+    const base = multiTimepoint ? prevalenceAt(def, minOrder) : null;
     return {
       key: def.key, label: def.label, domain: def.domain,
       hits: latest.hits, eligible: latest.eligible, pct: latest.pct,
       baseline_pct: base && base.eligible ? base.pct : null,
       delta_pct: base && base.eligible ? latest.pct - base.pct : null,
+      transitions: transitionsFor(def),
       trend,
     };
   }).filter((f) => f.eligible > 0).sort((a, b) => b.pct - a.pct);
 
   // ---- per-feature paired significance (baseline -> latest), only with 2+ timepoints ----
-  const significance: Record<string, { n: number; p: number; q: number; meanDelta: number }> = {};
-  if (minOrder !== latestOrder) {
+  type Sig = { n: number; p: number; q: number; meanDelta: number; ci: [number, number]; wilcoxonP: number | null; responderPct: number | null };
+  const significance: Record<string, Sig> = {};
+  const r2 = (x: number) => Math.round(x * 100) / 100;
+  if (multiTimepoint) {
     const pairObs = await pageAll<{ medalia_patient_id: string; feature: string; timepoint_order: number; value_num: number | null }>(
       (from, to) => supabaseAdmin
         .from("research_observations")
@@ -162,12 +185,22 @@ export async function GET(req: NextRequest) {
       const slot = pm.get(o.medalia_patient_id)!;
       if (o.timepoint_order === minOrder) slot.b = o.value_num; else if (o.timepoint_order === latestOrder) slot.l = o.value_num;
     }
-    const feats: string[] = []; const pv: number[] = []; const tmp: Record<string, { n: number; p: number; meanDelta: number }> = {};
+    const feats: string[] = []; const pv: number[] = []; const tmp: Record<string, Omit<Sig, "q">> = {};
     for (const [feat, pm] of byFeat) {
-      const deltas: number[] = [];
-      for (const slot of pm.values()) if (slot.b !== undefined && slot.l !== undefined) deltas.push(slot.l - slot.b);
+      const baseVals: number[] = []; const deltas: number[] = [];
+      for (const slot of pm.values()) if (slot.b !== undefined && slot.l !== undefined) { baseVals.push(slot.b); deltas.push(slot.l - slot.b); }
       const res = pairedTTest(deltas);
-      if (res) { feats.push(feat); pv.push(res.p); tmp[feat] = { n: res.n, p: res.p, meanDelta: Math.round(res.meanDelta * 100) / 100 }; }
+      if (!res) continue;
+      // responder rate: % whose change is beneficial AND ≥ 0.5 × baseline SD (a half-SD MCID proxy)
+      const bMean = baseVals.reduce((a, b) => a + b, 0) / baseVals.length;
+      const bSd = Math.sqrt(baseVals.reduce((a, b) => a + (b - bMean) ** 2, 0) / Math.max(1, baseVals.length - 1));
+      const dir = featureDirection(feat); const thr = 0.5 * bSd;
+      let responders = 0, evaluable = 0;
+      if (dir !== "neutral" && thr > 0) for (const dlt of deltas) { evaluable++; const good = dir === "up" ? dlt > 0 : dlt < 0; if (good && Math.abs(dlt) >= thr) responders++; }
+      const wil = wilcoxonSignedRank(deltas);
+      feats.push(feat); pv.push(res.p);
+      tmp[feat] = { n: res.n, p: res.p, meanDelta: r2(res.meanDelta), ci: [r2(res.ci95[0]), r2(res.ci95[1])],
+        wilcoxonP: wil ? Math.round(wil.p * 1000) / 1000 : null, responderPct: evaluable ? Math.round((100 * responders) / evaluable) : null };
     }
     const q = benjaminiHochberg(pv);
     feats.forEach((f, i) => { significance[f] = { ...tmp[f], q: Math.round(q[i] * 1000) / 1000 }; });
@@ -177,6 +210,9 @@ export async function GET(req: NextRequest) {
     p: significance[m.feature]?.p ?? null,
     q: significance[m.feature]?.q ?? null,
     n_pairs: significance[m.feature]?.n ?? null,
+    ci: significance[m.feature]?.ci ?? null,
+    wilcoxon_p: significance[m.feature]?.wilcoxonP ?? null,
+    responder_pct: significance[m.feature]?.responderPct ?? null,
   }));
 
   // ---- data quality: per-patient completeness & per-feature missingness at the
@@ -225,6 +261,29 @@ export async function GET(req: NextRequest) {
       excluded: exFeatures.has(feature), suggested: missingPct > 50 && !conditional };
   }).sort((a, b) => b.missingPct - a.missingPct);
 
+  // ---- retention across timepoints (patient sets via near-universal flag features) ----
+  const retention = orders.map((order) => ({ timepoint_label: labelByOrder[order], order, n: valsByTpPatient.get(order)?.size ?? 0 }));
+  let retainedPct: number | null = null, retainedN: number | null = null, baselineN: number | null = null;
+  if (multiTimepoint) {
+    const bSet = valsByTpPatient.get(minOrder), lSet = valsByTpPatient.get(latestOrder);
+    if (bSet && lSet) {
+      let retained = 0; for (const pid of bSet.keys()) if (lSet.has(pid)) retained++;
+      retainedN = retained; baselineN = bSet.size; retainedPct = bSet.size ? Math.round((100 * retained) / bSet.size) : null;
+    }
+  }
+
+  // ---- Workforce Health Index (0-100) = lífstílseinkunn ×10, else mean of foundation 0-10 scores ----
+  const tArr = (trends || []) as unknown as TrendStat[];
+  const meanAt = (feat: string, order: number) => tArr.find((t) => t.feature === feat && t.timepoint_order === order)?.mean ?? null;
+  const FOUND10 = ["lifeline_health_sleep_medical_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_medical_score", "lifeline_health_exercise_behavioural_score", "lifeline_health_nutrition_medical_score", "lifeline_health_nutrition_behavioural_score", "pwi"];
+  const indexAt = (order: number): number | null => {
+    const life = meanAt("lifstilseinkunn", order);
+    if (life !== null) return Math.round(life * 10);
+    const ms = FOUND10.map((f) => meanAt(f, order)).filter((v): v is number => v !== null);
+    return ms.length ? Math.round((ms.reduce((a, b) => a + b, 0) / ms.length) * 10) : null;
+  };
+  const healthIndex = { baseline: indexAt(minOrder), latest: indexAt(latestOrder) };
+
   const { data: aiAnalyses } = await supabaseAdmin
     .from("research_ai_analyses")
     .select("id, scope, model, summary_md, created_at")
@@ -253,6 +312,8 @@ export async function GET(req: NextRequest) {
     flags,
     movements: movementsOut,
     completeness,
+    retention: { byTimepoint: retention, retainedN, baselineN, retainedPct },
+    healthIndex,
     aiAnalyses: aiAnalyses || [],
   });
 }
