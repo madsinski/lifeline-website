@@ -199,6 +199,48 @@ export const CONDITIONAL_FEATURES = new Set<string>([
   "lifeline_health_gambling_pgsi", "lifeline_health_beds_7",
 ]);
 export const isConditional = (feature: string): boolean => CONDITIONAL_FEATURES.has(feature);
+
+// Verification that a unified score reflects an ACTUAL pre-gate answer (not a
+// skipped section): a full-points score (e.g. alcohol = 10) is only trustworthy
+// if the patient answered the pre-gate question. gateTextMatch is matched
+// (case-insensitive substring) against the raw questionnaire question text;
+// negativeAnswers are the Icelandic values meaning "no use" (→ full points).
+export interface GatingRule { label: string; scores: string[]; gateTextMatch: string; negativeAnswers: string[]; }
+export const GATING_RULES: GatingRule[] = [
+  {
+    label: "Alcohol",
+    scores: ["lifeline_health_alcohol_addiction_1_10"],
+    gateTextMatch: "áfengan drykk",                 // "Hversu oft færð þú þér áfengan drykk?"
+    negativeAnswers: ["Aldrei"],
+  },
+  {
+    label: "Nicotine",
+    scores: ["lifeline_health_nicotine_use_1_10"],
+    gateTextMatch: "notkun þinni á nikótín",        // "...hvað lýsir best notkun þinni á nikótín- eða tóbaksvörum"
+    negativeAnswers: ["Ég hef aldrei notað nikótín eða tóbak", "Ég hætti fyrir meira en 12 mánuðum síðan"],
+  },
+  {
+    label: "Gambling",
+    scores: ["lifeline_health_gambling_1_10"],
+    gateTextMatch: "spilað fjárhættuspil",          // "...hefur þú spilað fjárhættuspil á þann hátt..."
+    negativeAnswers: ["Nei"],
+  },
+  {
+    label: "Other substances",
+    scores: ["lifeline_health_other_substance_addiction_1_10"],
+    gateTextMatch: "notað eitthvað af eftirfarandi til að takast",
+    negativeAnswers: ["Nei"],
+  },
+  {
+    label: "Disordered eating",
+    scores: ["lifeline_health_food_addiction_1_10"],
+    gateTextMatch: "borðir óhóflega mikið",         // "...hefur þú... upplifað að þú borðir óhóflega mikið..."
+    negativeAnswers: ["Nei"],
+  },
+];
+export function gatingForFeature(feature: string): GatingRule | null {
+  return GATING_RULES.find((g) => g.scores.includes(feature)) ?? null;
+}
 // feature -> the family whose unified 0–10 score should be used instead
 const SCORE_FOR: Record<string, string> = Object.fromEntries(
   GATED_FAMILIES.filter((g) => g.full !== g.score).map((g) => [g.full, g.score]),

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchRead } from "@/lib/research/access";
+import { gatingForFeature } from "@/lib/research/clinical";
 
 async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
   const out: T[] = []; const PAGE = 1000;
@@ -53,9 +54,34 @@ export async function GET(req: NextRequest) {
     if (!byPatient.has(o.medalia_patient_id)) byPatient.set(o.medalia_patient_id, {});
     byPatient.get(o.medalia_patient_id)![o.timepoint_label] = o.value_num ?? o.value_text ?? o.value_bool ?? null;
   }
+  // Gate verification: if this is a gated unified score, attach each patient's
+  // pre-gate answer so a full-points score can be confirmed as a real answer
+  // (e.g. "Aldrei") rather than a skipped section.
+  const rule = gatingForFeature(feature);
+  const gateByPatient = new Map<string, string | null>();
+  if (rule) {
+    const ans = await pageAll<{ medalia_patient_id: string; value_text: string | null; authored_at: string | null }>(
+      (from, to) => supabaseAdmin.from("research_answers")
+        .select("medalia_patient_id, value_text, authored_at")
+        .eq("cohort_id", cohortId).ilike("question_text", `%${rule.gateTextMatch}%`).range(from, to),
+    );
+    const latest = new Map<string, { v: string | null; t: string }>();
+    for (const a of ans) {
+      const cur = latest.get(a.medalia_patient_id);
+      if (!cur || (a.authored_at ?? "") >= cur.t) latest.set(a.medalia_patient_id, { v: a.value_text, t: a.authored_at ?? "" });
+    }
+    for (const [pid, v] of latest) gateByPatient.set(pid, v.v);
+  }
+
   const rows = [...byPatient.entries()]
-    .map(([patient, values]) => ({ patient, gender: genderById[patient] ?? null, values }))
+    .map(([patient, values]) => ({
+      patient, gender: genderById[patient] ?? null, values,
+      gateAnswer: rule ? (gateByPatient.get(patient) ?? null) : undefined,
+    }))
     .sort((a, b) => a.patient.localeCompare(b.patient));
 
-  return NextResponse.json({ feature, unit, timepoints, rows });
+  return NextResponse.json({
+    feature, unit, timepoints, rows,
+    gating: rule ? { label: rule.label, negativeAnswers: rule.negativeAnswers } : null,
+  });
 }

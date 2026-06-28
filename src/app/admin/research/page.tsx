@@ -32,7 +32,8 @@ interface Flag {
 interface Series { feature: string; obs_type: string; display: string | null; unit: string | null; domain: Domain; points: TrendPoint[]; }
 interface FeatureDetail {
   feature: string; unit: string | null; timepoints: string[];
-  rows: { patient: string; gender: string | null; values: Record<string, number | string | boolean | null> }[];
+  gating?: { label: string; negativeAnswers: string[] } | null;
+  rows: { patient: string; gender: string | null; values: Record<string, number | string | boolean | null>; gateAnswer?: string | null }[];
 }
 interface DataQuality {
   excludedPatients: string[];
@@ -376,9 +377,12 @@ function FeatureDetailTable({ feature, state }: { feature: string; state: Featur
   if (state === undefined || state === "loading") return <div className="text-xs text-gray-400 py-2">Loading per-patient values…</div>;
   if (state === "error") return <div className="text-xs text-red-500 py-2">Could not load values.</div>;
   const unit = canonicalUnit(feature, state.unit);
+  const gating = state.gating;
   const fmt = (v: unknown) => (v === null || v === undefined ? "—" : typeof v === "boolean" ? (v ? "yes" : "no") : String(v));
+  const hasValue = (r: FeatureDetail["rows"][number]) => state.timepoints.some((t) => r.values[t] !== null && r.values[t] !== undefined);
   return (
     <div className="max-h-72 overflow-y-auto rounded border border-gray-100 bg-white">
+      {gating && <div className="text-[10px] text-gray-500 px-2 py-1 bg-sky-50 border-b border-sky-100">Gated score — the <b>Pre-gate</b> column shows the patient&apos;s actual answer that produced the score. A value with no pre-gate answer (⚠) means the section may have been skipped, not genuinely answered.</div>}
       <table className="w-full text-[11px]">
         <thead className="sticky top-0 bg-gray-50">
           <tr className="text-left text-gray-400">
@@ -386,18 +390,29 @@ function FeatureDetailTable({ feature, state }: { feature: string; state: Featur
             <th className="py-1 px-2 font-medium">Patient UUID</th>
             <th className="py-1 px-2 font-medium">Sex</th>
             {state.timepoints.map((t) => <th key={t} className="py-1 px-2 font-medium">{t}{unit ? ` (${unit})` : ""}</th>)}
+            {gating && <th className="py-1 px-2 font-medium">Pre-gate answer</th>}
           </tr>
         </thead>
         <tbody>
-          {state.rows.map((r, i) => (
-            <tr key={r.patient} className="border-t border-gray-50">
+          {state.rows.map((r, i) => {
+            const missingGate = gating && hasValue(r) && !r.gateAnswer;
+            return (
+            <tr key={r.patient} className={`border-t border-gray-50 ${missingGate ? "bg-red-50" : ""}`}>
               <td className="py-1 px-2 tabular-nums text-gray-400">{i + 1}</td>
               <td className="py-1 px-2 font-mono text-gray-600">{r.patient}</td>
               <td className="py-1 px-2 text-gray-500">{r.gender || "—"}</td>
               {state.timepoints.map((t) => <td key={t} className="py-1 px-2 tabular-nums text-gray-700">{fmt(r.values[t])}</td>)}
+              {gating && (
+                <td className="py-1 px-2">
+                  {r.gateAnswer
+                    ? <span className={gating.negativeAnswers.includes(r.gateAnswer) ? "text-gray-500" : "text-gray-700"}>{r.gateAnswer}</span>
+                    : <span className="text-red-600" title="No pre-gate answer recorded — the score may come from a skipped section">⚠ no answer</span>}
+                </td>
+              )}
             </tr>
-          ))}
-          {!state.rows.length && <tr><td className="py-2 px-2 text-gray-400" colSpan={3 + state.timepoints.length}>No values recorded.</td></tr>}
+            );
+          })}
+          {!state.rows.length && <tr><td className="py-2 px-2 text-gray-400" colSpan={(gating ? 4 : 3) + state.timepoints.length}>No values recorded.</td></tr>}
         </tbody>
       </table>
     </div>
@@ -421,6 +436,14 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
   const dirty = JSON.stringify([...exP].sort()) !== JSON.stringify([...dq.excludedPatients].sort())
     || JSON.stringify([...exF].sort()) !== JSON.stringify([...dq.excludedFeatures].sort());
   const apply = async () => { setSaving(true); await onSave([...exP], [...exF]); setSaving(false); };
+
+  // Variable counts react live to the patients currently checked for exclusion.
+  const includedPatients = dq.patients.filter((p) => !exP.has(p.patient));
+  const liveTotal = includedPatients.length;
+  const liveStats = (feature: string) => {
+    const present = includedPatients.filter((p) => !p.missing.includes(feature)).length;
+    return { present, total: liveTotal, missingPct: liveTotal ? Math.round((100 * (liveTotal - present)) / liveTotal) : 0 };
+  };
 
   return (
     <div className="space-y-4">
@@ -487,14 +510,16 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
         </div>
         {/* features */}
         <div>
-          <div className="text-xs font-semibold text-gray-700 mb-2">Variables (columns) — missingness at latest timepoint</div>
+          <div className="text-xs font-semibold text-gray-700 mb-2">Variables (columns) — missingness across {liveTotal} included patient(s){exP.size ? ` (of ${dq.patients.length})` : ""}</div>
           <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-100">
             <table className="w-full text-[11px]">
               <thead className="sticky top-0 bg-gray-50"><tr className="text-left text-gray-400">
                 <th className="py-1 px-2 font-medium">Exclude</th><th className="py-1 px-2 font-medium">Variable</th><th className="py-1 px-2 font-medium">Missing</th>
               </tr></thead>
               <tbody>
-                {dq.features.map((f) => (
+                {dq.features.map((f) => {
+                  const ls = liveStats(f.feature);
+                  return (
                   <tr key={f.feature} className={`border-t border-gray-50 ${exF.has(f.feature) ? "bg-red-50" : f.suggested ? "bg-amber-50" : ""}`}>
                     <td className="py-1 px-2"><input type="checkbox" checked={exF.has(f.feature)} onChange={() => toggle(exF, f.feature, setExF)} /></td>
                     <td className="py-1 px-2 text-gray-700">
@@ -502,9 +527,10 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
                       {f.suggested && <span className="ml-1 text-amber-600" title="Mostly missing — suggested for exclusion">⚠</span>}
                       {f.conditional && <span className="ml-1 text-[9px] uppercase tracking-wide text-sky-600 bg-sky-50 rounded px-1 py-0.5" title="Conditional questionnaire: only administered when the screen is positive — missing means screened negative, not data loss. Use the unified 0–10 score for whole-cohort analysis.">conditional</span>}
                     </td>
-                    <td className={`py-1 px-2 tabular-nums ${f.missingPct > 50 && !f.conditional ? "text-red-600" : "text-gray-600"}`}>{f.missingPct}% ({f.total - f.present}/{f.total})</td>
+                    <td className={`py-1 px-2 tabular-nums ${ls.missingPct > 50 && !f.conditional ? "text-red-600" : "text-gray-600"}`}>{ls.missingPct}% ({ls.total - ls.present}/{ls.total})</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
