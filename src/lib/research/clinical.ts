@@ -186,9 +186,15 @@ export const GATED_FAMILIES: GatedFamily[] = [
   { label: "Screen use", gate: "lifeline_health_screen_use_cius_5", full: "lifeline_health_screen_use_cius_14", score: "lifeline_health_screen_use_1_10" },
   { label: "Cannabis", gate: "lifeline_health_cudq_5_score", full: "lifeline_health_cudq_5_score", score: "lifeline_health_other_substance_addiction_1_10" },
 ];
-// Full instruments that are conditional on a positive screen (sparse by design).
+// Instruments that are conditional (sparse BY DESIGN, not data loss):
+//  - full instruments asked only when their short screen is positive, and
+//  - gate screeners themselves skipped by a "do you use X at all?" pre-gate.
+//    Confirmed for alcohol: the pre-gate "Hversu oft færð þú þér áfengan drykk?"
+//    answered "Aldrei" (Never) skips AUDIT-C entirely; the unified 0–10
+//    "Áfengi - venjur" score is 10 (no problem) for those non-drinkers.
 export const CONDITIONAL_FEATURES = new Set<string>([
   "phq9", "lifeline_health_anxiety_gad_7", "lifeline_health_audit_10",
+  "lifeline_health_audit_c",                       // pre-gated: non-drinkers skip it
   "lifeline_health_screen_use_cius_14", "lifeline_health_cudq_5_score",
   "lifeline_health_gambling_pgsi", "lifeline_health_beds_7",
 ]);
@@ -204,7 +210,7 @@ export const unifiedScoreFor = (feature: string): string | null => SCORE_FOR[fea
  *  functioning in a category (low = more medical barriers); "behavioural"
  *  sub-scores reflect habits. Both run 0-10, higher = better. */
 export function referenceNote(feature: string): string {
-  const cond = isConditional(feature) ? " · conditional (only if screen positive)" : "";
+  const cond = isConditional(feature) ? " · conditional — skipped by a pre-screen (e.g. non-drinkers skip AUDIT-C); missing = no use. Use the unified 0–10 score" : "";
   if (REFERENCE_NOTE[feature]) return REFERENCE_NOTE[feature] + cond;
   const cat = /sleep|svefn/.test(feature) ? "sleep"
     : /exercise|hreyfing/.test(feature) ? "physical activity"
