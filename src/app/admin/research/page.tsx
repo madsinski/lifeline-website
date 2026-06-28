@@ -546,6 +546,26 @@ function DataQualityPanel({ dq, onSave }: { dq: DataQuality | undefined; onSave:
   );
 }
 
+// Inline trajectory sparkline (scales to any number of timepoints).
+function Sparkline({ values, good }: { values: (number | null)[]; good?: boolean | null }) {
+  const pts = values.map((v, i) => ({ x: i, v })).filter((p): p is { x: number; v: number } => p.v !== null && p.v !== undefined);
+  if (pts.length < 2) return <span className="text-gray-300">—</span>;
+  const vs = pts.map((p) => p.v);
+  const minV = Math.min(...vs), maxV = Math.max(...vs), range = maxV - minV || 1;
+  const W = 56, H = 16, maxX = values.length - 1 || 1;
+  const X = (x: number) => (x / maxX) * (W - 2) + 1;
+  const Y = (v: number) => H - 1 - ((v - minV) / range) * (H - 2);
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${X(p.x).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+  const stroke = good === true ? "#10B981" : good === false ? "#EF4444" : "#94A3B8";
+  const last = pts[pts.length - 1];
+  return (
+    <svg width={W} height={H} className="inline-block align-middle">
+      <path d={d} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={X(last.x)} cy={Y(last.v)} r="1.8" fill={stroke} />
+    </svg>
+  );
+}
+
 function flagTone(pct: number) {
   if (pct >= 50) return { bar: "bg-red-500", text: "text-red-700", chip: "bg-red-50" };
   if (pct >= 25) return { bar: "bg-amber-500", text: "text-amber-700", chip: "bg-amber-50" };
@@ -592,6 +612,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
   const d = detail.demographics;
   const multiTimepoint = detail.exports.length > 1;
   const moveByFeature = new Map(detail.movements.map((m) => [m.feature, m]));
+  const ptsByFeature = new Map(detail.series.map((s) => [s.feature, s.points.map((p) => p.mean)]));
   // lífstílseinkunn is shown separately as the foundations summary, so keep it out of the domain tables.
   const SUMMARY = "lifstilseinkunn";
   const summarySeries = detail.series.find((s) => s.feature === SUMMARY);
@@ -860,7 +881,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-400">
-                    <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
+                    <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Trend</th><th className="py-1 pr-4">Baseline</th><th className="py-1 pr-4">Latest</th>
                     <th className="py-1 pr-4">Δ (95% CI)<InfoTip title="Change & confidence interval">{METHOD.delta}<span className="block mt-1">95% CI = the plausible range for the true mean change (paired t). If it excludes 0, the change is significant at p&lt;.05.</span></InfoTip></th><th className="py-1 pr-4">% change<InfoTip title="% change">{METHOD.pctChange}</InfoTip></th><th className="py-1 pr-4">d<InfoTip title="Effect size">{METHOD.effect}</InfoTip></th><th className="py-1 pr-4">Responders<InfoTip title="Responder rate">% of paired patients whose change is in the beneficial direction AND at least half a baseline SD in size (a clinically-meaningful-change proxy).</InfoTip></th><th className="py-1 pr-4">p (q)<InfoTip title="Significance (p, q, Wilcoxon)">{METHOD.pq}<span className="block mt-1">Wilcoxon = non-parametric paired test (for non-normal/ordinal scores); shown in the tooltip alongside p.</span></InfoTip></th><th className="py-1 pr-4">Direction</th>
                   </tr></thead>
                   <tbody>
@@ -869,6 +890,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                       return (
                         <tr key={m.feature} className="border-t border-gray-50">
                           <td className="py-1 pr-4 text-gray-800">{m.feature}</td>
+                          <td className="py-1 pr-4"><Sparkline values={ptsByFeature.get(m.feature) ?? []} good={good} /></td>
                           <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.baseline_mean ?? "-"}</td>
                           <td className="py-1 pr-4 text-gray-600 tabular-nums">{m.latest_mean ?? "-"}</td>
                           <td className={`py-1 pr-4 tabular-nums ${deltaTone(m.feature, m.delta)}`}>
