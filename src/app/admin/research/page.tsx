@@ -732,12 +732,14 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                     <div key={dom}>
                       <div className="text-xs font-semibold text-gray-600 mb-2">{DOMAIN_LABELS[dom]}</div>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm table-fixed">
                           <thead><tr className="text-left text-[11px] text-gray-400">
-                            <th className="py-1 pr-4">Feature</th><th className="py-1 pr-4">Mean<InfoTip title="Mean & spread">{METHOD.mean}</InfoTip></th><th className="py-1 pr-4">n</th>
-                            <th className="py-1 pr-4">Reference range</th>
-                            {multiTimepoint && <th className="py-1 pr-4">Δ baseline→latest<InfoTip title="Δ and effect size">{METHOD.delta}{METHOD.effect}</InfoTip></th>}
-                            {multiTimepoint && <th className="py-1 pr-4">p (q)<InfoTip title="Significance (p and q)">{METHOD.pq}</InfoTip></th>}
+                            <th className={`py-1 pr-4 ${multiTimepoint ? "w-[26%]" : "w-[34%]"}`}>Feature</th>
+                            <th className="py-1 pr-4 w-[11%]">Mean<InfoTip title="Mean & spread">{METHOD.mean}</InfoTip></th>
+                            <th className="py-1 pr-4 w-[6%]">n</th>
+                            <th className={`py-1 pr-4 ${multiTimepoint ? "w-[28%]" : "w-[49%]"}`}>Reference range</th>
+                            {multiTimepoint && <th className="py-1 pr-4 w-[17%]">Δ baseline→latest<InfoTip title="Δ and effect size">{METHOD.delta}{METHOD.effect}</InfoTip></th>}
+                            {multiTimepoint && <th className="py-1 pr-4 w-[12%]">p (q)<InfoTip title="Significance (p and q)">{METHOD.pq}</InfoTip></th>}
                           </tr></thead>
                           <tbody>
                             {seriesByDomain(dom).map((s) => {

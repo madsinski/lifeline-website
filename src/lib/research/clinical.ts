@@ -49,10 +49,11 @@ export const DOMAIN_ORDER: Domain[] = DOMAIN_GROUPS.flatMap((g) => g.domains);
 export function featureDomain(feature: string): Domain {
   const f = feature.toLowerCase();
   // foundations
-  if (/(sleep|svefn|caffine|caffeine)/.test(f)) return "sleep";
+  if (/(sleep|svefn)/.test(f)) return "sleep";
   if (/(exercise|hreyfing)/.test(f)) return "exercise";
   if (/(nutrition|naering)/.test(f)) return "nutrition";
-  if (/(audit|alcohol|nicotine|gambling|pgsi|cudq|beds|food_addiction|other_substance|assist|fikn|screen_use|cius)/.test(f)) return "addiction";
+  // caffine_score is mislabelled in the source — it is the cannabis (CUDQ-5) score.
+  if (/(audit|alcohol|nicotine|gambling|pgsi|cudq|caffine|beds|food_addiction|other_substance|assist|fikn|screen_use|cius)/.test(f)) return "addiction";
   if (/(phq|gad|anxiety|depression|andlegt|pwi)/.test(f)) return "mental";
   // downstream
   if (/(hba1c|glucose|insulin|homa|cholesterol|triglyc|hdl|\balt\b|\bast\b|metabolic_health|diabetic)/.test(f)) return "metabolic";
@@ -162,7 +163,11 @@ export const REFERENCE_NOTE: Record<string, string> = {
   lifeline_health_audit_c: "hazardous ≥4 (M) / ≥3 (F) — lower better",
   lifeline_health_audit_10: "hazardous ≥8, likely dependence ≥15 (lower better)",
   lifeline_health_gambling_pgsi: "low 1-2, moderate 3-7, problem ≥8 (lower better)",
-  lifeline_health_cudq_5_score: "higher = more cannabis-use risk (lower better)",
+  lifeline_health_cudq_5_score: "CUDQ-5 cannabis instrument — higher = more risk (lower better)",
+  lifeline_health_caffine_score: "Cannabis 0–10 score (from CUDQ-5; source code is mislabelled \"caffine\") — higher is better",
+  lifeline_health_other_substance_addiction_1_10: "Other substances 0–10 (from ASSIST) — higher is better",
+  lifeline_health_depression_score_1_10: "Depression 0–10 (from PHQ-2 / PHQ-9) — higher is better",
+  lifeline_health_anxiety_score_1_10: "Anxiety 0–10 (from GAD-2 / GAD-7) — higher is better",
   lifeline_health_screen_use_cius_5: "higher = more compulsive use (lower better)",
   lifeline_health_screen_use_cius_14: "higher = more compulsive use (lower better)",
   lifeline_health_beds_7: "BEDS-7 binge-eating screen — higher = more symptoms (lower better)",
@@ -179,12 +184,18 @@ export const REFERENCE_NOTE: Record<string, string> = {
 // instrument is for sub-analysis of the screen-positive subset only.
 // ---------------------------------------------------------------------------
 export interface GatedFamily { label: string; gate: string; full: string; score: string; }
+// NOTE (verified against the data): PHQ-9 and GAD-7 are NOT gated by PHQ-2/GAD-2
+// in the Lifeline questionnaire — the full instrument is administered to
+// everyone (patients scoring PHQ-2/GAD-2 < 3 still completed PHQ-9/GAD-7), and
+// PHQ-2/GAD-2 are just the first-2-item sub-scores. Only the substance/behaviour
+// families and screen-use are actually gated.
 export const GATED_FAMILIES: GatedFamily[] = [
-  { label: "Depression", gate: "phq2", full: "phq9", score: "lifeline_health_depression_score_1_10" },
-  { label: "Anxiety", gate: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", score: "lifeline_health_anxiety_score_1_10" },
   { label: "Alcohol", gate: "lifeline_health_audit_c", full: "lifeline_health_audit_10", score: "lifeline_health_alcohol_addiction_1_10" },
   { label: "Screen use", gate: "lifeline_health_screen_use_cius_5", full: "lifeline_health_screen_use_cius_14", score: "lifeline_health_screen_use_1_10" },
-  { label: "Cannabis", gate: "lifeline_health_cudq_5_score", full: "lifeline_health_cudq_5_score", score: "lifeline_health_other_substance_addiction_1_10" },
+  // caffine_score is the cannabis (CUDQ-5) unified 0–10 score (source mislabel);
+  // other_substance_addiction_1_10 is the ASSIST other-substances 0–10 score.
+  { label: "Cannabis", gate: "lifeline_health_cudq_5_score", full: "lifeline_health_cudq_5_score", score: "lifeline_health_caffine_score" },
+  { label: "Other substances", gate: "lifeline_health_assist_other_substances", full: "lifeline_health_assist_other_substances", score: "lifeline_health_other_substance_addiction_1_10" },
 ];
 // Instruments that are conditional (sparse BY DESIGN, not data loss):
 //  - full instruments asked only when their short screen is positive, and
@@ -192,11 +203,17 @@ export const GATED_FAMILIES: GatedFamily[] = [
 //    Confirmed for alcohol: the pre-gate "Hversu oft færð þú þér áfengan drykk?"
 //    answered "Aldrei" (Never) skips AUDIT-C entirely; the unified 0–10
 //    "Áfengi - venjur" score is 10 (no problem) for those non-drinkers.
+// NOTE: PHQ-9 and GAD-7 are deliberately NOT here — they are administered to
+// everyone (verified: patients with PHQ-2/GAD-2 < 3 still completed the full
+// instrument), so their coverage is complete, not conditional.
+// Only the genuinely-sparse, gated full instruments (verified by coverage).
+// PGSI and ASSIST are computed for everyone (=0 for non-users), so NOT here.
 export const CONDITIONAL_FEATURES = new Set<string>([
-  "phq9", "lifeline_health_anxiety_gad_7", "lifeline_health_audit_10",
-  "lifeline_health_audit_c",                       // pre-gated: non-drinkers skip it
-  "lifeline_health_screen_use_cius_14", "lifeline_health_cudq_5_score",
-  "lifeline_health_gambling_pgsi", "lifeline_health_beds_7",
+  "lifeline_health_audit_c",                       // 43/51 — pre-gated: non-drinkers skip it
+  "lifeline_health_audit_10",                      // 32/51 — gated by AUDIT-C
+  "lifeline_health_cudq_5_score",                  // 41/51 — gated: cannabis non-users skip it
+  "lifeline_health_screen_use_cius_14",            // 25/51 — gated by CIUS-5
+  "lifeline_health_beds_7",                        // 21/51 — gated: non-bingers skip it
 ]);
 export const isConditional = (feature: string): boolean => CONDITIONAL_FEATURES.has(feature);
 
@@ -226,8 +243,10 @@ export const GATING_RULES: GatingRule[] = [
     negativeAnswers: ["Nei"],
   },
   {
-    label: "Other substances",
-    scores: ["lifeline_health_other_substance_addiction_1_10"],
+    // One broad substance pre-gate covers cannabis (caffine_score) and ASSIST
+    // other-substances: "Nei" skips the detailed items → full points.
+    label: "Cannabis & other substances",
+    scores: ["lifeline_health_caffine_score", "lifeline_health_other_substance_addiction_1_10"],
     gateTextMatch: "notað eitthvað af eftirfarandi til að takast",
     negativeAnswers: ["Nei"],
   },
