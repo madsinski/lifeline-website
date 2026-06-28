@@ -613,19 +613,27 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
             {d.n} patients{d.age ? ` · age ${d.age.min}-${d.age.max} (median ${d.age.median})` : ""} · {Object.entries(d.genders).map(([k, v]) => `${v} ${k}`).join(", ")}
             {Object.keys(d.groups).length > 1 ? ` · ${Object.entries(d.groups).map(([k, v]) => `${k.split(" - ")[0]} (${v})`).join(", ")}` : ""}
           </p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {detail.exports.map((e) => (
-              <span key={e.timepoint_label} className="inline-flex items-center gap-1.5 text-xs rounded-lg bg-white border border-gray-200 shadow-sm pl-3 pr-1.5 py-1.5 text-gray-700">
-                <span className="font-semibold text-gray-900">{e.timepoint_label}</span>
-                <span className="text-gray-300">·</span>
-                <span className="tabular-nums">{e.patient_count}p</span>
-                <span className="text-gray-300">·</span>
-                <span className={e.export_type === "no_bloods" ? "text-amber-600" : "text-emerald-600"}>{e.export_type === "no_bloods" ? "no bloods" : "full"}</span>
-                <button onClick={() => onDeleteTimepoint(e.id, e.timepoint_label)}
-                  title={`Delete ${e.timepoint_label} timepoint`}
-                  className="ml-1 w-5 h-5 rounded-md text-gray-400 hover:bg-red-100 hover:text-red-600 leading-none text-sm">×</button>
-              </span>
-            ))}
+          <div className="mt-3">
+            <div className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1.5">Data sets ({detail.exports.length})</div>
+            <div className="flex flex-wrap gap-2">
+              {detail.exports.map((e) => (
+                <span key={e.timepoint_label} className="inline-flex items-center gap-2 text-xs rounded-lg bg-gray-50 border border-gray-200 shadow-sm pl-2.5 pr-1.5 py-1.5 text-gray-600">
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                  <span className="inline-flex items-baseline gap-1.5">
+                    <span className="font-semibold text-gray-900">{e.timepoint_label}</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="tabular-nums">{e.patient_count}p</span>
+                    <span className="text-gray-300">·</span>
+                    <span className={e.export_type === "no_bloods" ? "text-amber-600" : "text-emerald-600"}>{e.export_type === "no_bloods" ? "no bloods" : "full"}</span>
+                  </span>
+                  <button onClick={() => onDeleteTimepoint(e.id, e.timepoint_label)}
+                    title={`Delete the ${e.timepoint_label} data set`}
+                    className="w-5 h-5 rounded-md text-gray-400 hover:bg-red-100 hover:text-red-600 leading-none text-sm shrink-0">×</button>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
         <button onClick={onDelete} className="text-xs rounded-lg border border-red-200 text-red-600 px-3 py-1.5 hover:bg-red-50">Delete</button>
