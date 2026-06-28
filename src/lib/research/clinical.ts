@@ -327,6 +327,19 @@ export const FLAGS: FlagDef[] = [
   { key: "nicotine", label: "Nicotine use", domain: "addiction", feature: "lifeline_health_nicotine_use", boolTrue: true },
 ];
 
+// Population benchmarks for context (keyed by flag key). INDICATIVE only —
+// sampling and exact thresholds differ from these published figures, so treat
+// as rough context, not a like-for-like comparison. Confirm against Landlæknir
+// data before any external use.
+export interface Benchmark { pct: number; label: string; source: string; }
+export const BENCHMARKS: Record<string, Benchmark> = {
+  bmi_obese: { pct: 62, label: "Iceland adults overweight or obese (BMI ≥25)", source: "OECD Health at a Glance / Eurostat" },
+  hba1c_pre: { pct: 7, label: "Iceland diagnosed diabetes prevalence", source: "IDF Diabetes Atlas (note: different metric)" },
+  phq9_mod: { pct: 9, label: "Population moderate+ depression (PHQ-9 ≥10)", source: "general-population screening studies" },
+  gad7_mod: { pct: 7, label: "Population moderate+ anxiety (GAD-7 ≥10)", source: "general-population screening studies" },
+};
+export const benchmarkFor = (flagKey: string): Benchmark | null => BENCHMARKS[flagKey] ?? null;
+
 export function flagCrosses(def: FlagDef, value: number | boolean | null, gender: string | null): boolean {
   if (value === null || value === undefined) return false;
   if (def.boolTrue) return value === true || value === 1;

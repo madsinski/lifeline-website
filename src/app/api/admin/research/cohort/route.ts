@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchRead } from "@/lib/research/access";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
-import { featureDomain, FLAGS, flagCrosses, isConditional } from "@/lib/research/clinical";
+import { featureDomain, FLAGS, flagCrosses, isConditional, benchmarkFor } from "@/lib/research/clinical";
 import { pairedTTest, benjaminiHochberg, wilcoxonSignedRank, mcnemar } from "@/lib/research/stats";
 import { featureDirection } from "@/lib/research/clinical";
 
@@ -160,6 +160,7 @@ export async function GET(req: NextRequest) {
       baseline_pct: base && base.eligible ? base.pct : null,
       delta_pct: base && base.eligible ? latest.pct - base.pct : null,
       transitions: transitionsFor(def),
+      benchmark: benchmarkFor(def.key),
       trend,
     };
   }).filter((f) => f.eligible > 0).sort((a, b) => b.pct - a.pct);

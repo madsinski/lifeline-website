@@ -31,6 +31,7 @@ interface Flag {
   key: string; label: string; domain: Domain; hits: number; eligible: number; pct: number;
   baseline_pct: number | null; delta_pct: number | null; trend: FlagTrendPoint[];
   transitions?: FlagTransitions | null;
+  benchmark?: { pct: number; label: string; source: string } | null;
 }
 interface Series { feature: string; obs_type: string; display: string | null; unit: string | null; domain: Domain; points: TrendPoint[]; }
 interface FeatureDetail {
@@ -711,7 +712,9 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                           const tone = flagTone(f.pct);
                           return (
                             <div key={f.key} className="flex items-center gap-2 text-xs">
-                              <span className="flex-1 text-gray-700">{f.label}</span>
+                              <span className="flex-1 text-gray-700">{f.label}
+                                {f.benchmark && <span className="ml-1 text-[10px] text-sky-600" title={`Indicative benchmark — ${f.benchmark.label} (${f.benchmark.source}). Sampling/thresholds differ; context only.`}>vs ~{f.benchmark.pct}%</span>}
+                              </span>
                               {f.baseline_pct != null && <span className="text-[11px] text-gray-400 tabular-nums">{f.baseline_pct}%→</span>}
                               <div className="w-16 h-2 rounded-full bg-gray-100 overflow-hidden">
                                 <div className={`h-full ${tone.bar}`} style={{ width: `${f.pct}%` }} />
