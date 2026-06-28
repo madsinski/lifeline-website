@@ -15,7 +15,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchWrite } from "@/lib/research/access";
 import { computeMovements, type TrendStat } from "@/lib/research/trends";
-import { featureDirection, changeIsGood } from "@/lib/research/clinical";
+import { featureDirection, changeIsGood, METHODS_VERSION } from "@/lib/research/clinical";
 
 export const maxDuration = 120;
 
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
 
   const payload = {
     cohort: cohort?.name, pathway: cohort?.pathway,
+    methods_version: METHODS_VERSION,
     n_patients: (patients || []).length,
     genders, groups,
     timepoints: [...new Set(trends.map((t) => t.timepoint_label))],

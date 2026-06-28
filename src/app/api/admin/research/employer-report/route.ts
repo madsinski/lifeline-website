@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchRead } from "@/lib/research/access";
-import { featureDirection, changeIsGood, canonicalUnit, FLAGS, flagCrosses } from "@/lib/research/clinical";
+import { featureDirection, changeIsGood, canonicalUnit, FLAGS, flagCrosses, METHODS_VERSION } from "@/lib/research/clinical";
 import { buildEmployerReport, type MetricChange, type RiskChange } from "@/lib/research/employer-report";
 
 export const maxDuration = 60;
@@ -202,11 +202,20 @@ export async function GET(req: NextRequest) {
     lifestyleScore, healthIndex, retentionPct, retainedN, baselineN,
     foundations, bodyMeasurements, bloodTests, risks,
     generatedOn: new Date().toISOString().slice(0, 10),
+    methodsVersion: METHODS_VERSION,
+    exclusionsNote: `${exPatients.size} patient(s), ${exFeatures.size} variable(s) excluded`,
   });
 
+  // reproducibility snapshot — exact parameters used for this report
   await supabaseAdmin.from("research_access_log").insert({
     actor_id: user.id, actor_email: user.email ?? null, action: "export", cohort_id: id,
-    detail: { kind: "employer_report" },
+    detail: {
+      kind: "employer_report", methods_version: METHODS_VERSION,
+      baseline: baseExp.timepoint_label, latest: lastExp.timepoint_label,
+      participants: Math.max(0, lastExp.patient_count - exPatients.size),
+      excluded_patients: [...exPatients], excluded_features: [...exFeatures],
+      generated_on: new Date().toISOString(),
+    },
   });
 
   return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });

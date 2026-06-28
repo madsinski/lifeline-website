@@ -45,6 +45,8 @@ export interface EmployerReportData {
   bloodTests: MetricChange[];            // HbA1c, glucose, lipids, etc.
   risks: RiskChange[];
   generatedOn: string;        // pass in (no Date.now in libs)
+  methodsVersion: string;
+  exclusionsNote: string;     // e.g. "2 patients, 1 variable excluded"
 }
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -195,6 +197,7 @@ export function buildEmployerReport(d: EmployerReportData): string {
   <div class="grid">${d.risks.map(riskRow).join("")}</div>
 
   <div class="foot">
+    <div style="margin-bottom:6px;color:#cbd5e1">Reproducibility — cohort ${esc(d.cohortName)} · ${esc(d.baselineLabel)}→${esc(d.latestLabel)} · ${d.participants} participants · ${esc(d.exclusionsNote)} · methods ${esc(d.methodsVersion)} · generated ${esc(d.generatedOn)}.</div>
     Prepared by Lifeline Health · ${esc(d.generatedOn)}. These are aggregate, de-identified results for a group of employees and describe measured change over the period shown; they are not a medical diagnosis and individual results vary. The programme measures and supports lifestyle change — it does not diagnose, treat, or prevent disease, and no specific health or financial outcome is guaranteed. Screening measures (e.g. mood, alcohol) indicate where a supportive conversation may help; they are not clinical diagnoses. Figures with small numbers of participants should be read with caution.
   </div>
 </div></body></html>`;

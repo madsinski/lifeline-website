@@ -217,6 +217,27 @@ export const CONDITIONAL_FEATURES = new Set<string>([
 ]);
 export const isConditional = (feature: string): boolean => CONDITIONAL_FEATURES.has(feature);
 
+// Bump when the analysis/scoring logic changes — stamped on every report &
+// AI analysis for reproducibility.
+export const METHODS_VERSION = "2026-06-28";
+
+// Construct validity: each proprietary 0–10 wellness score should correlate
+// strongly with its underlying validated instrument (negatively — high wellness
+// score = low symptom score). Used to evidence that the scores are meaningful.
+export interface ValidationPair { score: string; instrument: string; label: string; expect: "neg" | "pos"; }
+export const VALIDATION_PAIRS: ValidationPair[] = [
+  { score: "lifeline_health_depression_score_1_10", instrument: "phq9", label: "Depression 0–10 vs PHQ-9", expect: "neg" },
+  { score: "lifeline_health_anxiety_score_1_10", instrument: "lifeline_health_anxiety_gad_7", label: "Anxiety 0–10 vs GAD-7", expect: "neg" },
+  { score: "lifeline_health_alcohol_addiction_1_10", instrument: "lifeline_health_audit_c", label: "Alcohol 0–10 vs AUDIT-C", expect: "neg" },
+  { score: "lifeline_health_screen_use_1_10", instrument: "lifeline_health_screen_use_cius_5", label: "Screen-use 0–10 vs CIUS-5", expect: "neg" },
+  { score: "lifeline_health_caffine_score", instrument: "lifeline_health_cudq_5_score", label: "Cannabis 0–10 vs CUDQ-5", expect: "neg" },
+  { score: "lifeline_health_food_addiction_1_10", instrument: "lifeline_health_beds_7", label: "Disordered-eating 0–10 vs BEDS-7", expect: "neg" },
+  { score: "lifeline_health_gambling_1_10", instrument: "lifeline_health_gambling_pgsi", label: "Gambling 0–10 vs PGSI", expect: "neg" },
+  { score: "lifeline_health_other_substance_addiction_1_10", instrument: "lifeline_health_assist_other_substances", label: "Other-substances 0–10 vs ASSIST", expect: "neg" },
+  { score: "metabolic_health", instrument: "homa_ir", label: "Metabolic-health vs HOMA-IR", expect: "neg" },
+  { score: "pwi", instrument: "phq9", label: "PWI vs PHQ-9", expect: "neg" },
+];
+
 // Verification that a unified score reflects an ACTUAL pre-gate answer (not a
 // skipped section): a full-points score (e.g. alcohol = 10) is only trustworthy
 // if the patient answered the pre-gate question. gateTextMatch is matched

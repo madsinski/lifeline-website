@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState, Fragment, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
-import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, type Domain } from "@/lib/research/clinical";
+import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, featureDirection, isConditional, METHODS_VERSION, type Domain } from "@/lib/research/clinical";
 import { sigStars } from "@/lib/research/stats";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
@@ -25,6 +25,7 @@ interface Movement {
   ci?: [number, number] | null; wilcoxon_p?: number | null; responder_pct?: number | null;
 }
 interface FlagTransitions { improved: number; worsened: number; stableFlagged: number; paired: number; p: number; }
+interface Validation { label: string; score: string; instrument: string; expect: string; r: number | null; n: number; ok: boolean | null; }
 interface Completeness { feature: string; obs_type: string; n: number; n_missing: number; pct_missing: number; }
 interface FlagTrendPoint { timepoint_label: string; order: number; pct: number; hits: number; eligible: number; }
 interface Flag {
@@ -209,6 +210,14 @@ export default function ResearchPage() {
     return res.json();
   }
 
+  async function loadCodebook(): Promise<Validation[] | null> {
+    if (!selectedId) return null;
+    const res = await authedFetch(`/api/admin/research/codebook?cohortId=${selectedId}`);
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j.validations ?? [];
+  }
+
   async function openEmployerReport() {
     if (!selectedId) return;
     setMsg(null);
@@ -294,7 +303,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} onLoadFeature={loadFeature} onSaveExclusions={saveExclusions} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} onLoadFeature={loadFeature} onSaveExclusions={saveExclusions} onLoadCodebook={loadCodebook} />}
     </div>
   );
 }
@@ -585,15 +594,23 @@ function deltaTitle(feature: string, delta: number | null): string {
   return good === null ? "" : good ? "improvement" : "worsening";
 }
 
-type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "quality" | "data";
+type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "quality" | "codebook" | "data";
 
-function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport, onLoadFeature, onSaveExclusions }: {
+function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport, onLoadFeature, onSaveExclusions, onLoadCodebook }: {
   detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
   onDeleteTimepoint: (exportId: string, label: string) => void; onEmployerReport: () => void;
   onLoadFeature: (feature: string) => Promise<FeatureDetail | null>;
   onSaveExclusions: (excludedPatients: string[], excludedFeatures: string[]) => Promise<void>;
+  onLoadCodebook: () => Promise<Validation[] | null>;
 }) {
   const [tab, setTab] = useState<TabKey>("overview");
+  const [codebook, setCodebook] = useState<Validation[] | "loading" | null>(null);
+  useEffect(() => {
+    if (tab !== "codebook" || codebook !== null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCodebook("loading");
+    onLoadCodebook().then((v) => setCodebook(v ?? []));
+  }, [tab, codebook, onLoadCodebook]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [featCache, setFeatCache] = useState<Record<string, FeatureDetail | "loading" | "error">>({});
 
@@ -627,6 +644,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
     { k: "longitudinal", label: "Longitudinal" },
     { k: "ai", label: "AI analysis" },
     { k: "quality", label: "Data quality" },
+    { k: "codebook", label: "Codebook" },
     { k: "data", label: "Data & export" },
   ];
 
@@ -929,6 +947,59 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
             {detail.aiAnalyses.length ? (
               <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{detail.aiAnalyses[0].summary_md}</div>
             ) : <p className="text-xs text-gray-400">No analysis yet. Aggregate stats only are sent to the model — no per-patient data leaves the database.</p>}
+          </div>
+        )}
+
+        {/* ---------- CODEBOOK ---------- */}
+        {tab === "codebook" && (
+          <div className="space-y-6">
+            {/* construct validity */}
+            <div>
+              <div className="text-sm font-bold text-gray-900 mb-1">Instrument validity</div>
+              <p className="text-[11px] text-gray-500 mb-2">Each proprietary 0–10 wellness score should track its underlying validated instrument (PHQ-9, GAD-7, AUDIT, …). A strong negative correlation (higher wellness = lower symptom load) is evidence the score is meaningful.</p>
+              {codebook === "loading" ? <div className="text-xs text-gray-400">Computing correlations…</div>
+                : !codebook || !codebook.length ? <div className="text-xs text-gray-400">No paired data to validate yet.</div>
+                : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-left text-[11px] text-gray-400"><th className="py-1 pr-4">Score vs instrument</th><th className="py-1 pr-4">Pearson r</th><th className="py-1 pr-4">n</th><th className="py-1 pr-4">Valid?</th></tr></thead>
+                      <tbody>
+                        {codebook.map((v) => (
+                          <tr key={v.label} className="border-t border-gray-50">
+                            <td className="py-1 pr-4 text-gray-800">{v.label}</td>
+                            <td className="py-1 pr-4 tabular-nums font-medium text-gray-900">{v.r ?? "—"}</td>
+                            <td className="py-1 pr-4 tabular-nums text-gray-500">{v.n}</td>
+                            <td className="py-1 pr-4">{v.ok === null ? <span className="text-gray-400">—</span> : v.ok ? <span className="text-emerald-600">✓ confirmed</span> : <span className="text-amber-600">⚠ check</span>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+            </div>
+            {/* variable dictionary */}
+            <div>
+              <div className="text-sm font-bold text-gray-900 mb-1">Variable dictionary</div>
+              <p className="text-[11px] text-gray-500 mb-2">Every variable in this cohort, with its domain, unit, direction, reference range and whether it is a conditional (gated) questionnaire.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead><tr className="text-left text-gray-400"><th className="py-1 pr-3">Variable</th><th className="py-1 pr-3">Domain</th><th className="py-1 pr-3">Unit</th><th className="py-1 pr-3">Better</th><th className="py-1 pr-3">Reference / scale</th><th className="py-1 pr-3">Conditional</th></tr></thead>
+                  <tbody>
+                    {detail.series.map((s) => (
+                      <tr key={s.feature} className="border-t border-gray-50">
+                        <td className="py-1 pr-3 text-gray-800 break-all">{s.feature}</td>
+                        <td className="py-1 pr-3 text-gray-500">{DOMAIN_LABELS[s.domain]}</td>
+                        <td className="py-1 pr-3 text-gray-500">{canonicalUnit(s.feature, s.unit) || "—"}</td>
+                        <td className="py-1 pr-3 text-gray-500">{featureDirection(s.feature) === "up" ? "higher" : featureDirection(s.feature) === "down" ? "lower" : "—"}</td>
+                        <td className="py-1 pr-3 text-gray-400">{referenceNote(s.feature) || "—"}</td>
+                        <td className="py-1 pr-3">{isConditional(s.feature) ? <span className="text-sky-600">yes</span> : ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="text-[11px] text-gray-400 border-t border-gray-100 pt-2">Methods version {METHODS_VERSION}. Thresholds/reference ranges unified with the Lifeline app (bloodMarkers.ts). Statistics: paired t-test + 95% CI, Wilcoxon signed-rank, McNemar (flags), Benjamini-Hochberg FDR.</div>
           </div>
         )}
 
