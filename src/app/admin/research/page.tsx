@@ -749,12 +749,12 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                               const cols = 4 + (multiTimepoint ? 2 : 0);
                               return (
                                 <Fragment key={s.feature}>
-                                  <tr className="border-t border-gray-50">
+                                  <tr className="border-t border-gray-50 align-top">
                                     <td className="py-1 pr-4 text-gray-800">
                                       <button type="button" onClick={() => toggleFeature(s.feature)}
-                                        className="inline-flex items-center gap-1 hover:text-emerald-700" title="Show per-patient values">
-                                        <span className="w-3 text-gray-400">{isOpen ? "▾" : "▸"}</span>
-                                        {s.feature}{unit ? <span className="text-gray-400"> ({unit})</span> : null}
+                                        className="flex items-start gap-1 text-left hover:text-emerald-700 max-w-full" title="Show per-patient values">
+                                        <span className="w-3 shrink-0 text-gray-400 leading-5">{isOpen ? "▾" : "▸"}</span>
+                                        <span className="break-all leading-5">{s.feature}{unit ? <span className="text-gray-400"> ({unit})</span> : null}</span>
                                       </button>
                                     </td>
                                     <td className="py-1 pr-4 text-gray-700">{latestMean(s) ?? "-"}</td>
