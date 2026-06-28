@@ -150,12 +150,40 @@ export async function GET(req: NextRequest) {
     { key: "gad7_mod", label: "Anxiety (screen)" },
     { key: "nicotine", label: "Nicotine use" },
   ];
+  // band-shift: patients who moved out of / into a risk band between timepoints
+  const shift = (key: string): { out: number; in: number } => {
+    const def = FLAGS.find((f) => f.key === key);
+    const pmB = valsTp.get(minOrder), pmL = valsTp.get(latestOrder);
+    let out = 0, into = 0;
+    if (def && pmB && pmL) for (const [pid, fvB] of pmB) {
+      const fvL = pmL.get(pid);
+      if (!fvL || fvB[def.feature] == null || fvL[def.feature] == null) continue;
+      const pb = flagCrosses(def, fvB[def.feature], genderById[pid] ?? null);
+      const pl = flagCrosses(def, fvL[def.feature], genderById[pid] ?? null);
+      if (pb && !pl) out++; else if (!pb && pl) into++;
+    }
+    return { out, in: into };
+  };
   const risks: RiskChange[] = RISK
     .filter(({ key }) => { const def = FLAGS.find((f) => f.key === key); return def && !exFeatures.has(def.feature); })
     .map(({ key, label }) => {
       const b = prevalence(key, minOrder), l = prevalence(key, latestOrder);
-      return { label, baselinePct: b, latestPct: l, deltaPp: b === null || l === null ? null : l - b, improved: b === null || l === null ? null : l < b ? true : l > b ? false : null };
+      const s = shift(key);
+      return { label, baselinePct: b, latestPct: l, deltaPp: b === null || l === null ? null : l - b, improved: b === null || l === null ? null : l < b ? true : l > b ? false : null, movedOut: s.out, movedIn: s.in };
     }).filter((r) => r.baselinePct !== null && r.latestPct !== null);
+
+  // ---- retention + Workforce Health Index ----
+  const bSet = valsTp.get(minOrder), lSet = valsTp.get(latestOrder);
+  let retentionPct: number | null = null, retainedN: number | null = null, baselineN: number | null = null;
+  if (bSet && lSet) { let r = 0; for (const pid of bSet.keys()) if (lSet.has(pid)) r++; retainedN = r; baselineN = bSet.size; retentionPct = bSet.size ? Math.round((100 * r) / bSet.size) : null; }
+  const FOUND10 = ["lifeline_health_sleep_medical_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_medical_score", "lifeline_health_exercise_behavioural_score", "lifeline_health_nutrition_medical_score", "lifeline_health_nutrition_behavioural_score", "pwi"];
+  const indexAt = (order: number): number | null => {
+    const life = meanOf.get("lifstilseinkunn")?.get(order) ?? null;
+    if (life !== null) return Math.round(life * 10);
+    const ms = FOUND10.map((f) => meanOf.get(f)?.get(order) ?? null).filter((v): v is number => v !== null);
+    return ms.length ? Math.round((ms.reduce((a, b) => a + b, 0) / ms.length) * 10) : null;
+  };
+  const healthIndex = { baseline: indexAt(minOrder), latest: indexAt(latestOrder) };
 
   const all = [...(lifestyleScore ? [lifestyleScore] : []), ...foundations, ...bodyMeasurements, ...bloodTests];
   const measuresImproved = all.filter((m) => m.improved === true).length;
@@ -171,7 +199,8 @@ export async function GET(req: NextRequest) {
     participants: Math.max(0, lastExp.patient_count - exPatients.size),
     timepoints: orders.length,
     measuresImproved, measuresTotal,
-    lifestyleScore, foundations, bodyMeasurements, bloodTests, risks,
+    lifestyleScore, healthIndex, retentionPct, retainedN, baselineN,
+    foundations, bodyMeasurements, bloodTests, risks,
     generatedOn: new Date().toISOString().slice(0, 10),
   });
 

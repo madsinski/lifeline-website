@@ -21,6 +21,8 @@ export interface RiskChange {
   latestPct: number | null;
   deltaPp: number | null;     // latest - baseline, percentage points
   improved: boolean | null;
+  movedOut?: number | null;   // patients who moved out of the risk band (band-shift)
+  movedIn?: number | null;    // patients who moved into the risk band
 }
 export interface EmployerReportData {
   cohortName: string;
@@ -34,6 +36,10 @@ export interface EmployerReportData {
   measuresImproved: number;
   measuresTotal: number;
   lifestyleScore: MetricChange | null;   // lífstílseinkunn — overall summary
+  healthIndex: { baseline: number | null; latest: number | null } | null;  // 0–100
+  retentionPct: number | null;
+  retainedN: number | null;
+  baselineN: number | null;
   foundations: MetricChange[];           // sleep/exercise/nutrition/mental — medical + behavioural
   bodyMeasurements: MetricChange[];      // BMI, body fat, muscle, weight, BP
   bloodTests: MetricChange[];            // HbA1c, glucose, lipids, etc.
@@ -74,9 +80,10 @@ function riskRow(r: RiskChange): string {
   const w = (v: number | null) => `${Math.max(0, Math.min(100, v ?? 0))}%`;
   const col = r.improved === false ? RED : r.improved === true ? GREEN : GREY;
   const badge = r.deltaPp === null ? "" : `<span class="badge ${r.improved ? "good" : r.improved === false ? "bad" : "grey"}">${r.deltaPp > 0 ? "+" : ""}${r.deltaPp} pts</span>`;
+  const shift = r.movedOut != null && (r.movedOut || r.movedIn) ? `<div style="font-size:10px;color:#64748b;margin-top:4px">${r.movedOut} moved out of this risk band${r.movedIn ? ` · ${r.movedIn} moved in` : ""}</div>` : "";
   return `
     <div class="card">
-      <div class="cardhead"><span class="clabel">${esc(r.label)}</span>${badge}</div>
+      <div class="cardhead"><span class="clabel">${esc(r.label)}</span>${badge}</div>${shift}
       <div class="bars">
         <div class="barrow"><span class="bl">Baseline</span><div class="track"><div class="bar" style="width:${w(r.baselinePct)};background:${GREY}"></div></div><span class="bv">${fmt(r.baselinePct, 0)}%</span></div>
         <div class="barrow"><span class="bl">Latest</span><div class="track"><div class="bar" style="width:${w(r.latestPct)};background:${col}"></div></div><span class="bv">${fmt(r.latestPct, 0)}%</span></div>
@@ -155,6 +162,8 @@ export function buildEmployerReport(d: EmployerReportData): string {
       <div><b>${d.participants}</b>participants</div>
       <div><b>${d.timepoints}</b>check-ins</div>
       <div><b>${d.measuresImproved}/${d.measuresTotal}</b>measures improved</div>
+      ${d.retentionPct !== null ? `<div><b>${d.retentionPct}%</b>retention</div>` : ""}
+      ${d.healthIndex?.latest != null ? `<div><b>${d.healthIndex.latest}/100</b>health index${d.healthIndex.baseline != null ? ` (${d.healthIndex.latest - d.healthIndex.baseline > 0 ? "+" : ""}${d.healthIndex.latest - d.healthIndex.baseline})` : ""}</div>` : ""}
       <div><b>${period}</b></div>
     </div>
     <div class="conf">Confidential · aggregate results only — no individual employee data is shown or identifiable.</div>
