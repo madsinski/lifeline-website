@@ -382,20 +382,22 @@ function FeatureDetailTable({ feature, state }: { feature: string; state: Featur
       <table className="w-full text-[11px]">
         <thead className="sticky top-0 bg-gray-50">
           <tr className="text-left text-gray-400">
+            <th className="py-1 px-2 font-medium w-8">#</th>
             <th className="py-1 px-2 font-medium">Patient UUID</th>
             <th className="py-1 px-2 font-medium">Sex</th>
             {state.timepoints.map((t) => <th key={t} className="py-1 px-2 font-medium">{t}{unit ? ` (${unit})` : ""}</th>)}
           </tr>
         </thead>
         <tbody>
-          {state.rows.map((r) => (
+          {state.rows.map((r, i) => (
             <tr key={r.patient} className="border-t border-gray-50">
+              <td className="py-1 px-2 tabular-nums text-gray-400">{i + 1}</td>
               <td className="py-1 px-2 font-mono text-gray-600">{r.patient}</td>
               <td className="py-1 px-2 text-gray-500">{r.gender || "—"}</td>
               {state.timepoints.map((t) => <td key={t} className="py-1 px-2 tabular-nums text-gray-700">{fmt(r.values[t])}</td>)}
             </tr>
           ))}
-          {!state.rows.length && <tr><td className="py-2 px-2 text-gray-400" colSpan={2 + state.timepoints.length}>No values recorded.</td></tr>}
+          {!state.rows.length && <tr><td className="py-2 px-2 text-gray-400" colSpan={3 + state.timepoints.length}>No values recorded.</td></tr>}
         </tbody>
       </table>
     </div>
