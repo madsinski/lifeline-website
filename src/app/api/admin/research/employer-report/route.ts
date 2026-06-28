@@ -63,32 +63,56 @@ export async function GET(req: NextRequest) {
     return vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : null;
   };
 
-  // ---- foundations (averaged sub-scores, 0-10, higher better) ----
-  const FOUND: { label: string; feats: string[] }[] = [
-    { label: "Sleep quality", feats: ["lifeline_health_sleep_medical_score", "lifeline_health_sleep_behaviour_score"] },
-    { label: "Physical activity", feats: ["lifeline_health_exercise_medical_score", "lifeline_health_exercise_behavioural_score"] },
-    { label: "Nutrition", feats: ["lifeline_health_nutrition_medical_score", "lifeline_health_nutrition_behavioural_score"] },
-    { label: "Mental wellbeing", feats: ["pwi", "lifeline_health_depression_score_1_10", "lifeline_health_anxiety_score_1_10"] },
-  ];
-  const foundations: MetricChange[] = FOUND.map(({ label, feats }) => {
-    const b = avg(feats, base), l = avg(feats, last);
-    const pc = pctChange(b, l);
-    return { label, baseline: b, latest: l, unit: "/10", scaleMax: 10, pctChange: pc, improved: b === null || l === null ? null : l === b ? null : l > b };
-  }).filter((m) => m.baseline !== null && m.latest !== null);
+  void avg;
+  // a 0–10 sub-score metric (higher is better)
+  const score10 = (label: string, feat: string): MetricChange => {
+    const b = base(feat), l = last(feat);
+    return { label, baseline: b, latest: l, unit: "/10", scaleMax: 10, pctChange: pctChange(b, l), improved: b === null || l === null ? null : l === b ? null : l > b };
+  };
+  // a measured metric (direction-aware via canonical clinical direction)
+  const measured = (label: string, feat: string): MetricChange => {
+    const b = base(feat), l = last(feat);
+    return { label, baseline: b, latest: l, unit: canonicalUnit(feat) || undefined, pctChange: pctChange(b, l), improved: changeIsGood(feat, b !== null && l !== null ? l - b : null) };
+  };
+  const present = (m: MetricChange) => m.baseline !== null && m.latest !== null;
 
-  // ---- downstream outcomes (layman labels) ----
-  const OUT: { label: string; feat: string }[] = [
-    { label: "Body weight", feat: "weight" },
-    { label: "Body fat", feat: "fat_mass_percent" },
-    { label: "Blood sugar (HbA1c)", feat: "hba1c" },
-    { label: "Insulin resistance (HOMA-IR)", feat: "homa_ir" },
-    { label: "Blood pressure (systolic)", feat: "bp_systolic_avg" },
-    { label: "Cholesterol (total)", feat: "total_cholesterol" },
-  ];
-  const outcomes: MetricChange[] = OUT.map(({ label, feat }) => {
-    const b = base(feat), l = last(feat), pc = pctChange(b, l);
-    return { label, baseline: b, latest: l, unit: canonicalUnit(feat) || undefined, pctChange: pc, improved: changeIsGood(feat, b !== null && l !== null ? l - b : null) };
-  }).filter((m) => m.baseline !== null && m.latest !== null);
+  // ---- overall lifestyle score ----
+  const lifestyleScore = present(score10("Lífstílseinkunn (overall lifestyle score)", "lifstilseinkunn"))
+    ? score10("Lífstílseinkunn (overall lifestyle score)", "lifstilseinkunn") : null;
+
+  // ---- foundations: medical + behavioural per area (0-10) ----
+  const foundations: MetricChange[] = [
+    score10("Sleep — medical factors", "lifeline_health_sleep_medical_score"),
+    score10("Sleep — habits", "lifeline_health_sleep_behaviour_score"),
+    score10("Physical activity — medical factors", "lifeline_health_exercise_medical_score"),
+    score10("Physical activity — habits", "lifeline_health_exercise_behavioural_score"),
+    score10("Nutrition — medical factors", "lifeline_health_nutrition_medical_score"),
+    score10("Nutrition — habits", "lifeline_health_nutrition_behavioural_score"),
+    score10("Mental wellbeing (PWI)", "pwi"),
+    score10("Mood (depression score)", "lifeline_health_depression_score_1_10"),
+    score10("Anxiety score", "lifeline_health_anxiety_score_1_10"),
+  ].filter(present);
+
+  // ---- body measurements ----
+  const bodyMeasurements: MetricChange[] = [
+    measured("BMI", "bmi"),
+    measured("Body fat", "fat_mass_percent"),
+    measured("Skeletal muscle", "skeletal_muscle_mass_percent"),
+    measured("Body weight", "weight"),
+    measured("Blood pressure (systolic)", "bp_systolic_avg"),
+    measured("Blood pressure (diastolic)", "bp_diastolic_avg"),
+  ].filter(present);
+
+  // ---- blood tests ----
+  const bloodTests: MetricChange[] = [
+    measured("Blood sugar (HbA1c)", "hba1c"),
+    measured("Fasting glucose", "glucose"),
+    measured("Insulin resistance (HOMA-IR)", "homa_ir"),
+    measured("Total cholesterol", "total_cholesterol"),
+    measured("HDL cholesterol", "hdl_cholesterol"),
+    measured("Triglycerides", "triglycerides"),
+    measured("Liver enzyme (ALT)", "alt"),
+  ].filter(present);
   void featureDirection;
 
   // ---- risk reduction (flag prevalence baseline vs latest) ----
@@ -133,7 +157,7 @@ export async function GET(req: NextRequest) {
       return { label, baselinePct: b, latestPct: l, deltaPp: b === null || l === null ? null : l - b, improved: b === null || l === null ? null : l < b ? true : l > b ? false : null };
     }).filter((r) => r.baselinePct !== null && r.latestPct !== null);
 
-  const all = [...foundations, ...outcomes];
+  const all = [...(lifestyleScore ? [lifestyleScore] : []), ...foundations, ...bodyMeasurements, ...bloodTests];
   const measuresImproved = all.filter((m) => m.improved === true).length;
   const measuresTotal = all.filter((m) => m.improved !== null).length;
 
@@ -147,7 +171,7 @@ export async function GET(req: NextRequest) {
     participants: Math.max(0, lastExp.patient_count - exPatients.size),
     timepoints: orders.length,
     measuresImproved, measuresTotal,
-    foundations, outcomes, risks,
+    lifestyleScore, foundations, bodyMeasurements, bloodTests, risks,
     generatedOn: new Date().toISOString().slice(0, 10),
   });
 

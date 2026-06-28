@@ -33,8 +33,10 @@ export interface EmployerReportData {
   timepoints: number;
   measuresImproved: number;
   measuresTotal: number;
-  foundations: MetricChange[];
-  outcomes: MetricChange[];
+  lifestyleScore: MetricChange | null;   // lífstílseinkunn — overall summary
+  foundations: MetricChange[];           // sleep/exercise/nutrition/mental — medical + behavioural
+  bodyMeasurements: MetricChange[];      // BMI, body fat, muscle, weight, BP
+  bloodTests: MetricChange[];            // HbA1c, glucose, lipids, etc.
   risks: RiskChange[];
   generatedOn: string;        // pass in (no Date.now in libs)
 }
@@ -106,7 +108,7 @@ function improvementChart(metrics: MetricChange[]): string {
 
 export function buildEmployerReport(d: EmployerReportData): string {
   const period = `${esc(d.baselineLabel)}${d.baselineDate ? ` (${esc(d.baselineDate)})` : ""} → ${esc(d.latestLabel)}${d.latestDate ? ` (${esc(d.latestDate)})` : ""}`;
-  const allImprov = [...d.foundations, ...d.outcomes];
+  const allImprov = [...(d.lifestyleScore ? [d.lifestyleScore] : []), ...d.foundations, ...d.bodyMeasurements, ...d.bloodTests];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(d.cohortName)} — Health Programme Summary</title>
@@ -158,17 +160,26 @@ export function buildEmployerReport(d: EmployerReportData): string {
     <div class="conf">Confidential · aggregate results only — no individual employee data is shown or identifiable.</div>
   </div>
 
+  ${d.lifestyleScore ? `
+  <h2>Overall lifestyle score</h2>
+  <p class="lead">Lífstílseinkunn — the single 0–10 summary of the four health foundations. Higher is better.</p>
+  <div class="grid"><div style="grid-column:1 / -1">${metricCard(d.lifestyleScore)}</div></div>` : ""}
+
   <h2>The headline</h2>
   <p class="lead">Change in each measured area from baseline to the latest check-in. Bars to the right (green) are improvements; to the left (red) are areas that moved the wrong way.</p>
   ${improvementChart(allImprov)}
 
   <h2>Health foundations — what we coach</h2>
-  <p class="lead">The everyday habits the programme works on directly. Scored 0–10; higher is better.</p>
+  <p class="lead">The everyday habits we work on directly, each scored 0–10 (higher is better). <b>Medical</b> = the degree to which medical factors limit the area (higher = fewer barriers); <b>habits</b> = day-to-day behaviour.</p>
   <div class="grid">${d.foundations.map(metricCard).join("")}</div>
 
-  <h2>Measured health changes — what we expect coaching to move</h2>
-  <p class="lead">Objective measurements and blood markers that lifestyle change tends to improve over time.</p>
-  <div class="grid">${d.outcomes.map(metricCard).join("")}</div>
+  <h2>Body measurements — what we expect coaching to move</h2>
+  <p class="lead">Objective body-composition and vital-sign measurements that lifestyle change tends to improve over time.</p>
+  <div class="grid">${d.bodyMeasurements.map(metricCard).join("")}</div>
+
+  <h2>Blood tests</h2>
+  <p class="lead">Metabolic and cardiovascular blood markers (group averages).</p>
+  <div class="grid">${d.bloodTests.map(metricCard).join("")}</div>
 
   <h2>Risk reduction across the workforce</h2>
   <p class="lead">Share of participants flagged on each screening measure. A lower percentage means fewer people affected.</p>
