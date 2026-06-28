@@ -587,13 +587,17 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
             {d.n} patients{d.age ? ` · age ${d.age.min}-${d.age.max} (median ${d.age.median})` : ""} · {Object.entries(d.genders).map(([k, v]) => `${v} ${k}`).join(", ")}
             {Object.keys(d.groups).length > 1 ? ` · ${Object.entries(d.groups).map(([k, v]) => `${k.split(" - ")[0]} (${v})`).join(", ")}` : ""}
           </p>
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="flex flex-wrap gap-2 mt-3">
             {detail.exports.map((e) => (
-              <span key={e.timepoint_label} className="group inline-flex items-center gap-1 text-[11px] rounded-full bg-gray-100 text-gray-600 pl-2 pr-1 py-0.5">
-                {e.timepoint_label} · {e.patient_count}p · {e.export_type === "no_bloods" ? "no bloods" : "full"}
+              <span key={e.timepoint_label} className="inline-flex items-center gap-1.5 text-xs rounded-lg bg-white border border-gray-200 shadow-sm pl-3 pr-1.5 py-1.5 text-gray-700">
+                <span className="font-semibold text-gray-900">{e.timepoint_label}</span>
+                <span className="text-gray-300">·</span>
+                <span className="tabular-nums">{e.patient_count}p</span>
+                <span className="text-gray-300">·</span>
+                <span className={e.export_type === "no_bloods" ? "text-amber-600" : "text-emerald-600"}>{e.export_type === "no_bloods" ? "no bloods" : "full"}</span>
                 <button onClick={() => onDeleteTimepoint(e.id, e.timepoint_label)}
                   title={`Delete ${e.timepoint_label} timepoint`}
-                  className="ml-0.5 w-4 h-4 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 leading-none">×</button>
+                  className="ml-1 w-5 h-5 rounded-md text-gray-400 hover:bg-red-100 hover:text-red-600 leading-none text-sm">×</button>
               </span>
             ))}
           </div>
