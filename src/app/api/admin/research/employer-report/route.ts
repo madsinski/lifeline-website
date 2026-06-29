@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
   const bSet = valsTp.get(minOrder), lSet = valsTp.get(latestOrder);
   let retentionPct: number | null = null, retainedN: number | null = null, baselineN: number | null = null;
   if (bSet && lSet) { let r = 0; for (const pid of bSet.keys()) if (lSet.has(pid)) r++; retainedN = r; baselineN = bSet.size; retentionPct = bSet.size ? Math.round((100 * r) / bSet.size) : null; }
-  const FOUND10 = ["lifeline_health_sleep_medical_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_medical_score", "lifeline_health_exercise_behavioural_score", "lifeline_health_nutrition_medical_score", "lifeline_health_nutrition_behavioural_score", "pwi"];
+  const FOUND10 = ["svefn_total", "hreyfing_total", "naering_total", "andlegt_total", "fikn_total", "lifeline_health_sleep_medical_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_medical_score", "lifeline_health_exercise_behavioural_score", "lifeline_health_nutrition_medical_score", "lifeline_health_nutrition_behavioural_score"];  // domain summaries (compose Lífstílseinkunn) then sub-scores; PWI excluded
   const indexAt = (order: number): number | null => {
     const life = meanOf.get("lifstilseinkunn")?.get(order) ?? null;
     if (life !== null) return Math.round(life * 10);

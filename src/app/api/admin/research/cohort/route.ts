@@ -276,7 +276,7 @@ export async function GET(req: NextRequest) {
   // ---- Workforce Health Index (0-100) = lífstílseinkunn ×10, else mean of foundation 0-10 scores ----
   const tArr = (trends || []) as unknown as TrendStat[];
   const meanAt = (feat: string, order: number) => tArr.find((t) => t.feature === feat && t.timepoint_order === order)?.mean ?? null;
-  const FOUND10 = ["lifeline_health_sleep_medical_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_medical_score", "lifeline_health_exercise_behavioural_score", "lifeline_health_nutrition_medical_score", "lifeline_health_nutrition_behavioural_score", "pwi"];
+  const FOUND10 = ["svefn_total", "hreyfing_total", "naering_total", "andlegt_total", "fikn_total", "lifeline_health_sleep_medical_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_medical_score", "lifeline_health_exercise_behavioural_score", "lifeline_health_nutrition_medical_score", "lifeline_health_nutrition_behavioural_score"];  // domain summaries (compose Lífstílseinkunn) then sub-scores; PWI excluded
   const indexAt = (order: number): number | null => {
     const life = meanAt("lifstilseinkunn", order);
     if (life !== null) return Math.round(life * 10);

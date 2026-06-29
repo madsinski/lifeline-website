@@ -709,7 +709,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
                     <div>
                       <div className="text-sm font-bold text-emerald-900">Workforce Health Index<InfoTip title="How the Health Index is calculated">
                         A single 0–100 score = the cohort <b>mean of Lífstílseinkunn</b> (the overall lifestyle score, 0–10) <b>× 10</b>. Higher is better.
-                        <span className="block mt-1">If Lífstílseinkunn isn&apos;t recorded, it falls back to the mean of the foundation 0–10 sub-scores (sleep, exercise, nutrition medical + behavioural, and PWI) × 10.</span>
+                        <span className="block mt-1">If Lífstílseinkunn isn&apos;t recorded, it falls back to the mean of the domain-summary scores (sleep / exercise / nutrition / mental [andlegt_total] / addiction), or the foundation sub-scores, × 10. <b>PWI is a separate wellbeing index and is excluded.</b></span>
                         <span className="block mt-1">It summarises the lifestyle foundations only — it is not a clinical risk score. Track it over time; the baseline→latest change is shown beside it.</span>
                         <span className="block mt-1 text-gray-400">cohort/route.ts indexAt()</span>
                       </InfoTip></div>

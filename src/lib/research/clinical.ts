@@ -171,8 +171,13 @@ export const REFERENCE_NOTE: Record<string, string> = {
   lifeline_health_screen_use_cius_5: "higher = more compulsive use (lower better)",
   lifeline_health_screen_use_cius_14: "higher = more compulsive use (lower better)",
   lifeline_health_beds_7: "BEDS-7 binge-eating screen — higher = more symptoms (lower better)",
-  pwi: "Personal Wellness Index 0-10 — higher is better",
-  lifstilseinkunn: "Lífstílseinkunn (Wellness Pulse) 0–10: good ≥7.5, fair 5–7.5, low <5 — summary of the four foundations",
+  pwi: "Personal Wellness Index 0–10 — a separate wellbeing measure, NOT part of Lífstílseinkunn (higher is better)",
+  svefn_total: "Sleep domain summary 0–10 — higher is better",
+  hreyfing_total: "Exercise domain summary 0–10 — higher is better",
+  naering_total: "Nutrition domain summary 0–10 — higher is better",
+  andlegt_total: "Mental-wellness domain summary 0–10 (the mental-health summary score) — higher is better",
+  fikn_total: "Addiction/substance domain summary 0–10 — higher is better",
+  lifstilseinkunn: "Lífstílseinkunn 0–10: good ≥7.5, fair 5–7.5, low <5 — overall lifestyle score (mean of the sleep/exercise/nutrition/mental/addiction domain summaries; excludes PWI)",
 };
 
 // ---------------------------------------------------------------------------
