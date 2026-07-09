@@ -194,6 +194,44 @@ function ZoomGlyph() {
   );
 }
 
+/** Enlarged team portrait in a portal — full photo on a dark scrim with a name
+ *  caption. Click / Escape closes. Literal styles (renders outside .lldeck). */
+function PhotoLightbox({ src, name, onClose }: { src: string; name?: string; onClose: () => void }) {
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); } }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={name || "Portrait"} onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 10060, background: "rgba(3,16,12,.93)", display: "grid", placeItems: "center", gap: "1.2rem", padding: "4vmin", cursor: "zoom-out" }}>
+      <img src={src} alt={name || ""} style={{ maxWidth: "min(88vw, 540px)", maxHeight: "80vh", objectFit: "contain", borderRadius: 24, background: "#0c100f", boxShadow: "0 40px 90px -24px rgba(0,0,0,.85)", display: "block" }} />
+      {name && <div style={{ color: "#eafaf3", fontWeight: 700, fontSize: "clamp(1rem,2.2vw,1.4rem)", fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", textAlign: "center" }}>{name}</div>}
+    </div>,
+    document.body
+  );
+}
+
+/** Circular team portrait that opens a full-size lightbox on click. A cyan zoom
+ *  badge + tooltip + hover-lift signal that the photo is clickable. Falls back
+ *  to initials when there is no photo. */
+function MemberPhoto({ src, name, zoomable }: { src?: string; name?: string; zoomable?: boolean }) {
+  const [open, setOpen] = React.useState(false);
+  if (!src) return <div className="photo ph-initials" aria-hidden>{memberInitials(name)}</div>;
+  // Print / static export: plain portrait, no click affordance.
+  if (!zoomable) return <img className="photo" src={src} alt={name || ""} />;
+  return (
+    <>
+      <button type="button" className="photo-btn is-zoomable" title="Smelltu til að stækka"
+        aria-label={`Stækka mynd: ${name || ""}`} onClick={() => setOpen(true)}>
+        <img className="photo" src={src} alt={name || ""} />
+        <span className="photo-zoom" aria-hidden><ZoomGlyph /></span>
+      </button>
+      {open && <PhotoLightbox src={src} name={name} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 /** Full-screen zoom into ONE region of an image, with an optional caption.
  *  Uses a background-image crop so the region fills the viewport crisply
  *  (needs a high-res master image). Portals to <body>, so colours are literal
@@ -362,27 +400,29 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
         </div>
       );
 
-    case "team":
+    case "team": {
+      const members = s.members || [];
       return (
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           <h2>{rich(s.heading)}</h2>
           {s.lead && <p className="lead" style={{ marginTop: ".7rem" }}>{s.lead}</p>}
-          <div className="team">
-            {(s.members || []).map((m, i) => (
+          {/* One row regardless of count: N equal columns keeps the whole team on a single line. */}
+          <div className="team one-row" style={{ gridTemplateColumns: `repeat(${Math.max(members.length, 1)}, 1fr)` }}>
+            {members.map((m, i) => (
               <div key={i} className="member">
-                {m.photo
-                  ? <img className="photo" src={m.photo} alt={m.name} />
-                  : <div className="photo ph-empty">No photo</div>}
+                <MemberPhoto src={m.photo} name={m.name} zoomable={zoomable} />
                 {m.flag && <span className="flag">{m.flag}</span>}
                 <h4>{m.name}</h4>
                 <span className="role">{m.role}</span>
               </div>
             ))}
           </div>
+          {zoomable && <p className="team-zoomhint"><ZoomGlyph /> Smelltu á mynd til að stækka</p>}
           {s.footnote && <p className="footnote">{s.footnote}</p>}
         </div>
       );
+    }
 
     case "team-branch": {
       const team = (label: string | undefined, brand: Slide["brand"], members: MemberItem[] | undefined) => (

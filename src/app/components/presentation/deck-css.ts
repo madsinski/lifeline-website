@@ -250,6 +250,12 @@ export const DECK_CSS = `
 .lldeck .card h3{margin-bottom:.45rem;}
 .lldeck .card p{color:var(--muted);font-size:clamp(.78rem,1cqw,1.02rem);}
 .lldeck .dark .card p{color:var(--on-dark-muted);}
+/* Dense 4-up card grids (e.g. the long "erindi" menu): compact padding, icon and type so a 12-card grid fits the slide. */
+.lldeck .cols-4{gap:.75rem;}
+.lldeck .cols-4 .card{padding:.72rem .82rem;border-radius:calc(var(--card-radius) - 3px);}
+.lldeck .cols-4 .card .icon{width:clamp(28px,2.6cqw,38px);height:clamp(28px,2.6cqw,38px);border-radius:10px;margin-bottom:.5rem;}
+.lldeck .cols-4 .card h3{font-size:clamp(.8rem,1cqw,1rem);margin-bottom:.22rem;}
+.lldeck .cols-4 .card p{font-size:clamp(.66rem,.82cqw,.86rem);line-height:1.32;}
 
 .lldeck .icon{width:clamp(38px,3.4cqw,52px);height:clamp(38px,3.4cqw,52px);border-radius:13px;display:grid;place-items:center;margin-bottom:.9rem;background:color-mix(in srgb, var(--emerald) 14%, transparent);color:var(--emerald-dark);flex:none;}
 .lldeck .icon svg{width:55%;height:55%;}
@@ -334,6 +340,22 @@ export const DECK_CSS = `
 .lldeck .member h4{font-size:clamp(.88rem,1.1cqw,1.04rem);font-weight:700;line-height:1.2;}
 .lldeck .member .role{font-size:clamp(.72rem,.9cqw,.82rem);color:var(--muted);line-height:1.35;max-width:22ch;}
 .lldeck .dark .member .role{color:var(--on-dark-muted);}
+/* Single-row team (5+ members): tighter gap + smaller portraits/type so everyone stays on one line. */
+.lldeck .team.one-row{gap:clamp(.55rem,1.4cqw,1.15rem);}
+.lldeck .team.one-row .member{gap:.42rem;}
+.lldeck .team.one-row .member .photo{width:clamp(62px,7cqw,104px);height:clamp(62px,7cqw,104px);}
+.lldeck .team.one-row .member h4{font-size:clamp(.76rem,.92cqw,.94rem);}
+.lldeck .team.one-row .member .role{font-size:clamp(.64rem,.78cqw,.76rem);max-width:16ch;}
+/* Clickable portrait: zoom cursor, hover-lift, and a cyan magnifier badge that reads as "tap to enlarge". */
+.lldeck .member .photo-btn{position:relative;display:inline-block;padding:0;border:none;background:none;border-radius:50%;cursor:zoom-in;line-height:0;transition:transform .18s ease;}
+.lldeck .member .photo-btn:hover{transform:translateY(-3px);}
+.lldeck .member .photo-btn:hover .photo{box-shadow:0 22px 44px -16px rgba(0,0,0,.55);}
+.lldeck .member .photo-btn:focus-visible{outline:2px solid var(--cyan,#22d3ee);outline-offset:3px;}
+.lldeck .member .photo-zoom{position:absolute;right:1px;bottom:1px;width:clamp(19px,2.1cqw,27px);height:clamp(19px,2.1cqw,27px);display:grid;place-items:center;border-radius:50%;background:var(--cyan,#22d3ee);color:#04202b;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);}
+.lldeck .member .photo-zoom svg{width:60%;height:60%;}
+.lldeck .team-zoomhint{display:flex;align-items:center;justify-content:center;gap:.42em;margin-top:clamp(.8rem,1.8cqh,1.35rem);color:var(--muted);font-size:clamp(.72rem,.9cqw,.86rem);font-weight:600;}
+.lldeck .dark .team-zoomhint{color:var(--on-dark-muted);}
+.lldeck .team-zoomhint svg{width:1.1em;height:1.1em;color:var(--cyan,#22d3ee);}
 
 /* team-branch — one or two company teams stacked on a single slide */
 .lldeck .team-branch{display:flex;flex-direction:column;}
