@@ -131,5 +131,6 @@ export const COLLATERAL_CSS = `
     linear-gradient(135deg,var(--dark1),var(--dark2));
 }
 .llcol .hero .eyebrow{color:var(--cyan);}
+.llcol .hero h1{color:#fff;}
 .llcol .hero p{color:#bfe6f2;}
 `;
