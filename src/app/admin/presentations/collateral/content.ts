@@ -73,16 +73,17 @@ export const SERVICE_ICONS = [
 ] as const;
 
 export const DEFAULT_CONTENT: CollateralContent = {
+  // Order + labels match the live Medalia patient portal exactly.
   services: [
-    { icon: "kvef-hosti-halsbolga", label: "Kvef, hósti og hálsbólga" },
+    { icon: "kvef-hosti-halsbolga", label: "Kvef, hósti eða hálsbólga" },
     { icon: "thvagfaera-leggangasykingar", label: "Þvagfæra- og leggangasýkingar" },
-    { icon: "frunsa", label: "Frunsa (áblástur)" },
-    { icon: "ristill", label: "Ristill" },
-    { icon: "frjokornaofnaemi", label: "Frjókornaofnæmi" },
     { icon: "getnadarvorn", label: "Getnaðarvörn" },
+    { icon: "frjokornaofnaemi", label: "Frjókornaofnæmi" },
+    { icon: "frunsa", label: "Frunsa" },
+    { icon: "ristill", label: "Ristill" },
     { icon: "risvandamal", label: "Risvandamál" },
     { icon: "njalgur", label: "Njálgur" },
-    { icon: "lyfjuendurnyjun", label: "Endurnýjun lyfseðils" },
+    { icon: "lyfjuendurnyjun", label: "Lyfjaendurnýjun" },
   ],
   poster: {
     badge: "Í samstarfi við HSU",
@@ -95,12 +96,12 @@ export const DEFAULT_CONTENT: CollateralContent = {
     stepsTitle: "Svona virkar það",
     steps: [
       { title: "Skráðu þig inn", body: "Á fjarlaekningar.is með rafrænum skilríkjum — í tölvu eða síma." },
-      { title: "Veldu vandamál", body: "Svaraðu stuttum spurningalista. Heimapróf fylgja þar sem þau hjálpa." },
+      { title: "Veldu vandamál", body: "Svaraðu stuttum spurningalista um einkennin þín." },
       { title: "Fáðu meðferð", body: "Læknir metur og ávísar meðferð. Lyfseðill fer beint í apótek." },
     ],
     ctaLabel: "Byrjaðu hér",
     url: "fjarlaekningar.is",
-    footerNote: "Í samstarfi við Lyfju — lyf og heimapróf send heim að dyrum.",
+    footerNote: "Lyfseðill sendur rafrænt í það apótek sem þú velur.",
     safety: { bold: "Neyðartilfelli?", text: " Hringdu í 112 eða leitaðu á bráðamóttöku." },
   },
   referral: {
@@ -108,15 +109,18 @@ export const DEFAULT_CONTENT: CollateralContent = {
     eyebrow: "Fyrir heilbrigðisstarfsfólk HSU",
     heading: "Að vísa sjúklingi í ",
     headingAccent: "Fjarlækningar",
-    intro: "Fjarlækningar er íslensk fjarlæknaþjónusta fyrir almenna heilsugæslu, nú í tilraunasamstarfi við Heilbrigðisstofnun Suðurlands. Sjúklingur velur afmarkað vandamál, svarar spurningalista — með heimaprófi þar sem það á við (þvagstrimill, hálsstrok, CRP) — og læknir metur og ávísar meðferð. Þjónustan léttir álagi af móttöku fyrir væg, algeng erindi.",
+    intro: "Fjarlækningar er íslensk fjarlæknaþjónusta fyrir almenna heilsugæslu, nú í tilraunasamstarfi við Heilbrigðisstofnun Suðurlands. Sjúklingur velur afmarkað vandamál, svarar spurningalista og læknir metur og ávísar meðferð. Þjónustan léttir álagi af móttöku fyrir væg, algeng erindi.",
     yesTitle: "Hentar vel fyrir",
     yes: [
-      "Kvef, hósti og hálsbólga",
+      "Kvef, hósti eða hálsbólga",
       "Þvagfæra- og leggangasýkingar",
-      "Frunsa, ristill og frjókornaofnæmi",
-      "Getnaðarvörn og risvandamál",
+      "Getnaðarvörn",
+      "Frjókornaofnæmi",
+      "Frunsa",
+      "Ristill",
+      "Risvandamál",
       "Njálgur",
-      "Endurnýjun lyfseðils og veikindavottorð",
+      "Lyfjaendurnýjun",
     ],
     noTitle: "Vísaðu ekki í fjarþjónustu",
     no: [
@@ -129,13 +133,12 @@ export const DEFAULT_CONTENT: CollateralContent = {
     referTitle: "Hvernig þú vísar sjúklingi",
     referSteps: [
       { title: "Beindu á gáttina", body: "Bentu sjúklingi á fjarlaekningar.is — innskráning með rafrænum skilríkjum." },
-      { title: "Sjúklingur velur erindi", body: "Velur vandamál, svarar spurningalista og tekur heimapróf ef við á." },
+      { title: "Sjúklingur velur erindi", body: "Velur vandamál og svarar spurningalista um einkennin." },
       { title: "Læknir lýkur máli", body: "Metur svörin, ávísar meðferð og gefur vottorð eða tilvísun eftir þörfum." },
     ],
     afterTitle: "Hvað gerist svo",
     after: [
-      { k: "Rx", bold: "Lyfseðill fer rafrænt í lyfjagátt", text: " og er tilbúinn í apóteki að vali sjúklings." },
-      { k: "🏠", bold: "Lyfja sendir heim.", text: " Lyf og heimapróf má fá send heim að dyrum — yfir 40 apótek um land allt." },
+      { k: "Rx", bold: "Lyfseðill fer rafrænt í lyfjagátt", text: " og er tilbúinn í því apóteki sem sjúklingur velur." },
       { k: "↩︎", bold: "Tilvísun til baka.", text: " Þurfi sjúklingur skoðun eða frekari rannsókn vísar læknir aftur í hefðbundna þjónustu HSU." },
       { k: "🔒", bold: "Öruggt.", text: " Öll samskipti fara um sjúklingagátt Medalia — dulkóðuð og eingöngu aðgengileg sjúklingi og lækni." },
     ],
@@ -151,12 +154,12 @@ export const DEFAULT_CONTENT: CollateralContent = {
     servicesTitle: "Við aðstoðum meðal annars með",
     steps: [
       { title: "Skráðu þig inn", body: "Með rafrænum skilríkjum á fjarlaekningar.is." },
-      { title: "Veldu vandamál", body: "Svaraðu spurningalista — heimapróf þar sem við á." },
+      { title: "Veldu vandamál", body: "Svaraðu spurningalista um einkennin." },
       { title: "Fáðu meðferð", body: "Læknir ávísar; lyfseðill fer beint í apótek." },
     ],
     ctaLabel: "Byrjaðu í dag",
     url: "fjarlaekningar.is",
-    partnerNote: "Í samstarfi við Lyfju og HSU. Lyf og heimapróf send heim að dyrum.",
+    partnerNote: "Í tilraunasamstarfi við Heilbrigðisstofnun Suðurlands (HSU).",
     safety: { bold: "Neyðartilfelli:", text: " Hringdu í 112. Fjarlækningar eru ekki ætlaðar fyrir bráðaþjónustu." },
   },
 };
