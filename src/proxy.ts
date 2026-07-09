@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createHash } from "crypto";
+import { tenantIdForHost } from "@/lib/tenant";
 
 // Next 16 proxy.ts always runs on Node — no runtime or matcher exports
 // are allowed in this file. Exclusions are handled by the bypass list
@@ -50,6 +51,12 @@ function sha256Hex(s: string): string {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Fjarlækningar host: the app subdomain has no marketing root — send the
+  // bare host straight to the admin instead of the Lifeline coming-soon page.
+  if (pathname === "/" && tenantIdForHost(request.headers.get("host")) === "fjarlaekningar") {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  }
 
   // 1. Hard bypass for system routes + static assets.
   if (BYPASS_PREFIXES.some((p) => pathname.startsWith(p)) || STATIC_EXT_RE.test(pathname)) {

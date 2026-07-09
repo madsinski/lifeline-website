@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { tenantForHost } from "@/lib/tenant";
 import type { PresentationData } from "@/lib/presentations/types";
 import { Deck } from "@/app/components/presentation/Deck";
 import { resolveSlides, hasIcelandic } from "@/lib/presentations/i18n";
@@ -27,8 +29,10 @@ async function fetchPublished(slug: string): Promise<{ title: string; data: Pres
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const found = await fetchPublished(slug);
+  // Brand the tab/link-preview title to the serving host (Lifeline vs Fjarlækningar).
+  const brand = tenantForHost((await headers()).get("host")).name;
   return {
-    title: found ? `${found.title} · Lifeline` : "Presentation · Lifeline",
+    title: found ? `${found.title} · ${brand}` : `Presentation · ${brand}`,
     robots: { index: false, follow: false },
   };
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { tenantForHost, isAdminRouteAllowed } from "@/lib/tenant";
 
 // Heroicons v2 outline style, stroke 1.5 for a finer professional line.
 // All icons share a single emerald-neutral monochrome palette via currentColor.
@@ -322,6 +323,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // toggle and other admin-only affordances.
   const canViewAllSections = isAdmin || userRole === "medical_advisor";
   const isReadOnlyView = userRole === "medical_advisor";
+
+  // --- Tenant (multi-host) -------------------------------------------------
+  // The same app is served on the Lifeline hosts and a Fjarlækningar host. On
+  // the Fjarlækningar host the admin is restricted to a subset of modules and
+  // rebranded (see src/lib/tenant.ts). tenantForHost returns a stable singleton,
+  // so this is a referentially-stable value safe to use in effect deps. The
+  // branded sidebar only renders client-side (the server path shows the spinner
+  // while `session` is null), so reading the host in render risks no mismatch.
+  const tenant = tenantForHost(typeof window !== "undefined" ? window.location.hostname : null);
+
+  // Redirect away from modules this tenant doesn't expose. Fires only on real
+  // module routes (or the bare dashboard) once authed — login/mfa/onboard and
+  // other system routes never match a sidebar href, so auth flows are untouched.
+  useEffect(() => {
+    if (!session || !tenant.adminNav) return;
+    const isModule = sidebarLinks.some((l) => l.href !== "/admin" && pathname.startsWith(l.href));
+    if (!isModule && pathname !== "/admin") return;
+    if (!isAdminRouteAllowed(tenant, pathname)) router.replace(tenant.adminHome);
+  }, [session, tenant, pathname, router]);
 
   // Coaching-view preference is resolved inside loadStaffProfile once
   // the role is known — we used to read it here on mount, which made
@@ -795,7 +815,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
           {!sidebarCollapsed && (
             <span className="text-lg font-bold tracking-tight">
-              Lifeline <span className="text-[#10B981]">{coachingView ? "Coach" : "Admin"}</span>
+              {tenant.id === "fjarlaekningar" ? (
+                <span style={{ color: tenant.accent }}>Fjarlækningar</span>
+              ) : (
+                <>Lifeline <span className="text-[#10B981]">{coachingView ? "Coach" : "Admin"}</span></>
+              )}
             </span>
           )}
           <button
@@ -815,7 +839,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* User info */}
         <div className={`px-4 py-3 border-b border-gray-700 flex items-center gap-3 ${sidebarCollapsed ? "justify-center" : ""}`}>
-          <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: tenant.accent }}>
             {initials}
           </div>
           {!sidebarCollapsed && (
@@ -836,6 +860,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/conversations", "/admin/scheduling", "/admin/content"].includes(l.href))
             : sidebarLinks
           ).filter((link) => {
+            // Tenant gate: on the Fjarlækningar host, only that tenant's
+            // module subset is shown (adminNav is null for Lifeline = all).
+            if (tenant.adminNav && !tenant.adminNav.includes(link.href)) return false;
             // Admin-only sections are visible to admin OR medical_advisor
             // (medical_advisor reads everywhere; writes are gated separately).
             if (link.href === "/admin/settings" && !canViewAllSections) return false;
