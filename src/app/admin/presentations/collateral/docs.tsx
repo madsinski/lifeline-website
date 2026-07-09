@@ -15,7 +15,8 @@ export const DOC_META: { id: DocId; name: string; sub: string }[] = [
 ];
 
 function ico(icon: string) {
-  return `/fjarlaekningar-icons/${icon}.tile.svg`;
+  // Icons matching the live Medalia patient portal, normalised onto white tiles.
+  return `/fjarlaekningar-icons/portal/${icon}.png`;
 }
 
 function FjarLogo({ onDark = false }: { onDark?: boolean }) {
