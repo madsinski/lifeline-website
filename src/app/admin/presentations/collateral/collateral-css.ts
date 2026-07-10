@@ -129,8 +129,8 @@ export const COLLATERAL_CSS = `
 
 /* share cards (referral) — three ways to share */
 .llcol .share-card{
-  display:flex; flex-direction:column; gap:2.5mm;
-  border-radius:4mm; background:#fff; border:1px solid #cdeef7; padding:4mm 4.5mm;
+  display:flex; flex-direction:column; gap:2mm;
+  border-radius:4mm; background:#fff; border:1px solid #cdeef7; padding:3mm 4mm;
   box-shadow:0 5px 16px -10px rgba(8,70,90,.4);
 }
 .llcol .share-head{display:flex; align-items:center; gap:2.5mm;}
@@ -144,7 +144,7 @@ export const COLLATERAL_CSS = `
 /* section headers (referral) — accent bar + optional divider */
 .llcol .sec-h2{display:flex; align-items:center; gap:2.5mm; font-size:14px; font-weight:800; color:var(--ink); margin:0 0 3.5mm;}
 .llcol .sec-h2::before{content:""; flex:0 0 auto; width:2.6mm; height:5mm; border-radius:1.4mm; background:linear-gradient(160deg,var(--primary),var(--cyan));}
-.llcol .sec-rule{border-top:1px solid var(--line); margin-bottom:4mm;}
+.llcol .sec-rule{border-top:1px solid var(--line); margin-bottom:3mm;}
 
 /* dark hero band (poster + advert) */
 .llcol .hero{

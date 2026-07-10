@@ -159,10 +159,7 @@ function Referral({ r }: { r: ReferralFields }) {
     <div className="a4">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9mm 14mm 4mm" }}>
         <FjarLogo />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2.5mm" }}>
-          <span className="pill solid">{r.badge}</span>
-          <HsuCobrand height="9mm" />
-        </div>
+        <HsuCobrand />
       </div>
 
       <div style={{ padding: "0 14mm" }}>
@@ -170,7 +167,7 @@ function Referral({ r }: { r: ReferralFields }) {
         <h1 style={{ fontSize: "26px", maxWidth: "165mm" }}>
           {r.heading}<span className="grad-text">{r.headingAccent}</span>
         </h1>
-        <p style={{ marginTop: "3mm", fontSize: "11.5px", lineHeight: 1.45, color: "var(--body)", maxWidth: "172mm" }}>{r.intro}</p>
+        <p style={{ marginTop: "2.5mm", fontSize: "11px", lineHeight: 1.4, color: "var(--body)", maxWidth: "172mm" }}>{r.intro}</p>
       </div>
 
       <div style={{ padding: "4mm 14mm 0" }}>
@@ -186,7 +183,7 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <div className="sec-rule" />
         <h2 className="sec-h2">{r.referTitle}</h2>
         <div className="steps row">
@@ -200,7 +197,7 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <div className="sec-rule" />
         <h2 className="sec-h2">{r.afterTitle}</h2>
         <div className="rows">
@@ -217,7 +214,7 @@ function Referral({ r }: { r: ReferralFields }) {
       </div>
 
       {/* Three ways to share the service with a patient */}
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <div className="sec-rule" />
         <h2 className="sec-h2">{r.shareTitle}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "4mm", alignItems: "stretch" }}>
@@ -234,7 +231,7 @@ function Referral({ r }: { r: ReferralFields }) {
           <div className="share-card" style={{ alignItems: "center", textAlign: "center" }}>
             <div className="share-head"><span className="share-n">3</span><span className="eyebrow">QR-kóði</span></div>
             <div style={{ border: "1px solid var(--line)", borderRadius: "2mm", padding: "1mm", background: "#fff" }}>
-              <QrSvg value={r.portalUrl} size="17mm" />
+              <QrSvg value={r.portalUrl} size="15mm" />
             </div>
             <div className="share-note" style={{ fontWeight: 700 }}>Skannaðu</div>
           </div>
