@@ -103,17 +103,17 @@ export const COLLATERAL_CSS = `
 .llcol .panel{border-radius:4mm; padding:4mm 4.5mm; border:1px solid var(--line);}
 .llcol .panel.yes{background:var(--wash); border-color:#cdeef7;}
 .llcol .panel.no{background:#fdf2f6; border-color:#f5d3e1;}
-.llcol .panel h3{margin:0 0 2.5mm; font-size:13px; font-weight:800; display:flex; align-items:center; gap:2mm;}
+.llcol .panel h3{margin:0 0 2mm; font-size:13px; font-weight:800; display:flex; align-items:center; gap:2mm;}
 .llcol .panel.yes h3{color:var(--primary-dark);}
 .llcol .panel.no h3{color:var(--accent-dark);}
-.llcol .ticklist{list-style:none; margin:0; padding:0; display:grid; gap:2mm;}
+.llcol .ticklist{list-style:none; margin:0; padding:0; display:grid; gap:1.5mm;}
 .llcol .ticklist li{position:relative; padding-left:6mm; font-size:11px; line-height:1.3; color:var(--body);}
 .llcol .ticklist li::before{position:absolute; left:0; top:0; font-weight:800;}
 .llcol .panel.yes .ticklist li::before{content:"✓"; color:var(--primary);}
 .llcol .panel.no .ticklist li::before{content:"✕"; color:var(--accent);}
 
 /* generic bullet rows */
-.llcol .rows{display:grid; gap:2.6mm;}
+.llcol .rows{display:grid; gap:2mm;}
 .llcol .rowitem{display:flex; gap:3mm; align-items:flex-start;}
 .llcol .rowitem .k{
   flex:0 0 auto; min-width:7mm; height:7mm; padding:0 1.6mm; border-radius:2mm; margin-top:.4mm;

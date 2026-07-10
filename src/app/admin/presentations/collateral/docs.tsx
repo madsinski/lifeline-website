@@ -92,7 +92,7 @@ function Poster({ p }: { p: PosterFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <h2 style={{ fontSize: "15px", marginBottom: "4mm" }}>{p.stepsTitle}</h2>
         <div className="steps row">
           {p.steps.map((st, i) => (
@@ -146,7 +146,7 @@ function Referral({ r }: { r: ReferralFields }) {
         <p style={{ marginTop: "3mm", fontSize: "11.5px", lineHeight: 1.45, color: "var(--body)", maxWidth: "172mm" }}>{r.intro}</p>
       </div>
 
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <div className="cols2">
           <div className="panel yes">
             <h3>{r.yesTitle}</h3>
@@ -159,7 +159,7 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.referTitle}</h2>
         <div className="steps row">
           {r.referSteps.map((st, i) => (
@@ -172,7 +172,7 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.afterTitle}</h2>
         <div className="rows">
           {r.after.map((a, i) => (
@@ -185,7 +185,7 @@ function Referral({ r }: { r: ReferralFields }) {
       </div>
 
       {/* Three ways to share the service with a patient */}
-      <div style={{ padding: "5mm 14mm 0" }}>
+      <div style={{ padding: "4mm 14mm 0" }}>
         <h2 style={{ fontSize: "14px", marginBottom: "3mm" }}>{r.shareTitle}</h2>
         <div style={{ display: "flex", alignItems: "stretch", gap: "5mm", padding: "4mm 5mm", borderRadius: "4mm", background: "var(--wash)", border: "1px solid #cdeef7" }}>
           <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: "3mm" }}>
@@ -201,14 +201,14 @@ function Referral({ r }: { r: ReferralFields }) {
           <div style={{ textAlign: "center", flexShrink: 0, borderLeft: "1px solid #cdeef7", paddingLeft: "5mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
             <div className="eyebrow" style={{ marginBottom: "1.5mm" }}>3 · QR-kóði</div>
             <div style={{ border: "1px solid var(--line)", borderRadius: "2mm", padding: "1mm", background: "#fff" }}>
-              <QrSvg value={r.portalUrl} size="18mm" />
+              <QrSvg value={r.portalUrl} size="16mm" />
             </div>
             <div style={{ fontSize: "8.5px", color: "var(--muted)", marginTop: "1mm", fontWeight: 600 }}>Skannaðu</div>
           </div>
         </div>
       </div>
 
-      <div style={{ marginTop: "auto", padding: "6mm 14mm 9mm" }}>
+      <div style={{ marginTop: "auto", padding: "4mm 14mm 7mm" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8mm", borderTop: "1px solid var(--line)", paddingTop: "4mm" }}>
           <div className="safety"><span><b>{r.safety.bold}</b>{r.safety.text}</span></div>
           <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "right" }}>
