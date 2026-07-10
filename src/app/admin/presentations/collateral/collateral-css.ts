@@ -85,13 +85,13 @@ export const COLLATERAL_CSS = `
 .llcol .svc span{font-size:12px; font-weight:700; color:var(--ink); line-height:1.15;}
 
 /* compact chip list (advert + referral) */
-.llcol .svc-chips{display:flex; flex-wrap:wrap; gap:2.2mm;}
+.llcol .svc-chips{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3mm;}
 .llcol .chip{
-  display:inline-flex; align-items:center; gap:2mm;
-  border:1px solid var(--line); border-radius:999px; padding:1.8mm 3.4mm;
-  font-size:11px; font-weight:700; color:var(--ink); background:#fff;
+  display:flex; align-items:center; gap:2.5mm;
+  border:1px solid var(--line); border-radius:999px; padding:2.6mm 4.5mm;
+  font-size:11.5px; font-weight:700; color:var(--ink); background:#fff;
 }
-.llcol .chip img{width:6mm; height:6mm;}
+.llcol .chip img{width:7mm; height:7mm; flex-shrink:0;}
 
 /* ── numbered steps ────────────────────────────────────────────────────── */
 .llcol .steps{display:grid; gap:3mm;}
