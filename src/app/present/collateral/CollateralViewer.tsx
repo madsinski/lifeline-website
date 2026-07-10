@@ -24,11 +24,7 @@ const useMounted = () =>
     () => false,
   );
 import { COLLATERAL_CSS } from "@/app/admin/presentations/collateral/collateral-css";
-import {
-  CollateralDoc,
-  DOC_META,
-  type DocId,
-} from "@/app/admin/presentations/collateral/docs";
+import { CollateralDoc } from "@/app/admin/presentations/collateral/docs";
 import type { CollateralContent } from "@/app/admin/presentations/collateral/content";
 
 const A4_W = 793.7;
@@ -53,10 +49,13 @@ export default function CollateralViewer({
 }: {
   content: CollateralContent;
 }) {
-  const [doc, setDoc] = useState<DocId>("poster");
+  const [sel, setSel] = useState(0);
   const mounted = useMounted();
   const stageRef = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(0.5);
+
+  const docs = content.docs;
+  const active = docs[Math.min(sel, docs.length - 1)];
 
   const measure = useCallback(() => {
     const el = stageRef.current;
@@ -107,18 +106,18 @@ export default function CollateralViewer({
 
         {/* document tabs */}
         <div className="mt-5 flex flex-wrap gap-2">
-          {DOC_META.map((d) => (
+          {docs.map((d, i) => (
             <button
               key={d.id}
-              onClick={() => setDoc(d.id)}
+              onClick={() => setSel(i)}
               className={`rounded-lg border px-4 py-2 text-left transition ${
-                doc === d.id
+                i === Math.min(sel, docs.length - 1)
                   ? "border-emerald-500 bg-emerald-50/60"
                   : "border-gray-200 bg-white hover:border-emerald-300"
               }`}
             >
-              <div className="text-sm font-semibold text-gray-900">{content.docMeta[d.id].name}</div>
-              <div className="text-xs text-gray-500">{content.docMeta[d.id].sub}</div>
+              <div className="text-sm font-semibold text-gray-900">{d.name || "(nafnlaust)"}</div>
+              <div className="text-xs text-gray-500">{d.sub}</div>
             </button>
           ))}
         </div>
@@ -139,7 +138,7 @@ export default function CollateralViewer({
               ["--fit" as string]: String(fit),
             }}
           >
-            <CollateralDoc doc={doc} content={content} />
+            <CollateralDoc doc={active} />
           </div>
         </div>
       </div>
@@ -148,7 +147,7 @@ export default function CollateralViewer({
       {mounted &&
         createPortal(
           <div className="llcol-print llcol">
-            <CollateralDoc doc={doc} content={content} />
+            <CollateralDoc doc={active} />
           </div>,
           document.body,
         )}

@@ -1,9 +1,9 @@
 "use client";
 
-// Shared collateral editor (form + scaled A4 preview + print). Used by the
-// admin studio (/admin/presentations/collateral) and by the token-gated
-// external editor (/present/collateral/edit/[token]). Content in / save out are
-// injected via props so this component is auth-agnostic.
+// Shared collateral editor: a dynamic list of A4 documents (add / duplicate /
+// delete / reorder), each edited in place with a scaled preview + print. Content
+// in / save out are injected via props so this component is auth-agnostic (used
+// by the admin studio and the token-gated external editor).
 
 import {
   useState,
@@ -14,12 +14,13 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { COLLATERAL_CSS } from "./collateral-css";
-import { CollateralDoc, DOC_META, type DocId } from "./docs";
+import { CollateralDoc } from "./docs";
 import {
-  DEFAULT_CONTENT,
+  defaultDoc,
   SERVICE_ICONS,
   type CollateralContent,
-  type DocMeta,
+  type Doc,
+  type DocType,
   type Step,
   type Service,
   type Safety,
@@ -42,6 +43,20 @@ const PRINT_CSS = `
   @page{size:A4;margin:0;}
 }
 `;
+
+const NEW_TYPES: { type: DocType; label: string }[] = [
+  { type: "poster", label: "Veggspjald" },
+  { type: "referral", label: "Tilvísunarleiðbeiningar" },
+  { type: "advert", label: "Blaðaauglýsing" },
+];
+
+function newId() {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `doc-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+  }
+}
 
 // ── small form atoms ─────────────────────────────────────────────────────
 const inputCls =
@@ -75,8 +90,10 @@ function StepsEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[])
         <div key={i} className="space-y-1.5 rounded-md border border-gray-200 p-2">
           <Field label={`Skref ${i + 1} — titill`} value={s.title} onChange={(v) => set(i, { title: v })} />
           <Field label="Texti" value={s.body} onChange={(v) => set(i, { body: v })} area />
+          <button onClick={() => onChange(steps.filter((_, j) => j !== i))} className="text-xs text-red-500 hover:underline">Fjarlægja skref</button>
         </div>
       ))}
+      <button onClick={() => onChange([...steps, { title: "", body: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við skrefi</button>
     </div>
   );
 }
@@ -109,7 +126,6 @@ function ServicesEditor({ services, onChange }: { services: Service[]; onChange:
         </div>
       ))}
       <button onClick={() => onChange([...services, { icon: SERVICE_ICONS[0], label: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við þjónustu</button>
-      <p className="text-[11px] text-gray-400">Táknmynd er valin úr föstu setti (níu Medalia-erindi). Útlit veggspjaldsins er hannað fyrir níu.</p>
     </div>
   );
 }
@@ -163,16 +179,20 @@ export function CollateralStudio({
   back?: { href: string; label: string };
   headerExtra?: React.ReactNode;
 }) {
-  const [doc, setDoc] = useState<DocId>("poster");
-  const [fit, setFit] = useState(0.6);
   const [content, setContent] = useState<CollateralContent>(initial);
   const [saved, setSaved] = useState<CollateralContent>(initial);
+  const [sel, setSel] = useState(0);
+  const [fit, setFit] = useState(0.6);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const dirty = JSON.stringify(content) !== JSON.stringify(saved);
+
+  const docs = content.docs;
+  const index = Math.min(sel, docs.length - 1);
+  const active = docs[index];
 
   const measure = useCallback(() => {
     const el = stageRef.current;
@@ -197,11 +217,45 @@ export function CollateralStudio({
     finally { setSaving(false); }
   }
 
-  const patchPoster = (p: Partial<CollateralContent["poster"]>) => setContent((c) => ({ ...c, poster: { ...c.poster, ...p } }));
-  const patchReferral = (p: Partial<CollateralContent["referral"]>) => setContent((c) => ({ ...c, referral: { ...c.referral, ...p } }));
-  const patchAdvert = (p: Partial<CollateralContent["advert"]>) => setContent((c) => ({ ...c, advert: { ...c.advert, ...p } }));
-  const setServices = (services: Service[]) => setContent((c) => ({ ...c, services }));
-  const patchDocMeta = (id: DocId, p: Partial<DocMeta>) => setContent((c) => ({ ...c, docMeta: { ...c.docMeta, [id]: { ...c.docMeta[id], ...p } } }));
+  // ── doc-list operations ─────────────────────────────────────────────────
+  const setDocs = (next: Doc[]) => setContent((c) => ({ ...c, docs: next }));
+  const updateDoc = (i: number, fn: (d: Doc) => Doc) => setDocs(docs.map((d, j) => (j === i ? fn(d) : d)));
+
+  const addDoc = (type: DocType) => {
+    const d = defaultDoc(type, newId());
+    setDocs([...docs, d]);
+    setSel(docs.length);
+  };
+  const duplicateDoc = () => {
+    const copy: Doc = { ...active, id: newId(), name: `${active.name} (afrit)` };
+    const next = [...docs.slice(0, index + 1), copy, ...docs.slice(index + 1)];
+    setDocs(next);
+    setSel(index + 1);
+  };
+  const deleteDoc = () => {
+    if (docs.length <= 1) return;
+    setDocs(docs.filter((_, j) => j !== index));
+    setSel(Math.max(0, index - 1));
+  };
+  const move = (dir: -1 | 1) => {
+    const j = index + dir;
+    if (j < 0 || j >= docs.length) return;
+    const next = [...docs];
+    [next[index], next[j]] = [next[j], next[index]];
+    setDocs(next);
+    setSel(j);
+  };
+
+  // ── field setters for the active doc ────────────────────────────────────
+  const patchMeta = (p: { name?: string; sub?: string }) => updateDoc(index, (d) => ({ ...d, ...p }));
+  const patchPoster = (p: Partial<Extract<Doc, { type: "poster" }>["poster"]>) =>
+    updateDoc(index, (d) => (d.type === "poster" ? { ...d, poster: { ...d.poster, ...p } } : d));
+  const patchReferral = (p: Partial<Extract<Doc, { type: "referral" }>["referral"]>) =>
+    updateDoc(index, (d) => (d.type === "referral" ? { ...d, referral: { ...d.referral, ...p } } : d));
+  const patchAdvert = (p: Partial<Extract<Doc, { type: "advert" }>["advert"]>) =>
+    updateDoc(index, (d) => (d.type === "advert" ? { ...d, advert: { ...d.advert, ...p } } : d));
+
+  const btn = "rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-30";
 
   return (
     <div className="llcol mx-auto max-w-7xl px-4 py-6">
@@ -228,13 +282,26 @@ export function CollateralStudio({
       </div>
 
       {/* document tabs */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {DOC_META.map((d) => (
-          <button key={d.id} onClick={() => setDoc(d.id)}
-            className={`rounded-lg border px-4 py-2 text-left transition ${doc === d.id ? "border-emerald-500 bg-emerald-50/60" : "border-gray-200 bg-white hover:border-emerald-300"}`}>
-            <div className="text-sm font-semibold text-gray-900">{content.docMeta[d.id].name}</div>
-            <div className="text-xs text-gray-500">{content.docMeta[d.id].sub}</div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {docs.map((d, i) => (
+          <button key={d.id} onClick={() => setSel(i)}
+            className={`rounded-lg border px-4 py-2 text-left transition ${i === index ? "border-emerald-500 bg-emerald-50/60" : "border-gray-200 bg-white hover:border-emerald-300"}`}>
+            <div className="text-sm font-semibold text-gray-900">{d.name || "(nafnlaust)"}</div>
+            <div className="text-xs text-gray-500">{d.sub}</div>
           </button>
+        ))}
+      </div>
+
+      {/* doc-list toolbar */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button onClick={duplicateDoc} className={btn}>Afrita</button>
+        <button onClick={deleteDoc} disabled={docs.length <= 1} className={btn}>Eyða</button>
+        <button onClick={() => move(-1)} disabled={index === 0} className={btn}>← Færa</button>
+        <button onClick={() => move(1)} disabled={index === docs.length - 1} className={btn}>Færa →</button>
+        <span className="mx-1 text-gray-300">|</span>
+        <span className="text-xs text-gray-400">Bæta við:</span>
+        {NEW_TYPES.map((t) => (
+          <button key={t.type} onClick={() => addDoc(t.type)} className="rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50">+ {t.label}</button>
         ))}
       </div>
 
@@ -242,90 +309,95 @@ export function CollateralStudio({
         {/* editor */}
         <div className="space-y-3">
           <Section title="Nafn flipa">
-            <Field label="Heiti skjals" value={content.docMeta[doc].name} onChange={(v) => patchDocMeta(doc, { name: v })} />
-            <Field label="Undirtexti" value={content.docMeta[doc].sub} onChange={(v) => patchDocMeta(doc, { sub: v })} />
+            <Field label="Heiti skjals" value={active.name} onChange={(v) => patchMeta({ name: v })} />
+            <Field label="Undirtexti" value={active.sub} onChange={(v) => patchMeta({ sub: v })} />
           </Section>
-          {doc === "poster" ? (
+
+          {active.type === "poster" ? (
             <>
               <Section title="Haus">
-                <Field label="Merki (efst til hægri)" value={content.poster.badge} onChange={(v) => patchPoster({ badge: v })} />
-                <Field label="Yfirskrift" value={content.poster.eyebrow} onChange={(v) => patchPoster({ eyebrow: v })} />
-                <Field label="Fyrirsögn" value={content.poster.heading} onChange={(v) => patchPoster({ heading: v })} area />
-                <p className="text-[11px] text-gray-400">Ný lína = línuskil. Settu <b>==</b> utan um orð til að lita þau blá, t.d. <code>==þar sem þú ert.==</code> — annað er hvítt.</p>
-                <Field label="Inngangur" value={content.poster.lead} onChange={(v) => patchPoster({ lead: v })} area />
+                <Field label="Merki (efst til hægri)" value={active.poster.badge} onChange={(v) => patchPoster({ badge: v })} />
+                <Field label="Yfirskrift" value={active.poster.eyebrow} onChange={(v) => patchPoster({ eyebrow: v })} />
+                <Field label="Fyrirsögn" value={active.poster.heading} onChange={(v) => patchPoster({ heading: v })} area />
+                <p className="text-[11px] text-gray-400">Ný lína = línuskil. Settu <b>==</b> utan um orð til að lita þau blá, t.d. <code>==þar sem þú ert.==</code></p>
+                <Field label="Inngangur" value={active.poster.lead} onChange={(v) => patchPoster({ lead: v })} area />
               </Section>
               <Section title="Þjónustur">
-                <Field label="Titill" value={content.poster.servicesTitle} onChange={(v) => patchPoster({ servicesTitle: v })} />
-                <ServicesEditor services={content.services} onChange={setServices} />
+                <Field label="Titill" value={active.poster.servicesTitle} onChange={(v) => patchPoster({ servicesTitle: v })} />
+                <ServicesEditor services={active.poster.services} onChange={(services) => patchPoster({ services })} />
               </Section>
               <Section title="Svona virkar það">
-                <Field label="Titill" value={content.poster.stepsTitle} onChange={(v) => patchPoster({ stepsTitle: v })} />
-                <StepsEditor steps={content.poster.steps} onChange={(steps) => patchPoster({ steps })} />
+                <Field label="Titill" value={active.poster.stepsTitle} onChange={(v) => patchPoster({ stepsTitle: v })} />
+                <StepsEditor steps={active.poster.steps} onChange={(steps) => patchPoster({ steps })} />
               </Section>
-              <Section title="Fótur">
-                <Field label="Hvatning (label)" value={content.poster.ctaLabel} onChange={(v) => patchPoster({ ctaLabel: v })} />
-                <Field label="Veffang" value={content.poster.url} onChange={(v) => patchPoster({ url: v })} />
-                <Field label="Athugasemd" value={content.poster.footerNote} onChange={(v) => patchPoster({ footerNote: v })} area />
-                <SafetyEditor safety={content.poster.safety} onChange={(safety) => patchPoster({ safety })} />
+              <Section title="Deiling og fótur">
+                <Field label="Hvatning (label)" value={active.poster.ctaLabel} onChange={(v) => patchPoster({ ctaLabel: v })} />
+                <Field label="Vefslóð (birt)" value={active.poster.url} onChange={(v) => patchPoster({ url: v })} />
+                <Field label="Tengill fyrir QR-kóða" value={active.poster.portalUrl} onChange={(v) => patchPoster({ portalUrl: v })} />
+                <Field label="Athugasemd" value={active.poster.footerNote} onChange={(v) => patchPoster({ footerNote: v })} area />
+                <SafetyEditor safety={active.poster.safety} onChange={(safety) => patchPoster({ safety })} />
               </Section>
             </>
-          ) : doc === "referral" ? (
+          ) : active.type === "referral" ? (
             <>
               <Section title="Haus">
-                <Field label="Merki" value={content.referral.badge} onChange={(v) => patchReferral({ badge: v })} />
-                <Field label="Yfirskrift" value={content.referral.eyebrow} onChange={(v) => patchReferral({ eyebrow: v })} />
-                <Field label="Fyrirsögn" value={content.referral.heading} onChange={(v) => patchReferral({ heading: v })} />
-                <Field label="Fyrirsögn — áhersla (blá)" value={content.referral.headingAccent} onChange={(v) => patchReferral({ headingAccent: v })} />
-                <Field label="Inngangur" value={content.referral.intro} onChange={(v) => patchReferral({ intro: v })} area />
+                <Field label="Merki" value={active.referral.badge} onChange={(v) => patchReferral({ badge: v })} />
+                <Field label="Yfirskrift" value={active.referral.eyebrow} onChange={(v) => patchReferral({ eyebrow: v })} />
+                <Field label="Fyrirsögn" value={active.referral.heading} onChange={(v) => patchReferral({ heading: v })} />
+                <Field label="Fyrirsögn — áhersla (blá)" value={active.referral.headingAccent} onChange={(v) => patchReferral({ headingAccent: v })} />
+                <Field label="Inngangur" value={active.referral.intro} onChange={(v) => patchReferral({ intro: v })} area />
               </Section>
               <Section title="Hentar vel fyrir">
-                <Field label="Titill" value={content.referral.yesTitle} onChange={(v) => patchReferral({ yesTitle: v })} />
-                <StrListEditor items={content.referral.yes} onChange={(yes) => patchReferral({ yes })} addLabel="Bæta við" />
+                <Field label="Titill" value={active.referral.yesTitle} onChange={(v) => patchReferral({ yesTitle: v })} />
+                <StrListEditor items={active.referral.yes} onChange={(yes) => patchReferral({ yes })} addLabel="Bæta við" />
               </Section>
               <Section title="Vísaðu ekki">
-                <Field label="Titill" value={content.referral.noTitle} onChange={(v) => patchReferral({ noTitle: v })} />
-                <StrListEditor items={content.referral.no} onChange={(no) => patchReferral({ no })} addLabel="Bæta við" />
+                <Field label="Titill" value={active.referral.noTitle} onChange={(v) => patchReferral({ noTitle: v })} />
+                <StrListEditor items={active.referral.no} onChange={(no) => patchReferral({ no })} addLabel="Bæta við" />
               </Section>
               <Section title="Hvernig þú vísar">
-                <Field label="Titill" value={content.referral.referTitle} onChange={(v) => patchReferral({ referTitle: v })} />
-                <StepsEditor steps={content.referral.referSteps} onChange={(referSteps) => patchReferral({ referSteps })} />
+                <Field label="Titill" value={active.referral.referTitle} onChange={(v) => patchReferral({ referTitle: v })} />
+                <StepsEditor steps={active.referral.referSteps} onChange={(referSteps) => patchReferral({ referSteps })} />
               </Section>
               <Section title="Hvað gerist svo">
-                <Field label="Titill" value={content.referral.afterTitle} onChange={(v) => patchReferral({ afterTitle: v })} />
-                <AfterEditor items={content.referral.after} onChange={(after) => patchReferral({ after })} />
+                <Field label="Titill" value={active.referral.afterTitle} onChange={(v) => patchReferral({ afterTitle: v })} />
+                <AfterEditor items={active.referral.after} onChange={(after) => patchReferral({ after })} />
+              </Section>
+              <Section title="Deiling (3 leiðir)">
+                <Field label="Titill" value={active.referral.shareTitle} onChange={(v) => patchReferral({ shareTitle: v })} />
+                <Field label="1 · Vefslóð" value={active.referral.url} onChange={(v) => patchReferral({ url: v })} />
+                <Field label="2 · Beinn tengill + 3 · QR-kóði" value={active.referral.portalUrl} onChange={(v) => patchReferral({ portalUrl: v })} />
               </Section>
               <Section title="Fótur">
-                <SafetyEditor safety={content.referral.safety} onChange={(safety) => patchReferral({ safety })} />
-                <Field label="Tengiliður (label)" value={content.referral.contactLabel} onChange={(v) => patchReferral({ contactLabel: v })} />
-                <Field label="Netfang" value={content.referral.contactEmail} onChange={(v) => patchReferral({ contactEmail: v })} />
+                <SafetyEditor safety={active.referral.safety} onChange={(safety) => patchReferral({ safety })} />
+                <Field label="Tengiliður (label)" value={active.referral.contactLabel} onChange={(v) => patchReferral({ contactLabel: v })} />
+                <Field label="Netfang" value={active.referral.contactEmail} onChange={(v) => patchReferral({ contactEmail: v })} />
               </Section>
             </>
           ) : (
             <>
               <Section title="Haus">
-                <Field label="Merki" value={content.advert.badge} onChange={(v) => patchAdvert({ badge: v })} />
-                <Field label="Fyrirsögn — lína 1 (hvít)" value={content.advert.headingA} onChange={(v) => patchAdvert({ headingA: v })} />
-                <Field label="Fyrirsögn — áhersla (blá)" value={content.advert.headingAccent} onChange={(v) => patchAdvert({ headingAccent: v })} />
-                <Field label="Inngangur" value={content.advert.lead} onChange={(v) => patchAdvert({ lead: v })} area />
+                <Field label="Merki" value={active.advert.badge} onChange={(v) => patchAdvert({ badge: v })} />
+                <Field label="Fyrirsögn — lína 1 (hvít)" value={active.advert.headingA} onChange={(v) => patchAdvert({ headingA: v })} />
+                <Field label="Fyrirsögn — áhersla (blá)" value={active.advert.headingAccent} onChange={(v) => patchAdvert({ headingAccent: v })} />
+                <Field label="Inngangur" value={active.advert.lead} onChange={(v) => patchAdvert({ lead: v })} area />
               </Section>
               <Section title="Þjónustur">
-                <Field label="Titill" value={content.advert.servicesTitle} onChange={(v) => patchAdvert({ servicesTitle: v })} />
-                <ServicesEditor services={content.services} onChange={setServices} />
+                <Field label="Titill" value={active.advert.servicesTitle} onChange={(v) => patchAdvert({ servicesTitle: v })} />
+                <ServicesEditor services={active.advert.services} onChange={(services) => patchAdvert({ services })} />
               </Section>
               <Section title="Skref">
-                <StepsEditor steps={content.advert.steps} onChange={(steps) => patchAdvert({ steps })} />
+                <StepsEditor steps={active.advert.steps} onChange={(steps) => patchAdvert({ steps })} />
               </Section>
-              <Section title="Fótur">
-                <Field label="Hvatning (label)" value={content.advert.ctaLabel} onChange={(v) => patchAdvert({ ctaLabel: v })} />
-                <Field label="Veffang" value={content.advert.url} onChange={(v) => patchAdvert({ url: v })} />
-                <Field label="Samstarfstexti" value={content.advert.partnerNote} onChange={(v) => patchAdvert({ partnerNote: v })} area />
-                <SafetyEditor safety={content.advert.safety} onChange={(safety) => patchAdvert({ safety })} />
+              <Section title="Deiling og fótur">
+                <Field label="Hvatning (label)" value={active.advert.ctaLabel} onChange={(v) => patchAdvert({ ctaLabel: v })} />
+                <Field label="Vefslóð (birt)" value={active.advert.url} onChange={(v) => patchAdvert({ url: v })} />
+                <Field label="Tengill fyrir QR-kóða" value={active.advert.portalUrl} onChange={(v) => patchAdvert({ portalUrl: v })} />
+                <Field label="Samstarfstexti" value={active.advert.partnerNote} onChange={(v) => patchAdvert({ partnerNote: v })} area />
+                <SafetyEditor safety={active.advert.safety} onChange={(safety) => patchAdvert({ safety })} />
               </Section>
             </>
           )}
-          <button onClick={() => setContent(DEFAULT_CONTENT)} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">
-            Endurstilla á sjálfgefinn texta
-          </button>
         </div>
 
         {/* preview */}
@@ -335,16 +407,16 @@ export function CollateralStudio({
           </p>
           <div ref={stageRef} className="flex justify-center rounded-xl bg-gray-100 p-4">
             <div style={{ width: A4_W * fit, height: A4_H * fit, overflow: "hidden", ["--fit" as string]: String(fit) }}>
-              <CollateralDoc doc={doc} content={content} />
+              <CollateralDoc doc={active} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* print surface (portalled to body; hidden off-screen, shown in @media print) */}
+      {/* print surface (portalled to body; shown only in @media print) */}
       {mounted && createPortal(
         <div className="llcol-print llcol">
-          <CollateralDoc doc={doc} content={content} />
+          <CollateralDoc doc={active} />
         </div>,
         document.body,
       )}
