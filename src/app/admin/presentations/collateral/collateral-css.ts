@@ -127,9 +127,8 @@ export const COLLATERAL_CSS = `
 .llcol .rowitem .k{
   flex:0 0 auto; min-width:8mm; height:8mm; padding:0 1.4mm; border-radius:2.5mm;
   display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(135deg,var(--primary),var(--cyan)); color:#fff;
+  background:var(--wash2); color:var(--primary);
   font-weight:800; font-size:10px; white-space:nowrap;
-  box-shadow:0 3px 8px -4px rgba(0,168,204,.6);
 }
 .llcol .rowitem .k svg{width:4.6mm; height:4.6mm;}
 .llcol .rowitem .t{font-size:11px; line-height:1.4; color:var(--body);}
@@ -150,9 +149,8 @@ export const COLLATERAL_CSS = `
 .llcol .share-note{font-size:9px; color:var(--muted); margin-top:auto;}
 
 /* section headers (referral) — accent bar + optional divider */
-.llcol .sec-h2{display:flex; align-items:center; gap:2.5mm; font-size:14px; font-weight:800; color:var(--ink); margin:0 0 3.5mm;}
-.llcol .sec-h2::before{content:""; flex:0 0 auto; width:2.6mm; height:5mm; border-radius:1.4mm; background:linear-gradient(160deg,var(--primary),var(--cyan));}
-.llcol .sec-rule{border-top:1px solid var(--line); margin-bottom:3mm;}
+.llcol .sec-h2{font-size:14.5px; font-weight:800; color:var(--ink); margin:0 0 4mm; letter-spacing:-.01em;}
+.llcol .sec-rule{border-top:1px solid var(--line); margin-bottom:4mm;}
 
 /* dark hero band (poster + advert) */
 .llcol .hero{
