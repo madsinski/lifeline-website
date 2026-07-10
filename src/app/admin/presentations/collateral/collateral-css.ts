@@ -39,6 +39,14 @@ export const COLLATERAL_CSS = `
   background:linear-gradient(100deg,var(--primary),var(--cyan));
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
+/* background-clip:text leaves a stray gradient sliver at the text edge when
+   printed to PDF — fall back to a solid brand colour for print. */
+@media print{
+  .llcol .grad-text{
+    background:none!important; color:var(--primary)!important;
+    -webkit-text-fill-color:var(--primary)!important;
+  }
+}
 .llcol .pill{
   display:inline-flex; align-items:center; gap:2mm;
   border-radius:999px; padding:1.6mm 4mm; font-weight:700;
