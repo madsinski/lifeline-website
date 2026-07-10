@@ -76,10 +76,18 @@ function Poster({ c }: { c: CollateralContent }) {
 
       <div style={{ marginTop: "auto", padding: "9mm 14mm 11mm" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "8mm", borderTop: "1px solid var(--line)", paddingTop: "6mm" }}>
-          <div>
-            <div className="eyebrow" style={{ marginBottom: "2mm" }}>{p.ctaLabel}</div>
-            <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--ink)" }} className="grad-text">{p.url}</div>
-            <p style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2mm" }}>{p.footerNote}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "6mm" }}>
+            <div style={{ textAlign: "center", flexShrink: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/fjarlaekningar-qr-medalia.svg" alt="QR — sjúklingagátt Fjarlækninga"
+                style={{ width: "28mm", height: "28mm", display: "block", border: "1px solid var(--line)", borderRadius: "2mm", padding: "1.5mm", background: "#fff" }} />
+              <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1.5mm", fontWeight: 600 }}>Skannaðu til að opna</div>
+            </div>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: "2mm" }}>{p.ctaLabel}</div>
+              <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--ink)" }} className="grad-text">{p.url}</div>
+              <p style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2mm" }}>{p.footerNote}</p>
+            </div>
           </div>
           <div className="safety" style={{ textAlign: "right", justifyContent: "flex-end" }}>
             <span><b>{p.safety.bold}</b>{p.safety.text}</span>
