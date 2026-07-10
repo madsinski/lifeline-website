@@ -76,13 +76,25 @@ function FjarLogo({ onDark = false }: { onDark?: boolean }) {
   );
 }
 
+// HSU co-brand lockup — "Í samstarfi við HSU" + their logo. The print-friendly
+// adaptation of the website's HSU cooperation section.
+function HsuCobrand({ label = "Í samstarfi við HSU", height = "11mm" }: { label?: string; height?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "3mm" }}>
+      <span style={{ fontSize: "9px", fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", textAlign: "right", lineHeight: 1.25, maxWidth: "30mm" }}>{label}</span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/hsu-logo.webp" alt="Heilbrigðisstofnun Suðurlands" style={{ height, width: "auto", display: "block" }} />
+    </div>
+  );
+}
+
 // ── 1. Reception poster ──────────────────────────────────────────────────
 function Poster({ p }: { p: PosterFields }) {
   return (
     <div className="a4">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11mm 14mm 6mm" }}>
         <FjarLogo />
-        <span className="pill tint dot">{p.badge}</span>
+        <HsuCobrand label={p.badge} />
       </div>
 
       <div className="hero" style={{ padding: "10mm 14mm 10mm", margin: "0 14mm", borderRadius: "6mm" }}>
@@ -147,7 +159,10 @@ function Referral({ r }: { r: ReferralFields }) {
     <div className="a4">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9mm 14mm 4mm" }}>
         <FjarLogo />
-        <span className="pill solid">{r.badge}</span>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2.5mm" }}>
+          <span className="pill solid">{r.badge}</span>
+          <HsuCobrand height="9mm" />
+        </div>
       </div>
 
       <div style={{ padding: "0 14mm" }}>
@@ -171,8 +186,9 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "4mm 14mm 0" }}>
-        <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.referTitle}</h2>
+      <div style={{ padding: "5mm 14mm 0" }}>
+        <div className="sec-rule" />
+        <h2 className="sec-h2">{r.referTitle}</h2>
         <div className="steps row">
           {r.referSteps.map((st, i) => (
             <div className="step" key={i}>
@@ -184,8 +200,9 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "4mm 14mm 0" }}>
-        <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.afterTitle}</h2>
+      <div style={{ padding: "5mm 14mm 0" }}>
+        <div className="sec-rule" />
+        <h2 className="sec-h2">{r.afterTitle}</h2>
         <div className="rows">
           {r.after.map((a, i) => {
             const Ico = a.icon ? AFTER_ICONS[a.icon] : undefined;
@@ -200,8 +217,9 @@ function Referral({ r }: { r: ReferralFields }) {
       </div>
 
       {/* Three ways to share the service with a patient */}
-      <div style={{ padding: "4mm 14mm 0" }}>
-        <h2 style={{ fontSize: "14px", marginBottom: "3.5mm" }}>{r.shareTitle}</h2>
+      <div style={{ padding: "5mm 14mm 0" }}>
+        <div className="sec-rule" />
+        <h2 className="sec-h2">{r.shareTitle}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "4mm", alignItems: "stretch" }}>
           <div className="share-card">
             <div className="share-head"><span className="share-n">1</span><span className="eyebrow">Vefslóð</span></div>
@@ -286,7 +304,11 @@ function Advert({ a }: { a: AdvertFields }) {
             <div>
               <div className="eyebrow" style={{ marginBottom: "2mm" }}>{a.ctaLabel}</div>
               <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--ink)" }} className="grad-text">{a.url}</div>
-              <p style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2mm", maxWidth: "60mm" }}>{a.partnerNote}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "2.5mm", marginTop: "2.5mm" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hsu-logo.webp" alt="Heilbrigðisstofnun Suðurlands" style={{ height: "9mm", width: "auto", flexShrink: 0 }} />
+                <p style={{ fontSize: "11px", color: "var(--muted)", maxWidth: "55mm" }}>{a.partnerNote}</p>
+              </div>
             </div>
           </div>
           <div className="safety" style={{ textAlign: "right", justifyContent: "flex-end" }}>

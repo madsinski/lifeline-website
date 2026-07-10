@@ -100,13 +100,13 @@ export const COLLATERAL_CSS = `
 
 /* ── two-column suitability (referral) ─────────────────────────────────── */
 .llcol .cols2{display:grid; grid-template-columns:1fr 1fr; gap:5mm;}
-.llcol .panel{border-radius:4mm; padding:4mm 4.5mm; border:1px solid var(--line);}
+.llcol .panel{border-radius:4mm; padding:3.5mm 4.5mm; border:1px solid var(--line);}
 .llcol .panel.yes{background:var(--wash); border-color:#cdeef7;}
 .llcol .panel.no{background:#fdf2f6; border-color:#f5d3e1;}
 .llcol .panel h3{margin:0 0 2mm; font-size:13px; font-weight:800; display:flex; align-items:center; gap:2mm;}
 .llcol .panel.yes h3{color:var(--primary-dark);}
 .llcol .panel.no h3{color:var(--accent-dark);}
-.llcol .ticklist{list-style:none; margin:0; padding:0; display:grid; gap:1.5mm;}
+.llcol .ticklist{list-style:none; margin:0; padding:0; display:grid; gap:1.3mm;}
 .llcol .ticklist li{position:relative; padding-left:6mm; font-size:11px; line-height:1.3; color:var(--body);}
 .llcol .ticklist li::before{position:absolute; left:0; top:0; font-weight:800;}
 .llcol .panel.yes .ticklist li::before{content:"✓"; color:var(--primary);}
@@ -140,6 +140,11 @@ export const COLLATERAL_CSS = `
   background:linear-gradient(135deg,var(--primary),var(--cyan));
 }
 .llcol .share-note{font-size:9px; color:var(--muted); margin-top:auto;}
+
+/* section headers (referral) — accent bar + optional divider */
+.llcol .sec-h2{display:flex; align-items:center; gap:2.5mm; font-size:14px; font-weight:800; color:var(--ink); margin:0 0 3.5mm;}
+.llcol .sec-h2::before{content:""; flex:0 0 auto; width:2.6mm; height:5mm; border-radius:1.4mm; background:linear-gradient(160deg,var(--primary),var(--cyan));}
+.llcol .sec-rule{border-top:1px solid var(--line); margin-bottom:4mm;}
 
 /* dark hero band (poster + advert) */
 .llcol .hero{
