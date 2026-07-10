@@ -73,14 +73,14 @@ function Poster({ p }: { p: PosterFields }) {
         <span className="pill tint dot">{p.badge}</span>
       </div>
 
-      <div className="hero" style={{ padding: "12mm 14mm 13mm", margin: "0 14mm", borderRadius: "6mm" }}>
-        <div className="eyebrow" style={{ marginBottom: "4mm" }}>{p.eyebrow}</div>
-        <h1 style={{ fontSize: "40px", maxWidth: "150mm" }}>{renderHeading(p.heading)}</h1>
-        <p style={{ marginTop: "5mm", fontSize: "14px", lineHeight: 1.5, maxWidth: "150mm", color: "#cdeefb" }}>{p.lead}</p>
+      <div className="hero" style={{ padding: "10mm 14mm 10mm", margin: "0 14mm", borderRadius: "6mm" }}>
+        <div className="eyebrow" style={{ marginBottom: "3.5mm" }}>{p.eyebrow}</div>
+        <h1 style={{ fontSize: "31px", maxWidth: "155mm" }}>{renderHeading(p.heading)}</h1>
+        <p style={{ marginTop: "4mm", fontSize: "13px", lineHeight: 1.5, maxWidth: "155mm", color: "#cdeefb" }}>{p.lead}</p>
       </div>
 
-      <div style={{ padding: "10mm 14mm 0" }}>
-        <h2 style={{ fontSize: "15px", marginBottom: "5mm" }}>{p.servicesTitle}</h2>
+      <div style={{ padding: "8mm 14mm 0" }}>
+        <h2 style={{ fontSize: "15px", marginBottom: "4mm" }}>{p.servicesTitle}</h2>
         <div className="svc-grid">
           {p.services.map((s, i) => (
             <div className="svc" key={`${s.icon}-${i}`}>
@@ -92,8 +92,8 @@ function Poster({ p }: { p: PosterFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "9mm 14mm 0" }}>
-        <h2 style={{ fontSize: "15px", marginBottom: "5mm" }}>{p.stepsTitle}</h2>
+      <div style={{ padding: "5mm 14mm 0" }}>
+        <h2 style={{ fontSize: "15px", marginBottom: "4mm" }}>{p.stepsTitle}</h2>
         <div className="steps row">
           {p.steps.map((st, i) => (
             <div className="step" key={i}>
@@ -105,7 +105,7 @@ function Poster({ p }: { p: PosterFields }) {
         </div>
       </div>
 
-      <div style={{ marginTop: "auto", padding: "9mm 14mm 11mm" }}>
+      <div style={{ marginTop: "auto", padding: "8mm 14mm 10mm" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "8mm", borderTop: "1px solid var(--line)", paddingTop: "6mm" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6mm" }}>
             <div style={{ textAlign: "center", flexShrink: 0 }}>
@@ -133,20 +133,20 @@ function Poster({ p }: { p: PosterFields }) {
 function Referral({ r }: { r: ReferralFields }) {
   return (
     <div className="a4">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11mm 14mm 5mm" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9mm 14mm 4mm" }}>
         <FjarLogo />
         <span className="pill solid">{r.badge}</span>
       </div>
 
       <div style={{ padding: "0 14mm" }}>
-        <div className="eyebrow" style={{ marginBottom: "3mm" }}>{r.eyebrow}</div>
-        <h1 style={{ fontSize: "27px", maxWidth: "165mm" }}>
+        <div className="eyebrow" style={{ marginBottom: "2.5mm" }}>{r.eyebrow}</div>
+        <h1 style={{ fontSize: "26px", maxWidth: "165mm" }}>
           {r.heading}<span className="grad-text">{r.headingAccent}</span>
         </h1>
-        <p style={{ marginTop: "3.5mm", fontSize: "12px", lineHeight: 1.5, color: "var(--body)", maxWidth: "170mm" }}>{r.intro}</p>
+        <p style={{ marginTop: "3mm", fontSize: "11.5px", lineHeight: 1.45, color: "var(--body)", maxWidth: "172mm" }}>{r.intro}</p>
       </div>
 
-      <div style={{ padding: "7mm 14mm 0" }}>
+      <div style={{ padding: "5mm 14mm 0" }}>
         <div className="cols2">
           <div className="panel yes">
             <h3>{r.yesTitle}</h3>
@@ -159,7 +159,7 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "7mm 14mm 0" }}>
+      <div style={{ padding: "5mm 14mm 0" }}>
         <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.referTitle}</h2>
         <div className="steps row">
           {r.referSteps.map((st, i) => (
@@ -172,7 +172,7 @@ function Referral({ r }: { r: ReferralFields }) {
         </div>
       </div>
 
-      <div style={{ padding: "7mm 14mm 0" }}>
+      <div style={{ padding: "5mm 14mm 0" }}>
         <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.afterTitle}</h2>
         <div className="rows">
           {r.after.map((a, i) => (
@@ -185,28 +185,31 @@ function Referral({ r }: { r: ReferralFields }) {
       </div>
 
       {/* Three ways to share the service with a patient */}
-      <div style={{ padding: "7mm 14mm 0" }}>
-        <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.shareTitle}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "6mm", alignItems: "center", padding: "5mm 6mm", borderRadius: "4mm", background: "var(--wash)", border: "1px solid #cdeef7" }}>
-          <div>
-            <div className="eyebrow" style={{ marginBottom: "1.5mm" }}>1 · Vefslóð</div>
-            <div className="grad-text" style={{ fontSize: "18px", fontWeight: 800 }}>{r.url}</div>
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div className="eyebrow" style={{ marginBottom: "1.5mm" }}>2 · Beinn tengill</div>
-            <div style={{ fontSize: "10px", color: "var(--body)", wordBreak: "break-all", lineHeight: 1.35 }}>{r.portalUrl}</div>
-          </div>
-          <div style={{ textAlign: "center", flexShrink: 0 }}>
-            <div className="eyebrow" style={{ marginBottom: "1.5mm" }}>3 · QR-kóði</div>
-            <div style={{ border: "1px solid var(--line)", borderRadius: "2mm", padding: "1mm", background: "#fff", display: "inline-block" }}>
-              <QrSvg value={r.portalUrl} size="20mm" />
+      <div style={{ padding: "5mm 14mm 0" }}>
+        <h2 style={{ fontSize: "14px", marginBottom: "3mm" }}>{r.shareTitle}</h2>
+        <div style={{ display: "flex", alignItems: "stretch", gap: "5mm", padding: "4mm 5mm", borderRadius: "4mm", background: "var(--wash)", border: "1px solid #cdeef7" }}>
+          <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: "3mm" }}>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: "1mm" }}>1 · Vefslóð</div>
+              <div className="grad-text" style={{ fontSize: "18px", fontWeight: 800 }}>{r.url}</div>
             </div>
+            <div style={{ minWidth: 0 }}>
+              <div className="eyebrow" style={{ marginBottom: "1mm" }}>2 · Beinn tengill</div>
+              <div style={{ fontSize: "9.5px", color: "var(--body)", wordBreak: "break-all", lineHeight: 1.3, fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" }}>{r.portalUrl}</div>
+            </div>
+          </div>
+          <div style={{ textAlign: "center", flexShrink: 0, borderLeft: "1px solid #cdeef7", paddingLeft: "5mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div className="eyebrow" style={{ marginBottom: "1.5mm" }}>3 · QR-kóði</div>
+            <div style={{ border: "1px solid var(--line)", borderRadius: "2mm", padding: "1mm", background: "#fff" }}>
+              <QrSvg value={r.portalUrl} size="18mm" />
+            </div>
+            <div style={{ fontSize: "8.5px", color: "var(--muted)", marginTop: "1mm", fontWeight: 600 }}>Skannaðu</div>
           </div>
         </div>
       </div>
 
-      <div style={{ marginTop: "auto", padding: "8mm 14mm 11mm" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8mm", borderTop: "1px solid var(--line)", paddingTop: "5mm" }}>
+      <div style={{ marginTop: "auto", padding: "6mm 14mm 9mm" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8mm", borderTop: "1px solid var(--line)", paddingTop: "4mm" }}>
           <div className="safety"><span><b>{r.safety.bold}</b>{r.safety.text}</span></div>
           <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "right" }}>
             {r.contactLabel} <b style={{ color: "var(--ink)" }}>{r.contactEmail}</b>

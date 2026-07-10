@@ -17,7 +17,8 @@ export const COLLATERAL_CSS = `
   --ink:#0f2733; --body:#334155; --muted:#64748b; --line:#e3e9ef;
   --wash:#f5f9fc; --wash2:#eef6fb;
   --dark1:#062a38; --dark2:#0a4a5e;
-  font-family:var(--font-inter),Inter,system-ui,sans-serif;
+  font-family:var(--font-inter),Inter,system-ui,sans-serif,
+    "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji";
 }
 
 /* ── A4 page shell ─────────────────────────────────────────────────────── */
@@ -54,7 +55,7 @@ export const COLLATERAL_CSS = `
 }
 .llcol .eyebrow.on-dark{color:var(--cyan);}
 
-.llcol .a4 h1{margin:0; color:var(--ink); font-weight:800; letter-spacing:-.02em; line-height:1.02;}
+.llcol .a4 h1{margin:0; color:var(--ink); font-weight:800; letter-spacing:-.02em; line-height:1.08;}
 .llcol .a4 h2{margin:0; color:var(--ink); font-weight:800; letter-spacing:-.01em;}
 .llcol .a4 p{margin:0;}
 
@@ -66,13 +67,13 @@ export const COLLATERAL_CSS = `
 .llcol .safety b{color:var(--accent-dark);}
 
 /* ── service tile grid (poster) ────────────────────────────────────────── */
-.llcol .svc-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:4mm;}
+.llcol .svc-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:3mm;}
 .llcol .svc{
   display:flex; flex-direction:column; align-items:center; text-align:center;
-  gap:2.5mm; padding:4mm 2mm; border-radius:4mm;
+  gap:2mm; padding:3mm 2mm; border-radius:4mm;
   background:#fff; border:1px solid var(--line);
 }
-.llcol .svc img{width:15mm; height:15mm;}
+.llcol .svc img{width:13mm; height:13mm;}
 .llcol .svc span{font-size:12px; font-weight:700; color:var(--ink); line-height:1.15;}
 
 /* compact chip list (advert + referral) */
@@ -99,7 +100,7 @@ export const COLLATERAL_CSS = `
 
 /* ── two-column suitability (referral) ─────────────────────────────────── */
 .llcol .cols2{display:grid; grid-template-columns:1fr 1fr; gap:5mm;}
-.llcol .panel{border-radius:4mm; padding:5mm; border:1px solid var(--line);}
+.llcol .panel{border-radius:4mm; padding:4mm 4.5mm; border:1px solid var(--line);}
 .llcol .panel.yes{background:var(--wash); border-color:#cdeef7;}
 .llcol .panel.no{background:#fdf2f6; border-color:#f5d3e1;}
 .llcol .panel h3{margin:0 0 2.5mm; font-size:13px; font-weight:800; display:flex; align-items:center; gap:2mm;}
@@ -115,16 +116,16 @@ export const COLLATERAL_CSS = `
 .llcol .rows{display:grid; gap:2.6mm;}
 .llcol .rowitem{display:flex; gap:3mm; align-items:flex-start;}
 .llcol .rowitem .k{
-  flex:0 0 auto; width:7mm; height:7mm; border-radius:2mm; margin-top:.4mm;
+  flex:0 0 auto; min-width:7mm; height:7mm; padding:0 1.6mm; border-radius:2mm; margin-top:.4mm;
   display:flex; align-items:center; justify-content:center;
-  background:var(--wash2); color:var(--primary-dark); font-weight:800; font-size:11px;
+  background:var(--wash2); color:var(--primary-dark); font-weight:800; font-size:10.5px; white-space:nowrap;
 }
 .llcol .rowitem .t{font-size:11px; line-height:1.4; color:var(--body);}
 .llcol .rowitem .t b{color:var(--ink);}
 
 /* dark hero band (poster + advert) */
 .llcol .hero{
-  position:relative; color:#eafaff; overflow:hidden;
+  position:relative; color:#eafaff; overflow:hidden; flex-shrink:0;
   background:
     radial-gradient(120% 120% at 90% -10%, rgba(0,214,255,.5), transparent 55%),
     radial-gradient(120% 120% at -10% 120%, rgba(207,20,123,.35), transparent 55%),
