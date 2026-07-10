@@ -186,24 +186,24 @@ function Referral({ r }: { r: ReferralFields }) {
 
       {/* Three ways to share the service with a patient */}
       <div style={{ padding: "4mm 14mm 0" }}>
-        <h2 style={{ fontSize: "14px", marginBottom: "3mm" }}>{r.shareTitle}</h2>
-        <div style={{ display: "flex", alignItems: "stretch", gap: "5mm", padding: "4mm 5mm", borderRadius: "4mm", background: "var(--wash)", border: "1px solid #cdeef7" }}>
-          <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: "3mm" }}>
-            <div>
-              <div className="eyebrow" style={{ marginBottom: "1mm" }}>1 · Vefslóð</div>
-              <div className="grad-text" style={{ fontSize: "18px", fontWeight: 800 }}>{r.url}</div>
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="eyebrow" style={{ marginBottom: "1mm" }}>2 · Beinn tengill</div>
-              <div style={{ fontSize: "9.5px", color: "var(--body)", wordBreak: "break-all", lineHeight: 1.3, fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" }}>{r.portalUrl}</div>
-            </div>
+        <h2 style={{ fontSize: "14px", marginBottom: "3.5mm" }}>{r.shareTitle}</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "4mm", alignItems: "stretch" }}>
+          <div className="share-card">
+            <div className="share-head"><span className="share-n">1</span><span className="eyebrow">Vefslóð</span></div>
+            <div className="grad-text" style={{ fontSize: "18px", fontWeight: 800 }}>{r.url}</div>
+            <div className="share-note">Sláðu inn í vafra</div>
           </div>
-          <div style={{ textAlign: "center", flexShrink: 0, borderLeft: "1px solid #cdeef7", paddingLeft: "5mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-            <div className="eyebrow" style={{ marginBottom: "1.5mm" }}>3 · QR-kóði</div>
+          <div className="share-card">
+            <div className="share-head"><span className="share-n">2</span><span className="eyebrow">Beinn tengill</span></div>
+            <div style={{ fontSize: "9.5px", color: "var(--body)", wordBreak: "break-all", lineHeight: 1.35, fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace" }}>{r.portalUrl}</div>
+            <div className="share-note">Deildu tenglinum beint</div>
+          </div>
+          <div className="share-card" style={{ alignItems: "center", textAlign: "center" }}>
+            <div className="share-head"><span className="share-n">3</span><span className="eyebrow">QR-kóði</span></div>
             <div style={{ border: "1px solid var(--line)", borderRadius: "2mm", padding: "1mm", background: "#fff" }}>
-              <QrSvg value={r.portalUrl} size="16mm" />
+              <QrSvg value={r.portalUrl} size="17mm" />
             </div>
-            <div style={{ fontSize: "8.5px", color: "var(--muted)", marginTop: "1mm", fontWeight: 600 }}>Skannaðu</div>
+            <div className="share-note" style={{ fontWeight: 700 }}>Skannaðu</div>
           </div>
         </div>
       </div>

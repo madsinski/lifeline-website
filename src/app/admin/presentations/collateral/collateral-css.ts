@@ -123,6 +123,20 @@ export const COLLATERAL_CSS = `
 .llcol .rowitem .t{font-size:11px; line-height:1.4; color:var(--body);}
 .llcol .rowitem .t b{color:var(--ink);}
 
+/* share cards (referral) — three ways to share */
+.llcol .share-card{
+  display:flex; flex-direction:column; gap:2.5mm;
+  border-radius:4mm; background:#fff; border:1px solid #cdeef7; padding:4mm 4.5mm;
+  box-shadow:0 5px 16px -10px rgba(8,70,90,.4);
+}
+.llcol .share-head{display:flex; align-items:center; gap:2.5mm;}
+.llcol .share-n{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  width:6mm; height:6mm; border-radius:50%; font-weight:800; font-size:11px; color:#fff;
+  background:linear-gradient(135deg,var(--primary),var(--cyan));
+}
+.llcol .share-note{font-size:9px; color:var(--muted); margin-top:auto;}
+
 /* dark hero band (poster + advert) */
 .llcol .hero{
   position:relative; color:#eafaff; overflow:hidden; flex-shrink:0;
