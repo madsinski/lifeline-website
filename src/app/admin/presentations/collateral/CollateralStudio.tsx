@@ -14,7 +14,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { COLLATERAL_CSS } from "./collateral-css";
-import { CollateralDoc } from "./docs";
+import { CollateralDoc, AFTER_ICON_KEYS } from "./docs";
 import {
   defaultDoc,
   SERVICE_ICONS,
@@ -137,12 +137,16 @@ function AfterEditor({ items, onChange }: { items: AfterItem[]; onChange: (v: Af
       {items.map((a, i) => (
         <div key={i} className="space-y-1.5 rounded-md border border-gray-200 p-2">
           <div className="flex gap-1.5">
-            <label className="block w-20 shrink-0">
-              <span className="mb-1 block text-xs font-medium text-gray-600">Merki</span>
-              <input value={a.k} onChange={(e) => set(i, { k: e.target.value })} className={inputCls} />
+            <label className="block w-28 shrink-0">
+              <span className="mb-1 block text-xs font-medium text-gray-600">Tákn</span>
+              <select value={a.icon ?? ""} onChange={(e) => set(i, { icon: e.target.value || undefined })} className="w-full rounded-md border border-gray-300 px-1.5 py-1.5 text-xs text-gray-700">
+                <option value="">— texti —</option>
+                {AFTER_ICON_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
             </label>
             <div className="flex-1"><Field label="Feitletrað" value={a.bold} onChange={(v) => set(i, { bold: v })} /></div>
           </div>
+          {!a.icon && <Field label="Táknatexti (þegar ekkert tákn)" value={a.k} onChange={(v) => set(i, { k: v })} />}
           <Field label="Texti" value={a.text} onChange={(v) => set(i, { text: v })} area />
           <button onClick={() => onChange(items.filter((_, j) => j !== i))} className="text-xs text-red-500 hover:underline">Fjarlægja</button>
         </div>

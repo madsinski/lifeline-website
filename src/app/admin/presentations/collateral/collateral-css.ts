@@ -115,11 +115,15 @@ export const COLLATERAL_CSS = `
 /* generic bullet rows */
 .llcol .rows{display:grid; gap:2mm;}
 .llcol .rowitem{display:flex; gap:3mm; align-items:flex-start;}
+.llcol .rowitem{align-items:center;}
 .llcol .rowitem .k{
-  flex:0 0 auto; min-width:7mm; height:7mm; padding:0 1.6mm; border-radius:2mm; margin-top:.4mm;
+  flex:0 0 auto; min-width:8mm; height:8mm; padding:0 1.4mm; border-radius:2.5mm;
   display:flex; align-items:center; justify-content:center;
-  background:var(--wash2); color:var(--primary-dark); font-weight:800; font-size:10.5px; white-space:nowrap;
+  background:linear-gradient(135deg,var(--primary),var(--cyan)); color:#fff;
+  font-weight:800; font-size:10px; white-space:nowrap;
+  box-shadow:0 3px 8px -4px rgba(0,168,204,.6);
 }
+.llcol .rowitem .k svg{width:4.6mm; height:4.6mm;}
 .llcol .rowitem .t{font-size:11px; line-height:1.4; color:var(--body);}
 .llcol .rowitem .t b{color:var(--ink);}
 

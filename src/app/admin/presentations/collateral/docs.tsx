@@ -4,6 +4,18 @@
 // brand styling lives in collateral-css.ts; logos live in /public.
 
 import qrcode from "qrcode-generator";
+import {
+  Clock, Pill, Undo2, Lock, FileText, Stethoscope, ShieldCheck,
+  Send, CheckCircle2, Bell, MessageSquare, House, type LucideIcon,
+} from "lucide-react";
+
+// Curated lucide set for the referral "what happens next" markers.
+const AFTER_ICONS: Record<string, LucideIcon> = {
+  clock: Clock, pill: Pill, undo: Undo2, lock: Lock, doc: FileText,
+  stethoscope: Stethoscope, shield: ShieldCheck, send: Send,
+  check: CheckCircle2, bell: Bell, message: MessageSquare, home: House,
+};
+export const AFTER_ICON_KEYS = Object.keys(AFTER_ICONS);
 import type {
   Doc,
   PosterFields,
@@ -175,12 +187,15 @@ function Referral({ r }: { r: ReferralFields }) {
       <div style={{ padding: "4mm 14mm 0" }}>
         <h2 style={{ fontSize: "14px", marginBottom: "4mm" }}>{r.afterTitle}</h2>
         <div className="rows">
-          {r.after.map((a, i) => (
-            <div className="rowitem" key={i}>
-              <span className="k">{a.k}</span>
-              <span className="t"><b>{a.bold}</b>{a.text}</span>
-            </div>
-          ))}
+          {r.after.map((a, i) => {
+            const Ico = a.icon ? AFTER_ICONS[a.icon] : undefined;
+            return (
+              <div className="rowitem" key={i}>
+                <span className="k">{Ico ? <Ico size={17} strokeWidth={2.2} /> : a.k}</span>
+                <span className="t"><b>{a.bold}</b>{a.text}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -259,22 +274,24 @@ function Advert({ a }: { a: AdvertFields }) {
         </div>
       </div>
 
-      <div style={{ marginTop: "auto" }}>
-        <div style={{ margin: "0 16mm 6mm", padding: "8mm 9mm", borderRadius: "5mm", background: "var(--wash)", border: "1px solid #cdeef7", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "7mm" }}>
-          <div>
-            <div className="eyebrow" style={{ marginBottom: "2mm" }}>{a.ctaLabel}</div>
-            <div className="grad-text" style={{ fontSize: "32px", fontWeight: 800 }}>{a.url}</div>
-          </div>
-          <div style={{ textAlign: "center", flexShrink: 0 }}>
-            <div style={{ background: "#fff", borderRadius: "2mm", padding: "1mm", display: "inline-block" }}>
-              <QrSvg value={a.portalUrl} size="24mm" />
+      <div style={{ marginTop: "auto", padding: "9mm 16mm 13mm" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "8mm", borderTop: "1px solid var(--line)", paddingTop: "7mm" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6mm" }}>
+            <div style={{ textAlign: "center", flexShrink: 0 }}>
+              <div style={{ border: "1px solid var(--line)", borderRadius: "2mm", padding: "1.5mm", background: "#fff" }}>
+                <QrSvg value={a.portalUrl} size="26mm" />
+              </div>
+              <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1.5mm", fontWeight: 600 }}>Skannaðu til að opna</div>
             </div>
-            <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1.5mm", fontWeight: 600 }}>Skannaðu til að opna</div>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: "2mm" }}>{a.ctaLabel}</div>
+              <div style={{ fontSize: "26px", fontWeight: 800, color: "var(--ink)" }} className="grad-text">{a.url}</div>
+              <p style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2mm", maxWidth: "60mm" }}>{a.partnerNote}</p>
+            </div>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--body)", maxWidth: "50mm", textAlign: "right" }}>{a.partnerNote}</p>
-        </div>
-        <div style={{ padding: "0 16mm 13mm" }}>
-          <div className="safety"><span><b>{a.safety.bold}</b>{a.safety.text}</span></div>
+          <div className="safety" style={{ textAlign: "right", justifyContent: "flex-end" }}>
+            <span><b>{a.safety.bold}</b>{a.safety.text}</span>
+          </div>
         </div>
       </div>
     </div>

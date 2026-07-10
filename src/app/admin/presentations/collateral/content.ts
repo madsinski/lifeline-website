@@ -10,7 +10,7 @@
 export type Step = { title: string; body: string };
 export type Service = { icon: string; label: string };
 export type Safety = { bold: string; text: string };
-export type AfterItem = { k: string; bold: string; text: string };
+export type AfterItem = { k: string; bold: string; text: string; icon?: string };
 
 export type DocType = "poster" | "referral" | "advert";
 
@@ -161,10 +161,10 @@ export const DEFAULT_REFERRAL: ReferralFields = {
   ],
   afterTitle: "Hvað gerist svo",
   after: [
-    { k: "2h", bold: "Innan tveggja klukkustunda.", text: " Læknir svarar erindum á opnunartíma, alla daga milli 10 og 22." },
-    { k: "Rx", bold: "Lyfseðill fer rafrænt í lyfjagátt", text: " og er tilbúinn í því apóteki sem sjúklingur velur." },
-    { k: "←", bold: "Tilvísun til baka.", text: " Þurfi sjúklingur skoðun eða frekari rannsókn vísar læknir aftur í hefðbundna þjónustu HSU." },
-    { k: "lás", bold: "Öruggt.", text: " Öll samskipti fara um sjúklingagátt Medalia — dulkóðuð og eingöngu aðgengileg sjúklingi og lækni." },
+    { k: "2h", icon: "clock", bold: "Innan tveggja klukkustunda.", text: " Læknir svarar erindum á opnunartíma, alla daga milli 10 og 22." },
+    { k: "Rx", icon: "pill", bold: "Lyfseðill fer rafrænt í lyfjagátt", text: " og er tilbúinn í því apóteki sem sjúklingur velur." },
+    { k: "←", icon: "undo", bold: "Tilvísun til baka.", text: " Þurfi sjúklingur skoðun eða frekari rannsókn vísar læknir aftur í hefðbundna þjónustu HSU." },
+    { k: "lás", icon: "lock", bold: "Öruggt.", text: " Öll samskipti fara um sjúklingagátt Medalia — dulkóðuð og eingöngu aðgengileg sjúklingi og lækni." },
   ],
   shareTitle: "Þrjár leiðir til að deila þjónustunni með sjúklingi",
   url: "fjarlaekningar.is",
