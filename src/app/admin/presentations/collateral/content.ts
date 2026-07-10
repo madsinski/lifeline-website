@@ -8,15 +8,20 @@ export type Step = { title: string; body: string };
 export type Service = { icon: string; label: string };
 export type Safety = { bold: string; text: string };
 export type AfterItem = { k: string; bold: string; text: string };
+// Editable display name + tagline for each printable (shown on the document
+// tabs in the studio/viewer, not on the printed A4).
+export type DocMeta = { name: string; sub: string };
 
 export type CollateralContent = {
+  // Tab names/taglines for the three printables.
+  docMeta: { poster: DocMeta; referral: DocMeta; advert: DocMeta };
   services: Service[];
   poster: {
     badge: string;
     eyebrow: string;
-    headingA: string;
-    headingB: string;
-    headingAccent: string;
+    // Free-form heading. Wrap words in ==double equals== to colour them blue;
+    // use line breaks for multiple lines. Everything else renders white.
+    heading: string;
     lead: string;
     servicesTitle: string;
     stepsTitle: string;
@@ -73,6 +78,11 @@ export const SERVICE_ICONS = [
 ] as const;
 
 export const DEFAULT_CONTENT: CollateralContent = {
+  docMeta: {
+    poster: { name: "Veggspjald", sub: "Fyrir móttöku HSU — fyrir sjúklinga" },
+    referral: { name: "Tilvísunarleiðbeiningar", sub: "A4 — fyrir heilbrigðisstarfsfólk" },
+    advert: { name: "Blaðaauglýsing", sub: "A4 — dagblaðsauglýsing" },
+  },
   // Concise portal labels for the nine-tile grid; wording aligned to the
   // team-reviewed HSN presentation.
   services: [
@@ -89,9 +99,7 @@ export const DEFAULT_CONTENT: CollateralContent = {
   poster: {
     badge: "Í samstarfi við HSU",
     eyebrow: "Íslensk fjarlækningaþjónusta",
-    headingA: "Þarftu að hitta lækni?",
-    headingB: "Þú getur gert það",
-    headingAccent: "þar sem þú ert.",
+    heading: "Þarftu að hitta lækni?\nÞú getur gert það ==þar sem þú ert.==",
     lead: "Fjarlækningar leysa einföld og afmörkuð erindi. Þú svarar stuttum spurningalista og læknir metur málið og leggur til meðferð — sama þjónusta og á læknastofu, en skilvirkari leið og styttri biðlistar.",
     servicesTitle: "Við getum meðal annars aðstoðað með:",
     stepsTitle: "Svona virkar það",
@@ -173,7 +181,13 @@ export const DEFAULT_CONTENT: CollateralContent = {
 // stored object when present.
 export function mergeContent(stored: unknown): CollateralContent {
   const s = (stored ?? {}) as Partial<CollateralContent>;
+  const dm = (s.docMeta ?? {}) as Partial<CollateralContent["docMeta"]>;
   return {
+    docMeta: {
+      poster: { ...DEFAULT_CONTENT.docMeta.poster, ...(dm.poster ?? {}) },
+      referral: { ...DEFAULT_CONTENT.docMeta.referral, ...(dm.referral ?? {}) },
+      advert: { ...DEFAULT_CONTENT.docMeta.advert, ...(dm.advert ?? {}) },
+    },
     services: Array.isArray(s.services) && s.services.length ? s.services : DEFAULT_CONTENT.services,
     poster: { ...DEFAULT_CONTENT.poster, ...(s.poster ?? {}) },
     referral: { ...DEFAULT_CONTENT.referral, ...(s.referral ?? {}) },

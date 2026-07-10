@@ -117,8 +117,8 @@ export default function CollateralViewer({
                   : "border-gray-200 bg-white hover:border-emerald-300"
               }`}
             >
-              <div className="text-sm font-semibold text-gray-900">{d.name}</div>
-              <div className="text-xs text-gray-500">{d.sub}</div>
+              <div className="text-sm font-semibold text-gray-900">{content.docMeta[d.id].name}</div>
+              <div className="text-xs text-gray-500">{content.docMeta[d.id].sub}</div>
             </button>
           ))}
         </div>

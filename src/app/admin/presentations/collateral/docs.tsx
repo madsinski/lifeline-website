@@ -19,6 +19,21 @@ function ico(icon: string) {
   return `/fjarlaekningar-icons/portal/${icon}.png`;
 }
 
+// Render a free-form heading: line breaks split lines; ==double equals== wraps
+// blue-coloured words. Everything else stays the hero default (white).
+function renderHeading(text: string) {
+  return text.split("\n").map((line, li) => (
+    <span key={li}>
+      {li > 0 && <br />}
+      {line.split(/==(.+?)==/g).map((part, i) =>
+        i % 2 === 1
+          ? <span key={i} style={{ color: "#5fe0ff" }}>{part}</span>
+          : <span key={i}>{part}</span>,
+      )}
+    </span>
+  ));
+}
+
 function FjarLogo({ onDark = false }: { onDark?: boolean }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -42,10 +57,8 @@ function Poster({ c }: { c: CollateralContent }) {
 
       <div className="hero" style={{ padding: "12mm 14mm 13mm", margin: "0 14mm", borderRadius: "6mm" }}>
         <div className="eyebrow" style={{ marginBottom: "4mm" }}>{p.eyebrow}</div>
-        <h1 style={{ fontSize: "40px", maxWidth: "150mm" }}>
-          {p.headingA}<br />{p.headingB} <span style={{ color: "#5fe0ff" }}>{p.headingAccent}</span>
-        </h1>
-        <p style={{ marginTop: "5mm", fontSize: "14px", lineHeight: 1.5, maxWidth: "150mm" }}>{p.lead}</p>
+        <h1 style={{ fontSize: "40px", maxWidth: "150mm" }}>{renderHeading(p.heading)}</h1>
+        <p style={{ marginTop: "5mm", fontSize: "14px", lineHeight: 1.5, maxWidth: "150mm", color: "#cdeefb" }}>{p.lead}</p>
       </div>
 
       <div style={{ padding: "10mm 14mm 0" }}>
@@ -207,12 +220,18 @@ function Advert({ c }: { c: CollateralContent }) {
       </div>
 
       <div style={{ marginTop: "auto" }}>
-        <div style={{ margin: "0 16mm 6mm", padding: "8mm 9mm", borderRadius: "5mm", background: "var(--wash)", border: "1px solid #cdeef7", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8mm" }}>
+        <div style={{ margin: "0 16mm 6mm", padding: "8mm 9mm", borderRadius: "5mm", background: "var(--wash)", border: "1px solid #cdeef7", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "7mm" }}>
           <div>
             <div className="eyebrow" style={{ marginBottom: "2mm" }}>{a.ctaLabel}</div>
             <div className="grad-text" style={{ fontSize: "32px", fontWeight: 800 }}>{a.url}</div>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--body)", maxWidth: "70mm", textAlign: "right" }}>{a.partnerNote}</p>
+          <div style={{ textAlign: "center", flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/fjarlaekningar-qr-medalia.svg" alt="QR — sjúklingagátt Fjarlækninga"
+              style={{ width: "26mm", height: "26mm", display: "block", background: "#fff", borderRadius: "2mm" }} />
+            <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1.5mm", fontWeight: 600 }}>Skannaðu til að opna</div>
+          </div>
+          <p style={{ fontSize: "12px", color: "var(--body)", maxWidth: "52mm", textAlign: "right" }}>{a.partnerNote}</p>
         </div>
         <div style={{ padding: "0 16mm 13mm" }}>
           <div className="safety"><span><b>{a.safety.bold}</b>{a.safety.text}</span></div>
