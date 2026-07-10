@@ -217,6 +217,14 @@ export function CollateralStudio({
     finally { setSaving(false); }
   }
 
+  // Auto-save: persist ~1.2s after the last edit (no manual Save button).
+  useEffect(() => {
+    if (!dirty) return;
+    const t = setTimeout(() => { save(); }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
+
   // ── doc-list operations ─────────────────────────────────────────────────
   const setDocs = (next: Doc[]) => setContent((c) => ({ ...c, docs: next }));
   const updateDoc = (i: number, fn: (d: Doc) => Doc) => setDocs(docs.map((d, j) => (j === i ? fn(d) : d)));
@@ -268,13 +276,12 @@ export function CollateralStudio({
           <h1 className="mt-1 text-2xl font-bold text-gray-900">{heading}</h1>
           <p className="text-sm text-gray-500">{subtitle}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {headerExtra}
-          {msg && <span className="text-sm text-gray-500">{msg}</span>}
-          <button onClick={save} disabled={!dirty || saving}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">
-            {saving ? "Vista…" : dirty ? "Vista breytingar" : "Vistað"}
-          </button>
+          <span className="flex items-center gap-1.5 text-sm text-gray-500" title="Breytingar vistast sjálfkrafa">
+            <span className={`inline-block h-2 w-2 rounded-full ${saving ? "bg-amber-400" : dirty ? "bg-gray-300" : "bg-emerald-500"}`} />
+            {saving ? "Vistar…" : dirty ? "Óvistað" : (msg ?? "Vistað sjálfkrafa")}
+          </span>
           <button onClick={() => window.print()} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             Vista sem PDF
           </button>
