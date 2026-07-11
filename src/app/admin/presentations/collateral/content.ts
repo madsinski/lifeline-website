@@ -76,7 +76,8 @@ export type Doc =
   | { id: string; type: "referral"; name: string; sub: string; referral: ReferralFields }
   | { id: string; type: "advert"; name: string; sub: string; advert: AdvertFields };
 
-export type CollateralContent = { docs: Doc[] };
+export type ArchivedDoc = Doc & { archivedAt?: string };
+export type CollateralContent = { docs: Doc[]; archived?: ArchivedDoc[] };
 
 // The nine services from the Medalia menu „Hvernig getum við aðstoðað þig?“.
 // `icon` maps to /public/fjarlaekningar-icons/portal/<icon>.png — the fixed set.
@@ -215,11 +216,19 @@ export function defaultDoc(type: DocType, id: string): Doc {
 export function mergeContent(stored: unknown): CollateralContent {
   const s = (stored ?? {}) as Record<string, unknown>;
 
+  const archived: ArchivedDoc[] = (Array.isArray(s.archived) ? (s.archived as Record<string, unknown>[]) : [])
+    .map((d, i): ArchivedDoc | null => {
+      const c = coerceDoc(d, i);
+      if (!c) return null;
+      return { ...c, archivedAt: typeof d?.archivedAt === "string" ? (d.archivedAt as string) : undefined };
+    })
+    .filter((d): d is ArchivedDoc => d !== null);
+
   if (Array.isArray(s.docs) && s.docs.length) {
     const docs = (s.docs as unknown[])
       .map((d, i) => coerceDoc(d, i))
       .filter((d): d is Doc => d !== null);
-    if (docs.length) return { docs };
+    if (docs.length) return { docs, archived };
   }
 
   // Legacy single-of-each shape → three docs.

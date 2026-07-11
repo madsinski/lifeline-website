@@ -19,6 +19,7 @@ import {
   defaultDoc,
   SERVICE_ICONS,
   type CollateralContent,
+  type ArchivedDoc,
   type Doc,
   type DocType,
   type Step,
@@ -175,6 +176,7 @@ export function CollateralStudio({
   subtitle,
   back,
   headerExtra,
+  archiveHref,
 }: {
   initial: CollateralContent;
   onSave: (content: CollateralContent) => Promise<SaveResult>;
@@ -182,6 +184,7 @@ export function CollateralStudio({
   subtitle: string;
   back?: { href: string; label: string };
   headerExtra?: React.ReactNode;
+  archiveHref?: string;
 }) {
   const [content, setContent] = useState<CollateralContent>(initial);
   const [saved, setSaved] = useState<CollateralContent>(initial);
@@ -246,7 +249,14 @@ export function CollateralStudio({
   };
   const deleteDoc = () => {
     if (docs.length <= 1) return;
-    setDocs(docs.filter((_, j) => j !== index));
+    let at: string | undefined;
+    try { at = new Date().toISOString(); } catch { at = undefined; }
+    const removed: ArchivedDoc = { ...active, archivedAt: at };
+    setContent((c) => ({
+      ...c,
+      docs: c.docs.filter((_, j) => j !== index),
+      archived: [removed, ...(c.archived ?? [])],
+    }));
     setSel(Math.max(0, index - 1));
   };
   const move = (dir: -1 | 1) => {
@@ -314,6 +324,12 @@ export function CollateralStudio({
         {NEW_TYPES.map((t) => (
           <button key={t.type} onClick={() => addDoc(t.type)} className="rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50">+ {t.label}</button>
         ))}
+        {archiveHref && (
+          <>
+            <span className="mx-1 text-gray-300">|</span>
+            <a href={archiveHref} className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Geymsla ({content.archived?.length ?? 0})</a>
+          </>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(320px,420px)_1fr]">

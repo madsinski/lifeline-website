@@ -1,14 +1,10 @@
 "use client";
 
-import {
-  CollateralStudio,
-  type SaveResult,
-} from "@/app/admin/presentations/collateral/CollateralStudio";
+import { CollateralArchive } from "@/app/admin/presentations/collateral/CollateralArchive";
+import type { SaveResult } from "@/app/admin/presentations/collateral/CollateralStudio";
 import type { CollateralContent } from "@/app/admin/presentations/collateral/content";
 
-// External editor surface: same studio as admin, but saves through the
-// token-gated public API instead of the admin (AAL2) API.
-export default function EditClient({
+export default function ArchiveClient({
   token,
   content,
 }: {
@@ -31,12 +27,10 @@ export default function EditClient({
   };
 
   return (
-    <CollateralStudio
+    <CollateralArchive
       initial={content}
       onSave={onSave}
-      heading="Fjarlækningar — prentefni fyrir HSU"
-      subtitle="Breyttu textanum og vistaðu. Breytingar birtast strax á opinberu síðunni."
-      archiveHref={`/present/collateral/edit/${token}/archive`}
+      backHref={`/present/collateral/edit/${token}`}
     />
   );
 }

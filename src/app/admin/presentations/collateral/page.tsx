@@ -106,6 +106,7 @@ export default function CollateralAdminPage() {
       subtitle="Breyttu textanum, forskoðaðu og vistaðu sem PDF. A4."
       back={{ href: "/admin/presentations", label: "← Presentations" }}
       headerExtra={<MintLink />}
+      archiveHref="/admin/presentations/collateral/archive"
     />
   );
 }
