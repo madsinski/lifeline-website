@@ -12,17 +12,16 @@ interface CompanyRow {
   created_at: string;
 }
 
-type AuthState = "checking" | "anon" | "dashboard";
-
 export default function BusinessIndexPage() {
   const router = useRouter();
-  const [authState, setAuthState] = useState<AuthState>("checking");
+  const [phase, setPhase] = useState<"checking" | "ready">("checking");
+  const [signedIn, setSignedIn] = useState(false);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setAuthState("anon"); return; }
+      if (!user) { setSignedIn(false); setPhase("ready"); return; }
       const [{ data: primary }, { data: coAdminRows }] = await Promise.all([
         supabase.from("companies").select("id, name, created_at").eq("contact_person_id", user.id),
         supabase.from("company_admins").select("company_id, added_at, companies:company_id(id, name, created_at)").eq("user_id", user.id),
@@ -62,69 +61,80 @@ export default function BusinessIndexPage() {
           return;
         }
       }
-      setCompanies(list);
       if (list.length === 1) { router.replace(`/business/${list[0].id}`); return; }
-      setAuthState("dashboard");
+      setCompanies(list);
+      setSignedIn(true);
+      setPhase("ready");
     })();
   }, [router]);
 
-  if (authState === "checking") {
+  if (phase === "checking") {
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
   }
 
-  if (authState === "dashboard") {
-    return <CompanySwitcher companies={companies} />;
-  }
-
-  return <PublicBusinessPage />;
+  return <PublicBusinessPage signedIn={signedIn} companies={companies} />;
 }
 
-function CompanySwitcher({ companies }: { companies: CompanyRow[] }) {
+/**
+ * Signed-in account band shown at the top of the business page. Existing
+ * companies and the "create company" action live together as cards, so the
+ * full marketing page below stays visible for a logged-in admin too.
+ */
+function CompaniesPanel({ companies }: { companies: CompanyRow[] }) {
+  const hasCompanies = companies.length > 0;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <main className="max-w-3xl mx-auto px-6 py-16 space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Your companies</h1>
-            <p className="text-sm text-gray-600 mt-1">Pick a company to manage, or create a new one.</p>
-          </div>
-          <Link href="/business/signup" className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-emerald-500 hover:opacity-95">+ New company</Link>
+    <section id="companies" className="scroll-mt-20 border-b border-gray-100 bg-[#f8fafc]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Your account</div>
+          <h2 className="text-2xl font-bold text-[#0F172A]">{hasCompanies ? "Your companies" : "Set up your company"}</h2>
+          <p className="text-sm text-[#475569] mt-1">
+            {hasCompanies
+              ? "Pick a company to manage, or add another."
+              : "You’re signed in — create your first company to start onboarding your team."}
+          </p>
         </div>
-        {companies.length === 0 ? (
-          <section className="bg-white rounded-2xl p-8 shadow-sm text-center">
-            <p className="text-gray-600 mb-5">You haven&apos;t set up a company yet.</p>
-            <Link href="/business/signup" className="inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-emerald-500 hover:opacity-95">Create your first company</Link>
-          </section>
-        ) : (
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {companies.map((c) => (
-              <Link
-                key={c.id}
-                href={`/business/${c.id}`}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border border-transparent hover:border-blue-100"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold tracking-wider uppercase text-gray-400">
-                    {c.role === "primary" ? "Primary admin" : "Co-admin"}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-lg text-gray-900">{c.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Created {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                </p>
-              </Link>
-            ))}
-          </section>
-        )}
-      </main>
-    </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {companies.map((c) => (
+            <Link
+              key={c.id}
+              href={`/business/${c.id}`}
+              className="group flex flex-col bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow border border-gray-100 hover:border-blue-200"
+            >
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-gray-400">
+                {c.role === "primary" ? "Primary admin" : "Co-admin"}
+              </span>
+              <h3 className="font-semibold text-lg text-[#0F172A] mt-1 group-hover:text-[#10B981] transition-colors">{c.name}</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Created {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </p>
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#3B82F6]">
+                Manage
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+              </span>
+            </Link>
+          ))}
+          <Link
+            href="/business/signup"
+            className="group flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed border-gray-300 bg-white/60 p-5 min-h-[9rem] hover:border-[#10B981] hover:bg-emerald-50/40 transition-colors"
+          >
+            <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center mb-2 shadow-sm">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            </span>
+            <span className="font-semibold text-[#0F172A]">{hasCompanies ? "Add another company" : "Create your first company"}</span>
+            <span className="text-xs text-gray-500 mt-1">Set up a new company account</span>
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
-function PublicBusinessPage() {
+function PublicBusinessPage({ signedIn, companies }: { signedIn: boolean; companies: CompanyRow[] }) {
   return (
     <main className="bg-white">
-      <Hero />
+      {signedIn && <CompaniesPanel companies={companies} />}
+      <Hero signedIn={signedIn} />
       <WhyLifeline />
       <HowItWorks />
       <Packages />
@@ -137,7 +147,7 @@ function PublicBusinessPage() {
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-function Hero() {
+function Hero({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#eff6ff] via-white to-[#ecfdf5]">
       <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] to-[#10B981]" />
@@ -173,24 +183,38 @@ function Hero() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </a>
-            <Link
-              href="/business/signup"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create company account
-            </Link>
-            <Link
-              href="/business/login"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#3B82F6] text-[#3B82F6] bg-white text-sm font-semibold hover:bg-[#3B82F6] hover:text-white transition-colors shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
-              Company account log in
-            </Link>
+            {signedIn ? (
+              <a
+                href="#companies"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Manage your companies
+              </a>
+            ) : (
+              <>
+                <Link
+                  href="/business/signup"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create company account
+                </Link>
+                <Link
+                  href="/business/login"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#3B82F6] text-[#3B82F6] bg-white text-sm font-semibold hover:bg-[#3B82F6] hover:text-white transition-colors shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  </svg>
+                  Company account log in
+                </Link>
+              </>
+            )}
           </div>
           <p className="text-xs text-[#64748B] mt-5">
             Medical doctors in the team · On-location scans · Confidential reporting · GDPR-aligned
