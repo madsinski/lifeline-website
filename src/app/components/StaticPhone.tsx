@@ -7,10 +7,11 @@ interface StaticPhoneProps {
   phoneHeight?: string;
 }
 
-// The screenshots are 1440×2937 after the status bar is cropped. The screen
-// uses this exact ratio so the whole screenshot shows with no cropping on any
-// side — the phone frame simply follows the image instead of the other way round.
-const SCREEN_RATIO = "1440 / 2937";
+// The screenshots are 1440×2988 after the status bar is cropped (keeping the
+// app's natural padding above the header). The screen uses this exact ratio so
+// the whole screenshot shows with no cropping on any side — the phone frame
+// simply follows the image instead of the other way round.
+const SCREEN_RATIO = "1440 / 2988";
 
 /**
  * Static app mockup. The device screen matches the screenshot's aspect ratio,
