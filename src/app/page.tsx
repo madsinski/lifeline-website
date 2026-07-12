@@ -93,10 +93,10 @@ const pillars = [
 // Core team (presentation slide 4). Physicians at the core, then advisors.
 // Members without a portrait fall back to a gradient initials circle.
 const team = [
-  { photo: "/team/victor.png", flag: "Co-founder", name: "Victor Guðmundsson", role: "CEO · Medical Doctor & Coach" },
-  { photo: "/team/mads.png", flag: "Co-founder", name: "Mads C. Aanesen", role: "CTO · Medical Doctor & Coach" },
+  { photo: "/team/victor.jpg", flag: "Co-founder", name: "Victor Guðmundsson", role: "CEO · Medical Doctor & Coach" },
+  { photo: "/team/mads.jpg", flag: "Co-founder", name: "Mads C. Aanesen", role: "CTO · Medical Doctor & Coach" },
   { photo: "/team/vignir.png", flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
-  { photo: "/team/dagbjort.png", flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
+  { photo: "/team/dagbjort.jpg", flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
   { photo: "/team/snorri.png", flag: "Advisor", name: "Snorri Arnar Viðarsson", role: "Business Advisor" },
   { photo: "/team/ragnar.png", flag: "Advisor", name: "Ragnar Björgvinsson", role: "Legal Advisor" },
 ];
@@ -105,7 +105,7 @@ const partners = [
   { name: "Læknastofur Akureyrar", role: "Medical clinic partner", url: "https://lak.is", logo: "/partner-lak.svg" },
   { name: "Medalia", role: "Patient portal & health records", url: "https://medalia.is", logo: "/partner-medalia.png" },
   { name: "Sameind", role: "Blood test collection stations", url: "https://sameind.is", logo: "/partner-sameind.svg" },
-  { name: "WorldClass", role: "Fitness & wellness partner", url: "https://worldclass.is", logo: "/partner-worldclass.jpg" },
+  { name: "Lyfja", role: "Pharmacy partner", url: "https://www.lyfja.is/", logo: "/partner-lyfja.png" },
 ];
 
 const approach = [

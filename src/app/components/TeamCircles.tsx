@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { useI18n } from "@/lib/i18n";
 
 export interface TeamMember {
@@ -92,12 +93,9 @@ function MemberPortrait({ member }: { member: TeamMember }) {
         aria-label={`Enlarge photo: ${name}`}
         className="group relative inline-block cursor-zoom-in rounded-full transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] focus-visible:ring-offset-2"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- circular portrait, object-fit crop needs plain img */}
-        <img
-          src={photo}
-          alt={name}
-          className="h-28 w-28 rounded-full border-4 border-white object-cover object-top shadow-lg transition-shadow group-hover:shadow-xl sm:h-32 sm:w-32"
-        />
+        <span className="relative block h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-lg transition-shadow group-hover:shadow-xl sm:h-32 sm:w-32">
+          <Image src={photo} alt={name} fill sizes="140px" className="object-cover object-top" />
+        </span>
         <span className="absolute bottom-0.5 right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-[#10B981] text-white shadow-md">
           <ZoomIcon className="h-3.5 w-3.5" />
         </span>
