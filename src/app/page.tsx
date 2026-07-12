@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import PhoneMockup from "./components/PhoneMockup";
-import ScrollPhone from "./components/ScrollPhone";
+import StaticPhone from "./components/StaticPhone";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "./components/PillarIcons";
 import WaveSeparator from "./components/WaveSeparator";
 import HealthCheckTeaser from "./components/HealthCheckTeaser";
@@ -406,29 +405,29 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
-      {/* The app — brings it all together + scroll phone */}
+      {/* The app — brings it all together + static phone */}
       {/* Desktop: side-by-side layout */}
-      <section className="bg-white hidden lg:block" style={{ height: "200vh" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="grid grid-cols-2 gap-16 h-full">
-            <div className="sticky top-0 h-screen flex items-center">
+      <section className="bg-white hidden lg:block py-24 sm:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-16 items-center">
+            <div>
               <AppTextContent />
             </div>
             <div className="flex justify-center">
-              <ScrollPhone inline screenshot="/app-screenshot-scroll.jpg" alt="Lifeline Health app" initialOffset={0} maxTranslate={35} phoneHeight="75vh" />
+              <StaticPhone screenshot="/app-screenshot-home-static.jpg" alt="Lifeline Health app" phoneHeight="78vh" />
             </div>
           </div>
         </div>
       </section>
-      {/* Mobile: text then standalone scroll phone */}
+      {/* Mobile: text then standalone static phone */}
       <section className="bg-white lg:hidden py-24 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AppTextContent />
         </div>
       </section>
-      <div className="bg-white lg:hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollPhone screenshot="/app-screenshot-scroll.jpg" alt="Lifeline Health app" />
+      <div className="bg-white lg:hidden pb-20">
+        <div className="max-w-md mx-auto px-4">
+          <StaticPhone screenshot="/app-screenshot-home-static.jpg" alt="Lifeline Health app" phoneHeight="70vh" />
         </div>
       </div>
 

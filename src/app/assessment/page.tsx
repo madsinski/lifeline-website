@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import { PhoneMockup } from "../components/PhoneMockup";
-import ScrollPhone from "../components/ScrollPhone";
+import StaticPhone from "../components/StaticPhone";
 import WaveSeparator from "../components/WaveSeparator";
 import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
 
@@ -254,10 +253,10 @@ export default function AssessmentPage() {
       </section>
 
       {/* Results preview — Desktop: side-by-side */}
-      <section className="bg-white hidden lg:block" style={{ height: "200vh" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="grid grid-cols-2 gap-16 h-full">
-            <div className="sticky top-0 h-screen flex items-center">
+      <section className="bg-white hidden lg:block py-24 sm:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-16 items-center">
+            <div>
               <div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Your results, <span className="text-[#10B981]">explained</span></h2>
                 <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.</p>
@@ -276,7 +275,7 @@ export default function AssessmentPage() {
               </div>
             </div>
             <div className="flex justify-center">
-              <ScrollPhone inline screenshot="/app-screenshot-health-scroll.jpg" alt="Your health results in the app" initialOffset={3} maxTranslate={35} phoneHeight="75vh" />
+              <StaticPhone screenshot="/app-screenshot-health-static.jpg" alt="Your health results in the app" phoneHeight="78vh" />
             </div>
           </div>
         </div>
@@ -296,20 +295,20 @@ export default function AssessmentPage() {
           </ul>
         </div>
       </section>
-      <div className="bg-white lg:hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollPhone screenshot="/app-screenshot-health-scroll.jpg" alt="Your health results in the app" initialOffset={3} />
+      <div className="bg-white lg:hidden pb-16">
+        <div className="max-w-md mx-auto px-4">
+          <StaticPhone screenshot="/app-screenshot-health-static.jpg" alt="Your health results in the app" phoneHeight="70vh" />
         </div>
       </div>
 
       {/* Track progress — Desktop: side-by-side (phone left, text right) */}
-      <section className="bg-[#ecf0f3] hidden lg:block" style={{ height: "200vh" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="grid grid-cols-2 gap-16 h-full">
+      <section className="bg-[#ecf0f3] hidden lg:block py-24 sm:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-16 items-center">
             <div className="flex justify-center">
-              <ScrollPhone inline screenshot="/app-screenshot-myhealth-scroll.jpg" alt="Track measurements and blood tests" initialOffset={2} maxTranslate={35} phoneHeight="75vh" />
+              <StaticPhone screenshot="/app-screenshot-blood-static.jpg" alt="Track measurements and blood tests" phoneHeight="78vh" />
             </div>
-            <div className="sticky top-0 h-screen flex items-center">
+            <div>
               <div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6">Track your <span className="text-[#10B981]">progress</span></h2>
                 <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">Your measurements, blood test results and health scores in one place. See how your numbers change over time and understand what they mean for your metabolic health.</p>
@@ -345,9 +344,9 @@ export default function AssessmentPage() {
           </ul>
         </div>
       </section>
-      <div className="bg-[#ecf0f3] lg:hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollPhone screenshot="/app-screenshot-myhealth-scroll.jpg" alt="Track measurements and blood tests" initialOffset={2} />
+      <div className="bg-[#ecf0f3] lg:hidden pb-16">
+        <div className="max-w-md mx-auto px-4">
+          <StaticPhone screenshot="/app-screenshot-blood-static.jpg" alt="Track measurements and blood tests" phoneHeight="70vh" />
         </div>
       </div>
 
