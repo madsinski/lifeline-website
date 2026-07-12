@@ -105,7 +105,7 @@ const partners = [
   { name: "Læknastofur Akureyrar", role: "Medical clinic partner", url: "https://lak.is", logo: "/partner-lak.svg" },
   { name: "Medalia", role: "Patient portal & health records", url: "https://medalia.is", logo: "/partner-medalia.png" },
   { name: "Sameind", role: "Blood test collection stations", url: "https://sameind.is", logo: "/partner-sameind.svg" },
-  { name: "Lyfja", role: "Pharmacy partner", url: "https://www.lyfja.is/", logo: "/partner-lyfja.png" },
+  { name: "Lyfja", role: "Measurement station", url: "https://www.lyfja.is/", logo: "/partner-lyfja.png" },
 ];
 
 const approach = [
