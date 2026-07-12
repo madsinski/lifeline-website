@@ -49,7 +49,6 @@ const COPY = {
     price: "49.990 kr.",
     cta: "Opna sjúklingagátt",
     qrCaption: "Skannaðu til að opna í símanum",
-    qrHint: "Skoðunin lítur best út í símanum þínum.",
   },
   en: {
     badge: "NEW",
@@ -66,7 +65,6 @@ const COPY = {
     price: "49,990 ISK",
     cta: "Open patient portal",
     qrCaption: "Scan to open on your phone",
-    qrHint: "The health check looks best on your phone.",
   },
 } as const;
 
@@ -169,7 +167,6 @@ export default function HealthCheckTeaser({
             </svg>
             {c.qrCaption}
           </div>
-          <p className="text-center text-xs leading-relaxed text-[#6B7280]">{c.qrHint}</p>
         </div>
       </div>
     </section>
