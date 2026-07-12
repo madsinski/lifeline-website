@@ -15,11 +15,11 @@ interface StaticPhoneProps {
 export default function StaticPhone({
   screenshot,
   alt = "Lifeline Health app",
-  phoneHeight = "72vh",
+  phoneHeight = "62vh",
   objectPosition = "top center",
 }: StaticPhoneProps) {
   return (
-    <div className="px-8 pt-12 sm:px-12 sm:pt-16">
+    <div className="px-10 pt-14 sm:px-16 sm:pt-20">
       <div className="relative mx-auto" style={{ height: phoneHeight, aspectRatio: "9/19.5" }}>
         {/* Glow behind the phone */}
         <div
@@ -40,10 +40,7 @@ export default function StaticPhone({
             src={screenshot}
             alt={alt}
             className="absolute inset-0 h-full w-full object-cover"
-            style={{
-              objectPosition,
-              filter: "brightness(1.04) contrast(1.05) saturate(1.12)",
-            }}
+            style={{ objectPosition }}
           />
         </div>
         {/* Side buttons */}
