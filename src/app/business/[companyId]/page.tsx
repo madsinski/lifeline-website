@@ -378,7 +378,7 @@ export default function BusinessDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-[#ecf0f3]">
       <BusinessHeader
         currentCompanyId={company.id}
         crumbs={[
@@ -388,9 +388,9 @@ export default function BusinessDashboardPage() {
       />
 
       <main className="max-w-6xl mx-auto px-6 py-10 flex gap-8">
-        {/* Side nav — Heroicons outline, stroke 1.5, matches admin sidebar language */}
-        <nav className="hidden lg:block w-52 shrink-0 sticky top-24 self-start bg-white rounded-xl border border-gray-100 shadow-sm p-2">
-          <div className="px-3 pt-2 pb-3 text-[10px] uppercase tracking-[0.12em] font-semibold text-gray-400">
+        {/* Side nav — matches the personal account page's menu language. */}
+        <nav className="hidden lg:block w-56 shrink-0 sticky top-24 self-start bg-white rounded-2xl shadow-sm p-2">
+          <div className="px-4 pt-2 pb-2 text-[10px] uppercase tracking-[0.12em] font-semibold text-gray-400">
             Jump to
           </div>
           {[
@@ -413,9 +413,9 @@ export default function BusinessDashboardPage() {
             <button
               key={item.id}
               onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="group flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-emerald-50 hover:text-gray-900 transition-all text-left"
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50 transition-all text-left whitespace-nowrap"
             >
-              <svg className="w-5 h-5 text-gray-400 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d={item.iconPath} />
               </svg>
               {item.label}
