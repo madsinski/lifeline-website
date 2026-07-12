@@ -20,6 +20,7 @@ import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
 import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 import SignedDocumentsList from "./SignedDocumentsList";
+import HealthCheckTeaser from "../components/HealthCheckTeaser";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -1353,6 +1354,12 @@ function AccountPageInner() {
                     </div>
                   </div>
                 </section>
+
+                {/* New service teaser — Heilsufarsskoðun hjá Lyfju */}
+                <HealthCheckTeaser
+                  href="/account/book"
+                  ctaOverride={{ is: "Panta heilsufarsskoðun", en: "Book health check" }}
+                />
 
                 {/* B2C: recently-resolved cancellation request. Shown for
                     14 days after the admin approved or denied, so the user

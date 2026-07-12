@@ -6,6 +6,7 @@ import PhoneMockup from "./components/PhoneMockup";
 import ScrollPhone from "./components/ScrollPhone";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "./components/PillarIcons";
 import WaveSeparator from "./components/WaveSeparator";
+import HealthCheckTeaser from "./components/HealthCheckTeaser";
 
 const steps = [
   {
@@ -241,6 +242,13 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* New service teaser — Heilsufarsskoðun hjá Lyfju */}
+      <section className="py-14 sm:py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HealthCheckTeaser />
         </div>
       </section>
 
