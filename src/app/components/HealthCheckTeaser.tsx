@@ -4,8 +4,9 @@ import Link from "next/link";
 import qrcode from "qrcode-generator";
 import { useI18n } from "@/lib/i18n";
 
-// Absolute URL encoded in the QR so a phone camera can open it directly.
-const DEFAULT_QR_URL = "https://www.lifelinehealth.is/account";
+// Medalia patient portal — where the health check is booked and viewed.
+// Same URL drives the CTA link and the QR a phone camera can open directly.
+const PORTAL_URL = "https://app.medalia.is/7ca0ca21-8947-46cb-afbd-2e2d15efef6e";
 
 /** Inline, dependency-light QR code rendered as a single SVG path. */
 function QrSvg({ value, className = "" }: { value: string; className?: string }) {
@@ -70,8 +71,8 @@ const COPY = {
 } as const;
 
 export default function HealthCheckTeaser({
-  href = "/account/login?mode=signup",
-  qrUrl = DEFAULT_QR_URL,
+  href = PORTAL_URL,
+  qrUrl = PORTAL_URL,
   ctaOverride,
   className = "",
 }: {
@@ -85,6 +86,7 @@ export default function HealthCheckTeaser({
   const lang = locale === "en" ? "en" : "is";
   const c = COPY[lang];
   const ctaLabel = ctaOverride ? ctaOverride[lang] : c.cta;
+  const isExternal = /^https?:\/\//.test(href);
 
   return (
     <section
@@ -129,15 +131,29 @@ export default function HealthCheckTeaser({
           </ul>
 
           <div className="mt-7 flex flex-wrap items-center gap-4">
-            <Link
-              href={href}
-              className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition-all duration-200 hover:bg-[#047857]"
-            >
-              {ctaLabel}
-              <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
+            {isExternal ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition-all duration-200 hover:bg-[#047857]"
+              >
+                {ctaLabel}
+                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            ) : (
+              <Link
+                href={href}
+                className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition-all duration-200 hover:bg-[#047857]"
+              >
+                {ctaLabel}
+                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+            )}
             <span className="text-lg font-bold text-[#1F2937]">{c.price}</span>
           </div>
         </div>

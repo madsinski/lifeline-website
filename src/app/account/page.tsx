@@ -1355,9 +1355,9 @@ function AccountPageInner() {
                   </div>
                 </section>
 
-                {/* New service teaser — Heilsufarsskoðun hjá Lyfju */}
+                {/* New service teaser — Heilsufarsskoðun hjá Lyfju.
+                    Booking + QR both open the Medalia patient portal. */}
                 <HealthCheckTeaser
-                  href="/account/book"
                   ctaOverride={{ is: "Panta heilsufarsskoðun", en: "Book health check" }}
                 />
 
