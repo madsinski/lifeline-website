@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // next/image quality whitelist (Next 16 defaults to [75] only). 90 is used
+  // by the app-mockup screenshots (StaticPhone) so their UI text stays crisp.
+  images: {
+    qualities: [75, 90],
+  },
   // Ensure the Noto Sans TTFs used by the server-side PDF renderer are
   // traced into the Vercel function bundle (not just served from /public).
   outputFileTracingIncludes: {

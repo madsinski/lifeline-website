@@ -1,59 +1,69 @@
+import Image from "next/image";
+
 interface StaticPhoneProps {
   screenshot: string;
   alt?: string;
-  /** Rendered phone height (CSS length). Width follows the 9:19.5 device ratio. */
+  /** Rendered phone height (CSS length). Width follows the screenshot ratio. */
   phoneHeight?: string;
-  /** object-position for the screenshot inside the screen. */
-  objectPosition?: string;
 }
 
+// The screenshots are 1440×2937 after the status bar is cropped. The screen
+// uses this exact ratio so the whole screenshot shows with no cropping on any
+// side — the phone frame simply follows the image instead of the other way round.
+const SCREEN_RATIO = "1440 / 2937";
+
 /**
- * Static app mockup: a single screenshot sits inside the device frame and
- * fills the screen edge-to-edge (object-cover, top-aligned) so there's never
- * a grey gap. Wrapped in generous top/side padding for breathing room.
+ * Static app mockup. The device screen matches the screenshot's aspect ratio,
+ * so the full image is always visible — nothing is cropped. Uses next/image so
+ * the browser is served a variant resampled to the actual display size (avoids
+ * the graininess of the browser downscaling an oversized source). Wrapped in
+ * generous top/side padding for breathing room.
  */
 export default function StaticPhone({
   screenshot,
   alt = "Lifeline Health app",
-  phoneHeight = "62vh",
-  objectPosition = "top center",
+  phoneHeight = "54vh",
 }: StaticPhoneProps) {
   return (
-    <div className="px-10 pt-14 sm:px-16 sm:pt-20">
-      <div className="relative mx-auto" style={{ height: phoneHeight, aspectRatio: "9/19.5" }}>
+    <div className="flex justify-center px-10 pt-14 sm:px-16 sm:pt-20">
+      {/* Phone frame — height is fixed; width is derived from the screen ratio. */}
+      <div
+        className="relative rounded-[2.8rem] sm:rounded-[3.2rem] bg-[#1F2937] border-[3px] border-[#374151] shadow-2xl p-[6px]"
+        style={{ height: phoneHeight }}
+      >
         {/* Glow behind the phone */}
         <div
-          className="absolute -inset-8 sm:-inset-12 rounded-[4rem] blur-3xl opacity-40 -z-10"
+          className="absolute -inset-6 sm:-inset-10 rounded-[4rem] blur-3xl opacity-40 -z-10"
           style={{
             background:
               "radial-gradient(ellipse at center, rgba(32,200,88,0.25) 0%, rgba(59,130,246,0.15) 40%, transparent 70%)",
           }}
         />
-        {/* Frame */}
-        <div className="absolute inset-0 bg-[#1F2937] rounded-[2.8rem] sm:rounded-[3.2rem] border-[3px] border-[#374151] shadow-2xl" />
-        {/* Inner bezel */}
-        <div className="absolute inset-[4px] bg-[#1F2937] rounded-[2.6rem] sm:rounded-[3rem]" />
-        {/* Screen */}
-        <div className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] overflow-hidden bg-[#ecf0f3]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- full-bleed device screen; next/image's layout constraints don't fit here. */}
-          <img
+        {/* Screen — aspect-locked to the screenshot, height fills the frame */}
+        <div
+          className="relative h-full overflow-hidden rounded-[2.4rem] sm:rounded-[2.8rem] bg-[#ecf0f3]"
+          style={{ aspectRatio: SCREEN_RATIO }}
+        >
+          <Image
             src={screenshot}
             alt={alt}
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{ objectPosition }}
+            fill
+            sizes="(min-width: 1024px) 360px, 60vw"
+            quality={90}
+            className="object-cover"
+          />
+          {/* Screen reflection */}
+          <div
+            className="pointer-events-none absolute inset-0 z-10"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)",
+            }}
           />
         </div>
         {/* Side buttons */}
         <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
         <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
         <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-        {/* Screen reflection */}
-        <div
-          className="absolute inset-[6px] rounded-[2.4rem] sm:rounded-[2.8rem] pointer-events-none z-10"
-          style={{
-            background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)",
-          }}
-        />
       </div>
     </div>
   );
