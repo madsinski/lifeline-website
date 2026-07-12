@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import StaticPhone from "./components/StaticPhone";
+import TeamCircles from "./components/TeamCircles";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "./components/PillarIcons";
 import WaveSeparator from "./components/WaveSeparator";
 import HealthCheckTeaser from "./components/HealthCheckTeaser";
@@ -89,17 +90,15 @@ const pillars = [
   },
 ];
 
-const teamMembers = [
-  { name: "Victor Guðmundsson", role: "Medical Doctor, Coach, CEO & Co-founder", bio: "Victor founded Lifeline to make preventive health accessible. He combines clinical expertise with coaching to help people build lasting health habits." },
-  { name: "Mads Christian Aanesen", role: "Medical Doctor, Coach, CTO & Co-founder", bio: "Mads leads the technology behind Lifeline — from the app to the health platform. A physician and coach who believes technology should make health change easier." },
-  { name: "Vignir Sigurðsson", role: "Chief Medical Advisor, Pediatrician, Ass. Prof. HA", bio: "Vignir brings decades of clinical and academic experience to Lifeline, ensuring our programs meet the highest medical standards." },
-  { name: "Ragnar Björgvinsson", role: "Legal Advisor", bio: "Ragnar advises Lifeline on legal matters, ensuring compliance and protecting the interests of the company and its members." },
-  { name: "Snorri Arnar Viðarsson", role: "Business Advisor", bio: "Snorri provides strategic business guidance, helping Lifeline grow sustainably while staying true to its mission." },
-  { name: "Arna Hrund Baldursdóttir Bjartmars", role: "Nurse", bio: "Arna performs health assessments at our stations, guiding members through body composition measurements and vital screenings." },
-  { name: "Ragnheiður Perla Hjaltadóttir", role: "Nurse", bio: "Ragnheiður supports members through the assessment process, ensuring a comfortable and thorough experience at every visit." },
-  { name: "Aníta Adamsdóttir", role: "Nurse", bio: "Aníta brings clinical care and a warm presence to our stations, helping members understand their measurements and next steps." },
-  { name: "Health Coach", role: "Health Coach", bio: "Our health coaches work directly with members on daily action plans, exercise programs, nutrition guidance, and accountability." },
-  { name: "Health Coach", role: "Health Coach", bio: "Dedicated to helping members build sustainable habits across all four pillars of health — exercise, nutrition, sleep, and mental wellness." },
+// Core team (presentation slide 4). Physicians at the core, then advisors.
+// Members without a portrait fall back to a gradient initials circle.
+const team = [
+  { photo: "/team/victor.png", flag: "Co-founder", name: "Victor Guðmundsson", role: "CEO · Medical Doctor & Coach" },
+  { photo: "/team/mads.png", flag: "Co-founder", name: "Mads C. Aanesen", role: "CTO · Medical Doctor & Coach" },
+  { photo: "/team/vignir.png", flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
+  { photo: "/team/dagbjort.png", flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
+  { flag: "Advisor", name: "Snorri Arnar Viðarsson", role: "Business Advisor" },
+  { flag: "Advisor", name: "Ragnar Björgvinsson", role: "Legal Advisor" },
 ];
 
 const partners = [
@@ -473,30 +472,17 @@ export default function Home() {
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              {t('home.team.title', 'Our team')}
+            <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981]">
+              {t('home.team.kicker', 'The team')}
+            </span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-[#1F2937]">
+              {t('home.team.title', 'How we became this team')}
             </h2>
             <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              {t('home.team.subtitle', 'The professionals behind your health journey')}
+              {t('home.team.subtitle', 'Physicians at the core — surrounded by health coaches, clinic nurses and engineers, all working from the same clinical foundation.')}
             </p>
           </div>
-          <div className="space-y-4 max-w-3xl mx-auto">
-            {teamMembers.map((t, i) => (
-              <div
-                key={t.name + i}
-                className="bg-[#e6ecf4] rounded-2xl p-5 flex items-start gap-5 shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#10B981]/20 to-[#3B82F6]/10 flex items-center justify-center text-[#10B981] font-bold text-xl shadow-sm flex-shrink-0">
-                  {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-[#1F2937]">{t.name}</h3>
-                  <p className="text-xs text-[#10B981] font-medium mb-2">{t.role}</p>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">{t.bio}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TeamCircles members={team} />
         </div>
       </section>
 
