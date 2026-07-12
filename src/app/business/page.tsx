@@ -98,37 +98,79 @@ function CompaniesPanel({ companies }: { companies: CompanyRow[] }) {
           </div>
           <ContextSwitcher current="business" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {companies.map((c) => (
+        {hasCompanies ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {companies.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/business/${c.id}`}
+                  className="group flex flex-col bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow border border-gray-100 hover:border-blue-200"
+                >
+                  <span className="text-[10px] font-semibold tracking-wider uppercase text-gray-400">
+                    {c.role === "primary" ? "Primary admin" : "Co-admin"}
+                  </span>
+                  <h3 className="font-semibold text-lg text-[#0F172A] mt-1 group-hover:text-[#10B981] transition-colors">{c.name}</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Created {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#3B82F6]">
+                    Manage
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                  </span>
+                </Link>
+              ))}
+              <Link
+                href="/business/signup"
+                className="group flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed border-gray-300 bg-white/60 p-5 min-h-[9rem] hover:border-[#10B981] hover:bg-emerald-50/40 transition-colors"
+              >
+                <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center mb-2 shadow-sm">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                </span>
+                <span className="font-semibold text-[#0F172A]">Add another company</span>
+                <span className="text-xs text-gray-500 mt-1">Set up a new company account</span>
+              </Link>
+            </div>
+            <p className="mt-4 text-sm text-[#64748B]">
+              Need a quote for a new programme?{" "}
+              <a href="#inquiry" className="font-semibold text-[#10B981] hover:underline">Request a proposal</a>.
+            </p>
+          </>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Self-serve — create now */}
             <Link
-              key={c.id}
-              href={`/business/${c.id}`}
-              className="group flex flex-col bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow border border-gray-100 hover:border-blue-200"
+              href="/business/signup"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
             >
-              <span className="text-[10px] font-semibold tracking-wider uppercase text-gray-400">
-                {c.role === "primary" ? "Primary admin" : "Co-admin"}
+              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+              <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center mb-3 shadow-sm">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               </span>
-              <h3 className="font-semibold text-lg text-[#0F172A] mt-1 group-hover:text-[#10B981] transition-colors">{c.name}</h3>
-              <p className="text-xs text-gray-500 mt-1">
-                Created {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#3B82F6]">
-                Manage
+              <h3 className="font-semibold text-lg text-[#0F172A]">Create your first company</h3>
+              <p className="text-sm text-[#475569] mt-1.5 leading-relaxed flex-1">Set it up and manage it yourself now — registering takes a couple of minutes.</p>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#10B981]">
+                Create company account
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
               </span>
             </Link>
-          ))}
-          <Link
-            href="/business/signup"
-            className="group flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed border-gray-300 bg-white/60 p-5 min-h-[9rem] hover:border-[#10B981] hover:bg-emerald-50/40 transition-colors"
-          >
-            <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center mb-2 shadow-sm">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            </span>
-            <span className="font-semibold text-[#0F172A]">{hasCompanies ? "Add another company" : "Create your first company"}</span>
-            <span className="text-xs text-gray-500 mt-1">Set up a new company account</span>
-          </Link>
-        </div>
+            {/* Sales — request a proposal */}
+            <a
+              href="#inquiry"
+              className="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <span className="w-11 h-11 rounded-xl bg-blue-50 text-[#3B82F6] flex items-center justify-center mb-3">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              </span>
+              <h3 className="font-semibold text-lg text-[#0F172A]">Request a proposal</h3>
+              <p className="text-sm text-[#475569] mt-1.5 leading-relaxed flex-1">Prefer a tailored quote? Tell us about your team and we’ll come back within 2 working days.</p>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#3B82F6]">
+                Request a proposal
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+              </span>
+            </a>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -187,39 +229,34 @@ function Hero({ signedIn }: { signedIn: boolean }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </a>
-            {signedIn ? (
-              <a
-                href="#companies"
+            {!signedIn && (
+              <Link
+                href="/business/signup"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Manage your companies
-              </a>
-            ) : (
-              <>
-                <Link
-                  href="/business/signup"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create company account
-                </Link>
-                <Link
-                  href="/business/login"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#3B82F6] text-[#3B82F6] bg-white text-sm font-semibold hover:bg-[#3B82F6] hover:text-white transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
-                  Company account log in
-                </Link>
-              </>
+                Create company account
+              </Link>
+            )}
+            {!signedIn && (
+              <Link
+                href="/business/login"
+                className="inline-flex items-center gap-1.5 px-4 py-3 text-sm font-semibold text-[#3B82F6] hover:text-[#1D4ED8] transition-colors"
+              >
+                Log in
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+              </Link>
             )}
           </div>
+          {!signedIn && (
+            <p className="text-sm text-[#475569] mt-3 max-w-xl leading-relaxed">
+              <span className="font-semibold text-[#0F172A]">Request a proposal</span> for a tailored quote and we’ll reach out — or <span className="font-semibold text-[#0F172A]">create an account</span> to set things up yourself now.
+            </p>
+          )}
           <p className="text-xs text-[#64748B] mt-5">
             Medical doctors in the team · On-location scans · Confidential reporting · GDPR-aligned
           </p>

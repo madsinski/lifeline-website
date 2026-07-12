@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import BackButton from "@/app/components/BackButton";
+import ContextSwitcher from "@/app/components/ContextSwitcher";
 import { LanguagePicker, useI18n } from "@/lib/i18n";
 
 interface SwitcherCompany {
@@ -125,8 +126,9 @@ export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal,
       </div>
 
       <div className="flex items-center gap-3">
+        {!minimal && <div className="hidden sm:block"><ContextSwitcher current="business" /></div>}
         {!minimal && email && (
-          <span className="hidden md:inline text-sm text-gray-500">{email}</span>
+          <span className="hidden lg:inline text-sm text-gray-500">{email}</span>
         )}
         <LanguagePicker />
         {!minimal && email && (
