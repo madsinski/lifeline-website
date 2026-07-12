@@ -414,7 +414,7 @@ export default function Home() {
               <AppTextContent />
             </div>
             <div className="flex justify-center">
-              <StaticPhone screenshot="/app-screenshot-home-static.jpg" alt="Lifeline Health app" phoneHeight="78vh" />
+              <StaticPhone screenshot="/app-screenshot-home-static.jpg" alt="Lifeline Health app" phoneHeight="70vh" />
             </div>
           </div>
         </div>
@@ -427,7 +427,7 @@ export default function Home() {
       </section>
       <div className="bg-white lg:hidden pb-20">
         <div className="max-w-md mx-auto px-4">
-          <StaticPhone screenshot="/app-screenshot-home-static.jpg" alt="Lifeline Health app" phoneHeight="70vh" />
+          <StaticPhone screenshot="/app-screenshot-home-static.jpg" alt="Lifeline Health app" phoneHeight="62vh" />
         </div>
       </div>
 
