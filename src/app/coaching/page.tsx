@@ -472,7 +472,7 @@ export default function CoachingPage() {
             </div>
             {/* Right: static phone mockup */}
             <div className="flex justify-center">
-              <StaticPhone screenshot="/app-screenshot-coach-static.png" alt="Health coach in the app" phoneHeight="54vh" />
+              <StaticPhone screenshot="/app-screenshot-coach-static.png" alt="Health coach in the app" phoneHeight="70vh" />
             </div>
           </div>
         </div>

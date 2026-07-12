@@ -14,23 +14,26 @@ interface StaticPhoneProps {
 const SCREEN_RATIO = "1440 / 2988";
 
 /**
- * Static app mockup. The device screen matches the screenshot's aspect ratio,
- * so the full image is always visible — nothing is cropped. Uses next/image so
- * the browser is served a variant resampled to the actual display size (avoids
- * the graininess of the browser downscaling an oversized source). Wrapped in
- * generous top/side padding for breathing room.
+ * Static app mockup in a modern flagship-style frame: thin uniform bezels, a
+ * brushed-metal edge rail and a large corner radius. The device screen
+ * matches the screenshot's aspect ratio, so the full image is
+ * always visible — nothing is cropped. Rendered via next/image so the browser
+ * gets a variant resampled to the display size (no downscaling grain).
  */
 export default function StaticPhone({
   screenshot,
   alt = "Lifeline Health app",
-  phoneHeight = "54vh",
+  phoneHeight = "70vh",
 }: StaticPhoneProps) {
   return (
     <div className="flex justify-center px-10 pt-14 sm:px-16 sm:pt-20">
-      {/* Phone frame — height is fixed; width is derived from the screen ratio. */}
+      {/* Metal edge rail — height is fixed; width is derived from the screen ratio. */}
       <div
-        className="relative rounded-[2.8rem] sm:rounded-[3.2rem] bg-[#1F2937] border-[3px] border-[#374151] shadow-2xl p-[6px]"
-        style={{ height: phoneHeight }}
+        className="relative rounded-[3rem] sm:rounded-[3.4rem] p-[3px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
+        style={{
+          height: phoneHeight,
+          background: "linear-gradient(150deg,#5b616a 0%,#23262b 42%,#0e0f11 100%)",
+        }}
       >
         {/* Glow behind the phone */}
         <div
@@ -40,31 +43,34 @@ export default function StaticPhone({
               "radial-gradient(ellipse at center, rgba(32,200,88,0.25) 0%, rgba(59,130,246,0.15) 40%, transparent 70%)",
           }}
         />
-        {/* Screen — aspect-locked to the screenshot, height fills the frame */}
-        <div
-          className="relative h-full overflow-hidden rounded-[2.4rem] sm:rounded-[2.8rem] bg-[#ecf0f3]"
-          style={{ aspectRatio: SCREEN_RATIO }}
-        >
-          <Image
-            src={screenshot}
-            alt={alt}
-            fill
-            sizes="(min-width: 1024px) 360px, 60vw"
-            quality={90}
-            className="object-cover"
-          />
-          {/* Screen reflection */}
+        {/* Thin black bezel */}
+        <div className="relative h-full rounded-[2.85rem] sm:rounded-[3.25rem] bg-black p-[5px]">
+          {/* Screen — aspect-locked to the screenshot, height fills the bezel */}
           <div
-            className="pointer-events-none absolute inset-0 z-10"
-            style={{
-              background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)",
-            }}
-          />
+            className="relative h-full overflow-hidden rounded-[2.5rem] sm:rounded-[2.9rem] bg-[#ecf0f3]"
+            style={{ aspectRatio: SCREEN_RATIO }}
+          >
+            <Image
+              src={screenshot}
+              alt={alt}
+              fill
+              sizes="(min-width: 1024px) 440px, 72vw"
+              quality={90}
+              className="object-cover"
+            />
+            {/* Screen reflection */}
+            <div
+              className="pointer-events-none absolute inset-0 z-10"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, transparent 45%)",
+              }}
+            />
+          </div>
         </div>
-        {/* Side buttons */}
-        <div className="absolute -right-[2px] top-[28%] w-[3px] h-14 bg-[#333] rounded-r-sm" />
-        <div className="absolute -left-[2px] top-[22%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
-        <div className="absolute -left-[2px] top-[36%] w-[3px] h-9 bg-[#333] rounded-l-sm" />
+        {/* Slim side buttons */}
+        <div className="absolute -right-[2px] top-[26%] h-16 w-[2px] rounded-r bg-[#2b2e33]" />
+        <div className="absolute -left-[2px] top-[20%] h-10 w-[2px] rounded-l bg-[#2b2e33]" />
+        <div className="absolute -left-[2px] top-[33%] h-10 w-[2px] rounded-l bg-[#2b2e33]" />
       </div>
     </div>
   );

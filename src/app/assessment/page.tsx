@@ -275,7 +275,7 @@ export default function AssessmentPage() {
               </div>
             </div>
             <div className="flex justify-center">
-              <StaticPhone screenshot="/app-screenshot-health-static.png" alt="Your health results in the app" phoneHeight="54vh" />
+              <StaticPhone screenshot="/app-screenshot-health-static.png" alt="Your health results in the app" phoneHeight="70vh" />
             </div>
           </div>
         </div>
@@ -297,7 +297,7 @@ export default function AssessmentPage() {
       </section>
       <div className="bg-white lg:hidden pb-16">
         <div className="max-w-md mx-auto px-4">
-          <StaticPhone screenshot="/app-screenshot-health-static.png" alt="Your health results in the app" phoneHeight="48vh" />
+          <StaticPhone screenshot="/app-screenshot-health-static.png" alt="Your health results in the app" phoneHeight="62vh" />
         </div>
       </div>
 
@@ -306,7 +306,7 @@ export default function AssessmentPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-16 items-center">
             <div className="flex justify-center">
-              <StaticPhone screenshot="/app-screenshot-blood-static.png" alt="Track measurements and blood tests" phoneHeight="54vh" />
+              <StaticPhone screenshot="/app-screenshot-blood-static.png" alt="Track measurements and blood tests" phoneHeight="70vh" />
             </div>
             <div>
               <div>
@@ -346,7 +346,7 @@ export default function AssessmentPage() {
       </section>
       <div className="bg-[#ecf0f3] lg:hidden pb-16">
         <div className="max-w-md mx-auto px-4">
-          <StaticPhone screenshot="/app-screenshot-blood-static.png" alt="Track measurements and blood tests" phoneHeight="48vh" />
+          <StaticPhone screenshot="/app-screenshot-blood-static.png" alt="Track measurements and blood tests" phoneHeight="62vh" />
         </div>
       </div>
 
