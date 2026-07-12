@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { getMyStaffRole } from "@/lib/staff-role";
 
-export type AccountContext = "personal" | "business" | "staff";
+export type AccountContext = "personal" | "business";
 
 const ICONS: Record<AccountContext, string> = {
   // user
@@ -13,15 +12,11 @@ const ICONS: Record<AccountContext, string> = {
   // building
   business:
     "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
-  // id badge / clipboard
-  staff:
-    "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01",
 };
 
 const META: Record<AccountContext, { label: string; href: string }> = {
-  personal: { label: "Personal", href: "/account" },
-  business: { label: "Business", href: "/business" },
-  staff: { label: "Staff", href: "/admin" },
+  personal: { label: "My account", href: "/account" },
+  business: { label: "Company admin", href: "/business" },
 };
 
 function Icon({ ctx }: { ctx: AccountContext }) {
@@ -33,17 +28,17 @@ function Icon({ ctx }: { ctx: AccountContext }) {
 }
 
 /**
- * Segmented control to switch between the account contexts a user actually has:
- * their personal account, a company/business account (if they're a contact
- * person or co-admin), and the staff app (if they're active staff). Renders
- * nothing unless the user has at least two contexts to move between.
+ * Segmented control to switch between the two customer contexts a user can
+ * hold: their own account (`/account` — the member experience, whether personal
+ * or employer-linked) and the company-admin experience (`/business`), shown
+ * only if they're a company contact person or co-admin. Renders nothing unless
+ * the user is a company admin — a plain member has just one context.
  *
  * Self-contained: it detects the available contexts itself, so it can be
- * dropped into any of the three surfaces with just `current`.
+ * dropped into either surface with just `current`.
  */
 export default function ContextSwitcher({ current }: { current: AccountContext }) {
   const [hasBusiness, setHasBusiness] = useState(false);
-  const [hasStaff, setHasStaff] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -51,13 +46,11 @@ export default function ContextSwitcher({ current }: { current: AccountContext }
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { if (!cancelled) setReady(true); return; }
-      const [staff, primary, coadmin] = await Promise.all([
-        getMyStaffRole(user.email).catch(() => null),
+      const [primary, coadmin] = await Promise.all([
         supabase.from("companies").select("id").eq("contact_person_id", user.id).limit(1),
         supabase.from("company_admins").select("company_id").eq("user_id", user.id).limit(1),
       ]);
       if (cancelled) return;
-      setHasStaff(!!staff);
       setHasBusiness((primary.data?.length || 0) > 0 || (coadmin.data?.length || 0) > 0);
       setReady(true);
     })();
@@ -67,7 +60,6 @@ export default function ContextSwitcher({ current }: { current: AccountContext }
   const available: AccountContext[] = [
     "personal",
     ...(hasBusiness ? (["business"] as const) : []),
-    ...(hasStaff ? (["staff"] as const) : []),
   ];
 
   // Nothing to switch to — don't render the control at all.
