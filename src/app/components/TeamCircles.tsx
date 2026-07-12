@@ -59,8 +59,8 @@ function PortraitLightbox({ src, name, onClose }: { src: string; name: string; o
       <img
         src={src}
         alt={name}
-        className="block max-h-[80vh] w-auto rounded-2xl object-contain shadow-2xl"
-        style={{ maxWidth: "min(88vw, 520px)", background: "#0c100f" }}
+        className="block max-h-[88vh] w-auto rounded-2xl object-contain shadow-2xl"
+        style={{ maxWidth: "min(94vw, 720px)", background: "#0c100f" }}
       />
       <div className="text-center text-lg font-bold text-[#eafaf3]">{name}</div>
     </div>,

@@ -97,8 +97,8 @@ const team = [
   { photo: "/team/mads.png", flag: "Co-founder", name: "Mads C. Aanesen", role: "CTO · Medical Doctor & Coach" },
   { photo: "/team/vignir.png", flag: "Advisor", name: "Vignir Sigurðsson", role: "Chief Medical Advisor · Pediatrician" },
   { photo: "/team/dagbjort.png", flag: "Clinical", name: "Dagbjört Guðbrandsdóttir", role: "Medical Doctor" },
-  { flag: "Advisor", name: "Snorri Arnar Viðarsson", role: "Business Advisor" },
-  { flag: "Advisor", name: "Ragnar Björgvinsson", role: "Legal Advisor" },
+  { photo: "/team/snorri.png", flag: "Advisor", name: "Snorri Arnar Viðarsson", role: "Business Advisor" },
+  { photo: "/team/ragnar.png", flag: "Advisor", name: "Ragnar Björgvinsson", role: "Legal Advisor" },
 ];
 
 const partners = [
