@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import ContextSwitcher from "../components/ContextSwitcher";
 
 interface CompanyRow {
   id: string;
@@ -85,14 +86,17 @@ function CompaniesPanel({ companies }: { companies: CompanyRow[] }) {
   return (
     <section id="companies" className="scroll-mt-20 border-b border-gray-100 bg-[#f8fafc]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mb-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Your account</div>
-          <h2 className="text-2xl font-bold text-[#0F172A]">{hasCompanies ? "Your companies" : "Set up your company"}</h2>
-          <p className="text-sm text-[#475569] mt-1">
-            {hasCompanies
-              ? "Pick a company to manage, or add another."
-              : "You’re signed in — create your first company to start onboarding your team."}
-          </p>
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Your account</div>
+            <h2 className="text-2xl font-bold text-[#0F172A]">{hasCompanies ? "Your companies" : "Set up your company"}</h2>
+            <p className="text-sm text-[#475569] mt-1">
+              {hasCompanies
+                ? "Pick a company to manage, or add another."
+                : "You’re signed in — create your first company to start onboarding your team."}
+            </p>
+          </div>
+          <ContextSwitcher current="business" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {companies.map((c) => (

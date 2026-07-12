@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { tenantForHost, isAdminRouteAllowed } from "@/lib/tenant";
+import ContextSwitcher from "../components/ContextSwitcher";
 
 // Heroicons v2 outline style, stroke 1.5 for a finer professional line.
 // All icons share a single emerald-neutral monochrome palette via currentColor.
@@ -1020,6 +1021,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </div>
           <div className="flex items-center gap-4">
+            <div className="hidden sm:block"><ContextSwitcher current="staff" /></div>
             {/* Notification bell with count */}
             <Link href="/admin/messages" className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50" title={unreadCount > 0 ? `${unreadCount} unread messages` : "No new notifications"}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

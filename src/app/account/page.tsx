@@ -21,6 +21,7 @@ import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/pla
 import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 import SignedDocumentsList from "./SignedDocumentsList";
 import HealthCheckTeaser from "../components/HealthCheckTeaser";
+import ContextSwitcher from "../components/ContextSwitcher";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -1218,15 +1219,18 @@ function AccountPageInner() {
               <p className="text-sm text-[#6B7280]">{user.email}</p>
             </div>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-full hover:bg-red-50 hover:border-red-300 transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign out
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <ContextSwitcher current="personal" />
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-full hover:bg-red-50 hover:border-red-300 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            </button>
+          </div>
         </div>
       </section>
 
