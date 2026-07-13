@@ -3,7 +3,9 @@
 import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import BusinessHeader from "../BusinessHeader";
+import Link from "next/link";
+import ContextSwitcher from "@/app/components/ContextSwitcher";
+import { LanguagePicker } from "@/lib/i18n";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 import ScheduleBodyComp, { type EditableEvent } from "./ScheduleBodyComp";
@@ -327,6 +329,11 @@ export default function BusinessDashboardPage() {
 
   const rosterConfirmed = !!company.roster_confirmed_at;
   const finalized = !!company.registration_finalized_at;
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace("/business/login");
+  };
   const hasEvents = events.length > 0;
   const hasBloodDays = bloodDays.length > 0;
   const hasIntroLecture = introLectures.length > 0;
@@ -379,25 +386,38 @@ export default function BusinessDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#ecf0f3]">
-      <BusinessHeader
-        currentCompanyId={company.id}
-        crumbs={[
-          { label: "Business", href: "/business" },
-          { label: company.name },
-        ]}
-      />
-
-      {/* Hero header — mirrors the personal account page's identity band. */}
+      {/* Hero header — unified with the personal account page (no sub-header bar). */}
       <section className="bg-gradient-to-b from-white via-[#f0f3f6] to-[#ecf0f3] py-10 sm:py-14">
-        <div className="max-w-6xl mx-auto px-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-lg font-bold flex items-center justify-center shrink-0">
-            {company.name.charAt(0).toUpperCase()}
-          </div>
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] truncate">{company.name}</h1>
-            <p className="text-sm text-[#6B7280]">
-              {finalized ? "Management mode — your registration is complete." : "Company account management"}
-            </p>
+            <Link href="/business" className="inline-flex items-center gap-1 text-xs font-medium text-[#6B7280] hover:text-[#1F2937] mb-2">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              All companies
+            </Link>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-lg font-bold flex items-center justify-center shrink-0">
+                {company.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] truncate">{company.name}</h1>
+                <p className="text-sm text-[#6B7280]">
+                  {finalized ? "Management mode — your registration is complete." : "Company account management"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <ContextSwitcher current="business" />
+            <LanguagePicker />
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-full hover:bg-red-50 hover:border-red-300 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            </button>
           </div>
         </div>
       </section>
