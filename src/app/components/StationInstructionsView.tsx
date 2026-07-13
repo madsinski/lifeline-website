@@ -1,6 +1,5 @@
 import type { StationDoc, Block } from "@/lib/station-instructions";
-
-/* eslint-disable @next/next/no-img-element -- printable document; plain <img> keeps print/PDF layout predictable. */
+import ZoomableImage from "./ZoomableImage";
 
 function BlockView({ block }: { block: Block }) {
   switch (block.type) {
@@ -29,18 +28,7 @@ function BlockView({ block }: { block: Block }) {
         </div>
       );
     case "image":
-      return (
-        <figure className="si-figure my-5">
-          <img
-            src={block.src}
-            alt={block.caption || ""}
-            className="w-full rounded-lg border border-gray-200 shadow-sm"
-          />
-          {block.caption && (
-            <figcaption className="mt-2 text-center text-xs text-[#64748B]">{block.caption}</figcaption>
-          )}
-        </figure>
-      );
+      return <ZoomableImage src={block.src} caption={block.caption} />;
     default:
       return null;
   }
