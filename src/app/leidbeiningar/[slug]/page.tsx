@@ -36,13 +36,30 @@ export default async function StationInstructionsPage({ params }: { params: Prom
   return (
     <div className="min-h-screen bg-[#ecf0f3] print:bg-white">
       <style>{`
-        @page { size: A4; margin: 16mm 14mm; }
+        @page { size: A4; margin: 14mm; }
         @media print {
-          .no-print { display: none !important; }
-          .si-doc { max-width: none !important; }
-          .si-figure, .si-steps li, .si-note { break-inside: avoid; }
-          .si-h2, .si-h3 { break-after: avoid; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print, .no-print * { display: none !important; }
           html, body { background: #fff !important; }
+          .si-doc { max-width: 100% !important; font-size: 10.5pt; line-height: 1.45; }
+          .si-doc h1 { font-size: 17pt; margin-bottom: 6px; }
+          .si-h2 { font-size: 13.5pt; margin-top: 14px; padding-top: 10px; }
+          .si-h3 { font-size: 11.5pt; }
+          /* Keep headings with their following content; don't orphan them. */
+          .si-h2, .si-h3 { break-after: avoid; break-inside: avoid; }
+          .si-steps li, .si-note { break-inside: avoid; }
+          /* Images: centered and height-capped so they never dominate a page. */
+          .si-figure { text-align: center; break-inside: avoid; margin: 8px 0; }
+          .si-figure button {
+            display: inline-block !important; width: auto !important; max-width: 100% !important;
+            border: 0 !important; box-shadow: none !important; padding: 0 !important; overflow: visible !important;
+          }
+          .si-figure img {
+            display: block; margin: 0 auto; width: auto !important; height: auto !important;
+            max-width: 100% !important; max-height: 80mm !important;
+            border: 1px solid #e5e7eb; border-radius: 6px; transform: none !important;
+          }
+          .si-figure figcaption { text-align: center; }
         }
       `}</style>
 
