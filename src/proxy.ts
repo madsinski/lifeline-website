@@ -35,6 +35,7 @@ const BYPASS_PREFIXES = [
   "/radningarsamningur",    // staff employment-contract sign URLs
   "/security-review",       // password-gated security docs for external reviewers
   "/present",               // shareable presentation decks
+  "/leidbeiningar",         // public, printable measurement-station instructions
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
   "/_next",
