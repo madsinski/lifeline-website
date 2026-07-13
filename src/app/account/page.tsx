@@ -148,6 +148,7 @@ function AccountPageInner() {
   const [companyEvent, setCompanyEvent] = useState<{ id: string; event_date: string; start_time: string; end_time: string; location: string | null; room_notes: string | null; break_start: string | null; break_end: string | null; slot_minutes: number; slot_capacity: number; company_id: string } | null>(null);
   const [mySlotAt, setMySlotAt] = useState<string | null>(null);
   const [upcomingBloodDays, setUpcomingBloodDays] = useState<Array<{ day: string; notes: string | null }>>([]);
+  const [upcomingMeasurementDays, setUpcomingMeasurementDays] = useState<Array<{ day: string; notes: string | null }>>([]);
   const [myBloodTestBooking, setMyBloodTestBooking] = useState<{ day: string; note: string | null } | null>(null);
   const [bcPickerOpen, setBcPickerOpen] = useState(false);
   const [btPickerOpen, setBtPickerOpen] = useState(false);
@@ -430,6 +431,14 @@ function AccountPageInner() {
               .gte("day", today)
               .order("day");
             setUpcomingBloodDays((bd || []) as Array<{ day: string; notes: string | null }>);
+            // Lyfja walk-in measurement days (alternative to an on-site event).
+            const { data: mcd } = await supabase
+              .from("body_comp_days")
+              .select("day, notes")
+              .eq("company_id", companyId)
+              .gte("day", today)
+              .order("day");
+            setUpcomingMeasurementDays((mcd || []) as Array<{ day: string; notes: string | null }>);
             // My blood-test day booking
             const { data: mbt } = await supabase
               .from("blood_test_bookings")
@@ -1626,6 +1635,32 @@ function AccountPageInner() {
                     setVideoPortalConfirmedAt(null);
                   }}
                 />
+
+                {/* Lyfja walk-in measurement days — read-only (no booking needed). */}
+                {upcomingMeasurementDays.length > 0 && (
+                  <section className="bg-white rounded-2xl shadow-sm p-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <h2 className="text-lg font-semibold text-[#1F2937]">Measurement at Lyfja, Smáratorg</h2>
+                    </div>
+                    <p className="text-sm text-[#6B7280] mb-4">
+                      Walk in on any of the days below during nurse-reception hours (08:00–16:00) — no appointment needed. Bring photo ID.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {upcomingMeasurementDays.map((d) => (
+                        <span key={d.day} className="text-sm px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+                          {new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+                        </span>
+                      ))}
+                    </div>
+                    {upcomingMeasurementDays.find((d) => d.notes)?.notes && (
+                      <p className="text-xs text-[#6B7280] mt-3">{upcomingMeasurementDays.find((d) => d.notes)?.notes}</p>
+                    )}
+                  </section>
+                )}
 
                 {/* Body-comp slot picker modal */}
                 {bcPickerOpen && companyEvent && (

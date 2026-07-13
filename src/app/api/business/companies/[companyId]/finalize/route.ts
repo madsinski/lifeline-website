@@ -85,13 +85,23 @@ export async function POST(
     .eq("company_id", companyId)
     .gte("lecture_date", new Date().toISOString().slice(0, 10));
 
+  // Lyfja walk-in measurement days satisfy step 5 as an alternative to an
+  // on-site body_comp_event. Tolerant of the table not existing yet (manual
+  // migration): supabase/migration-body-comp-days.sql.
+  const { count: measurementDayCount, error: measErr } = await supabaseAdmin
+    .from("body_comp_days")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .gte("day", new Date().toISOString().slice(0, 10));
+
   if (!company.roster_confirmed_at) {
     return NextResponse.json({ error: "roster_not_confirmed" }, { status: 400 });
   }
   if (!lectureErr && !lectureCount) {
     return NextResponse.json({ error: "no_intro_lecture" }, { status: 400 });
   }
-  if (!eventCount) {
+  const hasMeasurement = (eventCount || 0) > 0 || (!measErr && (measurementDayCount || 0) > 0);
+  if (!hasMeasurement) {
     return NextResponse.json({ error: "no_body_comp_event" }, { status: 400 });
   }
   if (!bloodDayCount) {

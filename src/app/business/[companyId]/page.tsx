@@ -10,6 +10,7 @@ import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 import ScheduleBodyComp, { type EditableEvent } from "./ScheduleBodyComp";
 import ScheduleBloodTests from "./ScheduleBloodTests";
+import ScheduleMeasurementDays from "./ScheduleMeasurementDays";
 import ScheduleLecture, { type EditableLecture } from "./ScheduleLecture";
 import DoctorInterviews from "./DoctorInterviews";
 
@@ -128,6 +129,9 @@ export default function BusinessDashboardPage() {
   const [editBcEvent, setEditBcEvent] = useState<EditableEvent | null>(null);
   const [deletingBcId, setDeletingBcId] = useState<string | null>(null);
   const [showSchedBlood, setShowSchedBlood] = useState(false);
+  const [measurementDays, setMeasurementDays] = useState<BloodDay[]>([]);
+  const [measurementMode, setMeasurementMode] = useState<"onsite" | "lyfja">("onsite");
+  const [showSchedMeasure, setShowSchedMeasure] = useState(false);
   const [showSchedLecture, setShowSchedLecture] = useState(false);
   const [editLecture, setEditLecture] = useState<EditableLecture | null>(null);
   const [deletingLectureId, setDeletingLectureId] = useState<string | null>(null);
@@ -136,13 +140,16 @@ export default function BusinessDashboardPage() {
     if (!companyId) return;
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
-    const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: ag }, { data: po }, { data: il }] = await Promise.all([
+    const [{ data: c }, { data: m }, { data: ev }, { data: bd }, { data: md }, { data: ag }, { data: po }, { data: il }] = await Promise.all([
       supabase.from("companies").select("id, name, agreement_version, created_at, roster_confirmed_at, registration_finalized_at, agreement_signed_at, last_round_completed_at, current_round_id, contact_phone, contact_position, contact_draft_name, contact_draft_email, contact_draft_phone").eq("id", companyId).maybeSingle(),
       supabase.rpc("list_company_members", { p_company_id: companyId }),
       supabase.from("body_comp_events")
         .select("id, event_date, start_time, end_time, location, room_notes, break_start, break_end, slot_minutes, slot_capacity, status, approval_status")
         .eq("company_id", companyId).gte("event_date", today).order("event_date"),
       supabase.from("blood_test_days")
+        .select("id, day, notes")
+        .eq("company_id", companyId).gte("day", today).order("day"),
+      supabase.from("body_comp_days")
         .select("id, day, notes")
         .eq("company_id", companyId).gte("day", today).order("day"),
       supabase.from("b2b_agreements")
@@ -164,6 +171,10 @@ export default function BusinessDashboardPage() {
     setMembers((m || []) as Member[]);
     setEvents((ev || []) as BodyCompEvent[]);
     setBloodDays((bd || []) as BloodDay[]);
+    const mdays = (md || []) as BloodDay[];
+    setMeasurementDays(mdays);
+    // Default the step-5 toggle to whichever option the company already uses.
+    if (mdays.length > 0 && (ev || []).length === 0) setMeasurementMode("lyfja");
     setIntroLectures((il || []) as IntroLecture[]);
 
     const poMap = new Map<string, { po_number: string; total_isk: number }>();
@@ -335,6 +346,9 @@ export default function BusinessDashboardPage() {
     router.replace("/business/login");
   };
   const hasEvents = events.length > 0;
+  const hasMeasurementDays = measurementDays.length > 0;
+  // Step 5 is satisfied by either an on-site visit OR Lyfja walk-in days.
+  const hasMeasurement = hasEvents || hasMeasurementDays;
   const hasBloodDays = bloodDays.length > 0;
   const hasIntroLecture = introLectures.length > 0;
   const hasCoAdmin = admins.some((a) => !a.is_primary);
@@ -347,9 +361,9 @@ export default function BusinessDashboardPage() {
   // Step 2 (co-admin) is OPTIONAL: it ticks green when a co-admin is invited but
   // never blocks finalize, so it's excluded from allStepsDone and skipped by
   // nextStep. It still counts toward the 6-step progress display.
-  const stepsDone = [agreementSigned, hasCoAdmin, rosterDone, hasIntroLecture, hasEvents, hasBloodDays].filter(Boolean).length;
-  const allStepsDone = agreementSigned && rosterDone && hasIntroLecture && hasEvents && hasBloodDays;
-  const nextStep = !agreementSigned ? 1 : !rosterDone ? 3 : !hasIntroLecture ? 4 : !hasEvents ? 5 : !hasBloodDays ? 6 : 0;
+  const stepsDone = [agreementSigned, hasCoAdmin, rosterDone, hasIntroLecture, hasMeasurement, hasBloodDays].filter(Boolean).length;
+  const allStepsDone = agreementSigned && rosterDone && hasIntroLecture && hasMeasurement && hasBloodDays;
+  const nextStep = !agreementSigned ? 1 : !rosterDone ? 3 : !hasIntroLecture ? 4 : !hasMeasurement ? 5 : !hasBloodDays ? 6 : 0;
 
   const confirmRoster = async () => {
     if (members.length === 0) {
@@ -854,18 +868,34 @@ export default function BusinessDashboardPage() {
         {/* STEP 5 — Measurement day */}
         <StepCard
           n={5}
-          done={hasEvents}
+          done={hasMeasurement}
           active={nextStep === 5}
-          locked={!hasIntroLecture && !hasEvents}
+          locked={!hasIntroLecture && !hasMeasurement}
           title="Schedule the measurement day"
           subtitle={
             hasEvents
               ? events.map((e) =>
                   `${new Date(e.event_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${e.start_time.slice(0,5)}–${e.end_time.slice(0,5)}`,
                 ).join(" · ")
-              : "A Lifeline staff member travels to your office with the measurement scanner. Pick a day and time window. Each employee then books a 5-minute slot (2 people per slot)."
+              : hasMeasurementDays
+                ? `Lyfja station, Smáratorg · ${measurementDays.map((d) => new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })).join(" · ")}`
+                : "Choose how your team gets measured — a Lifeline visit to your office, or walk-in at the Lyfja station in Smáratorg."
           }
         >
+          {/* Mode: on-site Lifeline visit vs Lyfja walk-in */}
+          <div className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-white p-1 text-sm">
+            <button type="button" onClick={() => setMeasurementMode("onsite")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${measurementMode === "onsite" ? "bg-[#10B981] text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+              Lifeline comes to us
+            </button>
+            <button type="button" onClick={() => setMeasurementMode("lyfja")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${measurementMode === "lyfja" ? "bg-[#10B981] text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+              Lyfja station (Smáratorg)
+            </button>
+          </div>
+
+          {measurementMode === "onsite" && (
+          <>
           {hasEvents && (
             <div className="mb-4 space-y-2">
               {events.map((e) => {
@@ -931,6 +961,28 @@ export default function BusinessDashboardPage() {
           <button onClick={() => setShowSchedBC(true)} className="btn-step-primary">
             {hasEvents ? "Schedule another day" : "Schedule visit"}
           </button>
+          </>
+          )}
+
+          {measurementMode === "lyfja" && (
+          <>
+            <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-900">
+              Employees walk in to the <span className="font-semibold">Lyfja station in Smáratorg</span> on the days you pick — no appointment, during nurse reception hours (08:00–16:00 weekdays). No Lifeline approval needed.
+            </div>
+            {hasMeasurementDays && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {measurementDays.map((d) => (
+                  <span key={d.id} className="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                    {new Date(d.day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+                  </span>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowSchedMeasure(true)} className="btn-step-primary">
+              {hasMeasurementDays ? "Add more days" : "Pick days"}
+            </button>
+          </>
+          )}
         </StepCard>
 
         {/* STEP 6 — Blood-test days (no Lifeline approval needed) */}
@@ -1063,6 +1115,14 @@ export default function BusinessDashboardPage() {
           existing={bloodDays}
           onClose={() => setShowSchedBlood(false)}
           onCreated={() => { setShowSchedBlood(false); loadData(); }}
+        />
+      )}
+      {showSchedMeasure && (
+        <ScheduleMeasurementDays
+          companyId={companyId!}
+          existing={measurementDays}
+          onClose={() => setShowSchedMeasure(false)}
+          onCreated={() => { setShowSchedMeasure(false); loadData(); }}
         />
       )}
       {(showSchedLecture || editLecture) && (
