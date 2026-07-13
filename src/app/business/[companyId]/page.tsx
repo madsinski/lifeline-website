@@ -387,7 +387,22 @@ export default function BusinessDashboardPage() {
         ]}
       />
 
-      <main className="max-w-6xl mx-auto px-6 py-10 flex gap-8">
+      {/* Hero header — mirrors the personal account page's identity band. */}
+      <section className="bg-gradient-to-b from-white via-[#f0f3f6] to-[#ecf0f3] py-10 sm:py-14">
+        <div className="max-w-6xl mx-auto px-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-lg font-bold flex items-center justify-center shrink-0">
+            {company.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] truncate">{company.name}</h1>
+            <p className="text-sm text-[#6B7280]">
+              {finalized ? "Management mode — your registration is complete." : "Company account management"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <main className="max-w-6xl mx-auto px-6 pb-10 flex gap-8">
         {/* Side nav — matches the personal account page's menu language. */}
         <nav className="hidden lg:block w-56 shrink-0 sticky top-24 self-start bg-white rounded-2xl shadow-sm p-2">
           <div className="px-4 pt-2 pb-2 text-[10px] uppercase tracking-[0.12em] font-semibold text-gray-400">
@@ -430,11 +445,6 @@ export default function BusinessDashboardPage() {
         <CompanyHeaderCard
           companyId={companyId!}
           companyName={company.name}
-          statusText={
-            finalized
-              ? "Management mode — your registration is complete."
-              : ""
-          }
           primary={
             admins.find((a) => a.is_primary)
             // No claimed primary admin yet — fall back to the manually
@@ -1584,11 +1594,10 @@ function ContactPersonCard({
 // Page header card — company identity + the contact person (the primary admin),
 // with their position and phone. Replaces the plain company-name hero.
 function CompanyHeaderCard({
-  companyId, companyName, statusText, primary, admins, onReload, contactPhone, contactPosition, viewerIsStaff,
+  companyId, companyName, primary, admins, onReload, contactPhone, contactPosition, viewerIsStaff,
 }: {
   companyId: string;
   companyName: string;
-  statusText: string;
   primary: Admin | null;
   admins: Admin[];
   onReload: () => void;
@@ -1607,8 +1616,7 @@ function CompanyHeaderCard({
       <div className="h-1.5 bg-gradient-to-r from-blue-500 to-emerald-500" />
       <div className="p-6 flex flex-col sm:flex-row sm:items-start gap-5">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-semibold text-gray-900 truncate">{companyName}</h1>
-          {statusText && <p className="text-sm text-gray-600 mt-1">{statusText}</p>}
+          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Company admins</div>
 
           {(primary || onboardedCoAdmins.length > 0) && (
             <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap gap-x-8 gap-y-4">
