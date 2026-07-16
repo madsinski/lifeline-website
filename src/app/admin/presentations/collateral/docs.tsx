@@ -6,7 +6,9 @@
 import qrcode from "qrcode-generator";
 import {
   Clock, Pill, Undo2, Lock, FileText, Stethoscope, ShieldCheck,
-  Send, CheckCircle2, Bell, MessageSquare, House, type LucideIcon,
+  Send, CheckCircle2, Bell, MessageSquare, House,
+  PersonStanding, HeartPulse, Droplet, Gauge, ClipboardCheck, Smartphone,
+  type LucideIcon,
 } from "lucide-react";
 
 // Curated lucide set for the referral "what happens next" markers.
@@ -16,11 +18,20 @@ const AFTER_ICONS: Record<string, LucideIcon> = {
   check: CheckCircle2, bell: Bell, message: MessageSquare, home: House,
 };
 export const AFTER_ICON_KEYS = Object.keys(AFTER_ICONS);
+
+// Lucide set for the Lifeline health-check benefits.
+const BENEFIT_ICONS: Record<string, LucideIcon> = {
+  body: PersonStanding, heart: HeartPulse, drop: Droplet, gauge: Gauge,
+  report: ClipboardCheck, app: Smartphone, stethoscope: Stethoscope,
+  shield: ShieldCheck, check: CheckCircle2, clock: Clock,
+};
+export const BENEFIT_ICON_KEYS = Object.keys(BENEFIT_ICONS);
 import type {
   Doc,
   PosterFields,
   ReferralFields,
   AdvertFields,
+  LifelineFields,
 } from "./content";
 
 function ico(icon: string) {
@@ -52,13 +63,13 @@ function QrSvg({ value, size = "26mm" }: { value: string; size?: string }) {
 
 // Render a free-form heading: line breaks split lines; ==double equals== wraps
 // blue-coloured words. Everything else stays the hero default (white).
-function renderHeading(text: string) {
+function renderHeading(text: string, accent = "#5fe0ff") {
   return text.split("\n").map((line, li) => (
     <span key={li}>
       {li > 0 && <br />}
       {line.split(/==(.+?)==/g).map((part, i) =>
         i % 2 === 1
-          ? <span key={i} style={{ color: "#5fe0ff" }}>{part}</span>
+          ? <span key={i} style={{ color: accent }}>{part}</span>
           : <span key={i}>{part}</span>,
       )}
     </span>
@@ -317,8 +328,90 @@ function Advert({ a }: { a: AdvertFields }) {
   );
 }
 
+// ── 4. Lifeline × Lyfja health-check poster ──────────────────────────────
+function LifelinePoster({ l }: { l: LifelineFields }) {
+  const EM = "#10B981", EM_DARK = "#047857", EM_DEEP = "#065f46";
+  const MINT = "#6ee7b7", MINT_SOFT = "#d1fae5";
+  return (
+    <div className="a4" style={{ color: "#334155" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11mm 14mm 5mm" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/lifeline-logo-rebrand.svg" alt="Lifeline" style={{ height: "9mm", width: "auto", display: "block" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "3mm" }}>
+          <span style={{ fontSize: "9px", fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: "#6b7280" }}>{l.cobrandLabel}</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/partner-lyfja.png" alt="Lyfja" style={{ height: "11mm", width: "auto", display: "block" }} />
+        </div>
+      </div>
+
+      <div style={{ margin: "0 14mm", borderRadius: "6mm", padding: "11mm 13mm", color: "#fff", position: "relative", overflow: "hidden",
+        background: "radial-gradient(120% 120% at 85% -10%, rgba(52,211,153,.5), transparent 55%), linear-gradient(135deg," + EM_DEEP + "," + EM_DARK + ")" }}>
+        <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: MINT, marginBottom: "3.5mm" }}>{l.eyebrow}</div>
+        <h1 style={{ fontSize: "32px", maxWidth: "150mm" }}>{renderHeading(l.heading, MINT)}</h1>
+        <p style={{ marginTop: "4mm", fontSize: "13px", lineHeight: 1.5, maxWidth: "150mm", color: MINT_SOFT }}>{l.lead}</p>
+      </div>
+
+      <div style={{ padding: "9mm 14mm 0" }}>
+        <h2 style={{ fontSize: "15px", marginBottom: "4mm" }}>{l.benefitsTitle}</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3.5mm 6mm" }}>
+          {l.benefits.map((b, i) => {
+            const Ico = BENEFIT_ICONS[b.icon];
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "3mm" }}>
+                <span style={{ flex: "0 0 auto", width: "8mm", height: "8mm", borderRadius: "2.5mm", display: "flex", alignItems: "center", justifyContent: "center", background: MINT_SOFT, color: EM_DARK }}>
+                  {Ico ? <Ico size={17} strokeWidth={2} /> : null}
+                </span>
+                <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#334155", lineHeight: 1.25 }}>{b.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ padding: "7mm 14mm 0" }}>
+        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "4mm", padding: "5mm 6mm" }}>
+          <div style={{ fontSize: "10.5px", fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: EM_DARK, marginBottom: "1.5mm" }}>{l.whyTitle}</div>
+          <p style={{ fontSize: "12px", lineHeight: 1.5, color: "#334155" }}>{l.why}</p>
+        </div>
+      </div>
+
+      <div style={{ padding: "7mm 14mm 0" }}>
+        <h2 style={{ fontSize: "15px", marginBottom: "4mm" }}>{l.stepsTitle}</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "5mm" }}>
+          {l.steps.map((st, i) => (
+            <div key={i}>
+              <div style={{ width: "8mm", height: "8mm", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg," + EM + ",#34d399)", color: "#fff", fontWeight: 800, fontSize: "13px", marginBottom: "2.4mm" }}>{i + 1}</div>
+              <h3 style={{ margin: "0 0 1mm", fontSize: "12.5px", fontWeight: 800, color: "#0f2733" }}>{st.title}</h3>
+              <p style={{ margin: 0, fontSize: "11px", lineHeight: 1.35, color: "#334155" }}>{st.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: "auto", padding: "9mm 14mm 12mm" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8mm", borderRadius: "5mm", padding: "7mm 8mm", color: "#fff",
+          background: "linear-gradient(135deg," + EM_DEEP + "," + EM_DARK + ")" }}>
+          <div style={{ textAlign: "center", flexShrink: 0 }}>
+            <div style={{ background: "#fff", borderRadius: "2.5mm", padding: "2mm" }}>
+              <QrSvg value={l.portalUrl} size="30mm" />
+            </div>
+            <div style={{ fontSize: "10px", marginTop: "1.5mm", fontWeight: 700, color: MINT_SOFT }}>{l.ctaLabel}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: MINT, marginBottom: "2mm" }}>Byrjaðu hér</div>
+            <div style={{ fontSize: "23px", fontWeight: 800, lineHeight: 1.12, marginBottom: "2.5mm" }}>{l.ctaHeading}</div>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#a7f3d0" }}>{l.url}</div>
+            <p style={{ fontSize: "10.5px", color: "#bbf7d0", marginTop: "2.5mm", maxWidth: "85mm" }}>{l.footerNote}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CollateralDoc({ doc }: { doc: Doc }) {
   if (doc.type === "referral") return <Referral r={doc.referral} />;
   if (doc.type === "advert") return <Advert a={doc.advert} />;
+  if (doc.type === "lifelinecheck") return <LifelinePoster l={doc.lifeline} />;
   return <Poster p={doc.poster} />;
 }

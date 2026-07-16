@@ -14,12 +14,13 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { COLLATERAL_CSS } from "./collateral-css";
-import { CollateralDoc, AFTER_ICON_KEYS } from "./docs";
+import { CollateralDoc, AFTER_ICON_KEYS, BENEFIT_ICON_KEYS } from "./docs";
 import {
   defaultDoc,
   SERVICE_ICONS,
   type CollateralContent,
   type ArchivedDoc,
+  type Benefit,
   type Doc,
   type DocType,
   type Step,
@@ -49,6 +50,7 @@ const NEW_TYPES: { type: DocType; label: string }[] = [
   { type: "poster", label: "Veggspjald" },
   { type: "referral", label: "Tilvísunarleiðbeiningar" },
   { type: "advert", label: "Blaðaauglýsing" },
+  { type: "lifelinecheck", label: "Lifeline heilsufarsmat" },
 ];
 
 function newId() {
@@ -127,6 +129,24 @@ function ServicesEditor({ services, onChange }: { services: Service[]; onChange:
         </div>
       ))}
       <button onClick={() => onChange([...services, { icon: SERVICE_ICONS[0], label: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við þjónustu</button>
+    </div>
+  );
+}
+
+function BenefitsEditor({ benefits, onChange }: { benefits: Benefit[]; onChange: (v: Benefit[]) => void }) {
+  const set = (i: number, patch: Partial<Benefit>) => onChange(benefits.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+  return (
+    <div className="space-y-1.5">
+      {benefits.map((b, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <select value={b.icon} onChange={(e) => set(i, { icon: e.target.value })} className="shrink-0 rounded-md border border-gray-300 px-1.5 py-1.5 text-xs text-gray-700">
+            {BENEFIT_ICON_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+          <input value={b.label} onChange={(e) => set(i, { label: e.target.value })} className={inputCls} />
+          <button onClick={() => onChange(benefits.filter((_, j) => j !== i))} className="shrink-0 rounded-md border border-gray-300 px-2 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja">✕</button>
+        </div>
+      ))}
+      <button onClick={() => onChange([...benefits, { icon: BENEFIT_ICON_KEYS[0], label: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við</button>
     </div>
   );
 }
@@ -276,6 +296,8 @@ export function CollateralStudio({
     updateDoc(index, (d) => (d.type === "referral" ? { ...d, referral: { ...d.referral, ...p } } : d));
   const patchAdvert = (p: Partial<Extract<Doc, { type: "advert" }>["advert"]>) =>
     updateDoc(index, (d) => (d.type === "advert" ? { ...d, advert: { ...d.advert, ...p } } : d));
+  const patchLifeline = (p: Partial<Extract<Doc, { type: "lifelinecheck" }>["lifeline"]>) =>
+    updateDoc(index, (d) => (d.type === "lifelinecheck" ? { ...d, lifeline: { ...d.lifeline, ...p } } : d));
 
   const btn = "rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-30";
 
@@ -401,7 +423,7 @@ export function CollateralStudio({
                 <Field label="Netfang" value={active.referral.contactEmail} onChange={(v) => patchReferral({ contactEmail: v })} />
               </Section>
             </>
-          ) : (
+          ) : active.type === "advert" ? (
             <>
               <Section title="Haus">
                 <Field label="Merki" value={active.advert.badge} onChange={(v) => patchAdvert({ badge: v })} />
@@ -422,6 +444,37 @@ export function CollateralStudio({
                 <Field label="Tengill fyrir QR-kóða" value={active.advert.portalUrl} onChange={(v) => patchAdvert({ portalUrl: v })} />
                 <Field label="Samstarfstexti" value={active.advert.partnerNote} onChange={(v) => patchAdvert({ partnerNote: v })} area />
                 <SafetyEditor safety={active.advert.safety} onChange={(safety) => patchAdvert({ safety })} />
+              </Section>
+            </>
+          ) : (
+            <>
+              <Section title="Merkjaskil">
+                <Field label="Samstarfstexti (fyrir Lyfja-merki)" value={active.lifeline.cobrandLabel} onChange={(v) => patchLifeline({ cobrandLabel: v })} />
+              </Section>
+              <Section title="Haus">
+                <Field label="Yfirskrift" value={active.lifeline.eyebrow} onChange={(v) => patchLifeline({ eyebrow: v })} />
+                <Field label="Fyrirsögn" value={active.lifeline.heading} onChange={(v) => patchLifeline({ heading: v })} area />
+                <p className="text-[11px] text-gray-400">Ný lína = línuskil. Settu <b>==</b> utan um orð til að lita þau græn.</p>
+                <Field label="Inngangur" value={active.lifeline.lead} onChange={(v) => patchLifeline({ lead: v })} area />
+              </Section>
+              <Section title="Hvað færðu?">
+                <Field label="Titill" value={active.lifeline.benefitsTitle} onChange={(v) => patchLifeline({ benefitsTitle: v })} />
+                <BenefitsEditor benefits={active.lifeline.benefits} onChange={(benefits) => patchLifeline({ benefits })} />
+              </Section>
+              <Section title="Af hverju?">
+                <Field label="Titill" value={active.lifeline.whyTitle} onChange={(v) => patchLifeline({ whyTitle: v })} />
+                <Field label="Texti" value={active.lifeline.why} onChange={(v) => patchLifeline({ why: v })} area />
+              </Section>
+              <Section title="Svona virkar það">
+                <Field label="Titill" value={active.lifeline.stepsTitle} onChange={(v) => patchLifeline({ stepsTitle: v })} />
+                <StepsEditor steps={active.lifeline.steps} onChange={(steps) => patchLifeline({ steps })} />
+              </Section>
+              <Section title="Aðgerð og QR">
+                <Field label="Fyrirsögn hvatningar" value={active.lifeline.ctaHeading} onChange={(v) => patchLifeline({ ctaHeading: v })} />
+                <Field label="QR-texti" value={active.lifeline.ctaLabel} onChange={(v) => patchLifeline({ ctaLabel: v })} />
+                <Field label="Tengill fyrir QR-kóða (sjúklingagátt)" value={active.lifeline.portalUrl} onChange={(v) => patchLifeline({ portalUrl: v })} />
+                <Field label="Vefslóð (birt)" value={active.lifeline.url} onChange={(v) => patchLifeline({ url: v })} />
+                <Field label="Fótnóta" value={active.lifeline.footerNote} onChange={(v) => patchLifeline({ footerNote: v })} area />
               </Section>
             </>
           )}

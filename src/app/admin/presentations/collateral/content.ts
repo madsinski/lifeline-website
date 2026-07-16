@@ -12,7 +12,7 @@ export type Service = { icon: string; label: string };
 export type Safety = { bold: string; text: string };
 export type AfterItem = { k: string; bold: string; text: string; icon?: string };
 
-export type DocType = "poster" | "referral" | "advert";
+export type DocType = "poster" | "referral" | "advert" | "lifelinecheck";
 
 export const MEDALIA_PORTAL_URL =
   "https://app.medalia.dev/0b9e8a71-34dc-4354-bf79-03826914bcce";
@@ -71,10 +71,32 @@ export type AdvertFields = {
   safety: Safety;
 };
 
+export type Benefit = { icon: string; label: string };
+
+// Lifeline × Lyfja health-check poster (own brand: emerald + Lyfja co-brand).
+export type LifelineFields = {
+  cobrandLabel: string;
+  eyebrow: string;
+  heading: string;   // ==double equals== accents in emerald; newlines break lines
+  lead: string;
+  benefitsTitle: string;
+  benefits: Benefit[];
+  whyTitle: string;
+  why: string;
+  stepsTitle: string;
+  steps: Step[];
+  ctaHeading: string;
+  ctaLabel: string;
+  url: string;
+  portalUrl: string;
+  footerNote: string;
+};
+
 export type Doc =
   | { id: string; type: "poster"; name: string; sub: string; poster: PosterFields }
   | { id: string; type: "referral"; name: string; sub: string; referral: ReferralFields }
-  | { id: string; type: "advert"; name: string; sub: string; advert: AdvertFields };
+  | { id: string; type: "advert"; name: string; sub: string; advert: AdvertFields }
+  | { id: string; type: "lifelinecheck"; name: string; sub: string; lifeline: LifelineFields };
 
 export type ArchivedDoc = Doc & { archivedAt?: string };
 export type CollateralContent = { docs: Doc[]; archived?: ArchivedDoc[] };
@@ -194,6 +216,35 @@ export const DEFAULT_ADVERT: AdvertFields = {
   safety: { bold: "Neyðartilfelli:", text: " Hringdu í 112. Fjarlækningar eru ekki ætlaðar fyrir bráðaþjónustu." },
 };
 
+export const DEFAULT_LIFELINE: LifelineFields = {
+  cobrandLabel: "Í samstarfi við",
+  eyebrow: "Heilsufarsmat frá Lifeline",
+  heading: "Taktu stöðuna á\n==heilsunni þinni.==",
+  lead: "Ítarleg mæling á líkamssamsetningu og blóðþrýstingi, markviss blóðprufa og læknayfirfarið heilsumat — allt aðgengilegt í Lifeline appinu.",
+  benefitsTitle: "Hvað færðu?",
+  benefits: [
+    { icon: "body", label: "Líkamssamsetning: fita, vöðvamassi og BMI" },
+    { icon: "heart", label: "Blóðþrýstingsmæling" },
+    { icon: "drop", label: "Markviss blóðprufa fyrir efnaskipti" },
+    { icon: "gauge", label: "Heilsuskor í sex flokkum" },
+    { icon: "report", label: "Læknayfirfarið heilsumat og ráðleggingar" },
+    { icon: "app", label: "Niðurstöður beint í Lifeline appinu" },
+  ],
+  whyTitle: "Af hverju heilsufarsmat?",
+  why: "Fáðu skýra mynd af heilsunni, gríptu áhættuþætti snemma og fylgstu með framförum yfir tíma.",
+  stepsTitle: "Svona virkar það",
+  steps: [
+    { title: "Skannaðu og bókaðu", body: "Skannaðu QR-kóðann, skráðu þig inn með rafrænum skilríkjum og bókaðu tíma." },
+    { title: "Mættu í mælingu", body: "Líkamssamsetning og blóðþrýstingur mæld hér í Lyfju; blóðprufa tekin hjá Sameind." },
+    { title: "Fáðu heilsumatið", body: "Læknir yfirfer niðurstöður og þú færð persónulegt heilsumat og ráðleggingar í appinu." },
+  ],
+  ctaHeading: "Byrjaðu heilsuferðina í dag",
+  ctaLabel: "Skannaðu til að byrja",
+  url: "lifelinehealth.is",
+  portalUrl: "https://www.lifelinehealth.is/",
+  footerNote: "Mæling framkvæmd hér í Lyfju. Blóðprufa tekin hjá Sameind.",
+};
+
 export const DEFAULT_CONTENT: CollateralContent = {
   docs: [
     { id: "poster", type: "poster", name: "Veggspjald", sub: "Fyrir móttöku HSU — fyrir sjúklinga", poster: DEFAULT_POSTER },
@@ -207,7 +258,8 @@ export const DEFAULT_CONTENT: CollateralContent = {
 export function defaultDoc(type: DocType, id: string): Doc {
   if (type === "poster") return { id, type, name: "Veggspjald", sub: "A4", poster: DEFAULT_POSTER };
   if (type === "referral") return { id, type, name: "Tilvísunarleiðbeiningar", sub: "A4", referral: DEFAULT_REFERRAL };
-  return { id, type, name: "Blaðaauglýsing", sub: "A4", advert: DEFAULT_ADVERT };
+  if (type === "lifelinecheck") return { id, type, name: "Lifeline × Lyfja", sub: "A4 — heilsufarsmat", lifeline: DEFAULT_LIFELINE };
+  return { id, type: "advert", name: "Blaðaauglýsing", sub: "A4", advert: DEFAULT_ADVERT };
 }
 
 // Coerce a stored (possibly partial / legacy) blob into a valid CollateralContent.
@@ -256,5 +308,6 @@ function coerceDoc(raw: unknown, i: number): Doc | null {
   if (type === "poster") return { id, type, name: name || "Veggspjald", sub, poster: { ...DEFAULT_POSTER, ...(d.poster as object ?? {}) } };
   if (type === "referral") return { id, type, name: name || "Tilvísunarleiðbeiningar", sub, referral: { ...DEFAULT_REFERRAL, ...(d.referral as object ?? {}) } };
   if (type === "advert") return { id, type, name: name || "Blaðaauglýsing", sub, advert: { ...DEFAULT_ADVERT, ...(d.advert as object ?? {}) } };
+  if (type === "lifelinecheck") return { id, type, name: name || "Lifeline × Lyfja", sub, lifeline: { ...DEFAULT_LIFELINE, ...(d.lifeline as object ?? {}) } };
   return null;
 }
