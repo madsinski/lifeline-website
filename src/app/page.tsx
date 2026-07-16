@@ -47,6 +47,24 @@ const steps = [
   },
 ];
 
+const methodLayers = [
+  {
+    num: "1",
+    title: "Foundations — where change happens",
+    body: "A deep questionnaire maps your sleep, nutrition, movement and mental wellbeing: the daily habits behind most long-term health outcomes. This is the layer you can actually adjust.",
+  },
+  {
+    num: "2",
+    title: "Measurements & bloodwork — the evidence",
+    body: "Body composition, blood pressure and targeted blood markers add objective depth and detail — so your picture is grounded in data, not guesswork.",
+  },
+  {
+    num: "3",
+    title: "Doctor review — the plan that drives change",
+    body: "A physician ties every layer together, explains your core health challenges in plain language, and writes a prioritised action plan: the highest-impact changes for the least time and effort.",
+  },
+];
+
 const pillars = [
   {
     title: "Exercise",
@@ -292,8 +310,44 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Why it's worth it — the layered method / differentiation */}
+      <section className="py-24 sm:py-28 bg-gradient-to-b from-white to-[#f0fdf4]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mb-12">
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981] mb-3">
+              {t('home.method.kicker', "Why it's worth it")}
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] tracking-tight leading-tight">
+              Anyone can hand you numbers. We hand you a <span className="text-[#10B981]">plan that changes them.</span>
+            </h2>
+            <p className="text-lg text-[#6B7280] mt-4 leading-relaxed">
+              A one-off blood test tells you where you stand — not what to do about it, or how to make it stick. Lifeline is built in three layers, and each one adds the part most health checks leave out.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {methodLayers.map((l) => (
+              <div key={l.num} className="flex gap-5 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold text-lg flex items-center justify-center">{l.num}</div>
+                <div>
+                  <h3 className="font-semibold text-[#1F2937] text-lg">{l.title}</h3>
+                  <p className="text-sm sm:text-base text-[#6B7280] mt-1.5 leading-relaxed">{l.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl bg-[#111827] text-white p-6 sm:p-8">
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 mb-2">The bottom line</div>
+            <p className="text-lg sm:text-xl font-semibold leading-snug">
+              The third layer is the one that changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change you&apos;ll actually make.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Wave separator */}
-      <WaveSeparator from="#ffffff" to="#ecf0f3" />
+      <WaveSeparator from="#f0fdf4" to="#ecf0f3" />
 
       {/* Health Assessment Process */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
