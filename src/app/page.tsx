@@ -268,8 +268,11 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
+
       {/* How it works */}
-      <section className="py-24 sm:py-28 bg-white border-t border-gray-100">
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
@@ -310,8 +313,11 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Wave separator */}
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
+
       {/* Why it's worth it — the layered method / differentiation */}
-      <section className="py-24 sm:py-28 bg-gradient-to-b from-white to-[#f0fdf4] border-t border-gray-100">
+      <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mb-12">
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981] mb-3">
@@ -327,7 +333,7 @@ export default function Home() {
 
           <div className="space-y-4">
             {methodLayers.map((l) => (
-              <div key={l.num} className="flex gap-5 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200">
+              <div key={l.num} className="flex gap-5 rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold text-lg flex items-center justify-center">{l.num}</div>
                 <div>
                   <h3 className="font-semibold text-[#1F2937] text-lg">{l.title}</h3>
@@ -347,7 +353,7 @@ export default function Home() {
       </section>
 
       {/* Wave separator */}
-      <WaveSeparator from="#f0fdf4" to="#ecf0f3" />
+      <WaveSeparator from="#ffffff" to="#ecf0f3" />
 
       {/* Health Assessment Process */}
       <section className="py-24 sm:py-28 bg-[#ecf0f3]">
