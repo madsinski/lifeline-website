@@ -269,7 +269,7 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section className="py-24 sm:py-28 bg-white">
+      <section className="py-24 sm:py-28 bg-white border-t border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
@@ -311,7 +311,7 @@ export default function Home() {
       </section>
 
       {/* Why it's worth it — the layered method / differentiation */}
-      <section className="py-24 sm:py-28 bg-gradient-to-b from-white to-[#f0fdf4]">
+      <section className="py-24 sm:py-28 bg-gradient-to-b from-white to-[#f0fdf4] border-t border-gray-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mb-12">
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981] mb-3">
