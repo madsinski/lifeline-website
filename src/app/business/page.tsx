@@ -183,6 +183,7 @@ function PublicBusinessPage({ signedIn, companies }: { signedIn: boolean; compan
       <Hero signedIn={signedIn} />
       <WhyLifeline />
       <HowItWorks />
+      <TheMethod />
       <Packages />
       <BangForBuck />
       <InquirySection />
@@ -393,6 +394,61 @@ type Pkg = {
   tone: string;
   dot: string;
 };
+
+function TheMethod() {
+  const layers = [
+    {
+      num: "1",
+      title: "Foundations — where change happens",
+      body: "A deep questionnaire maps sleep, nutrition, movement and mental wellbeing: the daily habits behind most long-term health outcomes. This is the layer people can actually adjust.",
+    },
+    {
+      num: "2",
+      title: "Measurements & bloodwork — the evidence",
+      body: "Body composition, blood pressure and targeted blood markers add objective depth and detail — so the picture is grounded in data, not guesswork.",
+    },
+    {
+      num: "3",
+      title: "Doctor review — the plan that drives change",
+      body: "A physician ties every layer together, explains the core health challenges in plain language, and writes a prioritised action plan: the highest-impact changes for the least time and effort.",
+    },
+  ];
+
+  return (
+    <section className="py-20 sm:py-24 bg-gradient-to-b from-white to-[#f0fdf4]">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mb-10">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-2">Why it&apos;s worth it</div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] tracking-tight leading-tight">
+            Anyone can hand you numbers. We hand your people a <span className="text-[#10B981]">plan that changes them.</span>
+          </h2>
+          <p className="text-base text-[#475569] mt-4 leading-relaxed">
+            A one-off blood panel tells your team where they stand — not what to do about it, or how to make it stick. Lifeline is built in three layers, and each one adds the part most health checks leave out.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {layers.map((l) => (
+            <div key={l.num} className="flex gap-5 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+              <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold text-lg flex items-center justify-center">{l.num}</div>
+              <div>
+                <h3 className="font-semibold text-[#0F172A] text-lg">{l.title}</h3>
+                <p className="text-sm sm:text-base text-[#475569] mt-1.5 leading-relaxed">{l.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 rounded-2xl bg-[#0F172A] text-white p-6 sm:p-8">
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-300 mb-2">The bottom line</div>
+          <p className="text-lg sm:text-xl font-semibold leading-snug">
+            The third layer is the one that changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change your team will actually make.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function Packages() {
   const assessments: Pkg[] = [

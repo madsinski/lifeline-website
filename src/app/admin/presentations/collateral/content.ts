@@ -230,8 +230,8 @@ export const DEFAULT_LIFELINE: LifelineFields = {
     { icon: "stethoscope", label: "Læknisviðtal og heilsuplan", detail: "Læknir fer yfir skýrsluna og útbýr sérsniðið heilsuplan fyrir þig" },
     { icon: "calendar", label: "Eftirfylgni", detail: "Hvenær sem þér hentar" },
   ],
-  whyTitle: "Af hverju heilsumat?",
-  why: "Fáðu skýra mynd af heilsunni, gríptu áhættuþætti snemma og fylgstu með framförum yfir tíma.",
+  whyTitle: "Af hverju Lifeline?",
+  why: "Ólíkt hefðbundnum mælingum byggjum við á undirstöðum heilsunnar — svefni, næringu, hreyfingu og andlegri vellíðan — og styðjum þær með mælingum og blóðprufum. Læknir tengir allt saman, útskýrir kjarna málsins á mannamáli og útbýr markvissa aðgerðaáætlun sem skilar mestum árangri með minnstri fyrirhöfn.",
   stepsTitle: "Svona virkar það",
   steps: [
     { title: "Skannaðu og bókaðu", body: "Skannaðu QR-kóðann, skráðu þig inn með rafrænum skilríkjum og bókaðu tíma." },
