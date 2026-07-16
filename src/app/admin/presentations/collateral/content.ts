@@ -242,7 +242,7 @@ export const DEFAULT_LIFELINE: LifelineFields = {
   ctaHeading: "Byrjaðu heilsuferðina í dag",
   ctaLabel: "Skannaðu til að byrja",
   url: "lifelinehealth.is",
-  portalUrl: "https://www.lifelinehealth.is/",
+  portalUrl: "https://app.medalia.is/7ca0ca21-8947-46cb-afbd-2e2d15efef6e",
   footerNote: "Mæling fer fram hér í Lyfju. Blóðprufa er tekin hjá Sameind.",
 };
 
