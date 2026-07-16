@@ -220,7 +220,7 @@ export const DEFAULT_LIFELINE: LifelineFields = {
   cobrandLabel: "Í samstarfi við",
   eyebrow: "Heilsumat frá Lifeline",
   heading: "Taktu stöðuna á\n==heilsunni þinni.==",
-  lead: "Ítarleg mæling á líkamssamsetningu og blóðþrýstingi, markviss blóðprufa og heilsumat yfirfarið af lækni — allt aðgengilegt í Lifeline appinu.",
+  lead: "Ítarleg mæling á líkamssamsetningu og blóðþrýstingi, markviss blóðprufa og heilsumat yfirfarið af lækni með persónulegum ráðleggingum.",
   benefitsTitle: "Hvað færðu?",
   benefits: [
     { icon: "list", label: "Ítarleg heilsuskimun", detail: "Sérhæfður spurningalisti frá Lifeline Health" },
@@ -237,7 +237,7 @@ export const DEFAULT_LIFELINE: LifelineFields = {
     { title: "Skannaðu og bókaðu", body: "Skannaðu QR-kóðann, skráðu þig inn með rafrænum skilríkjum og bókaðu tíma." },
     { title: "Komdu í mælingu", body: "Líkamssamsetning og blóðþrýstingur eru mæld hér í Lyfju." },
     { title: "Farðu í blóðprufu", body: "Einföld blóðprufa er tekin á næstu Sameind-stöð." },
-    { title: "Fáðu heilsumatið", body: "Læknir yfirfer niðurstöður og þú færð heilsumat og ráðleggingar í appinu." },
+    { title: "Fáðu heilsumatið", body: "Læknir yfirfer niðurstöður og þú færð persónulegt heilsumat og ráðleggingar." },
   ],
   ctaHeading: "Byrjaðu heilsuferðina í dag",
   ctaLabel: "Skannaðu til að byrja",
