@@ -8,6 +8,7 @@ import {
   Clock, Pill, Undo2, Lock, FileText, Stethoscope, ShieldCheck,
   Send, CheckCircle2, Bell, MessageSquare, House,
   PersonStanding, HeartPulse, Droplet, Gauge, ClipboardCheck, Smartphone,
+  ClipboardList, Leaf, CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,6 +25,7 @@ const BENEFIT_ICONS: Record<string, LucideIcon> = {
   body: PersonStanding, heart: HeartPulse, drop: Droplet, gauge: Gauge,
   report: ClipboardCheck, app: Smartphone, stethoscope: Stethoscope,
   shield: ShieldCheck, check: CheckCircle2, clock: Clock,
+  list: ClipboardList, leaf: Leaf, calendar: CalendarClock,
 };
 export const BENEFIT_ICON_KEYS = Object.keys(BENEFIT_ICONS);
 import type {
@@ -357,13 +359,13 @@ function LifelinePoster({ l }: { l: LifelineFields }) {
           {l.benefits.map((b, i) => {
             const Ico = BENEFIT_ICONS[b.icon];
             return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "3.5mm", padding: "3mm 4mm", borderRadius: "3.5mm", background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
-                <span style={{ flex: "0 0 auto", width: "9mm", height: "9mm", borderRadius: "2.5mm", display: "flex", alignItems: "center", justifyContent: "center", background: EM, color: "#fff" }}>
-                  {Ico ? <Ico size={19} strokeWidth={2} /> : null}
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "3.5mm", padding: "3.5mm 4mm", borderRadius: "3.5mm", background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                <span style={{ flex: "0 0 auto", width: "8.5mm", height: "8.5mm", borderRadius: "2.5mm", display: "flex", alignItems: "center", justifyContent: "center", background: EM, color: "#fff" }}>
+                  {Ico ? <Ico size={18} strokeWidth={2} /> : null}
                 </span>
                 <div>
-                  <div style={{ fontSize: "12.5px", fontWeight: 800, color: "#065f46", lineHeight: 1.15 }}>{b.label}</div>
-                  {b.detail ? <div style={{ fontSize: "10.5px", color: "#475569", lineHeight: 1.2, marginTop: "0.5mm" }}>{b.detail}</div> : null}
+                  <div style={{ fontSize: "12px", fontWeight: 800, color: "#065f46", lineHeight: 1.2 }}>{b.label}</div>
+                  {b.detail ? <div style={{ fontSize: "10px", color: "#475569", lineHeight: 1.28, marginTop: "0.8mm" }}>{b.detail}</div> : null}
                 </div>
               </div>
             );
