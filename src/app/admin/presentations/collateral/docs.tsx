@@ -331,7 +331,7 @@ function Advert({ a }: { a: AdvertFields }) {
 // ── 4. Lifeline × Lyfja health-check poster ──────────────────────────────
 function LifelinePoster({ l }: { l: LifelineFields }) {
   const EM = "#10B981", EM_DARK = "#047857", EM_DEEP = "#065f46";
-  const MINT = "#6ee7b7", MINT_SOFT = "#d1fae5";
+  const MINT = "#6ee7b7";
   return (
     <div className="a4" style={{ color: "#334155" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11mm 14mm 5mm" }}>
@@ -348,20 +348,23 @@ function LifelinePoster({ l }: { l: LifelineFields }) {
         background: "radial-gradient(120% 120% at 85% -10%, rgba(52,211,153,.5), transparent 55%), linear-gradient(135deg," + EM_DEEP + "," + EM_DARK + ")" }}>
         <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: MINT, marginBottom: "3.5mm" }}>{l.eyebrow}</div>
         <h1 style={{ fontSize: "32px", maxWidth: "150mm" }}>{renderHeading(l.heading, MINT)}</h1>
-        <p style={{ marginTop: "4mm", fontSize: "13px", lineHeight: 1.5, maxWidth: "150mm", color: MINT_SOFT }}>{l.lead}</p>
+        <p style={{ marginTop: "4mm", fontSize: "13px", lineHeight: 1.5, maxWidth: "150mm", color: "rgba(255,255,255,.92)" }}>{l.lead}</p>
       </div>
 
       <div style={{ padding: "9mm 14mm 0" }}>
-        <h2 style={{ fontSize: "15px", marginBottom: "4mm" }}>{l.benefitsTitle}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3.5mm 6mm" }}>
+        <h2 style={{ fontSize: "15px", marginBottom: "4.5mm" }}>{l.benefitsTitle}</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4mm" }}>
           {l.benefits.map((b, i) => {
             const Ico = BENEFIT_ICONS[b.icon];
             return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "3mm" }}>
-                <span style={{ flex: "0 0 auto", width: "8mm", height: "8mm", borderRadius: "2.5mm", display: "flex", alignItems: "center", justifyContent: "center", background: MINT_SOFT, color: EM_DARK }}>
-                  {Ico ? <Ico size={17} strokeWidth={2} /> : null}
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "3.5mm", padding: "3.5mm 4mm", borderRadius: "3.5mm", background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                <span style={{ flex: "0 0 auto", width: "9mm", height: "9mm", borderRadius: "2.5mm", display: "flex", alignItems: "center", justifyContent: "center", background: EM, color: "#fff" }}>
+                  {Ico ? <Ico size={19} strokeWidth={2} /> : null}
                 </span>
-                <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#334155", lineHeight: 1.25 }}>{b.label}</span>
+                <div>
+                  <div style={{ fontSize: "12.5px", fontWeight: 800, color: "#065f46", lineHeight: 1.15 }}>{b.label}</div>
+                  {b.detail ? <div style={{ fontSize: "10.5px", color: "#475569", lineHeight: 1.2, marginTop: "0.5mm" }}>{b.detail}</div> : null}
+                </div>
               </div>
             );
           })}
@@ -377,12 +380,12 @@ function LifelinePoster({ l }: { l: LifelineFields }) {
 
       <div style={{ padding: "7mm 14mm 0" }}>
         <h2 style={{ fontSize: "15px", marginBottom: "4mm" }}>{l.stepsTitle}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "5mm" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "4mm" }}>
           {l.steps.map((st, i) => (
             <div key={i}>
-              <div style={{ width: "8mm", height: "8mm", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg," + EM + ",#34d399)", color: "#fff", fontWeight: 800, fontSize: "13px", marginBottom: "2.4mm" }}>{i + 1}</div>
-              <h3 style={{ margin: "0 0 1mm", fontSize: "12.5px", fontWeight: 800, color: "#0f2733" }}>{st.title}</h3>
-              <p style={{ margin: 0, fontSize: "11px", lineHeight: 1.35, color: "#334155" }}>{st.body}</p>
+              <div style={{ width: "7.5mm", height: "7.5mm", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg," + EM + ",#34d399)", color: "#fff", fontWeight: 800, fontSize: "12px", marginBottom: "2.2mm" }}>{i + 1}</div>
+              <h3 style={{ margin: "0 0 1mm", fontSize: "12px", fontWeight: 800, color: "#0f2733" }}>{st.title}</h3>
+              <p style={{ margin: 0, fontSize: "10.5px", lineHeight: 1.32, color: "#334155" }}>{st.body}</p>
             </div>
           ))}
         </div>
@@ -395,13 +398,13 @@ function LifelinePoster({ l }: { l: LifelineFields }) {
             <div style={{ background: "#fff", borderRadius: "2.5mm", padding: "2mm" }}>
               <QrSvg value={l.portalUrl} size="30mm" />
             </div>
-            <div style={{ fontSize: "10px", marginTop: "1.5mm", fontWeight: 700, color: MINT_SOFT }}>{l.ctaLabel}</div>
+            <div style={{ fontSize: "10px", marginTop: "1.5mm", fontWeight: 700, color: "#ecfdf5" }}>{l.ctaLabel}</div>
           </div>
           <div>
             <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase", color: MINT, marginBottom: "2mm" }}>Byrjaðu hér</div>
             <div style={{ fontSize: "23px", fontWeight: 800, lineHeight: 1.12, marginBottom: "2.5mm" }}>{l.ctaHeading}</div>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: "#a7f3d0" }}>{l.url}</div>
-            <p style={{ fontSize: "10.5px", color: "#bbf7d0", marginTop: "2.5mm", maxWidth: "85mm" }}>{l.footerNote}</p>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#d1fae5" }}>{l.url}</div>
+            <p style={{ fontSize: "10.5px", color: "rgba(255,255,255,.82)", marginTop: "2.5mm", maxWidth: "85mm" }}>{l.footerNote}</p>
           </div>
         </div>
       </div>

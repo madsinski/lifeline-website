@@ -138,12 +138,15 @@ function BenefitsEditor({ benefits, onChange }: { benefits: Benefit[]; onChange:
   return (
     <div className="space-y-1.5">
       {benefits.map((b, i) => (
-        <div key={i} className="flex items-center gap-1.5">
-          <select value={b.icon} onChange={(e) => set(i, { icon: e.target.value })} className="shrink-0 rounded-md border border-gray-300 px-1.5 py-1.5 text-xs text-gray-700">
-            {BENEFIT_ICON_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
-          <input value={b.label} onChange={(e) => set(i, { label: e.target.value })} className={inputCls} />
-          <button onClick={() => onChange(benefits.filter((_, j) => j !== i))} className="shrink-0 rounded-md border border-gray-300 px-2 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja">✕</button>
+        <div key={i} className="space-y-1.5 rounded-md border border-gray-200 p-2">
+          <div className="flex items-center gap-1.5">
+            <select value={b.icon} onChange={(e) => set(i, { icon: e.target.value })} className="shrink-0 rounded-md border border-gray-300 px-1.5 py-1.5 text-xs text-gray-700">
+              {BENEFIT_ICON_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
+            </select>
+            <input value={b.label} onChange={(e) => set(i, { label: e.target.value })} className={inputCls} placeholder="Titill" />
+            <button onClick={() => onChange(benefits.filter((_, j) => j !== i))} className="shrink-0 rounded-md border border-gray-300 px-2 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja">✕</button>
+          </div>
+          <input value={b.detail ?? ""} onChange={(e) => set(i, { detail: e.target.value })} className={inputCls} placeholder="Nánar (valfrjálst)" />
         </div>
       ))}
       <button onClick={() => onChange([...benefits, { icon: BENEFIT_ICON_KEYS[0], label: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við</button>

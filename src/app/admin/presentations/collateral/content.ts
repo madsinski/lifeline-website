@@ -71,7 +71,7 @@ export type AdvertFields = {
   safety: Safety;
 };
 
-export type Benefit = { icon: string; label: string };
+export type Benefit = { icon: string; label: string; detail?: string };
 
 // Lifeline × Lyfja health-check poster (own brand: emerald + Lyfja co-brand).
 export type LifelineFields = {
@@ -218,31 +218,32 @@ export const DEFAULT_ADVERT: AdvertFields = {
 
 export const DEFAULT_LIFELINE: LifelineFields = {
   cobrandLabel: "Í samstarfi við",
-  eyebrow: "Heilsufarsmat frá Lifeline",
+  eyebrow: "Heilsumat frá Lifeline",
   heading: "Taktu stöðuna á\n==heilsunni þinni.==",
-  lead: "Ítarleg mæling á líkamssamsetningu og blóðþrýstingi, markviss blóðprufa og læknayfirfarið heilsumat — allt aðgengilegt í Lifeline appinu.",
+  lead: "Ítarleg mæling á líkamssamsetningu og blóðþrýstingi, markviss blóðprufa og heilsumat yfirfarið af lækni — allt aðgengilegt í Lifeline appinu.",
   benefitsTitle: "Hvað færðu?",
   benefits: [
-    { icon: "body", label: "Líkamssamsetning: fita, vöðvamassi og BMI" },
-    { icon: "heart", label: "Blóðþrýstingsmæling" },
-    { icon: "drop", label: "Markviss blóðprufa fyrir efnaskipti" },
-    { icon: "gauge", label: "Heilsuskor í sex flokkum" },
-    { icon: "report", label: "Læknayfirfarið heilsumat og ráðleggingar" },
-    { icon: "app", label: "Niðurstöður beint í Lifeline appinu" },
+    { icon: "body", label: "Líkamssamsetning", detail: "Fita, vöðvamassi og BMI" },
+    { icon: "heart", label: "Blóðþrýstingur", detail: "Mældur á staðnum" },
+    { icon: "drop", label: "Blóðprufa", detail: "Markvissir efnaskiptaþættir" },
+    { icon: "gauge", label: "Heilsueinkunn", detail: "Yfirlit í sex flokkum" },
+    { icon: "stethoscope", label: "Heilsumat læknis", detail: "Persónulegar ráðleggingar" },
+    { icon: "app", label: "Lifeline appið", detail: "Allar niðurstöður á einum stað" },
   ],
-  whyTitle: "Af hverju heilsufarsmat?",
+  whyTitle: "Af hverju heilsumat?",
   why: "Fáðu skýra mynd af heilsunni, gríptu áhættuþætti snemma og fylgstu með framförum yfir tíma.",
   stepsTitle: "Svona virkar það",
   steps: [
     { title: "Skannaðu og bókaðu", body: "Skannaðu QR-kóðann, skráðu þig inn með rafrænum skilríkjum og bókaðu tíma." },
-    { title: "Mættu í mælingu", body: "Líkamssamsetning og blóðþrýstingur mæld hér í Lyfju; blóðprufa tekin hjá Sameind." },
-    { title: "Fáðu heilsumatið", body: "Læknir yfirfer niðurstöður og þú færð persónulegt heilsumat og ráðleggingar í appinu." },
+    { title: "Komdu í mælingu", body: "Líkamssamsetning og blóðþrýstingur eru mæld hér í Lyfju." },
+    { title: "Farðu í blóðprufu", body: "Einföld blóðprufa er tekin á næstu Sameind-stöð." },
+    { title: "Fáðu heilsumatið", body: "Læknir yfirfer niðurstöður og þú færð heilsumat og ráðleggingar í appinu." },
   ],
   ctaHeading: "Byrjaðu heilsuferðina í dag",
   ctaLabel: "Skannaðu til að byrja",
   url: "lifelinehealth.is",
   portalUrl: "https://www.lifelinehealth.is/",
-  footerNote: "Mæling framkvæmd hér í Lyfju. Blóðprufa tekin hjá Sameind.",
+  footerNote: "Mæling fer fram hér í Lyfju. Blóðprufa er tekin hjá Sameind.",
 };
 
 export const DEFAULT_CONTENT: CollateralContent = {
