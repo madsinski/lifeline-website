@@ -72,6 +72,29 @@ const CARDS: Card[] = [
     qrUrl: PORTAL_URL,
   },
   {
+    key: "coaching",
+    badge: { is: "ÞJÁLFUN", en: "COACHING" },
+    title: { is: "Áframhaldandi heilsuþjálfun", en: "Ongoing health coaching" },
+    desc: {
+      is: "Persónuleg þjálfun sem heldur utan um svefn, næringu, hreyfingu og andlega líðan — með daglegum skrefum og eftirfylgni.",
+      en: "Personal coaching across sleep, nutrition, movement and mental wellbeing — with daily steps and follow-up.",
+    },
+    bullets: {
+      is: [
+        "Dagleg skref sniðin að þér",
+        "Áhersla á svefn, næringu, hreyfingu og andlega líðan",
+        "Eftirfylgni og stuðningur frá þjálfara",
+      ],
+      en: [
+        "Daily steps tailored to you",
+        "Focus on sleep, nutrition, movement and mental wellbeing",
+        "Follow-up and support from a coach",
+      ],
+    },
+    cta: { is: "Sjá þjálfun", en: "Explore coaching" },
+    href: "/coaching",
+  },
+  {
     key: "workplace",
     badge: { is: "FYRIRTÆKI", en: "FOR TEAMS" },
     title: { is: "Heilsumat fyrir vinnustaði", en: "Health checks for your team" },
