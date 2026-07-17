@@ -6,7 +6,7 @@ import StaticPhone from "./components/StaticPhone";
 import TeamCircles from "./components/TeamCircles";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "./components/PillarIcons";
 import WaveSeparator from "./components/WaveSeparator";
-import HealthCheckTeaser from "./components/HealthCheckTeaser";
+import WhatsNew from "./components/WhatsNew";
 
 const steps = [
   {
@@ -261,10 +261,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* New service teaser — Heilsufarsskoðun hjá Lyfju */}
-      <section className="py-14 sm:py-16 bg-white">
+      {/* What's new — lateral-scroll cards (Lyfja health check + more) */}
+      <section className="py-16 sm:py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <HealthCheckTeaser />
+          <WhatsNew />
         </div>
       </section>
 
