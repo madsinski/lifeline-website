@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import qrcode from "qrcode-generator";
 import { useI18n } from "@/lib/i18n";
-import { DEFAULT_WHATS_NEW, type Lang, type WhatsNewCard } from "@/lib/whats-new";
+import { DEFAULT_WHATS_NEW, VARIANTS, type Lang, type WhatsNewCard } from "@/lib/whats-new";
 
 // Homepage "What's new" (Nýtt hjá Lifeline) carousel. Cards are managed in the
 // admin at /admin/whats-new and read from the public /api/whats-new; the
@@ -30,7 +30,8 @@ function QrSvg({ value, className = "" }: { value: string; className?: string })
   );
 }
 
-function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
+export function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
+  const v = VARIANTS[card.variant] ?? VARIANTS.emerald;
   const external = /^https?:\/\//.test(card.href);
   const cta = (
     <>
@@ -40,25 +41,22 @@ function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
       </svg>
     </>
   );
-  const ctaClass =
-    "inline-flex items-center justify-center rounded-full bg-[#10B981] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/25 transition-all duration-200 hover:bg-[#047857]";
+  const ctaClass = `inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition-all duration-200 ${v.cta}`;
 
   return (
-    <article className="relative flex h-full snap-start flex-col overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-black/5">
-      {/* Emerald accent bar */}
-      <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#10B981] to-[#0D9488]" />
-      {/* Soft radial glow */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_100%_0%,rgba(16,185,129,0.10),transparent)]" />
+    <article className={`relative flex h-full snap-start flex-col overflow-hidden rounded-3xl ${v.card}`}>
+      {v.accentBar && <div className={`absolute inset-x-0 top-0 h-1.5 ${v.accentBar}`} />}
+      {v.glow && <div className={`pointer-events-none absolute inset-0 ${v.glow}`} />}
 
       <div className="relative flex h-full flex-col p-6 sm:p-7">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {card.badge[lang] && (
-            <span className="inline-flex items-center rounded-full bg-[#10B981] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider shadow-sm ${v.badge}`}>
               {card.badge[lang]}
             </span>
           )}
           {card.partner?.[lang] && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${v.partner}`}>
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
@@ -67,16 +65,16 @@ function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
           )}
         </div>
 
-        <h3 className="text-xl font-bold leading-tight text-[#1F2937] sm:text-2xl">{card.title[lang]}</h3>
-        <p className="mt-2.5 text-sm leading-relaxed text-[#6B7280]">{card.desc[lang]}</p>
+        <h3 className={`text-xl font-bold leading-tight sm:text-2xl ${v.title}`}>{card.title[lang]}</h3>
+        <p className={`mt-2.5 text-sm leading-relaxed ${v.desc}`}>{card.desc[lang]}</p>
 
         <ul className="mt-5 space-y-2.5">
           {card.bullets[lang].filter(Boolean).map((item) => (
             <li key={item} className="flex items-start gap-2.5">
-              <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`mt-0.5 h-5 w-5 flex-shrink-0 ${v.bulletIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-sm leading-relaxed text-[#374151]">{item}</span>
+              <span className={`text-sm leading-relaxed ${v.bulletText}`}>{item}</span>
             </li>
           ))}
         </ul>
@@ -84,7 +82,7 @@ function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
         {/* Footer pinned to the bottom so cards align */}
         <div className="mt-auto flex items-end justify-between gap-4 pt-6">
           <div>
-            {card.price?.[lang] && <div className="mb-3 text-base font-bold text-[#1F2937]">{card.price[lang]}</div>}
+            {card.price?.[lang] && <div className={`mb-3 text-base font-bold ${v.price}`}>{card.price[lang]}</div>}
             {external ? (
               <a href={card.href} target="_blank" rel="noopener noreferrer" className={ctaClass}>
                 {cta}
@@ -96,7 +94,7 @@ function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
             )}
           </div>
           {card.qrUrl && (
-            <div className="hidden shrink-0 rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5 sm:block">
+            <div className={`hidden shrink-0 rounded-xl p-2 shadow-sm sm:block ${v.qrWrap}`}>
               <QrSvg value={card.qrUrl} className="h-20 w-20" />
             </div>
           )}

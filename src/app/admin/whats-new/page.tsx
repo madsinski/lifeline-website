@@ -12,8 +12,12 @@ import {
   mergeWhatsNew,
   DEFAULT_WHATS_NEW,
   blankCard,
+  VARIANT_ORDER,
+  VARIANTS,
+  type Lang,
   type WhatsNewCard,
 } from "@/lib/whats-new";
+import { CardView } from "@/app/components/WhatsNew";
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -113,6 +117,7 @@ function Inp({
 export default function WhatsNewAdminPage() {
   const [cards, setCards] = useState<WhatsNewCard[] | null>(null);
   const [status, setStatus] = useState<Status>("idle");
+  const [previewLang, setPreviewLang] = useState<Lang>("is");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -187,6 +192,38 @@ export default function WhatsNewAdminPage() {
         </span>
       </div>
 
+      {/* Live preview — reuses the exact homepage card, updates as you type */}
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-gray-100 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Forskoðun (eins og á forsíðu)</span>
+          <div className="flex overflow-hidden rounded-full border border-gray-300 text-xs font-semibold">
+            {(["is", "en"] as Lang[]).map((lng) => (
+              <button
+                key={lng}
+                onClick={() => setPreviewLang(lng)}
+                className={`px-3 py-1 ${previewLang === lng ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+              >
+                {lng.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {cards.filter((c) => c.enabled).length === 0 && (
+            <p className="py-8 text-sm text-gray-400">Engin virk spjöld til að forskoða.</p>
+          )}
+          {cards.map((c, i) =>
+            c.enabled ? (
+              <div key={c.key + i} className="w-[300px] shrink-0">
+                <div className="pointer-events-none">
+                  <CardView card={c} lang={previewLang} />
+                </div>
+              </div>
+            ) : null,
+          )}
+        </div>
+      </div>
+
       <div className="space-y-5">
         {cards.map((c, i) => (
           <div
@@ -228,6 +265,24 @@ export default function WhatsNewAdminPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Útlit</label>
+                <div className="flex flex-wrap gap-2">
+                  {VARIANT_ORDER.map((vr) => (
+                    <button
+                      key={vr}
+                      onClick={() => set(i, { variant: vr })}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                        c.variant === vr
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500"
+                          : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      {VARIANTS[vr].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <LocInp label="Merki (badge)" value={c.badge} onChange={(v) => set(i, { badge: v })} placeholder="NÝTT" />
               <LocInp label="Hnappur (CTA)" value={c.cta} onChange={(v) => set(i, { cta: v })} placeholder="Skoða" />
 
