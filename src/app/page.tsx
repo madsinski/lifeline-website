@@ -126,54 +126,6 @@ const partners = [
   { name: "Lyfja", role: "Measurement station", url: "https://www.lyfja.is/", logo: "/partner-lyfja.png" },
 ];
 
-const approach = [
-  {
-    title: "Preventive",
-    description: "We focus on catching health issues before they become problems. Regular check-ins and tracking help you stay ahead, not play catch-up.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Data-driven",
-    description: "Every recommendation is backed by your blood work, body composition, and health questionnaire — not generic advice.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Doctor-led",
-    description: "A physician reviews every assessment, interprets your results, and meets with you personally. Medical oversight at every step.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Holistic",
-    description: "We address exercise, nutrition, sleep, and mental wellness together — because real health improvement requires all four pillars working in harmony.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Personalised",
-    description: "Your coaching adapts to your results, your goals, and your progress. No two plans are alike — because no two people are alike.",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    ),
-  },
-];
-
 const appFeatures = [
   { title: "Personalised action plans", description: "Daily tasks across exercise, nutrition, sleep and mental wellness — built on your results.", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>, color: "#3B82F6" },
   { title: "Health coaching and education", description: "Structured programs, educational courses, and a personal coach to guide your journey from day one.", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" /></svg>, color: "#10B981" },
@@ -240,26 +192,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="py-8 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-center">
-            {[
-              { label: t('home.stats.programs', 'Doctor-reviewed programs') },
-              { label: t('home.stats.coaching', 'Evidence-based coaching') },
-              { label: t('home.stats.pillars', '4 pillars of health') },
-              { label: t('home.stats.founded', 'Founded in Reykjavík') },
-            ].map((stat) => (
-              <div key={stat.label} className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-[#10B981] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm font-semibold text-[#1F2937]">{stat.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Wave separator */}
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
       {/* What's new — lateral-scroll cards (Lyfja health check + more) */}
       <section className="py-16 sm:py-20 bg-white">
@@ -316,18 +250,19 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
-      {/* Why it's worth it — the layered method / differentiation */}
+      {/* Why Lifeline — consolidated conviction section: layered method + trust ribbon + bottom line
+          (merged the former stats strip + "Our approach" here) */}
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mb-12">
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981] mb-3">
-              {t('home.method.kicker', "Why it's worth it")}
+              {t('home.method.kicker', "Why Lifeline")}
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] tracking-tight leading-tight">
               Anyone can hand you numbers. We hand you a <span className="text-[#10B981]">plan that changes them.</span>
             </h2>
             <p className="text-lg text-[#6B7280] mt-4 leading-relaxed">
-              A one-off blood test tells you where you stand — not what to do about it, or how to make it stick. Lifeline is built in three layers, and each one adds the part most health checks leave out.
+              A one-off blood test tells you where you stand — not what to do about it, or how to make it stick. Lifeline is built in three practical layers, doctor-led from start to finish, so you catch what matters early and actually act on it.
             </p>
           </div>
 
@@ -343,10 +278,30 @@ export default function Home() {
             ))}
           </div>
 
+          {/* Trust ribbon — merges the former stats badges + "Our approach" */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            {[
+              { title: 'Doctor-led', desc: 'A physician reviews your results and meets you in person.' },
+              { title: 'Evidence-based', desc: 'Grounded in your bloodwork and body composition — never generic.' },
+              { title: 'Whole-person', desc: 'Sleep, food, movement and mind — the four pillars, together.' },
+              { title: 'Built around you', desc: 'A prioritised plan that adapts to your goals and progress.' },
+            ].map((x) => (
+              <div key={x.title} className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <svg className="h-5 w-5 flex-shrink-0 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-[#1F2937]">{x.title}</span>
+                </div>
+                <p className="text-xs text-[#6B7280] leading-relaxed">{x.desc}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="mt-6 rounded-2xl bg-[#111827] text-white p-6 sm:p-8">
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 mb-2">The bottom line</div>
             <p className="text-lg sm:text-xl font-semibold leading-snug">
-              The third layer is the one that changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change you&apos;ll actually make.
+              The doctor&apos;s plan is the layer that changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change you&apos;ll actually make.
             </p>
           </div>
         </div>
@@ -493,43 +448,8 @@ export default function Home() {
       {/* Wave separator */}
       <WaveSeparator from="#ffffff" to="#ecf0f3" />
 
-      {/* Our approach */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
-              {t('home.approach.title', 'Our approach')}
-            </h2>
-            <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">
-              {t('home.approach.subtitle', 'What makes Lifeline Health different')}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 max-w-6xl mx-auto">
-            {approach.map((a) => (
-              <div
-                key={a.title}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 text-center"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center mx-auto mb-4">
-                  {a.icon}
-                </div>
-                <h3 className="text-sm font-semibold text-[#1F2937] mb-2">
-                  {a.title}
-                </h3>
-                <p className="text-xs text-[#6B7280] leading-relaxed">
-                  {a.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Wave separator */}
-      <WaveSeparator from="#ecf0f3" to="#ffffff" />
-
       {/* Our team */}
-      <section className="py-24 sm:py-28 bg-white">
+      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981]">
@@ -547,10 +467,10 @@ export default function Home() {
       </section>
 
       {/* Wave separator */}
-      <WaveSeparator from="#ffffff" to="#ecf0f3" />
+      <WaveSeparator from="#ecf0f3" to="#ffffff" />
 
       {/* Partners */}
-      <section className="py-24 sm:py-28 bg-[#ecf0f3]">
+      <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">
