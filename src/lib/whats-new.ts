@@ -46,18 +46,20 @@ export const VARIANTS: Record<Variant, VariantStyle> = {
     qrWrap: "bg-white ring-1 ring-black/5",
   },
   blue: {
-    label: "Blátt",
-    card: "bg-white shadow-lg ring-1 ring-black/5",
-    accentBar: "bg-gradient-to-r from-[#3B82F6] to-[#2563EB]",
+    // Matches the /business page: blue→emerald gradient accents over a soft
+    // blue-tinted white — never solid corporate blue.
+    label: "Blátt (fyrirtæki)",
+    card: "bg-gradient-to-br from-[#eff6ff] to-white shadow-lg ring-1 ring-black/5",
+    accentBar: "bg-gradient-to-r from-[#3B82F6] to-[#10B981]",
     glow: "bg-[radial-gradient(ellipse_70%_60%_at_100%_0%,rgba(59,130,246,0.10),transparent)]",
-    badge: "bg-[#3B82F6] text-white",
+    badge: "bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white",
     partner: "border border-blue-100 bg-blue-50 text-blue-700",
     title: "text-[#1F2937]",
     desc: "text-[#6B7280]",
-    bulletIcon: "text-[#3B82F6]",
+    bulletIcon: "text-[#10B981]",
     bulletText: "text-[#374151]",
     price: "text-[#1F2937]",
-    cta: "bg-[#3B82F6] text-white shadow-lg shadow-blue-500/25 hover:bg-[#2563EB]",
+    cta: "bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white shadow-lg shadow-blue-500/20 hover:opacity-95",
     qrWrap: "bg-white ring-1 ring-black/5",
   },
   dark: {
