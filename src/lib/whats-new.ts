@@ -10,8 +10,8 @@ export type Lang = "is" | "en";
 export type L = { is: string; en: string };
 
 // Five card looks so a row of cards reads with contrast, not sameness.
-export type Variant = "emerald" | "dark" | "mint" | "outline" | "gradient";
-export const VARIANT_ORDER: Variant[] = ["emerald", "dark", "mint", "outline", "gradient"];
+export type Variant = "emerald" | "blue" | "dark" | "mint" | "outline" | "gradient";
+export const VARIANT_ORDER: Variant[] = ["emerald", "blue", "dark", "mint", "outline", "gradient"];
 
 type VariantStyle = {
   label: string;
@@ -43,6 +43,21 @@ export const VARIANTS: Record<Variant, VariantStyle> = {
     bulletText: "text-[#374151]",
     price: "text-[#1F2937]",
     cta: "bg-[#10B981] text-white shadow-lg shadow-green-500/25 hover:bg-[#047857]",
+    qrWrap: "bg-white ring-1 ring-black/5",
+  },
+  blue: {
+    label: "Blátt",
+    card: "bg-white shadow-lg ring-1 ring-black/5",
+    accentBar: "bg-gradient-to-r from-[#3B82F6] to-[#2563EB]",
+    glow: "bg-[radial-gradient(ellipse_70%_60%_at_100%_0%,rgba(59,130,246,0.10),transparent)]",
+    badge: "bg-[#3B82F6] text-white",
+    partner: "border border-blue-100 bg-blue-50 text-blue-700",
+    title: "text-[#1F2937]",
+    desc: "text-[#6B7280]",
+    bulletIcon: "text-[#3B82F6]",
+    bulletText: "text-[#374151]",
+    price: "text-[#1F2937]",
+    cta: "bg-[#3B82F6] text-white shadow-lg shadow-blue-500/25 hover:bg-[#2563EB]",
     qrWrap: "bg-white ring-1 ring-black/5",
   },
   dark: {
@@ -111,6 +126,7 @@ export type WhatsNewCard = {
   key: string;
   enabled: boolean;
   variant: Variant;
+  tag?: L; // short keyword shown in the carousel's teaser tabs (falls back to title)
   badge: L;
   partner?: L; // optional co-brand chip (e.g. "Í samstarfi við Lyfju")
   title: L;
@@ -120,6 +136,7 @@ export type WhatsNewCard = {
   cta: L;
   href: string; // internal ("/coaching") or external ("https://…")
   qrUrl?: string; // optional — renders a small QR on the card
+  emailCapture?: boolean; // when true, the CTA becomes an inline email signup → /api/subscribe
 };
 
 export type WhatsNewContent = { cards: WhatsNewCard[] };
@@ -136,6 +153,7 @@ export const DEFAULT_WHATS_NEW: WhatsNewContent = {
       key: "lyfja",
       enabled: true,
       variant: "emerald",
+      tag: { is: "Heilsumat", en: "Health check" },
       badge: { is: "NÝTT", en: "NEW" },
       partner: { is: "Í samstarfi við Lyfju", en: "In partnership with Lyfja" },
       title: { is: "Heilsufarsskoðun Lifeline hjá Lyfju", en: "Lifeline Health Check at Lyfja" },
@@ -161,9 +179,37 @@ export const DEFAULT_WHATS_NEW: WhatsNewContent = {
       qrUrl: PORTAL_URL,
     },
     {
+      key: "app",
+      enabled: true,
+      variant: "blue",
+      tag: { is: "Appið", en: "The app" },
+      badge: { is: "VÆNTANLEGT", en: "COMING SOON" },
+      title: { is: "Lifeline appið", en: "The Lifeline app" },
+      desc: {
+        is: "Dagleg heilsuþjálfun í símanum — svefn, næring, hreyfing og andleg líðan á einum stað. Skráðu netfangið þitt og fáðu snemma aðgang.",
+        en: "Daily health coaching in your pocket — sleep, nutrition, movement and mind in one place. Leave your email for early access.",
+      },
+      bullets: {
+        is: [
+          "Dagleg skref og áminningar",
+          "Fylgstu með framförum þínum yfir tíma",
+          "Fræðsla og stuðningur frá þjálfara",
+        ],
+        en: [
+          "Daily steps and reminders",
+          "Track your progress over time",
+          "Learning and support from a coach",
+        ],
+      },
+      cta: { is: "Fá snemma aðgang", en: "Get early access" },
+      href: "",
+      emailCapture: true,
+    },
+    {
       key: "coaching",
       enabled: true,
       variant: "dark",
+      tag: { is: "Þjálfun", en: "Coaching" },
       badge: { is: "ÞJÁLFUN", en: "COACHING" },
       title: { is: "Áframhaldandi heilsuþjálfun", en: "Ongoing health coaching" },
       desc: {
@@ -189,6 +235,7 @@ export const DEFAULT_WHATS_NEW: WhatsNewContent = {
       key: "workplace",
       enabled: true,
       variant: "mint",
+      tag: { is: "Fyrirtæki", en: "For teams" },
       badge: { is: "FYRIRTÆKI", en: "FOR TEAMS" },
       title: { is: "Heilsumat fyrir vinnustaði", en: "Health checks for your team" },
       desc: {
@@ -237,6 +284,7 @@ export function mergeWhatsNew(stored: unknown): WhatsNewContent {
       key: str(c.key, `card-${i}`),
       enabled: c.enabled !== false,
       variant: variant(c.variant),
+      tag: c.tag ? loc(c.tag) : undefined,
       badge: loc(c.badge),
       partner: c.partner ? loc(c.partner) : undefined,
       title: loc(c.title),
@@ -246,6 +294,7 @@ export function mergeWhatsNew(stored: unknown): WhatsNewContent {
       cta: loc(c.cta),
       href: str(c.href, "#"),
       qrUrl: c.qrUrl ? str(c.qrUrl) : undefined,
+      emailCapture: c.emailCapture === true,
     };
   });
   return { cards };

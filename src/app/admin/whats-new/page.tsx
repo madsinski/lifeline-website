@@ -285,6 +285,9 @@ export default function WhatsNewAdminPage() {
               </div>
               <LocInp label="Merki (badge)" value={c.badge} onChange={(v) => set(i, { badge: v })} placeholder="NÝTT" />
               <LocInp label="Hnappur (CTA)" value={c.cta} onChange={(v) => set(i, { cta: v })} placeholder="Skoða" />
+              <div className="md:col-span-2">
+                <LocInp label="Teaser-lykilorð" value={c.tag} onChange={(v) => set(i, { tag: v })} placeholder="t.d. Heilsumat" />
+              </div>
 
               <div className="md:col-span-2">
                 <LocInp label="Titill" value={c.title} onChange={(v) => set(i, { title: v })} />
@@ -307,6 +310,20 @@ export default function WhatsNewAdminPage() {
 
               <Inp label="Hlekkur (href)" value={c.href} onChange={(v) => set(i, { href: v })} placeholder="/coaching eða https://…" />
               <Inp label="QR-slóð — valfrjálst" value={c.qrUrl ?? ""} onChange={(v) => set(i, { qrUrl: v })} placeholder="https://…" />
+              <div className="md:col-span-2">
+                <label className="flex items-start gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={!!c.emailCapture}
+                    onChange={(e) => set(i, { emailCapture: e.target.checked })}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    Netfangssöfnun (early access) — hnappurinn verður að netfangsreit. Áskriftir fara í{" "}
+                    <span className="font-medium">Email list</span> (merkt <code className="rounded bg-gray-100 px-1">whatsnew-{c.key}</code>). Hlekkur og QR eru þá óvirk.
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
         ))}

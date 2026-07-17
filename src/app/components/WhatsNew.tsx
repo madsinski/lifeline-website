@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import qrcode from "qrcode-generator";
 import { useI18n } from "@/lib/i18n";
 import { DEFAULT_WHATS_NEW, VARIANTS, type Lang, type WhatsNewCard } from "@/lib/whats-new";
@@ -80,27 +80,85 @@ export function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
         </ul>
 
         {/* Footer pinned to the bottom so cards align */}
-        <div className="mt-auto flex items-end justify-between gap-4 pt-6">
-          <div>
-            {card.price?.[lang] && <div className={`mb-3 text-base font-bold ${v.price}`}>{card.price[lang]}</div>}
-            {external ? (
-              <a href={card.href} target="_blank" rel="noopener noreferrer" className={ctaClass}>
-                {cta}
-              </a>
-            ) : (
-              <Link href={card.href} className={ctaClass}>
-                {cta}
-              </Link>
-            )}
-          </div>
-          {card.qrUrl && (
-            <div className={`hidden shrink-0 rounded-xl p-2 shadow-sm sm:block ${v.qrWrap}`}>
-              <QrSvg value={card.qrUrl} className="h-20 w-20" />
+        <div className="mt-auto pt-6">
+          {card.emailCapture ? (
+            <EmailCapture card={card} lang={lang} ctaClass={ctaClass} />
+          ) : (
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                {card.price?.[lang] && <div className={`mb-3 text-base font-bold ${v.price}`}>{card.price[lang]}</div>}
+                {external ? (
+                  <a href={card.href} target="_blank" rel="noopener noreferrer" className={ctaClass}>
+                    {cta}
+                  </a>
+                ) : (
+                  <Link href={card.href} className={ctaClass}>
+                    {cta}
+                  </Link>
+                )}
+              </div>
+              {card.qrUrl && (
+                <div className={`hidden shrink-0 rounded-xl p-2 shadow-sm sm:block ${v.qrWrap}`}>
+                  <QrSvg value={card.qrUrl} className="h-20 w-20" />
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
     </article>
+  );
+}
+
+/** Inline email signup used by cards with `emailCapture` (e.g. app early access).
+ *  Posts to /api/subscribe tagged by card key so signups show in /admin/email-list. */
+function EmailCapture({ card, lang, ctaClass }: { card: WhatsNewCard; lang: Lang; ctaClass: string }) {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const doneMsg = lang === "en" ? "Thanks! We'll email you when early access opens." : "Takk! Við sendum þér boð um leið og snemma aðgangur opnast.";
+  const placeholder = lang === "en" ? "Your email" : "Netfangið þitt";
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (state === "loading") return;
+    setState("loading");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: `whatsnew-${card.key}` }),
+      });
+      setState(res.ok ? "done" : "error");
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "done") {
+    return (
+      <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-100">
+        {doneMsg}
+      </p>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder={placeholder}
+        className="min-w-0 flex-1 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-[#3B82F6] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+      />
+      <button type="submit" disabled={state === "loading"} className={`shrink-0 ${ctaClass} disabled:opacity-60`}>
+        {state === "loading" ? "…" : card.cta[lang]}
+      </button>
+      {state === "error" && (
+        <span className="self-center text-xs text-red-500">{lang === "en" ? "Try again" : "Reyndu aftur"}</span>
+      )}
+    </form>
   );
 }
 
