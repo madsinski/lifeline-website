@@ -36,7 +36,7 @@ export function CardView({ card, lang, wide = false }: { card: WhatsNewCard; lan
   const cta = (
     <>
       {card.cta[lang]}
-      <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
       </svg>
     </>
@@ -44,7 +44,9 @@ export function CardView({ card, lang, wide = false }: { card: WhatsNewCard; lan
   const ctaClass = `inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition-all duration-200 ${v.cta}`;
 
   return (
-    <article className={`relative flex h-full snap-start flex-col overflow-hidden rounded-3xl ${v.card}`}>
+    <article
+      className={`group relative flex h-full snap-start flex-col overflow-hidden rounded-3xl transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl ${v.card}`}
+    >
       {v.accentBar && <div className={`absolute inset-x-0 top-0 h-1.5 ${v.accentBar}`} />}
       {v.glow && <div className={`pointer-events-none absolute inset-0 ${v.glow}`} />}
 
@@ -249,7 +251,7 @@ export default function WhatsNew() {
       {/* Lateral scroll strip — all cards visible; edge peek on mobile. */}
       <div
         ref={scroller}
-        className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-4 pb-2 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-4 py-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {cards.map((card, i) => (
           <div key={card.key + i} data-card className="w-[86%] shrink-0 sm:w-[400px]">

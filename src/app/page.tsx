@@ -254,7 +254,7 @@ export default function Home() {
           (merged the former stats strip + "Our approach" here) */}
       <section className="py-24 sm:py-28 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
+          <div className="max-w-2xl mb-8">
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981] mb-3">
               {t('home.method.kicker', "Why Lifeline")}
             </div>
@@ -266,42 +266,54 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="space-y-4">
-            {methodLayers.map((l) => (
-              <div key={l.num} className="flex gap-5 rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200">
-                <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold text-lg flex items-center justify-center">{l.num}</div>
-                <div>
-                  <h3 className="font-semibold text-[#1F2937] text-lg">{l.title}</h3>
-                  <p className="text-sm sm:text-base text-[#6B7280] mt-1.5 leading-relaxed">{l.body}</p>
-                </div>
-              </div>
+          {/* Quick trust chips — scannable, terse (no paragraph repetition of the layers) */}
+          <div className="mb-8 flex flex-wrap gap-2.5">
+            {['Doctor-led', 'Evidence-based', 'Whole-person', 'Targeted — no wasted tests', 'Follow-up included'].map((label) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/70 px-3.5 py-1.5 text-sm font-medium text-[#065f46]"
+              >
+                <svg className="h-4 w-4 flex-shrink-0 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" />
+                </svg>
+                {label}
+              </span>
             ))}
           </div>
 
-          {/* Trust ribbon — merges the former stats badges + "Our approach" */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-            {[
-              { title: 'Doctor-led', desc: 'A physician reviews your results and meets you in person.' },
-              { title: 'Evidence-based', desc: 'Grounded in your bloodwork and body composition — never generic.' },
-              { title: 'Whole-person', desc: 'Sleep, food, movement and mind — the four pillars, together.' },
-              { title: 'Built around you', desc: 'A prioritised plan that adapts to your goals and progress.' },
-            ].map((x) => (
-              <div key={x.title} className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <svg className="h-5 w-5 flex-shrink-0 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-sm font-semibold text-[#1F2937]">{x.title}</span>
+          {/* Layered method — connected 1→2→3, with the doctor plan (payoff) emphasised */}
+          <div className="relative space-y-4">
+            <div className="absolute left-[46px] top-10 bottom-10 w-0.5 bg-gradient-to-b from-[#3B82F6] to-[#10B981] opacity-30" aria-hidden />
+            {methodLayers.map((l, idx) => {
+              const payoff = idx === methodLayers.length - 1;
+              return (
+                <div
+                  key={l.num}
+                  className={`relative flex gap-5 rounded-2xl p-6 shadow-sm transition-all duration-200 hover:shadow-md ${
+                    payoff ? 'border-2 border-[#10B981] bg-emerald-50/50' : 'border border-emerald-200 bg-white'
+                  }`}
+                >
+                  <div
+                    className={`shrink-0 w-11 h-11 rounded-xl text-white font-bold text-lg flex items-center justify-center ring-4 ring-white ${
+                      payoff ? 'bg-gradient-to-br from-[#10B981] to-[#047857]' : 'bg-gradient-to-br from-[#3B82F6] to-[#10B981]'
+                    }`}
+                  >
+                    {l.num}
+                  </div>
+                  <div>
+                    {payoff && <div className="text-[11px] font-bold uppercase tracking-wide text-[#047857] mb-0.5">The payoff</div>}
+                    <h3 className="font-semibold text-[#1F2937] text-lg">{l.title}</h3>
+                    <p className={`text-sm sm:text-base mt-1.5 leading-relaxed ${payoff ? 'text-[#475569]' : 'text-[#6B7280]'}`}>{l.body}</p>
+                  </div>
                 </div>
-                <p className="text-xs text-[#6B7280] leading-relaxed">{x.desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-6 rounded-2xl bg-[#111827] text-white p-6 sm:p-8">
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 mb-2">The bottom line</div>
             <p className="text-lg sm:text-xl font-semibold leading-snug">
-              The doctor&apos;s plan is the layer that changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change you&apos;ll actually make.
+              That third layer is what actually changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change you&apos;ll actually make.
             </p>
           </div>
         </div>
