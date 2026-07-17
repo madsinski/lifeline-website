@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import qrcode from "qrcode-generator";
 import { useI18n } from "@/lib/i18n";
+import { DEFAULT_WHATS_NEW, type Lang, type WhatsNewCard } from "@/lib/whats-new";
 
-// Medalia patient portal — where the Lyfja health check is booked/viewed.
-const PORTAL_URL = "https://app.medalia.is/7ca0ca21-8947-46cb-afbd-2e2d15efef6e";
+// Homepage "What's new" (Nýtt hjá Lifeline) carousel. Cards are managed in the
+// admin at /admin/whats-new and read from the public /api/whats-new; the
+// built-in defaults render immediately and stand in if the API is unreachable.
 
 /** Inline, dependency-light QR code rendered as a single SVG path. */
 function QrSvg({ value, className = "" }: { value: string; className?: string }) {
@@ -28,99 +30,7 @@ function QrSvg({ value, className = "" }: { value: string; className?: string })
   );
 }
 
-type Lang = "is" | "en";
-type L = Record<Lang, string>;
-
-type Card = {
-  key: string;
-  badge: L;
-  partner?: L;
-  title: L;
-  desc: L;
-  bullets: Record<Lang, string[]>;
-  price?: L;
-  cta: L;
-  href: string;
-  qrUrl?: string;
-};
-
-const CARDS: Card[] = [
-  {
-    key: "lyfja",
-    badge: { is: "NÝTT", en: "NEW" },
-    partner: { is: "Í samstarfi við Lyfju", en: "In partnership with Lyfja" },
-    title: { is: "Heilsufarsskoðun Lifeline hjá Lyfju", en: "Lifeline Health Check at Lyfja" },
-    desc: {
-      is: "Heildræn kortlagning á heilsu þinni með áherslu á svefn, hreyfingu, næringu og andlega líðan.",
-      en: "A holistic mapping of your health, focused on sleep, exercise, nutrition and mental wellness.",
-    },
-    bullets: {
-      is: [
-        "Heildrænn heilsuspurningalisti",
-        "Mælingar hjá Lyfju og efnaskiptablóðprufa hjá Sameind",
-        "Læknisviðtal og persónuleg aðgerðaáætlun",
-      ],
-      en: [
-        "Holistic health questionnaire",
-        "Measurements at Lyfja + metabolic blood panel at Sameind",
-        "Doctor consultation and a personal action plan",
-      ],
-    },
-    price: { is: "49.990 kr.", en: "49,990 ISK" },
-    cta: { is: "Opna sjúklingagátt", en: "Open patient portal" },
-    href: PORTAL_URL,
-    qrUrl: PORTAL_URL,
-  },
-  {
-    key: "coaching",
-    badge: { is: "ÞJÁLFUN", en: "COACHING" },
-    title: { is: "Áframhaldandi heilsuþjálfun", en: "Ongoing health coaching" },
-    desc: {
-      is: "Persónuleg þjálfun sem heldur utan um svefn, næringu, hreyfingu og andlega líðan — með daglegum skrefum og eftirfylgni.",
-      en: "Personal coaching across sleep, nutrition, movement and mental wellbeing — with daily steps and follow-up.",
-    },
-    bullets: {
-      is: [
-        "Dagleg skref sniðin að þér",
-        "Áhersla á svefn, næringu, hreyfingu og andlega líðan",
-        "Eftirfylgni og stuðningur frá þjálfara",
-      ],
-      en: [
-        "Daily steps tailored to you",
-        "Focus on sleep, nutrition, movement and mental wellbeing",
-        "Follow-up and support from a coach",
-      ],
-    },
-    cta: { is: "Sjá þjálfun", en: "Explore coaching" },
-    href: "/coaching",
-  },
-  {
-    key: "workplace",
-    badge: { is: "FYRIRTÆKI", en: "FOR TEAMS" },
-    title: { is: "Heilsumat fyrir vinnustaði", en: "Health checks for your team" },
-    desc: {
-      is: "Gefðu starfsfólkinu skýra mynd af heilsu sinni — mælingar, blóðprufur og læknisyfirferð á einum stað.",
-      en: "Give your people a clear picture of their health — measurements, bloodwork and doctor review in one place.",
-    },
-    bullets: {
-      is: [
-        "Mælingar á staðnum á um 5 mínútum",
-        "Markviss efnaskiptablóðprufa",
-        "Læknisyfirferð og aðgerðaáætlun fyrir hvern og einn",
-      ],
-      en: [
-        "On-site measurements in about 5 minutes",
-        "Targeted metabolic blood panel",
-        "Doctor review and an action plan for each person",
-      ],
-    },
-    price: { is: "Verð sniðið að teyminu", en: "Pricing tailored to your team" },
-    cta: { is: "Hafðu samband", en: "Get in touch" },
-    href: "/business",
-  },
-];
-
-function CardView({ card, lang }: { card: Card; lang: Lang }) {
+function CardView({ card, lang }: { card: WhatsNewCard; lang: Lang }) {
   const external = /^https?:\/\//.test(card.href);
   const cta = (
     <>
@@ -142,10 +52,12 @@ function CardView({ card, lang }: { card: Card; lang: Lang }) {
 
       <div className="relative flex h-full flex-col p-6 sm:p-7">
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-[#10B981] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
-            {card.badge[lang]}
-          </span>
-          {card.partner && (
+          {card.badge[lang] && (
+            <span className="inline-flex items-center rounded-full bg-[#10B981] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+              {card.badge[lang]}
+            </span>
+          )}
+          {card.partner?.[lang] && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -159,7 +71,7 @@ function CardView({ card, lang }: { card: Card; lang: Lang }) {
         <p className="mt-2.5 text-sm leading-relaxed text-[#6B7280]">{card.desc[lang]}</p>
 
         <ul className="mt-5 space-y-2.5">
-          {card.bullets[lang].map((item) => (
+          {card.bullets[lang].filter(Boolean).map((item) => (
             <li key={item} className="flex items-start gap-2.5">
               <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -172,7 +84,7 @@ function CardView({ card, lang }: { card: Card; lang: Lang }) {
         {/* Footer pinned to the bottom so cards align */}
         <div className="mt-auto flex items-end justify-between gap-4 pt-6">
           <div>
-            {card.price && <div className="mb-3 text-base font-bold text-[#1F2937]">{card.price[lang]}</div>}
+            {card.price?.[lang] && <div className="mb-3 text-base font-bold text-[#1F2937]">{card.price[lang]}</div>}
             {external ? (
               <a href={card.href} target="_blank" rel="noopener noreferrer" className={ctaClass}>
                 {cta}
@@ -199,10 +111,26 @@ export default function WhatsNew() {
   const lang: Lang = locale === "en" ? "en" : "is";
   const scroller = useRef<HTMLDivElement>(null);
   const [scrollable, setScrollable] = useState(false);
+  // Start from the built-in cards so the section paints instantly; the API
+  // response (admin-managed) replaces them once it lands.
+  const [cards, setCards] = useState<WhatsNewCard[]>(DEFAULT_WHATS_NEW.cards.filter((c) => c.enabled));
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/whats-new");
+        const j = res.ok ? await res.json() : null;
+        if (!cancel && Array.isArray(j?.cards)) setCards(j.cards as WhatsNewCard[]);
+      } catch {
+        /* keep the defaults */
+      }
+    })();
+    return () => { cancel = true; };
+  }, []);
 
   // Only show the arrows when the strip actually overflows (e.g. on desktop
-  // once there are enough cards, or on any narrow viewport). Keeps the header
-  // clean when everything fits.
+  // once there are enough cards, or on any narrow viewport).
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
@@ -215,7 +143,7 @@ export default function WhatsNew() {
       ro.disconnect();
       window.removeEventListener("resize", check);
     };
-  }, []);
+  }, [cards]);
 
   const scrollByCard = (dir: 1 | -1) => {
     const el = scroller.current;
@@ -224,6 +152,8 @@ export default function WhatsNew() {
     const amount = card ? card.offsetWidth + 20 : el.clientWidth * 0.9;
     el.scrollBy({ left: dir * amount, behavior: "smooth" });
   };
+
+  if (!cards.length) return null;
 
   return (
     <div>
@@ -267,8 +197,8 @@ export default function WhatsNew() {
         ref={scroller}
         className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-4 pb-2 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {CARDS.map((card) => (
-          <div key={card.key} data-card className="w-[86%] shrink-0 sm:w-[400px]">
+        {cards.map((card, i) => (
+          <div key={card.key + i} data-card className="w-[86%] shrink-0 sm:w-[400px]">
             <CardView card={card} lang={lang} />
           </div>
         ))}
