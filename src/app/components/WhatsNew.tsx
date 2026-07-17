@@ -166,7 +166,7 @@ export default function WhatsNew() {
   const { t, locale } = useI18n();
   const lang: Lang = locale === "en" ? "en" : "is";
   const scroller = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
+  const [scrollable, setScrollable] = useState(false);
   // Start from the built-in cards so the section paints instantly; the API
   // response (admin-managed) replaces them once it lands.
   const [cards, setCards] = useState<WhatsNewCard[]>(DEFAULT_WHATS_NEW.cards.filter((c) => c.enabled));
@@ -185,25 +185,34 @@ export default function WhatsNew() {
     return () => { cancel = true; };
   }, []);
 
-  // One card fills the viewport; snap left = index × viewport width.
-  const scrollToIndex = (i: number) => {
+  // Show the prev/next arrows only when the strip overflows.
+  useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
-  };
-  const onScroll = () => {
+    const check = () => setScrollable(el.scrollWidth - el.clientWidth > 8);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    window.addEventListener("resize", check);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", check);
+    };
+  }, [cards]);
+
+  const scrollByCard = (dir: 1 | -1) => {
     const el = scroller.current;
     if (!el) return;
-    setActive(Math.round(el.scrollLeft / el.clientWidth));
+    const card = el.querySelector<HTMLElement>("[data-card]");
+    const amount = card ? card.offsetWidth + 20 : el.clientWidth * 0.9;
+    el.scrollBy({ left: dir * amount, behavior: "smooth" });
   };
-  const go = (dir: 1 | -1) => scrollToIndex(Math.min(Math.max(active + dir, 0), cards.length - 1));
 
   if (!cards.length) return null;
-  const multi = cards.length > 1;
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between gap-4">
+      <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981]">
             {t("home.whatsnew.kicker", "What's new")}
@@ -212,69 +221,41 @@ export default function WhatsNew() {
             {t("home.whatsnew.title", "New from Lifeline")}
           </h2>
         </div>
-        {/* Manual prev/next — desktop; no autoplay */}
-        {multi && (
-          <div className="hidden shrink-0 gap-2 md:flex">
-            <button
-              type="button"
-              onClick={() => go(-1)}
-              disabled={active === 0}
-              aria-label={t("home.whatsnew.prev", "Previous")}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-[#1F2937] shadow-sm transition-colors hover:border-[#10B981] hover:text-[#10B981] disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:text-[#1F2937]"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => go(1)}
-              disabled={active === cards.length - 1}
-              aria-label={t("home.whatsnew.next", "Next")}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-[#1F2937] shadow-sm transition-colors hover:border-[#10B981] hover:text-[#10B981] disabled:opacity-30 disabled:hover:border-gray-200 disabled:hover:text-[#1F2937]"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        )}
+        {/* Manual prev/next — shown only when the strip overflows; no autoplay */}
+        <div className={`shrink-0 gap-2 ${scrollable ? "hidden md:flex" : "hidden"}`}>
+          <button
+            type="button"
+            onClick={() => scrollByCard(-1)}
+            aria-label={t("home.whatsnew.prev", "Previous")}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-[#1F2937] shadow-sm transition-colors hover:border-[#10B981] hover:text-[#10B981]"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollByCard(1)}
+            aria-label={t("home.whatsnew.next", "Next")}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-[#1F2937] shadow-sm transition-colors hover:border-[#10B981] hover:text-[#10B981]"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Keyword teaser tabs — every card's keyword is visible; click to jump. */}
-      {multi && (
-        <div className="mb-5 flex flex-wrap gap-2">
-          {cards.map((card, i) => (
-            <button
-              key={card.key + i}
-              type="button"
-              onClick={() => scrollToIndex(i)}
-              aria-current={active === i}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                active === i
-                  ? "bg-[#10B981] text-white shadow-sm"
-                  : "bg-white text-[#374151] ring-1 ring-gray-200 hover:text-[#10B981] hover:ring-[#10B981]"
-              }`}
-            >
-              {card.tag?.[lang] || card.title[lang]}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* One wide card at a time. */}
-      <div className="mx-auto max-w-2xl">
-        <div
-          ref={scroller}
-          onScroll={onScroll}
-          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {cards.map((card, i) => (
-            <div key={card.key + i} data-card className="w-full shrink-0 snap-center px-0.5">
-              <CardView card={card} lang={lang} wide />
-            </div>
-          ))}
-        </div>
+      {/* Lateral scroll strip — all cards visible; edge peek on mobile. */}
+      <div
+        ref={scroller}
+        className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-4 pb-2 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {cards.map((card, i) => (
+          <div key={card.key + i} data-card className="w-[86%] shrink-0 sm:w-[400px]">
+            <CardView card={card} lang={lang} />
+          </div>
+        ))}
       </div>
     </div>
   );
