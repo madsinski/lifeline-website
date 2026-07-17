@@ -241,7 +241,7 @@ export default function Home() {
       </section>
 
       {/* Stats bar */}
-      <section className="py-8 bg-white border-b border-gray-100">
+      <section className="py-8 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-center">
             {[
