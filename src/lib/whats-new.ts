@@ -141,7 +141,7 @@ export type WhatsNewCard = {
   emailCapture?: boolean; // when true, the CTA becomes an inline email signup → /api/subscribe
 };
 
-export type WhatsNewContent = { cards: WhatsNewCard[] };
+export type WhatsNewContent = { cards: WhatsNewCard[]; archived: WhatsNewCard[] };
 
 const PORTAL_URL = "https://app.medalia.is/7ca0ca21-8947-46cb-afbd-2e2d15efef6e";
 
@@ -261,6 +261,7 @@ export const DEFAULT_WHATS_NEW: WhatsNewContent = {
       href: "/business",
     },
   ],
+  archived: [],
 };
 
 const str = (v: unknown, fb = ""): string => (typeof v === "string" ? v : fb);
@@ -275,31 +276,34 @@ const locArr = (v: unknown): { is: string[]; en: string[] } => {
 };
 const variant = (v: unknown): Variant => (VARIANT_ORDER.includes(v as Variant) ? (v as Variant) : "emerald");
 
+function coerceCard(raw: unknown, i: number): WhatsNewCard {
+  const c = (raw ?? {}) as Record<string, unknown>;
+  return {
+    key: str(c.key, `card-${i}`),
+    enabled: c.enabled !== false,
+    variant: variant(c.variant),
+    tag: c.tag ? loc(c.tag) : undefined,
+    badge: loc(c.badge),
+    partner: c.partner ? loc(c.partner) : undefined,
+    title: loc(c.title),
+    desc: loc(c.desc),
+    bullets: locArr(c.bullets),
+    price: c.price ? loc(c.price) : undefined,
+    cta: loc(c.cta),
+    href: str(c.href, "#"),
+    qrUrl: c.qrUrl ? str(c.qrUrl) : undefined,
+    emailCapture: c.emailCapture === true,
+  };
+}
+
 /** Coerce a stored (possibly partial / legacy) blob into valid content.
  *  Returns the built-in defaults when nothing is stored yet. */
 export function mergeWhatsNew(stored: unknown): WhatsNewContent {
   const s = (stored ?? {}) as Record<string, unknown>;
-  if (!Array.isArray(s.cards)) return DEFAULT_WHATS_NEW;
-  const cards = (s.cards as unknown[]).map((raw, i): WhatsNewCard => {
-    const c = (raw ?? {}) as Record<string, unknown>;
-    return {
-      key: str(c.key, `card-${i}`),
-      enabled: c.enabled !== false,
-      variant: variant(c.variant),
-      tag: c.tag ? loc(c.tag) : undefined,
-      badge: loc(c.badge),
-      partner: c.partner ? loc(c.partner) : undefined,
-      title: loc(c.title),
-      desc: loc(c.desc),
-      bullets: locArr(c.bullets),
-      price: c.price ? loc(c.price) : undefined,
-      cta: loc(c.cta),
-      href: str(c.href, "#"),
-      qrUrl: c.qrUrl ? str(c.qrUrl) : undefined,
-      emailCapture: c.emailCapture === true,
-    };
-  });
-  return { cards };
+  const archived = (Array.isArray(s.archived) ? (s.archived as unknown[]) : []).map(coerceCard);
+  if (!Array.isArray(s.cards)) return { cards: DEFAULT_WHATS_NEW.cards, archived };
+  const cards = (s.cards as unknown[]).map(coerceCard);
+  return { cards, archived };
 }
 
 /** A blank card for the "add card" action in the editor. */

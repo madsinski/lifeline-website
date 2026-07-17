@@ -116,6 +116,7 @@ function Inp({
 
 export default function WhatsNewAdminPage() {
   const [cards, setCards] = useState<WhatsNewCard[] | null>(null);
+  const [archived, setArchived] = useState<WhatsNewCard[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [previewLang, setPreviewLang] = useState<Lang>("is");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,7 +127,11 @@ export default function WhatsNewAdminPage() {
       try {
         const res = await fetch("/api/admin/whats-new", { headers: await authHeaders() });
         const j = res.ok ? await res.json() : null;
-        if (!cancel) setCards(mergeWhatsNew(j?.data).cards);
+        if (!cancel) {
+          const content = mergeWhatsNew(j?.data);
+          setCards(content.cards);
+          setArchived(content.archived);
+        }
       } catch {
         if (!cancel) setCards(DEFAULT_WHATS_NEW.cards);
       }
@@ -137,9 +142,10 @@ export default function WhatsNewAdminPage() {
     };
   }, []);
 
-  // Edits flow through mutate() so loading never triggers a save.
-  function mutate(next: WhatsNewCard[]) {
-    setCards(next);
+  // All edits flow through commit() so loading never triggers a save.
+  function commit(nextCards: WhatsNewCard[], nextArchived: WhatsNewCard[]) {
+    setCards(nextCards);
+    setArchived(nextArchived);
     setStatus("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
@@ -147,7 +153,7 @@ export default function WhatsNewAdminPage() {
         const res = await fetch("/api/admin/whats-new", {
           method: "PUT",
           headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-          body: JSON.stringify({ data: { cards: next } }),
+          body: JSON.stringify({ data: { cards: nextCards, archived: nextArchived } }),
         });
         setStatus(res.ok ? "saved" : "error");
       } catch {
@@ -155,6 +161,7 @@ export default function WhatsNewAdminPage() {
       }
     }, 1000);
   }
+  const mutate = (next: WhatsNewCard[]) => commit(next, archived);
 
   if (!cards) return <p className="mx-auto max-w-5xl px-4 py-10 text-sm text-gray-400">Hleð efni…</p>;
 
@@ -167,8 +174,11 @@ export default function WhatsNewAdminPage() {
     [next[i], next[j]] = [next[j], next[i]];
     mutate(next);
   };
-  const remove = (i: number) => mutate(cards.filter((_, idx) => idx !== i));
+  // Delete archives the card (recoverable) instead of dropping it.
+  const remove = (i: number) => commit(cards.filter((_, idx) => idx !== i), [cards[i], ...archived]);
   const add = () => mutate([...cards, blankCard()]);
+  const revive = (j: number) => commit([...cards, archived[j]], archived.filter((_, idx) => idx !== j));
+  const purge = (j: number) => commit(cards, archived.filter((_, idx) => idx !== j));
 
   const statusLabel =
     status === "saving" ? "Vista…" : status === "saved" ? "Vistað ✓" : status === "error" ? "Villa við vistun" : "";
@@ -340,6 +350,46 @@ export default function WhatsNewAdminPage() {
         Skildu eftir tómt í „Samstarfsaðili“, „Verð“ eða „QR-slóð“ til að fela þau á spjaldinu.
         Slökktu á „Virkt“ til að fela spjald án þess að eyða því.
       </p>
+
+      {/* Deleted cards — recoverable. Delete archives here instead of dropping. */}
+      {archived.length > 0 && (
+        <div className="mt-10 border-t border-gray-200 pt-6">
+          <h2 className="text-lg font-bold text-gray-900">Eydd spjöld</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Spjöld sem þú eyddir. Þau birtast ekki á forsíðunni. Endurheimtu þau eða eyddu endanlega.
+          </p>
+          <div className="space-y-2">
+            {archived.map((c, j) => (
+              <div
+                key={c.key + j}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
+              >
+                <span className="truncate text-sm font-medium text-gray-700">
+                  {c.title.is || c.title.en || c.key}
+                </span>
+                {(c.tag?.is || c.badge.is) && (
+                  <span className="text-xs text-gray-400">{c.tag?.is || c.badge.is}</span>
+                )}
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    onClick={() => revive(j)}
+                    className="rounded-md border border-emerald-300 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+                  >
+                    Endurheimta
+                  </button>
+                  <button
+                    onClick={() => purge(j)}
+                    title="Eyða endanlega — ekki hægt að endurheimta"
+                    className="rounded-md border border-red-200 px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Eyða endanlega
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
