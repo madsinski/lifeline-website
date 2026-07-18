@@ -58,6 +58,16 @@ import {
   renderPurchaseOrder,
 } from "@/lib/agreement-templates";
 import {
+  INDIVIDUAL_THJONUSTUSKILMALAR_VERSION,
+  INDIVIDUAL_HEALTH_CONSENT_VERSION,
+  INDIVIDUAL_PRIVACY_VERSION,
+  INDIVIDUAL_QUALITY_CONSENT_VERSION,
+  renderIndividualThjonustuskilmalar,
+  renderIndividualHealthConsent,
+  renderIndividualPrivacyPolicy,
+  renderIndividualQualityResearchConsent,
+} from "@/lib/individual-assessment-content";
+import {
   PUBLIC_PRIVACY_VERSION,
   PUBLIC_PRIVACY_LAST_UPDATED,
   PUBLIC_TERMS_VERSION,
@@ -367,9 +377,56 @@ export default async function LegalDraftsPage() {
       ],
     },
     {
-      title: "B2B service agreement templates",
+      title: "B2C — Individual health assessment (self-pay walk-in)",
       blurb:
-        "Templates filled with company-specific values when a B2B engagement is signed. The placeholder values below are samples — counsel should review the structure.",
+        "The full document set for an individual who buys the heilsumat directly (no employer). Care pathway: online questionnaire → measurements at the Lifeline station in Lyfja Smáratorg → blood draw + analysis at Sameind → doctor consultation by phone, video or in person. These are the B2C counterparts to the employer-sponsored (B2B) texts in the category below. Source in src/lib/individual-assessment-content.ts.",
+      drafts: [
+        {
+          id: "individual-thjonustuskilmalar",
+          title: "Þjónustuskilmálar — heilsumat einstaklinga (B2C)",
+          version: INDIVIDUAL_THJONUSTUSKILMALAR_VERSION,
+          filenameBase: `individual-thjonustuskilmalar-${INDIVIDUAL_THJONUSTUSKILMALAR_VERSION}`,
+          description:
+            "B2C service terms for the self-pay individual assessment. Employer framing removed; adds the Lyfja Smáratorg measurements / Sameind blood tests / phone-video-in-person doctor pathway (§3) and a consumer payment + 14-day withdrawal section cross-referencing söluskilmálar (§8). Lawyer note: (1) §5 drafts Sameind ehf. as an INDEPENDENT controller for the lab analysis — flip to processor + vinnslusamningur if the contract says so; (2) §3(b) assumes Lifeline personnel/agents staff the measurement station at Lyfja — reword if Lyfja staff take the measurements.",
+          sourceLanguage: "is",
+          text: { is: renderIndividualThjonustuskilmalar("is"), en: renderIndividualThjonustuskilmalar("en") },
+        },
+        {
+          id: "individual-health-consent",
+          title: "Upplýst samþykki — heilsumat einstaklinga (B2C)",
+          version: INDIVIDUAL_HEALTH_CONSENT_VERSION,
+          filenameBase: `individual-health-consent-${INDIVIDUAL_HEALTH_CONSENT_VERSION}`,
+          description:
+            "Informed consent (GDPR Art. 9(2)(a)) the individual accepts before any clinical workflow. Adds an explicit consent line for the blood draw + analysis at Sameind and for the phone/video/in-person doctor consultation.",
+          sourceLanguage: "is",
+          text: { is: renderIndividualHealthConsent("is"), en: renderIndividualHealthConsent("en") },
+        },
+        {
+          id: "individual-privacy",
+          title: "Persónuverndarstefna — heilsumat einstaklinga (B2C)",
+          version: INDIVIDUAL_PRIVACY_VERSION,
+          filenameBase: `individual-privacy-${INDIVIDUAL_PRIVACY_VERSION}`,
+          description:
+            "Privacy policy for the individual assessment. Employer-disclosure clause removed; adds a §4 on service delivery through partners (Lyfja station + Sameind). Lawyer note: keep the Sameind role here consistent with §5 of the þjónustuskilmálar.",
+          sourceLanguage: "is",
+          text: { is: renderIndividualPrivacyPolicy("is"), en: renderIndividualPrivacyPolicy("en") },
+        },
+        {
+          id: "individual-quality-consent",
+          title: "Samþykki fyrir rannsókn / gæðamati — einstaklingar (B2C)",
+          version: INDIVIDUAL_QUALITY_CONSENT_VERSION,
+          filenameBase: `individual-quality-consent-${INDIVIDUAL_QUALITY_CONSENT_VERSION}`,
+          description:
+            "Separate, optional informed consent to use non-identifiable assessment data for internal quality assurance and service development. Ábyrgðarmaður: Guðmundur Vignir Sigurðsson, MD, PhD. Voluntary; withdrawal has no effect on the individual's care.",
+          sourceLanguage: "is",
+          text: { is: renderIndividualQualityResearchConsent("is"), en: renderIndividualQualityResearchConsent("en") },
+        },
+      ],
+    },
+    {
+      title: "B2B — Service agreement templates (employer-sponsored)",
+      blurb:
+        "Employer-sponsored heilsumat: templates filled with company-specific values when a B2B engagement is signed. These speak to „starfsmenn“ and a „vinnuveitandi“ — for the direct-to-individual (self-pay) versions see the B2C category above. The placeholder values below are samples — counsel should review the structure.",
       drafts: [
         {
           id: "thjonustuskilmalar",
