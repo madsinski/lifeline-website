@@ -36,6 +36,7 @@ const BYPASS_PREFIXES = [
   "/security-review",       // password-gated security docs for external reviewers
   "/present",               // shareable presentation decks
   "/leidbeiningar",         // public, printable measurement-station instructions
+  "/legal-review",          // no-login tokenised legal-document review links (external counsel)
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
   "/_next",

@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import CopyButton from "./CopyButton";
 import DocReviewPanel from "./DocReviewPanel";
 import { supabase } from "@/lib/supabase";
+import { LOCATION_BADGE, type DocLocation } from "./locationBadge";
 
 export type DocLanguage = "is" | "en";
 
@@ -43,6 +44,8 @@ export interface DocCardProps {
   filenameBase: string;            // "privacy-policy-v1.4" — language suffix added at download time
   description: string;
   sourceLanguage: DocLanguage;     // language the doc was originally drafted in
+  location?: DocLocation;          // where the doc lives (website/b2c/b2b/app/other)
+  approval?: string;               // one line: what acceptance/approval it needs
   text: { is: string | null; en: string | null };
   // Per-language metadata about the latest admin-pasted draft, if any.
   // null means "no draft pasted, source-code text is what's shown".
@@ -144,9 +147,20 @@ This document is currently maintained in ${LANG_LABEL[p.sourceLanguage]} only. T
       <header className="border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h3 className="text-base font-semibold text-[#1F2937]">
+            {p.location && (
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold mr-1.5 align-middle ${LOCATION_BADGE[p.location].className}`}>
+                {LOCATION_BADGE[p.location].label}
+              </span>
+            )}
             {p.title} <span className="text-xs font-normal text-gray-400 ml-1">{p.version}</span>
           </h3>
           <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">{p.description}</p>
+          {p.approval && (
+            <p className="text-xs mt-1.5 max-w-2xl">
+              <span className="font-semibold text-gray-600">Approval required:</span>{" "}
+              <span className="text-gray-500">{p.approval}</span>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Language toggle */}

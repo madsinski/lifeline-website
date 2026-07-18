@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <rect width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(8,8)">
+    <path d="M19,22 V41" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M19,33 C22,30.5 26,31.5 27.5,34 C24.5,36.5 20.5,35.5 19,33 Z"
+          fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/>
+    <path transform="rotate(0 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(72 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(144 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(216 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(288 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="19" cy="20" r="3.1" fill="#F43F5E"/>
+    <g fill="#F43F5E">
+      <circle cx="33" cy="9"  r="1.6"/>
+      <circle cx="37" cy="12" r="1.2"/>
+      <circle cx="33.5" cy="14" r="1"/>
+    </g>
+    <path d="M39,7.5 v3 M37.5,9 h3" stroke="#F43F5E" stroke-width="1.5" stroke-linecap="round"/></g></svg>
