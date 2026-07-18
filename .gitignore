@@ -46,3 +46,6 @@ supabase/.temp/
 
 # editor / SQL backup files
 *.sql.bak
+
+# Local git worktrees created by Claude Code sessions (never commit)
+.claude/worktrees/
