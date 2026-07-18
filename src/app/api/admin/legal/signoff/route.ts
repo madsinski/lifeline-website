@@ -62,14 +62,16 @@ export async function POST(req: Request) {
   }
   const user = userData.user;
 
-  // Verify the caller is an active lawyer.
+  // Verify the caller is an active reviewer — external counsel (lawyer)
+  // OR an internal admin. Both may sign off on legal documents; the row
+  // captures reviewer_name + signed_at so it's clear who approved and when.
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
     .select("id, name, email, role, active")
     .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || staffRow.role !== "lawyer") {
-    return NextResponse.json({ ok: false, error: "Not authorised (lawyer role required)" }, { status: 403 });
+  if (!staffRow || !staffRow.active || (staffRow.role !== "lawyer" && staffRow.role !== "admin")) {
+    return NextResponse.json({ ok: false, error: "Not authorised (lawyer or admin role required)" }, { status: 403 });
   }
 
   const ip =

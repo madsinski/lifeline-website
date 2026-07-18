@@ -99,7 +99,8 @@ export default function DocReviewPanel({ documentKey, documentVersion, documentT
 
   useEffect(() => { load(); }, [load]);
 
-  const isLawyer = role === "lawyer";
+  // Both external counsel (lawyer) and internal admins can sign off.
+  const canReview = role === "lawyer" || role === "admin";
   const latest = signoffs[0] || null;
   const latestStatus: Status = (latest?.status as Status) || "pending";
 
@@ -188,8 +189,8 @@ export default function DocReviewPanel({ documentKey, documentVersion, documentT
         </div>
       )}
 
-      {/* Lawyer-only actions */}
-      {isLawyer && (
+      {/* Reviewer actions — lawyer or admin */}
+      {canReview && (
         <div className="space-y-2 pt-2 border-t border-gray-100">
           <textarea
             value={comments}
