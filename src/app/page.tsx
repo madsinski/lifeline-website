@@ -281,40 +281,41 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Layered method — connected 1→2→3, with the doctor plan (payoff) emphasised */}
-          <div className="relative space-y-4">
-            <div className="absolute left-[46px] top-10 bottom-10 w-0.5 bg-gradient-to-b from-[#3B82F6] to-[#10B981] opacity-30" aria-hidden />
-            {methodLayers.map((l, idx) => {
-              const payoff = idx === methodLayers.length - 1;
-              return (
+          {/* Layered method as a connected stepper — 3 steps culminating in the dark
+              "bottom line" capstone, all on one timeline for a unified, professional read */}
+          <div className="relative">
+            <div className="absolute left-[46px] top-8 bottom-14 w-0.5 bg-gradient-to-b from-[#3B82F6] via-[#10B981] to-[#047857] opacity-40" aria-hidden />
+            <div className="space-y-4">
+              {methodLayers.map((l) => (
                 <div
                   key={l.num}
-                  className={`relative flex gap-5 rounded-2xl p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl ${
-                    payoff ? 'border-2 border-[#10B981] bg-emerald-50/50' : 'border border-emerald-200 bg-white'
-                  }`}
+                  className="relative flex gap-5 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl"
                 >
-                  <div
-                    className={`shrink-0 w-11 h-11 rounded-xl text-white font-bold text-lg flex items-center justify-center ring-4 ring-white ${
-                      payoff ? 'bg-gradient-to-br from-[#10B981] to-[#047857]' : 'bg-gradient-to-br from-[#3B82F6] to-[#10B981]'
-                    }`}
-                  >
+                  <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold text-lg flex items-center justify-center ring-4 ring-white">
                     {l.num}
                   </div>
                   <div>
-                    {payoff && <div className="text-[11px] font-bold uppercase tracking-wide text-[#047857] mb-0.5">The payoff</div>}
                     <h3 className="font-semibold text-[#1F2937] text-lg">{l.title}</h3>
-                    <p className={`text-sm sm:text-base mt-1.5 leading-relaxed ${payoff ? 'text-[#475569]' : 'text-[#6B7280]'}`}>{l.body}</p>
+                    <p className="text-sm sm:text-base text-[#6B7280] mt-1.5 leading-relaxed">{l.body}</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
 
-          <div className="mt-6 rounded-2xl bg-[#111827] text-white p-6 sm:p-8">
-            <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 mb-2">The bottom line</div>
-            <p className="text-lg sm:text-xl font-semibold leading-snug">
-              That third layer is what actually changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change you&apos;ll actually make.
-            </p>
+              {/* The bottom line — dark capstone node closing the timeline */}
+              <div className="relative flex gap-5 rounded-2xl bg-[#111827] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl">
+                <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#10B981] to-[#047857] text-white flex items-center justify-center ring-4 ring-[#111827]">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 mb-1">The bottom line</div>
+                  <p className="text-base sm:text-lg font-semibold leading-snug text-white">
+                    That third layer is what actually changes behaviour — and it&apos;s exactly what cheaper checks skip. You&apos;re not paying for more tests. You&apos;re paying for change you&apos;ll actually make.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
