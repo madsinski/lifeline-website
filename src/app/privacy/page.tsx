@@ -1,16 +1,55 @@
 import Link from "next/link";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import BackButton from "@/app/components/BackButton";
+import { getPublishedLegalDoc } from "@/lib/published-legal";
 
 export const metadata = {
   title: "Privacy Policy — Lifeline Health",
   description: "How Lifeline Health collects, uses, stores, and protects your personal and health data.",
 };
 
+// Hit the DB each request so an approved admin revision publishes automatically.
+export const dynamic = "force-dynamic";
+
 const VERSION = "1.4";
 const LAST_UPDATED = "29 April 2026";
 
-export default function PrivacyPage() {
+// Chrome-free header shared by both render paths.
+function PageHeader() {
+  return (
+    <header className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <BackButton />
+        <Link href="/" className="flex items-center gap-2">
+          <LifelineLogo className="w-8 h-8" />
+          <span className="font-semibold">Lifeline Health</span>
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+export default async function PrivacyPage() {
+  // Single source of truth: if counsel has approved a privacy revision in the
+  // admin legal tooling, publish that text automatically. Otherwise render the
+  // vetted source-code page below unchanged.
+  const published = await getPublishedLegalDoc("privacy-policy", "en");
+  if (published) {
+    return (
+      <div className="min-h-screen bg-white">
+        <PageHeader />
+        <main className="max-w-3xl mx-auto px-6 py-12 prose prose-sm prose-slate">
+          <p className="text-sm text-gray-500">
+            Version {published.version || VERSION} — Last updated {LAST_UPDATED}
+          </p>
+          <div className="whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-gray-800">
+            {published.text}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <header className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">

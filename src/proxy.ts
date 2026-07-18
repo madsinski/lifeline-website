@@ -37,6 +37,7 @@ const BYPASS_PREFIXES = [
   "/present",               // shareable presentation decks
   "/leidbeiningar",         // public, printable measurement-station instructions
   "/legal-review",          // no-login tokenised legal-document review links (external counsel)
+  "/privacy",               // public privacy policy — must be reachable pre-launch (GDPR)
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
   "/_next",
