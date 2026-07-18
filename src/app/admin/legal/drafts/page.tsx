@@ -11,10 +11,35 @@
 
 import Link from "next/link";
 import { getLegalDocGroups, LOCATION_ORDER, LOCATION_META, type DocLocation } from "@/lib/legal-doc-registry";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import DocCard from "./DocCard";
 import LegalTabBar from "../LegalTabBar";
 import ReviewLinkManager from "./ReviewLinkManager";
 import { LOCATION_BADGE } from "./locationBadge";
+
+// Set of document_keys whose LATEST sign-off (across versions) is "approved".
+// Powers the green tick + the "approved / total" progress overview so it's
+// clear at a glance what still needs counsel sign-off. Best-effort: if the
+// signoffs table is missing, everything reads as not-yet-approved.
+async function loadApprovedKeys(): Promise<Set<string>> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("legal_review_signoffs")
+      .select("document_key, status, created_at")
+      .order("created_at", { ascending: false });
+    const latestSeen = new Set<string>();
+    const approved = new Set<string>();
+    for (const row of data || []) {
+      const key = row.document_key as string;
+      if (latestSeen.has(key)) continue; // rows are newest-first → first per key is latest
+      latestSeen.add(key);
+      if (row.status === "approved") approved.add(key);
+    }
+    return approved;
+  } catch {
+    return new Set<string>();
+  }
+}
 
 // Force dynamic rendering — we hit the DB on every request to pick up
 // the latest admin-pasted draft for each document.
@@ -26,6 +51,10 @@ function anchorFor(loc: DocLocation): string {
 
 export default async function LegalDraftsPage() {
   const groups = await getLegalDocGroups();
+  const approvedKeys = await loadApprovedKeys();
+  const allDocs = groups.flatMap((g) => g.docs);
+  const approvedCount = allDocs.filter((d) => approvedKeys.has(d.id)).length;
+  const pct = allDocs.length ? Math.round((approvedCount / allDocs.length) * 100) : 0;
 
   return (
     <div className="space-y-8">
@@ -50,6 +79,19 @@ export default async function LegalDraftsPage() {
         >
           Sign-off runbook ↗
         </a>
+      </div>
+
+      {/* Approval progress — how many docs have counsel sign-off */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-semibold text-[#1F2937]">Counsel-approved documents</span>
+          <span className="text-gray-600">
+            <span className="text-emerald-700 font-semibold">{approvedCount}</span> of {allDocs.length}
+          </span>
+        </div>
+        <div className="mt-2 h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
       </div>
 
       {/* No-login external-counsel links */}
@@ -88,6 +130,7 @@ export default async function LegalDraftsPage() {
             <DocCard
               key={d.id}
               id={d.id}
+              approved={approvedKeys.has(d.id)}
               title={d.title}
               version={d.version}
               filenameBase={d.filenameBase}

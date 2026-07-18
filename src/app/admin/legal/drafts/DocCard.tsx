@@ -39,6 +39,7 @@ export interface DocCardDraftMeta {
 
 export interface DocCardProps {
   id: string;
+  approved?: boolean;              // latest counsel sign-off is "approved"
   title: string;
   version: string;
   filenameBase: string;            // "privacy-policy-v1.4" — language suffix added at download time
@@ -147,6 +148,11 @@ This document is currently maintained in ${LANG_LABEL[p.sourceLanguage]} only. T
       <header className="border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h3 className="text-base font-semibold text-[#1F2937]">
+            {p.approved && (
+              <svg className="inline-block w-4 h-4 text-emerald-600 mr-1.5 align-middle" viewBox="0 0 20 20" fill="currentColor" aria-label="Approved">
+                <path fillRule="evenodd" d="M16.704 5.29a1 1 0 010 1.415l-7.5 7.5a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.793-6.793a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            )}
             {p.location && (
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold mr-1.5 align-middle ${LOCATION_BADGE[p.location].className}`}>
                 {LOCATION_BADGE[p.location].label}
