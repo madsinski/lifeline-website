@@ -289,7 +289,7 @@ export default function Home() {
               return (
                 <div
                   key={l.num}
-                  className={`relative flex gap-5 rounded-2xl p-6 shadow-sm transition-all duration-200 hover:shadow-md ${
+                  className={`relative flex gap-5 rounded-2xl p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl ${
                     payoff ? 'border-2 border-[#10B981] bg-emerald-50/50' : 'border border-emerald-200 bg-white'
                   }`}
                 >
