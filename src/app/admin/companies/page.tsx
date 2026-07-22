@@ -2428,6 +2428,102 @@ function MilestoneCircle({ cell, busy, onToggle }: { cell: MilestoneCell; busy: 
   );
 }
 
+// Click-to-edit for a roster member: name, email, phone. Backed by
+// PATCH /api/business/members/[memberId]. Kennitala is shown read-only
+// (last 4) — fixing a wrong kennitala means remove + re-add the member.
+function EditMemberModal({ member, onClose, onSaved }: {
+  member: MemberRow;
+  onClose: () => void;
+  onSaved: (patch: { full_name: string; email: string; phone: string | null }) => void;
+}) {
+  const [name, setName] = useState(member.full_name || "");
+  const [email, setEmail] = useState(member.email || "");
+  const [phone, setPhone] = useState(member.phone || "");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const save = async () => {
+    setSaving(true);
+    setErr("");
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch(`/api/business/members/${member.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ full_name: name, email, phone: phone.trim() || null }),
+    });
+    const j = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) {
+      setErr(
+        j.error === "email_taken" ? "That email is already on the roster."
+        : j.error === "invalid_email" ? "Invalid email address."
+        : j.error === "name_required" ? "Name is required."
+        : "Could not save changes.",
+      );
+      return;
+    }
+    onSaved({ full_name: j.member.full_name, email: j.member.email, phone: j.member.phone });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-8" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-gray-900">Edit — {member.full_name || "employee"}</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="p-5 space-y-3">
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Phone</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 8451234"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          {member.kennitala_last4 && (
+            <p className="text-[11px] text-gray-400">Kennitala ···{member.kennitala_last4} — not editable; remove and re-add if it is wrong.</p>
+          )}
+          {err && <p className="text-xs text-red-600">{err}</p>}
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100">Cancel</button>
+          <button
+            onClick={save}
+            disabled={saving || !name.trim() || !email.trim()}
+            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, onMilestoneChanged }: {
   companyId: string;
   companyName: string;
@@ -2440,6 +2536,7 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
   const [err, setErr] = useState("");
   const [sortByName, setSortByName] = useState(false);
   const [settingContact, setSettingContact] = useState<string | null>(null);
+  const [editing, setEditing] = useState<MemberRow | null>(null);
 
   const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -2622,10 +2719,15 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
           const cells = milestones[m.id];
           return (
             <div key={m.id} className={`${GRID} px-4 py-2 text-sm`}>
-              <div className="min-w-0">
-                <div className="font-medium text-gray-800 truncate">{m.full_name || "—"}</div>
+              <button
+                type="button"
+                onClick={() => setEditing(m)}
+                title="Edit name, email or phone"
+                className="min-w-0 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+              >
+                <div className="font-medium text-gray-800 truncate group-hover:text-emerald-700 group-hover:underline underline-offset-2">{m.full_name || "—"}</div>
                 <div className="text-[11px] text-gray-500 truncate">{m.email}{m.phone ? ` · ${m.phone}` : ""}</div>
-              </div>
+              </button>
               {MILESTONE_META.map((mi) => {
                 const cell = cells?.[mi.key] || { done: false, source: null };
                 return (
@@ -2662,6 +2764,16 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
           );
         })}
       </div>
+
+      {editing && (
+        <EditMemberModal
+          member={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(patch) =>
+            setMembers((prev) => (prev ? prev.map((x) => (x.id === editing.id ? { ...x, ...patch } : x)) : prev))
+          }
+        />
+      )}
     </div>
   );
 }
