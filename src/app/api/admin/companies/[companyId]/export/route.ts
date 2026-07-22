@@ -63,7 +63,7 @@ export async function GET(
   for (const m of members) {
     rows.push([
       csv(m.full_name || ""),
-      csv((staff ? m.kennitala : m.kennitala_last4) || ""),
+      csv(kennitalaText((staff ? m.kennitala : m.kennitala_last4) || "")),
       csv(m.email || ""),
       csv(m.phone || ""),
       csv(m.invited_at || ""),
@@ -78,6 +78,19 @@ export async function GET(
       "Content-Disposition": `attachment; filename="${slug(company.name)}-roster.csv"`,
     },
   });
+}
+
+// Excel parses a bare digit string as a number and drops leading zeros
+// (e.g. kennitala 0603763959 → 603763959). Full 10-digit kennitalas get
+// the standard DDMMYY-XXXX dash format, which Excel keeps as text; any
+// other all-digit value starting with 0 (kennitala_last4 like "0399")
+// is wrapped as ="..." — csv() quotes it into "=""0399""", which
+// spreadsheets parse as a text formula and display with the zero intact.
+function kennitalaText(v: string): string {
+  const s = String(v ?? "").trim();
+  if (/^\d{10}$/.test(s)) return `${s.slice(0, 6)}-${s.slice(6)}`;
+  if (/^\d+$/.test(s) && s.startsWith("0")) return `="${s}"`;
+  return s;
 }
 
 function csv(v: string): string {
