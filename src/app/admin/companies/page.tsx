@@ -2452,6 +2452,18 @@ const STATUS_LABELS: Record<"is" | "en", Record<MilestoneKey, string>> = {
   },
 };
 
+// Emoji + pill colors per milestone. Emoji (not SVG) so the icons
+// survive the clipboard → email-client round trip; colors are inline
+// hex because email clients ignore classes.
+const STATUS_STYLE: Record<MilestoneKey, { emoji: string; fg: string; bg: string }> = {
+  measurement: { emoji: "⚖️", fg: "#1d4ed8", bg: "#dbeafe" },
+  blood_test: { emoji: "🩸", fg: "#b91c1c", bg: "#fee2e2" },
+  questionnaire: { emoji: "📋", fg: "#b45309", bg: "#fef3c7" },
+  doctor_review: { emoji: "🩺", fg: "#047857", bg: "#d1fae5" },
+  followup: { emoji: "📅", fg: "#7e22ce", bg: "#f3e8ff" },
+  app_access: { emoji: "📱", fg: "#4338ca", bg: "#e0e7ff" },
+};
+
 function StatusExportButton({ companyName, members, milestones }: {
   companyName: string;
   members: MemberRow[];
@@ -2480,19 +2492,27 @@ function StatusExportButton({ companyName, members, milestones }: {
     t.title,
     "",
     ...(pending.length
-      ? [`${t.pending}:`, ...pending.map(({ m, missing }) => `• ${m.full_name}: ${missing.map((k) => labels[k]).join(", ")}`)]
+      ? [`${t.pending}:`, ...pending.map(({ m, missing }) => `• ${m.full_name}: ${missing.map((k) => `${STATUS_STYLE[k].emoji} ${labels[k]}`).join(", ")}`)]
       : [t.nobody]),
-    ...(complete.length ? ["", `${t.complete}:`, ...complete.map((m) => `• ${m.full_name}`)] : []),
+    ...(complete.length ? ["", `${t.complete}:`, ...complete.map((m) => `• ✅ ${m.full_name}`)] : []),
   ].join("\n");
 
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const badge = (k: MilestoneKey) => {
+    const s = STATUS_STYLE[k];
+    return `<span style="display:inline-block;background:${s.bg};color:${s.fg};border-radius:999px;padding:1px 9px;font-size:12px;line-height:1.6;white-space:nowrap;">${s.emoji} ${esc(labels[k])}</span>`;
+  };
   const html = [
-    `<p><strong>${esc(t.title)}</strong></p>`,
+    `<p style="margin:0 0 12px;font-size:15px;"><strong>${esc(t.title)}</strong></p>`,
     pending.length
-      ? `<p><strong>${esc(t.pending)}:</strong></p><ul>${pending.map(({ m, missing }) => `<li><strong>${esc(m.full_name)}</strong>: ${esc(missing.map((k) => labels[k]).join(", "))}</li>`).join("")}</ul>`
-      : `<p>${esc(t.nobody)}</p>`,
+      ? `<p style="margin:0 0 6px;color:#b45309;"><strong>⏳ ${esc(t.pending)}</strong></p>` +
+        `<ul style="margin:0 0 14px;padding-left:20px;">${pending.map(({ m, missing }) =>
+          `<li style="margin:0 0 6px;"><strong>${esc(m.full_name)}</strong><br/>${missing.map(badge).join(" ")}</li>`,
+        ).join("")}</ul>`
+      : `<p style="margin:0 0 14px;">✅ ${esc(t.nobody)}</p>`,
     complete.length
-      ? `<p><strong>${esc(t.complete)}:</strong></p><ul>${complete.map((m) => `<li>${esc(m.full_name)}</li>`).join("")}</ul>`
+      ? `<p style="margin:0 0 6px;color:#047857;"><strong>✅ ${esc(t.complete)}</strong></p>` +
+        `<ul style="margin:0;padding-left:20px;">${complete.map((m) => `<li style="margin:0 0 3px;">${esc(m.full_name)}</li>`).join("")}</ul>`
       : "",
   ].join("");
 
@@ -2540,7 +2560,7 @@ function StatusExportButton({ companyName, members, milestones }: {
                         checked={included[mi.key]}
                         onChange={() => setIncluded((prev) => ({ ...prev, [mi.key]: !prev[mi.key] }))}
                       />
-                      {STATUS_LABELS[lang][mi.key]}
+                      {STATUS_STYLE[mi.key].emoji} {STATUS_LABELS[lang][mi.key]}
                     </label>
                   ))}
                 </div>
@@ -2557,7 +2577,12 @@ function StatusExportButton({ companyName, members, milestones }: {
                   ))}
                 </div>
               </div>
-              <pre className="text-xs text-gray-700 bg-gray-50 border border-gray-100 rounded-lg p-3 whitespace-pre-wrap max-h-80 overflow-y-auto font-sans">{plain}</pre>
+              {/* Preview renders the exact HTML that gets copied, so
+                  what you see here is what lands in the email. */}
+              <div
+                className="text-sm text-gray-800 bg-gray-50 border border-gray-100 rounded-lg p-4 max-h-80 overflow-y-auto"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
             </div>
             <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
               <button onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100">Close</button>
