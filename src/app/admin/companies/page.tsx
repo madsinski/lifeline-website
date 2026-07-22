@@ -2428,6 +2428,154 @@ function MilestoneCircle({ cell, busy, onToggle }: { cell: MilestoneCell; busy: 
   );
 }
 
+// "Status export" — builds a nicely formatted, alphabetical summary of
+// which milestones each employee still has left, for pasting into an
+// email to the company contact person. Pure client-side: works off the
+// members + milestones the roster has already loaded. Copies both
+// text/html and text/plain so email clients keep the formatting.
+const STATUS_LABELS: Record<"is" | "en", Record<MilestoneKey, string>> = {
+  is: {
+    measurement: "Líkamsmæling",
+    blood_test: "Blóðprufa",
+    questionnaire: "Spurningalisti",
+    doctor_review: "Læknisviðtal",
+    followup: "3 mánaða eftirfylgni",
+    app_access: "App-aðgangur",
+  },
+  en: {
+    measurement: "Body measurement",
+    blood_test: "Blood test",
+    questionnaire: "Questionnaire",
+    doctor_review: "Doctor interview",
+    followup: "3-month follow-up",
+    app_access: "App access",
+  },
+};
+
+function StatusExportButton({ companyName, members, milestones }: {
+  companyName: string;
+  members: MemberRow[];
+  milestones: MemberMilestones;
+}) {
+  const [open, setOpen] = useState(false);
+  const [lang, setLang] = useState<"is" | "en">("is");
+  const [included, setIncluded] = useState<Record<MilestoneKey, boolean>>({
+    measurement: true, blood_test: true, questionnaire: true, doctor_review: true, followup: false, app_access: false,
+  });
+  const [copied, setCopied] = useState(false);
+
+  const labels = STATUS_LABELS[lang];
+  const keys = MILESTONE_META.map((mi) => mi.key).filter((k) => included[k]);
+  const sorted = [...members].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "", "is"));
+  const pending = sorted
+    .map((m) => ({ m, missing: keys.filter((k) => !milestones[m.id]?.[k]?.done) }))
+    .filter((x) => x.missing.length > 0);
+  const complete = sorted.filter((m) => keys.every((k) => milestones[m.id]?.[k]?.done));
+
+  const t = lang === "is"
+    ? { title: `Staða heilsufarsmats — ${companyName}`, pending: "Eiga eftir að ljúka", complete: "Hafa lokið öllu", nobody: "Allir hafa lokið völdum liðum." }
+    : { title: `Health assessment status — ${companyName}`, pending: "Still to complete", complete: "All done", nobody: "Everyone has completed the selected items." };
+
+  const plain = [
+    t.title,
+    "",
+    ...(pending.length
+      ? [`${t.pending}:`, ...pending.map(({ m, missing }) => `• ${m.full_name}: ${missing.map((k) => labels[k]).join(", ")}`)]
+      : [t.nobody]),
+    ...(complete.length ? ["", `${t.complete}:`, ...complete.map((m) => `• ${m.full_name}`)] : []),
+  ].join("\n");
+
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const html = [
+    `<p><strong>${esc(t.title)}</strong></p>`,
+    pending.length
+      ? `<p><strong>${esc(t.pending)}:</strong></p><ul>${pending.map(({ m, missing }) => `<li><strong>${esc(m.full_name)}</strong>: ${esc(missing.map((k) => labels[k]).join(", "))}</li>`).join("")}</ul>`
+      : `<p>${esc(t.nobody)}</p>`,
+    complete.length
+      ? `<p><strong>${esc(t.complete)}:</strong></p><ul>${complete.map((m) => `<li>${esc(m.full_name)}</li>`).join("")}</ul>`
+      : "",
+  ].join("");
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+        }),
+      ]);
+    } catch {
+      await navigator.clipboard.writeText(plain);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-[11px] font-medium text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-full px-2.5 py-1"
+        title="Formatted status summary to send to the contact person"
+      >
+        Status export
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-8" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">Status export — {companyName}</h3>
+              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {MILESTONE_META.map((mi) => (
+                    <label key={mi.key} className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={included[mi.key]}
+                        onChange={() => setIncluded((prev) => ({ ...prev, [mi.key]: !prev[mi.key] }))}
+                      />
+                      {STATUS_LABELS[lang][mi.key]}
+                    </label>
+                  ))}
+                </div>
+                <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs">
+                  {(["is", "en"] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setLang(l)}
+                      className={`px-2.5 py-1 font-medium ${lang === l ? "bg-emerald-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <pre className="text-xs text-gray-700 bg-gray-50 border border-gray-100 rounded-lg p-3 whitespace-pre-wrap max-h-80 overflow-y-auto font-sans">{plain}</pre>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+              <button onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100">Close</button>
+              <button
+                onClick={copy}
+                disabled={keys.length === 0}
+                className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {copied ? "Copied ✓" : "Copy for email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // Click-to-edit for a roster member: name, email, phone. Backed by
 // PATCH /api/business/members/[memberId]. Kennitala is shown read-only
 // (last 4) — fixing a wrong kennitala means remove + re-add the member.
@@ -2678,6 +2826,9 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
               {mi.short} <span className="font-semibold text-gray-700 tabular-nums">{milestoneCount(mi.key)}</span>/{total}
             </span>
           ))}
+        </div>
+        <div className="ml-auto">
+          <StatusExportButton companyName={companyName} members={members} milestones={milestones} />
         </div>
       </div>
 
