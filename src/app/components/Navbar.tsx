@@ -171,7 +171,7 @@ export default function Navbar() {
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                  <span>{t('nav.my_account', 'My Account')}</span>
+                  <span>{t('nav.my_account', 'Minn reikningur')}</span>
                 </>
               )}
             </Link>
@@ -258,7 +258,7 @@ export default function Navbar() {
                     <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    {t('nav.my_account', 'My Account')}
+                    {t('nav.my_account', 'Minn reikningur')}
                   </>
                 )}
               </Link>
@@ -267,7 +267,7 @@ export default function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
               >
-                {t('nav.check_app', 'Check out the app')}
+                {t('nav.check_app', 'Skoða appið')}
               </Link>
               <LanguagePicker className="w-full justify-center" />
             </div>

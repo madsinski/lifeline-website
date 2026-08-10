@@ -14,10 +14,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: "assessment", href: "/assessment", key: "nav.assessment", fallback: "Assessment" },
-  { id: "coaching", href: "/coaching", key: "nav.coaching", fallback: "Coaching" },
-  { id: "business", href: "/business", key: "nav.companies", fallback: "Companies" },
-  { id: "contact", href: "/contact", key: "nav.contact", fallback: "Contact" },
+  { id: "assessment", href: "/assessment", key: "nav.assessment", fallback: "Heilsumat" },
+  { id: "coaching", href: "/coaching", key: "nav.coaching", fallback: "Þjálfun" },
+  { id: "business", href: "/business", key: "nav.companies", fallback: "Fyrirtæki" },
+  { id: "contact", href: "/contact", key: "nav.contact", fallback: "Hafa samband" },
 ];
 
 const AS_SECTIONS: SiteSection[] = NAV_ITEMS.map((n) => ({ id: n.id, label: n.fallback }));

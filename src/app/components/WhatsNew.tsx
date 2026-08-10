@@ -217,10 +217,10 @@ export default function WhatsNew() {
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981]">
-            {t("home.whatsnew.kicker", "What's new")}
+            {t("home.whatsnew.kicker", "Nýjungar")}
           </div>
           <h2 className="mt-2 text-3xl font-bold text-[#1F2937] sm:text-4xl">
-            {t("home.whatsnew.title", "New from Lifeline")}
+            {t("home.whatsnew.title", "Nýtt hjá Lifeline")}
           </h2>
         </div>
         {/* Manual prev/next — shown only when the strip overflows; no autoplay */}
@@ -228,7 +228,7 @@ export default function WhatsNew() {
           <button
             type="button"
             onClick={() => scrollByCard(-1)}
-            aria-label={t("home.whatsnew.prev", "Previous")}
+            aria-label={t("home.whatsnew.prev", "Fyrri")}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-[#1F2937] shadow-sm transition-colors hover:border-[#10B981] hover:text-[#10B981]"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,7 +238,7 @@ export default function WhatsNew() {
           <button
             type="button"
             onClick={() => scrollByCard(1)}
-            aria-label={t("home.whatsnew.next", "Next")}
+            aria-label={t("home.whatsnew.next", "Næsta")}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-[#1F2937] shadow-sm transition-colors hover:border-[#10B981] hover:text-[#10B981]"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

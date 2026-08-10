@@ -32,7 +32,7 @@ export default function Footer() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body?.error || t("footer.newsletter.error", "Could not subscribe. Try again."));
+        setError(body?.error || t("footer.newsletter.error", "Ekki tókst að skrá. Reyndu aftur."));
         setSubmitting(false);
         return;
       }
@@ -40,7 +40,7 @@ export default function Footer() {
       setEmail("");
       setTimeout(() => setSubscribed(false), 4000);
     } catch {
-      setError(t("footer.newsletter.error", "Could not subscribe. Try again."));
+      setError(t("footer.newsletter.error", "Ekki tókst að skrá. Reyndu aftur."));
     }
     setSubmitting(false);
   };
@@ -57,10 +57,10 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <h3 className="text-lg font-semibold text-white mb-1">
-                {t('footer.newsletter.title', 'Stay up to date')}
+                {t('footer.newsletter.title', 'Vertu uppfærð/ur')}
               </h3>
               <p className="text-sm text-gray-400">
-                {t('footer.newsletter.desc', 'Get health tips and Lifeline news delivered to your inbox.')}
+                {t('footer.newsletter.desc', 'Fáðu heilsuráð og Lifeline fréttir beint í pósthólfið þitt.')}
               </p>
             </div>
             {subscribed ? (
@@ -68,14 +68,14 @@ export default function Footer() {
                 <svg className="w-5 h-5 success-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                {t('footer.newsletter.success', 'Thanks for subscribing!')}
+                {t('footer.newsletter.success', 'Takk fyrir áskriftina!')}
               </div>
             ) : (
               <div className="flex flex-col items-end gap-1 w-full md:w-auto">
                 <form onSubmit={handleNewsletterSubmit} className="flex w-full md:w-auto gap-2">
                   <input
                     type="email"
-                    placeholder={t('footer.newsletter.placeholder', 'your@email.com')}
+                    placeholder={t('footer.newsletter.placeholder', 'þitt@netfang.is')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -87,7 +87,7 @@ export default function Footer() {
                     disabled={submitting}
                     className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 whitespace-nowrap disabled:opacity-60"
                   >
-                    {submitting ? "…" : t('footer.newsletter.submit', 'Subscribe')}
+                    {submitting ? "…" : t('footer.newsletter.submit', 'Gerast áskrifandi')}
                   </button>
                 </form>
                 {error && <p className="text-xs text-red-400">{error}</p>}
@@ -106,21 +106,21 @@ export default function Footer() {
             </div>
             <p className="text-gray-400 text-sm font-semibold mb-1">Lifeline Health ehf.</p>
             <p className="text-gray-400 text-sm leading-relaxed">
-              {t('footer.tagline', 'Comprehensive health assessments and personalised daily coaching.')}
+              {t('footer.tagline', 'Yfirgripsmikið heilsumat og persónuleg dagleg þjálfun.')}
             </p>
           </div>
 
           {/* Pages */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-              {t('footer.pages', 'PAGES')}
+              {t('footer.pages', 'SÍÐUR')}
             </h3>
             <ul className="space-y-3">
               {[
-                { href: "/", key: "footer.home", fallback: "Home" },
-                { href: "/assessment", key: "footer.health_assessment", fallback: "Health Assessment" },
-                { href: "/coaching", key: "footer.coaching", fallback: "Coaching" },
-                { href: "/contact", key: "footer.contact_link", fallback: "Contact" },
+                { href: "/", key: "footer.home", fallback: "Heim" },
+                { href: "/assessment", key: "footer.health_assessment", fallback: "Heilsumat" },
+                { href: "/coaching", key: "footer.coaching", fallback: "Þjálfun" },
+                { href: "/contact", key: "footer.contact_link", fallback: "Hafa samband" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-gray-300 hover:text-white transition-colors duration-200">
@@ -134,21 +134,21 @@ export default function Footer() {
           {/* Services */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-              {t('footer.services', 'SERVICES')}
+              {t('footer.services', 'ÞJÓNUSTA')}
             </h3>
             <ul className="space-y-3">
               <li>
                 <Link href="/assessment" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">
-                  {t('footer.health_assessment', 'Health Assessments')}
+                  {t('footer.health_assessment', 'Heilsumat')}
                 </Link>
               </li>
               <li>
                 <Link href="/coaching" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">
-                  {t('footer.health_coaching_app', 'Health Coaching App')}
+                  {t('footer.health_coaching_app', 'Heilsuþjálfunar app')}
                 </Link>
               </li>
               <li>
-                <span className="text-sm text-gray-300">{t('nav.patient_portal', 'Patient Portal')}</span>
+                <span className="text-sm text-gray-300">{t('nav.patient_portal', 'Sjúklingagátt')}</span>
               </li>
             </ul>
           </div>
@@ -156,7 +156,7 @@ export default function Footer() {
           {/* Contact */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-              {t('footer.contact', 'CONTACT')}
+              {t('footer.contact', 'SAMSKIPTI')}
             </h3>
             <ul className="space-y-3 text-sm text-gray-300">
               <li>Lifeline Health ehf.</li>
@@ -211,17 +211,17 @@ export default function Footer() {
 
         <div className="border-t border-gray-700 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-400">
-            {t('footer.copyright', '© 2026 Lifeline Health ehf. All rights reserved.')}
+            {t('footer.copyright', '© 2026 Lifeline Health ehf. Öll réttindi áskilin.')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-400">
             <Link href="/soluskilmalar" className="hover:text-white transition-colors duration-200">
               {t('footer.sales_terms', 'Söluskilmálar')}
             </Link>
             <Link href="/terms" className="hover:text-white transition-colors duration-200">
-              {t('footer.terms', 'Terms')}
+              {t('footer.terms', 'Skilmálar')}
             </Link>
             <Link href="/privacy" className="hover:text-white transition-colors duration-200">
-              {t('footer.privacy', 'Privacy')}
+              {t('footer.privacy', 'Persónuvernd')}
             </Link>
           </div>
           <div className="flex items-center gap-4">
@@ -230,7 +230,7 @@ export default function Footer() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              Admin Panel
+              Stjórnborð
             </a>
             <button
               onClick={scrollToTop}
@@ -240,7 +240,7 @@ export default function Footer() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
               </svg>
-              {t('footer.back_to_top', 'Back to top')}
+              {t('footer.back_to_top', 'Efst á síðu')}
             </button>
           </div>
         </div>
