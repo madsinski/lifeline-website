@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import StaticPhone from "../components/StaticPhone";
+import DeviceMockup from "../components/DeviceMockup";
 import WaveSeparator from "../components/WaveSeparator";
 import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
@@ -141,7 +141,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
                     <p className="text-xs text-[#6B7280] leading-relaxed"><MedaliaText text={c.results_note} /></p>
                   </div>
                 </div>
-                <div className="flex justify-center"><StaticPhone screenshot="/app-screenshot-health-static.png" alt="Your health results in the app" phoneHeight="70vh" /></div>
+                <div className="flex justify-center"><DeviceMockup device={c.results_device} screenshot={c.results_screenshot || "/app-screenshot-health-static.png"} alt="Your health results in the app" phoneHeight="70vh" /></div>
               </div>
             </div>
           </section>
@@ -153,7 +153,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
             </div>
           </section>
           <div className="lg:hidden pb-16" style={{ backgroundColor: bg }}>
-            <div className="max-w-md mx-auto px-4"><StaticPhone screenshot="/app-screenshot-health-static.png" alt="Your health results in the app" phoneHeight="62vh" /></div>
+            <div className="max-w-md mx-auto px-4"><DeviceMockup device={c.results_device} screenshot={c.results_screenshot || "/app-screenshot-health-static.png"} alt="Your health results in the app" phoneHeight="62vh" /></div>
           </div>
         </>
       );
@@ -166,7 +166,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
           <section className="hidden lg:block py-24 sm:py-28" style={{ backgroundColor: bg }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-2 gap-16 items-center">
-                <div className="flex justify-center"><StaticPhone screenshot="/app-screenshot-blood-static.png" alt="Track measurements and blood tests" phoneHeight="70vh" /></div>
+                <div className="flex justify-center"><DeviceMockup device={c.track_device} screenshot={c.track_screenshot || "/app-screenshot-blood-static.png"} alt="Track measurements and blood tests" phoneHeight="70vh" /></div>
                 <div>
                   <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] mb-6"><Highlight text={c.track_title} /></h2>
                   <p className="text-lg text-[#6B7280] mb-6 leading-relaxed">{c.track_body}</p>
@@ -187,7 +187,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
             </div>
           </section>
           <div className="lg:hidden pb-16" style={{ backgroundColor: bg }}>
-            <div className="max-w-md mx-auto px-4"><StaticPhone screenshot="/app-screenshot-blood-static.png" alt="Track measurements and blood tests" phoneHeight="62vh" /></div>
+            <div className="max-w-md mx-auto px-4"><DeviceMockup device={c.track_device} screenshot={c.track_screenshot || "/app-screenshot-blood-static.png"} alt="Track measurements and blood tests" phoneHeight="62vh" /></div>
           </div>
         </>
       );

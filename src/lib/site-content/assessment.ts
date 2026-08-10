@@ -62,12 +62,16 @@ export const ASSESSMENT_FIELDS: SiteField[] = [
   { key: "results_body", label: "Texti", group: G_RESULTS, type: "textarea" },
   { key: "results_bullets", label: "Punktar", group: G_RESULTS, type: "list", help: "Einn punktur í hverri línu.", columns: bulletsCol },
   { key: "results_note", label: "Athugasemd (Medalia hlekkjað sjálfkrafa)", group: G_RESULTS, type: "textarea" },
+  { key: "results_device", label: "Tæki (sími/fartölva)", group: G_RESULTS, type: "select", options: [{ value: "phone", label: "Sími" }, { value: "laptop", label: "Fartölva" }] },
+  { key: "results_screenshot", label: "Skjámynd", group: G_RESULTS, type: "image" },
 
   // Track progress
   { key: "track_title", label: "Fyrirsögn", group: G_TRACK, type: "heading" },
   { key: "track_body", label: "Texti", group: G_TRACK, type: "textarea" },
   { key: "track_bullets", label: "Punktar", group: G_TRACK, type: "list", help: "Einn punktur í hverri línu.", columns: bulletsCol },
   { key: "track_note", label: "Athugasemd (Medalia hlekkjað sjálfkrafa)", group: G_TRACK, type: "textarea" },
+  { key: "track_device", label: "Tæki (sími/fartölva)", group: G_TRACK, type: "select", options: [{ value: "phone", label: "Sími" }, { value: "laptop", label: "Fartölva" }] },
+  { key: "track_screenshot", label: "Skjámynd", group: G_TRACK, type: "image" },
 
   // Packages
   { key: "packages_title", label: "Fyrirsögn", group: G_PACKAGES, type: "text" },
@@ -118,6 +122,10 @@ const SHARED = {
   hero_cta_href: "/account/login?mode=signup",
   packages_cta_href: "/account/login?mode=signup",
   cta_button_href: "/account/login?mode=signup",
+  results_device: "phone",
+  results_screenshot: "/app-screenshot-health-static.png",
+  track_device: "phone",
+  track_screenshot: "/app-screenshot-blood-static.png",
 
   s1_title: "Book your assessment", s1_desc: "Open the patient portal and choose the Foundational Health or Check-in package. Pick a time that suits you.",
   s2_title: "Visit our station", s2_desc: "Come to our Lagmula 5 station in Reykjavik for your body composition scan and measurements. Takes about 20 minutes.",

@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import StaticPhone from "../components/StaticPhone";
+import DeviceMockup from "../components/DeviceMockup";
 import WaveSeparator from "../components/WaveSeparator";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "../components/PillarIcons";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
@@ -196,7 +196,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
                 </div>
               </div>
               <div className="flex justify-center">
-                <StaticPhone screenshot="/app-screenshot-coach-static.png" alt="Health coach in the app" phoneHeight="70vh" />
+                <DeviceMockup device={c.how_device} screenshot={c.how_screenshot || "/app-screenshot-coach-static.png"} alt="Health coach in the app" phoneHeight="70vh" />
               </div>
             </div>
           </div>

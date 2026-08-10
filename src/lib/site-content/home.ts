@@ -102,6 +102,8 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "app_cta_app_href", label: "Hnappur 1 — hlekkur", group: G_APP, type: "link" },
   { key: "app_cta_coaching", label: "Hnappur 2", group: G_APP, type: "text" },
   { key: "app_cta_coaching_href", label: "Hnappur 2 — hlekkur", group: G_APP, type: "link" },
+  { key: "app_device", label: "Tæki (sími/fartölva)", group: G_APP, type: "select", options: [{ value: "phone", label: "Sími" }, { value: "laptop", label: "Fartölva" }] },
+  { key: "app_screenshot", label: "Skjámynd", group: G_APP, type: "image" },
 
   // ── Team ────────────────────────────────────────────────────────────────────
   { key: "team_kicker", label: "Yfirtexti", group: G_TEAM, type: "text" },
@@ -147,8 +149,9 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "cta_app_href", label: "Hnappur 2 — hlekkur", group: G_CTA, type: "link" },
 ];
 
-// Button links (locale-independent). Spread into both locale default maps so a
-// link resolves the same in every language and is never sent to the translator.
+// Locale-independent defaults (links + device/media). Spread into both locale
+// default maps so they resolve the same in every language and are never sent to
+// the translator.
 const HOME_HREFS: LocaleContent = {
   hero_cta_signup_href: "/account/login?mode=signup",
   hero_cta_app_href: "/coaching#download",
@@ -157,6 +160,8 @@ const HOME_HREFS: LocaleContent = {
   app_cta_coaching_href: "/coaching",
   cta_signup_href: "/account/login?mode=signup",
   cta_app_href: "/coaching#download",
+  app_device: "phone",
+  app_screenshot: "/app-screenshot-home-static.png",
 };
 
 // Icelandic defaults = what an Icelandic visitor sees today.

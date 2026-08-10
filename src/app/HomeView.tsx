@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
-import StaticPhone from "./components/StaticPhone";
+import DeviceMockup from "./components/DeviceMockup";
 import TeamCircles from "./components/TeamCircles";
 import WaveSeparator from "./components/WaveSeparator";
 import WhatsNew from "./components/WhatsNew";
@@ -245,7 +245,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
               <div className="grid grid-cols-2 gap-16 items-center">
                 <div><AppTextContent c={c} /></div>
                 <div className="flex justify-center">
-                  <StaticPhone screenshot="/app-screenshot-home-static.png" alt="Lifeline Health app" phoneHeight="70vh" />
+                  <DeviceMockup device={c.app_device} screenshot={c.app_screenshot || "/app-screenshot-home-static.png"} alt="Lifeline Health app" phoneHeight="70vh" />
                 </div>
               </div>
             </div>
@@ -255,7 +255,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
           </section>
           <div className="lg:hidden pb-20" style={{ backgroundColor: bg }}>
             <div className="max-w-md mx-auto px-4">
-              <StaticPhone screenshot="/app-screenshot-home-static.png" alt="Lifeline Health app" phoneHeight="62vh" />
+              <DeviceMockup device={c.app_device} screenshot={c.app_screenshot || "/app-screenshot-home-static.png"} alt="Lifeline Health app" phoneHeight="62vh" />
             </div>
           </div>
         </>

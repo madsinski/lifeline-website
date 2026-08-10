@@ -399,6 +399,17 @@ export default function SiteContentEditor() {
                         disabled={!isAdmin}
                         onChange={(ni, ne) => setListField(f.key, ni, ne)}
                       />
+                    ) : f.type === "select" ? (
+                      <select
+                        value={draft.is?.[f.key] ?? page.defaultsIs[f.key] ?? (f.options?.[0]?.value ?? "")}
+                        disabled={!isAdmin}
+                        onChange={(e) => setField("is", f.key, e.target.value)}
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-200 outline-none disabled:bg-gray-50 bg-white"
+                      >
+                        {(f.options ?? []).map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
                     ) : f.type === "image" || f.type === "link" ? (
                       <input
                         value={draft.is?.[f.key] ?? ""}

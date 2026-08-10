@@ -16,6 +16,7 @@ export type FieldType =
   | "list"      // pipe/newline-structured collection, edited by a custom control
   | "image"     // value is an image URL/path; one locale-independent value
   | "link"      // a URL / internal path / #anchor; locale-independent, not translated
+  | "select"    // one of `options`; locale-independent, not translated (a dropdown)
   | "internal"; // bookkeeping owned by a custom editor: never auto-rendered
 
 export interface SiteField {
@@ -25,6 +26,8 @@ export interface SiteField {
   type: FieldType;
   /** Optional helper line under the field label in the editor. */
   help?: string;
+  /** For type "select": the allowed values. First entry is the effective default. */
+  options?: { value: string; label: string }[];
   /**
    * Hands this field to a purpose-built list control in the admin editor. The
    * columns describe the pipe-separated fields on each line. Only text columns

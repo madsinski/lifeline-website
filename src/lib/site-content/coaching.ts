@@ -64,6 +64,8 @@ export const COACHING_FIELDS: SiteField[] = [
   // How it works
   { key: "how_title", label: "Fyrirsögn", group: G_HOW, type: "text" },
   { key: "how_subtitle", label: "Undirtexti", group: G_HOW, type: "text" },
+  { key: "how_device", label: "Tæki (sími/fartölva)", group: G_HOW, type: "select", options: [{ value: "phone", label: "Sími" }, { value: "laptop", label: "Fartölva" }] },
+  { key: "how_screenshot", label: "Skjámynd", group: G_HOW, type: "image" },
   ...[1, 2, 3, 4].flatMap((n) => [
     { key: `h${n}_title`, label: `Skref ${n} — titill`, group: G_HOW, type: "text" as const },
     { key: `h${n}_desc`, label: `Skref ${n} — texti`, group: G_HOW, type: "textarea" as const },
@@ -111,6 +113,8 @@ const COACHING_HREFS: LocaleContent = {
   download_ios_href: "#",
   download_android_href: "#",
   al_cta_href: "/assessment",
+  how_device: "phone",
+  how_screenshot: "/app-screenshot-coach-static.png",
 };
 
 // Icelandic defaults = what an Icelandic visitor sees today (keyed strings from
