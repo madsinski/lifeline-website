@@ -1,8 +1,9 @@
 import AssessmentView from "./AssessmentView";
+import { getPublishedBlob } from "@/lib/site-content/server";
 
-// CMS-driven: AssessmentView fetches the published content blob
-// (src/app/api/site-content/assessment) and falls back to the built-in defaults
-// in src/lib/site-content/assessment.ts. Edit it in /admin/website.
-export default function AssessmentPage() {
-  return <AssessmentView />;
+export const dynamic = "force-dynamic";
+
+export default async function AssessmentPage() {
+  const initialBlob = await getPublishedBlob("assessment");
+  return <AssessmentView initialBlob={initialBlob} />;
 }

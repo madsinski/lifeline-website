@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import InquiryForm from "./InquiryForm";
@@ -16,6 +16,8 @@ export interface BusinessViewProps {
   order?: string[];
   hidden?: string[];
   locale?: Locale;
+  /** Published blob loaded on the server (SSR), so no flash of defaults. */
+  initialBlob?: SiteContentBlob | null;
 }
 
 // Hero title: \n → line break; ==phrase== → blue→emerald gradient text.
@@ -309,16 +311,7 @@ export default function BusinessView(props: BusinessViewProps) {
   const controlled = props.c !== undefined;
   const signedIn = !!props.signedIn;
 
-  const [blob, setBlob] = useState<SiteContentBlob | null>(null);
-  useEffect(() => {
-    if (controlled) return;
-    let alive = true;
-    fetch("/api/site-content/business")
-      .then((r) => r.json())
-      .then((d) => { if (alive) setBlob((d?.published as SiteContentBlob) ?? null); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [controlled]);
+  const blob = props.initialBlob ?? null;
 
   const locale: Locale = controlled ? props.locale ?? "is" : i18nLocale;
   const c = useMemo(() => (controlled ? props.c! : resolveContent("business", blob, locale)), [controlled, props.c, blob, locale]);

@@ -1,8 +1,9 @@
 import ContactView from "./ContactView";
+import { getPublishedBlob } from "@/lib/site-content/server";
 
-// CMS-driven: ContactView fetches the published content blob
-// (src/app/api/site-content/contact) and falls back to the built-in defaults in
-// src/lib/site-content/contact.ts. The form still posts to /api/contact.
-export default function ContactPage() {
-  return <ContactView />;
+export const dynamic = "force-dynamic";
+
+export default async function ContactPage() {
+  const initialBlob = await getPublishedBlob("contact");
+  return <ContactView initialBlob={initialBlob} />;
 }

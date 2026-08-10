@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import DeviceMockup from "../components/DeviceMockup";
@@ -16,6 +16,8 @@ export interface CoachingViewProps {
   order?: string[];
   hidden?: string[];
   locale?: Locale;
+  /** Published blob loaded on the server (SSR), so no flash of defaults. */
+  initialBlob?: SiteContentBlob | null;
 }
 
 const whyStyles = [
@@ -346,16 +348,7 @@ export default function CoachingView(props: CoachingViewProps) {
   const { locale: i18nLocale } = useI18n();
   const controlled = props.c !== undefined;
 
-  const [blob, setBlob] = useState<SiteContentBlob | null>(null);
-  useEffect(() => {
-    if (controlled) return;
-    let alive = true;
-    fetch("/api/site-content/coaching")
-      .then((r) => r.json())
-      .then((d) => { if (alive) setBlob((d?.published as SiteContentBlob) ?? null); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [controlled]);
+  const blob = props.initialBlob ?? null;
 
   const locale: Locale = controlled ? props.locale ?? "is" : i18nLocale;
   const c = useMemo(
