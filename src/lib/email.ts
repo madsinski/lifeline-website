@@ -16,6 +16,8 @@ export interface SendEmailOptions {
   text?: string;
   cc?: string | string[];
   bcc?: string | string[];
+  /** Reply-To header — e.g. a contact-form submitter, so staff can reply directly. */
+  replyTo?: string;
   attachments?: EmailAttachment[];
 }
 
@@ -37,6 +39,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ ok: boolean; 
     };
     if (opts.cc) payload.cc = Array.isArray(opts.cc) ? opts.cc : [opts.cc];
     if (opts.bcc) payload.bcc = Array.isArray(opts.bcc) ? opts.bcc : [opts.bcc];
+    if (opts.replyTo) payload.reply_to = opts.replyTo;
     if (opts.attachments?.length) {
       payload.attachments = opts.attachments.map((a) => ({
         filename: a.filename,

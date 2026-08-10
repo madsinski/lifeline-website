@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isAnyActiveStaff, requireAdminAAL2 } from "@/lib/auth-helpers";
-import { getSitePage } from "@/lib/site-content/registry";
+import { isValidContentKey } from "@/lib/site-content/registry";
 
 export const runtime = "nodejs";
 
@@ -35,7 +35,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ page: strin
     return NextResponse.json({ ok: false, error: auth }, { status: auth === "unauthorized" ? 401 : 403 });
   }
   const { page } = await ctx.params;
-  if (!getSitePage(page)) {
+  if (!isValidContentKey(page)) {
     return NextResponse.json({ ok: false, error: "unknown_page" }, { status: 400 });
   }
 

@@ -77,7 +77,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ page: stri
   };
 
   for (const f of sitePage.fields) {
-    if (f.type === "image" || f.type === "internal") continue;
+    if (f.type === "image" || f.type === "link" || f.type === "internal") continue;
     const src = (fromMap[f.key]?.trim() || defaults[f.key] || "").toString();
     if (f.type === "list") {
       const rows = src.split("\n").map((l) => l.split("|").map((c) => c.trim()));

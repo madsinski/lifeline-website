@@ -74,6 +74,7 @@ export const COACHING_FIELDS: SiteField[] = [
   { key: "pricing_subtitle", label: "Undirtexti", group: G_PRICING, type: "text" },
   { key: "pricing_popular_badge", label: "Merki — vinsælast", group: G_PRICING, type: "text" },
   { key: "pricing_cta", label: "Hnappur", group: G_PRICING, type: "text" },
+  { key: "pricing_cta_href", label: "Hnappur — hlekkur", group: G_PRICING, type: "link" },
   { key: "pricing_free_label", label: "Verð — ókeypis", group: G_PRICING, type: "text" },
   { key: "pricing_soon_label", label: "Verð — væntanlegt", group: G_PRICING, type: "text" },
   ...[1, 2, 3].flatMap((n) => [
@@ -94,16 +95,28 @@ export const COACHING_FIELDS: SiteField[] = [
   // Download
   { key: "download_title", label: "Fyrirsögn", group: G_DOWNLOAD, type: "text" },
   { key: "download_desc", label: "Texti", group: G_DOWNLOAD, type: "textarea" },
+  { key: "download_ios_href", label: "App Store — hlekkur", group: G_DOWNLOAD, type: "link" },
+  { key: "download_android_href", label: "Google Play — hlekkur", group: G_DOWNLOAD, type: "link" },
 
   // Assessment link
   { key: "al_title", label: "Fyrirsögn", group: G_AL, type: "text" },
   { key: "al_desc", label: "Texti", group: G_AL, type: "textarea" },
   { key: "al_cta", label: "Hnappur", group: G_AL, type: "text" },
+  { key: "al_cta_href", label: "Hnappur — hlekkur", group: G_AL, type: "link" },
 ];
+
+// Button links (locale-independent) — spread into both default maps.
+const COACHING_HREFS: LocaleContent = {
+  pricing_cta_href: "/account/login",
+  download_ios_href: "#",
+  download_android_href: "#",
+  al_cta_href: "/assessment",
+};
 
 // Icelandic defaults = what an Icelandic visitor sees today (keyed strings from
 // the translations table; hard-coded blocks stay English until localised).
 export const COACHING_DEFAULTS_IS: LocaleContent = {
+  ...COACHING_HREFS,
   hero_title: "Daglegur heilsuþjálfari þinn",
   hero_subtitle:
     "Lifeline appið veitir persónulega dagþjálfun yfir fjórar stoðir heilsu. Byggt á heilsumatsniðurstöðum þínum, aðlagast þjálfunin eftir framförum.",
@@ -184,6 +197,7 @@ export const COACHING_DEFAULTS_IS: LocaleContent = {
 
 // English defaults = what an English visitor sees today.
 export const COACHING_DEFAULTS_EN: LocaleContent = {
+  ...COACHING_HREFS,
   hero_title: "Your daily health coach",
   hero_subtitle:
     "The Lifeline app delivers personalised daily coaching across four pillars of health. Built on your assessment results, it adapts as you improve.",

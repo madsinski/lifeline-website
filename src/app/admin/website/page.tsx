@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import NavbarEditor from "./NavbarEditor";
 
-// Website CMS index — the editable marketing pages. Batch 1: the home page.
-// About / coaching / assessment / contact are added here as their modules land.
+// Website CMS index — the editable marketing pages + the top-navbar manager.
 export default function WebsiteCmsPage() {
   const pages = [
     {
@@ -17,6 +17,12 @@ export default function WebsiteCmsPage() {
       label: "Þjálfun (Coaching)",
       desc: "Hetja, af hverju þjálfun, fjórar stoðir, dæmigerður dagur, áskriftir, samanburður, sækja appið.",
       path: "/coaching",
+    },
+    {
+      key: "assessment",
+      label: "Heilsumat (Assessment)",
+      desc: "Hetja, ferlið, niðurstöður, framvinda, pakkar, prófunarstaðir, algengar spurningar.",
+      path: "/assessment",
     },
   ];
 
@@ -41,7 +47,9 @@ export default function WebsiteCmsPage() {
         </a>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
+      {/* Pages */}
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Síður</h2>
+      <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 mb-8">
         {pages.map((p) => (
           <Link key={p.key} href={`/admin/website/${p.key}`} className="flex items-center gap-3 p-4 hover:bg-gray-50">
             <svg className="w-5 h-5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -54,6 +62,16 @@ export default function WebsiteCmsPage() {
             <code className="ml-auto shrink-0 text-[11px] text-gray-400">{p.path}</code>
           </Link>
         ))}
+      </div>
+
+      {/* Top navbar manager */}
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Efsta valmynd</h2>
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <p className="text-sm text-gray-600 mb-4">
+          Raðaðu hlekkjunum í efstu valmyndinni og feldu þá sem eiga ekki að birtast. Á við bæði tölvu- og
+          farsímaútgáfuna.
+        </p>
+        <NavbarEditor />
       </div>
     </div>
   );

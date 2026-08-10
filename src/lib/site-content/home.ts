@@ -35,7 +35,9 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "hero_title", label: "Fyrirsögn", group: G_HERO, type: "heading" },
   { key: "hero_subtitle", label: "Undirtexti", group: G_HERO, type: "textarea" },
   { key: "hero_cta_signup", label: "Hnappur 1 (skráning)", group: G_HERO, type: "text" },
+  { key: "hero_cta_signup_href", label: "Hnappur 1 — hlekkur", group: G_HERO, type: "link" },
   { key: "hero_cta_app", label: "Hnappur 2 (app)", group: G_HERO, type: "text" },
+  { key: "hero_cta_app_href", label: "Hnappur 2 — hlekkur", group: G_HERO, type: "link" },
 
   // ── How it works ────────────────────────────────────────────────────────
   { key: "how_title", label: "Fyrirsögn", group: G_HOW, type: "text" },
@@ -82,6 +84,7 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "assess_medalia_title", label: "Medalia — titill", group: G_ASSESS, type: "text" },
   { key: "assess_medalia_desc", label: "Medalia — texti", group: G_ASSESS, type: "textarea" },
   { key: "assess_medalia_cta", label: "Medalia — hnappur", group: G_ASSESS, type: "text" },
+  { key: "assess_medalia_cta_href", label: "Medalia — hnappur hlekkur", group: G_ASSESS, type: "link" },
 
   // ── The app ─────────────────────────────────────────────────────────────────
   { key: "app_label", label: "Yfirtexti", group: G_APP, type: "text" },
@@ -96,7 +99,9 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "app_f4_title", label: "Eiginleiki 4 — titill", group: G_APP, type: "text" },
   { key: "app_f4_desc", label: "Eiginleiki 4 — texti", group: G_APP, type: "textarea" },
   { key: "app_cta_app", label: "Hnappur 1", group: G_APP, type: "text" },
+  { key: "app_cta_app_href", label: "Hnappur 1 — hlekkur", group: G_APP, type: "link" },
   { key: "app_cta_coaching", label: "Hnappur 2", group: G_APP, type: "text" },
+  { key: "app_cta_coaching_href", label: "Hnappur 2 — hlekkur", group: G_APP, type: "link" },
 
   // ── Team ────────────────────────────────────────────────────────────────────
   { key: "team_kicker", label: "Yfirtexti", group: G_TEAM, type: "text" },
@@ -137,11 +142,26 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "cta_title", label: "Fyrirsögn", group: G_CTA, type: "text" },
   { key: "cta_desc", label: "Texti", group: G_CTA, type: "textarea" },
   { key: "cta_signup", label: "Hnappur 1 (skráning)", group: G_CTA, type: "text" },
+  { key: "cta_signup_href", label: "Hnappur 1 — hlekkur", group: G_CTA, type: "link" },
   { key: "cta_app", label: "Hnappur 2 (app)", group: G_CTA, type: "text" },
+  { key: "cta_app_href", label: "Hnappur 2 — hlekkur", group: G_CTA, type: "link" },
 ];
+
+// Button links (locale-independent). Spread into both locale default maps so a
+// link resolves the same in every language and is never sent to the translator.
+const HOME_HREFS: LocaleContent = {
+  hero_cta_signup_href: "/account/login?mode=signup",
+  hero_cta_app_href: "/coaching#download",
+  assess_medalia_cta_href: "/assessment",
+  app_cta_app_href: "/coaching#download",
+  app_cta_coaching_href: "/coaching",
+  cta_signup_href: "/account/login?mode=signup",
+  cta_app_href: "/coaching#download",
+};
 
 // Icelandic defaults = what an Icelandic visitor sees today.
 export const HOME_DEFAULTS_IS: LocaleContent = {
+  ...HOME_HREFS,
   hero_title: "Taktu stjórnina á heilsu þinni",
   hero_subtitle:
     "Lifeline Health sameinar markviss heilsumat og persónulega dagþjálfun. Þekktu tölurnar þínar, byggðu betri venjur, fylgstu með framförum.",
@@ -246,6 +266,7 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
 
 // English defaults = what an English visitor sees today.
 export const HOME_DEFAULTS_EN: LocaleContent = {
+  ...HOME_HREFS,
   hero_title: "Take control of your health",
   hero_subtitle:
     "Lifeline Health combines targeted health assessments with personalised daily coaching. Know your numbers, build better habits, track your progress.",

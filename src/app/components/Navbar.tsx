@@ -6,22 +6,27 @@ import { usePathname } from "next/navigation";
 import LifelineLogo from "./LifelineLogo";
 import { supabase } from "@/lib/supabase";
 import { LanguagePicker, useI18n } from "@/lib/i18n";
-
-const navLinkDefs = [
-  { href: "/assessment", key: "nav.assessment", fallback: "Assessment" },
-  { href: "/coaching", key: "nav.coaching", fallback: "Coaching" },
-  // Pricing hidden until plans are finalised — /pricing renders a
-  // coming-soon placeholder, but we don't surface it in the nav.
-  { href: "/business", key: "nav.companies", fallback: "Companies" },
-  { href: "/contact", key: "nav.contact", fallback: "Contact" },
-];
+import { NAV_ITEMS, resolveNav } from "@/lib/site-content/nav";
+import type { SiteContentBlob } from "@/lib/site-content/types";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [navItems, setNavItems] = useState(NAV_ITEMS);
   const pathname = usePathname();
   const { t } = useI18n();
+
+  // Apply the CMS navbar config (order + visibility). Defaults to the built-in
+  // NAV_ITEMS until the published config loads, so nothing flashes or breaks.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/site-content/nav")
+      .then((r) => r.json())
+      .then((d) => { if (alive) setNavItems(resolveNav((d?.published as SiteContentBlob) ?? null)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -117,7 +122,7 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden lg:flex items-center gap-5 xl:gap-7 flex-nowrap">
-            {navLinkDefs.map((link) => {
+            {navItems.map((link) => {
               const isActive =
                 link.href === "/"
                   ? pathname === "/"
@@ -215,7 +220,7 @@ export default function Navbar() {
         />
         <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '320px', maxWidth: '85vw', backgroundColor: '#ffffff', zIndex: 10, boxShadow: '-4px 0 24px rgba(0,0,0,0.15)', borderLeft: '1px solid #e5e7eb' }}>
           <div className="px-6 py-6 space-y-2">
-            {navLinkDefs.map((link) => {
+            {navItems.map((link) => {
               const isActive =
                 link.href === "/"
                   ? pathname === "/"

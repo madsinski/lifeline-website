@@ -11,13 +11,34 @@ export default function ContactPage() {
     email: "",
     subject: "",
     message: "",
+    company: "", // honeypot — real users leave this empty
   });
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    setError(null);
+    setSending(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(j.error || t("contact.form.error", "Could not send your message. Please try again."));
+        return;
+      }
+      setSubmitted(true);
+      setFormData({ name: "", email: "", subject: "", message: "", company: "" });
+    } catch {
+      setError(t("contact.form.error", "Could not send your message. Please try again."));
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -145,11 +166,29 @@ export default function ContactPage() {
                       required
                     />
                   </div>
+                  {/* Honeypot — visually hidden, ignored by real users */}
+                  <div aria-hidden className="hidden">
+                    <label htmlFor="company">Company</label>
+                    <input
+                      type="text"
+                      id="company"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={formData.company}
+                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    />
+                  </div>
+                  {error && (
+                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                      {error}
+                    </p>
+                  )}
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-8 py-3.5 bg-[#10B981] text-white font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+                    disabled={sending}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-[#10B981] text-white font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Send Message
+                    {sending ? t("contact.form.sending", "Sending…") : t("contact.form.submit", "Send Message")}
                   </button>
                 </form>
               )}

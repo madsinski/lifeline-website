@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import HomeView from "@/app/HomeView";
 import CoachingView from "@/app/coaching/CoachingView";
+import AssessmentView from "@/app/assessment/AssessmentView";
 import { getSitePage, resolveContent, resolveSections } from "@/lib/site-content/registry";
 import type { Locale, SiteContentBlob, SiteField } from "@/lib/site-content/types";
 
@@ -20,6 +21,9 @@ function Preview({ pageKey, blob, locale }: { pageKey: string; blob: SiteContent
   }
   if (pageKey === "coaching") {
     return <CoachingView c={c} order={order} hidden={blob.hidden ?? []} locale={locale} />;
+  }
+  if (pageKey === "assessment") {
+    return <AssessmentView c={c} order={order} hidden={blob.hidden ?? []} locale={locale} />;
   }
   return null;
 }
@@ -395,12 +399,12 @@ export default function SiteContentEditor() {
                         disabled={!isAdmin}
                         onChange={(ni, ne) => setListField(f.key, ni, ne)}
                       />
-                    ) : f.type === "image" ? (
+                    ) : f.type === "image" || f.type === "link" ? (
                       <input
                         value={draft.is?.[f.key] ?? ""}
                         disabled={!isAdmin}
                         onChange={(e) => setField("is", f.key, e.target.value)}
-                        placeholder={page.defaultsIs[f.key] || "/mynd.png eða https://…"}
+                        placeholder={page.defaultsIs[f.key] || (f.type === "link" ? "https://… eða /slod eða #kafli" : "/mynd.png eða https://…")}
                         className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-200 outline-none disabled:bg-gray-50"
                       />
                     ) : (

@@ -16,6 +16,7 @@ import {
 } from "./types";
 import { HOME_FIELDS, HOME_SECTIONS, HOME_DEFAULTS_IS, HOME_DEFAULTS_EN } from "./home";
 import { COACHING_FIELDS, COACHING_SECTIONS, COACHING_DEFAULTS_IS, COACHING_DEFAULTS_EN } from "./coaching";
+import { ASSESSMENT_FIELDS, ASSESSMENT_SECTIONS, ASSESSMENT_DEFAULTS_IS, ASSESSMENT_DEFAULTS_EN } from "./assessment";
 
 export interface SitePage {
   key: string;
@@ -51,10 +52,27 @@ export const SITE_PAGES: SitePage[] = [
     defaultsIs: COACHING_DEFAULTS_IS,
     defaultsEn: COACHING_DEFAULTS_EN,
   },
+  {
+    key: "assessment",
+    label: "Heilsumat (Assessment)",
+    desc: "Hetja, ferlið, niðurstöður, framvinda, pakkar, prófunarstaðir, algengar spurningar.",
+    path: "/assessment",
+    fields: ASSESSMENT_FIELDS,
+    sections: ASSESSMENT_SECTIONS,
+    defaultsIs: ASSESSMENT_DEFAULTS_IS,
+    defaultsEn: ASSESSMENT_DEFAULTS_EN,
+  },
 ];
 
 export function getSitePage(key: string): SitePage | undefined {
   return SITE_PAGES.find((p) => p.key === key);
+}
+
+// Content keys the CMS API accepts. Besides the registered pages, "nav" holds
+// the top-navbar order/visibility config (see lib/site-content/nav.ts) — it has
+// no field model, just {order, hidden}.
+export function isValidContentKey(key: string): boolean {
+  return !!getSitePage(key) || key === "nav";
 }
 
 /** Resolve a stored blob for any registered page key into a flat locale map. */

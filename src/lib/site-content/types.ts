@@ -15,6 +15,7 @@ export type FieldType =
   | "heading"   // single-line, supports ==word== emerald highlighting
   | "list"      // pipe/newline-structured collection, edited by a custom control
   | "image"     // value is an image URL/path; one locale-independent value
+  | "link"      // a URL / internal path / #anchor; locale-independent, not translated
   | "internal"; // bookkeeping owned by a custom editor: never auto-rendered
 
 export interface SiteField {
