@@ -37,7 +37,7 @@ interface GroupMember {
 interface CompanyOpt { id: string; name: string }
 
 export default function AccessAdminPage() {
-  const [tab, setTab] = useState<"grants" | "tokens" | "groups">("grants");
+  const [tab, setTab] = useState<"grants" | "tokens" | "groups" | "availability">("grants");
 
   return (
     <div>
@@ -48,12 +48,12 @@ export default function AccessAdminPage() {
           groups, or one-off shareable links.
         </p>
         <div className="flex gap-1 border-b border-gray-200">
-          {(["grants", "tokens", "groups"] as const).map((t) => (
+          {(["grants", "tokens", "groups", "availability"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
                 tab === t ? "border-emerald-600 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700"
               }`}>
-              {t === "grants" ? "Grants" : t === "tokens" ? "Invite tokens" : "Groups"}
+              {t === "grants" ? "Grants" : t === "tokens" ? "Invite tokens" : t === "groups" ? "Groups" : "Account types"}
             </button>
           ))}
         </div>
@@ -61,6 +61,73 @@ export default function AccessAdminPage() {
       {tab === "grants" && <GrantsTab />}
       {tab === "tokens" && <TokensTab />}
       {tab === "groups" && <GroupsTab />}
+      {tab === "availability" && <AvailabilityTab />}
+    </div>
+  );
+}
+
+// ─── ACCOUNT TYPE AVAILABILITY ──────────────────────────────────
+function AvailabilityTab() {
+  const [avail, setAvail] = useState<{ personal: boolean; business: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/account-availability").then((r) => r.json()).then((d) =>
+      setAvail({ personal: d.personal !== false, business: d.business !== false }),
+    ).catch(() => setAvail({ personal: true, business: true }));
+  }, []);
+
+  const toggle = async (key: "personal" | "business", next: boolean) => {
+    if (!avail) return;
+    setBusy(true);
+    setMsg(null);
+    setAvail({ ...avail, [key]: next });
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch("/api/admin/account-availability", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ [key]: next }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setAvail({ ...avail }); // revert
+      setMsg("Ekki tókst að vista. Þarft að vera stjórnandi (MFA).");
+    } else {
+      setMsg("Vistað.");
+      setTimeout(() => setMsg(null), 2000);
+    }
+  };
+
+  if (!avail) return <div className="px-8 py-6 text-sm text-gray-500">Hleð…</div>;
+
+  const rows: { k: "personal" | "business"; title: string; desc: string }[] = [
+    { k: "personal", title: "Persónulegur reikningur", desc: "Sýna „Personal“ valkostinn á innskráningu (/account)." },
+    { k: "business", title: "Fyrirtækjareikningur", desc: "Sýna „Business“ valkostinn á innskráningu (/business)." },
+  ];
+
+  return (
+    <div className="px-8 py-6 max-w-2xl space-y-3">
+      <p className="text-sm text-gray-500">Slökktu á reikningstegund til að fela hana á innskráningarskjánum. Beinir hlekkir og núverandi notendur virka áfram.</p>
+      {rows.map((r) => (
+        <div key={r.k} className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4">
+          <div>
+            <div className="font-medium text-gray-900">{r.title}</div>
+            <div className="text-sm text-gray-500">{r.desc}</div>
+          </div>
+          <button
+            onClick={() => toggle(r.k, !avail[r.k])}
+            disabled={busy}
+            className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${avail[r.k] ? "bg-emerald-600" : "bg-gray-300"}`}
+            aria-pressed={avail[r.k]}
+            aria-label={`${r.title} ${avail[r.k] ? "virkt" : "óvirkt"}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${avail[r.k] ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
+      ))}
+      {msg && <p className="text-sm text-emerald-700">{msg}</p>}
     </div>
   );
 }
