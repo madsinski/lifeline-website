@@ -8,6 +8,7 @@ import TeamCircles from "./components/TeamCircles";
 import WaveSeparator from "./components/WaveSeparator";
 import WhatsNew from "./components/WhatsNew";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
+import { layoutBands } from "@/lib/site-content/layout";
 import { parseListField } from "@/lib/site-content/home";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
 
@@ -324,8 +325,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
   }
 }
 
-const DARK_BG = "#111827";
-const lightBg = (i: number) => (i % 2 === 0 ? "#ffffff" : "#ecf0f3");
+const DARK_IDS = new Set(["cta"]);
 
 export default function HomeView(props: HomeViewProps) {
   const { locale: i18nLocale } = useI18n();
@@ -355,12 +355,6 @@ export default function HomeView(props: HomeViewProps) {
 
   const visible = order.filter((id) => !hidden.has(id));
 
-  // Hero (structural, always first). Bands then alternate white / #ecf0f3 with
-  // wave separators between colour changes; the CTA band is always dark and gets
-  // no separator before it.
-  let prevBg = "#ecf0f3";
-  let lightIdx = 0;
-
   return (
     <div>
       {/* Hero */}
@@ -378,22 +372,12 @@ export default function HomeView(props: HomeViewProps) {
         </div>
       </section>
 
-      {visible.map((id) => {
-        if (id === "cta") {
-          const node = <Fragment key={id}>{renderBand(id, c, DARK_BG)}</Fragment>;
-          prevBg = DARK_BG;
-          return node;
-        }
-        const bg = lightBg(lightIdx++);
-        const wave = prevBg !== bg ? <WaveSeparator from={prevBg} to={bg} /> : null;
-        prevBg = bg;
-        return (
-          <Fragment key={id}>
-            {wave}
-            {renderBand(id, c, bg)}
-          </Fragment>
-        );
-      })}
+      {layoutBands(visible, DARK_IDS).map((b) => (
+        <Fragment key={b.id}>
+          {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
+          {renderBand(b.id, c, b.bg)}
+        </Fragment>
+      ))}
     </div>
   );
 }

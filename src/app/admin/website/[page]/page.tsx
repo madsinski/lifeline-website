@@ -10,6 +10,7 @@ import CoachingView from "@/app/coaching/CoachingView";
 import AssessmentView from "@/app/assessment/AssessmentView";
 import BusinessView from "@/app/business/BusinessView";
 import ContactView from "@/app/contact/ContactView";
+import ImageUploadCrop from "../ImageUploadCrop";
 import { getSitePage, resolveContent, resolveSections } from "@/lib/site-content/registry";
 import type { Locale, SiteContentBlob, SiteField } from "@/lib/site-content/types";
 
@@ -236,6 +237,14 @@ export default function SiteContentEditor() {
   const setField = (locale: Locale, key: string, value: string) => {
     setDraft((prev) => ({ ...prev, [locale]: { ...(prev[locale] ?? {}), [key]: value } }));
   };
+  // Crop aspect for a mockup screenshot field: follows the sibling device
+  // selector (phone = tall, laptop = 16:10) so the crop matches the frame.
+  const imageAspect = (key: string): number => {
+    const deviceKey = key.replace(/_screenshot$/, "_device");
+    const device = draft.is?.[deviceKey] ?? page?.defaultsIs[deviceKey];
+    return device === "laptop" ? 16 / 10 : 1440 / 2988;
+  };
+
   const setListField = (key: string, nextIs: string, nextEn: string) => {
     setDraft((prev) => ({
       ...prev,
@@ -420,12 +429,20 @@ export default function SiteContentEditor() {
                           <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                       </select>
-                    ) : f.type === "image" || f.type === "link" ? (
+                    ) : f.type === "image" ? (
+                      <ImageUploadCrop
+                        value={draft.is?.[f.key] ?? ""}
+                        fallback={page.defaultsIs[f.key] ?? ""}
+                        aspect={imageAspect(f.key)}
+                        disabled={!isAdmin}
+                        onChange={(v) => setField("is", f.key, v)}
+                      />
+                    ) : f.type === "link" ? (
                       <input
                         value={draft.is?.[f.key] ?? ""}
                         disabled={!isAdmin}
                         onChange={(e) => setField("is", f.key, e.target.value)}
-                        placeholder={page.defaultsIs[f.key] || (f.type === "link" ? "https://… eða /slod eða #kafli" : "/mynd.png eða https://…")}
+                        placeholder={page.defaultsIs[f.key] || "https://… eða /slod eða #kafli"}
                         className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-200 outline-none disabled:bg-gray-50"
                       />
                     ) : (

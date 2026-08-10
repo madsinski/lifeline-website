@@ -7,6 +7,7 @@ import DeviceMockup from "../components/DeviceMockup";
 import WaveSeparator from "../components/WaveSeparator";
 import { ExerciseIcon, NutritionIcon, SleepIcon, MentalIcon, PillarCircle } from "../components/PillarIcons";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
+import { layoutBands } from "@/lib/site-content/layout";
 import { parseListField } from "@/lib/site-content/home";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
 
@@ -339,9 +340,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
   }
 }
 
-const DARK_BG = "#111827";
-const lightBg = (i: number) => (i % 2 === 0 ? "#ffffff" : "#ecf0f3");
-const isDarkBand = (id: string) => id === "download";
+const DARK_IDS = new Set(["download"]);
 
 export default function CoachingView(props: CoachingViewProps) {
   const { locale: i18nLocale } = useI18n();
@@ -371,9 +370,6 @@ export default function CoachingView(props: CoachingViewProps) {
 
   const visible = order.filter((id) => !hidden.has(id));
 
-  let prevBg = "#ecf0f3";
-  let lightIdx = 0;
-
   return (
     <div>
       {/* Hero (structural, always first) */}
@@ -386,24 +382,12 @@ export default function CoachingView(props: CoachingViewProps) {
         </div>
       </section>
 
-      {visible.map((id) => {
-        if (isDarkBand(id)) {
-          const node = <Fragment key={id}>{renderBand(id, c, DARK_BG)}</Fragment>;
-          prevBg = DARK_BG;
-          return node;
-        }
-        const bg = lightBg(lightIdx++);
-        // Wave only between two light bands whose colour changes — never touching
-        // the dark download band or the hero gradient.
-        const wave = prevBg !== DARK_BG && prevBg !== bg ? <WaveSeparator from={prevBg} to={bg} /> : null;
-        prevBg = bg;
-        return (
-          <Fragment key={id}>
-            {wave}
-            {renderBand(id, c, bg)}
-          </Fragment>
-        );
-      })}
+      {layoutBands(visible, DARK_IDS).map((b) => (
+        <Fragment key={b.id}>
+          {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
+          {renderBand(b.id, c, b.bg)}
+        </Fragment>
+      ))}
     </div>
   );
 }

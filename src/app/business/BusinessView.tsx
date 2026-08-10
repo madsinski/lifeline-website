@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import InquiryForm from "./InquiryForm";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
+import { layoutBands } from "@/lib/site-content/layout";
 import { parseListField } from "@/lib/site-content/home";
+import WaveSeparator from "../components/WaveSeparator";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
 
 export interface BusinessViewProps {
@@ -63,11 +65,11 @@ const bangIcons = [
   <svg key="b" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
 ];
 
-function renderBand(id: string, c: LocaleContent): ReactNode {
+function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
   switch (id) {
     case "why":
       return (
-        <section className="py-20 sm:py-24">
+        <section className="py-20 sm:py-24" style={{ backgroundColor: bg }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] tracking-tight">{c.why_title}</h2>
@@ -88,7 +90,7 @@ function renderBand(id: string, c: LocaleContent): ReactNode {
 
     case "how":
       return (
-        <section className="py-20 sm:py-24 bg-[#f8fafc]">
+        <section className="py-20 sm:py-24" style={{ backgroundColor: bg }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mb-12">
               <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-2">{c.how_kicker}</div>
@@ -110,7 +112,7 @@ function renderBand(id: string, c: LocaleContent): ReactNode {
 
     case "method":
       return (
-        <section className="py-20 sm:py-24 bg-gradient-to-b from-white to-[#f0fdf4]">
+        <section className="py-20 sm:py-24" style={{ backgroundColor: bg }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mb-10">
               <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-2">{c.method_kicker}</div>
@@ -139,7 +141,7 @@ function renderBand(id: string, c: LocaleContent): ReactNode {
     case "packages": {
       const tiers = parseListField(c.coach_tiers).map(([label = "", sub = ""]) => ({ label, sub }));
       return (
-        <section className="py-20 sm:py-24">
+        <section className="py-20 sm:py-24" style={{ backgroundColor: bg }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mb-12">
               <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-2">{c.packages_kicker}</div>
@@ -238,7 +240,7 @@ function renderBand(id: string, c: LocaleContent): ReactNode {
     case "inquiry": {
       const bullets = parseListField(c.inquiry_bullets).map((r) => r[0]);
       return (
-        <section id="inquiry" className="py-20 sm:py-24">
+        <section id="inquiry" className="py-20 sm:py-24" style={{ backgroundColor: bg }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
               <div className="lg:col-span-2">
@@ -272,7 +274,7 @@ function renderBand(id: string, c: LocaleContent): ReactNode {
 
     case "faq":
       return (
-        <section className="py-20 sm:py-24 bg-[#f8fafc]">
+        <section className="py-20 sm:py-24" style={{ backgroundColor: bg }}>
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-2">{c.faq_kicker}</div>
             <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] tracking-tight">{c.faq_title}</h2>
@@ -299,6 +301,8 @@ function renderBand(id: string, c: LocaleContent): ReactNode {
       return null;
   }
 }
+
+const DARK_IDS = new Set(["bang"]);
 
 export default function BusinessView(props: BusinessViewProps) {
   const { locale: i18nLocale } = useI18n();
@@ -363,8 +367,11 @@ export default function BusinessView(props: BusinessViewProps) {
         </div>
       </section>
 
-      {visible.map((id) => (
-        <Fragment key={id}>{renderBand(id, c)}</Fragment>
+      {layoutBands(visible, DARK_IDS).map((b) => (
+        <Fragment key={b.id}>
+          {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
+          {renderBand(b.id, c, b.bg)}
+        </Fragment>
       ))}
     </main>
   );

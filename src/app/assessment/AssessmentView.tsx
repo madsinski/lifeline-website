@@ -8,7 +8,7 @@ import WaveSeparator from "../components/WaveSeparator";
 import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
 import { parseListField } from "@/lib/site-content/home";
-import { ASSESSMENT_BG } from "@/lib/site-content/assessment";
+import { layoutBands } from "@/lib/site-content/layout";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
 
 export interface AssessmentViewProps {
@@ -17,9 +17,6 @@ export interface AssessmentViewProps {
   hidden?: string[];
   locale?: Locale;
 }
-
-const GREY = "#ecf0f3";
-const DARK = "#111827";
 
 // Emerald ==word== highlight for heading fields.
 function Highlight({ text }: { text: string }) {
@@ -332,33 +329,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
   }
 }
 
-const bgColor = (kind: "white" | "grey" | "dark") => (kind === "white" ? "#ffffff" : kind === "grey" ? GREY : DARK);
-
-// Build the ordered bands with alternating backgrounds + wave separators.
-// Kept out of the component's render scope so the running `prevBg` accumulator
-// isn't a render-time reassignment (React Compiler immutability rule).
-function layoutBands(visible: string[], c: LocaleContent): ReactNode[] {
-  const out: ReactNode[] = [];
-  let prevBg = GREY; // hero gradient ends grey
-  for (const id of visible) {
-    const kind = ASSESSMENT_BG[id] ?? "white";
-    const bg = bgColor(kind);
-    if (kind === "dark") {
-      out.push(<Fragment key={id}>{renderBand(id, c, bg)}</Fragment>);
-      prevBg = bg;
-      continue;
-    }
-    const wave = prevBg !== DARK && prevBg !== bg ? <WaveSeparator from={prevBg} to={bg} /> : null;
-    prevBg = bg;
-    out.push(
-      <Fragment key={id}>
-        {wave}
-        {renderBand(id, c, bg)}
-      </Fragment>,
-    );
-  }
-  return out;
-}
+const DARK_IDS = new Set(["cta"]);
 
 export default function AssessmentView(props: AssessmentViewProps) {
   const { locale: i18nLocale } = useI18n();
@@ -397,7 +368,12 @@ export default function AssessmentView(props: AssessmentViewProps) {
         </div>
       </section>
 
-      {layoutBands(visible, c)}
+      {layoutBands(visible, DARK_IDS).map((b) => (
+        <Fragment key={b.id}>
+          {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
+          {renderBand(b.id, c, b.bg)}
+        </Fragment>
+      ))}
     </div>
   );
 }
