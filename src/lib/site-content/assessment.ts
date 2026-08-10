@@ -8,6 +8,7 @@
 import type { SiteField, SiteSection, LocaleContent } from "./types";
 
 export const ASSESSMENT_SECTIONS: SiteSection[] = [
+  { id: "overview", label: "Hvað er mælt" },
   { id: "process", label: "Ferlið" },
   { id: "results", label: "Niðurstöður útskýrðar" },
   { id: "track", label: "Fylgstu með framvindu" },
@@ -17,6 +18,8 @@ export const ASSESSMENT_SECTIONS: SiteSection[] = [
   { id: "cta", label: "Ákall til aðgerða" },
 ];
 
+// (ASSESSMENT_BG is retained for reference only; backgrounds now come from the
+// shared layoutBands engine.)
 // Declared background per band (matches the current page exactly); on reorder,
 // a wave separator is inserted only between adjacent light bands of differing
 // colour. "grey" = #ecf0f3.
@@ -31,6 +34,7 @@ export const ASSESSMENT_BG: Record<string, "white" | "grey" | "dark"> = {
 };
 
 const G_HERO = "Hetja (efst)";
+const G_OVERVIEW = "Hvað er mælt";
 const G_PROCESS = "Ferlið";
 const G_RESULTS = "Niðurstöður útskýrðar";
 const G_TRACK = "Fylgstu með framvindu";
@@ -48,6 +52,22 @@ export const ASSESSMENT_FIELDS: SiteField[] = [
   { key: "hero_subtitle", label: "Undirtexti", group: G_HERO, type: "textarea" },
   { key: "hero_cta", label: "Hnappur", group: G_HERO, type: "text" },
   { key: "hero_cta_href", label: "Hnappur — hlekkur", group: G_HERO, type: "link" },
+
+  // Overview (what is measured) — moved here from the home page
+  { key: "overview_title", label: "Fyrirsögn", group: G_OVERVIEW, type: "text" },
+  { key: "overview_subtitle", label: "Undirtexti", group: G_OVERVIEW, type: "text" },
+  { key: "overview_c1_title", label: "Spjald 1 — titill", group: G_OVERVIEW, type: "text" },
+  { key: "overview_c1_desc", label: "Spjald 1 — texti", group: G_OVERVIEW, type: "textarea" },
+  { key: "overview_c2_title", label: "Spjald 2 — titill", group: G_OVERVIEW, type: "text" },
+  { key: "overview_c2_desc", label: "Spjald 2 — texti", group: G_OVERVIEW, type: "textarea" },
+  { key: "overview_c3_title", label: "Spjald 3 — titill", group: G_OVERVIEW, type: "text" },
+  { key: "overview_c3_desc", label: "Spjald 3 — texti", group: G_OVERVIEW, type: "textarea" },
+  { key: "overview_c4_title", label: "Spjald 4 — titill", group: G_OVERVIEW, type: "text" },
+  { key: "overview_c4_desc", label: "Spjald 4 — texti", group: G_OVERVIEW, type: "textarea" },
+  { key: "overview_medalia_title", label: "Medalia — titill", group: G_OVERVIEW, type: "text" },
+  { key: "overview_medalia_desc", label: "Medalia — texti", group: G_OVERVIEW, type: "textarea" },
+  { key: "overview_medalia_cta", label: "Medalia — hnappur", group: G_OVERVIEW, type: "text" },
+  { key: "overview_medalia_cta_href", label: "Medalia — hnappur hlekkur", group: G_OVERVIEW, type: "link" },
 
   // Process
   { key: "process_title", label: "Fyrirsögn", group: G_PROCESS, type: "text" },
@@ -120,6 +140,7 @@ export const ASSESSMENT_FIELDS: SiteField[] = [
 const SHARED = {
   hero_cta: "Create your Lifeline account",
   hero_cta_href: "/account/login?mode=signup",
+  overview_medalia_cta_href: "/account/login?mode=signup",
   packages_cta_href: "/account/login?mode=signup",
   cta_button_href: "/account/login?mode=signup",
   results_device: "phone",
@@ -189,6 +210,20 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   hero_subtitle: "Fáðu heilsugögnin sem skipta mestu máli. Markvissir skoðunarpakkar okkar beinast að efnaskiptaþáttum sem skila raunverulegum breytingum — engar óþarfa rannsóknir, hámarks verðgildi.",
   hero_cta: "Stofnaðu Lifeline-aðgang",
 
+  overview_title: "Heilsumatið þitt",
+  overview_subtitle: "Markviss skoðun sem beinist að því sem skiptir mestu máli",
+  overview_c1_title: "Greining á líkamssamsetningu",
+  overview_c1_desc: "Nákvæm mæling á líkamssamsetningu — vöðvamassa, fitu, vökvajafnvægi og fleira. Miklu ítarlegri en það sem vigt getur sagt þér.",
+  overview_c2_title: "Markviss blóðprufupakki",
+  overview_c2_desc: "Við mælum þá þætti sem skipta máli fyrir efnaskiptaheilsu — engar óþarfa rannsóknir. Hámarksinnsýn fyrir besta verðið.",
+  overview_c3_title: "Heilsuskýrsla yfirfarin af lækni",
+  overview_c3_desc: "Lifeline-læknir fer yfir niðurstöðurnar þínar og útbýr persónulega skýrslu með heilsueinkunn og hagnýtum ráðleggingum.",
+  overview_c4_title: "Persónuleg ráðgjöf",
+  overview_c4_desc: "Hittu lækninn þinn í eigin persónu eða í fjarfundi til að fara yfir niðurstöðurnar, spyrja spurninga og fá persónulegar ráðleggingar.",
+  overview_medalia_title: "Geymt á öruggan hátt í Medalia",
+  overview_medalia_desc: "Öll heilsugögnin þín — niðurstöður heilsumats, blóðprufur og spurningalistar — eru geymd á öruggan hátt í persónulegu sjúklingagáttinni þinni sem knúin er af Medalia.is.",
+  overview_medalia_cta: "Stofna Lifeline-aðgang",
+
   process_title: "Heilsumatsferlið",
   process_subtitle: "Frá bókun til persónulegra ráðlegginga",
   s1_title: "Bókaðu heilsumatið þitt", s1_desc: "Opnaðu sjúklingagáttina og veldu Grunnstoð heilsu eða Endurmat. Veldu tíma sem hentar þér.",
@@ -257,6 +292,21 @@ export const ASSESSMENT_DEFAULTS_EN: LocaleContent = {
   ...SHARED,
   hero_title: "Health Assessment",
   hero_subtitle: "Get the health data that matters most. Our targeted screening packages focus on metabolic health markers that drive real change — no unnecessary tests, maximum value.",
+
+  overview_title: "Your health assessment",
+  overview_subtitle: "Targeted screening focused on what matters most",
+  overview_c1_title: "Body composition analysis",
+  overview_c1_desc: "Clinical-accuracy body composition measurement — muscle mass, body fat, water balance and more. Far beyond what a scale can tell you.",
+  overview_c2_title: "Targeted blood panel",
+  overview_c2_desc: "We test the markers that matter for metabolic health — no unnecessary tests. Maximum insight, best value.",
+  overview_c3_title: "Doctor-reviewed health report",
+  overview_c3_desc: "A Lifeline physician reviews your results and prepares a personalised report with your health score and actionable recommendations.",
+  overview_c4_title: "Personal consultation",
+  overview_c4_desc: "Meet with your doctor in-person or over video to discuss your findings, ask questions, and get personalised recommendations.",
+  overview_medalia_title: "Securely stored in Medalia",
+  overview_medalia_desc: "All your health data, assessment results, blood tests and questionnaires are stored securely in your personal patient portal powered by Medalia.is.",
+  overview_medalia_cta: "Create your Lifeline account",
+
   process_title: "The assessment process",
   process_subtitle: "From booking to personalised recommendations",
   packages_title: "Assessment Packages",

@@ -13,8 +13,9 @@ import type { SiteField, SiteSection, LocaleContent } from "./types";
 export const HOME_SECTIONS: SiteSection[] = [
   { id: "whatsnew", label: "Það nýjasta" },
   { id: "how", label: "Hvernig það virkar" },
+  { id: "einstaklingar", label: "Fyrir einstaklinga" },
+  { id: "fyrirtaeki", label: "Fyrir fyrirtæki" },
   { id: "method", label: "Af hverju Lifeline" },
-  { id: "assessment", label: "Heilsumat" },
   { id: "app", label: "Appið" },
   { id: "team", label: "Teymið" },
   { id: "partners", label: "Samstarfsaðilar" },
@@ -23,8 +24,9 @@ export const HOME_SECTIONS: SiteSection[] = [
 
 const G_HERO = "Hetja (efst)";
 const G_HOW = "Hvernig það virkar";
+const G_IND = "Fyrir einstaklinga";
+const G_BIZ = "Fyrir fyrirtæki";
 const G_METHOD = "Af hverju Lifeline";
-const G_ASSESS = "Heilsumat";
 const G_APP = "Appið";
 const G_TEAM = "Teymið";
 const G_PARTNERS = "Samstarfsaðilar";
@@ -49,6 +51,22 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "how_s3_title", label: "Skref 3 — titill", group: G_HOW, type: "text" },
   { key: "how_s3_desc", label: "Skref 3 — texti", group: G_HOW, type: "textarea" },
 
+  // ── For individuals (teaser → /assessment) ───────────────────────────────
+  { key: "ind_kicker", label: "Yfirtexti", group: G_IND, type: "text" },
+  { key: "ind_title", label: "Fyrirsögn", group: G_IND, type: "heading" },
+  { key: "ind_body", label: "Texti", group: G_IND, type: "textarea" },
+  { key: "ind_bullets", label: "Punktar", group: G_IND, type: "list", help: "Einn punktur í hverri línu.", columns: [{ key: "b", label: "Punktur", kind: "text" }] },
+  { key: "ind_cta", label: "Hnappur", group: G_IND, type: "text" },
+  { key: "ind_cta_href", label: "Hnappur — hlekkur", group: G_IND, type: "link" },
+
+  // ── For companies (teaser → /business) ───────────────────────────────────
+  { key: "biz_kicker", label: "Yfirtexti", group: G_BIZ, type: "text" },
+  { key: "biz_title", label: "Fyrirsögn", group: G_BIZ, type: "heading" },
+  { key: "biz_body", label: "Texti", group: G_BIZ, type: "textarea" },
+  { key: "biz_bullets", label: "Punktar", group: G_BIZ, type: "list", help: "Einn punktur í hverri línu.", columns: [{ key: "b", label: "Punktur", kind: "text" }] },
+  { key: "biz_cta", label: "Hnappur", group: G_BIZ, type: "text" },
+  { key: "biz_cta_href", label: "Hnappur — hlekkur", group: G_BIZ, type: "link" },
+
   // ── Why Lifeline (method) ─────────────────────────────────────────────────
   { key: "method_kicker", label: "Yfirtexti", group: G_METHOD, type: "text" },
   { key: "method_title", label: "Fyrirsögn", group: G_METHOD, type: "heading" },
@@ -69,22 +87,6 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "method_l3_body", label: "Lag 3 — texti", group: G_METHOD, type: "textarea" },
   { key: "method_bottom_label", label: "Niðurstaða — yfirtexti", group: G_METHOD, type: "text" },
   { key: "method_bottom_text", label: "Niðurstaða — texti", group: G_METHOD, type: "textarea" },
-
-  // ── Assessment ─────────────────────────────────────────────────────────────
-  { key: "assess_title", label: "Fyrirsögn", group: G_ASSESS, type: "text" },
-  { key: "assess_subtitle", label: "Undirtexti", group: G_ASSESS, type: "text" },
-  { key: "assess_c1_title", label: "Spjald 1 — titill", group: G_ASSESS, type: "text" },
-  { key: "assess_c1_desc", label: "Spjald 1 — texti", group: G_ASSESS, type: "textarea" },
-  { key: "assess_c2_title", label: "Spjald 2 — titill", group: G_ASSESS, type: "text" },
-  { key: "assess_c2_desc", label: "Spjald 2 — texti", group: G_ASSESS, type: "textarea" },
-  { key: "assess_c3_title", label: "Spjald 3 — titill", group: G_ASSESS, type: "text" },
-  { key: "assess_c3_desc", label: "Spjald 3 — texti", group: G_ASSESS, type: "textarea" },
-  { key: "assess_c4_title", label: "Spjald 4 — titill", group: G_ASSESS, type: "text" },
-  { key: "assess_c4_desc", label: "Spjald 4 — texti", group: G_ASSESS, type: "textarea" },
-  { key: "assess_medalia_title", label: "Medalia — titill", group: G_ASSESS, type: "text" },
-  { key: "assess_medalia_desc", label: "Medalia — texti", group: G_ASSESS, type: "textarea" },
-  { key: "assess_medalia_cta", label: "Medalia — hnappur", group: G_ASSESS, type: "text" },
-  { key: "assess_medalia_cta_href", label: "Medalia — hnappur hlekkur", group: G_ASSESS, type: "link" },
 
   // ── The app ─────────────────────────────────────────────────────────────────
   { key: "app_label", label: "Yfirtexti", group: G_APP, type: "text" },
@@ -155,11 +157,12 @@ export const HOME_FIELDS: SiteField[] = [
 const HOME_HREFS: LocaleContent = {
   hero_cta_signup_href: "/account/login?mode=signup",
   hero_cta_app_href: "/coaching#download",
-  assess_medalia_cta_href: "/assessment",
   app_cta_app_href: "/coaching#download",
   app_cta_coaching_href: "/coaching",
   cta_signup_href: "/account/login?mode=signup",
   cta_app_href: "/coaching#download",
+  ind_cta_href: "/assessment",
+  biz_cta_href: "/business",
   app_device: "phone",
   app_screenshot: "/app-screenshot-home-static.png",
 };
@@ -185,6 +188,30 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
   how_s3_desc:
     "Sæktu appið fyrir daglegar aðgerðaáætlanir, æfingakerfi, næringarráðgjöf og eftirfylgni með framförum.",
 
+  ind_kicker: "Fyrir einstaklinga",
+  ind_title: "Heilsufarsskoðun fyrir þig",
+  ind_body:
+    "Einföld og hagkvæm leið til að þekkja heilsuna þína. Þú mætir í mælingar, ferð í blóðprufu og hittir lækni í myndsímtali — allt á þínum forsendum.",
+  ind_bullets: [
+    "Mælingar á mælingastöðinni í Lyfju, Smáratorgi í Reykjavík",
+    "Blóðprufur hjá Sameind",
+    "Læknisviðtal í myndsímtali",
+    "Á viðráðanlegu verði og einstaklega þægilegt",
+  ].join("\n"),
+  ind_cta: "Skoða heilsufarsskoðun",
+
+  biz_kicker: "Fyrir fyrirtæki",
+  biz_title: "Fjárfestu í ==starfsfólkinu þínu==",
+  biz_body:
+    "Lifeline kemur til fyrirtækisins og gerir heilsufarsskoðun einfalda fyrir allt starfsfólkið. Fjárfesting í heilsu starfsfólks er fjárfesting í fyrirtækinu — færri veikindadagar og betri líkamleg og andleg líðan.",
+  biz_bullets: [
+    "Lifeline kemur og gerir mælingar á staðnum",
+    "Starfsfólk fer í blóðprufu á völdum dögum",
+    "Stjórnandi fær eigin fyrirtækjaaðgang til að skrá starfsfólk",
+    "Einstaklega snurðulaust og þægilegt ferli",
+  ].join("\n"),
+  biz_cta: "Lausnir fyrir fyrirtæki",
+
   method_kicker: "Af hverju Lifeline",
   method_title: "Hver sem er getur rétt þér tölur. Við réttum þér ==áætlun sem breytir þeim.==",
   method_intro:
@@ -203,25 +230,6 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
   method_bottom_label: "Niðurstaðan",
   method_bottom_text:
     "Þriðja lagið er það sem raunverulega breytir hegðun — og það er einmitt það sem ódýrari skoðanir sleppa. Þú ert ekki að borga fyrir fleiri rannsóknir. Þú ert að borga fyrir breytingu sem þú munt raunverulega ná fram.",
-
-  assess_title: "Heilsumatið þitt",
-  assess_subtitle: "Markviss skoðun sem beinist að því sem skiptir mestu máli",
-  assess_c1_title: "Greining á líkamssamsetningu",
-  assess_c1_desc:
-    "Nákvæm mæling á líkamssamsetningu — vöðvamassa, fitu, vökvajafnvægi og fleira. Miklu ítarlegri en það sem vigt getur sagt þér.",
-  assess_c2_title: "Markviss blóðprufupakki",
-  assess_c2_desc:
-    "Við mælum þá þætti sem skipta máli fyrir efnaskiptaheilsu — engar óþarfa rannsóknir. Hámarksinnsýn fyrir besta verðið.",
-  assess_c3_title: "Heilsuskýrsla yfirfarin af lækni",
-  assess_c3_desc:
-    "Lifeline-læknir fer yfir niðurstöðurnar þínar og útbýr persónulega skýrslu með heilsueinkunn og hagnýtum ráðleggingum.",
-  assess_c4_title: "Persónuleg ráðgjöf",
-  assess_c4_desc:
-    "Hittu lækninn þinn í eigin persónu eða í fjarfundi til að fara yfir niðurstöðurnar, spyrja spurninga og fá persónulegar ráðleggingar.",
-  assess_medalia_title: "Geymt á öruggan hátt í Medalia",
-  assess_medalia_desc:
-    "Öll heilsugögnin þín — niðurstöður heilsumats, blóðprufur og spurningalistar — eru geymd á öruggan hátt í persónulegu sjúklingagáttinni þinni sem knúin er af Medalia.is.",
-  assess_medalia_cta: "Skoða pakka",
 
   app_label: "Lifeline appið",
   app_title: "Félagi þinn í ==heilsubreytingunni==",
@@ -290,6 +298,30 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
   how_s3_desc:
     "Download the app for daily action plans, exercise programs, nutrition guidance and progress tracking.",
 
+  ind_kicker: "For individuals",
+  ind_title: "A health assessment for you",
+  ind_body:
+    "A simple, affordable way to get to know your health. Take your measurements, get your blood tests, and meet a doctor over video — all on your schedule.",
+  ind_bullets: [
+    "Measurements at the Lyfja station, Smáratorg, Reykjavík",
+    "Blood tests at Sameind",
+    "Doctor consultation over video call",
+    "Affordable and remarkably convenient",
+  ].join("\n"),
+  ind_cta: "Explore the assessment",
+
+  biz_kicker: "For companies",
+  biz_title: "Invest in ==your people==",
+  biz_body:
+    "Lifeline comes to your company and makes health assessments effortless for your whole team. Investing in your staff's health is investing in your company — fewer sick days and better physical and mental wellbeing.",
+  biz_bullets: [
+    "Lifeline visits and does measurements on-site",
+    "Employees do blood tests on allocated days",
+    "The manager gets their own company account to onboard staff",
+    "A remarkably smooth, convenient process",
+  ].join("\n"),
+  biz_cta: "Solutions for companies",
+
   method_kicker: "Why Lifeline",
   method_title: "Anyone can hand you numbers. We hand you a ==plan that changes them.==",
   method_intro:
@@ -308,25 +340,6 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
   method_bottom_label: "The bottom line",
   method_bottom_text:
     "That third layer is what actually changes behaviour — and it's exactly what cheaper checks skip. You're not paying for more tests. You're paying for change you'll actually make.",
-
-  assess_title: "Your health assessment",
-  assess_subtitle: "Targeted screening focused on what matters most",
-  assess_c1_title: "Body composition analysis",
-  assess_c1_desc:
-    "Clinical-accuracy body composition measurement — muscle mass, body fat, water balance and more. Far beyond what a scale can tell you.",
-  assess_c2_title: "Targeted blood panel",
-  assess_c2_desc:
-    "We test the markers that matter for metabolic health — no unnecessary tests. Maximum insight, best value.",
-  assess_c3_title: "Doctor-reviewed health report",
-  assess_c3_desc:
-    "A Lifeline physician reviews your results and prepares a personalised report with your health score and actionable recommendations.",
-  assess_c4_title: "Personal consultation",
-  assess_c4_desc:
-    "Meet with your doctor in-person or over video to discuss your findings, ask questions, and get personalised recommendations.",
-  assess_medalia_title: "Securely stored in Medalia",
-  assess_medalia_desc:
-    "All your health data, assessment results, blood tests and questionnaires are stored securely in your personal patient portal powered by Medalia.is.",
-  assess_medalia_cta: "View Packages",
 
   app_label: "The Lifeline App",
   app_title: "Your health change ==partner==",

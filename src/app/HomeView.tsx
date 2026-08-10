@@ -57,21 +57,6 @@ const stepStyles = [
   ) },
 ];
 
-const assessStyles = [
-  { color: "#3B82F6", icon: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
-  ) },
-  { color: "#10B981", icon: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M5 14.5l-1.43 1.43a2.25 2.25 0 00-.659 1.591v2.228c0 1.243 1.007 2.25 2.25 2.25h13.676a2.25 2.25 0 002.25-2.25v-2.228c0-.597-.237-1.17-.659-1.591L19 14.5" /></svg>
-  ) },
-  { color: "#8B5CF6", icon: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-  ) },
-  { color: "#F59E0B", icon: (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" /></svg>
-  ) },
-];
-
 const appFeatureStyles = [
   { color: "#3B82F6", icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
@@ -118,6 +103,44 @@ function AppTextContent({ c }: { c: LocaleContent }) {
 }
 
 // Each band renderer takes the resolved content and its computed background.
+// Audience teaser band (individuals / companies). Kicker + heading (==word==
+// highlighted in the accent colour) + body + bullet list + CTA, all driven by
+// the `${prefix}_*` content keys.
+function Teaser({ c, bg, accent, prefix, href }: { c: LocaleContent; bg: string; accent: string; prefix: string; href: string }) {
+  const title = c[`${prefix}_title`] ?? "";
+  const bullets = parseListField(c[`${prefix}_bullets`]).map((r) => r[0]);
+  return (
+    <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: accent }}>{c[`${prefix}_kicker`]}</div>
+        <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] tracking-tight">
+          {title.split(/(==[^=]+==)/g).map((p, i) =>
+            p.startsWith("==") && p.endsWith("==") ? (
+              <span key={i} style={{ color: accent }}>{p.slice(2, -2)}</span>
+            ) : (
+              <Fragment key={i}>{p}</Fragment>
+            ),
+          )}
+        </h2>
+        <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">{c[`${prefix}_body`]}</p>
+        <ul className="mt-8 grid sm:grid-cols-2 gap-x-6 gap-y-3 max-w-2xl mx-auto text-left">
+          {bullets.map((b) => (
+            <li key={b} className="flex items-start gap-2.5">
+              <svg className="mt-0.5 h-5 w-5 flex-shrink-0" fill="none" stroke={accent} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" /></svg>
+              <span className="text-sm text-[#4b5563]">{b}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-10">
+          <Link href={href} className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white rounded-full transition-all duration-200 shadow-lg" style={{ backgroundColor: accent }}>
+            {c[`${prefix}_cta`]}
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
   switch (id) {
     case "whatsnew":
@@ -157,6 +180,12 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
         </section>
       );
 
+    case "einstaklingar":
+      return <Teaser c={c} bg={bg} accent="#10B981" prefix="ind" href={c.ind_cta_href || "/assessment"} />;
+
+    case "fyrirtaeki":
+      return <Teaser c={c} bg={bg} accent="#3B82F6" prefix="biz" href={c.biz_cta_href || "/business"} />;
+
     case "method":
       return (
         <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
@@ -193,45 +222,6 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
                   <div>
                     <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 mb-1">{c.method_bottom_label}</div>
                     <p className="text-base sm:text-lg font-semibold leading-snug text-white">{c.method_bottom_text}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      );
-
-    case "assessment":
-      return (
-        <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">{c.assess_title}</h2>
-              <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">{c.assess_subtitle}</p>
-            </div>
-            <div className="max-w-3xl mx-auto space-y-4">
-              {[1, 2, 3, 4].map((n, i) => (
-                <div key={n} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
-                  <div className="flex items-start gap-5">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${assessStyles[i].color}10`, border: `2px solid ${assessStyles[i].color}25`, color: assessStyles[i].color }}>{assessStyles[i].icon}</div>
-                    <div className="flex-1 pt-1">
-                      <h3 className="font-semibold text-[#1F2937] text-lg mb-1">{c[`assess_c${n}_title`]}</h3>
-                      <p className="text-sm text-[#6B7280] leading-relaxed">{c[`assess_c${n}_desc`]}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
-                <div className="flex items-start gap-5">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#10B981]/10 border-2 border-[#10B981]/25 text-[#10B981]">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <h3 className="font-semibold text-[#1F2937] text-lg mb-1">{c.assess_medalia_title}</h3>
-                    <p className="text-sm text-[#6B7280] leading-relaxed mb-4">{c.assess_medalia_desc}</p>
-                    <div className="flex flex-wrap gap-3">
-                      <Link href={c.assess_medalia_cta_href || "/assessment"} className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-md shadow-green-500/25">{c.assess_medalia_cta}</Link>
-                    </div>
                   </div>
                 </div>
               </div>
