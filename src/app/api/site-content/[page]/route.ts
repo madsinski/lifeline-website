@@ -17,12 +17,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ page: string }
       .select("published, published_at")
       .eq("page", page)
       .maybeSingle();
+    // The navbar config (order/visibility) should feel immediate after an
+    // admin toggles it, so cache it briefly; page content changes less often.
+    const cache = page === "nav"
+      ? "public, s-maxage=5, stale-while-revalidate=20"
+      : "public, s-maxage=60, stale-while-revalidate=300";
     return NextResponse.json(
       { published: data?.published ?? null, published_at: data?.published_at ?? null },
-      // Small edge cache: content changes only on publish, and stale content is
-      // harmless for a marketing page. Keeps the home page from hitting the DB
-      // on every visit.
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
+      { headers: { "Cache-Control": cache } },
     );
   } catch {
     return NextResponse.json({ published: null, published_at: null });

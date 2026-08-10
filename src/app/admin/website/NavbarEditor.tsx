@@ -57,12 +57,19 @@ export default function NavbarEditor() {
     setSaveState("saving");
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
+      const headers = await authHeaders();
       const res = await fetch(`/api/admin/site-content/nav`, {
         method: "PUT",
-        headers: await authHeaders(),
+        headers,
         body: JSON.stringify({ draft }),
       });
-      setSaveState(res.ok ? "saved" : "error");
+      if (!res.ok) { setSaveState("error"); return; }
+      // The navbar has no preview, so a toggle should just apply — auto-publish
+      // the draft straight away instead of requiring a separate step.
+      const pub = await fetch(`/api/admin/site-content/nav/publish`, { method: "POST", headers });
+      const j = await pub.json().catch(() => ({}));
+      if (pub.ok && j.ok) { setSaveState("saved"); setPublishedAt(j.published_at); }
+      else setSaveState("error");
     }, 700);
     return () => clearTimeout(saveTimer.current);
   }, [draft, loading, isAdmin]);
@@ -107,13 +114,13 @@ export default function NavbarEditor() {
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="text-xs text-gray-500">
           {saveState === "saving" && <span>Vistar…</span>}
-          {saveState === "saved" && <span className="text-emerald-600">✓ Vistað (drög)</span>}
+          {saveState === "saved" && <span className="text-emerald-600">✓ Vistað og birt</span>}
           {saveState === "error" && <span className="text-red-600">Vistun mistókst</span>}
           {publishedAt && <span> · Síðast birt {new Date(publishedAt).toLocaleString("is-IS")}</span>}
         </div>
         {isAdmin && (
-          <button onClick={publish} disabled={busy} className="py-1.5 px-3 rounded-lg bg-[#10B981] hover:bg-[#047857] text-white text-sm font-semibold disabled:opacity-50">
-            {busy ? "Birti…" : "Birta"}
+          <button onClick={publish} disabled={busy} title="Birta núverandi stöðu strax" className="py-1.5 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
+            {busy ? "Birti…" : "Birta núna"}
           </button>
         )}
       </div>
@@ -138,7 +145,7 @@ export default function NavbarEditor() {
           );
         })}
       </ol>
-      <p className="mt-2 text-[11px] text-gray-400">Falin síða hverfur úr valmyndinni en er áfram til á sinni slóð. Heiti eru þýdd í „Website“ ritlinum og þýðingakerfinu.</p>
+      <p className="mt-2 text-[11px] text-gray-400">Breytingar birtast sjálfkrafa á vefnum (getur tekið nokkrar sekúndur). Falin síða hverfur úr valmyndinni en er áfram til á sinni slóð. Heiti eru þýdd í „Website“ ritlinum og þýðingakerfinu.</p>
     </div>
   );
 }
