@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import NavbarEditor from "./NavbarEditor";
+import SiteGateToggle from "./SiteGateToggle";
 
 // Website CMS index — the editable marketing pages + the top-navbar manager.
 export default function WebsiteCmsPage() {
@@ -58,6 +59,9 @@ export default function WebsiteCmsPage() {
           Skoða vefinn
         </a>
       </div>
+
+      {/* Master coming-soon switch */}
+      <SiteGateToggle />
 
       {/* Pages */}
       <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Síður</h2>

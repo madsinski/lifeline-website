@@ -52,6 +52,28 @@ function sha256Hex(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
 
+// Master coming-soon switch (system_settings.public_site_gated), read via the
+// public_site_gated() SECURITY DEFINER RPC since the proxy uses the anon client.
+// Cached per warm instance so we don't hit the DB on every anonymous request;
+// toggling from admin propagates within GATE_TTL_MS. Fails closed (stays gated).
+let gateCache: { gated: boolean; ts: number } | null = null;
+const GATE_TTL_MS = 30_000;
+
+async function isSiteGated(
+  supabase: ReturnType<typeof createServerClient>,
+  now: number,
+): Promise<boolean> {
+  if (gateCache && now - gateCache.ts < GATE_TTL_MS) return gateCache.gated;
+  try {
+    const { data, error } = await supabase.rpc("public_site_gated");
+    const gated = error ? true : data !== false;
+    gateCache = { gated, ts: now };
+    return gated;
+  } catch {
+    return true;
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -117,6 +139,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 4. Default: gate to coming-soon.
+  // 4. Master switch: if an admin has turned gating OFF, the site is public —
+  //    let everything through instead of rewriting to coming-soon.
+  if (!(await isSiteGated(supabase, Date.now()))) return response;
+
+  // 5. Default: gate to coming-soon.
   return NextResponse.rewrite(new URL("/coming-soon", request.url));
 }
