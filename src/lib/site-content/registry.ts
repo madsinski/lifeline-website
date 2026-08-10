@@ -15,6 +15,7 @@ import {
   type SiteSection,
 } from "./types";
 import { HOME_FIELDS, HOME_SECTIONS, HOME_DEFAULTS_IS, HOME_DEFAULTS_EN } from "./home";
+import { COACHING_FIELDS, COACHING_SECTIONS, COACHING_DEFAULTS_IS, COACHING_DEFAULTS_EN } from "./coaching";
 
 export interface SitePage {
   key: string;
@@ -39,6 +40,16 @@ export const SITE_PAGES: SitePage[] = [
     sections: HOME_SECTIONS,
     defaultsIs: HOME_DEFAULTS_IS,
     defaultsEn: HOME_DEFAULTS_EN,
+  },
+  {
+    key: "coaching",
+    label: "Þjálfun (Coaching)",
+    desc: "Hetja, af hverju þjálfun, fjórar stoðir, dæmigerður dagur, áskriftir, samanburður, sækja appið.",
+    path: "/coaching",
+    fields: COACHING_FIELDS,
+    sections: COACHING_SECTIONS,
+    defaultsIs: COACHING_DEFAULTS_IS,
+    defaultsEn: COACHING_DEFAULTS_EN,
   },
 ];
 

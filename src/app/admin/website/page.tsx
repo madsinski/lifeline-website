@@ -12,6 +12,12 @@ export default function WebsiteCmsPage() {
       desc: "Hetja, hvernig það virkar, af hverju Lifeline, heilsumat, appið, teymið, samstarf, ákall.",
       path: "/",
     },
+    {
+      key: "coaching",
+      label: "Þjálfun (Coaching)",
+      desc: "Hetja, af hverju þjálfun, fjórar stoðir, dæmigerður dagur, áskriftir, samanburður, sækja appið.",
+      path: "/coaching",
+    },
   ];
 
   return (

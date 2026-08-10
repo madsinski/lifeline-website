@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import HomeView from "@/app/HomeView";
+import CoachingView from "@/app/coaching/CoachingView";
 import { getSitePage, resolveContent, resolveSections } from "@/lib/site-content/registry";
 import type { Locale, SiteContentBlob, SiteField } from "@/lib/site-content/types";
 
@@ -16,6 +17,9 @@ function Preview({ pageKey, blob, locale }: { pageKey: string; blob: SiteContent
   const order = resolveSections(pageKey, blob);
   if (pageKey === "home") {
     return <HomeView c={c} order={order} hidden={blob.hidden ?? []} locale={locale} />;
+  }
+  if (pageKey === "coaching") {
+    return <CoachingView c={c} order={order} hidden={blob.hidden ?? []} locale={locale} />;
   }
   return null;
 }
