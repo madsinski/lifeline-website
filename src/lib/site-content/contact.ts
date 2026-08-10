@@ -73,10 +73,10 @@ export const CONTACT_DEFAULTS_IS: LocaleContent = {
   info_address_label: "Heimilisfang",
   info_address_value: "Lagmula 5\n108 Reykjavik\nIceland",
   info_hours_label: "Opnunartími",
-  info_hours_value: "Mánudagur - Föstudagur: 08:00 - 17:00",
-  account_title: "Already a client?",
-  account_desc: "Sign in to your Lifeline account to view results, book appointments, or message your team.",
-  account_cta: "Sign in",
+  info_hours_value: "Mánudagur–föstudagur: 08:00–17:00",
+  account_title: "Ert þú nú þegar viðskiptavinur?",
+  account_desc: "Skráðu þig inn á Lifeline-aðganginn þinn til að skoða niðurstöður, bóka tíma eða senda teyminu þínu skilaboð.",
+  account_cta: "Skrá inn",
 };
 
 export const CONTACT_DEFAULTS_EN: LocaleContent = {

@@ -169,104 +169,104 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
   ...HOME_HREFS,
   hero_title: "Taktu stjórnina á heilsu þinni",
   hero_subtitle:
-    "Lifeline Health sameinar markviss heilsumat og persónulega dagþjálfun. Þekktu tölurnar þínar, byggðu betri venjur, fylgstu með framförum.",
-  hero_cta_signup: "Create your Lifeline account",
+    "Lifeline Health sameinar markvisst heilsumat og persónulega daglega þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförunum.",
+  hero_cta_signup: "Stofnaðu Lifeline-aðgang",
   hero_cta_app: "Sækja appið",
 
   how_title: "Hvernig Lifeline virkar",
   how_subtitle: "Þrjú skref til að umbreyta heilsu þinni",
   how_s1_title: "Farðu í heilsumat",
   how_s1_desc:
-    "Ljúktu líkamssamsetningargreiningu, blóðprufum og lífsstílsgreiningu hjá okkar stöðvum eða í gegnum Sameind.",
+    "Ljúktu líkamssamsetningarmælingu, blóðprufum og lífsstílsgreiningu á stöðvum okkar eða í gegnum Sameind.",
   how_s2_title: "Fáðu skýrsluna þína",
   how_s2_desc:
-    "Lifeline læknir fer yfir niðurstöður þínar og hittir þig til að ræða niðurstöður og tillögur.",
+    "Lifeline-læknir fer yfir niðurstöðurnar þínar og hittir þig til að ræða þær og næstu skref.",
   how_s3_title: "Byrjaðu þjálfun",
   how_s3_desc:
-    "Sæktu appið fyrir daglegar aðgerðaáætlanir, æfingaforrit, næringarráðgjöf og framvindueftirlit.",
+    "Sæktu appið fyrir daglegar aðgerðaáætlanir, æfingakerfi, næringarráðgjöf og eftirfylgni með framförum.",
 
-  method_kicker: "Why Lifeline",
-  method_title: "Anyone can hand you numbers. We hand you a ==plan that changes them.==",
+  method_kicker: "Af hverju Lifeline",
+  method_title: "Hver sem er getur rétt þér tölur. Við réttum þér ==áætlun sem breytir þeim.==",
   method_intro:
-    "A one-off blood test tells you where you stand — not what to do about it, or how to make it stick. Lifeline is built in three practical layers, doctor-led from start to finish, so you catch what matters early and actually act on it.",
+    "Stök blóðprufa segir þér hvar þú stendur — ekki hvað þú átt að gera í því eða hvernig þú lætur það endast. Lifeline er byggt upp í þremur hagnýtum lögum, læknastýrt frá upphafi til enda, svo þú grípir það sem skiptir máli snemma og bregst raunverulega við því.",
   method_chips:
-    "Doctor-led\nEvidence-based\nWhole-person\nTargeted — no wasted tests\nFollow-up included",
-  method_l1_title: "Foundations — where change happens",
+    "Læknastýrt\nGagnreynt\nHeildræn nálgun\nMarkvisst — engar óþarfa rannsóknir\nEftirfylgni innifalin",
+  method_l1_title: "Undirstöður — þar sem breytingin verður",
   method_l1_body:
-    "A deep questionnaire maps your sleep, nutrition, movement and mental wellbeing: the daily habits behind most long-term health outcomes. This is the layer you can actually adjust.",
-  method_l2_title: "Measurements & bloodwork — the evidence",
+    "Ítarlegur spurningalisti kortleggur svefn, næringu, hreyfingu og andlega líðan: daglegu venjurnar sem búa að baki flestum langtímaáhrifum á heilsuna. Þetta er lagið sem þú getur raunverulega haft áhrif á.",
+  method_l2_title: "Mælingar og blóðprufur — sönnunargögnin",
   method_l2_body:
-    "Body composition, blood pressure and targeted blood markers add objective depth and detail — so your picture is grounded in data, not guesswork.",
-  method_l3_title: "Doctor review — the plan that drives change",
+    "Líkamssamsetning, blóðþrýstingur og markvissir blóðmælar bæta við hlutlægri dýpt og smáatriðum — svo heildarmyndin byggi á gögnum, ekki ágiskunum.",
+  method_l3_title: "Yfirferð læknis — áætlunin sem knýr breytinguna",
   method_l3_body:
-    "A physician ties every layer together, explains your core health challenges in plain language, and writes a prioritised action plan: the highest-impact changes for the least time and effort.",
-  method_bottom_label: "The bottom line",
+    "Læknir tengir öll lögin saman, útskýrir helstu heilsuáskoranir þínar á mannamáli og skrifar forgangsraðaða aðgerðaáætlun: mestu áhrifin fyrir minnstan tíma og fyrirhöfn.",
+  method_bottom_label: "Niðurstaðan",
   method_bottom_text:
-    "That third layer is what actually changes behaviour — and it's exactly what cheaper checks skip. You're not paying for more tests. You're paying for change you'll actually make.",
+    "Þriðja lagið er það sem raunverulega breytir hegðun — og það er einmitt það sem ódýrari skoðanir sleppa. Þú ert ekki að borga fyrir fleiri rannsóknir. Þú ert að borga fyrir breytingu sem þú munt raunverulega ná fram.",
 
   assess_title: "Heilsumatið þitt",
   assess_subtitle: "Markviss skoðun sem beinist að því sem skiptir mestu máli",
-  assess_c1_title: "Body composition analysis",
+  assess_c1_title: "Greining á líkamssamsetningu",
   assess_c1_desc:
-    "Clinical-accuracy body composition measurement — muscle mass, body fat, water balance and more. Far beyond what a scale can tell you.",
-  assess_c2_title: "Targeted blood panel",
+    "Nákvæm mæling á líkamssamsetningu — vöðvamassa, fitu, vökvajafnvægi og fleira. Miklu ítarlegri en það sem vigt getur sagt þér.",
+  assess_c2_title: "Markviss blóðprufupakki",
   assess_c2_desc:
-    "We test the markers that matter for metabolic health — no unnecessary tests. Maximum insight, best value.",
-  assess_c3_title: "Doctor-reviewed health report",
+    "Við mælum þá þætti sem skipta máli fyrir efnaskiptaheilsu — engar óþarfa rannsóknir. Hámarksinnsýn fyrir besta verðið.",
+  assess_c3_title: "Heilsuskýrsla yfirfarin af lækni",
   assess_c3_desc:
-    "A Lifeline physician reviews your results and prepares a personalised report with your health score and actionable recommendations.",
-  assess_c4_title: "Personal consultation",
+    "Lifeline-læknir fer yfir niðurstöðurnar þínar og útbýr persónulega skýrslu með heilsueinkunn og hagnýtum ráðleggingum.",
+  assess_c4_title: "Persónuleg ráðgjöf",
   assess_c4_desc:
-    "Meet with your doctor in-person or over video to discuss your findings, ask questions, and get personalised recommendations.",
-  assess_medalia_title: "Securely stored in Medalia",
+    "Hittu lækninn þinn í eigin persónu eða í fjarfundi til að fara yfir niðurstöðurnar, spyrja spurninga og fá persónulegar ráðleggingar.",
+  assess_medalia_title: "Geymt á öruggan hátt í Medalia",
   assess_medalia_desc:
-    "All your health data, assessment results, blood tests and questionnaires are stored securely in your personal patient portal powered by Medalia.is.",
-  assess_medalia_cta: "View Packages",
+    "Öll heilsugögnin þín — niðurstöður heilsumats, blóðprufur og spurningalistar — eru geymd á öruggan hátt í persónulegu sjúklingagáttinni þinni sem knúin er af Medalia.is.",
+  assess_medalia_cta: "Skoða pakka",
 
   app_label: "Lifeline appið",
-  app_title: "Your health change ==partner==",
+  app_title: "Félagi þinn í ==heilsubreytingunni==",
   app_desc:
-    "The Lifeline app brings your assessment data, coaching programs, and daily actions into one place — making real health change simple and sustainable.",
-  app_f1_title: "Personalised action plans",
+    "Lifeline appið sameinar heilsumatsgögnin þín, þjálfunarkerfi og daglegar aðgerðir á einum stað — og gerir raunverulega heilsubreytingu einfalda og sjálfbæra.",
+  app_f1_title: "Persónulegar aðgerðaáætlanir",
   app_f1_desc:
-    "Daily tasks across exercise, nutrition, sleep and mental wellness — built on your results.",
-  app_f2_title: "Health coaching and education",
+    "Dagleg verkefni þvert á hreyfingu, næringu, svefn og andlega líðan — byggð á niðurstöðunum þínum.",
+  app_f2_title: "Heilsuþjálfun og fræðsla",
   app_f2_desc:
-    "Structured programs, educational courses, and a personal coach to guide your journey from day one.",
-  app_f3_title: "Track your progress",
+    "Skipulögð kerfi, fræðslunámskeið og persónulegur þjálfari sem leiðir þig frá fyrsta degi.",
+  app_f3_title: "Fylgstu með framförum",
   app_f3_desc:
-    "See your health scores improve over time with every check-in and completed action.",
-  app_f4_title: "Community",
-  app_f4_desc: "Join challenges, earn streaks, and connect with others on the same health journey.",
-  app_cta_app: "Check out the app",
-  app_cta_coaching: "Explore coaching",
+    "Sjáðu heilsueinkunnirnar þínar batna með tímanum við hverja skráningu og lokna aðgerð.",
+  app_f4_title: "Samfélag",
+  app_f4_desc: "Taktu þátt í áskorunum, safnaðu röðum og tengstu öðrum á sömu heilsuvegferð.",
+  app_cta_app: "Skoða appið",
+  app_cta_coaching: "Kynntu þér þjálfunina",
 
-  team_kicker: "The team",
+  team_kicker: "Teymið",
   team_title: "Teymið okkar",
-  team_subtitle: "Sérfræðingarnir á bak við heilsuferðalagið þitt",
+  team_subtitle: "Sérfræðingarnir á bak við heilsuvegferðina þína",
   team_list: [
-    "Victor Guðmundsson | CEO · Medical Doctor & Coach | /team/victor.jpg | Co-founder",
-    "Mads C. Aanesen | CTO · Medical Doctor & Coach | /team/mads.jpg | Co-founder",
-    "Vignir Sigurðsson | Chief Medical Advisor · Pediatrician | /team/vignir.png | Advisor",
-    "Dagbjört Guðbrandsdóttir | Medical Doctor | /team/dagbjort.jpg | Clinical",
-    "Snorri Arnar Viðarsson | Business Advisor | /team/snorri.png | Advisor",
-    "Ragnar Björgvinsson | Legal Advisor | /team/ragnar.png | Advisor",
+    "Victor Guðmundsson | Forstjóri · Læknir og þjálfari | /team/victor.jpg | Meðstofnandi",
+    "Mads C. Aanesen | Tæknistjóri · Læknir og þjálfari | /team/mads.jpg | Meðstofnandi",
+    "Vignir Sigurðsson | Aðallæknisráðgjafi · Barnalæknir | /team/vignir.png | Ráðgjafi",
+    "Dagbjört Guðbrandsdóttir | Læknir | /team/dagbjort.jpg | Klíník",
+    "Snorri Arnar Viðarsson | Viðskiptaráðgjafi | /team/snorri.png | Ráðgjafi",
+    "Ragnar Björgvinsson | Lögfræðiráðgjafi | /team/ragnar.png | Ráðgjafi",
   ].join("\n"),
 
   partners_title: "Samstarfsaðilar okkar",
   partners_subtitle: "Fólkið og stofnanirnar á bak við Lifeline Health",
   partner_list: [
-    "Læknastofur Akureyrar | Medical clinic partner | https://lak.is | /partner-lak.svg",
-    "Medalia | Patient portal & health records | https://medalia.is | /partner-medalia.png",
-    "Sameind | Blood test collection stations | https://sameind.is | /partner-sameind.svg",
-    "Lyfja | Measurement station | https://www.lyfja.is/ | /partner-lyfja.png",
+    "Læknastofur Akureyrar | Samstarfsklíník | https://lak.is | /partner-lak.svg",
+    "Medalia | Sjúklingagátt og sjúkraskrá | https://medalia.is | /partner-medalia.png",
+    "Sameind | Blóðprufustöðvar | https://sameind.is | /partner-sameind.svg",
+    "Lyfja | Mælingastöð | https://www.lyfja.is/ | /partner-lyfja.png",
   ].join("\n"),
 
-  cta_title: "Tilbúin/n til að byrja?",
+  cta_title: "Tilbúin að byrja?",
   cta_desc:
     "Veldu leiðina að betri heilsu. Farðu í yfirgripsmikið heilsumat eða byrjaðu þjálfun strax með appinu.",
-  cta_signup: "Create your Lifeline account",
-  cta_app: "Sækja app",
+  cta_signup: "Stofnaðu Lifeline-aðgang",
+  cta_app: "Sækja appið",
 };
 
 // English defaults = what an English visitor sees today.

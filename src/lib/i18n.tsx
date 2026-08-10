@@ -96,22 +96,43 @@ export function useI18n() {
   return useContext(I18nContext);
 }
 
-// Language picker component
+// Language picker — a segmented pill toggle (IS | EN) with a clear active
+// state in the brand emerald. `className` is applied to the wrapper so callers
+// can stretch it full-width (mobile) or leave it inline (desktop).
+const LOCALE_OPTIONS: { value: Locale; flag: string; label: string }[] = [
+  { value: "is", flag: "🇮🇸", label: "IS" },
+  { value: "en", flag: "🇬🇧", label: "EN" },
+];
+
 export function LanguagePicker({ className = "" }: { className?: string }) {
   const { locale, setLocale } = useI18n();
 
   return (
-    <button
-      onClick={() => setLocale(locale === "en" ? "is" : "en")}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-        locale === "is"
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-      } ${className}`}
-      title={locale === "en" ? "Switch to Icelandic" : "Switch to English"}
+    <div
+      role="group"
+      aria-label="Language / Tungumál"
+      className={`inline-flex items-center gap-0.5 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 ${className}`}
     >
-      <span className="text-sm leading-none">{locale === "en" ? "🇬🇧" : "🇮🇸"}</span>
-      <span>{locale === "en" ? "EN" : "IS"}</span>
-    </button>
+      {LOCALE_OPTIONS.map((o) => {
+        const active = locale === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => setLocale(o.value)}
+            aria-pressed={active}
+            title={o.value === "is" ? "Íslenska" : "English"}
+            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              active
+                ? "bg-[#10B981] text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            <span className="text-sm leading-none">{o.flag}</span>
+            <span>{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
