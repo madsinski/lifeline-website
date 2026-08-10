@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   // by the app-mockup screenshots (StaticPhone) so their UI text stays crisp.
   images: {
     qualities: [75, 90],
+    // Allow next/image to load uploaded assets from Supabase Storage (the CMS
+    // mockup screenshots are cropped + uploaded to the presentation-assets
+    // bucket, then rendered via <Image> in StaticPhone/StaticLaptop).
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cfnibfxzltxiriqxvvru.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
   },
   // Ensure the Noto Sans TTFs used by the server-side PDF renderer are
   // traced into the Vercel function bundle (not just served from /public).
