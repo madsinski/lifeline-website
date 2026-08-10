@@ -17,6 +17,8 @@ import {
 import { HOME_FIELDS, HOME_SECTIONS, HOME_DEFAULTS_IS, HOME_DEFAULTS_EN } from "./home";
 import { COACHING_FIELDS, COACHING_SECTIONS, COACHING_DEFAULTS_IS, COACHING_DEFAULTS_EN } from "./coaching";
 import { ASSESSMENT_FIELDS, ASSESSMENT_SECTIONS, ASSESSMENT_DEFAULTS_IS, ASSESSMENT_DEFAULTS_EN } from "./assessment";
+import { BUSINESS_FIELDS, BUSINESS_SECTIONS, BUSINESS_DEFAULTS_IS, BUSINESS_DEFAULTS_EN } from "./business";
+import { CONTACT_FIELDS, CONTACT_SECTIONS, CONTACT_DEFAULTS_IS, CONTACT_DEFAULTS_EN } from "./contact";
 
 export interface SitePage {
   key: string;
@@ -61,6 +63,26 @@ export const SITE_PAGES: SitePage[] = [
     sections: ASSESSMENT_SECTIONS,
     defaultsIs: ASSESSMENT_DEFAULTS_IS,
     defaultsEn: ASSESSMENT_DEFAULTS_EN,
+  },
+  {
+    key: "business",
+    label: "Fyrirtæki (Companies)",
+    desc: "Hetja, af hverju, hvernig, aðferðin, pakkar, virði, fyrirspurn, algengar spurningar.",
+    path: "/business",
+    fields: BUSINESS_FIELDS,
+    sections: BUSINESS_SECTIONS,
+    defaultsIs: BUSINESS_DEFAULTS_IS,
+    defaultsEn: BUSINESS_DEFAULTS_EN,
+  },
+  {
+    key: "contact",
+    label: "Hafa samband (Contact)",
+    desc: "Hetja, skilaboðaform, samskiptaupplýsingar, viðskiptavinaspjald.",
+    path: "/contact",
+    fields: CONTACT_FIELDS,
+    sections: CONTACT_SECTIONS,
+    defaultsIs: CONTACT_DEFAULTS_IS,
+    defaultsEn: CONTACT_DEFAULTS_EN,
   },
 ];
 

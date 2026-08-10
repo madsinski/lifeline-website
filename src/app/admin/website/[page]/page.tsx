@@ -8,6 +8,8 @@ import { getMyStaffRole } from "@/lib/staff-role";
 import HomeView from "@/app/HomeView";
 import CoachingView from "@/app/coaching/CoachingView";
 import AssessmentView from "@/app/assessment/AssessmentView";
+import BusinessView from "@/app/business/BusinessView";
+import ContactView from "@/app/contact/ContactView";
 import { getSitePage, resolveContent, resolveSections } from "@/lib/site-content/registry";
 import type { Locale, SiteContentBlob, SiteField } from "@/lib/site-content/types";
 
@@ -24,6 +26,12 @@ function Preview({ pageKey, blob, locale }: { pageKey: string; blob: SiteContent
   }
   if (pageKey === "assessment") {
     return <AssessmentView c={c} order={order} hidden={blob.hidden ?? []} locale={locale} />;
+  }
+  if (pageKey === "business") {
+    return <BusinessView c={c} order={order} hidden={blob.hidden ?? []} locale={locale} />;
+  }
+  if (pageKey === "contact") {
+    return <ContactView c={c} locale={locale} />;
   }
   return null;
 }
@@ -353,6 +361,7 @@ export default function SiteContentEditor() {
         {/* Fields */}
         <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
           {/* Section order + visibility */}
+          {page.sections.length > 0 && (
           <section className="rounded-xl border border-gray-200 bg-white p-4">
             <div className="flex items-center justify-between gap-2 mb-1">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-[#047857]">Röð kafla</h2>
@@ -378,6 +387,7 @@ export default function SiteContentEditor() {
               })}
             </ol>
           </section>
+          )}
 
           {groups.map((g) => (
             <section key={g.group} className="rounded-xl border border-gray-200 bg-white p-4">

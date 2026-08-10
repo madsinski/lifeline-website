@@ -24,6 +24,18 @@ export default function WebsiteCmsPage() {
       desc: "Hetja, ferlið, niðurstöður, framvinda, pakkar, prófunarstaðir, algengar spurningar.",
       path: "/assessment",
     },
+    {
+      key: "business",
+      label: "Fyrirtæki (Companies)",
+      desc: "Hetja, af hverju, hvernig, aðferðin, pakkar, virði, fyrirspurn, algengar spurningar.",
+      path: "/business",
+    },
+    {
+      key: "contact",
+      label: "Hafa samband (Contact)",
+      desc: "Hetja, skilaboðaform, samskiptaupplýsingar, viðskiptavinaspjald.",
+      path: "/contact",
+    },
   ];
 
   return (
