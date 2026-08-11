@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Inter, Caveat, Nunito_Sans } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -70,11 +69,6 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `try{if(localStorage.getItem("ll-brand-theme")==="classic")document.documentElement.dataset.theme="classic"}catch(e){}`,
           }}
-        />
-        <Script
-          src="https://app.medalia.is/sdk.js"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
         />
         <I18nProvider>
         <ErrorHandlerClient />
