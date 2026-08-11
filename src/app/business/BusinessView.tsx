@@ -7,7 +7,6 @@ import InquiryForm from "./InquiryForm";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
 import { layoutBands } from "@/lib/site-content/layout";
 import { parseListField } from "@/lib/site-content/home";
-import WaveSeparator from "../components/WaveSeparator";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
 
 export interface BusinessViewProps {
@@ -100,8 +99,8 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {[1, 2, 3, 4, 5, 6].map((n) => (
-                <div key={n} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold flex items-center justify-center mb-3">{n}</div>
+                <div key={n} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  <div className="w-11 h-11 rounded-full bg-[#0F172A] text-white font-bold flex items-center justify-center mb-4 ring-4 ring-[#0F172A]/5">{n}</div>
                   <h3 className="font-semibold text-[#0F172A]">{c[`how_s${n}_title`]}</h3>
                   <p className="text-sm text-[#475569] mt-1.5 leading-relaxed">{c[`how_s${n}_desc`]}</p>
                 </div>
@@ -121,10 +120,10 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
               <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] tracking-tight leading-tight"><MethodTitle text={c.method_title} /></h2>
               <p className="text-base text-[#475569] mt-4 leading-relaxed">{c.method_intro}</p>
             </div>
-            <div className="space-y-4">
+            <div className="divide-y divide-gray-200 border-y border-gray-200">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="flex gap-5 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
-                  <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold text-lg flex items-center justify-center">{n}</div>
+                <div key={n} className="flex gap-5 py-6">
+                  <div className="shrink-0 w-11 h-11 rounded-full bg-[#0F172A] text-white font-bold text-lg flex items-center justify-center ring-4 ring-[#0F172A]/5">{n}</div>
                   <div>
                     <h3 className="font-semibold text-[#0F172A] text-lg">{c[`method_l${n}_title`]}</h3>
                     <p className="text-sm sm:text-base text-[#475569] mt-1.5 leading-relaxed">{c[`method_l${n}_body`]}</p>
@@ -132,8 +131,8 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
                 </div>
               ))}
             </div>
-            <div className="mt-6 rounded-2xl bg-[#0F172A] text-white p-6 sm:p-8">
-              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-300 mb-2">{c.method_bottom_label}</div>
+            <div className="mt-8 rounded-2xl bg-[#0F172A] text-white p-6 sm:p-8">
+              <div className="text-xs font-semibold uppercase tracking-wide text-teal-300 mb-2">{c.method_bottom_label}</div>
               <p className="text-lg sm:text-xl font-semibold leading-snug">{c.method_bottom_text}</p>
             </div>
           </div>
@@ -323,7 +322,6 @@ export default function BusinessView(props: BusinessViewProps) {
     <main className="bg-white">
       {/* Hero (structural, always first) */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#eff6ff] via-white to-[#ecfdf5]">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] to-[#10B981]" />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 sm:pt-28 sm:pb-24">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-700 mb-5">
@@ -362,7 +360,8 @@ export default function BusinessView(props: BusinessViewProps) {
 
       {layoutBands(visible, DARK_IDS).map((b) => (
         <Fragment key={b.id}>
-          {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
+          {/* Straight hairline divider (business uses crisp lines, not waves). */}
+          {b.wave && <div className="border-t border-gray-200" />}
           {renderBand(b.id, c, b.bg)}
         </Fragment>
       ))}

@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import ContextSwitcher from "@/app/components/ContextSwitcher";
-import { LanguagePicker } from "@/lib/i18n";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
 import { formatKennitala } from "@/lib/kennitala";
 import ScheduleBodyComp, { type EditableEvent } from "./ScheduleBodyComp";
@@ -417,7 +416,6 @@ export default function BusinessDashboardPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <ContextSwitcher current="business" />
-            <LanguagePicker />
             <button
               onClick={handleSignOut}
               className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-full hover:bg-red-50 hover:border-red-300 transition-all"
