@@ -100,7 +100,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {[1, 2, 3, 4, 5, 6].map((n) => (
                 <div key={n} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                  <div className="w-11 h-11 rounded-full bg-[#0F172A] text-white font-bold flex items-center justify-center mb-4 ring-4 ring-[#0F172A]/5">{n}</div>
+                  <div className="w-11 h-11 rounded-full bg-[#0F766E] text-white font-bold flex items-center justify-center mb-4 ring-4 ring-[#0F766E]/15">{n}</div>
                   <h3 className="font-semibold text-[#0F172A]">{c[`how_s${n}_title`]}</h3>
                   <p className="text-sm text-[#475569] mt-1.5 leading-relaxed">{c[`how_s${n}_desc`]}</p>
                 </div>
@@ -123,7 +123,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
             <div className="divide-y divide-gray-200 border-y border-gray-200">
               {[1, 2, 3].map((n) => (
                 <div key={n} className="flex gap-5 py-6">
-                  <div className="shrink-0 w-11 h-11 rounded-full bg-[#0F172A] text-white font-bold text-lg flex items-center justify-center ring-4 ring-[#0F172A]/5">{n}</div>
+                  <div className="shrink-0 w-11 h-11 rounded-full bg-[#0F766E] text-white font-bold text-lg flex items-center justify-center ring-4 ring-[#0F766E]/15">{n}</div>
                   <div>
                     <h3 className="font-semibold text-[#0F172A] text-lg">{c[`method_l${n}_title`]}</h3>
                     <p className="text-sm sm:text-base text-[#475569] mt-1.5 leading-relaxed">{c[`method_l${n}_body`]}</p>
