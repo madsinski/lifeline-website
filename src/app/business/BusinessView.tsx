@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, type ReactNode } from "react";
-import Link from "next/link";
+import CtaLink from "@/app/components/CtaLink";
 import { useI18n } from "@/lib/i18n";
 import InquiryForm from "./InquiryForm";
 import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/site-content/registry";
@@ -335,21 +335,21 @@ export default function BusinessView(props: BusinessViewProps) {
               {c.hero_note}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a href={c.hero_cta1_href || "#inquiry"} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-sm font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:opacity-95">
+              <CtaLink href={c.hero_cta1_href || "#inquiry"} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-sm font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:opacity-95">
                 {c.hero_cta1}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
-              </a>
+              </CtaLink>
               {!signedIn && (
-                <Link href={c.hero_cta2_href || "/business/signup"} className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm">
+                <CtaLink href={c.hero_cta2_href || "/business/signup"} className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[#10B981] text-[#10B981] bg-white text-sm font-semibold hover:bg-[#10B981] hover:text-white transition-colors shadow-sm">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   {c.hero_cta2}
-                </Link>
+                </CtaLink>
               )}
               {!signedIn && (
-                <Link href={c.hero_login_href || "/business/login"} className="inline-flex items-center gap-1.5 px-4 py-3 text-sm font-semibold text-[#3B82F6] hover:text-[#1D4ED8] transition-colors">
+                <CtaLink href={c.hero_login_href || "/business/login"} className="inline-flex items-center gap-1.5 px-4 py-3 text-sm font-semibold text-[#3B82F6] hover:text-[#1D4ED8] transition-colors">
                   {c.hero_login}
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-                </Link>
+                </CtaLink>
               )}
             </div>
             {!signedIn && <p className="text-sm text-[#475569] mt-3 max-w-xl leading-relaxed">{c.hero_helper}</p>}

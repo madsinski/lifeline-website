@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1236 546" width="1236" height="546">
+  <rect width="1236" height="546" fill="#FAFAF7"/><g transform="translate(24,24)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <path d="M19,22 V41" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M19,33 C22,30.5 26,31.5 27.5,34 C24.5,36.5 20.5,35.5 19,33 Z"
+          fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/>
+    <path transform="rotate(0 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(72 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(144 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(216 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/><path transform="rotate(288 19 20)"
+       d="M19,20 C15.8,17.6 16,10.5 19,8.5
+                       C22,10.5 22.2,17.6 19,20 Z"
+       fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="19" cy="20" r="3.1" fill="#F43F5E"/>
+    <g fill="#F43F5E">
+      <circle cx="33" cy="9"  r="1.6"/>
+      <circle cx="37" cy="12" r="1.2"/>
+      <circle cx="33.5" cy="14" r="1"/>
+    </g>
+    <path d="M39,7.5 v3 M37.5,9 h3" stroke="#F43F5E" stroke-width="1.5" stroke-linecap="round"/></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Frjókornaofnæmi</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(428,24)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <g stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11.5,26.5
+               C13.5,23.8 15,23.2 16.5,23.2 C18.3,23.2 19.2,24.4 20,25.2
+               C21.3,26.2 22.7,26.4 24,26.4 C25.3,26.4 26.7,26.2 28,25.2
+               C28.8,24.4 29.7,23.2 31.5,23.2 C33,23.2 34.5,23.8 36.5,26.5
+               C33.5,33.8 14.5,33.8 11.5,26.5 Z" fill="#DBEAFE"/>
+      <path d="M11.5,26.5 C17,29.2 31,29.2 36.5,26.5" fill="none"/>
+    </g>
+    <g stroke="#F43F5E" stroke-width="1.6">
+      <circle cx="15.4" cy="24.1" r="1.9" fill="#FFE1E6"/>
+      <circle cx="17.9" cy="22.7" r="1.4" fill="#FFE1E6"/>
+      <circle cx="16.2" cy="21.4" r="1.1" fill="#FFE1E6"/>
+    </g>
+    <path d="M12.2,20.4 l-1.4,-1.2 M21.2,21.2 l1.6,-1.3" stroke="#F43F5E" stroke-width="1.4" stroke-linecap="round"/></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Frunsa</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(832,24)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <g stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round">
+      <circle cx="24" cy="24" r="15" fill="#DBEAFE"/>
+      <circle cx="24" cy="24" r="4" fill="#ffffff"/>
+      <path d="M24,11 v2.4" stroke-linecap="round"/>
+    </g>
+    <g fill="#2563EB">
+      <circle cx="34" cy="24" r="2.1"/>
+      <circle cx="31.07" cy="31.07" r="2.1"/>
+      <circle cx="24" cy="34" r="2.1"/>
+      <circle cx="16.93" cy="31.07" r="2.1"/>
+      <circle cx="14" cy="24" r="2.1"/>
+      <circle cx="16.93" cy="16.93" r="2.1"/>
+      <circle cx="31.07" cy="16.93" r="2.1"/>
+    </g>
+    <circle cx="24" cy="14" r="2.6" fill="#F43F5E"/></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Getnaðarvörn</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(24,198)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <g stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="16.6" y="8" width="6.8" height="22" rx="3.4" fill="#ffffff"/>
+      <path d="M22,13 h-1.6 M22,17.5 h-1.6 M22,22 h-1.6" stroke-width="1.5"/>
+      <circle cx="20" cy="34" r="6" fill="#FFE1E6"/>
+    </g>
+    <path d="M20,16 V31" stroke="#F43F5E" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="20" cy="34" r="2.7" fill="#F43F5E"/>
+    <g stroke="#2563EB" stroke-width="2" stroke-linecap="round" fill="none">
+      <path d="M30,14 q3.5,-3 7,0"/>
+      <path d="M30,20 q3.5,-3 7,0"/>
+      <path d="M30,26 q3.5,-3 7,0"/>
+    </g></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Kvef, hósti eða hálsbólga</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(428,198)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <g fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M37,16 A15,15 0 1 0 39,25"/>
+      <path d="M37,16 l-5.4,0.4 M37,16 l0.6,5.4"/>
+    </g>
+    <g transform="rotate(-45 24 24)">
+      <path d="M15.5,24.1 a3.1,3.1 0 0 1 3.1,-3.1 H24 v6.2 H18.6 a3.1,3.1 0 0 1 -3.1,-3.1 Z"
+            fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M24,21 H29.4 a3.1,3.1 0 0 1 0,6.2 H24 Z"
+            fill="#FFE1E6" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/>
+    </g></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Lyfjuendurnýjun</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(832,198)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <path d="M11,30 C15,21 21,38 27,28 C31,21 36,29 39,22.5"
+          fill="none" stroke="#2563EB" stroke-width="5.4" stroke-linecap="round"/>
+    <path d="M11,30 C15,21 21,38 27,28 C31,21 36,29 39,22.5"
+          fill="none" stroke="#ffffff" stroke-width="1.1" stroke-dasharray="0.1 5" stroke-linecap="round"/>
+    <circle cx="39" cy="22.5" r="1.2" fill="#ffffff"/></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Njálgur</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(24,372)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <g transform="rotate(-12 24 25)">
+      <rect x="9.5" y="14.5" width="29" height="21" rx="7"
+            fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2"/>
+    </g>
+    <g stroke="#F43F5E" stroke-width="1.7">
+      <circle cx="16.5" cy="29" r="2.1" fill="#FFE1E6"/>
+      <circle cx="21" cy="26" r="2.4" fill="#FFE1E6"/>
+      <circle cx="25.5" cy="23.5" r="2.1" fill="#FFE1E6"/>
+      <circle cx="22.5" cy="31" r="1.9" fill="#FFE1E6"/>
+      <circle cx="29.5" cy="22" r="1.8" fill="#FFE1E6"/>
+      <circle cx="28" cy="27" r="1.7" fill="#FFE1E6"/>
+    </g>
+    <path d="M33,15 l2.6,-2.4 M36.5,18.5 l3,-1.6 M30,12.5 l1.4,-3"
+          stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round"/></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Ristill</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(428,372)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <path d="M24,40 C18.5,35.6 12.5,31.6 12.5,25.4 C12.5,21.4 15.6,19.2 18.7,19.2
+             C21,19.2 23.1,20.5 24,22.6 C24.9,20.5 27,19.2 29.3,19.2
+             C32.4,19.2 35.5,21.4 35.5,25.4 C35.5,31.6 29.5,35.6 24,40 Z"
+          fill="#DBEAFE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round"/>
+    <g stroke="#2563EB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M24,28 V8.5"/>
+      <path d="M17.6,14.9 L24,8.5 L30.4,14.9"/>
+    </g></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Risvandamál</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g><g transform="translate(832,372)">
+    <rect width="380" height="150" rx="14" fill="#ffffff" stroke="#E6EAF2"/>
+    <rect x="26" y="34" width="64" height="64" rx="16" fill="#EFF4FF"/>
+    <g transform="translate(34,42)">
+    <g stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16,21 C16,15.5 20.5,13 24,13 C27.5,13 32,15.5 32,21
+               C34,22 35,25 35,28.5 C35,34.5 30,38.5 24,38.5
+               C18,38.5 13,34.5 13,28.5 C13,25 14,22 16,21 Z" fill="#ffffff"/>
+      <path d="M18.5,14.4 l-2.4,-4 M29.5,14.4 l2.4,-4" fill="none"/>
+    </g>
+    <path d="M24,22.5 C24,22.5 19.6,28 19.6,31 a4.4,4.4 0 0 0 8.8,0 C28.4,28 24,22.5 24,22.5 Z"
+          fill="#FFE1E6" stroke="#F43F5E" stroke-width="2.2" stroke-linejoin="round"/>
+    <g stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round">
+      <path d="M24,38.5 v3.5 M20.5,40.5 l-1.4,2.4 M27.5,40.5 l1.4,2.4"/>
+    </g></g>
+    <text x="112" y="58" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0F172A">Þvagfæra- og leggangasýkingar</text>
+    <text x="112" y="84" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Greining og meðferð</text>
+  </g></svg>

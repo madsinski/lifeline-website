@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import CtaLink from "@/app/components/CtaLink";
 import { useI18n } from "@/lib/i18n";
 import { resolveContent } from "@/lib/site-content/registry";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
@@ -152,7 +152,7 @@ export default function ContactView(props: ContactViewProps) {
                   <div className="flex-1">
                     <h3 className="font-semibold text-[#1F2937] mb-1">{c.account_title}</h3>
                     <p className="text-sm text-[#6B7280] mb-4">{c.account_desc}</p>
-                    <Link href={c.account_cta_href || "/account/login"} className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-md shadow-green-500/25 w-full sm:w-auto">{c.account_cta}</Link>
+                    <CtaLink href={c.account_cta_href || "/account/login"} className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-md shadow-green-500/25 w-full sm:w-auto">{c.account_cta}</CtaLink>
                   </div>
                 </div>
               </div>

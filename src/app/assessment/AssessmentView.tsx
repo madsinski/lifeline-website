@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
+import CtaLink from "../components/CtaLink";
 import { useI18n } from "@/lib/i18n";
 import DeviceMockup from "../components/DeviceMockup";
 import WaveSeparator from "../components/WaveSeparator";
@@ -242,7 +242,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
                       <p className="text-xs text-[#6B7280]"><span className="font-semibold text-[#1F2937]">{c.packages_ideal_label} </span>{c[`pkg${n}_ideal`]}</p>
                     </div>
                     <div className="mt-auto">
-                      <Link href={c.packages_cta_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center w-full px-7 py-3 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.packages_cta}</Link>
+                      <CtaLink href={c.packages_cta_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center w-full px-7 py-3 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.packages_cta}</CtaLink>
                     </div>
                   </div>
                 );
@@ -332,7 +332,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
           <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">{c.cta_title}</h2>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">{c.cta_desc}</p>
-            <Link href={c.cta_button_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.cta_button}</Link>
+            <CtaLink href={c.cta_button_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.cta_button}</CtaLink>
           </div>
         </section>
       );
@@ -366,7 +366,7 @@ export default function AssessmentView(props: AssessmentViewProps) {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1F2937] tracking-tight">{c.hero_title}</h1>
             <p className="mt-6 text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">{c.hero_subtitle}</p>
             <div className="mt-8">
-              <Link href={c.hero_cta_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.hero_cta}</Link>
+              <CtaLink href={c.hero_cta_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.hero_cta}</CtaLink>
             </div>
           </div>
         </div>

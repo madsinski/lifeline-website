@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, type ReactNode } from "react";
-import Link from "next/link";
+import CtaLink from "@/app/components/CtaLink";
 import { useI18n } from "@/lib/i18n";
 import DeviceMockup from "./components/DeviceMockup";
 import TeamCircles from "./components/TeamCircles";
@@ -98,8 +98,8 @@ function AppTextContent({ c }: { c: LocaleContent }) {
         ))}
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href={c.app_cta_app_href || "/coaching#download"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.app_cta_app}</Link>
-        <Link href={c.app_cta_coaching_href || "/coaching"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200">{c.app_cta_coaching}</Link>
+        <CtaLink href={c.app_cta_app_href || "/coaching#download"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.app_cta_app}</CtaLink>
+        <CtaLink href={c.app_cta_coaching_href || "/coaching"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200">{c.app_cta_coaching}</CtaLink>
       </div>
     </div>
   );
@@ -135,9 +135,9 @@ function Teaser({ c, bg, accent, prefix, href }: { c: LocaleContent; bg: string;
           ))}
         </ul>
         <div className="mt-10">
-          <Link href={href} className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white rounded-full transition-all duration-200 shadow-lg" style={{ backgroundColor: accent }}>
+          <CtaLink href={href} className="inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white rounded-full transition-all duration-200 shadow-lg" style={{ backgroundColor: accent }}>
             {c[`${prefix}_cta`]}
-          </Link>
+          </CtaLink>
         </div>
       </div>
     </section>
@@ -289,8 +289,8 @@ function renderBand(id: string, c: LocaleContent, bg: string, whatsNewCards?: Wh
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">{c.cta_title}</h2>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">{c.cta_desc}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href={c.cta_signup_href || "/account/login?mode=signup"} className={btnPrimary}>{c.cta_signup}</Link>
-              <Link href={c.cta_app_href || "/coaching#download"} className={btnSecondary}>{c.cta_app}</Link>
+              <CtaLink href={c.cta_signup_href || "/account/login?mode=signup"} className={btnPrimary}>{c.cta_signup}</CtaLink>
+              <CtaLink href={c.cta_app_href || "/coaching#download"} className={btnSecondary}>{c.cta_app}</CtaLink>
             </div>
           </div>
         </section>
@@ -331,8 +331,8 @@ export default function HomeView(props: HomeViewProps) {
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#1F2937] leading-[1.1]"><Highlight text={c.hero_title} /></h1>
             <p className="mt-8 text-lg sm:text-xl text-[#6B7280] max-w-2xl mx-auto leading-relaxed">{c.hero_subtitle}</p>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href={c.hero_cta_signup_href || "/account/login?mode=signup"} className={btnPrimary}>{c.hero_cta_signup}</Link>
-              <Link href={c.hero_cta_app_href || "/coaching#download"} className={btnSecondary}>{c.hero_cta_app}</Link>
+              <CtaLink href={c.hero_cta_signup_href || "/account/login?mode=signup"} className={btnPrimary}>{c.hero_cta_signup}</CtaLink>
+              <CtaLink href={c.hero_cta_app_href || "/coaching#download"} className={btnSecondary}>{c.hero_cta_app}</CtaLink>
             </div>
           </div>
         </div>
