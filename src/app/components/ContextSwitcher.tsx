@@ -16,7 +16,7 @@ const ICONS: Record<AccountContext, string> = {
 
 const META: Record<AccountContext, { label: string; href: string }> = {
   personal: { label: "My account", href: "/account" },
-  business: { label: "Company admin", href: "/business" },
+  business: { label: "Company admin", href: "/business/account" },
 };
 
 function Icon({ ctx }: { ctx: AccountContext }) {

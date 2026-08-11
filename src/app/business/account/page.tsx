@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import ContextSwitcher from "../components/ContextSwitcher";
-import BusinessView from "./BusinessView";
-import type { SiteContentBlob } from "@/lib/site-content/types";
+import ContextSwitcher from "../../components/ContextSwitcher";
+
+// The business ACCOUNT (company list / management entry). Reached from the
+// account pillbox dropdown, ContextSwitcher, and post-login/onboarding flows.
+// The public "Companies" info page lives at /business.
 
 interface CompanyRow {
   id: string;
@@ -15,16 +17,16 @@ interface CompanyRow {
   created_at: string;
 }
 
-export default function BusinessGate({ initialBlob }: { initialBlob: SiteContentBlob | null }) {
+export default function BusinessAccountPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<"checking" | "ready">("checking");
-  const [signedIn, setSignedIn] = useState(false);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setSignedIn(false); setPhase("ready"); return; }
+      // The business account requires a login.
+      if (!user) { router.replace("/business/login?next=/business/account"); return; }
       const [{ data: primary }, { data: coAdminRows }] = await Promise.all([
         supabase.from("companies").select("id, name, created_at").eq("contact_person_id", user.id),
         supabase.from("company_admins").select("company_id, added_at, companies:company_id(id, name, created_at)").eq("user_id", user.id),
@@ -49,10 +51,9 @@ export default function BusinessGate({ initialBlob }: { initialBlob: SiteContent
         }
       }
       list.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
-      // If the user isn't a contact / co-admin on any company, they're
-      // either a regular employee (clients.company_id set — send them
-      // to their employee dashboard) or a brand-new signup with no
-      // company yet (show the 'create your first company' screen).
+      // No company of their own: a regular employee (clients.company_id set) is
+      // sent to their member dashboard; a brand-new signup sees "create your
+      // first company" below.
       if (list.length === 0) {
         const { data: client } = await supabase
           .from("clients_decrypted")
@@ -66,7 +67,6 @@ export default function BusinessGate({ initialBlob }: { initialBlob: SiteContent
       }
       if (list.length === 1) { router.replace(`/business/${list[0].id}`); return; }
       setCompanies(list);
-      setSignedIn(true);
       setPhase("ready");
     })();
   }, [router]);
@@ -75,25 +75,17 @@ export default function BusinessGate({ initialBlob }: { initialBlob: SiteContent
     return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
   }
 
-  // Marketing content is CMS-driven (BusinessView); the signed-in account band
-  // renders above it. Edit the page in /admin/website → Companies.
   return (
-    <>
-      {signedIn && <CompaniesPanel companies={companies} />}
-      <BusinessView signedIn={signedIn} initialBlob={initialBlob} />
-    </>
+    <div className="min-h-screen bg-[#ecf0f3]">
+      <CompaniesPanel companies={companies} />
+    </div>
   );
 }
 
-/**
- * Signed-in account band shown at the top of the business page. Existing
- * companies and the "create company" action live together as cards, so the
- * full marketing page below stays visible for a logged-in admin too.
- */
 function CompaniesPanel({ companies }: { companies: CompanyRow[] }) {
   const hasCompanies = companies.length > 0;
   return (
-    <section id="companies" className="scroll-mt-20 border-b border-gray-100 bg-[#f8fafc]">
+    <section id="companies" className="bg-[#f8fafc]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -142,7 +134,7 @@ function CompaniesPanel({ companies }: { companies: CompanyRow[] }) {
             </div>
             <p className="mt-4 text-sm text-[#64748B]">
               Need a quote for a new programme?{" "}
-              <a href="#inquiry" className="font-semibold text-[#10B981] hover:underline">Request a proposal</a>.
+              <Link href="/business#inquiry" className="font-semibold text-[#10B981] hover:underline">Request a proposal</Link>.
             </p>
           </>
         ) : (
@@ -164,8 +156,8 @@ function CompaniesPanel({ companies }: { companies: CompanyRow[] }) {
               </span>
             </Link>
             {/* Sales — request a proposal */}
-            <a
-              href="#inquiry"
+            <Link
+              href="/business#inquiry"
               className="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
             >
               <span className="w-11 h-11 rounded-xl bg-blue-50 text-[#3B82F6] flex items-center justify-center mb-3">
@@ -177,7 +169,7 @@ function CompaniesPanel({ companies }: { companies: CompanyRow[] }) {
                 Request a proposal
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
               </span>
-            </a>
+            </Link>
           </div>
         )}
       </div>

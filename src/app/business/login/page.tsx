@@ -45,7 +45,7 @@ function BusinessLoginInner() {
       setError(err.message);
       return;
     }
-    router.push(next.startsWith("/") ? next : "/business");
+    router.push(next.startsWith("/") ? next : "/business/account");
   };
 
   const submitSignup = async (e: React.FormEvent) => {

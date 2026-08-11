@@ -80,7 +80,7 @@ export default function BusinessSignupPage() {
         .eq("contact_person_id", data.user.id)
         .limit(1);
       if (ownedCompanies && ownedCompanies.length > 0) {
-        router.replace("/business");
+        router.replace("/business/account");
         return;
       }
 

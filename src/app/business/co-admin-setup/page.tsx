@@ -27,7 +27,7 @@ export default function CoAdminSetupPage() {
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user;
       if (!u) { router.replace("/business/login?next=/business/co-admin-setup"); return; }
-      if (u.user_metadata?.coadmin_setup_complete === true) { router.replace("/business"); return; }
+      if (u.user_metadata?.coadmin_setup_complete === true) { router.replace("/business/account"); return; }
       const meta = (u.user_metadata || {}) as Record<string, unknown>;
       if (typeof meta.full_name === "string") setFullName(meta.full_name);
       if (typeof meta.position === "string") setPosition(meta.position);
@@ -79,7 +79,7 @@ export default function CoAdminSetupPage() {
       setError(j.error || "Could not save your details. Please try again.");
       return;
     }
-    router.replace("/business");
+    router.replace("/business/account");
   };
 
   if (loading) {

@@ -15,6 +15,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [acctOpen, setAcctOpen] = useState(false);
   const navItems = initialItems ?? NAV_ITEMS;
   const pathname = usePathname();
   const { t } = useI18n();
@@ -68,6 +69,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   // Close mobile menu and refresh user name on route change
   useEffect(() => {
     setMobileOpen(false);
+    setAcctOpen(false);
     // Refresh name from DB when navigating (catches profile edits)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -136,36 +138,44 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
               );
             })}
             <LanguagePicker />
-            <Link
-              href="/account"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-colors whitespace-nowrap shadow-sm"
-            >
-              {userName ? (
-                <>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAcctOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={acctOpen}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-colors whitespace-nowrap shadow-sm"
+              >
+                {userName ? (
                   <span className="w-6 h-6 rounded-full bg-white/25 text-white text-xs font-bold flex items-center justify-center shrink-0">
                     {userName.charAt(0).toUpperCase()}
                   </span>
-                  <span>{userName.split(' ')[0]}</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  <span>{t('nav.my_account', 'Minn reikningur')}</span>
+                )}
+                <span>{userName ? userName.split(" ")[0] : t("nav.my_account", "Minn reikningur")}</span>
+                <svg className={`w-3.5 h-3.5 transition-transform ${acctOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {acctOpen && (
+                <>
+                  <button type="button" aria-label="Loka" onClick={() => setAcctOpen(false)} className="fixed inset-0 z-40 cursor-default" />
+                  <div role="menu" className="absolute right-0 mt-2 w-60 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden z-50">
+                    <Link href="/account" onClick={() => setAcctOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      {t("nav.my_account", "Minn reikningur")}
+                    </Link>
+                    <Link href="/business/account" onClick={() => setAcctOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                      {t("nav.business_account", "Fyrirtækjaaðgangur")}
+                    </Link>
+                  </div>
                 </>
               )}
-            </Link>
+            </div>
           </div>
 
           {/* Mobile hamburger */}
@@ -252,6 +262,16 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                     {t('nav.my_account', 'Minn reikningur')}
                   </>
                 )}
+              </Link>
+              <Link
+                href="/business/account"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border border-[#10B981] text-[#10B981] hover:bg-[#10B981]/5 transition-colors"
+              >
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                {t('nav.business_account', 'Fyrirtækjaaðgangur')}
               </Link>
               <Link
                 href="/coaching#download"

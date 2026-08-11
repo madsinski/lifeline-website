@@ -367,7 +367,7 @@ function AccountPageInner() {
             // This catches contacts who confirmed their email but abandoned
             // company registration.
             if ((currentUser.user_metadata?.account_origin as string | undefined) === "business") {
-              router.replace("/business");
+              router.replace("/business/account");
             } else {
               router.replace("/account/welcome");
             }
