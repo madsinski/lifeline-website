@@ -71,22 +71,13 @@ export const HOME_FIELDS: SiteField[] = [
   { key: "method_kicker", label: "Yfirtexti", group: G_METHOD, type: "text" },
   { key: "method_title", label: "Fyrirsögn", group: G_METHOD, type: "heading" },
   { key: "method_intro", label: "Inngangur", group: G_METHOD, type: "textarea" },
-  {
-    key: "method_chips",
-    label: "Traustmerki",
-    group: G_METHOD,
-    type: "list",
-    help: "Eitt merki í hverri línu.",
-    columns: [{ key: "label", label: "Merki", kind: "text" }],
-  },
-  { key: "method_l1_title", label: "Lag 1 — titill", group: G_METHOD, type: "text" },
-  { key: "method_l1_body", label: "Lag 1 — texti", group: G_METHOD, type: "textarea" },
-  { key: "method_l2_title", label: "Lag 2 — titill", group: G_METHOD, type: "text" },
-  { key: "method_l2_body", label: "Lag 2 — texti", group: G_METHOD, type: "textarea" },
-  { key: "method_l3_title", label: "Lag 3 — titill", group: G_METHOD, type: "text" },
-  { key: "method_l3_body", label: "Lag 3 — texti", group: G_METHOD, type: "textarea" },
-  { key: "method_bottom_label", label: "Niðurstaða — yfirtexti", group: G_METHOD, type: "text" },
-  { key: "method_bottom_text", label: "Niðurstaða — texti", group: G_METHOD, type: "textarea" },
+  { key: "method_l1_title", label: "Þrep 1 — titill", group: G_METHOD, type: "text" },
+  { key: "method_l1_body", label: "Þrep 1 — texti", group: G_METHOD, type: "textarea" },
+  { key: "method_l2_title", label: "Þrep 2 — titill", group: G_METHOD, type: "text" },
+  { key: "method_l2_body", label: "Þrep 2 — texti", group: G_METHOD, type: "textarea" },
+  { key: "method_l3_title", label: "Þrep 3 — titill", group: G_METHOD, type: "text" },
+  { key: "method_l3_body", label: "Þrep 3 — texti", group: G_METHOD, type: "textarea" },
+  { key: "method_bottom_text", label: "Niðurstaða", group: G_METHOD, type: "textarea" },
 
   // ── The app ─────────────────────────────────────────────────────────────────
   { key: "app_label", label: "Yfirtexti", group: G_APP, type: "text" },
@@ -213,23 +204,20 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
   biz_cta: "Lausnir fyrir fyrirtæki",
 
   method_kicker: "Af hverju Lifeline",
-  method_title: "Hver sem er getur rétt þér tölur. Við réttum þér ==áætlun sem breytir þeim.==",
+  method_title: "Tölur eru ekki nóg. Þú færð ==áætlun sem breytir þeim.==",
   method_intro:
-    "Stök blóðprufa segir þér hvar þú stendur — ekki hvað þú átt að gera í því eða hvernig þú lætur það endast. Lifeline er byggt upp í þremur hagnýtum lögum, læknastýrt frá upphafi til enda, svo þú grípir það sem skiptir máli snemma og bregst raunverulega við því.",
-  method_chips:
-    "Læknastýrt\nGagnreynt\nHeildræn nálgun\nMarkvisst — engar óþarfa rannsóknir\nEftirfylgni innifalin",
-  method_l1_title: "Undirstöður — þar sem breytingin verður",
+    "Stök blóðprufa sýnir þér stöðuna — en ekki hvað þú átt að gera. Lifeline byggir á þremur einföldum þrepum, læknastýrt frá upphafi til enda.",
+  method_l1_title: "Grunnurinn",
   method_l1_body:
-    "Ítarlegur spurningalisti kortleggur svefn, næringu, hreyfingu og andlega líðan: daglegu venjurnar sem búa að baki flestum langtímaáhrifum á heilsuna. Þetta er lagið sem þú getur raunverulega haft áhrif á.",
-  method_l2_title: "Mælingar og blóðprufur — sönnunargögnin",
+    "Spurningalisti kortleggur svefn, næringu, hreyfingu og andlega líðan — daglegu venjurnar sem skipta mestu máli.",
+  method_l2_title: "Mælingarnar",
   method_l2_body:
-    "Líkamssamsetning, blóðþrýstingur og markvissir blóðmælar bæta við hlutlægri dýpt og smáatriðum — svo heildarmyndin byggi á gögnum, ekki ágiskunum.",
-  method_l3_title: "Yfirferð læknis — áætlunin sem knýr breytinguna",
+    "Líkamssamsetning, blóðþrýstingur og markvissar blóðprufur gefa skýra mynd sem byggir á gögnum.",
+  method_l3_title: "Yfirferð læknis",
   method_l3_body:
-    "Læknir tengir öll lögin saman, útskýrir helstu heilsuáskoranir þínar á mannamáli og skrifar forgangsraðaða aðgerðaáætlun: mestu áhrifin fyrir minnstan tíma og fyrirhöfn.",
-  method_bottom_label: "Niðurstaðan",
+    "Læknir tengir allt saman og skrifar skýra áætlun — mestu áhrifin fyrir minnstu fyrirhöfnina.",
   method_bottom_text:
-    "Þriðja lagið er það sem raunverulega breytir hegðun — og það er einmitt það sem ódýrari skoðanir sleppa. Þú ert ekki að borga fyrir fleiri rannsóknir. Þú ert að borga fyrir breytingu sem þú munt raunverulega ná fram.",
+    "Það er þriðja þrepið sem raunverulega breytir hegðun — og það er einmitt það sem ódýrari skoðanir sleppa.",
 
   app_label: "Lifeline appið",
   app_title: "Félagi þinn í ==heilsubreytingunni==",
@@ -323,23 +311,20 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
   biz_cta: "Solutions for companies",
 
   method_kicker: "Why Lifeline",
-  method_title: "Anyone can hand you numbers. We hand you a ==plan that changes them.==",
+  method_title: "Numbers aren't enough. You get a ==plan that changes them.==",
   method_intro:
-    "A one-off blood test tells you where you stand — not what to do about it, or how to make it stick. Lifeline is built in three practical layers, doctor-led from start to finish, so you catch what matters early and actually act on it.",
-  method_chips:
-    "Doctor-led\nEvidence-based\nWhole-person\nTargeted — no wasted tests\nFollow-up included",
-  method_l1_title: "Foundations — where change happens",
+    "A one-off blood test shows you where you stand — not what to do about it. Lifeline is built in three simple steps, doctor-led from start to finish.",
+  method_l1_title: "The foundation",
   method_l1_body:
-    "A deep questionnaire maps your sleep, nutrition, movement and mental wellbeing: the daily habits behind most long-term health outcomes. This is the layer you can actually adjust.",
-  method_l2_title: "Measurements & bloodwork — the evidence",
+    "A questionnaire maps your sleep, nutrition, movement and mental wellbeing — the daily habits that matter most.",
+  method_l2_title: "The measurements",
   method_l2_body:
-    "Body composition, blood pressure and targeted blood markers add objective depth and detail — so your picture is grounded in data, not guesswork.",
-  method_l3_title: "Doctor review — the plan that drives change",
+    "Body composition, blood pressure and targeted blood tests give a clear picture grounded in data.",
+  method_l3_title: "Doctor review",
   method_l3_body:
-    "A physician ties every layer together, explains your core health challenges in plain language, and writes a prioritised action plan: the highest-impact changes for the least time and effort.",
-  method_bottom_label: "The bottom line",
+    "A doctor ties it all together and writes a clear action plan — the highest impact for the least effort.",
   method_bottom_text:
-    "That third layer is what actually changes behaviour — and it's exactly what cheaper checks skip. You're not paying for more tests. You're paying for change you'll actually make.",
+    "It's the third step that actually changes behaviour — and it's exactly what cheaper checks skip.",
 
   app_label: "The Lifeline App",
   app_title: "Your health change ==partner==",

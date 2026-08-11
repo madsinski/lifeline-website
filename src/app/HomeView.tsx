@@ -192,43 +192,24 @@ function renderBand(id: string, c: LocaleContent, bg: string, whatsNewCards?: Wh
     case "method":
       return (
         <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mb-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mx-auto text-center mb-14">
               <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981] mb-3">{c.method_kicker}</div>
               <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937] tracking-tight leading-tight"><Highlight text={c.method_title} /></h2>
               <p className="text-lg text-[#6B7280] mt-4 leading-relaxed">{c.method_intro}</p>
             </div>
-            <div className="mb-8 flex flex-wrap gap-2.5">
-              {parseListField(c.method_chips).map((row, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/70 px-3.5 py-1.5 text-sm font-medium text-[#065f46]">
-                  <svg className="h-4 w-4 flex-shrink-0 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" /></svg>
-                  {row[0]}
-                </span>
+            <div className="grid gap-10 sm:grid-cols-3">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="text-center">
+                  <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-[#10B981] text-lg font-bold">{n}</div>
+                  <h3 className="font-semibold text-[#1F2937] text-lg">{c[`method_l${n}_title`]}</h3>
+                  <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">{c[`method_l${n}_body`]}</p>
+                </div>
               ))}
             </div>
-            <div className="relative">
-              <div className="absolute left-[46px] top-8 bottom-14 w-0.5 bg-gradient-to-b from-[#3B82F6] via-[#10B981] to-[#047857] opacity-40" aria-hidden />
-              <div className="space-y-4">
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="relative flex gap-5 rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl">
-                    <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white font-bold text-lg flex items-center justify-center ring-4 ring-white">{n}</div>
-                    <div>
-                      <h3 className="font-semibold text-[#1F2937] text-lg">{c[`method_l${n}_title`]}</h3>
-                      <p className="text-sm sm:text-base text-[#6B7280] mt-1.5 leading-relaxed">{c[`method_l${n}_body`]}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="relative flex gap-5 rounded-2xl bg-[#111827] p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl">
-                  <div className="shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-[#10B981] to-[#047857] text-white flex items-center justify-center ring-4 ring-[#111827]">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300 mb-1">{c.method_bottom_label}</div>
-                    <p className="text-base sm:text-lg font-semibold leading-snug text-white">{c.method_bottom_text}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <p className="mt-14 mx-auto max-w-2xl text-center text-lg font-medium leading-snug text-[#1F2937]">
+              {c.method_bottom_text}
+            </p>
           </div>
         </section>
       );
