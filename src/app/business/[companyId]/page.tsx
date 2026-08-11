@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 import ContextSwitcher from "@/app/components/ContextSwitcher";
 import { LanguagePicker } from "@/lib/i18n";
 import { parseRoster, RosterRow } from "@/lib/parse-roster";
@@ -404,10 +403,6 @@ export default function BusinessDashboardPage() {
       <section className="bg-gradient-to-b from-white via-[#f0f3f6] to-[#ecf0f3] py-10 sm:py-14">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="min-w-0">
-            <Link href="/business" className="inline-flex items-center gap-1 text-xs font-medium text-[#6B7280] hover:text-[#1F2937] mb-2">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-              All companies
-            </Link>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white text-lg font-bold flex items-center justify-center shrink-0">
                 {company.name.charAt(0).toUpperCase()}
