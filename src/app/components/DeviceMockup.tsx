@@ -22,11 +22,6 @@ export default function DeviceMockup({
   laptopMaxWidth?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +58,7 @@ export default function DeviceMockup({
         </span>
       </button>
 
-      {open && mounted && createPortal(
+      {open && createPortal(
         <div
           role="dialog"
           aria-modal="true"
