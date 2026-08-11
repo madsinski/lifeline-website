@@ -11,6 +11,7 @@ import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/si
 import { layoutBands } from "@/lib/site-content/layout";
 import { parseListField } from "@/lib/site-content/home";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
+import type { WhatsNewCard } from "@/lib/whats-new";
 
 // Presentational home page, driven by the CMS content map. Two modes:
 //  • Public (no props): fetches the PUBLISHED blob and resolves it in the
@@ -25,6 +26,8 @@ export interface HomeViewProps {
   locale?: Locale;
   /** Published blob loaded on the server (SSR), so no flash of defaults. */
   initialBlob?: SiteContentBlob | null;
+  /** "What's new" cards, loaded server-side so the carousel doesn't flash. */
+  whatsNewCards?: WhatsNewCard[];
 }
 
 // Emerald highlight for ==word== spans inside heading fields.
@@ -141,13 +144,13 @@ function Teaser({ c, bg, accent, prefix, href }: { c: LocaleContent; bg: string;
   );
 }
 
-function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
+function renderBand(id: string, c: LocaleContent, bg: string, whatsNewCards?: WhatsNewCard[]): ReactNode {
   switch (id) {
     case "whatsnew":
       return (
         <section className="py-16 sm:py-20" style={{ backgroundColor: bg }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <WhatsNew />
+            <WhatsNew initialCards={whatsNewCards} />
           </div>
         </section>
       );
@@ -357,7 +360,7 @@ export default function HomeView(props: HomeViewProps) {
       {layoutBands(visible, DARK_IDS).map((b) => (
         <Fragment key={b.id}>
           {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
-          {renderBand(b.id, c, b.bg)}
+          {renderBand(b.id, c, b.bg, props.whatsNewCards)}
         </Fragment>
       ))}
     </div>

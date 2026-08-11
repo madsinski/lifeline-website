@@ -164,28 +164,14 @@ function EmailCapture({ card, lang, ctaClass }: { card: WhatsNewCard; lang: Lang
   );
 }
 
-export default function WhatsNew() {
+export default function WhatsNew({ initialCards }: { initialCards?: WhatsNewCard[] }) {
   const { t, locale } = useI18n();
   const lang: Lang = locale === "en" ? "en" : "is";
   const scroller = useRef<HTMLDivElement>(null);
   const [scrollable, setScrollable] = useState(false);
-  // Start from the built-in cards so the section paints instantly; the API
-  // response (admin-managed) replaces them once it lands.
-  const [cards, setCards] = useState<WhatsNewCard[]>(DEFAULT_WHATS_NEW.cards.filter((c) => c.enabled));
-
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/whats-new");
-        const j = res.ok ? await res.json() : null;
-        if (!cancel && Array.isArray(j?.cards)) setCards(j.cards as WhatsNewCard[]);
-      } catch {
-        /* keep the defaults */
-      }
-    })();
-    return () => { cancel = true; };
-  }, []);
+  // Cards are resolved on the server (home page → HomeView) and passed in, so
+  // the carousel paints the admin-managed cards on first render with no flash.
+  const cards = initialCards ?? DEFAULT_WHATS_NEW.cards.filter((c) => c.enabled);
 
   // Show the prev/next arrows only when the strip overflows.
   useEffect(() => {

@@ -6,6 +6,8 @@ import "./globals.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { tenantForHost } from "@/lib/tenant";
+import { getPublishedBlob } from "@/lib/site-content/server";
+import { resolveNav } from "@/lib/site-content/nav";
 import ScrollToTop from "./components/ScrollToTop";
 import ScrollDebug from "./components/ScrollDebug";
 import AuthSync from "./components/AuthSync";
@@ -58,6 +60,9 @@ export default async function RootLayout({
   // marketing pages, so suppress the Lifeline marketing Navbar/Footer there.
   const tenant = tenantForHost((await headers()).get("host"));
   const showMarketingChrome = tenant.id === "lifeline";
+  // Resolve the published navbar config on the server so the menu paints in its
+  // final order/visibility (no flash of the default setup).
+  const navItems = showMarketingChrome ? resolveNav(await getPublishedBlob("nav")) : undefined;
   return (
     <html lang="en" className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} antialiased`} style={{ overflow: "auto" }}>
       <body className="min-h-screen flex flex-col font-sans" style={{ overflow: "auto" }}>
@@ -76,7 +81,7 @@ export default async function RootLayout({
         <ScrollToTop />
         <ScrollDebug />
         <AuthSync />
-        {showMarketingChrome && <Navbar />}
+        {showMarketingChrome && <Navbar initialItems={navItems} />}
         <main className="flex-1">{children}</main>
         {showMarketingChrome && <Footer />}
         <BetaFeedback />

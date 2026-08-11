@@ -8,6 +8,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { SiteContentBlob } from "./types";
+import { mergeWhatsNew, DEFAULT_WHATS_NEW, type WhatsNewCard } from "@/lib/whats-new";
 
 export async function getPublishedBlob(page: string): Promise<SiteContentBlob | null> {
   try {
@@ -19,5 +20,17 @@ export async function getPublishedBlob(page: string): Promise<SiteContentBlob | 
     return (data?.published as SiteContentBlob) ?? null;
   } catch {
     return null;
+  }
+}
+
+// The homepage "What's new" cards (enabled only), loaded server-side so the
+// carousel renders the admin-managed cards on first paint (no flash of the
+// built-in defaults). Mirrors the public /api/whats-new read.
+export async function getPublishedWhatsNewCards(): Promise<WhatsNewCard[]> {
+  try {
+    const { data } = await supabaseAdmin.from("whats_new").select("data").eq("id", 1).maybeSingle();
+    return mergeWhatsNew(data?.data).cards.filter((c) => c.enabled);
+  } catch {
+    return DEFAULT_WHATS_NEW.cards.filter((c) => c.enabled);
   }
 }

@@ -6,27 +6,18 @@ import { usePathname } from "next/navigation";
 import LifelineLogo from "./LifelineLogo";
 import { supabase } from "@/lib/supabase";
 import { LanguagePicker, useI18n } from "@/lib/i18n";
-import { NAV_ITEMS, resolveNav } from "@/lib/site-content/nav";
-import type { SiteContentBlob } from "@/lib/site-content/types";
+import { NAV_ITEMS, type NavItem } from "@/lib/site-content/nav";
 
-export default function Navbar() {
+// `initialItems` is resolved on the server (layout) from the published nav
+// config, so the menu renders in its final order/visibility on first paint —
+// no flash of the default setup.
+export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [navItems, setNavItems] = useState(NAV_ITEMS);
+  const navItems = initialItems ?? NAV_ITEMS;
   const pathname = usePathname();
   const { t } = useI18n();
-
-  // Apply the CMS navbar config (order + visibility). Defaults to the built-in
-  // NAV_ITEMS until the published config loads, so nothing flashes or breaks.
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/site-content/nav")
-      .then((r) => r.json())
-      .then((d) => { if (alive) setNavItems(resolveNav((d?.published as SiteContentBlob) ?? null)); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
