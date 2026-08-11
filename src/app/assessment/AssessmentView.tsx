@@ -94,54 +94,8 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-const overviewStyles = [
-  { color: "#3B82F6", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg> },
-  { color: "#10B981", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M5 14.5l-1.43 1.43a2.25 2.25 0 00-.659 1.591v2.228c0 1.243 1.007 2.25 2.25 2.25h13.676a2.25 2.25 0 002.25-2.25v-2.228c0-.597-.237-1.17-.659-1.591L19 14.5" /></svg> },
-  { color: "#8B5CF6", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> },
-  { color: "#F59E0B", icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" /></svg> },
-];
-
 function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
   switch (id) {
-    case "overview":
-      return (
-        <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">{c.overview_title}</h2>
-              <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">{c.overview_subtitle}</p>
-            </div>
-            <div className="max-w-3xl mx-auto space-y-4">
-              {[1, 2, 3, 4].map((n, i) => (
-                <div key={n} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
-                  <div className="flex items-start gap-5">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${overviewStyles[i].color}10`, border: `2px solid ${overviewStyles[i].color}25`, color: overviewStyles[i].color }}>{overviewStyles[i].icon}</div>
-                    <div className="flex-1 pt-1">
-                      <h3 className="font-semibold text-[#1F2937] text-lg mb-1">{c[`overview_c${n}_title`]}</h3>
-                      <p className="text-sm text-[#6B7280] leading-relaxed">{c[`overview_c${n}_desc`]}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
-                <div className="flex items-start gap-5">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#10B981]/10 border-2 border-[#10B981]/25 text-[#10B981]">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <h3 className="font-semibold text-[#1F2937] text-lg mb-1">{c.overview_medalia_title}</h3>
-                    <p className="text-sm text-[#6B7280] leading-relaxed mb-4">{c.overview_medalia_desc}</p>
-                    <div className="flex flex-wrap gap-3">
-                      <Link href={c.overview_medalia_cta_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-md shadow-green-500/25">{c.overview_medalia_cta}</Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      );
-
     case "process":
       return (
         <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
@@ -165,6 +119,17 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
                   </div>
                 </div>
               ))}
+            </div>
+            {/* Secure storage note (Medalia) — the one unique bit kept from the
+                former overview section. */}
+            <div className="max-w-3xl mx-auto mt-6 flex items-start gap-4 rounded-2xl bg-[#10B981]/5 border border-[#10B981]/15 p-5">
+              <div className="w-11 h-11 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#1F2937] mb-0.5">{c.process_medalia_title}</h3>
+                <p className="text-sm text-[#6B7280] leading-relaxed"><MedaliaText text={c.process_medalia_desc} /></p>
+              </div>
             </div>
           </div>
         </section>
@@ -291,46 +256,46 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
       const lifelineStations = parseListField(c.loc_lifeline_stations).map(([name = "", address = "", hours = ""]) => ({ name, address, hours }));
       return (
         <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-14">
               <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">{c.locations_title}</h2>
               <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">{c.locations_subtitle}</p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+            <div className="space-y-12">
+              {/* Lifeline station */}
               <div>
-                <h3 className="text-xl font-bold text-[#1F2937] mb-4">{c.loc_lifeline_heading}</h3>
-                <p className="text-[#6B7280] mb-4 leading-relaxed">{c.loc_lifeline_desc}</p>
-                <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#10B981]/10 text-[#10B981]">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                  </span>
+                  <h3 className="text-xl font-bold text-[#1F2937]">{c.loc_lifeline_heading}</h3>
+                </div>
+                <p className="text-[#6B7280] mb-5 leading-relaxed">{c.loc_lifeline_desc}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {lifelineStations.map((station) => (
-                    <div key={station.name} className="bg-[#e6ecf4] rounded-2xl p-5 shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-[#1F2937] mb-0.5">{station.name}</h3>
-                          <p className="text-sm text-[#6B7280]">{station.address}</p>
-                          {station.hours && <p className="text-xs text-[#6B7280] mt-1">{station.hours}</p>}
-                        </div>
-                      </div>
+                    <div key={station.name} className="bg-white rounded-xl p-4 shadow-sm ring-1 ring-black/5">
+                      <div className="text-sm font-semibold text-[#1F2937]">{station.name}</div>
+                      <div className="text-xs text-[#6B7280] mt-0.5">{station.address}</div>
+                      {station.hours && <div className="text-xs text-[#6B7280] mt-1">{station.hours}</div>}
                     </div>
                   ))}
                 </div>
               </div>
+              {/* Sameind stations */}
               <div>
-                <h3 className="text-xl font-bold text-[#1F2937] mb-4">{c.loc_sameind_heading}</h3>
-                <p className="text-[#6B7280] mb-4 leading-relaxed">{c.loc_sameind_desc}</p>
-                <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#10B981]/10 text-[#10B981]">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                  </span>
+                  <h3 className="text-xl font-bold text-[#1F2937]">{c.loc_sameind_heading}</h3>
+                </div>
+                <p className="text-[#6B7280] mb-5 leading-relaxed">{c.loc_sameind_desc}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {SAMEIND_STATIONS.map((s) => (
-                    <div key={s.id} className="bg-[#e6ecf4] rounded-xl p-4 flex items-start gap-3 shadow-sm hover:shadow-md transition-all duration-200">
-                      <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-[#1F2937]">{s.name}</div>
-                        <div className="text-xs text-[#6B7280]">{fullAddress(s)}</div>
-                        <div className="text-xs text-[#6B7280]">{s.hours}</div>
-                      </div>
+                    <div key={s.id} className="bg-white rounded-xl p-4 shadow-sm ring-1 ring-black/5 hover:shadow-md transition-all duration-200">
+                      <div className="text-sm font-semibold text-[#1F2937]">{s.name}</div>
+                      <div className="text-xs text-[#6B7280] mt-0.5">{fullAddress(s)}</div>
+                      <div className="text-xs text-[#6B7280] mt-0.5">{s.hours}</div>
                     </div>
                   ))}
                 </div>
