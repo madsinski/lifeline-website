@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import { NAV_ITEMS } from "@/lib/site-content/nav";
-import { resolveOrder, resolveHidden, type SiteContentBlob, type SiteSection } from "@/lib/site-content/types";
+import { resolveOrder, resolveHidden, type Locale, type SiteContentBlob, type SiteSection } from "@/lib/site-content/types";
 
 const SECTIONS: SiteSection[] = NAV_ITEMS.map((n) => ({ id: n.id, label: n.fallback }));
 
@@ -38,7 +38,7 @@ export default function NavbarEditor() {
     const j = await res.json().catch(() => ({}));
     if (j.ok) {
       const d = (j.content?.draft as SiteContentBlob) ?? {};
-      setDraft({ order: d.order, hidden: d.hidden });
+      setDraft({ order: d.order, hidden: d.hidden, is: d.is ?? {}, en: d.en ?? {} });
       setPublishedAt(j.content?.published_at ?? null);
     }
     skipSave.current = true;
@@ -92,6 +92,9 @@ export default function NavbarEditor() {
       return { ...prev, hidden: Array.from(set) };
     });
   };
+  const setLabel = (loc: Locale, id: string, value: string) => {
+    setDraft((prev) => ({ ...prev, [loc]: { ...(prev[loc] ?? {}), [id]: value } }));
+  };
 
   const publish = async () => {
     setBusy(true);
@@ -129,23 +132,39 @@ export default function NavbarEditor() {
         <div className={`mb-3 rounded-lg border p-2.5 text-xs ${msg.type === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}>{msg.text}</div>
       )}
 
-      <ol className="space-y-1.5">
+      <ol className="space-y-2">
         {order.map((id, i) => {
           const hidden = hiddenSet.has(id);
           return (
-            <li key={id} className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${hidden ? "border-gray-200 bg-gray-50" : "border-gray-200 bg-white"}`}>
-              <span className="w-5 text-[11px] font-semibold text-gray-400">{i + 1}</span>
-              <span className={`flex-1 text-sm ${hidden ? "text-gray-400 line-through" : "text-gray-800"}`}>{label(id)}</span>
-              <button onClick={() => toggle(id)} disabled={!isAdmin} title={hidden ? "Sýna" : "Fela"} className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30">
-                {hidden ? "Sýna" : "Fela"}
-              </button>
-              <button onClick={() => move(i, i - 1)} disabled={!isAdmin || i === 0} aria-label="Færa upp" className="rounded-md p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-25">↑</button>
-              <button onClick={() => move(i, i + 1)} disabled={!isAdmin || i === order.length - 1} aria-label="Færa niður" className="rounded-md p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-25">↓</button>
+            <li key={id} className={`rounded-lg border p-3 ${hidden ? "border-gray-200 bg-gray-50" : "border-gray-200 bg-white"}`}>
+              <div className="flex items-center gap-2">
+                <span className="w-5 text-[11px] font-semibold text-gray-400">{i + 1}</span>
+                <span className={`flex-1 text-sm font-medium ${hidden ? "text-gray-400 line-through" : "text-gray-800"}`}>{draft.is?.[id]?.trim() || label(id)}</span>
+                <button onClick={() => toggle(id)} disabled={!isAdmin} title={hidden ? "Sýna" : "Fela"} className="rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30">
+                  {hidden ? "Sýna" : "Fela"}
+                </button>
+                <button onClick={() => move(i, i - 1)} disabled={!isAdmin || i === 0} aria-label="Færa upp" className="rounded-md p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-25">↑</button>
+                <button onClick={() => move(i, i + 1)} disabled={!isAdmin || i === order.length - 1} aria-label="Færa niður" className="rounded-md p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-25">↓</button>
+              </div>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 pl-7">
+                {(["is", "en"] as Locale[]).map((loc) => (
+                  <label key={loc} className="block">
+                    <span className="text-[10px] uppercase tracking-wide text-gray-400">{loc === "is" ? "Heiti (íslenska)" : "Heiti (enska)"}</span>
+                    <input
+                      value={draft[loc]?.[id] ?? ""}
+                      disabled={!isAdmin}
+                      onChange={(e) => setLabel(loc, id, e.target.value)}
+                      placeholder={loc === "is" ? label(id) : "(þýðing)"}
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-200 outline-none disabled:bg-gray-50"
+                    />
+                  </label>
+                ))}
+              </div>
             </li>
           );
         })}
       </ol>
-      <p className="mt-2 text-[11px] text-gray-400">Breytingar birtast sjálfkrafa á vefnum (getur tekið nokkrar sekúndur). Falin síða hverfur úr valmyndinni en er áfram til á sinni slóð. Heiti eru þýdd í „Website“ ritlinum og þýðingakerfinu.</p>
+      <p className="mt-2 text-[11px] text-gray-400">Breytingar birtast sjálfkrafa á vefnum (getur tekið nokkrar sekúndur). Tómur reitur notar sjálfgefna heitið. Falin síða hverfur úr valmyndinni en er áfram til á sinni slóð.</p>
     </div>
   );
 }

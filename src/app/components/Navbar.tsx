@@ -18,7 +18,11 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   const [acctOpen, setAcctOpen] = useState(false);
   const navItems = initialItems ?? NAV_ITEMS;
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+
+  // CMS label override (per locale) wins; otherwise the translations key / built-in.
+  const navLabel = (link: NavItem) =>
+    (locale === "en" ? link.labelEn : link.labelIs) || t(link.key, link.fallback);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -130,7 +134,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                       : "text-[#6B7280] hover:text-[#1F2937]"
                   }`}
                 >
-                  {t(link.key, link.fallback)}
+                  {navLabel(link)}
                   {isActive && (
                     <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#10B981] rounded-full" />
                   )}
@@ -237,7 +241,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                       : "text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50"
                   }`}
                 >
-                  {t(link.key, link.fallback)}
+                  {navLabel(link)}
                 </Link>
               );
             })}
