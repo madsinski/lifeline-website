@@ -115,7 +115,7 @@ export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal,
                   </Link>
                 ))}
                 <div className="border-t border-gray-100 mt-1 pt-1">
-                  <Link href="/business" className="block px-4 py-2 text-xs text-gray-500 hover:bg-gray-50" onClick={() => setOpen(false)}>
+                  <Link href="/business/account" className="block px-4 py-2 text-xs text-gray-500 hover:bg-gray-50" onClick={() => setOpen(false)}>
                     {t("b2b.header.all_companies", "All companies →")}
                   </Link>
                 </div>
