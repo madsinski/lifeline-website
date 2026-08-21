@@ -1,0 +1,638 @@
+<title>Styrkjavélin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+:root{
+  --paper:#F4F7F5;
+  --surface:#FFFFFF;
+  --surface-2:#EDF2EF;
+  --ink:#101A16;
+  --ink-2:#48584F;
+  --ink-3:#6C7C73;
+  --rule:#D8E1DB;
+  --rule-strong:#B9C7BF;
+  --accent:#0B7A56;
+  --accent-ink:#075C40;
+  --accent-soft:#E1F0E8;
+  --flag:#8F5510;
+  --flag-soft:#F7EEE1;
+  --stop:#8E2F2F;
+  --stop-soft:#F7E7E7;
+  --shadow:0 1px 2px rgba(16,26,22,.05), 0 8px 24px -16px rgba(16,26,22,.25);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1411;
+    --surface:#141D19;
+    --surface-2:#1A2521;
+    --ink:#E7EEE9;
+    --ink-2:#A3B3AA;
+    --ink-3:#7E8F86;
+    --rule:#26332D;
+    --rule-strong:#37473F;
+    --accent:#54CFA1;
+    --accent-ink:#7FE0BB;
+    --accent-soft:#122E24;
+    --flag:#D9A25C;
+    --flag-soft:#2C2317;
+    --stop:#E08585;
+    --stop-soft:#2E1B1B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1411;
+  --surface:#141D19;
+  --surface-2:#1A2521;
+  --ink:#E7EEE9;
+  --ink-2:#A3B3AA;
+  --ink-3:#7E8F86;
+  --rule:#26332D;
+  --rule-strong:#37473F;
+  --accent:#54CFA1;
+  --accent-ink:#7FE0BB;
+  --accent-soft:#122E24;
+  --flag:#D9A25C;
+  --flag-soft:#2C2317;
+  --stop:#E08585;
+  --stop-soft:#2E1B1B;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Source Serif 4","Iowan Old Style",Georgia,serif;
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px 96px}
+
+/* ---------- masthead ---------- */
+.masthead{
+  border-bottom:1px solid var(--rule-strong);
+  padding:56px 0 28px;
+  margin-bottom:8px;
+}
+.kicker{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent-ink);
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 16px;
+  align-items:baseline;
+  margin-bottom:22px;
+}
+.kicker .dim{color:var(--ink-3)}
+h1{
+  font-family:Archivo,"Helvetica Neue",Arial,sans-serif;
+  font-weight:700;
+  letter-spacing:-.028em;
+  font-size:clamp(38px,6.2vw,62px);
+  line-height:1.02;
+  margin:0 0 18px;
+  text-wrap:balance;
+}
+.standfirst{
+  font-size:clamp(18px,2.2vw,21px);
+  line-height:1.5;
+  color:var(--ink-2);
+  max-width:60ch;
+  margin:0;
+}
+.standfirst strong{color:var(--ink);font-weight:600}
+
+/* ---------- verdict panel ---------- */
+.verdict{
+  margin:34px 0 0;
+  background:var(--surface);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--accent);
+  border-radius:3px;
+  padding:24px 26px;
+  box-shadow:var(--shadow);
+}
+.verdict h2{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent-ink);
+  margin:0 0 14px;
+  font-weight:600;
+}
+.verdict p{margin:0 0 12px;max-width:70ch}
+.verdict p:last-child{margin-bottom:0}
+
+/* ---------- sections ---------- */
+section{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  padding:44px 0 8px;
+  border-top:1px solid var(--rule);
+  margin-top:44px;
+}
+@media (min-width:900px){
+  section{grid-template-columns:132px minmax(0,1fr);gap:36px}
+}
+.rail{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  padding-top:9px;
+  line-height:1.5;
+}
+.rail b{display:block;color:var(--accent-ink);font-weight:600}
+.col{min-width:0}
+h2.sec{
+  font-family:Archivo,"Helvetica Neue",Arial,sans-serif;
+  font-weight:600;
+  letter-spacing:-.02em;
+  font-size:clamp(25px,3.3vw,32px);
+  line-height:1.16;
+  margin:0 0 16px;
+  text-wrap:balance;
+}
+h3{
+  font-family:Archivo,"Helvetica Neue",Arial,sans-serif;
+  font-weight:600;
+  font-size:19px;
+  letter-spacing:-.01em;
+  margin:32px 0 8px;
+  text-wrap:balance;
+}
+p{margin:0 0 15px;max-width:68ch}
+ul,ol{margin:0 0 16px;padding-left:20px;max-width:68ch}
+li{margin-bottom:7px}
+li::marker{color:var(--ink-3)}
+strong{font-weight:600}
+em{font-style:italic;color:var(--ink-2)}
+a{color:var(--accent-ink);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{background:var(--accent-soft)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:1px 5px;border-radius:2px;color:var(--ink)}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto;margin:8px 0 22px;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:600px}
+caption{
+  caption-side:top;text-align:left;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);padding:12px 16px 8px;
+}
+th{
+  font-family:Archivo,sans-serif;font-weight:600;font-size:12px;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);
+  text-align:left;padding:10px 16px;border-bottom:1px solid var(--rule-strong);
+  vertical-align:bottom;white-space:nowrap;
+}
+td{padding:11px 16px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.45}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.name{font-family:Archivo,sans-serif;font-weight:600;font-size:14px;white-space:nowrap}
+tbody tr:hover{background:var(--surface-2)}
+
+/* ---------- chips ---------- */
+.chip{
+  display:inline-block;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 8px;border-radius:2px;white-space:nowrap;
+  border:1px solid transparent;font-weight:500;
+}
+.chip.go{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent)}
+.chip.wait{background:var(--flag-soft);color:var(--flag);border-color:var(--flag)}
+.chip.no{background:var(--stop-soft);color:var(--stop);border-color:var(--stop)}
+.chip.neutral{background:var(--surface-2);color:var(--ink-2);border-color:var(--rule-strong)}
+
+/* ---------- option cards ---------- */
+.options{display:grid;gap:16px;margin:8px 0 24px}
+.opt{
+  background:var(--surface);
+  border:1px solid var(--rule);
+  border-radius:3px;
+  padding:20px 22px;
+  box-shadow:var(--shadow);
+}
+.opt-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin-bottom:6px}
+.opt-num{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  color:var(--accent-ink);letter-spacing:.08em;
+}
+.opt-title{font-family:Archivo,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em;margin:0;flex:1 1 240px}
+.opt p{font-size:16px;margin-bottom:10px}
+.opt ul{font-size:16px}
+.meta{
+  display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:14px;padding-top:13px;
+  border-top:1px dashed var(--rule-strong);
+}
+.meta span{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2)}
+.meta span b{color:var(--ink);font-weight:600}
+
+/* ---------- callouts ---------- */
+.note{
+  background:var(--surface-2);
+  border-left:3px solid var(--rule-strong);
+  padding:16px 20px;margin:20px 0;border-radius:0 3px 3px 0;
+}
+.note.warn{border-left-color:var(--flag);background:var(--flag-soft)}
+.note.stop{border-left-color:var(--stop);background:var(--stop-soft)}
+.note p:last-child{margin-bottom:0}
+.note .lbl{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-2);display:block;margin-bottom:6px;font-weight:600;
+}
+.note.warn .lbl{color:var(--flag)}
+.note.stop .lbl{color:var(--stop)}
+
+/* ---------- flow / phases ---------- */
+.phases{display:grid;gap:0;margin:10px 0 22px;border:1px solid var(--rule);border-radius:3px;background:var(--surface);overflow:hidden}
+.phase{display:grid;grid-template-columns:1fr;gap:4px;padding:18px 22px;border-bottom:1px solid var(--rule)}
+@media (min-width:720px){.phase{grid-template-columns:112px minmax(0,1fr) 128px;gap:20px;align-items:baseline}}
+.phase:last-child{border-bottom:none}
+.phase-n{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);font-weight:600}
+.phase-b h4{font-family:Archivo,sans-serif;font-size:17px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.phase-b p{font-size:15.5px;margin:0;color:var(--ink-2)}
+.phase-t{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);white-space:nowrap}
+
+/* ---------- price strip ---------- */
+.strip{
+  display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+  border-radius:3px;overflow:hidden;margin:12px 0 22px;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+}
+.cell{background:var(--surface);padding:16px 18px}
+.cell .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+.cell .v{font-family:Archivo,sans-serif;font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:block;line-height:1.1}
+.cell .s{font-size:13.5px;color:var(--ink-2);display:block;margin-top:4px;line-height:1.35}
+.cell.hi .v{color:var(--accent-ink)}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--rule-strong);margin-top:56px;padding-top:24px;font-size:14.5px;color:var(--ink-2)}
+footer h3{margin-top:0}
+footer ul{max-width:none;columns:2;column-gap:32px}
+@media (max-width:700px){footer ul{columns:1}}
+footer li{break-inside:avoid;font-size:14px}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">
+    <span>Lifeline Health ehf.</span>
+    <span class="dim">Vöru- og viðskiptastefna</span>
+    <span class="dim">21. ágúst 2026</span>
+    <span class="dim">Drög til ákvörðunar</span>
+  </div>
+  <h1>Styrkjavélin</h1>
+  <p class="standfirst">Nær hvert einasta stéttarfélag á Íslandi endurgreiðir hluta af heilsufarsmati — en reglurnar eru ólíkar hjá öllum og enginn nennir að hringja. <strong>Hér er hvernig við breytum því í söluvél í stað þess að borga 20% þóknun fyrir hana.</strong></p>
+
+  <div class="verdict">
+    <h2>Niðurstaða í stuttu máli</h2>
+    <p><strong>Það er ekki hægt að fletta upp kennitölu og fá stéttarfélag.</strong> Sú skrá er ekki til — hvorki hjá Þjóðskrá, Skattinum né Ísland.is — og félagsaðild að stéttarfélagi er sérstakur flokkur persónuupplýsinga skv. 9. gr. GDPR, alveg eins og heilsufarsupplýsingar. Fyrirtækið sem vill 20% er því ekki að selja uppflettingu. Það er að selja <em>reglusafn og pappírsvinnu</em>.</p>
+    <p>Hvort tveggja getum við byggt sjálf á fjórum til sex vikum. Og af því að við erum þjónustuaðilinn — ekki milliliður — höfum við tvo leiki sem þeir hafa ekki: við gefum út kvittunina sem sjóðirnir krefjast, og við getum samið um að vera nefnd í reglum sjóðanna eins og Hjartavernd og Heilsuvernd eru í dag.</p>
+  </div>
+</header>
+
+<section>
+  <div class="rail"><b>§ 1</b>Áttin</div>
+  <div class="col">
+    <h2 class="sec">Hvað Áttin er í raun — og af hverju hún er röng fyrirmynd en rétt sönnun</h2>
+    <p>Áttin er vefgátt sem tekur við umsóknum <em>fyrirtækja</em> um <strong>starfsmenntastyrki</strong> og sendir þær áfram til réttra starfsmenntasjóða. Hún afgreiðir enga styrki sjálf — sjóðirnir gera það eftir eigin reglum.</p>
+    <p>Þrennt skiptir okkur máli við hana:</p>
+    <ul>
+      <li><strong>Röng sjóðafjölskylda.</strong> Starfsmenntasjóðir borga fyrir fræðslu, ekki heilsufarsmat. Peningarnir okkar liggja í <em>sjúkrasjóðum</em> og <em>varasjóðum</em>. Þar er <strong>engin Áttin til</strong> — það er nákvæmlega gatið sem 20%-fyrirtækið er að reyna að fylla.</li>
+      <li><strong>Rétt viðskiptamódel.</strong> Áttin er sameiginlegt verkefni atvinnurekenda (SA, FA) og launafólks. Hún tekur <strong>enga þóknun</strong>. Sjóðirnir sem standa að henni — IÐAN, Landsmennt, Menntasjóður STF, Rafmennt, Starfsafl, SVS, SV og Sjómennt — ná til 110–120 þúsund manns, um 75–80% af almenna vinnumarkaðinum. Þetta er sönnun þess að íslenskir sjóðir vilja sameiginlegar rásir og að þeir gera það án milliliðaþóknunar.</li>
+      <li><strong>Rétt gagnalíkan.</strong> Áttin viðheldur handvirku korti: <em>stéttarfélag → sjóður</em>. Það er nákvæmlega taflan sem við þurfum að byggja, bara fyrir sjúkrasjóði í staðinn.</li>
+    </ul>
+    <p>Og athugið hvernig Áttin leysir kennitöluvandann: hún leysir hann ekki. Hún lætur fyrirtækið senda inn <strong>Excel-skjal með nafni, kennitölu og stéttarfélagi hvers þátttakanda</strong>. Launakerfi fyrirtækisins veit þetta — það dregur félagsgjaldið af. Það er ódýrasta „uppflettingin“ sem til er, og hún er þegar til staðar í B2B-rásinni okkar.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 2</b>Peningarnir</div>
+  <div class="col">
+    <h2 class="sec">Hvaðan 49.900 kr. eru raunverulega greiddar</h2>
+    <p>Sjóðirnir skiptast í tvær gerðir sem hegða sér gjörólíkt. Þetta er mikilvægasta greinarmunurinn í öllu verkefninu, því hann ræður því hvað við getum lofað.</p>
+
+    <h3>Gerð A — persónuleg inneign (t.d. VR varasjóður)</h3>
+    <p>Félagi safnar inneign, um 4% af einum mánaðarlaunum á ári. <strong>Ekkert árlegt hámark</strong> — reikningur er endurgreiddur að fullu meðan inneign dugar. Flokkarnir eru meðal annars <em>Lækniskostnaður</em>, <em>Krabbameinsskoðun</em> og <em>Heilsunámskeið</em>. VR-félagi með inneign getur því fengið <strong>allt heilsufarsmatið endurgreitt</strong>.</p>
+
+    <h3>Gerð B — fastur réttur á flokk (Sameyki, Efling, flest ASÍ/BSRB-félög)</h3>
+    <p>Fastar krónutölur og hlutföll á hvern flokk, með 12-mánaða glugga. Þar erum við að tala um 20.000–25.000 kr., ekki 49.900.</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Raundæmi úr gildandi reglum — sótt 21. ágúst 2026</caption>
+        <thead>
+          <tr><th>Sjóður</th><th>Gerð</th><th>Á við heilsufarsmat</th><th class="num">Endurgreiðsla</th><th>Skilyrði</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">VR varasjóður</td>
+            <td><span class="chip go">A · inneign</span></td>
+            <td>Lækniskostnaður · Krabbameinsskoðun · Heilsunámskeið</td>
+            <td class="num">100%<br><span style="color:var(--ink-3)">meðan inneign dugar</span></td>
+            <td>Kvittun má vera 24 mán. gömul · hver kvittun notuð einu sinni · staðgreiðsla dregin af</td>
+          </tr>
+          <tr>
+            <td class="name">Sameyki</td>
+            <td><span class="chip wait">B · fastur</span></td>
+            <td>„Áhættumat hjá Hjartavernd eða Heilsuvernd“</td>
+            <td class="num">20.000 kr.<br><span style="color:var(--ink-3)">á ári</span></td>
+            <td><strong>Nefndir þjónustuaðilar</strong> · 6 af síðustu 12 mán. + 3 samfelldir · reikningur ≤ 12 mán.</td>
+          </tr>
+          <tr>
+            <td class="name">Sameyki</td>
+            <td><span class="chip wait">B · fastur</span></td>
+            <td>Ristil-, blöðruháls- eða leghálsskoðun</td>
+            <td class="num">10.000 kr.</td>
+            <td>Aðeins ef skoðunin er raunverulega innifalin</td>
+          </tr>
+          <tr>
+            <td class="name">Efling</td>
+            <td><span class="chip wait">B · fastur</span></td>
+            <td>Heilsuefling / forvarnir</td>
+            <td class="num">23.000 kr.<br><span style="color:var(--ink-3)">hámark 50%</span></td>
+            <td>Á 12 mánaða tímabili</td>
+          </tr>
+          <tr>
+            <td class="name">Sjúkrasjóður VR</td>
+            <td><span class="chip neutral">sér</span></td>
+            <td>Ekki heilsufarsmat — en ferðakostnaður v. sérfræðilæknis</td>
+            <td class="num">150.000 kr.<br><span style="color:var(--ink-3)">á almanaksári</span></td>
+            <td>Aðskilinn frá varasjóði; sækja þarf sérstaklega</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>Söluboðskapurinn sem þetta gefur:</strong> „Foundational Health, 49.900 kr. — flest stéttarfélög endurgreiða 20.000–49.900 kr. Raunkostnaður þinn frá <strong>0 kr.</strong>“ Það er ekki markaðsbrella; það er það sem reglurnar segja.</p>
+
+    <div class="note warn">
+      <span class="lbl">Fjórar gildrur sem verða að vera í vélinni frá degi eitt</span>
+      <p><strong>1 · Nefndir þjónustuaðilar.</strong> Sameyki nefnir Hjartavernd og Heilsuvernd með nafni. Lifeline er ekki á listanum — umsókn yrði hafnað. Þetta er ekki tæknivandamál, það er símtal.</p>
+      <p><strong>2 · Skattur.</strong> Greiðslur úr varasjóði eru almennt staðgreiðsluskyldar (þrep 1). Nettóvirði til félagans er lægra en talan. Við verðum að segja „fyrir skatt“ eða reikna nettó — annars lofum við of miklu.</p>
+      <p><strong>3 · Ávinnsla.</strong> Sameyki krefst greiðslu 6 af síðustu 12 mánuðum og 3 samfellt. Nýr á vinnumarkaði fær ekkert. Vélin verður að spyrja.</p>
+      <p><strong>4 · Kvittunarkröfur.</strong> Nafn <em>og kennitala</em> bæði kaupanda og seljanda, hvað var greitt fyrir, aldur reiknings (12 mán. hjá Sameyki, 24 hjá VR), hver kvittun notuð einu sinni. Núverandi kvittun okkar uppfyllir þetta ekki að fullu.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 3</b>Múrinn</div>
+  <div class="col">
+    <h2 class="sec">Af hverju „athuga kennitölu gegn stéttarfélagi“ er ekki byggjanlegt eins og það er orðað</h2>
+    <ul>
+      <li><strong>Skráin er ekki til.</strong> Félagsaðild verður til í launakerfi vinnuveitanda og skilagreinum til félagsins. Hvert félag geymir sína eigin skrá. Það er engin miðlæg uppsláttarþjónusta — hvorki hjá Ísland.is, Þjóðskrá né Skattinum.</li>
+      <li><strong>9. gr. GDPR nefnir stéttarfélagsaðild sérstaklega.</strong> Að geyma <code>kennitala → stéttarfélag</code> við hliðina á heilsufarsgögnum er tvöföld sérflokks-vinnsla. Það kallar á afdráttarlaust samþykki, tilgangstakmörkun, mat á áhrifum (DPIA) og skýra varðveislustefnu. Þetta er ekki afsökun fyrir að sleppa því — þetta er einfaldlega verkefni sem persónuverndarfulltrúinn okkar þarf að stýra.</li>
+      <li><strong>Tvö kerfishús eiga langa halann.</strong> Félagakerfi (stofnað 2019, Kópavogi) rekur „Mínar síður“ ásamt dk hugbúnaði, sem á félaga-, sjóða-, styrkja- og innheimtukerfið, með Þjóðskrártengingu og vefþjónustum. Þar sést nú þegar <em>staða sjóða</em> og <em>iðgjaldagreiðslur vinnuveitanda</em>. Ein samþætting þar gæti náð yfir mörg minni og meðalstór félög í einu — en ekki VR eða Eflingu, sem eru á eigin kerfum.</li>
+    </ul>
+    <p>Skiptum því út markmiðinu. Við þurfum ekki <em>sannreynda uppflettingu</em>. Við þurfum að geta sagt réttu tölurnar við afgreiðslu og séð um pappírana á eftir. Það er byggjanlegt í dag.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 4</b>Valkostir</div>
+  <div class="col">
+    <h2 class="sec">Fimm lög — hvert byggir ofan á það fyrra</h2>
+    <p>Þetta eru ekki valkostir sem útiloka hvern annan. Lag 1 og 2 eru grunnurinn og eiga að fara í loftið óháð öllu öðru; lög 3–5 stigmagna virðið.</p>
+
+    <div class="options">
+
+      <div class="opt">
+        <div class="opt-head">
+          <span class="opt-num">LAG 1</span>
+          <h3 class="opt-title" style="margin:0">Reglusafn + réttindareiknivél</h3>
+          <span class="chip go">Byggja strax</span>
+        </div>
+        <p>Notandi velur sitt félag úr leitanlegum lista. Vélin skilar: átt þú rétt, hversu mikið, hvaða skilyrði, hvað þarf að fylgja, og hlekk beint á umsóknina. Sjálf-uppgefið félag — engin sannreyning.</p>
+        <ul>
+          <li>Topp 25 félög ná yfir ~85% af markaðinum.</li>
+          <li>Hver regla ber <code>source_url</code> og <code>verified_at</code>, birt í viðmótinu: „Staðfest 21.08.2026“.</li>
+          <li>Orðalag alltaf „áætlað“ — aldrei loforð.</li>
+        </ul>
+        <div class="meta"><span>Fyrirhöfn: <b>2–3 vikur</b></span><span>Ytri háð: <b>engin</b></span><span>Áhætta: <b>reglur úreldast</b></span></div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-head">
+          <span class="opt-num">LAG 2</span>
+          <h3 class="opt-title" style="margin:0">Umsóknartilbúin kvittun + tilbúinn umsóknarpakki</h3>
+          <span class="chip go">Byggja strax</span>
+        </div>
+        <p>Þetta er lagið sem drepur raunverulega óþægindin, og það er ódýrast. Eftir greiðslu fær félaginn tölvupóst með kvittun sem uppfyllir kröfur <em>hans</em> sjóðs, sundurliðaðri á flokka sem sjóðurinn þekkir, ásamt einnar-síðu leiðbeiningum og hlekk á réttu Mínar síður.</p>
+        <ul>
+          <li><code>src/lib/pdf-booking-receipt.tsx</code> er þegar til og hefur kennitölu kaupanda — vantar kennitölu seljanda, íslenskan texta og sundurliðun.</li>
+          <li>Sundurliðunin verður að vera <strong>heiðarleg</strong>: aðeins það sem raunverulega var framkvæmt. Við sundurliðum til að passa við flokka sjóðanna, ekki til að búa til rétt sem er ekki til.</li>
+        </ul>
+        <div class="meta"><span>Fyrirhöfn: <b>~1 vika</b></span><span>Ytri háð: <b>engin</b></span><span>Áhrif: <b>hæst á hverja krónu</b></span></div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-head">
+          <span class="opt-num">LAG 3</span>
+          <h3 class="opt-title" style="margin:0">Greining á félagi án API</h3>
+          <span class="chip go">Byggja · B2B fyrst</span>
+        </div>
+        <p>Þrjár leiðir, engin þeirra krefst samstarfs við stéttarfélag:</p>
+        <ul>
+          <li><strong>B2B (langsterkast).</strong> Vinnuveitandi gefur upp stéttarfélag í starfsmannalistanum — nákvæmlega eins og Áttin krefst. Launakerfið veit það. Þetta er aðalrásin okkar hvort eð er.</li>
+          <li><strong>Launaseðill.</strong> Notandi hleður upp launaseðli, við lesum línuna „Félagsgjald · VR“. Við keyrum þegar sambærilegar AI-útdráttarleiðir (<code>parse-lab-report</code>, <code>parse-body-comp</code>) — mynstrið er til.</li>
+          <li><strong>Inneignarskjámynd.</strong> Fyrir Gerð A getur notandi staðfest inneign af Mínum síðum, sem gerir okkur kleift að nefna nákvæma krónutölu í stað bils.</li>
+        </ul>
+        <div class="meta"><span>Fyrirhöfn: <b>B2B ~3 dagar · launaseðill ~1 vika</b></span><span>Ytri háð: <b>engin</b></span></div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-head">
+          <span class="opt-num">LAG 4</span>
+          <h3 class="opt-title" style="margin:0">Umboð — við sækjum um fyrir félagann</h3>
+          <span class="chip wait">Eftir lag 1–3</span>
+        </div>
+        <p>Þetta er nákvæmlega varan sem 20%-fyrirtækið er að selja. Félaginn veitir afdráttarlaust samþykki og takmarkað umboð; við sendum umsóknina inn; endurgreiðslan fer inn á <em>hans</em> reikning, ekki okkar. Afgreiðsluröð í <code>/admin</code> við hliðina á greiðslusíðunni.</p>
+        <ul>
+          <li>Krefst DPIA og uppfærslu á <code>src/lib/security-posture.ts</code> áður en það fer í loftið.</li>
+          <li>Raunkostnaður: 5–10 mínútur af afgreiðslu á hverja umsókn.</li>
+        </ul>
+        <div class="meta"><span>Fyrirhöfn: <b>2–3 vikur + rekstur</b></span><span>Ytri háð: <b>persónuvernd</b></span><span>Verðmæti: <b>hátt</b></span></div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-head">
+          <span class="opt-num">LAG 5</span>
+          <h3 class="opt-title" style="margin:0">Nefndur þjónustuaðili og bein uppgjör</h3>
+          <span class="chip wait">Sölustarf, samhliða</span>
+        </div>
+        <p>Verðlaunin. Tvennt í einu símtali við hvern sjóð:</p>
+        <ul>
+          <li><strong>Verða nefnd í reglunum</strong> eins og Hjartavernd og Heilsuvernd eru hjá Sameyki. Kostar ekkert nema tíma, og opnar rétt sem er annars lokaður.</li>
+          <li><strong>Bein uppgjör:</strong> við gerum sjóðnum reikning fyrir styrkhlutanum og félaginn greiðir aðeins mismuninn við afgreiðslu. Þá stendur „49.900 → <strong>þú greiðir 29.900</strong>“ í körfunni. Það er umbreyting sem enginn milliliður getur keppt við, því hún krefst þess að vera þjónustuaðilinn.</li>
+        </ul>
+        <div class="meta"><span>Fyrirhöfn: <b>sölustarf, 3–6 mán.</b></span><span>Ytri háð: <b>sjóðirnir</b></span><span>Verðmæti: <b>hæst · samkeppnisforskot</b></span></div>
+      </div>
+
+      <div class="opt">
+        <div class="opt-head">
+          <span class="opt-num">LAG 6</span>
+          <h3 class="opt-title" style="margin:0">Kerfishúsin og ASÍ — „Áttin fyrir sjúkrasjóði“</h3>
+          <span class="chip neutral">Tækifærissinnað</span>
+        </div>
+        <p>Tvö löng skot sem kosta lítið að reyna og breyta öllu ef þau lenda:</p>
+        <ul>
+          <li><strong>Félagakerfi / dk vefþjónustur:</strong> samþykkisbundinn endapunktur sem svarar „á þessi kennitala rétt hjá þessum sjóði, og hver er staðan?“. Þau birta þessi gögn nú þegar á Mínum síðum — þetta er endapunktur ofan á gögn sem eru til.</li>
+          <li><strong>ASÍ / BSRB:</strong> reglugerðir sjúkrasjóða þurfa samþykki miðstjórnar ASÍ og lúta lágmarksreglum. Þar er heimilisfang fyrir samræmingarsamtalið — nákvæmlega eins og Áttin varð til sem sameiginlegt verkefni.</li>
+        </ul>
+        <div class="meta"><span>Fyrirhöfn: <b>fundir</b></span><span>Líkur: <b>lágar</b></span><span>Ef það lendir: <b>raunveruleg uppfletting</b></span></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 5</b>Hvar það fer</div>
+  <div class="col">
+    <h2 class="sec">Nákvæmir ísetningarstaðir í kerfinu</h2>
+    <p>Greiðslan fer fram á <strong>lifelinehealth.is í gegnum Straumur</strong>, ekki í Medalia — <code>src/app/account/book/page.tsx</code> kallar á <code>createStraumurCharge</code>. Við ráðum því öllu flæðinu sjálf og þurfum ekki að bíða eftir Medalia. Það er stór kostur.</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Snertifletir</caption>
+        <thead><tr><th>Staður</th><th>Skrá</th><th>Breyting</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Markaðssíða</td><td><code>src/app/assessment/AssessmentView.tsx</code><br><code>src/lib/site-content/assessment.ts</code></td><td>„Athugaðu þinn rétt“ reiknivél. Engin innskráning, mikið SEO-virði á „stéttarfélagsstyrkur heilsufarsmat“. Efnið er þegar CMS-stýrt.</td></tr>
+          <tr><td class="name">Bókunarflæði</td><td><code>src/app/account/book/page.tsx</code></td><td>Nýtt þrep <code>"grant"</code> milli <code>review</code> og <code>pay</code>: velja félag → sjá nettóverð → samþykki. Greiðslan sjálf helst óbreytt (brúttó) þar til lag 5 er komið.</td></tr>
+          <tr><td class="name">Pakkar</td><td><code>src/lib/assessment-packages.ts</code></td><td>Bæta <code>grantCategories</code> við <code>PackageDef</code> svo línur í kvittun tengist flokkum sjóðanna.</td></tr>
+          <tr><td class="name">Kvittun</td><td><code>src/lib/pdf-booking-receipt.tsx</code></td><td>Kennitala seljanda, sundurliðaðar línur, íslensk útgáfa, VSK.</td></tr>
+          <tr><td class="name">Stjórnborð</td><td>nýtt <code>src/app/admin/union-grants</code></td><td>Reglusafn með ritli (sama mynstur og <code>/admin/website</code>) + afgreiðsluröð umsókna við hliðina á <code>/admin/payments</code>.</td></tr>
+          <tr><td class="name">Fyrirtæki</td><td><code>src/app/business</code> · <code>src/app/admin/companies</code></td><td>Stéttarfélagsdálkur í starfsmannainnflutningi → nettóverð á hvern starfsmann.</td></tr>
+          <tr><td class="name">Persónuvernd</td><td><code>src/lib/security-posture.ts</code></td><td>Hækka útgáfunúmer og bæta við CHANGELOG-færslu þegar þetta fer í loftið.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Gagnalíkan</h3>
+    <p>Fjórar töflur duga. Reglurnar eru gögn, ekki kóði — annars endum við á að forrita hverja reglubreytingu.</p>
+    <ul>
+      <li><code>unions</code> — nafn, skammstöfun, samband (ASÍ/BSRB/BHM), umsóknarslóð, kerfishús.</li>
+      <li><code>union_funds</code> — sjúkrasjóður, varasjóður, styrktarsjóður; gerð A eða B.</li>
+      <li><code>union_benefit_rules</code> — flokkur, hlutfall, hámark, tímabil í mánuðum, ávinnsla í mánuðum, hámarksaldur reiknings, <code>named_providers</code>, skattskylt já/nei, <code>source_url</code>, <code>verified_at</code>.</li>
+      <li><code>member_grant_claims</code> — bókun, uppgefið félag, uppruni (sjálf-uppgefið / launaseðill / vinnuveitandi), áætluð upphæð, staða, útkoma. Útkoman fóðrar nákvæmni áætlananna.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 6</b>20%</div>
+  <div class="col">
+    <h2 class="sec">Reikningurinn á móti þóknuninni</h2>
+    <p>20% af 49.900 kr. eru <strong>9.980 kr. á hvert heilsufarsmat</strong> — að eilífu, af hverri einustu sölu.</p>
+
+    <div class="strip">
+      <div class="cell"><span class="k">500 möt á ári</span><span class="v">5,0 m.kr.</span><span class="s">á ári í þóknun</span></div>
+      <div class="cell"><span class="k">1.500 möt á ári</span><span class="v">15,0 m.kr.</span><span class="s">á ári í þóknun</span></div>
+      <div class="cell"><span class="k">3.000 möt á ári</span><span class="v">29,9 m.kr.</span><span class="s">á ári í þóknun</span></div>
+      <div class="cell hi"><span class="k">Að byggja sjálf</span><span class="v">4–6 vikur</span><span class="s">+ um einn dag á ársfjórðungi í reglustaðfestingu</span></div>
+    </div>
+
+    <p>Jafnvægispunkturinn næst á fyrstu vikunum. En kostnaðurinn er ekki aðalatriðið — þrennt annað vegur þyngra:</p>
+    <ul>
+      <li><strong>Við eigum sambandið.</strong> Milliliður sem sér um styrkinn er milliliður sem á snertipunktinn við sjúklinginn og gögnin um hann.</li>
+      <li><strong>Þeir geta ekki gefið út kvittunina.</strong> Við gerum það. Helmingurinn af vandanum leysist í PDF-skjali sem við stjórnum þegar.</li>
+      <li><strong>Þeir geta ekki orðið nefndur þjónustuaðili.</strong> Aðeins þjónustuaðilinn kemst í reglurnar. Lag 5 er okkar og enginn annar getur tekið það.</li>
+    </ul>
+    <div class="note">
+      <span class="lbl">Athugasemd</span>
+      <p>Það er líka rétt að skoða hvernig 20% árangurstengd þóknun á <em>heilbrigðisþjónustu</em>, þar sem milliliður hefur beina fjárhagslega hagsmuni af því að fólk kaupi læknisþjónustu, lítur út gagnvart siðareglum og Landlækni. Það er ekki afgerandi rök, en það er spurning sem við viljum ekki þurfa að svara.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 7</b>Leiðin</div>
+  <div class="col">
+    <h2 class="sec">Röðin — hvert þrep skilar virði eitt og sér</h2>
+    <div class="phases">
+      <div class="phase">
+        <div class="phase-n">Þrep 1</div>
+        <div class="phase-b"><h4>Reglusafn og reiknivél</h4><p>Topp 20 félög, sjálf-uppgefið val, „áætlað“-orðalag, staðfestingardagsetning sýnileg. Fer á <code>/assessment</code> og inn í bókunarflæðið.</p></div>
+        <div class="phase-t">2–3 vikur</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Þrep 2</div>
+        <div class="phase-b"><h4>Kvittun og umsóknarpakki</h4><p>Sjálfvirkur póstur eftir greiðslu með kvittun sem uppfyllir kröfur viðkomandi sjóðs.</p></div>
+        <div class="phase-t">1 vika</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Þrep 3</div>
+        <div class="phase-b"><h4>Stéttarfélagsdálkur í B2B</h4><p>Vinnuveitandi gefur félagið upp; nettóverð á hvern starfsmann í tilboðum. Ódýrasta og áreiðanlegasta „uppflettingin“.</p></div>
+        <div class="phase-t">3 dagar</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Samhliða</div>
+        <div class="phase-b"><h4>Sölustarf gagnvart sjóðunum</h4><p>Byrja á þeim fimm sjóðum þar sem bókanir okkar þéttast. Erindið: að vera nefnd eins og Hjartavernd og Heilsuvernd. Byrjar á degi eitt, ekki eftir þrep 4.</p></div>
+        <div class="phase-t">3–6 mán.</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Þrep 4</div>
+        <div class="phase-b"><h4>Umboð og afgreiðsluröð</h4><p>„Lifeline sér um umsóknina.“ Krefst DPIA og uppfærðrar öryggisstefnu fyrst.</p></div>
+        <div class="phase-t">2–3 vikur</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Þrep 5</div>
+        <div class="phase-b"><h4>Bein uppgjör við afgreiðslu</h4><p>Nettóverð í körfunni. Aðeins mögulegt eftir að fyrsti sjóðurinn hefur samþykkt lag 5.</p></div>
+        <div class="phase-t">háð sjóðum</div>
+      </div>
+    </div>
+
+    <div class="note stop">
+      <span class="lbl">Það sem má ekki gerast</span>
+      <p>Að við segjum „þú færð 25.000 endurgreitt“ og félagið hafni umsókninni. Þrjár varnir: orðalagið er alltaf <em>áætlað</em> og aldrei loforð; hver regla ber sýnilega staðfestingardagsetningu og hlekk á heimild; og ef við gáfum ranga tölu greiðum við mismuninn sjálf. Sú ábyrgð kostar lítið ef reglusafnið er rétt — og hún er nákvæmlega það sem gerir tilboðið trúverðugt.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 8</b>Næst</div>
+  <div class="col">
+    <h2 class="sec">Þrennt sem þarf að ákveða áður en fyrsta lína er skrifuð</h2>
+    <ol>
+      <li><strong>Hvaða fimm sjóði sækjum við fyrst?</strong> Það á að ráðast af gögnum, ekki tilfinningu. Keyrslu á núverandi viðskiptavinum — vinnuveitandi og staðsetning — ætti að duga til að sjá hvar þeir þéttast. Ég get gert þá keyrslu þegar þú segir til.</li>
+      <li><strong>Ábyrgðin — inni eða úti?</strong> Ef við ábyrgjumst áætlaða upphæð verður tilboðið margfalt sterkara, en það er fjárhagsleg skuldbinding sem þarf þína ákvörðun.</li>
+      <li><strong>DPIA-tímasetning.</strong> Lag 1–3 komast af með venjulegt samþykki. Lag 4 gerir það ekki. Betra að byrja matið samhliða þrepi 1 en að stoppa í þrepi 4.</li>
+    </ol>
+    <p>Svarið við upphaflegu spurningunni, í einni setningu: <strong>við byggjum ekki uppflettingu — við byggjum reglusafnið, kvittunina og umboðið, og sækjum svo það sem enginn milliliður getur fengið, að vera nefnd í reglunum sjálfum.</strong></p>
+  </div>
+</section>
+
+<footer>
+  <h3>Heimildir · sóttar 21. ágúst 2026</h3>
+  <ul>
+    <li><a href="https://attin.is/fyrirtaekjastyrkir/">Áttin — Fyrirtækjastyrkir &amp; reglur</a></li>
+    <li><a href="https://attin.is/um-verkefnid/">Áttin — Um verkefnið</a></li>
+    <li><a href="https://attin.is/starfsmenntasjodir-a-attin/">Áttin — Aðild stéttarfélaga að starfsmenntasjóðum</a></li>
+    <li><a href="https://www.vr.is/styrkir-sjodir/vr-varasjodur/i-hvad-get-eg-nytt-sjodinn/">VR varasjóður — í hvað má nýta sjóðinn</a></li>
+    <li><a href="https://www.vr.is/styrkir-sjodir/sjukrasjodur-vr/styrkir/">Sjúkrasjóður VR — styrkir</a></li>
+    <li><a href="https://sameyki.is/styrkir-og-sjodir/styrktar-og-sjukrarsjodur/">Sameyki — styrktar- og sjúkrasjóður</a></li>
+    <li><a href="https://efling.is/starfsemi/sjukrasjodur/reglugerd-sjukrasjods/">Efling — reglugerð sjúkrasjóðs</a></li>
+    <li><a href="https://asi.is/vinnurettarvefur/vinnurettur/stettarfelog-og-vinnudeilur/stettarfelog/sjodir-stettarfelaga/sjukrasjodur/">ASÍ — sjúkrasjóðir og lágmarksreglur</a></li>
+    <li><a href="https://www.felagakerfi.is/">Félagakerfi — Mínar síður fyrir stéttarfélög</a></li>
+    <li><a href="https://www.dk.is/vorur/rekstrarform/stettarfelog-og-felagasamtok">dk hugbúnaður — stéttarfélög og félagasamtök</a></li>
+  </ul>
+</footer>
+
+</div>
