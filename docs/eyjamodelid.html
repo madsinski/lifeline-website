@@ -1,0 +1,526 @@
+<title>Eyjamódelið</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+:root{
+  --paper:#F4F7F5;
+  --surface:#FFFFFF;
+  --surface-2:#EDF2EF;
+  --ink:#101A16;
+  --ink-2:#48584F;
+  --ink-3:#6C7C73;
+  --rule:#D8E1DB;
+  --rule-strong:#B9C7BF;
+  --accent:#0B7A56;
+  --accent-ink:#075C40;
+  --accent-soft:#E1F0E8;
+  --flag:#8F5510;
+  --flag-soft:#F7EEE1;
+  --stop:#8E2F2F;
+  --stop-soft:#F7E7E7;
+  --shadow:0 1px 2px rgba(16,26,22,.05), 0 8px 24px -16px rgba(16,26,22,.25);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1411; --surface:#141D19; --surface-2:#1A2521;
+    --ink:#E7EEE9; --ink-2:#A3B3AA; --ink-3:#7E8F86;
+    --rule:#26332D; --rule-strong:#37473F;
+    --accent:#54CFA1; --accent-ink:#7FE0BB; --accent-soft:#122E24;
+    --flag:#D9A25C; --flag-soft:#2C2317;
+    --stop:#E08585; --stop-soft:#2E1B1B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1411; --surface:#141D19; --surface-2:#1A2521;
+  --ink:#E7EEE9; --ink-2:#A3B3AA; --ink-3:#7E8F86;
+  --rule:#26332D; --rule-strong:#37473F;
+  --accent:#54CFA1; --accent-ink:#7FE0BB; --accent-soft:#122E24;
+  --flag:#D9A25C; --flag-soft:#2C2317;
+  --stop:#E08585; --stop-soft:#2E1B1B;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Source Serif 4","Iowan Old Style",Georgia,serif;
+  font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px 96px}
+
+.masthead{border-bottom:1px solid var(--rule-strong);padding:56px 0 28px;margin-bottom:8px}
+.kicker{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent-ink);display:flex;flex-wrap:wrap;gap:8px 16px;
+  align-items:baseline;margin-bottom:22px}
+.kicker .dim{color:var(--ink-3)}
+h1{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;font-weight:700;letter-spacing:-.028em;
+  font-size:clamp(38px,6.2vw,62px);line-height:1.02;margin:0 0 18px;text-wrap:balance}
+.standfirst{font-size:clamp(18px,2.2vw,21px);line-height:1.5;color:var(--ink-2);max-width:62ch;margin:0}
+.standfirst strong{color:var(--ink);font-weight:600}
+
+.verdict{margin:34px 0 0;background:var(--surface);border:1px solid var(--rule);
+  border-left:3px solid var(--accent);border-radius:3px;padding:24px 26px;box-shadow:var(--shadow)}
+.verdict h2{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent-ink);margin:0 0 14px;font-weight:600}
+.verdict p{margin:0 0 12px;max-width:70ch}
+.verdict p:last-child{margin-bottom:0}
+
+section{display:grid;grid-template-columns:1fr;gap:10px;padding:44px 0 8px;
+  border-top:1px solid var(--rule);margin-top:44px}
+@media (min-width:900px){section{grid-template-columns:132px minmax(0,1fr);gap:36px}}
+.rail{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);padding-top:9px;line-height:1.5}
+.rail b{display:block;color:var(--accent-ink);font-weight:600}
+.col{min-width:0}
+h2.sec{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;font-weight:600;letter-spacing:-.02em;
+  font-size:clamp(25px,3.3vw,32px);line-height:1.16;margin:0 0 16px;text-wrap:balance}
+h3{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;font-weight:600;font-size:19px;
+  letter-spacing:-.01em;margin:32px 0 8px;text-wrap:balance}
+p{margin:0 0 15px;max-width:68ch}
+ul,ol{margin:0 0 16px;padding-left:20px;max-width:68ch}
+li{margin-bottom:7px}
+li::marker{color:var(--ink-3)}
+strong{font-weight:600}
+em{font-style:italic;color:var(--ink-2)}
+a{color:var(--accent-ink);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{background:var(--accent-soft)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:1px 5px;border-radius:2px;color:var(--ink)}
+
+.tablewrap{overflow-x:auto;margin:8px 0 22px;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:640px}
+caption{caption-side:top;text-align:left;font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding:12px 16px 8px}
+th{font-family:Archivo,sans-serif;font-weight:600;font-size:12px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-2);text-align:left;padding:10px 16px;
+  border-bottom:1px solid var(--rule-strong);vertical-align:bottom;white-space:nowrap}
+td{padding:11px 16px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.45}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.name{font-family:Archivo,sans-serif;font-weight:600;font-size:14px}
+tbody tr:hover{background:var(--surface-2)}
+
+.chip{display:inline-block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;
+  letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:2px;
+  white-space:nowrap;border:1px solid transparent;font-weight:500}
+.chip.go{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent)}
+.chip.wait{background:var(--flag-soft);color:var(--flag);border-color:var(--flag)}
+.chip.no{background:var(--stop-soft);color:var(--stop);border-color:var(--stop)}
+.chip.neutral{background:var(--surface-2);color:var(--ink-2);border-color:var(--rule-strong)}
+
+.note{background:var(--surface-2);border-left:3px solid var(--rule-strong);padding:16px 20px;
+  margin:20px 0;border-radius:0 3px 3px 0}
+.note.warn{border-left-color:var(--flag);background:var(--flag-soft)}
+.note.stop{border-left-color:var(--stop);background:var(--stop-soft)}
+.note p:last-child{margin-bottom:0}
+.note .lbl{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-2);display:block;margin-bottom:6px;font-weight:600}
+.note.warn .lbl{color:var(--flag)}
+.note.stop .lbl{color:var(--stop)}
+
+/* checkout steps */
+.steps{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+  border-radius:3px;overflow:hidden;margin:12px 0 24px}
+@media (min-width:780px){.steps{grid-template-columns:repeat(5,1fr)}}
+.step{background:var(--surface);padding:18px 18px 20px;display:flex;flex-direction:column;gap:6px}
+.step .n{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;
+  color:var(--accent-ink);font-weight:600}
+.step h4{font-family:Archivo,sans-serif;font-size:15px;font-weight:600;margin:0;letter-spacing:-.005em}
+.step p{font-size:14px;margin:0;color:var(--ink-2);line-height:1.45;max-width:none}
+.step.final{background:var(--accent-soft)}
+.step.final h4,.step.final .n{color:var(--accent-ink)}
+
+/* term sheet */
+.terms{background:var(--surface);border:1px solid var(--rule-strong);border-radius:3px;
+  padding:26px 28px;margin:14px 0 24px;box-shadow:var(--shadow)}
+.terms h3{margin-top:0}
+.terms .doclabel{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:10px;font-weight:600}
+.clause{display:grid;grid-template-columns:1fr;gap:2px;padding:14px 0;border-bottom:1px solid var(--rule)}
+@media (min-width:680px){.clause{grid-template-columns:26px minmax(0,1fr);gap:16px}}
+.clause:last-child{border-bottom:none;padding-bottom:0}
+.clause .cn{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--accent-ink);font-weight:600}
+.clause .cb{font-size:16px;line-height:1.55}
+.clause .cb b{font-weight:600}
+
+.strip{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;
+  overflow:hidden;margin:12px 0 22px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
+.cell{background:var(--surface);padding:16px 18px}
+.cell .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:6px}
+.cell .v{font-family:Archivo,sans-serif;font-size:24px;font-weight:700;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;display:block;line-height:1.1}
+.cell .s{font-size:13.5px;color:var(--ink-2);display:block;margin-top:4px;line-height:1.35}
+.cell.hi .v{color:var(--accent-ink)}
+
+.phases{display:grid;gap:0;margin:10px 0 22px;border:1px solid var(--rule);border-radius:3px;
+  background:var(--surface);overflow:hidden}
+.phase{display:grid;grid-template-columns:1fr;gap:4px;padding:18px 22px;border-bottom:1px solid var(--rule)}
+@media (min-width:720px){.phase{grid-template-columns:118px minmax(0,1fr) 136px;gap:20px;align-items:baseline}}
+.phase:last-child{border-bottom:none}
+.phase-n{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent-ink);font-weight:600}
+.phase-b h4{font-family:Archivo,sans-serif;font-size:17px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.phase-b p{font-size:15.5px;margin:0;color:var(--ink-2);max-width:none}
+.phase-t{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);white-space:nowrap}
+
+blockquote{margin:16px 0;padding:14px 20px;border-left:3px solid var(--accent);
+  background:var(--accent-soft);border-radius:0 3px 3px 0;font-size:16px}
+blockquote p{margin:0;max-width:none}
+blockquote cite{display:block;margin-top:8px;font-style:normal;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2);letter-spacing:.04em}
+
+footer{border-top:1px solid var(--rule-strong);margin-top:56px;padding-top:24px;font-size:14.5px;color:var(--ink-2)}
+footer h3{margin-top:0}
+footer ul{max-width:none;columns:2;column-gap:32px}
+@media (max-width:700px){footer ul{columns:1}}
+footer li{break-inside:avoid;font-size:14px}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">
+    <span>Lifeline Health ehf.</span>
+    <span class="dim">Tilraunaverkefni</span>
+    <span class="dim">21. ágúst 2026</span>
+    <span class="dim">Framhald af Styrkjavélinni</span>
+  </div>
+  <h1>Eyjamódelið</h1>
+  <p class="standfirst">Markmiðið er einfalt og ósamningshæft: félagsmaður í Eyjum sér <strong>24.900 kr. í körfunni í stað 49.900</strong>, borgar það, og gerir ekkert annað. Enginn reikningur til að geyma, engin umsókn, engin bið. Reikningurinn fyrir afganginn fer til sjúkrasjóðsins hans og hann fréttir aldrei af honum.</p>
+
+  <div class="verdict">
+    <h2>Niðurstaða í stuttu máli</h2>
+    <p><strong>Þetta er löglega hægt í dag, án þess að einni einustu reglugerð sé breytt.</strong> Reglugerð Sjúkrasjóðs Sjómannafélagsins Jötuns heimilar þegar styrki til heilsueflingar, og segir berum orðum að stjórn sjóðsins ákveði bæði <em>fyrirkomulag á greiðslu styrkja</em> og <em>það form sem umsóknum skal skilað á</em>. Beingreiðsla til þjónustuaðila og sameiginleg mánaðarumsókn eru því stjórnarákvarðanir — ekki aðalfundarmál.</p>
+    <p>Eyjar eru rétti staðurinn til að byrja af einni ástæðu sem hefur ekkert með stærð að gera: <strong>fjögur til fimm af félögunum þar eru með sína eigin sjóðstjórn á staðnum.</strong> Þau geta tekið ákvörðun á einum stjórnarfundi. VR, Efling og hin landsfélögin geta það ekki — þar er reglunum stýrt úr Reykjavík og enginn hefur umboð til að segja já við okkur.</p>
+  </div>
+</header>
+
+<section>
+  <div class="rail"><b>§ 1</b>Landslagið</div>
+  <div class="col">
+    <h2 class="sec">Átta félög í Eyjum — en aðeins fimm sem geta sagt já</h2>
+    <p>Sjö stéttarfélög eiga aðild að Lífeyrissjóði Vestmannaeyja, og við þau bætist Starfsmannafélag Vestmannaeyja fyrir starfsfólk bæjarins. Skiptingin sem skiptir máli er ekki stærð heldur <strong>hvar sjóðstjórnin situr</strong>.</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Stéttarfélög með félagsfólk í Vestmannaeyjum</caption>
+        <thead>
+          <tr><th>Félag</th><th>Samband</th><th>Sjóðstjórn</th><th>Í tilraunaverkefninu</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">Drífandi stéttarfélag</td><td>ASÍ / SGS</td>
+            <td>Í Eyjum — Miðstræti 11</td>
+            <td><span class="chip go">Fyrsta erindi</span> stærst, yfir 1.300 félagar</td>
+          </tr>
+          <tr>
+            <td class="name">Sjómannafélagið Jötunn</td><td>ASÍ / SSÍ</td>
+            <td>Í Eyjum — varnarþing í Vestmannaeyjum</td>
+            <td><span class="chip go">Fyrsta erindi</span> reglugerðin heimilar þetta þegar</td>
+          </tr>
+          <tr>
+            <td class="name">Starfsmannafélag Vestmannaeyja</td><td>BSRB</td>
+            <td>Í Eyjum</td>
+            <td><span class="chip go">Fyrsta erindi</span> nær yfir starfsfólk bæjarins</td>
+          </tr>
+          <tr>
+            <td class="name">Skipstjóra- og stýrimannafélagið Verðandi</td><td>ASÍ</td>
+            <td>Í Eyjum — Heiðarvegi 9b</td>
+            <td><span class="chip go">Fyrsta erindi</span> lítið en einfalt</td>
+          </tr>
+          <tr>
+            <td class="name">Verkstjórafélag Vestmannaeyja</td><td>—</td>
+            <td>Í Eyjum</td>
+            <td><span class="chip go">Fyrsta erindi</span> lítið en einfalt</td>
+          </tr>
+          <tr>
+            <td class="name">Deild VR í Vestmannaeyjum</td><td>VR</td>
+            <td>Reykjavík</td>
+            <td><span class="chip neutral">Þarf ekki</span> varasjóður endurgreiðir nú þegar nær allt</td>
+          </tr>
+          <tr>
+            <td class="name">FIT — Félag iðn- og tæknigreina</td><td>ASÍ</td>
+            <td>Reykjavík</td>
+            <td><span class="chip wait">Seinna</span> landsreglur, engin staðbundin heimild</td>
+          </tr>
+          <tr>
+            <td class="name">VM — Félag vélstjóra og málmtæknimanna</td><td>ASÍ</td>
+            <td>Reykjavík</td>
+            <td><span class="chip wait">Seinna</span> landsreglur, engin staðbundin heimild</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Fimm erindi. Fimm stjórnir sem allar hittast í sama bæ og þekkjast. Það er allt og sumt sem stendur á milli okkar og þess að vélin virki fyrir meirihluta vinnandi fólks í Eyjum.</p>
+
+    <h3>Hvað Drífandi greiðir í dag</h3>
+    <p>Þetta er mikilvægt af tveimur ástæðum: það sýnir hvað þeir telja eðlilega upphæð, og það sýnir að heilsufarsmat er ekki til í flokkakerfinu þeirra enn þá.</p>
+    <div class="tablewrap">
+      <table>
+        <caption>Styrkir Drífanda — af vef félagsins, sótt 21.08.2026</caption>
+        <thead><tr><th>Flokkur</th><th class="num">Hámark</th><th>Skilyrði</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Krabbameinsskoðun</td><td class="num">25.000</td><td>100% greitt sé kostnaður undir 25.000</td></tr>
+          <tr><td class="name">Sálfræðiþjónusta</td><td class="num">25.000</td><td>5.000 á tíma, mest 5 tímar</td></tr>
+          <tr><td class="name">Árskort í líkamsrækt</td><td class="num">25.000</td><td>hámark 90%, aðeins árskort</td></tr>
+          <tr><td class="name">Sjúkranudd / sjúkraþjálfun</td><td class="num">25.000</td><td>2.500 á tíma, mest 10 tímar</td></tr>
+          <tr><td class="name">Tannlæknaþjónusta</td><td class="num">25.000</td><td>hámark 90%</td></tr>
+          <tr><td class="name">Gleraugu</td><td class="num">25.000</td><td>á þriggja ára fresti</td></tr>
+          <tr><td class="name">Heyrnartæki</td><td class="num">130.000</td><td>á þriggja ára fresti</td></tr>
+          <tr><td class="name">Fæðingarstyrkur</td><td class="num">130.000</td><td>12 mán. samfelld greiðsla</td></tr>
+          <tr><td class="name">Útfararstyrkur</td><td class="num">500.000</td><td>á vinnumarkaði, lætur eftir sig framfærslu</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Ávinnsla: greitt í sex af síðustu tólf mánuðum. Félagsgjald 52.000 kr. gefur fullan rétt, lægra gjald gefur hlutfallslegan rétt.</p>
+    <p><strong>Talan sem við eigum að biðja um er 25.000.</strong> Ekki 30.000, ekki 49.900. Hún er nú þegar þeirra eigin viðmið í sex flokkum af níu. Stjórn sem þekkir töluna samþykkir hana miklu hraðar en tölu sem hún hefur aldrei séð.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 2</b>Heimildin</div>
+  <div class="col">
+    <h2 class="sec">Málsgreinin sem gerir þetta mögulegt</h2>
+    <p>Reglugerð Sjúkrasjóðs Sjómannafélagsins Jötuns er opinber á vef félagsins. Þrjár greinar í henni gera nákvæmlega það sem við þurfum:</p>
+
+    <blockquote>
+      <p><strong>12.1 C.</strong> Styrkir til gleraugnakaupa, heyrnartækjakaupa, augnaðgerða, <strong>styrkir til heilsueflingar</strong> og sjúkraþjálfunar.</p>
+      <cite>Heilsuefling er þegar heimill styrkjaflokkur — engin reglugerðarbreyting þarf til að styrkja heilsufarsmat.</cite>
+    </blockquote>
+
+    <blockquote>
+      <p><strong>14.2</strong> Stjórn sjóðsins setur nánari reglur um <strong>fyrirkomulag á greiðslu</strong> dagpeninga, styrkja og aðra starfstilhögun.</p>
+      <cite>Beingreiðsla til þjónustuaðila í stað endurgreiðslu til félagans er stjórnarákvörðun.</cite>
+    </blockquote>
+
+    <blockquote>
+      <p><strong>14.3</strong> Umsóknum skal skilað <strong>á því formi sem stjórn sjóðsins ákveður</strong> og þeim fylgi nauðsynleg vottorð sem tryggja réttmæti greiðslna.</p>
+      <cite>Ein sameiginleg mánaðarumsókn frá Lifeline fyrir hönd margra félaga er löglegt form ef stjórnin ákveður það.</cite>
+    </blockquote>
+
+    <p>Á móti stendur ein grein sem setur tímalínuna:</p>
+    <blockquote style="border-left-color:var(--flag);background:var(--flag-soft)">
+      <p><strong>18.1</strong> Stjórn sjóðsins skal leggja fyrir aðalfund breytingar á almennum reglum um <strong>fjárhæðir styrkja</strong> sem sjóðurinn greiðir.</p>
+      <cite>Nýjar krónutölur fara fyrir aðalfund. Fyrirkomulagið gerir það ekki.</cite>
+    </blockquote>
+
+    <div class="note">
+      <span class="lbl">Þetta klofnar erindið í tvennt — og það er góð frétt</span>
+      <p><strong>Erindi A — fyrirkomulagið.</strong> „Megum við rukka sjóðinn beint og senda eina umsókn á mánuði í stað þess að félagar ykkar mæti með kvittanir í afgreiðsluna?“ Þetta er stjórnarákvörðun og getur gerst á næsta stjórnarfundi.</p>
+      <p><strong>Erindi B — upphæðin.</strong> „Setjið heilsufarsmat inn sem eigin flokk með 25.000 kr. þaki.“ Þetta fer fyrir aðalfund. Þarf að vera komið á dagskrá tímanlega.</p>
+      <p>Við sækjum bæði í sömu heimsókn, en við bíðum ekki eftir B til að ræsa A. Ef félagið er þegar með heilsueflingarupphæð getum við keyrt á henni frá degi eitt.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 3</b>Upplifunin</div>
+  <div class="col">
+    <h2 class="sec">Það sem félagsmaðurinn sér — og ekkert annað</h2>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h4>Velur pakka</h4><p>Foundational Health, 49.900 kr.</p></div>
+      <div class="step"><span class="n">2</span><h4>Velur félagið sitt</h4><p>Fellilisti með félögunum í Eyjum. Eitt smellt.</p></div>
+      <div class="step"><span class="n">3</span><h4>Kennitala og samþykki</h4><p>Kennitalan er hvort eð er nauðsynleg. Einn haki fyrir samþykki.</p></div>
+      <div class="step"><span class="n">4</span><h4>Verðið breytist</h4><p>„Styrkur frá Drífanda −25.000“ birtist sem lína í körfunni.</p></div>
+      <div class="step final"><span class="n">5</span><h4>Borgar 24.900</h4><p>Það er allt. Ekkert að sækja um, ekkert að geyma.</p></div>
+    </div>
+
+    <p>Tvennt í þessu flæði er ekki smáatriði:</p>
+    <ul>
+      <li><strong>Styrkurinn birtist sem lína, ekki sem lægra verð.</strong> Félagsmaðurinn á að sjá að félagið hans borgaði 25.000 fyrir hann. Það er verðmæti sem sjóðurinn er að kaupa af okkur — að félagsfólk finni að aðildin skili sér — og það kostar okkur ekkert að gefa þeim það.</li>
+      <li><strong>Samþykkið er eitt, ekki þrjú.</strong> Ein setning sem heimilar okkur að staðfesta aðild og innheimta styrkinn. Ef samþykkisferlið verður að þriggja skjáa GDPR-göngu erum við búin að tapa því sem við vorum að reyna að vinna.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 4</b>Vélin</div>
+  <div class="col">
+    <h2 class="sec">Hvernig við vitum að hann á rétt — þrjár leiðir, ein sem virkar strax</h2>
+    <p>Þetta er eini raunverulega erfiði hlutinn. Sjóðurinn þarf að vita að kennitalan sé félagi í skilum; við þurfum að vita það <em>áður</em> en við gefum afsláttinn.</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Þrjú staðfestingarlíkön</caption>
+        <thead><tr><th>Líkan</th><th>Hvað sjóðurinn þarf að gera</th><th>Áhætta</th><th>Staða</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="name">A · Félagaskrá með tætigildum</td>
+            <td>Senda okkur reglulega skrá — SHA-256 tætigildi kennitalna með sameiginlegu salti, ásamt eftirstöðvum réttar</td>
+            <td>Engin — við fáum aldrei læsilega félagaskrá</td>
+            <td><span class="chip go">Markmið</span></td>
+          </tr>
+          <tr>
+            <td class="name">B · Rauntímafyrirspurn</td>
+            <td>Hafa vefþjónustu sem svarar já/nei</td>
+            <td>Engin</td>
+            <td><span class="chip no">Ekki til</span> hjá staðbundnu félögunum</td>
+          </tr>
+          <tr>
+            <td class="name">C · Afsláttur strax, uppgjör mánaðarlega</td>
+            <td>Ekkert. Taka við reikningi og hafna línum sem eiga ekki rétt</td>
+            <td>Við berum tapið af höfnuðum línum, að hámarki 25.000 hver</td>
+            <td><span class="chip go">Byrjum hér</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>Byrjum á C, hönnum fyrir A.</strong> Líkan C krefst engrar tækni af sjóðnum — bara handabands og þess að einhver opni Excel-skjal einu sinni í mánuði. Það er nákvæmlega sama vinnulag og Áttin notar gagnvart starfsmenntasjóðunum, svo það er kunnuglegt. Um leið og sjóðurinn getur keyrt út félagaskrá — og ef þeir eru á dk eða Félagakerfi er það staðlað skýrsluvinnsla — færum við okkur yfir í A.</p>
+
+    <p>Tætigildaútfærslan í A er þess virði að nefna sérstaklega í samtalinu við sjóðina, því hún leysir áhyggjuna sem þeir munu hafa: <em>„erum við að afhenda einkafyrirtæki félagaskrána okkar?“</em> Nei. Þeir afhenda okkur órekjanleg tætigildi. Við reiknum sama tætigildi úr kennitölunni sem viðskiptavinurinn slær inn og berum saman. Við getum staðfest þá sem koma til okkar, en getum ekki lesið skrána.</p>
+
+    <h3>Uppgjörið</h3>
+    <p>Einn reikningur á mánuði á hvern sjóð, með fylgiskjali sem hefur eina línu á hvern félaga: kennitala, nafn, dagsetning þjónustu, lýsing, greiðsla félagans, krafa á sjóðinn. Kvittanir fylgja með. <strong>Niðurstöður úr heilsufarsmatinu fara aldrei til sjóðsins</strong> — hann fær að vita að þjónustan var veitt, ekkert um hvað kom út úr henni. Það þarf að standa skýrum stöfum í samningnum, því það er fyrsta spurningin sem góður stjórnarmaður spyr.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 5</b>Erindið</div>
+  <div class="col">
+    <h2 class="sec">Samningsdrögin — það sem stjórnin á að fá í hendurnar</h2>
+    <p>Stjórnir samþykkja ekki hugmyndir, þær samþykkja tillögur. Þetta er sú tillaga: ein síða, níu greinar, afmörkuð áhætta.</p>
+
+    <div class="terms">
+      <span class="doclabel">Drög · Samstarfssamningur um beingreiðslu heilsueflingarstyrks</span>
+      <div class="clause"><span class="cn">1</span><span class="cb"><b>Þjónustan.</b> Lifeline Health ehf. veitir félagsfólki sjóðsins heilsufarsmat — mælingar, blóðrannsókn, spurningalista og læknisviðtal með einstaklingsbundinni áætlun. Listaverð 49.900 kr.</span></div>
+      <div class="clause"><span class="cn">2</span><span class="cb"><b>Styrkurinn.</b> Sjóðurinn greiðir 25.000 kr. á hvern félaga á hverju 12 mánaða tímabili. Félaginn greiðir mismuninn, 24.900 kr., við kaup.</span></div>
+      <div class="clause"><span class="cn">3</span><span class="cb"><b>Fyrirkomulag.</b> Lifeline dregur styrkinn frá við afgreiðslu og innheimtir hann hjá sjóðnum. Félaginn sækir ekki um og leggur ekki út fyrir styrkhlutanum.</span></div>
+      <div class="clause"><span class="cn">4</span><span class="cb"><b>Staðfesting aðildar.</b> Félaginn staðfestir aðild sína og veitir samþykki við kaup. Sjóðurinn getur hafnað línum sem uppfylla ekki skilyrði; <b>Lifeline ber það tap</b> og krefur félagann ekki um mismuninn eftir á.</span></div>
+      <div class="clause"><span class="cn">5</span><span class="cb"><b>Uppgjör.</b> Einn reikningur mánaðarlega með sundurliðun á hvern félaga og kvittunum. Greiðslufrestur 30 dagar.</span></div>
+      <div class="clause"><span class="cn">6</span><span class="cb"><b>Þak.</b> Heildarskuldbinding sjóðsins á samningstímanum er að hámarki <span class="mono">[X]</span> kr. Lifeline tilkynnir þegar 80% er náð.</span></div>
+      <div class="clause"><span class="cn">7</span><span class="cb"><b>Persónuvernd.</b> Aðilar eru sjálfstæðir ábyrgðaraðilar. Sjóðnum eru einungis afhentar upplýsingar sem nauðsynlegar eru til greiðslu: nafn, kennitala, dagsetning, lýsing þjónustu og fjárhæð. <b>Engar heilsufarsupplýsingar eða niðurstöður eru afhentar sjóðnum.</b></span></div>
+      <div class="clause"><span class="cn">8</span><span class="cb"><b>Gildistími.</b> Tólf mánuðir frá undirritun, framlengist sjálfkrafa nema uppsögn berist með þriggja mánaða fyrirvara.</span></div>
+      <div class="clause"><span class="cn">9</span><span class="cb"><b>Skýrsla.</b> Lifeline skilar sjóðnum ópersónugreinanlegu yfirliti tvisvar á samningstímanum: fjöldi, nýting styrks, aldursdreifing. Sjóðurinn getur notað það í ársskýrslu.</span></div>
+    </div>
+
+    <p>Grein 4 er sú sem selur samninginn. Við tökum áhættuna af hverri einustu höfnuðu línu. Sjóðurinn getur ekki tapað peningum á þessu — í versta falli borgar hann ekki. Það gerir „já“ ódýrt.</p>
+    <p>Grein 6 er sú sem gerir stjórnarmanni kleift að samþykkja án þess að skrifa upp á opinn tékka. Byrjum lágt — 3 til 5 milljónir á ári hjá Drífanda — og hækkum þegar nýtingin sýnir sig.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 6</b>Röksemdin</div>
+  <div class="col">
+    <h2 class="sec">Af hverju stjórnirnar segja já</h2>
+    <ul>
+      <li><strong>Það er nákvæmlega það sem sjóðurinn á að gera.</strong> Forvarnarstarf tengt heilsu félagsfólks er lögbundið hlutverk sjúkrasjóða og stendur í reglugerðunum sjálfum. Þetta er ekki nýtt hlutverk, þetta er betri framkvæmd á gömlu hlutverki.</li>
+      <li><strong>Það sparar skrifstofunni vinnu.</strong> Í stað þess að taka við kvittunum yfir borðið á Miðstræti 11, fara yfir þær og millifæra, kemur einn reikningur mánaðarlega. Þetta er eina erindið sem gerir starfsfólkinu <em>léttara</em> fyrir í stað þess að bæta á það.</li>
+      <li><strong>Nýtingin er vandamálið sem þeir eiga.</strong> Forvarnastyrkir eru vannýttir alls staðar, ekki af því að fólk vilji þá ekki heldur af því að ferlið er leiðinlegt. Beingreiðsla margfaldar nýtingu. Fyrir sjóð sem vill sýna félagsfólki verðmæti aðildar er það aðalatriðið, ekki aukaatriði.</li>
+      <li><strong>Félagsfólkið á ekkert sambærilegt í boði heima.</strong> Í dag kostar sambærileg skoðun Herjólf, frídag og ferðakostnað — kostnað sem sjóðirnir eru sums staðar að greiða hvort eð er. Við komum með þjónustuna til þeirra.</li>
+      <li><strong>Það er góð saga fyrir stjórn.</strong> „Við sömdum um heilsufarsmat fyrir félagsfólk í Eyjum, á hálfvirði, án pappírsvinnu.“ Þetta les vel á aðalfundi.</li>
+      <li><strong>Áhættan er núll.</strong> Sjá grein 4 og 6.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 7</b>Framkvæmdin</div>
+  <div class="col">
+    <h2 class="sec">Hvernig við afhendum þjónustuna á eyju</h2>
+    <p>Þetta er stærsta óleysta spurningin í öllu verkefninu og hún er ekki tæknileg. Við getum selt hundrað heilsufarsmöt í Eyjum og staðið uppi án leiðar til að framkvæma þau.</p>
+    <p>Líklegasta útfærslan nýtir það sem við eigum nú þegar: <strong>mælingar og blóðtaka á staðnum, læknisviðtalið í fjarfundi.</strong> Það er bókstaflega fjarlækningamódelið, og það er þar sem Fjarlækningar eiga heima í þessu verkefni frekar en sem ótengt félag.</p>
+    <ul>
+      <li><strong>Lotukeyrsla.</strong> Tveir dagar í mánuði, 30–40 manns í hvorri lotu. Búnaður og starfsmaður fara með Herjólfi. Einfaldast að stjórna, verst fyrir sveigjanleika.</li>
+      <li><strong>Staðbundinn samstarfsaðili.</strong> Hjúkrunarfræðingur eða stofa á staðnum sér um mælingar og blóðtöku gegn þóknun; læknisviðtalið er í fjarfundi. Skalar best, krefst eins samnings í viðbót.</li>
+      <li><strong>Í gegnum vinnustaðina.</strong> Ísfélagið, Vinnslustöðin, Vestmannaeyjabær og Herjólfur eru stórir og fáir. Vinnustaðalota þar nær tugum manns í einu og er auk þess okkar venjulega B2B-vara.</li>
+    </ul>
+    <div class="note warn">
+      <span class="lbl">Þetta þarf að leysast fyrst</span>
+      <p>Ekki skrifa undir við neinn sjóð fyrr en afhendingin er á hreinu. Samningur sem við getum ekki efnt í litlu samfélagi þar sem allir þekkjast er verri en enginn samningur — orðsporið í Eyjum er eina markaðssetningin sem við fáum þar, og hún virkar í báðar áttir.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 8</b>Stærðin</div>
+  <div class="col">
+    <h2 class="sec">Hvað eyjan er verð — og hvers vegna hún er ekki aðalatriðið</h2>
+    <div class="strip">
+      <div class="cell"><span class="k">Íbúar</span><span class="v">~4.750</span><span class="s">Vestmannaeyjar, 2026</span></div>
+      <div class="cell"><span class="k">Í félögunum fimm</span><span class="v">~2.000</span><span class="s">áætlað; Drífandi einn yfir 1.300</span></div>
+      <div class="cell"><span class="k">Við 10% nýtingu</span><span class="v">~200</span><span class="s">heilsufarsmöt á ári</span></div>
+      <div class="cell hi"><span class="k">Velta</span><span class="v">~10 m.kr.</span><span class="s">á ári · helmingur frá sjóðunum</span></div>
+    </div>
+    <p>Tíu milljónir eru ekki ástæðan til að gera þetta. Ástæðan er sú að <strong>Eyjar eru sniðmátið</strong>. Þegar fyrsti samningurinn er undirritaður eigum við þrennt sem ekki er hægt að kaupa: undirritað skjal sem næsta stjórn getur lesið, tölur um nýtingu, og nafn á sjóði sem sagði já.</p>
+    <p>Og hin félögin eru til í sama formi um allt land — staðbundin, með eigin sjóðstjórn, sömu stærðargráðu: Verkalýðsfélag Akraness, Verkalýðsfélag Vestfirðinga, Framsýn, AFL Starfsgreinafélag, Báran, Stéttarfélag Vesturlands, Verkalýðsfélag Snæfellinga, Verkalýðsfélag Grindavíkur. Hvert þeirra er sama samtalið aftur, bara styttra, því þá höfum við fordæmi.</p>
+    <p>Það er líka rétta röðin gagnvart stóru félögunum. Þegar tíu staðbundnir sjóðir eru komnir með beingreiðslusamning er erindið til VR og Eflingar ekki lengur hugmynd frá sprotafyrirtæki — það er staðall sem þau eru orðin eftirbátar í.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 9</b>Óleyst</div>
+  <div class="col">
+    <h2 class="sec">Fjögur atriði sem þarf að leysa áður en fyrsti fundurinn er bókaður</h2>
+    <ol>
+      <li><strong>Skattmeðferðin.</strong> Styrkir úr sjúkrasjóði eru almennt staðgreiðsluskyldir hjá félaganum. Ef sjóðurinn greiðir okkur beint í stað þess að endurgreiða félaganum — er það enn skattskyld hlunnindi hjá honum, og hver skilar staðgreiðslunni? Þetta er spurning fyrir endurskoðanda, ekki fyrir okkur, og svarið breytir bæði tilboðinu og því sem sjóðurinn þarf að gera. <strong>Þetta á að vera fyrsta símtalið.</strong></li>
+      <li><strong>Sér flokkur eða sameiginlegur pottur?</strong> Ef heilsufarsmatið deilir 25.000 kr. þakinu með líkamsrækt og tannlækni verður stór hluti félagsfólks búinn að nýta réttinn sinn þegar við bjóðum. Þá hrynur „engar spurningar“-loforðið. <strong>Erindið verður að vera sér flokkur með eigin þaki</strong> — ekki aðgangur að þeim potti sem fyrir er.</li>
+      <li><strong>Afhendingin í Eyjum.</strong> Sjá §7. Leysist fyrst.</li>
+      <li><strong>Aðalfundadagatalið.</strong> Ef nýr flokkur og ný fjárhæð þurfa aðalfundarsamþykkt ræður fundardagsetning hvenær við getum farið í loftið. Þetta þarf að vita fyrir hvert félaganna fimm áður en við lofum okkur sjálfum tímalínu.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>§ 10</b>Röðin</div>
+  <div class="col">
+    <h2 class="sec">Næstu skref</h2>
+    <div class="phases">
+      <div class="phase">
+        <div class="phase-n">Vika 1</div>
+        <div class="phase-b"><h4>Skattaspurningin</h4><p>Endurskoðandi svarar hvernig beingreiðsla til þjónustuaðila er meðhöndluð gagnvart staðgreiðslu. Allt annað bíður þessa svars.</p></div>
+        <div class="phase-t">símtal</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Vika 1–2</div>
+        <div class="phase-b"><h4>Afhendingarleiðin</h4><p>Ákveða lotukeyrslu, staðbundinn samstarfsaðila eða vinnustaðalotu — og hlutverk Fjarlækninga í læknisviðtalinu.</p></div>
+        <div class="phase-t">ákvörðun</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Vika 2–3</div>
+        <div class="phase-b"><h4>Samningsdrögin fullkláruð</h4><p>Níu greinarnar í §5 yfirfarnar af lögmanni og persónuverndarfulltrúa. Ein síða, ekki tíu.</p></div>
+        <div class="phase-t">skjal</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Vika 3–4</div>
+        <div class="phase-b"><h4>Drífandi og Jötunn fyrst</h4><p>Ein ferð, tveir fundir, sami dagurinn. Jötunn af því að reglugerðin þeirra sannar að þetta má; Drífandi af því að þeir eru stærstir.</p></div>
+        <div class="phase-t">fundir í Eyjum</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Samhliða</div>
+        <div class="phase-b"><h4>Byggja afsláttinn í bókunarflæðið</h4><p>Nýtt <code>"grant"</code>-þrep, fimm félög harðkóðuð, nettóupphæð til Straums, brúttó/nettó/styrkhluti geymt á greiðslufærslunni fyrir bókhaldið.</p></div>
+        <div class="phase-t">~3 vikur</div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">Eftir undirritun</div>
+        <div class="phase-b"><h4>Uppgjörsvél og söluskilmálar</h4><p>Mánaðarlegur reikningur með sundurliðun í <code>/admin</code>, uppfærðir söluskilmálar vegna afsláttar og framsals kröfu, og hækkun á <code>security-posture.ts</code>.</p></div>
+        <div class="phase-t">~2 vikur</div>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="lbl">Í einni setningu</span>
+      <p>Við þurfum ekki uppflettikerfi og ekki 20% milliliðinn. Við þurfum eina undirskrift frá stjórn sem situr í Vestmannaeyjum, og hún er möguleg í dag af því að reglugerðin þeirra leyfir hana nú þegar.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <h3>Heimildir · sóttar 21. ágúst 2026</h3>
+  <ul>
+    <li><a href="https://lsv.is/um-sjodinn/adildarfelog-lsv/">Lífeyrissjóður Vestmannaeyja — aðildarfélög</a></li>
+    <li><a href="https://www.drifandi.is/sjukrasjodur/">Drífandi stéttarfélag — sjúkrasjóður og styrkir</a></li>
+    <li><a href="https://sjomannafelag.is/index.php/sjukrasjodur/">Sjómannafélagið Jötunn — reglugerð sjúkrasjóðs</a></li>
+    <li><a href="https://ssverdandi.is/">Skipstjóra- og stýrimannafélagið Verðandi</a></li>
+    <li><a href="https://www.samband.is/starfsmannafelag-vesmannaeyja">Starfsmannafélag Vestmannaeyja</a></li>
+    <li><a href="https://isat.is/fyrirtaeki/drifandi-stettarfelag/">Drífandi — saga og félagafjöldi</a></li>
+    <li><a href="https://asi.is/vinnurettarvefur/vinnurettur/stettarfelog-og-vinnudeilur/stettarfelog/sjodir-stettarfelaga/sjukrasjodur/">ASÍ — sjúkrasjóðir og lágmarksreglur</a></li>
+    <li><a href="https://attin.is/um-verkefnid/">Áttin — fordæmi um sameiginlega umsóknargátt</a></li>
+  </ul>
+</footer>
+
+</div>
