@@ -504,26 +504,30 @@ export function brochureDeck(): Slide[] {
   ];
 }
 
-// ── HSU × Lifeline — "Framtíðar heilsa" public-health partnership deck ───────
+
+// ── HSU × Lifeline — "Heilsa til framtíðar" public-health partnership deck ───
 // Board pitch to Heilbrigðisstofnun Suðurlands for a pilot in Vestmannaeyjar:
-// HSU opens blood tests + a sjúkraliði measurement slot, Lifeline does the
-// health assessment, doctor interview and lifestyle follow-up, and refers
-// anything medical straight back. Source text is English (repo convention);
-// the Icelandic the board actually sees is authored by hand in hsuDeckIs()
-// below rather than machine-translated — this is a governance document and the
-// wording is load-bearing.
+// HSU opens the blood panel and a sjúkraliði measurement slot, Lifeline does
+// the heilsumat, the læknisviðtal and the lifestyle follow-up, and refers
+// anything medical back into hefðbundna þjónustu.
 //
-// Deliberately makes NO promise of health outcomes or savings for HSU: slide 10
-// states outright that the population-health effect is the hypothesis the pilot
-// exists to measure. Keep it that way — it is both the honest position and the
-// one that survives a room full of clinicians.
+// Source text is English (repo convention); the Icelandic the board actually
+// sees is hand-written in hsuDeckIs() rather than machine-translated, using the
+// vocabulary our own doctor-edited documents use — heilsumat, læknisviðtal,
+// blóðrannsókn, líkamssamsetningarmæling, "vísað aftur í hefðbundna þjónustu".
+// The deck viewer defaults to Icelandic whenever an overlay exists.
+//
+// Deliberately makes NO promise of health outcomes or savings for HSU: one
+// slide states outright that the population-health effect is the hypothesis
+// the pilot exists to measure. Keep it that way — it is the honest position
+// and the one that survives a room full of clinicians.
 export function hsuDeck(): Slide[] {
   return [
     // 1 · Title
-    s({ type: "title", theme: "dark",
+    s({ type: "title", theme: "dark", bg: IMG.hero,
       kicker: "Partnership proposal · Pilot project",
-      heading: "Framtíðar ==heilsa==",
-      lead: "Health assessment, measurements and a lifestyle plan for the people of Vestmannaeyjar — built on top of the heilsugæsla that is already there.",
+      heading: "Heilsa til ==framtíðar==",
+      lead: "A health assessment, measurements and a lifestyle plan for the people of Vestmannaeyjar — built on top of the heilsugæsla that is already there.",
       tagline: "HSU × Lifeline Health" }),
 
     // 2 · The problem
@@ -531,68 +535,69 @@ export function hsuDeck(): Slide[] {
       kicker: "Where we are",
       heading: "Lifestyle walks into the heilsugæsla and never properly walks out.",
       cards: [
-        { icon: "cal", title: "The visit is too short", body: "Sleep, nutrition, movement and stress do not fit into an ordinary appointment — and they sit underneath a large share of what comes through the door." },
-        { icon: "target", title: "Nobody follows the change", body: "Advice is given, but there is no structured way to follow it up month after month. Without follow-up, little happens." },
-        { icon: "users", title: "People go and find it themselves", body: "Residents already buy measurements and health assessments privately — mostly in the capital, with no connection back to their own heilsugæsla." },
+        { icon: "cal", title: "The appointment is too short", body: "Sleep, nutrition, movement and stress do not fit into an ordinary consultation — and they sit underneath a large share of what comes through the door." },
+        { icon: "target", title: "Nobody follows the change", body: "Advice is given, but there is no structured way to follow it up month after month. Without follow-up, little changes." },
+        { icon: "users", title: "People go and find it themselves", body: "Residents already buy measurements and health assessments privately — mostly in the capital, with no link back to their own heilsugæsla." },
       ] }),
 
     // 3 · The idea
     s({ type: "statement", theme: "dark",
       kicker: "The idea",
       heading: "One visit. A doctor's assessment. ==A plan somebody follows up on.==",
-      lead: "HSU handles what is medical — diagnosis, treatment, medication, chronic disease. Lifeline handles the lifestyle work, with follow-up that runs for months. Neither party takes on what the other does better, and the resident does not have to choose between them." }),
+      lead: "HSU keeps what is medical — diagnosis, treatment, medication and chronic disease. Lifeline takes the lifestyle work, with follow-up that runs for months. Neither party takes on what the other does better, and the resident does not have to choose between them." }),
 
     // 4 · The journey
     s({ type: "timeline", theme: "light",
       kicker: "The route",
       heading: "Five steps from measurement to plan.",
       nodes: [
-        { icon: "drop", title: "One visit", body: "Blood panel, blood pressure and body composition. HSU sjúkraliði, about 25 minutes." },
-        { icon: "clip", title: "Questionnaire", body: "Sleep, nutrition, movement, mental wellbeing and history — answered at home, in Medalia." },
-        { icon: "doc", title: "The report", body: "A Lifeline doctor works up a single assessment from the measurements and the answers." },
-        { icon: "phone", title: "Video consultation", body: "Thirty minutes, doctor and resident, going through the assessment together." },
+        { icon: "drop", title: "One visit", body: "Blood panel, blood pressure and a body-composition measurement. HSU sjúkraliði, about 25 minutes." },
+        { icon: "clip", title: "Questionnaire", body: "Sleep, nutrition, movement, mental wellbeing and history — answered at home in Medalia." },
+        { icon: "doc", title: "The assessment", body: "A Lifeline doctor works the measurements and the answers into a single clinical risk assessment." },
+        { icon: "phone", title: "Doctor consultation", body: "Thirty minutes by video, where the doctor goes through the assessment with the participant." },
         { icon: "spark", title: "The plan", body: "Lifestyle plan, follow-up and motivational support from Lifeline, month after month." },
       ],
-      lead: "If something medical turns up it goes straight to HSU — with the measurements and the assessment attached." }),
+      lead: "Should the participant need examination or further investigation, the case goes to HSU — with the measurements and the assessment attached." }),
 
-    // 5 · The circular model
-    s({ type: "fan", theme: "light",
+    // 5 · The circular model, drawn
+    s({ type: "fullbleed", theme: "dark", fit: "contain",
+      image: "/presentation-images/hringras-hsu-lifeline.svg",
       kicker: "The model",
-      heading: "A circle, ==not a one-way street.==",
-      lead: "A resident enters through the heilsugæsla or directly through Lifeline. HSU refers into the assessment; Lifeline refers anything medical straight back. Neither side loses the patient.",
-      fan1Title: "Heilsugæsla HSU", fan1Icon: "doc",
-      fan1: [
-        { value: "Stays with HSU", body: "The medical work, unchanged.", points: "Diagnosis and treatment\nMedication\nChronic disease follow-up\nBlood tests and measurements\nUrgent care" },
-        { value: "Refers in", body: "Sends residents into the health assessment when lifestyle is the real issue." },
-      ],
-      fan2Title: "Lifeline", fan2Icon: "spark",
-      fan2: [
-        { value: "Stays with Lifeline", body: "The assessment and everything after it.", points: "Doctor's health assessment\nReport and video consultation\nLifestyle plan\nFollow-up and motivation\nRe-measurement" },
-        { value: "Refers back", body: "Anything medical goes to HSU as a defined referral, with measurements attached." },
-      ] }),
+      heading: "A circle, ==not a one-way street.==" }),
 
     // 6 · Division of labour
-    s({ type: "cards", theme: "dark", columns: 3,
+    s({ type: "cards", theme: "light", columns: 3,
       kicker: "Division of labour",
       heading: "Who does what.",
       cards: [
-        { icon: "doc", title: "HSU", body: "Opens access to the blood panel. Sjúkraliði measures blood pressure and body composition. Takes referrals from Lifeline. Diagnoses, treats and follows up. Supports the submission to Landlæknir." },
-        { icon: "spark", title: "Lifeline", body: "Questionnaire and platform (Medalia). Doctor's assessment and report. Thirty-minute video consultation. Lifestyle plan and motivational support. Refers back to HSU where needed." },
-        { icon: "users", title: "The resident", body: "Comes to one measurement visit. Answers the questionnaire at home. Takes the thirty-minute consultation. Carries out the plan with support. Returns for re-measurement." },
+        { icon: "doc", title: "HSU", body: "Opens access to the blood panel. A sjúkraliði measures blood pressure and body composition. Receives referrals from Lifeline. Diagnoses, treats and follows up. Supports the submission to Landlæknir." },
+        { icon: "spark", title: "Lifeline", body: "Questionnaire and platform. The doctor's assessment and report. A thirty-minute consultation. Lifestyle plan and motivational support. Refers back into ordinary care where needed." },
+        { icon: "users", title: "The participant", body: "Comes to one measurement visit. Answers the questionnaire at home. Takes the thirty-minute consultation. Carries out the plan with support. Returns for re-measurement." },
       ] }),
 
-    // 7 · Who pays what
+    // 7 · Clinical and regulatory footing — what a clinician board wants to hear
+    s({ type: "cards", theme: "dark", columns: 2,
+      kicker: "Professional footing",
+      heading: "This is clinical work, on clinical foundations.",
+      cards: [
+        { icon: "chart", title: "Recognised risk algorithms", body: "The assessment uses established standardised risk instruments such as SCORE2, alongside risk models developed by Lifeline's own medical team." },
+        { icon: "doc", title: "A doctor carries the assessment", body: "Interpretation of results and all recommendations are made by a physician working for Lifeline Health — not by an algorithm and not by a coach." },
+        { icon: "lock", title: "Recorded in a sjúkraskrárkerfi", body: "Everything is recorded and retained in the Medalia medical-records system as part of the person's health record, under lög nr. 55/2009 um sjúkraskrár." },
+        { icon: "shield", title: "Data protection", body: "Processing follows lög nr. 90/2018 and the GDPR. Lifeline Health is the controller; Medalia is a processor." },
+      ] }),
+
+    // 8 · Who pays what
     s({ type: "cards", theme: "light", columns: 3,
       kicker: "Money flow",
       heading: "Who pays for what.",
-      lead: "HSU pays nothing towards the health assessment itself. Its contribution is access to tests the institution already runs, and measurement time that already exists in the building.",
+      lead: "HSU pays nothing towards the assessment itself. Its contribution is access to investigations the institution already runs, and measurement time that already exists in the building.",
       cards: [
-        { icon: "drop", title: "HSU pays", body: "The cardiometabolic blood panel, and about 25 minutes of sjúkraliði time per participant. A share of these tests is drawn anyway." },
-        { icon: "users", title: "The resident pays", body: "40.000 kr. for the assessment, the report and the doctor consultation. It is classified as heilsufræðsla, and the unions in Vestmannaeyjar cover a large share — the exact proportion to be confirmed with each union." },
+        { icon: "drop", title: "HSU pays", body: "The cardiometabolic blood panel, and about 25 minutes of sjúkraliða time per participant. A share of these tests is drawn anyway." },
+        { icon: "users", title: "The participant pays", body: "40.000 kr. for the assessment, the report and the doctor consultation. It counts as heilsufræðsla, and the unions in Vestmannaeyjar cover a large share — the exact proportion to be confirmed with each union." },
         { icon: "spark", title: "Lifeline pays", body: "Doctor time, the platform, the report, the plan and months of follow-up. Development and operation of the service." },
       ] }),
 
-    // 8 · What it actually costs HSU
+    // 9 · What it actually costs HSU
     s({ type: "stats", theme: "dark",
       kicker: "Size of the contribution",
       heading: "What this actually costs HSU.",
@@ -604,58 +609,58 @@ export function hsuDeck(): Slide[] {
       ],
       footnote: "Plus the cost of the blood panel — [X kr. per participant] on HSU's own tariff, part of which would have fallen due anyway for those already under follow-up. Proposed panel, to be agreed with HSU's laboratory: lipids, HbA1c, inflammatory markers, liver and kidney function, thyroid, iron status and vitamin D." }),
 
-    // 9 · What HSU gets back
+    // 10 · What HSU gets back
     s({ type: "feature-rows", theme: "light",
       kicker: "The return",
       heading: "What HSU gets back.",
       rows: [
         { icon: "target", title: "The lifestyle work leaves the desk — without disappearing", body: "Work the heilsugæsla has neither the time nor the structure for gets its own channel, with follow-up that continues for months." },
-        { icon: "clip", title: "Referrals arrive ready", body: "If the assessment finds something, it reaches HSU as a defined referral with measurements and an assessment attached — not as a vague complaint that has to be worked up from zero." },
-        { icon: "pulse", title: "A service that is otherwise only available down south", body: "Residents of Vestmannaeyjar get access to a health assessment that is largely confined to the capital area, without having to travel." },
+        { icon: "clip", title: "Referrals arrive worked up", body: "If the assessment finds something, it reaches HSU as a defined referral with measurements and a clinical assessment attached — not as a vague complaint that has to be worked up from zero." },
+        { icon: "pulse", title: "A service otherwise only available in the capital", body: "People in Vestmannaeyjar get an assessment that is largely confined to the capital area, without having to travel for it." },
         { icon: "chart", title: "A measurable picture of risk in the islands", body: "The project hands HSU aggregated data on risk factors in the community that the institution does not have today." },
       ] }),
 
-    // 10 · The honest boundary
+    // 11 · The honest boundary
     s({ type: "statement", theme: "dark",
       kicker: "What we do not promise",
       heading: "We are not promising ==a healthier population.==",
-      lead: "We promise no particular health outcome and no saving for HSU. That a healthier population comes back is precisely the hypothesis this pilot is designed to test and measure — which is why the next slides are about what gets measured, and why the decision point sits twelve months out." }),
+      lead: "We promise no particular health outcome and no saving for HSU. That a healthier population comes back is precisely the hypothesis this pilot is built to test and measure — which is why the next slides are about what gets measured, and why the decision point sits twelve months out." }),
 
-    // 11 · The ask
+    // 12 · The ask
     s({ type: "steps", theme: "light",
       kicker: "The ask",
       heading: "Three things we need from HSU.",
       steps: [
         { title: "Access to the blood tests", body: "That participants can have the cardiometabolic panel drawn at the heilsugæsla in Vestmannaeyjar, to a panel defined together with HSU's laboratory." },
-        { title: "Measurements in the same visit", body: "About 25 minutes of sjúkraliði time per participant: blood pressure and body composition, taken in the same visit as the blood draw." },
+        { title: "Measurements in the same visit", body: "About 25 minutes of sjúkraliða time per participant: blood pressure and a body-composition measurement, taken in the same visit as the blood draw." },
         { title: "Support for the submission to Landlæknir", body: "Help getting Medalia's built-in video consultation approved for use. This is a precondition for starting, and the one item HSU can unlock and Lifeline cannot on its own." },
       ] }),
 
-    // 12 · Phases
+    // 13 · Phases
     s({ type: "timeline", theme: "dark",
       kicker: "Delivery",
       heading: "Vestmannaeyjar, about 4.000 residents.",
       nodes: [
-        { icon: "lock", title: "Phase 0 · Preparation", body: "Landlæknir approval for the video consultation. Blood panel defined. Procedures and referral routes agreed. Conversations with the unions." },
+        { icon: "lock", title: "Phase 0 · Preparation", body: "Landlæknir approval for the video consultation. The blood panel defined. Procedure and referral routes agreed. Conversations with the unions." },
         { icon: "users", title: "Phase 1 · 30 participants", body: "The whole route tested from measurement to plan, and the procedure corrected before opening to everyone." },
-        { icon: "spark", title: "Phase 2 · Open to residents", body: "Target of 250 participants over twelve months. Re-measurement at six and twelve months." },
-        { icon: "chart", title: "Phase 3 · Review and decision", body: "Results put to the board of HSU. Decision on continuation and roll-out." },
+        { icon: "spark", title: "Phase 2 · Open to residents", body: "A target of 250 participants over twelve months. Re-measurement at six and twelve months." },
+        { icon: "chart", title: "Phase 3 · Review and decision", body: "Results put to the board of HSU. A decision on continuation and roll-out." },
       ],
       lead: "A contained community with one heilsugæsla, a known population and strong unions — everything needed to measure whether the model works. Phase timing follows the Landlæknir decision." }),
 
-    // 13 · Metrics
+    // 14 · Metrics
     s({ type: "feature-rows", theme: "light",
       kicker: "Evaluation",
       heading: "What will be measured.",
       rows: [
         { icon: "users", title: "Participation", body: "Number of participants, age distribution and sex ratio — whether the service reaches beyond those who already think most about their health." },
         { icon: "cal", title: "Process", body: "Time from measurement to consultation, and the share who complete the route — whether the procedure holds up in real use." },
-        { icon: "doc", title: "Clinical", body: "Share of participants where something is found that warrants a referral to HSU — whether the assessment finds what it is meant to find." },
-        { icon: "pulse", title: "Follow-up", body: "Re-measurement at six and twelve months: blood pressure, lipids, HbA1c, body composition — whether the plan produces measurable change." },
+        { icon: "doc", title: "Clinical", body: "The share of participants in whom something is found that warrants referral to HSU — whether the assessment finds what it is meant to find." },
+        { icon: "pulse", title: "Follow-up", body: "Re-measurement at six and twelve months: blood pressure, lipids, HbA1c and body composition — whether the plan produces measurable change." },
         { icon: "smile", title: "Experience", body: "Satisfaction among participants and among HSU staff — whether this relieves the heilsugæsla or burdens it." },
       ] }),
 
-    // 14 · Scaling
+    // 15 · Scaling
     s({ type: "cards", theme: "dark", columns: 3,
       kicker: "Roll-out",
       heading: "From the islands to the whole country.",
@@ -666,26 +671,28 @@ export function hsuDeck(): Slide[] {
         { icon: "pulse", title: "The whole country", body: "Other health institutions, on the same partnership model." },
       ] }),
 
-    // 15 · Closing
-    s({ type: "closing", theme: "dark",
+    // 16 · Closing
+    s({ type: "closing", theme: "dark", bg: IMG.banner,
       kicker: "Next steps",
       heading: "What we are asking for ==today.==",
       lead: "One: approval for a pilot project in Vestmannaeyjar on the terms set out here, with review and a decision on continuation after twelve months. Two: a named contact at HSU to work with us on procedure, blood panel and referral routes. Three: a joint submission to Landlæknir on the Medalia video consultation — it sits on the critical path and should go first.",
-      tagline: "Framtíðar heilsa",
+      tagline: "Heilsa til framtíðar",
       footnote: "Lifeline Health ehf. · [contact and date]" }),
   ];
 }
 
 // Hand-authored Icelandic for hsuDeck(), aligned by slide index. Paths follow
 // the TextMap convention: "heading", "cards.0.body", "nodes.2.title", …
-// Values that are not translated (stat numbers, icons, brand) are omitted.
+// Vocabulary follows our doctor-edited documents: heilsumat, læknisviðtal,
+// blóðrannsókn, líkamssamsetningarmæling, skjólstæðingur/þátttakandi, and
+// Fjarlækningar' phrasing "vísað aftur í hefðbundna þjónustu".
 export function hsuDeckIs(): Record<string, string>[] {
   return [
     // 1 · Titill
     {
       kicker: "Samstarfstillaga · Tilraunaverkefni",
-      heading: "Framtíðar ==heilsa==",
-      lead: "Heilsumat, mælingar og lífsstílsáætlun fyrir íbúa Vestmannaeyja — byggt ofan á heilsugæsluna sem er þegar til staðar.",
+      heading: "Heilsa til ==framtíðar==",
+      lead: "Heilsumat, mælingar og lífsstílsáætlun fyrir íbúa Vestmannaeyja — byggt ofan á þá heilsugæslu sem þegar er til staðar.",
       tagline: "HSU × Lifeline Health",
     },
     // 2 · Staðan
@@ -693,76 +700,76 @@ export function hsuDeckIs(): Record<string, string>[] {
       kicker: "Staðan",
       heading: "Lífsstíllinn kemur inn á heilsugæsluna en fer aldrei almennilega út aftur.",
       "cards.0.title": "Viðtalið er of stutt",
-      "cards.0.body": "Svefn, næring, hreyfing og álag komast ekki fyrir í venjulegu viðtali — og þau eru undirliggjandi í stórum hluta þeirra erinda sem berast.",
+      "cards.0.body": "Svefn, næring, hreyfing og álag komast ekki fyrir í venjulegu viðtali — og liggja þó undir stórum hluta þeirra erinda sem berast.",
       "cards.1.title": "Enginn fylgir breytingunni eftir",
-      "cards.1.body": "Ráðleggingar eru gefnar en það er engin skipulögð leið til að fylgja þeim eftir mánuðum saman. Án eftirfylgni gerist lítið.",
+      "cards.1.body": "Ráðleggingar eru gefnar en engin skipulögð leið er til að fylgja þeim eftir mánuðum saman. Án eftirfylgni breytist fátt.",
       "cards.2.title": "Fólk leitar þetta uppi sjálft",
-      "cards.2.body": "Íbúar kaupa nú þegar mælingar og heilsumat á almennum markaði — að mestu á höfuðborgarsvæðinu, án tengingar við sína heilsugæslu.",
+      "cards.2.body": "Íbúar kaupa nú þegar mælingar og heilsumat á almennum markaði — að mestu á höfuðborgarsvæðinu og án tengingar við sína heilsugæslu.",
     },
     // 3 · Hugmyndin
     {
       kicker: "Hugmyndin",
       heading: "Ein heimsókn. Heilsumat læknis. ==Áætlun sem einhver fylgir eftir.==",
-      lead: "HSU sinnir því sem er læknisfræðilegt — greiningu, meðferð, lyfjum og langvinnum sjúkdómum. Lifeline sinnir lífsstílnum, með eftirfylgni sem heldur áfram mánuðum saman. Hvorugur aðilinn tekur að sér það sem hinn gerir betur, og íbúinn þarf ekki að velja á milli þeirra.",
+      lead: "HSU heldur því sem er læknisfræðilegt — greiningu, meðferð, lyfjum og langvinnum sjúkdómum. Lifeline tekur að sér lífsstílsvinnuna, með eftirfylgni sem stendur mánuðum saman. Hvorugur aðilinn tekur að sér það sem hinn gerir betur, og skjólstæðingurinn þarf ekki að velja á milli þeirra.",
     },
     // 4 · Leiðin
     {
       kicker: "Leiðin",
       heading: "Fimm skref frá mælingu að áætlun.",
       "nodes.0.title": "Ein heimsókn",
-      "nodes.0.body": "Blóðprufa, blóðþrýstingur og líkamssamsetning. Sjúkraliði HSU, um 25 mínútur.",
+      "nodes.0.body": "Blóðrannsókn, blóðþrýstingur og líkamssamsetningarmæling. Sjúkraliði HSU, um 25 mínútur.",
       "nodes.1.title": "Spurningalisti",
-      "nodes.1.body": "Svefn, næring, hreyfing, andleg líðan og saga — svarað heiman frá í Medalia.",
-      "nodes.2.title": "Skýrslan",
-      "nodes.2.body": "Lifeline-læknir vinnur heildstætt mat úr mælingunum og svörunum.",
-      "nodes.3.title": "Myndsamtal",
-      "nodes.3.body": "Þrjátíu mínútur þar sem læknir fer yfir matið með íbúanum.",
+      "nodes.1.body": "Svefn, næring, hreyfing, andleg líðan og heilsufarssaga — svarað heiman frá í Medalia.",
+      "nodes.2.title": "Heilsumatið",
+      "nodes.2.body": "Læknir Lifeline vinnur klínískt áhættumat úr mælingunum og svörunum.",
+      "nodes.3.title": "Læknisviðtal",
+      "nodes.3.body": "Þrjátíu mínútur í fjarfundi þar sem læknir fer yfir niðurstöðurnar með þátttakanda.",
       "nodes.4.title": "Áætlunin",
-      "nodes.4.body": "Lífsstílsáætlun, eftirfylgd og hvatningarstuðningur frá Lifeline, mánuðum saman.",
-      lead: "Komi læknisfræðilegt vandamál í ljós fer það strax til HSU — með mælingum og mati sem fylgja með.",
+      "nodes.4.body": "Lífsstílsáætlun, eftirfylgd og hvatning frá Lifeline, mánuð eftir mánuð.",
+      lead: "Þurfi þátttakandi skoðun eða frekari rannsókn fer erindið til HSU — með mælingum og mati sem fylgja með.",
     },
-    // 5 · Hringrásin
+    // 5 · Hringrásin (myndin ber efnið)
     {
       kicker: "Líkanið",
       heading: "Hringrás, ==ekki einstefna.==",
-      lead: "Íbúi kemst inn um heilsugæsluna eða beint hjá Lifeline. HSU vísar í heilsumatið; Lifeline vísar öllu læknisfræðilegu beint til baka. Hvorugur aðilinn missir sjúklinginn frá sér.",
-      fan1Title: "Heilsugæsla HSU",
-      "fan1.0.value": "Verður eftir hjá HSU",
-      "fan1.0.body": "Læknisfræðilega vinnan, óbreytt.",
-      "fan1.0.points": "Greining og meðferð\nLyfjameðferð\nEftirlit langvinnra sjúkdóma\nBlóðprufur og mælingar\nBráðaerindi",
-      "fan1.1.value": "Vísar inn",
-      "fan1.1.body": "Sendir íbúa í heilsumatið þegar lífsstíllinn er hinn raunverulegi vandi.",
-      fan2Title: "Lifeline",
-      "fan2.0.value": "Verður eftir hjá Lifeline",
-      "fan2.0.body": "Heilsumatið og allt sem á eftir kemur.",
-      "fan2.0.points": "Heilsumat læknis\nSkýrsla og myndsamtal\nLífsstílsáætlun\nEftirfylgd og hvatning\nEndurmæling",
-      "fan2.1.value": "Vísar til baka",
-      "fan2.1.body": "Allt læknisfræðilegt fer til HSU sem skilgreind tilvísun, með mælingum.",
     },
     // 6 · Verkaskipting
     {
       kicker: "Verkaskipting",
       heading: "Hver gerir hvað.",
       "cards.0.title": "HSU",
-      "cards.0.body": "Opnar aðgang að blóðprufupakkanum. Sjúkraliði mælir blóðþrýsting og líkamssamsetningu. Tekur við tilvísunum frá Lifeline. Greinir, meðhöndlar og fylgir eftir. Aðstoðar við erindi til Landlæknis.",
+      "cards.0.body": "Opnar aðgang að blóðrannsóknunum. Sjúkraliði mælir blóðþrýsting og líkamssamsetningu. Tekur við tilvísunum frá Lifeline. Greinir, meðhöndlar og fylgir eftir. Styður erindi til Landlæknis.",
       "cards.1.title": "Lifeline",
-      "cards.1.body": "Spurningalisti og kerfi (Medalia). Heilsumat læknis og skýrsla. Þrjátíu mínútna myndsamtal. Lífsstílsáætlun og hvatningarstuðningur. Vísar til baka á HSU þegar við á.",
-      "cards.2.title": "Íbúinn",
-      "cards.2.body": "Mætir í eina heimsókn í mælingar. Svarar spurningalistanum heima. Tekur þrjátíu mínútna samtalið. Framkvæmir áætlunina með stuðningi. Kemur í endurmælingu.",
+      "cards.1.body": "Spurningalisti og kerfi. Heilsumat læknis og skýrsla. Þrjátíu mínútna læknisviðtal. Lífsstílsáætlun og hvatning. Vísar aftur í hefðbundna þjónustu þegar við á.",
+      "cards.2.title": "Þátttakandinn",
+      "cards.2.body": "Mætir í eina heimsókn. Svarar spurningalistanum heima. Tekur þrjátíu mínútna viðtalið. Framkvæmir áætlunina með stuðningi. Kemur í endurmælingu.",
     },
-    // 7 · Greiðsluflæði
+    // 7 · Faglegur grunnur
+    {
+      kicker: "Faglegur grunnur",
+      heading: "Þetta er klínísk vinna, á klínískum grunni.",
+      "cards.0.title": "Viðurkennd áhættureiknirit",
+      "cards.0.body": "Við heilsumatið er stuðst við viðurkennd stöðluð áhættureiknirit, svo sem SCORE2, auk sérhannaðra áhættulíkana þróaðra af læknateymi Lifeline Health.",
+      "cards.1.title": "Læknir ber matið",
+      "cards.1.body": "Túlkun niðurstaðna og allar ráðleggingar eru framkvæmdar af lækni á vegum Lifeline Health — ekki af reiknilíkani og ekki af þjálfara.",
+      "cards.2.title": "Skráð í sjúkraskrárkerfi",
+      "cards.2.body": "Allar upplýsingar eru skráðar og varðveittar í Medalia sjúkraskrárkerfinu sem hluti af sjúkraskrá viðkomandi, í samræmi við lög nr. 55/2009 um sjúkraskrár.",
+      "cards.3.title": "Persónuvernd",
+      "cards.3.body": "Vinnslan fer fram í samræmi við lög nr. 90/2018 og GDPR. Lifeline Health er ábyrgðaraðili og Medalia ehf. vinnsluaðili.",
+    },
+    // 8 · Greiðsluflæði
     {
       kicker: "Greiðsluflæði",
       heading: "Hver borgar hvað.",
-      lead: "HSU greiðir ekkert fyrir heilsumatið sjálft. Framlag stofnunarinnar er aðgangur að rannsóknum sem hún gerir nú þegar, og mælitími sem þegar er til í húsinu.",
+      lead: "HSU greiðir ekkert fyrir heilsumatið sjálft. Framlag stofnunarinnar er aðgangur að rannsóknum sem hún framkvæmir hvort eð er, og mælitími sem þegar er til í húsinu.",
       "cards.0.title": "HSU greiðir",
-      "cards.0.body": "Efnaskipta- og hjartaáhættupakkann, og um 25 mínútur af tíma sjúkraliða á hvern þátttakanda. Hluti þessara blóðprufa er tekinn hvort eð er.",
-      "cards.1.title": "Íbúinn greiðir",
-      "cards.1.body": "40.000 kr. fyrir heilsumatið, skýrsluna og læknisviðtalið. Þjónustan flokkast sem heilsufræðsla og stéttarfélögin í Eyjum greiða stóran hluta — endanlegt hlutfall staðfest með hverju félagi.",
+      "cards.0.body": "Efnaskipta- og hjartaáhættupakkann, og um 25 mínútur af tíma sjúkraliða á hvern þátttakanda. Hluti þessara rannsókna er tekinn hvort eð er.",
+      "cards.1.title": "Þátttakandinn greiðir",
+      "cards.1.body": "40.000 kr. fyrir heilsumatið, skýrsluna og læknisviðtalið. Þjónustan telst heilsufræðsla og stéttarfélögin í Eyjum greiða stóran hluta — endanlegt hlutfall staðfest með hverju félagi fyrir sig.",
       "cards.2.title": "Lifeline greiðir",
       "cards.2.body": "Læknistíma, kerfið, skýrslugerðina, áætlunina og eftirfylgni mánuðum saman. Þróun og rekstur þjónustunnar.",
     },
-    // 8 · Kostnaður
+    // 9 · Kostnaður
     {
       kicker: "Umfang framlagsins",
       heading: "Hvað þetta kostar HSU í raun.",
@@ -770,53 +777,53 @@ export function hsuDeckIs(): Record<string, string>[] {
       "stats.0.label": "mínútur af tíma sjúkraliða á hvern þátttakanda",
       "stats.1.label": "klukkustundir samtals yfir allt árið",
       "stats.2.label": "klukkustundir á viku að jafnaði",
-      footnote: "Þar við bætist kostnaður blóðprufupakkans — [X kr. á þátttakanda] samkvæmt gjaldskrá HSU, og hluti hans hefði fallið til hvort eð er hjá þeim sem eru þegar í eftirliti. Tillaga að pakka, staðfest með rannsóknarstofu HSU: blóðfitur, HbA1c, bólgumælingar, lifrar- og nýrnastarfsemi, skjaldkirtill, járnbúskapur og D-vítamín.",
+      footnote: "Þar við bætist kostnaður blóðrannsóknanna — [X kr. á þátttakanda] samkvæmt gjaldskrá HSU, og hluti hans hefði fallið til hvort eð er hjá þeim sem þegar eru í eftirliti. Tillaga að pakka, staðfest með rannsóknarstofu HSU: blóðfitur, HbA1c, bólgumælingar, lifrar- og nýrnastarfsemi, skjaldkirtill, járnbúskapur og D-vítamín.",
     },
-    // 9 · Ávinningur
+    // 10 · Ávinningur
     {
       kicker: "Ávinningurinn",
       heading: "Hvað HSU fær til baka.",
       "rows.0.title": "Lífsstílsvinnan fer af borðinu — en hverfur ekki",
       "rows.0.body": "Sú vinna sem heilsugæslan hefur hvorki tíma né umgjörð fyrir fær sinn eigin farveg, með eftirfylgni sem heldur áfram mánuðum saman.",
-      "rows.1.title": "Tilvísanir koma inn tilbúnar",
-      "rows.1.body": "Finnist eitthvað í matinu berst það HSU sem skilgreind tilvísun með mælingum og mati — ekki sem óljóst erindi sem þarf að byrja á að greina frá grunni.",
-      "rows.2.title": "Þjónusta sem er annars aðeins í boði fyrir sunnan",
-      "rows.2.body": "Íbúar Vestmannaeyja fá aðgang að heilsumati sem er að mestu bundið við höfuðborgarsvæðið, án þess að þurfa að ferðast.",
+      "rows.1.title": "Tilvísanir berast fullunnar",
+      "rows.1.body": "Finnist eitthvað í matinu berst það HSU sem skilgreind tilvísun með mælingum og klínísku mati — ekki sem óljóst erindi sem þarf að greina frá grunni.",
+      "rows.2.title": "Þjónusta sem er annars bundin við höfuðborgarsvæðið",
+      "rows.2.body": "Íbúar Vestmannaeyja fá heilsumat sem er að mestu aðeins í boði fyrir sunnan, án þess að þurfa að ferðast eftir því.",
       "rows.3.title": "Mælanleg mynd af áhættuþáttum í Eyjum",
       "rows.3.body": "Verkefnið skilar HSU samandregnum gögnum um áhættuþætti í samfélaginu sem stofnunin hefur ekki í dag.",
     },
-    // 10 · Það sem við lofum ekki
+    // 11 · Það sem við lofum ekki
     {
       kicker: "Það sem við lofum ekki",
       heading: "Við lofum ekki ==hraustari íbúahópi.==",
-      lead: "Við lofum hvorki tilteknum heilsufarslegum árangri né sparnaði fyrir HSU. Sú tilgáta að hraustari íbúahópur skili sér til baka er nákvæmlega það sem þetta tilraunaverkefni er hannað til að prófa og mæla — þess vegna fjalla næstu skyggnur um hvað verður mælt, og þess vegna er ákvörðunarpunkturinn eftir tólf mánuði.",
+      lead: "Við lofum hvorki tilteknum heilsufarslegum árangri né sparnaði fyrir HSU. Sú tilgáta að hraustari íbúahópur skili sér til baka er einmitt það sem þetta tilraunaverkefni er byggt til að prófa og mæla — þess vegna fjalla næstu skyggnur um hvað verður mælt, og þess vegna liggur ákvörðunin eftir tólf mánuði.",
     },
-    // 11 · Beiðnin
+    // 12 · Beiðnin
     {
       kicker: "Beiðnin",
       heading: "Þrennt sem við þurfum frá HSU.",
-      "steps.0.title": "Aðgang að blóðprufum",
-      "steps.0.body": "Að þátttakendur geti tekið efnaskipta- og hjartaáhættupakkann á heilsugæslunni í Vestmannaeyjum, samkvæmt pakka sem skilgreindur er með rannsóknarstofu HSU.",
+      "steps.0.title": "Aðgang að blóðrannsóknum",
+      "steps.0.body": "Að þátttakendur geti fengið efnaskipta- og hjartaáhættupakkann tekinn á heilsugæslunni í Vestmannaeyjum, samkvæmt pakka sem skilgreindur er með rannsóknarstofu HSU.",
       "steps.1.title": "Mælingar í sömu heimsókn",
-      "steps.1.body": "Um 25 mínútur af tíma sjúkraliða á hvern þátttakanda: blóðþrýstingur og líkamssamsetning, tekið í sömu heimsókn og blóðprufan.",
+      "steps.1.body": "Um 25 mínútur af tíma sjúkraliða á hvern þátttakanda: blóðþrýstingur og líkamssamsetningarmæling, tekið í sömu heimsókn og blóðsýnið.",
       "steps.2.title": "Stuðning við erindi til Landlæknis",
-      "steps.2.body": "Aðstoð við að fá innbyggða myndsamtalsvirkni Medalia samþykkta til notkunar. Þetta er forsenda þess að verkefnið geti hafist og sá liður sem HSU getur greitt fyrir en Lifeline ekki eitt og sér.",
+      "steps.2.body": "Aðstoð við að fá innbyggða fjarfundavirkni Medalia samþykkta til notkunar. Þetta er forsenda þess að verkefnið geti hafist og sá liður sem HSU getur greitt fyrir en Lifeline ekki eitt og sér.",
     },
-    // 12 · Áfangar
+    // 13 · Áfangar
     {
       kicker: "Framkvæmd",
       heading: "Vestmannaeyjar, um 4.000 íbúar.",
       "nodes.0.title": "Áfangi 0 · Undirbúningur",
-      "nodes.0.body": "Samþykki Landlæknis fyrir myndsamtali. Blóðprufupakki skilgreindur. Verklag og tilvísanaleiðir ákveðnar. Samtal við stéttarfélögin.",
+      "nodes.0.body": "Samþykki Landlæknis fyrir fjarfundum. Blóðrannsóknarpakki skilgreindur. Verklag og tilvísanaleiðir ákveðnar. Samtal við stéttarfélögin.",
       "nodes.1.title": "Áfangi 1 · 30 þátttakendur",
-      "nodes.1.body": "Allt ferlið prófað frá mælingu að áætlun, og verklagið lagfært áður en opnað er fyrir alla.",
+      "nodes.1.body": "Allt ferlið prófað frá mælingu að áætlun og verklagið lagfært áður en opnað er fyrir alla.",
       "nodes.2.title": "Áfangi 2 · Opnað fyrir íbúa",
       "nodes.2.body": "Markmið um 250 þátttakendur á tólf mánuðum. Endurmæling eftir sex og tólf mánuði.",
       "nodes.3.title": "Áfangi 3 · Mat og ákvörðun",
       "nodes.3.body": "Niðurstöður lagðar fyrir stjórn HSU. Ákvörðun um framhald og útbreiðslu.",
       lead: "Afmarkað samfélag með eina heilsugæslu, þekktan íbúafjölda og sterk stéttarfélög — allt sem þarf til að mæla hvort líkanið virkar. Tímasetning áfanga ræðst af afgreiðslu Landlæknis.",
     },
-    // 13 · Mælikvarðar
+    // 14 · Mælikvarðar
     {
       kicker: "Mat á árangri",
       heading: "Hvað verður mælt.",
@@ -825,17 +832,17 @@ export function hsuDeckIs(): Record<string, string>[] {
       "rows.1.title": "Ferli",
       "rows.1.body": "Tími frá mælingu að viðtali og hlutfall sem lýkur ferlinu — hvort verklagið haldi í raunverulegri notkun.",
       "rows.2.title": "Klínískt",
-      "rows.2.body": "Hlutfall þátttakenda þar sem eitthvað finnst sem kallar á tilvísun til HSU — hvort matið sé að finna það sem það á að finna.",
+      "rows.2.body": "Hlutfall þátttakenda þar sem eitthvað finnst sem kallar á tilvísun til HSU — hvort matið finni það sem því er ætlað að finna.",
       "rows.3.title": "Eftirfylgd",
       "rows.3.body": "Endurmæling eftir sex og tólf mánuði: blóðþrýstingur, blóðfitur, HbA1c og líkamssamsetning — hvort áætlunin skili mælanlegri breytingu.",
       "rows.4.title": "Upplifun",
       "rows.4.body": "Ánægja þátttakenda og starfsfólks HSU — hvort þetta létti á heilsugæslunni eða íþyngi henni.",
     },
-    // 14 · Útbreiðsla
+    // 15 · Útbreiðsla
     {
       kicker: "Útbreiðsla",
       heading: "Frá Eyjum til landsins alls.",
-      lead: "Hver ný heilsugæsla þarf aðeins að opna fyrir tvennt: blóðprufurnar og 25 mínútur af mælingum.",
+      lead: "Hver ný heilsugæsla þarf aðeins að opna fyrir tvennt: blóðrannsóknirnar og 25 mínútur af mælingum.",
       "cards.0.title": "Vestmannaeyjar",
       "cards.0.body": "Tilraunaverkefnið. Um 4.000 íbúar, ein heilsugæsla og íbúafjöldi sem hægt er að telja.",
       "cards.1.title": "Aðrar starfsstöðvar HSU",
@@ -843,12 +850,12 @@ export function hsuDeckIs(): Record<string, string>[] {
       "cards.2.title": "Landið allt",
       "cards.2.body": "Aðrar heilbrigðisstofnanir, á sama samstarfslíkani.",
     },
-    // 15 · Ákvörðun
+    // 16 · Ákvörðun
     {
       kicker: "Næstu skref",
       heading: "Það sem óskað er eftir ==í dag.==",
-      lead: "Eitt: samþykki fyrir tilraunaverkefni í Vestmannaeyjum á þeim forsendum sem hér hafa verið lagðar fram, með mati og ákvörðun um framhald að tólf mánuðum liðnum. Tvö: tengiliður hjá HSU sem vinnur með okkur að verklagi, blóðprufupakka og tilvísanaleiðum. Þrjú: sameiginlegt erindi til Landlæknis um myndsamtalsvirkni Medalia — það er á gagnrýnu leiðinni og ætti að fara af stað fyrst.",
-      tagline: "Framtíðar heilsa",
+      lead: "Eitt: samþykki fyrir tilraunaverkefni í Vestmannaeyjum á þeim forsendum sem hér hafa verið lagðar fram, með mati og ákvörðun um framhald að tólf mánuðum liðnum. Tvö: tengiliður hjá HSU sem vinnur með okkur að verklagi, blóðrannsóknarpakka og tilvísanaleiðum. Þrjú: sameiginlegt erindi til Landlæknis um fjarfundavirkni Medalia — það liggur á gagnrýnu leiðinni og ætti að fara af stað fyrst.",
+      tagline: "Heilsa til framtíðar",
       footnote: "Lifeline Health ehf. · [tengiliður og dagsetning]",
     },
   ];

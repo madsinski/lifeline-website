@@ -42,7 +42,7 @@ export const TEMPLATES: PresentationTemplate[] = [
   // World Class gym-chain partnership pitch.
   { id: "worldclass", name: "World Class × Lifeline", description: "7 slides · gym partnership — measurements, nutrition, app, programs & co-marketing. Exportable to PDF.", design: "lifeline" },
   // HSU public-health partnership — board pitch for the Vestmannaeyjar pilot.
-  { id: "hsu", name: "HSU × Lifeline — Framtíðar heilsa", description: "15 slides · public-health partnership pitch for the Vestmannaeyjar pilot. Ships with hand-written Icelandic.", design: "clinical" },
+  { id: "hsu", name: "HSU × Lifeline — Heilsa til framtíðar", description: "16 slides · public-health partnership pitch for the Vestmannaeyjar pilot. Drawn cycle diagram, ships with hand-written Icelandic.", design: "lifeline" },
 ];
 
 // From-scratch templates map to a bespoke deck builder + design.
@@ -60,7 +60,7 @@ const CUSTOM_DECKS: Record<string, { fn: () => Slide[]; design: DesignId; is?: (
   "lifeline-fjarlaekningar": { fn: lifelineFjarlaekningarDeck, design: "lifeline" },
   investor: { fn: investorDeck, design: "lifeline" },
   worldclass: { fn: worldclassDeck, design: "lifeline" },
-  hsu: { fn: hsuDeck, design: "clinical", is: hsuDeckIs },
+  hsu: { fn: hsuDeck, design: "lifeline", is: hsuDeckIs },
 };
 
 /** Returns a fresh copy of the standard slides with brand-new slide IDs. */
