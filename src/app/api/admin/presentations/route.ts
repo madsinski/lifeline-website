@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest, isAnyActiveStaff, requireAdminAAL2 } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { buildTemplateData, isKnownTemplate } from "@/lib/presentations/templates";
+import { buildTemplateData, isKnownTemplate, templateName } from "@/lib/presentations/templates";
 import type { PresentationData } from "@/lib/presentations/types";
 
 // Backed by supabase/migration-presentations.sql
@@ -60,7 +60,9 @@ export async function POST(req: NextRequest) {
     if (!title) title = `Copy of ${src.title ?? "presentation"}`;
   } else {
     data = buildTemplateData(templateVersion);
-    if (!title) title = templateVersion === "standard-v1" ? "Standard deck (v1)" : "Standard deck (v2)";
+    // The New-presentation dialog posts only a templateId, so this fallback is
+    // what actually names most decks — use the template's own name.
+    if (!title) title = templateName(templateVersion) ?? "Untitled presentation";
   }
 
   // Generate a unique slug; retry a couple of times on the off chance of a clash.

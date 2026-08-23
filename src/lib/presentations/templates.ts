@@ -6,10 +6,10 @@
 // editor, so a template is really "content + a starting design".
 // template_version records provenance on the row.
 // ============================================================================
-import type { PresentationData, Slide, DesignId } from "./types";
+import type { PresentationData, Slide, DesignId, DeckTextMaps, TextMap } from "./types";
 import { newId } from "./types";
 import { standardDeckSlides } from "./standard-deck";
-import { editorialDeck, keynoteDeck, clinicalDeck, energeticDeck, brochureDeck, lifelineFjarlaekningarDeck, investorDeck, worldclassDeck } from "./template-decks";
+import { editorialDeck, keynoteDeck, clinicalDeck, energeticDeck, brochureDeck, lifelineFjarlaekningarDeck, investorDeck, worldclassDeck, hsuDeck, hsuDeckIs } from "./template-decks";
 
 export interface PresentationTemplate {
   id: string;
@@ -41,10 +41,17 @@ export const TEMPLATES: PresentationTemplate[] = [
   { id: "investor", name: "Investor — Fjarlækningar + Lifeline", description: "History, concept, clients & team for each company (Lifeline split into assessment + coaching). Exportable to PDF.", design: "lifeline" },
   // World Class gym-chain partnership pitch.
   { id: "worldclass", name: "World Class × Lifeline", description: "7 slides · gym partnership — measurements, nutrition, app, programs & co-marketing. Exportable to PDF.", design: "lifeline" },
+  // HSU public-health partnership — board pitch for the Vestmannaeyjar pilot.
+  { id: "hsu", name: "HSU × Lifeline — Framtíðar heilsa", description: "15 slides · public-health partnership pitch for the Vestmannaeyjar pilot. Ships with hand-written Icelandic.", design: "clinical" },
 ];
 
 // From-scratch templates map to a bespoke deck builder + design.
-const CUSTOM_DECKS: Record<string, { fn: () => Slide[]; design: DesignId }> = {
+//
+// `is` is optional: a template may ship hand-written Icelandic instead of
+// relying on the editor's machine translation. It returns one TextMap per
+// slide, aligned by index — index rather than slide id, because the ids are
+// regenerated on every create (see cloneWithFreshIds).
+const CUSTOM_DECKS: Record<string, { fn: () => Slide[]; design: DesignId; is?: () => TextMap[] }> = {
   editorial: { fn: editorialDeck, design: "journey" },
   keynote: { fn: keynoteDeck, design: "midnight" },
   "clinical-report": { fn: clinicalDeck, design: "vital" },
@@ -53,6 +60,7 @@ const CUSTOM_DECKS: Record<string, { fn: () => Slide[]; design: DesignId }> = {
   "lifeline-fjarlaekningar": { fn: lifelineFjarlaekningarDeck, design: "lifeline" },
   investor: { fn: investorDeck, design: "lifeline" },
   worldclass: { fn: worldclassDeck, design: "lifeline" },
+  hsu: { fn: hsuDeck, design: "clinical", is: hsuDeckIs },
 };
 
 /** Returns a fresh copy of the standard slides with brand-new slide IDs. */
@@ -63,9 +71,24 @@ function cloneWithFreshIds(slides: Slide[]): Slide[] {
 
 export function buildTemplateData(templateId: string): PresentationData {
   const custom = CUSTOM_DECKS[templateId];
-  if (custom) return { slides: cloneWithFreshIds(custom.fn()), design: custom.design };
+  if (custom) {
+    const slides = cloneWithFreshIds(custom.fn());
+    const data: PresentationData = { slides, design: custom.design };
+    if (custom.is) {
+      const maps = custom.is();
+      const tIs: DeckTextMaps = {};
+      slides.forEach((slide, i) => { if (maps[i]) tIs[slide.id] = maps[i]; });
+      data.tIs = tIs;
+    }
+    return data;
+  }
   const tpl = TEMPLATES.find((t) => t.id === templateId);
   return { slides: cloneWithFreshIds(standardDeckSlides()), design: tpl?.design ?? "lifeline" };
+}
+
+/** Display name for a template id, for defaulting a new presentation's title. */
+export function templateName(id: string): string | null {
+  return TEMPLATES.find((t) => t.id === id)?.name ?? null;
 }
 
 export function isKnownTemplate(id: string): boolean {
