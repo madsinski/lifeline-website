@@ -156,6 +156,38 @@ export function lifelineFjarlaekningarDeck(): Slide[] {
 // screenshots, brand colours and four-pillars content from the showcase deck.
 export function investorDeck(): Slide[] {
   return [
+    // ===== OPENING, ADDRESSED TO KRY =====
+    // 1 · Title. A full-bleed slide because the composed image carries its own
+    // wordmarks and title, and fullbleed is the one type that suppresses the
+    // corner logo — two logos in the corner and two in the middle would clash.
+    s({ type: "fullbleed", theme: "light", fit: "cover",
+      image: "/presentation-images/intro-kry.svg" }),
+
+    // 2 · Where the two sides differ, in one look. Kry's own description of
+    // itself is "digi-physical" — the breadth of a primary care centre across
+    // app and its own clinics (kry.se, kry.health/technology). The contrast
+    // worth drawing is therefore not better-or-worse but shape: they cover
+    // everything synchronously; we go deep on a narrow scope with no
+    // appointment at all, and on prevention that continues afterwards.
+    s({ type: "fan", theme: "light",
+      kicker: "Where we fit",
+      heading: "Two things that happen ==outside the appointment.==",
+      lead: "Kry covers the whole of primary care, digitally and in its own clinics. We do the two parts that sit either side of a booked consultation: care that needs no appointment at all, and prevention that keeps going after it ends.",
+      fan1Title: "Kry", fan1Icon: "users",
+      fan1: [
+        { value: "Breadth", body: "A primary care centre's full range.",
+          points: "Doctors, nurses, psychologists, physiotherapists, midwives, dietitians\nSpecialist care, vaccination and health checks\nOne record across app and clinic" },
+        { value: "Digi-physical", body: "Digital support blended with physical clinics, across several markets." },
+        { value: "In the appointment", body: "Care is delivered in a booked meeting — video, chat or in person." },
+      ],
+      fan2Title: "Fjarlækningar + Lifeline", fan2Icon: "spark",
+      fan2: [
+        { value: "No appointment at all", body: "Written care, start to finish.",
+          points: "Twelve defined erindi, each with its own clinical questionnaire\nPatient answers, a doctor decides, answer within two hours\nPrescription straight to the lyfjagátt" },
+        { value: "Prevention with follow-up", body: "Blood panel, body composition and a doctor's report — then months of coaching, not a single consultation." },
+        { value: "Inside the public system", body: "Built with HSU, referring back into ordinary care whenever a case needs examining." },
+      ] }),
+
     // ===== FJARLÆKNINGAR =====
     // F1 · Company / history
     s({ type: "bullets", theme: "dark", brand: "fjarlaekningar",
