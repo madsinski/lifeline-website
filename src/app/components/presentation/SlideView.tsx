@@ -738,11 +738,24 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
     case "report": {
       const img = s.image;
       const hls = parseHighlights(s.highlight);
-      // Fill the laptop screen unless the slide needs the whole image visible:
-      // highlights are percentages of the image and only line up while all of
-      // it shows, and a shot appreciably taller than the 16:10 frame loses too
-      // much to a crop to be worth filling. `fit` overrides both.
-      const TOO_TALL = 1.2;   // frame is 1.6; below this a crop eats the shot
+      // The frame is 16:10 (1.6) by default, and a screenshot of any other shape
+      // then either leaves a band or gets cut off by the frame's overflow.
+      //
+      // Most product screenshots land near a laptop's own proportions, just not
+      // exactly on 16:10 — the two on this deck are 1.86 and 1.95. For those the
+      // right answer is neither band nor crop: give the screen the shot's shape.
+      // It still reads as a laptop anywhere in this range (16:9 is 1.78).
+      //
+      // Outside it, keep the laptop honest and place the image within it: a tall
+      // phone screenshot is shown whole rather than losing two thirds to a crop,
+      // and an ultrawide one fills and crops rather than floating in bands.
+      const FRAME_MIN = 1.3, FRAME_MAX = 2.2, TOO_TALL = 1.2;
+      const frameRatio =
+        shotRatio !== null && !hls.length && !s.fit && shotRatio >= FRAME_MIN && shotRatio <= FRAME_MAX
+          ? shotRatio
+          : null;
+      // Highlights are percentages of the image, so they only line up while all
+      // of it is visible. `fit` overrides everything.
       const shotFit =
         s.fit ?? (hls.length || (shotRatio !== null && shotRatio < TOO_TALL) ? "contain" : "cover");
       return (
@@ -766,7 +779,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
           <div>
             {zoomable && img && <ZoomHint onClick={() => setZoom(true)} />}
             <div className="laptop">
-              <div className="screen">
+              <div className="screen" style={frameRatio ? { aspectRatio: String(frameRatio) } : undefined}>
                 {img ? (
                   // The frame is a fixed 16:10, so a screenshot of any other
                   // shape either leaves a grey band or is cut off by the frame's
