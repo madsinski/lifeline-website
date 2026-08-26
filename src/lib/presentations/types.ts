@@ -163,6 +163,9 @@ export interface Slide {
   // of a two-column comparison is usually whose column is whose.
   fan1Title?: string; fan1Icon?: IconKey; fan1Logo?: string; fan1?: { value: string; body?: string; points?: string }[];
   fan2Title?: string; fan2Icon?: IconKey; fan2Logo?: string; fan2?: { value: string; body?: string; points?: string }[];
+  // A third column, for a comparison with three parties rather than two.
+  // Absent means the slide keeps its two-column layout.
+  fan3Title?: string; fan3Icon?: IconKey; fan3Logo?: string; fan3?: { value: string; body?: string; points?: string }[];
   columns?: 1 | 2 | 3 | 4; // grid width for `cards` / `checklist`
   // Drops the wordmark in the slide's top corner. For a slide that carries
   // its own logos — a cover, a comparison headed by two brands — the corner
@@ -508,6 +511,14 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "fan2Icon", label: "Group 2 · icon", kind: "icon" },
       { key: "fan2Logo", label: "Group 2 · logo", kind: "image", imageRole: "photo", help: "Shown instead of the icon." },
       { key: "fan2", label: "Group 2 · cards", kind: "list", itemLabel: "card", itemFields: [
+        { key: "value", label: "Title", kind: "text" },
+        { key: "body", label: "Body", kind: "textarea" },
+        { key: "points", label: "Sub-points (one per line)", kind: "textarea" },
+      ] },
+      { key: "fan3Title", label: "Group 3 · title", kind: "text", help: "Leave every group-3 field blank for a two-column slide." },
+      { key: "fan3Icon", label: "Group 3 · icon", kind: "icon" },
+      { key: "fan3Logo", label: "Group 3 · logo", kind: "image", imageRole: "photo", help: "Shown instead of the icon." },
+      { key: "fan3", label: "Group 3 · cards", kind: "list", itemLabel: "card", itemFields: [
         { key: "value", label: "Title", kind: "text" },
         { key: "body", label: "Body", kind: "textarea" },
         { key: "points", label: "Sub-points (one per line)", kind: "textarea" },

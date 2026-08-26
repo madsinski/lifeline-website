@@ -440,6 +440,8 @@ export const DECK_CSS = `
 .lldeck .hero-ph{color:var(--on-dark-muted);font-size:.8rem;}
 .lldeck .hero-body{padding-right:46%;}
 /* two labelled groups of cards (e.g. Clients / Collaborations) */
+.lldeck .grps.is-3{grid-template-columns:repeat(3,1fr);gap:clamp(1rem,2.6cqw,2rem);}
+.lldeck .grps.is-3 .grp-head .grp-logo{height:clamp(24px,2.5cqw,38px);}
 .lldeck .grps{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1.4rem,4cqw,3rem);align-items:start;margin-top:clamp(1.8rem,4.4cqh,3rem);}
 .lldeck .grp-head{display:flex;align-items:center;gap:.7rem;padding-bottom:.7rem;margin-bottom:1rem;border-bottom:2px solid color-mix(in srgb, var(--emerald) 30%, transparent);}
 .lldeck .grp-head .icon{margin-bottom:0;width:clamp(32px,2.8cqw,42px);height:clamp(32px,2.8cqw,42px);}

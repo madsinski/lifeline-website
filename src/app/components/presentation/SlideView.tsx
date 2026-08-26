@@ -718,14 +718,17 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
           </div>
         </div>
       );
+      // A third column only exists when something was put in it.
+      const hasThird = !!(s.fan3Logo || s.fan3Title || (s.fan3 || []).length);
       return (
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2>{rich(s.heading)}</h2>}
           {s.lead && <p className="lead" style={{ marginTop: ".8rem", maxWidth: "62ch" }}>{s.lead}</p>}
-          <div className="grps">
+          <div className={`grps${hasThird ? " is-3" : ""}`}>
             {group(s.fan1Title, s.fan1Icon, s.fan1, s.fan1Logo)}
             {group(s.fan2Title, s.fan2Icon, s.fan2, s.fan2Logo)}
+            {hasThird && group(s.fan3Title, s.fan3Icon, s.fan3, s.fan3Logo)}
           </div>
         </div>
       );

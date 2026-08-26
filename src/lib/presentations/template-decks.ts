@@ -163,30 +163,35 @@ export function investorDeck(): Slide[] {
     s({ type: "fullbleed", theme: "dark", fit: "cover",
       image: "/presentation-images/intro-kry.svg" }),
 
-    // 2 · Where the two sides differ, in one look. Kry's own description of
-    // itself is "digi-physical" — the breadth of a primary care centre across
-    // app and its own clinics (kry.se, kry.health/technology). The contrast
-    // worth drawing is therefore not better-or-worse but shape: they cover
-    // everything synchronously; we go deep on a narrow scope with no
-    // appointment at all, and on prevention that continues afterwards.
+    // 2 · Where the three sit, in one look. Kry describes itself as
+    // digi-physical — a primary care centre's full range across its app and its
+    // own clinics (kry.se, kry.health/technology). The contrast worth drawing is
+    // shape rather than better-or-worse, and it is clearer as three columns than
+    // two: Kry owns the appointment, Fjarlækningar removes it, Lifeline extends
+    // it. Each column is headed by its own mark, so whose column is whose needs
+    // no reading.
     s({ type: "fan", theme: "light",
-      kicker: "Where we fit",
-      heading: "Two things that happen ==outside the appointment.==",
-      lead: "Kry covers the whole of primary care, digitally and in its own clinics. We do the two parts that sit either side of a booked consultation: care that needs no appointment at all, and prevention that keeps going after it ends.",
       hideLogo: "hide",
+      kicker: "Where we fit",
+      heading: "Three ways to reach a patient. ==Only one of them is an appointment.==",
+      lead: "Kry covers the whole of primary care, digitally and in its own clinics. We come at it from either side of that appointment — one of us removes it, the other continues long after it ends.",
       fan1Title: "", fan1Logo: "/presentation-images/head-kry.svg",
       fan1: [
-        { value: "Breadth", body: "A primary care centre's full range.",
+        { value: "The full range", body: "What a primary care centre does, digital and physical.",
           points: "Doctors, nurses, psychologists, physiotherapists, midwives, dietitians\nSpecialist care, vaccination and health checks\nOne record across app and clinic" },
-        { value: "Digi-physical", body: "Digital support blended with physical clinics, across several markets." },
-        { value: "In the appointment", body: "Care is delivered in a booked meeting — video, chat or in person." },
+        { value: "In the appointment", body: "Care is delivered in a booked meeting — video, chat or in person, across several markets." },
       ],
-      fan2Title: "", fan2Logo: "/presentation-images/head-fjar-lifeline.svg",
+      fan2Title: "", fan2Logo: "/presentation-images/head-fjar.svg",
       fan2: [
         { value: "No appointment at all", body: "Written care, start to finish.",
           points: "A defined list of erindi, each with its own clinical questionnaire\nPatient answers, a doctor decides, answer within two hours\nPrescription straight to the lyfjagátt" },
-        { value: "Prevention with follow-up", body: "Blood panel, body composition and a doctor's report — then months of coaching, not a single consultation." },
         { value: "Inside the public system", body: "Built with HSU, referring back into ordinary care whenever a case needs examining." },
+      ],
+      fan3Title: "", fan3Logo: "/presentation-images/head-lifeline.svg",
+      fan3: [
+        { value: "Prevention, measured", body: "The years before anything is wrong.",
+          points: "Blood panel, body composition and a doctor's report\nRecognised risk models, read by a physician\nRecorded in the patient's own health record" },
+        { value: "Follow-up that continues", body: "Months of coaching after the consultation, rather than a single visit that ends." },
       ] }),
 
     // ===== FJARLÆKNINGAR =====
