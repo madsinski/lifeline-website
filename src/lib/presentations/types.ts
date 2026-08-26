@@ -159,9 +159,15 @@ export interface Slide {
   clusters?: { icon: IconKey; title: string; items?: { icon: IconKey; label: string }[] }[];
   // fan — two labelled groups of cards (e.g. Clients / Collaborations).
   // Each card: title (value), optional body, optional newline-separated points.
-  fan1Title?: string; fan1Icon?: IconKey; fan1?: { value: string; body?: string; points?: string }[];
-  fan2Title?: string; fan2Icon?: IconKey; fan2?: { value: string; body?: string; points?: string }[];
+  // A group can head itself with a real logo instead of an icon — the point
+  // of a two-column comparison is usually whose column is whose.
+  fan1Title?: string; fan1Icon?: IconKey; fan1Logo?: string; fan1?: { value: string; body?: string; points?: string }[];
+  fan2Title?: string; fan2Icon?: IconKey; fan2Logo?: string; fan2?: { value: string; body?: string; points?: string }[];
   columns?: 1 | 2 | 3 | 4; // grid width for `cards` / `checklist`
+  // Drops the wordmark in the slide's top corner. For a slide that carries
+  // its own logos — a cover, a comparison headed by two brands — the corner
+  // mark repeats one of them and reads as a mistake.
+  hideLogo?: "" | "hide";
   notes?: string;         // presenter notes (shown with N key, never public)
 }
 
@@ -492,6 +498,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       F.kicker, F.heading, F.lead,
       { key: "fan1Title", label: "Group 1 · title", kind: "text" },
       { key: "fan1Icon", label: "Group 1 · icon", kind: "icon" },
+      { key: "fan1Logo", label: "Group 1 · logo", kind: "image", imageRole: "photo", help: "Shown instead of the icon. Use it when the column belongs to a company." },
       { key: "fan1", label: "Group 1 · cards", kind: "list", itemLabel: "card", itemFields: [
         { key: "value", label: "Title", kind: "text" },
         { key: "body", label: "Body", kind: "textarea" },
@@ -499,6 +506,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       ] },
       { key: "fan2Title", label: "Group 2 · title", kind: "text" },
       { key: "fan2Icon", label: "Group 2 · icon", kind: "icon" },
+      { key: "fan2Logo", label: "Group 2 · logo", kind: "image", imageRole: "photo", help: "Shown instead of the icon." },
       { key: "fan2", label: "Group 2 · cards", kind: "list", itemLabel: "card", itemFields: [
         { key: "value", label: "Title", kind: "text" },
         { key: "body", label: "Body", kind: "textarea" },
@@ -507,6 +515,20 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     ],
   },
 };
+
+// Every slide but the full-bleed one draws a wordmark in its top corner, and a
+// slide carrying its own logos does not want it. Appended here rather than
+// written into each schema so a new slide type gets the control for free.
+const HIDE_LOGO: FieldDef = {
+  key: "hideLogo", label: "Corner logo", kind: "select", noTranslate: true,
+  options: [
+    { value: "", label: "Show" },
+    { value: "hide", label: "Hide" },
+  ],
+};
+for (const schema of Object.values(SLIDE_SCHEMAS)) {
+  if (schema.type !== "fullbleed") schema.fields.push(HIDE_LOGO);
+}
 
 export const SLIDE_TYPE_ORDER: SlideType[] = [
   "title", "statement", "metric", "stats", "cards", "feature-rows",

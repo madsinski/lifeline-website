@@ -160,7 +160,7 @@ export function investorDeck(): Slide[] {
     // 1 · Title. A full-bleed slide because the composed image carries its own
     // wordmarks and title, and fullbleed is the one type that suppresses the
     // corner logo — two logos in the corner and two in the middle would clash.
-    s({ type: "fullbleed", theme: "light", fit: "cover",
+    s({ type: "fullbleed", theme: "dark", fit: "cover",
       image: "/presentation-images/intro-kry.svg" }),
 
     // 2 · Where the two sides differ, in one look. Kry's own description of
@@ -173,14 +173,15 @@ export function investorDeck(): Slide[] {
       kicker: "Where we fit",
       heading: "Two things that happen ==outside the appointment.==",
       lead: "Kry covers the whole of primary care, digitally and in its own clinics. We do the two parts that sit either side of a booked consultation: care that needs no appointment at all, and prevention that keeps going after it ends.",
-      fan1Title: "Kry", fan1Icon: "users",
+      hideLogo: "hide",
+      fan1Title: "", fan1Logo: "/presentation-images/head-kry.svg",
       fan1: [
         { value: "Breadth", body: "A primary care centre's full range.",
           points: "Doctors, nurses, psychologists, physiotherapists, midwives, dietitians\nSpecialist care, vaccination and health checks\nOne record across app and clinic" },
         { value: "Digi-physical", body: "Digital support blended with physical clinics, across several markets." },
         { value: "In the appointment", body: "Care is delivered in a booked meeting — video, chat or in person." },
       ],
-      fan2Title: "Fjarlækningar + Lifeline", fan2Icon: "spark",
+      fan2Title: "", fan2Logo: "/presentation-images/head-fjar-lifeline.svg",
       fan2: [
         { value: "No appointment at all", body: "Written care, start to finish.",
           points: "A defined list of erindi, each with its own clinical questionnaire\nPatient answers, a doctor decides, answer within two hours\nPrescription straight to the lyfjagátt" },

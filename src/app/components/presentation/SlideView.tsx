@@ -687,10 +687,19 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
       );
 
     case "fan": {
-      const group = (title: string | undefined, icon: IconKey | undefined, items: { value: string; body?: string; points?: string }[] | undefined) => (
+      const group = (
+        title: string | undefined,
+        icon: IconKey | undefined,
+        items: { value: string; body?: string; points?: string }[] | undefined,
+        logo?: string,
+      ) => (
         <div className="grp">
           <div className="grp-head">
-            {icon && <div className="icon"><Icon name={icon} /></div>}
+            {/* A logo takes the icon's place rather than sitting beside it —
+                a mark and a glyph together read as two competing labels. */}
+            {logo
+              ? <img className="grp-logo" src={logo} alt={title ? `${title} logo` : "Logo"} />
+              : icon && <div className="icon"><Icon name={icon} /></div>}
             {title && <h3>{title}</h3>}
           </div>
           <div className="grp-cards">
@@ -715,8 +724,8 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
           {s.heading && <h2>{rich(s.heading)}</h2>}
           {s.lead && <p className="lead" style={{ marginTop: ".8rem", maxWidth: "62ch" }}>{s.lead}</p>}
           <div className="grps">
-            {group(s.fan1Title, s.fan1Icon, s.fan1)}
-            {group(s.fan2Title, s.fan2Icon, s.fan2)}
+            {group(s.fan1Title, s.fan1Icon, s.fan1, s.fan1Logo)}
+            {group(s.fan2Title, s.fan2Icon, s.fan2, s.fan2Logo)}
           </div>
         </div>
       );
@@ -838,8 +847,10 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
 export function SlideView({ slide, zoomable }: { slide: Slide; zoomable?: boolean }) {
   const hasBg = (slide.type === "title" || slide.type === "closing") && !!slide.bg;
   // Full-bleed illustrations carry their own baked-in title, so the corner
-  // logo is suppressed there to avoid collisions.
-  const noHead = slide.type === "fullbleed";
+  // logo is suppressed there to avoid collisions. Any other slide can opt out
+  // the same way — a cover or a two-brand comparison carries its own marks, and
+  // the corner one then repeats a logo that is already on the slide.
+  const noHead = slide.type === "fullbleed" || slide.hideLogo === "hide";
   return (
     <>
       {hasBg && <div className="slide-bg" style={{ backgroundImage: `url(${slide.bg})` }} />}
