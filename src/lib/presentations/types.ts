@@ -479,6 +479,10 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     fields: [
       F.kicker, F.heading, F.lead, F.bullets,
       { key: "image", label: "Screenshot", kind: "image", imageRole: "phone" },
+      { key: "fit", label: "Screenshot fit", kind: "select", noTranslate: true, help: "Fill crops the screenshot to the laptop screen — use it unless the whole image has to be visible. Whole image letterboxes it and leaves a band above or below.", options: [
+        { value: "cover", label: "Fill the screen (crop)" },
+        { value: "contain", label: "Show the whole image" },
+      ] },
       { key: "highlight", label: "Highlight areas", kind: "text", noTranslate: true, help: "Cyan spotlights on the screenshot — everything outside them is dimmed. One or more boxes." },
     ],
   },

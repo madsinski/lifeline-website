@@ -309,6 +309,12 @@ function FullbleedView({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
 /** Renders the inner content of a single slide (without the <section> shell). */
 function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
   const [zoom, setZoom] = React.useState(false);
+  // Aspect ratio of the report screenshot, once the browser has loaded it.
+  // The laptop screen is a fixed 16:10, and the right way to place a shot in it
+  // depends on the shot: one a little wider than the frame should fill it, but
+  // a portrait phone screenshot would lose two thirds of itself to the crop, so
+  // it is better shown whole. Null until measured — the default holds till then.
+  const [shotRatio, setShotRatio] = React.useState<number | null>(null);
   switch (s.type) {
     case "title":
     case "closing":
@@ -732,6 +738,13 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
     case "report": {
       const img = s.image;
       const hls = parseHighlights(s.highlight);
+      // Fill the laptop screen unless the slide needs the whole image visible:
+      // highlights are percentages of the image and only line up while all of
+      // it shows, and a shot appreciably taller than the 16:10 frame loses too
+      // much to a crop to be worth filling. `fit` overrides both.
+      const TOO_TALL = 1.2;   // frame is 1.6; below this a crop eats the shot
+      const shotFit =
+        s.fit ?? (hls.length || (shotRatio !== null && shotRatio < TOO_TALL) ? "contain" : "cover");
       return (
         <div className="body two" style={{ gridTemplateColumns: ".82fr 1.18fr" }}>
           <div>
@@ -755,18 +768,44 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
             <div className="laptop">
               <div className="screen">
                 {img ? (
-                  // Shrink-wrap wrapper so highlight percentages align with the
-                  // image box (the .screen frame letterboxes to 16:10).
-                  <div style={{ position: "relative", width: "100%" }}>
+                  // The frame is a fixed 16:10, so a screenshot of any other
+                  // shape either leaves a grey band or is cut off by the frame's
+                  // overflow. Filling the screen is the sane default for a
+                  // laptop mock-up — a real laptop shows a cropped viewport, not
+                  // a letterboxed image.
+                  //
+                  // Highlights are the exception: their rects are percentages of
+                  // the IMAGE, so they only line up while the whole image is
+                  // visible. A slide with highlights keeps the shrink-wrapped,
+                  // contained image. `fit` overrides either way.
+                  hls.length > 0 ? (
+                    // Shrink-wrapped, so the highlight percentages land on the
+                    // image rather than on the frame around it.
+                    <div style={{ position: "relative", width: "100%" }}>
+                      <img
+                        src={img}
+                        alt={s.heading || "Report"}
+                        title="Click to enlarge"
+                        style={{ width: "100%", height: "auto", cursor: "zoom-in" }}
+                        onClick={() => setZoom(true)}
+                        onLoad={(e) => setShotRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
+                      />
+                      <HighlightBoxes rects={hls} />
+                    </div>
+                  ) : (
                     <img
                       src={img}
                       alt={s.heading || "Report"}
                       title="Click to enlarge"
-                      style={{ width: "100%", height: "auto", cursor: "zoom-in" }}
+                      style={{
+                        width: "100%", height: "100%",
+                        objectFit: shotFit, objectPosition: "top center",
+                        cursor: "zoom-in",
+                      }}
                       onClick={() => setZoom(true)}
+                      onLoad={(e) => setShotRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
                     />
-                    {hls.length > 0 && <HighlightBoxes rects={hls} />}
-                  </div>
+                  )
                 ) : <div className="phone-ph">No screenshot yet</div>}
               </div>
               <div className="laptop-base" />
