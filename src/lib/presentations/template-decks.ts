@@ -183,7 +183,7 @@ export function investorDeck(): Slide[] {
       fan2Title: "Fjarlækningar + Lifeline", fan2Icon: "spark",
       fan2: [
         { value: "No appointment at all", body: "Written care, start to finish.",
-          points: "Twelve defined erindi, each with its own clinical questionnaire\nPatient answers, a doctor decides, answer within two hours\nPrescription straight to the lyfjagátt" },
+          points: "A defined list of erindi, each with its own clinical questionnaire\nPatient answers, a doctor decides, answer within two hours\nPrescription straight to the lyfjagátt" },
         { value: "Prevention with follow-up", body: "Blood panel, body composition and a doctor's report — then months of coaching, not a single consultation." },
         { value: "Inside the public system", body: "Built with HSU, referring back into ordinary care whenever a case needs examining." },
       ] }),
