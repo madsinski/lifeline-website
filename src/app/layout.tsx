@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Inter, Caveat, Nunito_Sans, Schibsted_Grotesk, Newsreader, Public_Sans } from "next/font/google";
+import { Inter, Caveat, Nunito_Sans, Schibsted_Grotesk, Newsreader, Public_Sans, Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -58,6 +58,26 @@ const publicSans = Public_Sans({
   display: "swap",
 });
 
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
 // Title/description follow the serving host (Lifeline vs Fjarlækningar).
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = tenantForHost((await headers()).get("host"));
@@ -84,7 +104,7 @@ export default async function RootLayout({
   // final order/visibility (no flash of the default setup).
   const navItems = showMarketingChrome ? resolveNav(await getPublishedBlob("nav")) : undefined;
   return (
-    <html lang="en" className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} ${schibsted.variable} ${newsreader.variable} ${publicSans.variable} antialiased`} style={{ overflow: "auto" }}>
+    <html lang="en" className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} ${schibsted.variable} ${newsreader.variable} ${publicSans.variable} ${archivo.variable} ${plexSans.variable} ${plexMono.variable} antialiased`} style={{ overflow: "auto" }}>
       <body className="min-h-screen flex flex-col font-sans" style={{ overflow: "auto" }}>
         <script
           dangerouslySetInnerHTML={{

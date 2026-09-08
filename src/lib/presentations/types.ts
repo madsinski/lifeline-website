@@ -13,6 +13,8 @@
 // word or short phrase.
 // ============================================================================
 
+import { COVER_PRESETS } from "./existing-images";
+
 export type SlideTheme = "dark" | "light";
 
 // Visual designs — each is a palette + typography treatment applied to the
@@ -20,7 +22,7 @@ export type SlideTheme = "dark" | "light";
 export type DesignId =
   | "lifeline" | "midnight" | "clinical" | "warm" | "mono"
   | "bloom" | "vital" | "pulse" | "journey" | "fjarlaekningar"
-  | "nordic" | "editorial";
+  | "nordic" | "editorial" | "keynote";
 
 export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
   // Colour profiles (same layout, different palette)
@@ -39,6 +41,7 @@ export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
   // these when the colours are right but Inter reads too generic.
   { id: "nordic", name: "Nordic · Type", blurb: "Lifeline colours, Schibsted Grotesk throughout." },
   { id: "editorial", name: "Editorial · Type", blurb: "Lifeline colours, Newsreader serif over Public Sans." },
+  { id: "keynote", name: "Keynote · Tech medical", blurb: "Graphite and paper, signal cyan, Archivo over IBM Plex." },
 ];
 
 export const DEFAULT_DESIGN: DesignId = "lifeline";
@@ -234,6 +237,10 @@ export interface FieldDef {
   noTranslate?: boolean;
   imageRole?: ImageRole;
   options?: { value: string; label: string }[];
+  // for kind === "image" — named artwork offered as a dropdown above the
+  // picker, so a known cover can be chosen without hunting for its path.
+  // The free picker stays available for anything not on the list.
+  presets?: { value: string; label: string }[];
   // for kind === "list"
   itemFields?: SubFieldDef[];
   itemLabel?: string;
@@ -458,7 +465,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
   fullbleed: {
     type: "fullbleed", label: "Full-bleed image", description: "A full-slide image or illustration, with an optional caption and click-to-zoom focus areas.",
     fields: [
-      { key: "image", label: "Image", kind: "image", imageRole: "background" },
+      { key: "image", label: "Image", kind: "image", imageRole: "background", presets: COVER_PRESETS },
       { key: "fit", label: "Fit", kind: "select", noTranslate: true, options: [{ value: "cover", label: "Cover (fill)" }, { value: "contain", label: "Contain (show all)" }] },
       F.kicker, F.heading,
       { key: "hotspots", label: "Focus areas (click to zoom)", kind: "text", noTranslate: true, help: "Clickable regions that enlarge part of the image with a caption — draw them on the image below." },

@@ -32,6 +32,88 @@ export const DECK_CSS = `
 
 /* ===== designs ===== */
 
+/* ── Keynote · tech medical ────────────────────────────────────────────────
+   For talks given from a stage to a clinical audience. The brief was
+   explicitly "not the AI look", so this deliberately drops the things that
+   read as generic product deck: no indigo, no soft glow blobs, no pill
+   shapes, no drop shadows. Instead —
+
+     ground     near-black graphite, or bone paper on light slides; the glows
+                are cut to almost nothing so the dark slides read flat and
+                projected rather than backlit
+     accent     one precise clinical cyan, used sparingly and never as a wash
+     structure  hairline rules and 1px borders carry the layout; 4px radii
+     type       Archivo sets the headlines with real weight, IBM Plex Sans
+                reads as the body, and IBM Plex Mono turns kickers and figures
+                into instrument labels
+
+   Projector note: the dark ground is #0b0d10 rather than true black so it
+   still separates from letterboxing on a stage screen. */
+.lldeck[data-design="keynote"]{
+  --emerald:#00A0C4; --emerald-dark:#00778f; --cyan:#4DD9F0;
+  --ink:#0b0d10; --foreground:#1a1f26; --muted:#6b7580;
+  --bg:#f7f6f3; --card:#ffffff; --line:#e3e1da;
+  --on-dark:#f2f5f7; --on-dark-muted:#9aa9b4; --on-dark-accent:#4DD9F0;
+  --dark1:#0b0d10; --dark2:#151a21; --dark3:#0d1116;
+  --glow1:rgba(0,160,196,.10); --glow2:rgba(255,255,255,.028);
+  --head-font:var(--font-archivo), 'Archivo', system-ui, sans-serif;
+  --body-font:var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
+  --head-weight:700; --head-spacing:-.03em;
+  --card-radius:4px;
+  --shadow:0 1px 2px rgba(11,13,16,.06);
+}
+/* Kickers as instrument labels rather than marketing eyebrows. */
+.lldeck[data-design="keynote"] .kicker{
+  font-family:var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight:500;letter-spacing:.16em;font-size:clamp(.6rem,.9cqw,.8rem);
+}
+.lldeck[data-design="keynote"] h1{letter-spacing:-.035em;}
+/* Hairlines instead of shadows — a projected slide has no depth to fake. */
+.lldeck[data-design="keynote"] .card,
+.lldeck[data-design="keynote"] .grp-card,
+.lldeck[data-design="keynote"] .cl-card{border:1px solid var(--line);box-shadow:none;}
+.lldeck[data-design="keynote"] .dark .card,
+.lldeck[data-design="keynote"] .dark .grp-card,
+.lldeck[data-design="keynote"] .dark .cl-card{border-color:rgba(255,255,255,.10);}
+.lldeck[data-design="keynote"] .slide.light{background:var(--bg);}
+/* Figures are measurements: tabular, tight, mono-labelled. */
+.lldeck[data-design="keynote"] .stat .big,
+.lldeck[data-design="keynote"] .metric-val{font-feature-settings:"tnum";letter-spacing:-.045em;}
+.lldeck[data-design="keynote"] .stat .lbl{
+  font-family:var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
+  font-size:clamp(.68rem,.86cqw,.86rem);line-height:1.45;
+}
+.lldeck[data-design="keynote"] .icon{border-radius:6px;}
+.lldeck[data-design="keynote"] .chip,
+.lldeck[data-design="keynote"] .tag-pill{border-radius:4px;}
+/* The corner washes are the most generic-deck thing on a light slide — the
+   magenta one especially fights the flat, projected look — so paper stays
+   paper. Each brand still tints it through its own --bg. */
+.lldeck[data-design="keynote"] .slide.light,
+.lldeck[data-design="keynote"] .slide.brand-fjar.light,
+.lldeck[data-design="keynote"] .slide.brand-neutral.light,
+.lldeck[data-design="keynote"] .slide.brand-wc.light{background:var(--bg);}
+
+/* Pillars keep their semantic colour but lose the saturated slab: a hairline
+   card with a coloured top rule and icon says the same thing at a tenth the
+   volume. The p-* rules below only carry the colour — the card itself is
+   styled once, so the base gradient is simply out-specified. */
+.lldeck[data-design="keynote"] .pillar{
+  background:var(--card);color:var(--foreground);
+  border:1px solid var(--line);border-top:3px solid var(--pc);
+  border-radius:var(--card-radius);box-shadow:none;
+}
+.lldeck[data-design="keynote"] .dark .pillar{
+  background:rgba(255,255,255,.045);color:var(--on-dark);
+  border:1px solid rgba(255,255,255,.10);border-top:3px solid var(--pc);
+}
+.lldeck[data-design="keynote"] .pillar .pi{background:color-mix(in srgb, var(--pc) 20%, transparent);color:var(--pc);border-radius:6px;}
+.lldeck[data-design="keynote"] .pillar p{opacity:.8;}
+.lldeck[data-design="keynote"] .p-exercise{--pc:#EA580C;}
+.lldeck[data-design="keynote"] .p-nutrition{--pc:#65A30D;}
+.lldeck[data-design="keynote"] .p-sleep{--pc:#6d5fa8;}
+.lldeck[data-design="keynote"] .p-mental{--pc:#0EA5E9;}
+
 /* ── Type treatments ───────────────────────────────────────────────────────
    Same palette as the default deck — these blocks deliberately set no colour
    variables, so a per-slide brand (.brand-fjar, .brand-neutral) still

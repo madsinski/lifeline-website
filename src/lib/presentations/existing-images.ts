@@ -7,7 +7,19 @@ export interface ExistingImage {
   category: "Backgrounds" | "Editorial" | "Team" | "App screenshots";
 }
 
+// Full-slide cover artwork. These are complete 16:9 lockups (logos, event
+// title, date baked in), so they are offered as named presets on the
+// full-bleed image field rather than left to be found by eye in the picker.
+export const COVER_PRESETS: { value: string; label: string }[] = [
+  { value: "/presentation-images/nyskopunardagur-intro.svg", label: "Nýsköpunardagur — dökk" },
+  { value: "/presentation-images/nyskopunardagur-intro-light.svg", label: "Nýsköpunardagur — ljós" },
+];
+
 export const EXISTING_IMAGES: ExistingImage[] = [
+  // Full-slide covers
+  { url: "/presentation-images/nyskopunardagur-intro.svg", label: "Nýsköpunardagur lockup (dark)", category: "Backgrounds" },
+  { url: "/presentation-images/nyskopunardagur-intro-light.svg", label: "Nýsköpunardagur lockup (light)", category: "Backgrounds" },
+
   // Backgrounds (landscape)
   { url: "/presentation-images/eyjar-running.png", label: "Community run (Vestmannaeyjar)", category: "Backgrounds" },
   { url: "/presentation-images/banner.png", label: "Vestmannaeyjar aerial", category: "Backgrounds" },

@@ -85,10 +85,21 @@ function defaultItem(f: FieldDef): unknown {
 }
 
 // ---- small controls -------------------------------------------------------
-function ImageField({ value, role, presentationId, onChange }: { value?: string; role: ImageRole; presentationId: string; onChange: (v: string) => void }) {
+function ImageField({ value, role, presentationId, onChange, presets }: { value?: string; role: ImageRole; presentationId: string; onChange: (v: string) => void; presets?: { value: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
+  const onPreset = presets?.some((p) => p.value === value);
   return (
     <>
+      {!!presets?.length && (
+        <select
+          value={onPreset ? value : ""}
+          onChange={(e) => e.target.value && onChange(e.target.value)}
+          className={`${inputCls} mb-2`}
+        >
+          <option value="">{onPreset ? "Veldu útgáfu…" : "Annað (valið hér að neðan)"}</option>
+          {presets.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+        </select>
+      )}
       <div className="flex items-center gap-3">
         <div className="h-14 w-20 flex-none overflow-hidden rounded-md border border-gray-200 bg-gray-50">
           {value
@@ -452,7 +463,7 @@ export function SlideFields({ slide, presentationId, onChange, textOnly }: { sli
             )}
             {f.kind === "text" && key !== "highlight" && key !== "hotspots" && <input value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
             {f.kind === "textarea" && <textarea rows={key === "heading" ? 2 : 3} value={(raw as string) ?? ""} onChange={(e) => setField(key, e.target.value)} className={inputCls} />}
-            {f.kind === "image" && <ImageField value={(raw as string) ?? ""} role={f.imageRole || "photo"} presentationId={presentationId} onChange={(v) => setField(key, v)} />}
+            {f.kind === "image" && <ImageField value={(raw as string) ?? ""} role={f.imageRole || "photo"} presentationId={presentationId} onChange={(v) => setField(key, v)} presets={f.presets} />}
             {f.kind === "icon" && (
               <IconPicker value={(raw as string) ?? ""} onChange={(n) => setField(key, n)} />
             )}
