@@ -295,7 +295,7 @@ function FullbleedView({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
         </button>
       ))}
       {(s.kicker || s.heading) && (
-        <div className="fb-cap">
+        <div className={`fb-cap${(s.capPos ?? "bottom") === "top" ? " fb-top" : ""}`}>
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2>{rich(s.heading)}</h2>}
         </div>
@@ -864,7 +864,10 @@ export function SlideView({ slide, zoomable }: { slide: Slide; zoomable?: boolea
   // logo is suppressed there to avoid collisions. Any other slide can opt out
   // the same way — a cover or a two-brand comparison carries its own marks, and
   // the corner one then repeats a logo that is already on the slide.
-  const noHead = slide.type === "fullbleed" || slide.hideLogo === "hide";
+  // A top caption means the artwork leaves room for slide chrome, so the corner
+  // wordmark comes back.
+  const noHead =
+    (slide.type === "fullbleed" && (slide.capPos ?? "bottom") !== "top") || slide.hideLogo === "hide";
   return (
     <>
       {hasBg && <div className="slide-bg" style={{ backgroundImage: `url(${slide.bg})` }} />}

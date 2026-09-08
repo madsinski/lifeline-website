@@ -161,6 +161,10 @@ export interface Slide {
   numbered?: boolean;     // report — render the bullets as a numbered list
   highlight?: string;     // report — spotlight region(s) of the screenshot: "x,y,w,h" rects in % of the image, ";"-separated
   fit?: "contain" | "cover"; // fullbleed — how the image fills the slide (default cover)
+  // fullbleed — where the kicker/heading sit. "top" also restores the corner
+  // wordmark, so a full-bleed diagram can carry the same chrome as every other
+  // slide. Default "bottom", which is how existing decks already read.
+  capPos?: "bottom" | "top";
   // fullbleed — clickable focus areas; each zooms into that region of the image
   // with an optional caption. x,y,w,h in % of the image.
   hotspots?: { x: number; y: number; w: number; h: number; title?: string; body?: string }[];
@@ -468,6 +472,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     fields: [
       { key: "image", label: "Image", kind: "image", imageRole: "background", presets: COVER_PRESETS },
       { key: "fit", label: "Fit", kind: "select", noTranslate: true, options: [{ value: "cover", label: "Cover (fill)" }, { value: "contain", label: "Contain (show all)" }] },
+      { key: "capPos", label: "Heading position", kind: "select", noTranslate: true, help: "Top also shows the corner logo, like every other slide.", options: [{ value: "bottom", label: "Bottom (over the image)" }, { value: "top", label: "Top (with corner logo)" }] },
       F.kicker, F.heading,
       { key: "hotspots", label: "Focus areas (click to zoom)", kind: "text", noTranslate: true, help: "Clickable regions that enlarge part of the image with a caption — draw them on the image below." },
     ],

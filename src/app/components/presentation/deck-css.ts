@@ -558,6 +558,10 @@ export const DECK_CSS = `
 /* The scrim follows the design's own dark, not a hardcoded Lifeline green —
    on a graphite deck the old value tinted the bottom of every full-bleed. */
 .lldeck .fb-cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(1.1rem,4cqw,3rem);background:linear-gradient(0deg,color-mix(in srgb,var(--dark1) 88%,transparent),color-mix(in srgb,var(--dark1) 40%,transparent) 60%,transparent);}
+/* Caption at the top, tucked under the corner wordmark, with the scrim
+   flipped so it darkens the head of the image instead of its foot. */
+.lldeck .fb-cap.fb-top{top:0;bottom:auto;padding-top:clamp(4.2rem,9cqw,6.6rem);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--dark1) 88%,transparent),color-mix(in srgb,var(--dark1) 40%,transparent) 70%,transparent);}
 .lldeck .fb-cap h2{color:#fff;max-width:24ch;margin-top:.4rem;}
 .lldeck .fb-cap .kicker{color:var(--on-dark-accent);}
 .lldeck .fb-cap .kicker::before{background:var(--on-dark-accent);}
