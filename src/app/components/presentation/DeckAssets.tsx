@@ -69,6 +69,22 @@ export function DeckDefs() {
 }
 
 export function Logo({ brand }: { brand?: BrandKey } = {}) {
+  // Joint slides (a shared opening or closing) carry neither company's palette,
+  // so they show both wordmarks. Each keeps its own accent colour — the fjar
+  // mark is #00d6ff and the Lifeline bars #10B981 — against neutral slate.
+  if (brand === "neutral") {
+    return (
+      <span className="logo logo-both">
+        <svg viewBox="0 0 1704 402" role="img" aria-label="Fjarlækningar">
+          <use href="#fjar-logo" />
+        </svg>
+        <span className="logo-sep" aria-hidden="true" />
+        <svg viewBox="0 0 7293 1227" role="img" aria-label="Lifeline Health">
+          <use href="#ll-wordmark" />
+        </svg>
+      </span>
+    );
+  }
   if (brand === "fjarlaekningar") {
     return (
       <span className="logo logo-fjar">

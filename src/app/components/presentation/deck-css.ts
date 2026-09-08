@@ -132,6 +132,25 @@ export const DECK_CSS = `
    per-slide via .brand-fjar — so a mixed Lifeline + Fjarlækningar deck renders
    each company in its own colours (the .slide-level override beats the deck
    design's root variables for that slide only). */
+/* Neutral — belongs to neither company, for joint opening/closing slides in a
+   shared deck. Slate ground with a teal accent that sits between Fjarlækningar
+   cyan (#00d6ff) and Lifeline emerald (#10B981), so neither brand leads.
+   Per-slide only (.brand-neutral); there is no deck-wide neutral design. */
+.lldeck .brand-neutral{
+  --emerald:#14b8a6; --emerald-dark:#0f766e; --cyan:#22d3ee;
+  --ink:#0f172a; --foreground:#1e293b; --muted:#64748b;
+  --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0;
+  --on-dark:#f1f5f9; --on-dark-muted:#cbd5e1; --on-dark-accent:#5eead4;
+  --dark1:#0f172a; --dark2:#1e293b; --dark3:#111c2e;
+  --glow1:rgba(45,212,191,.20); --glow2:rgba(56,189,248,.14);
+  --shadow:0 10px 40px -12px rgba(15,23,42,.22);
+}
+/* Both wordmarks, sized to match their single-brand counterparts. */
+.lldeck .logo-both{gap:clamp(9px,1.3cqw,18px);height:auto;}
+.lldeck .logo-both>svg:first-of-type{height:clamp(26px,2.9cqw,41px);}
+.lldeck .logo-both>svg:last-of-type{height:clamp(17px,1.9cqw,27px);}
+.lldeck .logo-sep{width:1px;align-self:stretch;margin:.15em 0;background:currentColor;opacity:.26;}
+
 .lldeck[data-design="fjarlaekningar"],
 .lldeck .brand-fjar{
   --emerald:#00a8cc; --emerald-dark:#0488a4; --cyan:#00d6ff;

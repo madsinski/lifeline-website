@@ -10,7 +10,10 @@ export { DeckDefs };
 
 /** Extra slide class for a non-default brand (drives palette + logo colour). */
 export function brandClass(brand?: string): string {
-  return brand === "fjarlaekningar" ? " brand-fjar" : brand === "worldclass" ? " brand-wc" : "";
+  return brand === "fjarlaekningar" ? " brand-fjar"
+    : brand === "worldclass" ? " brand-wc"
+    : brand === "neutral" ? " brand-neutral"
+    : "";
 }
 
 // Render ==accent== markers as gradient spans and \n as line breaks.
