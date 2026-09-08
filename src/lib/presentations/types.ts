@@ -19,7 +19,8 @@ export type SlideTheme = "dark" | "light";
 // whole deck via a data-design attribute on the deck root (see deck-css.ts).
 export type DesignId =
   | "lifeline" | "midnight" | "clinical" | "warm" | "mono"
-  | "bloom" | "vital" | "pulse" | "journey" | "fjarlaekningar";
+  | "bloom" | "vital" | "pulse" | "journey" | "fjarlaekningar"
+  | "nordic" | "editorial";
 
 export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
   // Colour profiles (same layout, different palette)
@@ -34,6 +35,10 @@ export const DESIGNS: { id: DesignId; name: string; blurb: string }[] = [
   { id: "vital", name: "Vital · Medical", blurb: "Crisp white, dotted grid, data-forward." },
   { id: "pulse", name: "Pulse · Motivational", blurb: "Big bold type, energetic emerald→lime." },
   { id: "journey", name: "Journey · Personal", blurb: "Cream editorial with handwritten accents." },
+  // Type treatments — identical palette to Lifeline, different typeface. Use
+  // these when the colours are right but Inter reads too generic.
+  { id: "nordic", name: "Nordic · Type", blurb: "Lifeline colours, Schibsted Grotesk throughout." },
+  { id: "editorial", name: "Editorial · Type", blurb: "Lifeline colours, Newsreader serif over Public Sans." },
 ];
 
 export const DEFAULT_DESIGN: DesignId = "lifeline";

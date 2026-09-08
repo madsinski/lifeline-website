@@ -19,17 +19,48 @@ export const DECK_CSS = `
   --dark1:#06231c; --dark2:#064e3b; --dark3:#07372b;
   --glow1:rgba(16,185,129,.22); --glow2:rgba(6,182,212,.18);
   --head-font:var(--font-inter), 'Inter', system-ui, sans-serif;
+  --body-font:var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   --head-weight:800; --head-spacing:-.025em; --card-radius:16px;
   /* fixed (semantic) */
   --exercise:#EA580C; --nutrition:#65A30D; --sleep:#7C6FB0; --mental:#0EA5E9; --amber:#F59E0B;
   --shadow:0 10px 40px -12px rgba(6,78,59,.18);
   position:relative; width:100%; height:100%; overflow:hidden;
   container-type:size; container-name:deck;
-  font-family:var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:var(--body-font);
   -webkit-font-smoothing:antialiased; color:var(--foreground); background:var(--dark1);
 }
 
 /* ===== designs ===== */
+
+/* ── Type treatments ───────────────────────────────────────────────────────
+   Same palette as the default deck — these blocks deliberately set no colour
+   variables, so a per-slide brand (.brand-fjar, .brand-neutral) still
+   recolours its own slide exactly as it does under any other design. Only the
+   typeface changes. Reach for one when the colours are right but Inter reads
+   too much like every other product deck. */
+
+/* Nordic — Schibsted Grotesk, the Scandinavian media-house grotesque. Warmer
+   and more spoken than Inter; the a, g and æ carry actual character. */
+.lldeck[data-design="nordic"]{
+  --head-font:var(--font-schibsted), 'Schibsted Grotesk', system-ui, sans-serif;
+  --body-font:var(--font-schibsted), 'Schibsted Grotesk', system-ui, sans-serif;
+  --head-weight:800; --head-spacing:-.022em;
+}
+.lldeck[data-design="nordic"] h1{letter-spacing:-.024em;}
+
+/* Editorial — Newsreader headings over Public Sans. Print-leaning: the serif
+   does the talking and the sans stays out of its way. Serifs do not want the
+   tight tracking the default headings use, so it is relaxed here. */
+.lldeck[data-design="editorial"]{
+  --head-font:var(--font-newsreader), 'Newsreader', Georgia, serif;
+  --body-font:var(--font-public-sans), 'Public Sans', system-ui, sans-serif;
+  --head-weight:600; --head-spacing:-.012em;
+}
+.lldeck[data-design="editorial"] h1{letter-spacing:-.014em;}
+.lldeck[data-design="editorial"] .quote,
+.lldeck[data-design="editorial"] .statement{font-weight:var(--head-weight);letter-spacing:-.012em;}
+.lldeck[data-design="editorial"] .kicker{font-family:var(--body-font);}
+
 .lldeck[data-design="midnight"]{
   --emerald:#6366F1; --emerald-dark:#4f46e5; --cyan:#22D3EE;
   --ink:#1e1b4b; --foreground:#1e213a; --muted:#5b6080;
