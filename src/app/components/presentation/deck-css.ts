@@ -555,7 +555,9 @@ export const DECK_CSS = `
 /* full-bleed image / illustration */
 .lldeck .fullbleed{position:absolute;inset:0;z-index:0;background:var(--dark1);display:grid;place-items:center;}
 .lldeck .fullbleed img{width:100%;height:100%;object-position:center;display:block;}
-.lldeck .fb-cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(1.1rem,4cqw,3rem);background:linear-gradient(0deg,rgba(3,18,14,.82),rgba(3,18,14,.34) 60%,transparent);}
+/* The scrim follows the design's own dark, not a hardcoded Lifeline green —
+   on a graphite deck the old value tinted the bottom of every full-bleed. */
+.lldeck .fb-cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(1.1rem,4cqw,3rem);background:linear-gradient(0deg,color-mix(in srgb,var(--dark1) 88%,transparent),color-mix(in srgb,var(--dark1) 40%,transparent) 60%,transparent);}
 .lldeck .fb-cap h2{color:#fff;max-width:24ch;margin-top:.4rem;}
 .lldeck .fb-cap .kicker{color:var(--on-dark-accent);}
 .lldeck .fb-cap .kicker::before{background:var(--on-dark-accent);}
