@@ -50,18 +50,33 @@ export const DECK_CSS = `
    Projector note: the dark ground is #0b0d10 rather than true black so it
    still separates from letterboxing on a stage screen. */
 .lldeck[data-design="keynote"]{
-  --emerald:#00A0C4; --emerald-dark:#00778f; --cyan:#4DD9F0;
+  /* Base accent is Lifeline emerald; .brand-fjar below swaps in cyan. */
+  --emerald:#0EA47A; --emerald-dark:#0a7a5b; --cyan:#34D399;
   --ink:#0b0d10; --foreground:#1a1f26; --muted:#6b7580;
   --bg:#f7f6f3; --card:#ffffff; --line:#e3e1da;
-  --on-dark:#f2f5f7; --on-dark-muted:#9aa9b4; --on-dark-accent:#4DD9F0;
+  --on-dark:#f2f5f7; --on-dark-muted:#9aa9b4; --on-dark-accent:#4ADE9E;
   --dark1:#0b0d10; --dark2:#151a21; --dark3:#0d1116;
-  --glow1:rgba(0,160,196,.10); --glow2:rgba(255,255,255,.028);
+  --glow1:rgba(14,164,122,.10); --glow2:rgba(255,255,255,.028);
   --head-font:var(--font-archivo), 'Archivo', system-ui, sans-serif;
   --body-font:var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
   --head-weight:700; --head-spacing:-.03em;
   --card-radius:4px;
   --shadow:0 1px 2px rgba(11,13,16,.06);
 }
+/* One room, two accents. Away from keynote each brand brings its own ground
+   as well, which reads as two decks stapled together; on a stage it is
+   cleaner to keep a single graphite/bone room and let colour alone say which
+   company is speaking — cyan for Fjarlækningar, emerald for Lifeline. */
+.lldeck[data-design="keynote"] .brand-fjar{
+  --emerald:#00A0C4; --emerald-dark:#00778f; --cyan:#4DD9F0;
+  --ink:#0b0d10; --foreground:#1a1f26; --muted:#6b7580;
+  --bg:#f7f6f3; --card:#ffffff; --line:#e3e1da;
+  --on-dark:#f2f5f7; --on-dark-muted:#9aa9b4; --on-dark-accent:#4DD9F0;
+  --dark1:#0b0d10; --dark2:#151a21; --dark3:#0d1116;
+  --glow1:rgba(0,160,196,.10); --glow2:rgba(255,255,255,.028);
+  --shadow:0 1px 2px rgba(11,13,16,.06);
+}
+
 /* Kickers as instrument labels rather than marketing eyebrows. */
 .lldeck[data-design="keynote"] .kicker{
   font-family:var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
@@ -250,12 +265,15 @@ export const DECK_CSS = `
    cyan (#00d6ff) and Lifeline emerald (#10B981), so neither brand leads.
    Per-slide only (.brand-neutral); there is no deck-wide neutral design. */
 .lldeck .brand-neutral{
-  --emerald:#14b8a6; --emerald-dark:#0f766e; --cyan:#22d3ee;
+  /* Steel, not teal. A teal accent still reads as somebody's brand colour —
+     on a shared slide the accent has to belong to neither company, so it
+     drops to a silver that simply means "emphasis". */
+  --emerald:#7c8b9c; --emerald-dark:#546375; --cyan:#b6c2ce;
   --ink:#0f172a; --foreground:#1e293b; --muted:#64748b;
-  --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0;
-  --on-dark:#f1f5f9; --on-dark-muted:#cbd5e1; --on-dark-accent:#5eead4;
-  --dark1:#0f172a; --dark2:#1e293b; --dark3:#111c2e;
-  --glow1:rgba(45,212,191,.20); --glow2:rgba(56,189,248,.14);
+  --bg:#f6f7f8; --card:#ffffff; --line:#e3e6ea;
+  --on-dark:#f1f5f9; --on-dark-muted:#c3ccd6; --on-dark-accent:#dbe3ec;
+  --dark1:#12151a; --dark2:#1e242c; --dark3:#141920;
+  --glow1:rgba(255,255,255,.05); --glow2:rgba(255,255,255,.028);
   --shadow:0 10px 40px -12px rgba(15,23,42,.22);
 }
 /* Both wordmarks, sized to match their single-brand counterparts. */
