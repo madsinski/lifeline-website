@@ -21,7 +21,7 @@
   <rect width="1600" height="900" fill="url(#bg)"/>
   <ellipse cx="200" cy="-60" rx="900" ry="600" fill="url(#lift)"/>
 
-  <g transform="translate(0,258)">
+  <g transform="translate(0,148)">
 
   <!-- entry points — hairline, square-cornered, mono label -->
   <g>
