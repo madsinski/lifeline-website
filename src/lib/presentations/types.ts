@@ -446,12 +446,13 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
   "feature-rows": {
     type: "feature-rows", label: "Feature rows", description: "Full-width stacked rows with hairlines.",
     fields: [
-      F.kicker, F.heading,
+      F.kicker, F.heading, F.lead,
       { key: "rows", label: "Rows", kind: "list", itemLabel: "row", itemFields: [
         { key: "icon", label: "Icon", kind: "icon" },
         { key: "title", label: "Title", kind: "text" },
         { key: "body", label: "Body", kind: "textarea" },
       ] },
+      F.footnote,
     ],
   },
   "hero-image": {

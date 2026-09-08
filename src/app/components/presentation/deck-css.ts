@@ -265,15 +265,16 @@ export const DECK_CSS = `
    cyan (#00d6ff) and Lifeline emerald (#10B981), so neither brand leads.
    Per-slide only (.brand-neutral); there is no deck-wide neutral design. */
 .lldeck .brand-neutral{
-  /* Steel, not teal. A teal accent still reads as somebody's brand colour —
-     on a shared slide the accent has to belong to neither company, so it
-     drops to a silver that simply means "emphasis". */
-  --emerald:#7c8b9c; --emerald-dark:#546375; --cyan:#b6c2ce;
-  --ink:#0f172a; --foreground:#1e293b; --muted:#64748b;
-  --bg:#f6f7f8; --card:#ffffff; --line:#e3e6ea;
-  --on-dark:#f1f5f9; --on-dark-muted:#c3ccd6; --on-dark-accent:#dbe3ec;
+  /* Neutral does not have to mean grey — grey just reads as dead on a closing
+     slide. The accent instead runs Lifeline emerald into Fjarlækningar cyan,
+     so it belongs to both companies equally rather than to neither, and stays
+     bright. The ground is a clean near-white, not a slate. */
+  --emerald:#0E9F76; --emerald-dark:#0b7d5d; --cyan:#00A0C4;
+  --ink:#101720; --foreground:#1e2530; --muted:#5f6b7a;
+  --bg:#f7f9fb; --card:#ffffff; --line:#e4e9ee;
+  --on-dark:#f2f6f9; --on-dark-muted:#c6d0da; --on-dark-accent:#5FE3C0;
   --dark1:#12151a; --dark2:#1e242c; --dark3:#141920;
-  --glow1:rgba(255,255,255,.05); --glow2:rgba(255,255,255,.028);
+  --glow1:rgba(14,159,118,.12); --glow2:rgba(0,160,196,.09);
   --shadow:0 10px 40px -12px rgba(15,23,42,.22);
 }
 /* Both wordmarks, sized to match their single-brand counterparts. */
@@ -619,8 +620,13 @@ export const DECK_CSS = `
    screen so the whole capture shows — portrait app shots aren't cropped, and
    wide web captures keep their full width. */
 .lldeck .laptop{width:100%;max-width:760px;margin:0 auto;}
-.lldeck .laptop .screen{border:clamp(7px,.9cqw,12px) solid #16181c;border-bottom:none;border-radius:14px 14px 0 0;background:#f4f4f5;aspect-ratio:16/10;overflow:hidden;box-shadow:0 30px 60px -28px rgba(0,0,0,.55);}
-.lldeck .laptop .screen img{width:100%;height:100%;object-fit:contain;object-position:top center;display:block;}
+/* The frame hugs the screenshot rather than forcing it into 16:10 — a wider
+   capture used to letterbox against the screen's own background and show as
+   an empty bar under the image. Only the empty placeholder needs a shape of
+   its own. */
+.lldeck .laptop .screen{border:clamp(7px,.9cqw,12px) solid #16181c;border-bottom:none;border-radius:14px 14px 0 0;background:#f4f4f5;overflow:hidden;box-shadow:0 30px 60px -28px rgba(0,0,0,.55);line-height:0;}
+.lldeck .laptop .screen.is-empty{aspect-ratio:16/10;line-height:normal;}
+.lldeck .laptop .screen img{width:100%;height:auto;object-fit:contain;object-position:top center;display:block;}
 .lldeck .laptop .screen .phone-ph{height:100%;color:var(--muted);}
 .lldeck .laptop .laptop-base{height:clamp(10px,1.3cqw,16px);margin:0 -7%;border-radius:0 0 7px 7px;background:linear-gradient(180deg,#cfd3d9,#9aa0a8);position:relative;box-shadow:0 14px 22px -14px rgba(0,0,0,.45);}
 .lldeck .laptop .laptop-base::after{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:14%;height:clamp(4px,.55cqw,7px);background:rgba(0,0,0,.16);border-radius:0 0 9px 9px;}

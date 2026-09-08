@@ -13,12 +13,14 @@ export interface ExistingImage {
 export const COVER_PRESETS: { value: string; label: string }[] = [
   { value: "/presentation-images/nyskopunardagur-intro.svg", label: "Nýsköpunardagur — dökk" },
   { value: "/presentation-images/nyskopunardagur-intro-light.svg", label: "Nýsköpunardagur — ljós" },
+  { value: "/presentation-images/nyskopunardagur-intro-soft.svg", label: "Nýsköpunardagur — ljósgrá" },
 ];
 
 export const EXISTING_IMAGES: ExistingImage[] = [
   // Full-slide covers
   { url: "/presentation-images/nyskopunardagur-intro.svg", label: "Nýsköpunardagur lockup (dark)", category: "Backgrounds" },
   { url: "/presentation-images/nyskopunardagur-intro-light.svg", label: "Nýsköpunardagur lockup (light)", category: "Backgrounds" },
+  { url: "/presentation-images/nyskopunardagur-intro-soft.svg", label: "Nýsköpunardagur lockup (soft light)", category: "Backgrounds" },
 
   // Backgrounds (landscape)
   { url: "/presentation-images/eyjar-running.png", label: "Community run (Vestmannaeyjar)", category: "Backgrounds" },

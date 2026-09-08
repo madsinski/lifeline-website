@@ -620,7 +620,8 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
         <div className="body">
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2>{rich(s.heading)}</h2>}
-          <div className="frows" style={{ marginTop: "2.1rem" }}>
+          {s.lead && <p className="lead" style={{ marginTop: ".9rem", maxWidth: "62ch" }}>{s.lead}</p>}
+          <div className="frows" style={{ marginTop: s.lead ? "1.6rem" : "2.1rem" }}>
             {(s.rows || []).map((r, i) => (
               <div key={i} className="frow">
                 <div className="icon"><Icon name={r.icon} /></div>
@@ -629,6 +630,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
               </div>
             ))}
           </div>
+          {s.footnote && <p className="footnote" style={{ position: "static", marginTop: "1.6rem" }}>{s.footnote}</p>}
         </div>
       );
 
@@ -757,20 +759,26 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
       // then either leaves a band or gets cut off by the frame's overflow.
       //
       // Most product screenshots land near a laptop's own proportions, just not
-      // exactly on 16:10 — the two on this deck are 1.86 and 1.95. For those the
-      // right answer is neither band nor crop: give the screen the shot's shape.
-      // It still reads as a laptop anywhere in this range (16:9 is 1.78).
+      // exactly on 16:10. For those the right answer is neither band nor crop:
+      // give the screen the shot's shape. It still reads as a laptop anywhere in
+      // this range (16:9 is 1.78).
+      //
+      // This applies with highlights too. Their rects are percentages of the
+      // IMAGE, and when the frame matches the image's own ratio the shrink-
+      // wrapped image fills it exactly — so the percentages still land where
+      // they should, and the band is gone from those slides as well.
       //
       // Outside it, keep the laptop honest and place the image within it: a tall
       // phone screenshot is shown whole rather than losing two thirds to a crop,
       // and an ultrawide one fills and crops rather than floating in bands.
       const FRAME_MIN = 1.3, FRAME_MAX = 2.2, TOO_TALL = 1.2;
       const frameRatio =
-        shotRatio !== null && !hls.length && !s.fit && shotRatio >= FRAME_MIN && shotRatio <= FRAME_MAX
+        shotRatio !== null && !s.fit && shotRatio >= FRAME_MIN && shotRatio <= FRAME_MAX
           ? shotRatio
           : null;
-      // Highlights are percentages of the image, so they only line up while all
-      // of it is visible. `fit` overrides everything.
+      // Highlights only line up while all of the image is visible, so they force
+      // "contain" whenever the frame could not take the shot's shape. `fit`
+      // overrides everything.
       const shotFit =
         s.fit ?? (hls.length || (shotRatio !== null && shotRatio < TOO_TALL) ? "contain" : "cover");
       return (
@@ -806,7 +814,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
                   // the IMAGE, so they only line up while the whole image is
                   // visible. A slide with highlights keeps the shrink-wrapped,
                   // contained image. `fit` overrides either way.
-                  hls.length > 0 ? (
+                  frameRatio || hls.length > 0 ? (
                     // Shrink-wrapped, so the highlight percentages land on the
                     // image rather than on the frame around it.
                     <div style={{ position: "relative", width: "100%" }}>
