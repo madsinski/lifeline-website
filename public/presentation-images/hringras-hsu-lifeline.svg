@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img"
-     aria-label="Hringrás þjónustunnar: íbúi kemur inn um heilsugæslu HSU eða beint hjá Lifeline. HSU vísar í heilsueflingu, Lifeline vísar læknisfræðilegum vandamálum aftur á heilsugæslu.">
+     aria-label="Hringrás þjónustunnar: einstaklingur kemur á heilsugæslu HSU eða skráir sig hjá Lifeline. HSU vísar í heilsueflingu, Lifeline vísar læknisfræðilegum vandamálum aftur á heilsugæslu.">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0b0d10"/><stop offset="55%" stop-color="#151a21"/><stop offset="100%" stop-color="#0d1116"/>
@@ -25,13 +25,13 @@
 
   <!-- entry points — hairline, square-cornered, mono label -->
   <g>
-    <rect x="60" y="42" width="356" height="52" rx="4" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5"/>
-    <text x="238" y="75" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="16" letter-spacing="1.4" fill="#c3ccd6" text-anchor="middle">KEMUR INN UM HEILSUGÆSLUNA</text>
-    <path d="M 238 100 C 238 158, 330 178, 442 232" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#arrD)"/>
+    <rect x="60" y="42" width="430" height="52" rx="4" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <text x="275" y="75" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="15" letter-spacing="1.4" fill="#c3ccd6" text-anchor="middle">EINSTAKLINGUR KEMUR Á HEILSUGÆSLU</text>
+    <path d="M 275 100 C 275 158, 355 180, 442 232" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#arrD)"/>
 
-    <rect x="1184" y="42" width="356" height="52" rx="4" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5"/>
-    <text x="1362" y="75" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="16" letter-spacing="1.4" fill="#c3ccd6" text-anchor="middle">SKRÁIR SIG BEINT HJÁ LIFELINE</text>
-    <path d="M 1362 100 C 1362 158, 1270 178, 1158 232" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#arrD)"/>
+    <rect x="1110" y="42" width="430" height="52" rx="4" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <text x="1325" y="75" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="15" letter-spacing="1.4" fill="#c3ccd6" text-anchor="middle">EINSTAKLINGUR SKRÁIR SIG HJÁ LIFELINE</text>
+    <path d="M 1325 100 C 1325 158, 1245 180, 1158 232" fill="none" stroke="#3d4854" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#arrD)"/>
   </g>
 
   <!-- the loop: each arc is coloured by where it leads -->
@@ -39,8 +39,7 @@
   <text x="800" y="126" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="2.1" fill="#4ADE9E" text-anchor="middle">TILVÍSUN Í HEILSUEFLINGU</text>
 
   <path d="M 979 409 Q 800 517 621 409" fill="none" stroke="#8b98a6" stroke-width="2.5" marker-end="url(#arrS)"/>
-  <text x="800" y="562" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="2.1" fill="#c3ccd6" text-anchor="middle">LÆKNISFRÆÐILEG VANDAMÁL VÍSAÐ AFTUR Á HEILSUGÆSLU</text>
-  <text x="800" y="594" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#93a0ac" text-anchor="middle">Heilsugæslan fær heilbrigðara sjúkling til baka</text>
+  <text x="800" y="562" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="2.1" fill="#c3ccd6" text-anchor="middle">LÆKNISFRÆÐILEGUM VANDAMÁLUM VÍSAÐ AFTUR Á HEILSUGÆSLU</text>
 
   <!-- nodes: hairline rings, so the loop stays the loudest thing on the slide -->
   <circle cx="540" cy="330" r="112" fill="#ffffff" fill-opacity=".035" stroke="#8b98a6" stroke-width="2"/>
@@ -53,7 +52,7 @@
 
   <!-- what stays where -->
   <line x1="60" y1="228" x2="360" y2="228" stroke="#c3ccd6" stroke-opacity=".45" stroke-width="1"/>
-    <text x="60" y="258" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="1.9" fill="#c3ccd6">VERÐUR EFTIR HJÁ HSU</text>
+    <text x="60" y="258" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="1.9" fill="#c3ccd6">FÓKUS HJÁ HSU</text>
     <text x="60" y="304" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Meðferð á læknisfræðilegum</text>
   <text x="60" y="330" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">vandamálum</text>
     <text x="60" y="368" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Lyfjameðferð</text>
@@ -62,7 +61,7 @@
     <text x="60" y="482" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Bráð vandamál og veikindi</text>
 
     <line x1="1184" y1="228" x2="1484" y2="228" stroke="#4ADE9E" stroke-opacity=".45" stroke-width="1"/>
-    <text x="1184" y="258" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="1.9" fill="#4ADE9E">VERÐUR EFTIR HJÁ LIFELINE</text>
+    <text x="1184" y="258" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="1.9" fill="#4ADE9E">FÓKUS HJÁ LIFELINE</text>
     <text x="1184" y="304" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Heilsufarsskoðun</text>
     <text x="1184" y="342" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Læknisviðtal og skýrsla</text>
     <text x="1184" y="380" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Lífsstílsáætlun</text>
