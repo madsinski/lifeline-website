@@ -6,8 +6,25 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { createStraumurCharge, STRAUMUR_BRAND } from "@/lib/straumur";
 import { PACKAGES, type PackageKey, type PackageDef } from "@/lib/assessment-packages";
+import { cleanKennitala, formatKennitala, isValidKennitala } from "@/lib/kennitala";
+import {
+  UNION_FUNDS,
+  OTHER_UNION_CODE,
+  findUnionFund,
+  grantForBooking,
+  unionGrantConsentText,
+  pendingFundNote,
+  type UnionFund,
+} from "@/lib/union-grants";
 
-type Stage = "package" | "schedule" | "review" | "pay" | "done";
+type Stage = "package" | "schedule" | "grant" | "review" | "pay" | "done";
+
+/** Bearer token for our own API routes — they read Authorization, not cookies. */
+async function authHeader(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export default function BookAssessmentPage() {
   return (
@@ -51,8 +68,28 @@ function BookAssessmentContent() {
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  // Union grant (stéttarfélagsstyrkur). The member declares their fund and
+  // consents; the server recomputes the discount and is the authority on the
+  // amount actually charged — see /api/bookings/grant.
+  const [unionCode, setUnionCode] = useState<string | null>(null);
+  const [kennitala, setKennitala] = useState("");
+  const [grantConsent, setGrantConsent] = useState(false);
+  const [grantSaving, setGrantSaving] = useState(false);
+  const [grantError, setGrantError] = useState<string | null>(null);
+  /** Server-confirmed grant. Null until the grant stage has been submitted. */
+  const [confirmedGrantIsk, setConfirmedGrantIsk] = useState<number | null>(null);
+
   const pkg = useMemo(() => PACKAGES.find((p) => p.key === selectedPkg) ?? null, [selectedPkg]);
   const needsVisit = selectedPkg !== "self-checkin";
+  const grantEligible = !!pkg && pkg.priceIsk > 0;
+  const selectedFund = useMemo(() => findUnionFund(unionCode), [unionCode]);
+  /** Optimistic preview shown on the grant stage; the server has the final say. */
+  const previewGrantIsk = useMemo(
+    () => grantForBooking(selectedFund, selectedPkg, pkg?.priceIsk ?? 0),
+    [selectedFund, selectedPkg, pkg],
+  );
+  const grantIsk = confirmedGrantIsk ?? 0;
+  const payableIsk = Math.max(0, (pkg?.priceIsk ?? 0) - grantIsk);
 
   useEffect(() => {
     (async () => {
@@ -207,6 +244,75 @@ function BookAssessmentContent() {
     return data?.id ?? null;
   }
 
+  /**
+   * Leaving the grant stage. `skip` covers both "I'm not in one of these
+   * unions" and backing out after having applied a grant — in the latter case
+   * we tell the server to void the claim so the booking goes back to list
+   * price rather than staying quietly discounted.
+   */
+  async function handleGrantContinue(skip: boolean) {
+    setGrantError(null);
+
+    if (skip) {
+      const hadGrant = (confirmedGrantIsk ?? 0) > 0;
+      setUnionCode(null);
+      setKennitala("");
+      setGrantConsent(false);
+      setConfirmedGrantIsk(0);
+      if (hadGrant && bookingId) {
+        setGrantSaving(true);
+        await fetch("/api/bookings/grant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(await authHeader()) },
+          body: JSON.stringify({ bookingId, clear: true }),
+        }).catch(() => {});
+        setGrantSaving(false);
+      }
+      setStage("review");
+      return;
+    }
+
+    if (!unionCode) { setGrantError("Veldu stéttarfélag eða haltu áfram án styrks."); return; }
+    if (!isValidKennitala(kennitala)) { setGrantError("Kennitalan er ekki gild. Sláðu inn tíu tölustafi."); return; }
+    if (!grantConsent) { setGrantError("Þú þarft að samþykkja að við sækjum styrkinn fyrir þig."); return; }
+
+    setGrantSaving(true);
+    const id = bookingId ?? (await createBooking());
+    if (!id) { setGrantSaving(false); return; }
+    setBookingId(id);
+
+    try {
+      const res = await fetch("/api/bookings/grant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await authHeader()) },
+        body: JSON.stringify({
+          bookingId: id,
+          unionCode,
+          kennitala: cleanKennitala(kennitala),
+          consent: true,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { grantIsk?: number; error?: string };
+      if (!res.ok) {
+        setGrantError(
+          json.error === "invalid_kennitala" ? "Kennitalan er ekki gild."
+            : json.error === "already_paid" ? "Bókunin er þegar greidd."
+            : "Ekki tókst að skrá styrkinn. Reyndu aftur eða haltu áfram án hans.",
+        );
+        setGrantSaving(false);
+        return;
+      }
+      setConfirmedGrantIsk(typeof json.grantIsk === "number" ? json.grantIsk : 0);
+    } catch {
+      setGrantError("Ekki náðist samband. Reyndu aftur eða haltu áfram án styrks.");
+      setGrantSaving(false);
+      return;
+    }
+
+    setGrantSaving(false);
+    setStage("review");
+  }
+
   async function handleReviewContinue() {
     // For paid packages, we create the booking up-front so we have a stable
     // reference to pass to Straumur. For free (Self Check-in), we still
@@ -243,7 +349,7 @@ function BookAssessmentContent() {
       // Fire-and-forget booking confirmation email (Self Check-in flow).
       fetch("/api/bookings/confirmed", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeader()) },
         body: JSON.stringify({ bookingId: id }),
       }).catch(() => {});
       setStage("done");
@@ -352,9 +458,11 @@ function BookAssessmentContent() {
     }
 
     const res = await createStraumurCharge({
-      amountIsk: pkg.priceIsk,
+      amountIsk: payableIsk,
       reference: bookingId,
-      description: `Lifeline Health — ${pkg.name}`,
+      description: grantIsk > 0
+        ? `Lifeline Health — ${pkg.name} (styrkur ${grantIsk.toLocaleString("is-IS")} kr. dreginn frá)`
+        : `Lifeline Health — ${pkg.name}`,
       customer: { name: fullName || email, email, phone },
       returnUrl: typeof window !== "undefined" ? `${window.location.origin}/account/book?stage=done&booking=${bookingId}` : "",
     });
@@ -376,9 +484,13 @@ function BookAssessmentContent() {
       owner_id: userId,
       owner_company_id: employerCompany?.id ?? null,
       owner_company_name: employerCompany?.name ?? null,
-      amount_isk: pkg.priceIsk,
+      // The ledger records what the client actually paid. The fund's share is
+      // a receivable tracked separately in union_grant_claims, not a payment.
+      amount_isk: payableIsk,
       currency: "ISK",
-      description: `Lifeline Health — ${pkg.name}`,
+      description: grantIsk > 0
+        ? `Lifeline Health — ${pkg.name} (stéttarfélagsstyrkur ${grantIsk.toLocaleString("is-IS")} kr.)`
+        : `Lifeline Health — ${pkg.name}`,
       provider: "straumur",
       provider_reference: res.providerReference,
       status: "succeeded",
@@ -411,10 +523,13 @@ function BookAssessmentContent() {
       return;
     }
 
-    // Fire-and-forget booking confirmation email (paid flow).
+    // Fire-and-forget booking confirmation email + receipt PDF. Both routes
+    // authenticate off the Authorization header, so the token has to go with
+    // them — without it they 401 and the client silently gets neither.
+    const authed = { "Content-Type": "application/json", ...(await authHeader()) };
     fetch("/api/bookings/confirmed", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authed,
       body: JSON.stringify({ bookingId }),
     }).catch(() => {});
 
@@ -422,7 +537,7 @@ function BookAssessmentContent() {
     // the BillingPanel.
     fetch("/api/bookings/receipt", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authed,
       body: JSON.stringify({ bookingId }),
     }).catch(() => {});
 
@@ -467,7 +582,7 @@ function BookAssessmentContent() {
           </div>
         )}
 
-        <StageIndicator stage={stage} />
+        <StageIndicator stage={stage} includeGrant={grantEligible} />
 
         {stage === "package" && (
           <PackageStage
@@ -491,7 +606,26 @@ function BookAssessmentContent() {
             }}
             setNotes={setNotes}
             onBack={() => setStage("package")}
-            onContinue={() => setStage("review")}
+            onContinue={() => setStage(grantEligible ? "grant" : "review")}
+          />
+        )}
+
+        {stage === "grant" && pkg && (
+          <GrantStage
+            pkg={pkg}
+            unionCode={unionCode}
+            fund={selectedFund}
+            previewGrantIsk={previewGrantIsk}
+            kennitala={kennitala}
+            consent={grantConsent}
+            saving={grantSaving}
+            error={grantError}
+            onPickUnion={(code) => { setUnionCode(code); setGrantConsent(false); setGrantError(null); }}
+            setKennitala={setKennitala}
+            setConsent={setGrantConsent}
+            onBack={() => setStage("schedule")}
+            onContinue={() => handleGrantContinue(false)}
+            onSkip={() => handleGrantContinue(true)}
           />
         )}
 
@@ -504,7 +638,10 @@ function BookAssessmentContent() {
             notes={notes}
             fullName={fullName}
             email={email}
-            onBack={() => setStage("schedule")}
+            grantIsk={grantIsk}
+            grantFundName={grantIsk > 0 ? selectedFund?.name ?? null : null}
+            payableIsk={payableIsk}
+            onBack={() => setStage(grantEligible ? "grant" : "schedule")}
             onContinue={handleReviewContinue}
             error={paymentError}
           />
@@ -512,7 +649,9 @@ function BookAssessmentContent() {
 
         {stage === "pay" && pkg && (
           <PayStage
-            pkg={pkg}
+            payableIsk={payableIsk}
+            grantIsk={grantIsk}
+            grantFundName={grantIsk > 0 ? selectedFund?.name ?? null : null}
             paying={paying}
             error={paymentError}
             onBack={() => setStage("review")}
@@ -530,17 +669,18 @@ function BookAssessmentContent() {
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-function StageIndicator({ stage }: { stage: Stage }) {
+function StageIndicator({ stage, includeGrant }: { stage: Stage; includeGrant: boolean }) {
   const steps: Array<{ key: Stage; label: string }> = [
     { key: "package", label: "Package" },
     { key: "schedule", label: "Schedule" },
+    ...(includeGrant ? [{ key: "grant" as Stage, label: "Union grant" }] : []),
     { key: "review", label: "Review" },
     { key: "pay", label: "Payment" },
     { key: "done", label: "Done" },
   ];
   const currentIdx = steps.findIndex((s) => s.key === stage);
   return (
-    <ol className="flex items-center gap-2 text-xs">
+    <ol className="flex flex-wrap items-center gap-2 text-xs">
       {steps.map((s, i) => {
         const done = i < currentIdx;
         const active = i === currentIdx;
@@ -791,8 +931,186 @@ function ScheduleStage({
 
 // ──────────────────────────────────────────────────────────────────────────────
 
+function GrantStage({
+  pkg, unionCode, fund, previewGrantIsk, kennitala, consent, saving, error,
+  onPickUnion, setKennitala, setConsent, onBack, onContinue, onSkip,
+}: {
+  pkg: PackageDef;
+  unionCode: string | null;
+  fund: UnionFund | null;
+  previewGrantIsk: number;
+  kennitala: string;
+  consent: boolean;
+  saving: boolean;
+  error: string | null;
+  onPickUnion: (code: string) => void;
+  setKennitala: (v: string) => void;
+  setConsent: (v: boolean) => void;
+  onBack: () => void;
+  onContinue: () => void;
+  onSkip: () => void;
+}) {
+  // A live fund is one we have a signed direct-settlement agreement with —
+  // only those produce a discount. Everything else records the declaration.
+  const isLive = previewGrantIsk > 0;
+  const picked = !!unionCode;
+  const net = Math.max(0, pkg.priceIsk - previewGrantIsk);
+  const ktValid = isValidKennitala(kennitala);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold text-[#0F172A]">Stéttarfélagsstyrkur</h2>
+        <p className="text-sm text-[#64748B] mt-1 leading-relaxed">
+          Flest stéttarfélög taka þátt í kostnaði við heilsufarsmat. Veldu félagið þitt — ef við
+          erum með beingreiðslusamning við sjóðinn dregst styrkurinn frá strax og þú þarft ekki
+          að sækja um neitt.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {UNION_FUNDS.map((f) => {
+          const active = unionCode === f.code;
+          return (
+            <button
+              key={f.code}
+              type="button"
+              onClick={() => onPickUnion(f.code)}
+              aria-pressed={active}
+              className={`text-left rounded-xl border-2 px-4 py-3 transition-all ${
+                active ? "border-blue-500 ring-2 ring-blue-100 bg-blue-50/40" : "border-gray-200 bg-white hover:border-gray-300"
+              }`}
+            >
+              <div className="text-sm font-semibold text-[#0F172A]">{f.name}</div>
+              <div className="text-[11px] text-[#64748B] mt-0.5">{f.region}</div>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => onPickUnion(OTHER_UNION_CODE)}
+          aria-pressed={unionCode === OTHER_UNION_CODE}
+          className={`text-left rounded-xl border-2 px-4 py-3 transition-all ${
+            unionCode === OTHER_UNION_CODE ? "border-blue-500 ring-2 ring-blue-100 bg-blue-50/40" : "border-gray-200 bg-white hover:border-gray-300"
+          }`}
+        >
+          <div className="text-sm font-semibold text-[#0F172A]">Annað stéttarfélag</div>
+          <div className="text-[11px] text-[#64748B] mt-0.5">Við skráum félagið og semjum næst</div>
+        </button>
+      </div>
+
+      {picked && isLive && fund && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm space-y-1.5">
+            <div className="flex items-center justify-between text-[#334155]">
+              <span>{pkg.name}</span>
+              <span>{pkg.priceIsk.toLocaleString("is-IS")} kr.</span>
+            </div>
+            <div className="flex items-center justify-between font-medium text-emerald-700">
+              <span>Styrkur frá {fund.name}</span>
+              <span>−{previewGrantIsk.toLocaleString("is-IS")} kr.</span>
+            </div>
+            <div className="h-px bg-emerald-200 my-1" />
+            <div className="flex items-center justify-between font-bold text-[#0F172A] text-base">
+              <span>Þú greiðir</span>
+              <span>{net.toLocaleString("is-IS")} kr.</span>
+            </div>
+            <p className="text-[11px] text-emerald-900/80 pt-1">
+              Skilyrði sjóðsins: {fund.seniority} Styrkurinn er í boði á {fund.periodMonths} mánaða fresti.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="grant-kennitala" className="block text-xs font-semibold uppercase tracking-wide text-[#64748B] mb-1.5">
+              Kennitala
+            </label>
+            <input
+              id="grant-kennitala"
+              inputMode="numeric"
+              autoComplete="off"
+              value={formatKennitala(kennitala)}
+              onChange={(e) => setKennitala(cleanKennitala(e.target.value).slice(0, 10))}
+              placeholder="000000-0000"
+              className={`w-full sm:w-56 rounded-lg border px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 ${
+                kennitala.length === 10 && !ktValid
+                  ? "border-red-300 focus:ring-red-100"
+                  : "border-gray-200 focus:ring-blue-100 focus:border-blue-400"
+              }`}
+            />
+            <p className="text-[11px] text-[#64748B] mt-1.5">
+              Sjóðurinn þarf kennitöluna til að staðfesta aðild þína. Hún er dulkóðuð hjá okkur.
+            </p>
+            {kennitala.length === 10 && !ktValid && (
+              <p className="text-[11px] text-red-600 mt-1">Kennitalan stenst ekki gilt form.</p>
+            )}
+          </div>
+
+          <label className="flex items-start gap-2.5 text-sm text-[#334155] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
+            />
+            <span className="leading-relaxed">{unionGrantConsentText(fund.name)}</span>
+          </label>
+        </div>
+      )}
+
+      {picked && !isLive && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
+          {pendingFundNote(fund?.name ?? "þínu félagi")}
+        </div>
+      )}
+
+      {error && <div className="text-sm text-red-600">{error}</div>}
+
+      <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100 flex-wrap">
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm disabled:opacity-50"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          Til baka
+        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={onSkip}
+            disabled={saving}
+            className="text-sm font-semibold text-[#64748B] hover:text-[#0F172A] underline underline-offset-2 disabled:opacity-50"
+          >
+            Ég er ekki í stéttarfélagi
+          </button>
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={saving || !picked || (isLive && (!ktValid || !consent))}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+            {saving ? "Skrái…" : "Áfram"}
+            {!saving && (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 function ReviewStage({
   pkg, needsVisit, selectedSlotAt, selectedLocation, notes, fullName, email,
+  grantIsk, grantFundName, payableIsk,
   onBack, onContinue, error,
 }: {
   pkg: PackageDef;
@@ -802,6 +1120,9 @@ function ReviewStage({
   notes: string;
   fullName: string;
   email: string;
+  grantIsk: number;
+  grantFundName: string | null;
+  payableIsk: number;
   onBack: () => void;
   onContinue: () => void;
   error: string | null;
@@ -825,10 +1146,25 @@ function ReviewStage({
       </div>
 
       {pkg.priceIsk > 0 ? (
-        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm">
+        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm space-y-1.5">
+          {grantIsk > 0 && (
+            <>
+              <div className="flex items-center justify-between text-[#475569]">
+                <span>{pkg.name}</span>
+                <span>{pkg.priceIsk.toLocaleString("is-IS")} ISK</span>
+              </div>
+              {/* The member should see that their union paid — that visibility
+                  is part of what the fund is buying from us. */}
+              <div className="flex items-center justify-between text-emerald-700 font-medium">
+                <span>Styrkur frá {grantFundName ?? "stéttarfélagi"}</span>
+                <span>−{grantIsk.toLocaleString("is-IS")} ISK</span>
+              </div>
+              <div className="h-px bg-blue-100 my-1" />
+            </>
+          )}
           <div className="flex items-center justify-between font-semibold text-[#0F172A]">
-            <span>Total</span>
-            <span>{pkg.priceIsk.toLocaleString("is-IS")} ISK</span>
+            <span>{grantIsk > 0 ? "Þú greiðir" : "Total"}</span>
+            <span>{payableIsk.toLocaleString("is-IS")} ISK</span>
           </div>
           <p className="text-xs text-[#64748B] mt-1">
             Healthcare services are exempt from VAT in Iceland (Act 50/1988).
@@ -880,9 +1216,11 @@ function Row({ label, value }: { label: string; value: string }) {
 // ──────────────────────────────────────────────────────────────────────────────
 
 function PayStage({
-  pkg, paying, error, onBack, onPay,
+  payableIsk, grantIsk, grantFundName, paying, error, onBack, onPay,
 }: {
-  pkg: PackageDef;
+  payableIsk: number;
+  grantIsk: number;
+  grantFundName: string | null;
   paying: boolean;
   error: string | null;
   onBack: () => void;
@@ -910,9 +1248,15 @@ function PayStage({
         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900">
           <strong>Test mode:</strong> no real charge is made. Your booking will be marked paid for internal testing.
         </div>
+        {grantIsk > 0 && (
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-[11px] text-emerald-900">
+            {grantFundName ?? "Stéttarfélagið þitt"} greiðir {grantIsk.toLocaleString("is-IS")} kr. beint til okkar.
+            Þú greiðir aðeins mismuninn og þarft ekki að sækja um neitt.
+          </div>
+        )}
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="text-[#64748B]">Charge amount</span>
-          <span className="font-semibold text-[#0F172A]">{pkg.priceIsk.toLocaleString("is-IS")} ISK</span>
+          <span className="font-semibold text-[#0F172A]">{payableIsk.toLocaleString("is-IS")} ISK</span>
         </div>
       </div>
 
@@ -937,7 +1281,7 @@ function PayStage({
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60"
         >
           {paying && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {paying ? "Processing…" : `Pay ${pkg.priceIsk.toLocaleString("is-IS")} ISK`}
+          {paying ? "Processing…" : `Pay ${payableIsk.toLocaleString("is-IS")} ISK`}
         </button>
       </div>
     </div>

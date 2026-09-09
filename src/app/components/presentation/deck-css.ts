@@ -459,6 +459,39 @@ export const DECK_CSS = `
 .lldeck .light .slide-bg-ov{background:linear-gradient(100deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.78) 48%,rgba(255,255,255,.4) 100%);}
 .lldeck .has-bg > .slide-head,.lldeck .has-bg > .body,.lldeck .has-bg > .footnote{position:relative;z-index:2;}
 
+/* ── Photo treatments for title/closing ───────────────────────────────────
+   Full bleed is the default and keeps the reading scrim, because the type sits
+   on top of the picture. The three below place the picture beside the type
+   instead, so it needs no scrim and is shown untinted — the body is narrowed
+   to match, which is what keeps the two from overlapping at any slide size. */
+.lldeck .slide.bg-split .slide-bg-ov,
+.lldeck .slide.bg-panel .slide-bg-ov,
+.lldeck .slide.bg-band  .slide-bg-ov{display:none;}
+
+.lldeck .slide.bg-split .slide-bg{inset:0 0 0 auto;width:44%;}
+.lldeck .slide.bg-split .body{max-width:52%;}
+
+.lldeck .slide.bg-panel .slide-bg{
+  inset:clamp(1.4rem,7cqh,3.6rem) clamp(1.4rem,4cqw,3.6rem) clamp(1.4rem,7cqh,3.6rem) auto;
+  width:37%;border-radius:var(--card-radius);box-shadow:var(--shadow);
+}
+.lldeck .slide.bg-panel .body{max-width:55%;}
+
+.lldeck .slide.bg-band .slide-bg{inset:auto 0 0 0;height:30%;}
+/* The body is vertically centred, so bottom padding alone lifts the type by
+   half of it — straight into the corner wordmark. The top padding puts the
+   block back in the middle of the space the band leaves. */
+.lldeck .slide.bg-band .body{padding-bottom:32%;padding-top:clamp(2.5rem,11cqh,5.5rem);}
+
+/* On a narrow deck the side-by-side splits stop working, so the photo goes
+   back to a band under the type rather than squeezing it into a column. */
+@container deck (max-width:720px){
+  .lldeck .slide.bg-split .slide-bg,
+  .lldeck .slide.bg-panel .slide-bg{inset:auto 0 0 0;width:auto;height:30%;border-radius:0;}
+  .lldeck .slide.bg-split .body,
+  .lldeck .slide.bg-panel .body{max-width:100%;padding-bottom:32%;}
+}
+
 .lldeck .photo-frame{border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 60px -24px rgba(0,0,0,.55);}
 .lldeck .light .photo-frame{border-color:#fff;box-shadow:var(--shadow);}
 .lldeck .photo-frame img{width:100%;display:block;}

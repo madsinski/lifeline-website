@@ -137,6 +137,10 @@ export interface Slide {
   tag?: string;           // small pill, e.g. "Optional" / "Coming soon"
   quote?: string;         // big quote (quote slide), supports ==accent==
   bg?: string;            // background image URL (title/closing)
+  // How that photo is used. "full" (default) covers the slide and the type
+  // sits on it behind a reading scrim; the rest place the photo alongside the
+  // type instead, so no scrim is needed and the picture stays untinted.
+  bgStyle?: "full" | "split" | "panel" | "band";
   photo?: string;         // single editorial photo URL (story)
   phone?: string;         // single phone screenshot URL (phone-feature/coaching)
   phones?: string[];      // up to 3 phone screenshot URLs (app-showcase)
@@ -282,6 +286,12 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     type: "title", label: "Title", description: "Opening slide with full-bleed background.",
     fields: [
       { key: "bg", label: "Background photo", kind: "image", imageRole: "background" },
+      { key: "bgStyle", label: "Photo layout", kind: "select", noTranslate: true, help: "How the photo sits on the slide.", options: [
+        { value: "full", label: "Full bleed — photo behind the text" },
+        { value: "split", label: "Split — photo holds the right edge" },
+        { value: "panel", label: "Panel — inset photo card, right" },
+        { value: "band", label: "Band — photo across the foot" },
+      ] },
       F.kicker, F.heading, F.lead,
       { key: "tagline", label: "Tagline line", kind: "text" },
     ],
@@ -430,6 +440,12 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
     type: "closing", label: "Closing", description: "Closing slide with full-bleed background.",
     fields: [
       { key: "bg", label: "Background photo", kind: "image", imageRole: "background" },
+      { key: "bgStyle", label: "Photo layout", kind: "select", noTranslate: true, help: "How the photo sits on the slide.", options: [
+        { value: "full", label: "Full bleed — photo behind the text" },
+        { value: "split", label: "Split — photo holds the right edge" },
+        { value: "panel", label: "Panel — inset photo card, right" },
+        { value: "band", label: "Band — photo across the foot" },
+      ] },
       F.kicker, F.heading, F.lead,
       { key: "tagline", label: "Tagline line", kind: "text" },
       F.footnote,

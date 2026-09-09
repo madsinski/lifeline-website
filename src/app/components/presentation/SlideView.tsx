@@ -8,6 +8,13 @@ import { DeckDefs, Logo, Icon } from "./DeckAssets";
 
 export { DeckDefs };
 
+/** Extra slide class for a title/closing photo treatment (see deck-css). */
+export function bgStyleClass(s: { bg?: string; bgStyle?: string }): string {
+  if (!s.bg) return "";
+  const v = s.bgStyle ?? "full";
+  return v === "full" ? "" : ` bg-${v}`;
+}
+
 /** Extra slide class for a non-default brand (drives palette + logo colour). */
 export function brandClass(brand?: string): string {
   return brand === "fjarlaekningar" ? " brand-fjar"
@@ -318,6 +325,14 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
   // a portrait phone screenshot would lose two thirds of itself to the crop, so
   // it is better shown whole. Null until measured — the default holds till then.
   const [shotRatio, setShotRatio] = React.useState<number | null>(null);
+  // onLoad alone is not enough: the deck mounts every slide at once, so a
+  // cached or already-decoded screenshot can be complete before React attaches
+  // the handler, and the event never fires — leaving the frame at its default
+  // 16:10 and cropping the shot. A ref callback measures whatever is already
+  // there; onLoad still covers the images that arrive later.
+  const measureShot = React.useCallback((el: HTMLImageElement | null) => {
+    if (el?.naturalWidth && el.naturalHeight) setShotRatio(el.naturalWidth / el.naturalHeight);
+  }, []);
   switch (s.type) {
     case "title":
     case "closing":
@@ -824,6 +839,7 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
                         title="Click to enlarge"
                         style={{ width: "100%", height: "auto", cursor: "zoom-in" }}
                         onClick={() => setZoom(true)}
+                        ref={measureShot}
                         onLoad={(e) => setShotRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
                       />
                       <HighlightBoxes rects={hls} />
@@ -839,7 +855,8 @@ function SlideBody({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
                         cursor: "zoom-in",
                       }}
                       onClick={() => setZoom(true)}
-                      onLoad={(e) => setShotRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
+                      ref={measureShot}
+                        onLoad={(e) => setShotRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
                     />
                   )
                 ) : <div className="phone-ph">No screenshot yet</div>}
