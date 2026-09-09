@@ -83,6 +83,11 @@ export const DECK_CSS = `
   font-weight:500;letter-spacing:.16em;font-size:clamp(.6rem,.9cqw,.8rem);
 }
 .lldeck[data-design="keynote"] h1{letter-spacing:-.035em;}
+/* No leading rule on the kicker. It exists to mark a small label as a label,
+   but keynote already sets kickers in letterspaced mono, which reads as one
+   on its own — the dash then just adds a stray mark to the top of every
+   slide. Other designs keep it. */
+.lldeck[data-design="keynote"] .kicker::before{display:none;}
 /* Hairlines instead of shadows — a projected slide has no depth to fake. */
 .lldeck[data-design="keynote"] .card,
 .lldeck[data-design="keynote"] .grp-card,

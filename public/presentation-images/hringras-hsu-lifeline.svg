@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img"
-     aria-label="Hringrás þjónustunnar: íbúi kemur inn um heilsugæslu HSU eða beint hjá Lifeline. HSU vísar í heilsumat, Lifeline vísar aftur í hefðbundna þjónustu.">
+     aria-label="Hringrás þjónustunnar: íbúi kemur inn um heilsugæslu HSU eða beint hjá Lifeline. HSU vísar í heilsueflingu, Lifeline vísar læknisfræðilegum vandamálum aftur á heilsugæslu.">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0b0d10"/><stop offset="55%" stop-color="#151a21"/><stop offset="100%" stop-color="#0d1116"/>
@@ -36,10 +36,11 @@
 
   <!-- the loop: each arc is coloured by where it leads -->
   <path d="M 621 251 Q 800 143 979 251" fill="none" stroke="#0EA47A" stroke-width="2.5" marker-end="url(#arrE)"/>
-  <text x="800" y="126" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="2.1" fill="#4ADE9E" text-anchor="middle">TILVÍSUN Í HEILSUMAT</text>
+  <text x="800" y="126" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="2.1" fill="#4ADE9E" text-anchor="middle">TILVÍSUN Í HEILSUEFLINGU</text>
 
   <path d="M 979 409 Q 800 517 621 409" fill="none" stroke="#8b98a6" stroke-width="2.5" marker-end="url(#arrS)"/>
-  <text x="800" y="562" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="2.1" fill="#c3ccd6" text-anchor="middle">VÍSAÐ AFTUR Í HEFÐBUNDNA ÞJÓNUSTU</text>
+  <text x="800" y="562" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="2.1" fill="#c3ccd6" text-anchor="middle">LÆKNISFRÆÐILEG VANDAMÁL VÍSAÐ AFTUR Á HEILSUGÆSLU</text>
+  <text x="800" y="594" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#93a0ac" text-anchor="middle">Heilsugæslan fær heilbrigðara sjúkling til baka</text>
 
   <!-- nodes: hairline rings, so the loop stays the loudest thing on the slide -->
   <circle cx="540" cy="330" r="112" fill="#ffffff" fill-opacity=".035" stroke="#8b98a6" stroke-width="2"/>
@@ -48,23 +49,23 @@
 
   <circle cx="1060" cy="330" r="112" fill="#0EA47A" fill-opacity=".07" stroke="#0EA47A" stroke-width="2"/>
   <text x="1060" y="320" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="31" font-weight="700" fill="#f2f5f7" text-anchor="middle">Lifeline</text>
-  <text x="1060" y="362" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="31" font-weight="700" fill="#4ADE9E" text-anchor="middle">heilsumat</text>
+  <text x="1060" y="362" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="31" font-weight="700" fill="#4ADE9E" text-anchor="middle">heilsuefling</text>
 
   <!-- what stays where -->
   <line x1="60" y1="228" x2="360" y2="228" stroke="#c3ccd6" stroke-opacity=".45" stroke-width="1"/>
     <text x="60" y="258" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="1.9" fill="#c3ccd6">VERÐUR EFTIR HJÁ HSU</text>
-    <text x="60" y="304" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Greining og meðferð</text>
+    <text x="60" y="304" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Meðferð á læknisfræðilegum vandamálum</text>
     <text x="60" y="342" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Lyfjameðferð</text>
     <text x="60" y="380" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Eftirlit langvinnra sjúkdóma</text>
     <text x="60" y="418" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Blóðrannsóknir og mælingar</text>
-    <text x="60" y="456" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Bráðaerindi</text>
+    <text x="60" y="456" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Bráð vandamál og veikindi</text>
 
     <line x1="1184" y1="228" x2="1484" y2="228" stroke="#4ADE9E" stroke-opacity=".45" stroke-width="1"/>
     <text x="1184" y="258" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="17" letter-spacing="1.9" fill="#4ADE9E">VERÐUR EFTIR HJÁ LIFELINE</text>
-    <text x="1184" y="304" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Heilsumat læknis</text>
+    <text x="1184" y="304" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Heilsufarsskoðun</text>
     <text x="1184" y="342" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Læknisviðtal og skýrsla</text>
     <text x="1184" y="380" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Lífsstílsáætlun</text>
     <text x="1184" y="418" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Eftirfylgd og hvatning</text>
-    <text x="1184" y="456" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Endurmæling</text>
+    <text x="1184" y="456" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#93a0ac">Endurmat</text>
   </g>
 </svg>

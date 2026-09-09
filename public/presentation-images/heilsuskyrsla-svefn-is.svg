@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 858" width="1600" height="858" role="img"
+     aria-label="Heilsuskýrsla Lifeline: svefnhluti með einkunn, þróun, ábendingum og ráðleggingum.">
+  <rect width="1600" height="858" fill="#ffffff"/>
+  <g transform="translate(0,29)">
+  <rect width="1600" height="800" fill="#ffffff"/>
+  <text x="28" y="56" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="29" font-weight="700" fill="#101720">Lifeline Health — Heilsuskýrsla</text>
+  <rect x="1206" y="30" width="130" height="40" rx="4" fill="none" stroke="#e4e9ee" stroke-width="1.4"/>
+  <text x="1271" y="56" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f" text-anchor="middle">Breyta titli</text>
+  <rect x="1348" y="30" width="224" height="40" rx="4" fill="none" stroke="#e4e9ee" stroke-width="1.4"/>
+  <text x="1460" y="56" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f" text-anchor="middle">Sækja skjal  ⌄</text>
+  <line x1="0" y1="88" x2="1600" y2="88" stroke="#e4e9ee" stroke-width="1.2"/>
+  <text x="28" y="120" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#0E9F76">Gott</text>
+  <text x="68" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="13" fill="#64748b">7,5–10 stig</text>
+  <text x="175.4" y="120" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#2563EB">Í meðallagi</text>
+  <text x="271" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="13" fill="#64748b">5–7,5 stig</text>
+  <text x="371.4" y="120" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#D97706">Þarfnast athygli</text>
+  <text x="507" y="120" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="13" fill="#64748b">0–5 stig</text>
+  <circle cx="1198" cy="115" r="4.5" fill="#DC2626"/>
+  <text x="1210" y="120" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#31404f">Forgangur 1</text>
+  <circle cx="1319.6" cy="115" r="4.5" fill="#D97706"/>
+  <text x="1331.6" y="120" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#31404f">Forgangur 2</text>
+  <circle cx="1441.1999999999998" cy="115" r="4.5" fill="#0E9F76"/>
+  <text x="1453.1999999999998" y="120" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#31404f">Í jafnvægi</text>
+  <line x1="0" y1="140" x2="1600" y2="140" stroke="#e4e9ee" stroke-width="1.2"/>
+  <rect x="0" y="140" width="1600" height="52" fill="#eef3f8"/>
+  <text x="28" y="173" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#101720">Svefn</text>
+  <text x="478" y="173" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#101720">Einkunn (0–10)</text>
+  <text x="648" y="173" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#101720">Þróun</text>
+  <text x="968" y="173" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#101720">Ábendingar</text>
+  <text x="1218" y="173" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#101720">Ráðleggingar</text>
+  <line x1="0" y1="192" x2="1600" y2="192" stroke="#e4e9ee" stroke-width="1.2"/>
+  <text x="28" y="234" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="700" fill="#101720">Læknisfræðileg vandamál</text>
+  <text x="28" y="266" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Læknisfræðileg svefnvandamál eru meðal annars</text>
+  <text x="28" y="288" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">kæfisvefn, langvinnt svefnleysi og truflanir á</text>
+  <text x="28" y="311" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">dægursveiflu. Slík vandamál geta aukið hættu á hjarta-</text>
+  <text x="28" y="334" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">og æðasjúkdómum, sykursýki og þunglyndi og dregið úr</text>
+  <text x="28" y="356" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">vitrænni getu.</text>
+  <text x="28" y="392" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Greining og meðferð undirliggjandi svefnröskunar</text>
+  <text x="28" y="415" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">skiptir máli, því hún er forsenda þess að hægt sé að</text>
+  <text x="28" y="438" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">bæta svefninn með góðum svefnvenjum.</text>
+  <text x="478" y="242" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="700" fill="#101720">2,9</text>
+  <rect x="478" y="254" width="137" height="28" rx="4" fill="#D97706" fill-opacity=".12"/>
+  <text x="547" y="273" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#D97706" text-anchor="middle">Þarfnast athygli</text>
+  <rect x="664" y="226" width="254" height="190" fill="#ffffff"/>
+  <rect x="664" y="226.0" width="254" height="47.5" fill="#0E9F76" fill-opacity=".12"/>
+  <rect x="664" y="273.5" width="254" height="47.5" fill="#2563EB" fill-opacity=".10"/>
+  <rect x="664" y="321.0" width="254" height="95.0" fill="#D97706" fill-opacity=".13"/>
+  <text x="654" y="420.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">0</text>
+  <text x="654" y="382.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">2</text>
+  <text x="654" y="344.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">4</text>
+  <text x="654" y="306.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">6</text>
+  <text x="654" y="268.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">8</text>
+  <text x="654" y="230.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">10</text>
+  <polyline points="664.0,374.2 687.1,378.0 710.2,372.3 733.3,368.5 756.4,370.4 779.5,366.6 802.5,364.7 825.6,366.6 848.7,362.8 871.8,360.9 894.9,360.9 918.0,359.0" fill="none" stroke="#2563EB" stroke-width="1.8"/>
+  <circle cx="664.0" cy="374.2" r="2.4" fill="#2563EB"/>
+  <circle cx="687.1" cy="378.0" r="2.4" fill="#2563EB"/>
+  <circle cx="710.2" cy="372.3" r="2.4" fill="#2563EB"/>
+  <circle cx="733.3" cy="368.5" r="2.4" fill="#2563EB"/>
+  <circle cx="756.4" cy="370.4" r="2.4" fill="#2563EB"/>
+  <circle cx="779.5" cy="366.6" r="2.4" fill="#2563EB"/>
+  <circle cx="802.5" cy="364.7" r="2.4" fill="#2563EB"/>
+  <circle cx="825.6" cy="366.6" r="2.4" fill="#2563EB"/>
+  <circle cx="848.7" cy="362.8" r="2.4" fill="#2563EB"/>
+  <circle cx="871.8" cy="360.9" r="2.4" fill="#2563EB"/>
+  <circle cx="894.9" cy="360.9" r="2.4" fill="#2563EB"/>
+  <circle cx="918.0" cy="359.0" r="2.4" fill="#2563EB"/>
+  <text x="664" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="start">14. feb</text>
+  <text x="791" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="middle">20. mar</text>
+  <text x="918" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">1. maí</text>
+  <circle cx="972" cy="229" r="2.6" fill="#64748b"/>
+  <text x="986" y="234" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Syfja á daginn</text>
+  <circle cx="972" cy="258" r="2.6" fill="#64748b"/>
+  <text x="986" y="263" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Hrýtur hátt eða á erfitt</text>
+  <text x="986" y="284" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">með öndun í svefni</text>
+  <circle cx="972" cy="308" r="2.6" fill="#64748b"/>
+  <text x="986" y="313" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Öndunarhlé í svefni</text>
+  <circle cx="972" cy="337" r="2.6" fill="#64748b"/>
+  <text x="986" y="342" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Brjóstsviði eða óþægindi í</text>
+  <text x="986" y="364" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">maga trufla svefn</text>
+  <circle cx="972" cy="388" r="2.6" fill="#64748b"/>
+  <text x="986" y="392" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Verkir trufla svefn</text>
+  <circle cx="972" cy="416" r="2.6" fill="#64748b"/>
+  <text x="986" y="421" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Notar svefnlyf</text>
+  <circle cx="1223" cy="229" r="4" fill="#DC2626"/>
+  <text x="1238" y="234" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Læknisfræðileg vandamál sem greinast geta</text>
+  <text x="1238" y="256" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">þurft meðferð.</text>
+  <text x="1218" y="291" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Rétt er að ræða næstu skref við lækni.</text>
+  <line x1="0" y1="477" x2="1600" y2="477" stroke="#e4e9ee" stroke-width="1.2"/>
+  <text x="28" y="519" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="700" fill="#101720">Venjur</text>
+  <text x="28" y="551" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Svefnvenjur ná yfir háttatíma, skjánotkun fyrir svefn,</text>
+  <text x="28" y="574" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">koffínneyslu og hversu reglulegt svefnmynstrið er.</text>
+  <text x="28" y="596" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Óreglulegur svefn og slæmar venjur geta haft áhrif á</text>
+  <text x="28" y="618" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">hormónastarfsemi, efnaskipti og ónæmiskerfi.</text>
+  <text x="28" y="655" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Betri svefnvenjur geta stuðlað að betri andlegri og</text>
+  <text x="28" y="678" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">líkamlegri heilsu.</text>
+  <text x="478" y="527" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="700" fill="#101720">6,4</text>
+  <rect x="478" y="539" width="101" height="28" rx="4" fill="#2563EB" fill-opacity=".12"/>
+  <text x="529" y="558" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#2563EB" text-anchor="middle">Í meðallagi</text>
+  <rect x="664" y="511" width="254" height="190" fill="#ffffff"/>
+  <rect x="664" y="511.0" width="254" height="47.5" fill="#0E9F76" fill-opacity=".12"/>
+  <rect x="664" y="558.5" width="254" height="47.5" fill="#2563EB" fill-opacity=".10"/>
+  <rect x="664" y="606.0" width="254" height="95.0" fill="#D97706" fill-opacity=".13"/>
+  <text x="654" y="705.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">0</text>
+  <text x="654" y="667.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">2</text>
+  <text x="654" y="629.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">4</text>
+  <text x="654" y="591.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">6</text>
+  <text x="654" y="553.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">8</text>
+  <text x="654" y="515.0" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">10</text>
+  <polyline points="664.0,594.6 687.1,588.9 710.2,587.0 733.3,583.2 756.4,587.0 779.5,585.1 802.5,581.3 825.6,583.2 848.7,579.4 871.8,579.4 894.9,577.5 918.0,579.4" fill="none" stroke="#2563EB" stroke-width="1.8"/>
+  <circle cx="664.0" cy="594.6" r="2.4" fill="#2563EB"/>
+  <circle cx="687.1" cy="588.9" r="2.4" fill="#2563EB"/>
+  <circle cx="710.2" cy="587.0" r="2.4" fill="#2563EB"/>
+  <circle cx="733.3" cy="583.2" r="2.4" fill="#2563EB"/>
+  <circle cx="756.4" cy="587.0" r="2.4" fill="#2563EB"/>
+  <circle cx="779.5" cy="585.1" r="2.4" fill="#2563EB"/>
+  <circle cx="802.5" cy="581.3" r="2.4" fill="#2563EB"/>
+  <circle cx="825.6" cy="583.2" r="2.4" fill="#2563EB"/>
+  <circle cx="848.7" cy="579.4" r="2.4" fill="#2563EB"/>
+  <circle cx="871.8" cy="579.4" r="2.4" fill="#2563EB"/>
+  <circle cx="894.9" cy="577.5" r="2.4" fill="#2563EB"/>
+  <circle cx="918.0" cy="579.4" r="2.4" fill="#2563EB"/>
+  <text x="664" y="723" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="start">14. feb</text>
+  <text x="791" y="723" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="middle">20. mar</text>
+  <text x="918" y="723" font-family="ui-monospace, SFMono-Regular, Menlo, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="end">1. maí</text>
+  <circle cx="972" cy="514" r="2.6" fill="#64748b"/>
+  <text x="986" y="519" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Sefur 6–7 eða 8–9</text>
+  <text x="986" y="541" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">klukkustundir</text>
+  <circle cx="972" cy="564" r="2.6" fill="#64748b"/>
+  <text x="986" y="570" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Skjánotkun rétt fyrir svefn</text>
+  <circle cx="972" cy="593" r="2.6" fill="#64748b"/>
+  <text x="986" y="598" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Síðasta máltíð 1–2 klst.</text>
+  <text x="986" y="620" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">fyrir svefn</text>
+  <circle cx="972" cy="644" r="2.6" fill="#64748b"/>
+  <text x="986" y="649" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#31404f">Óþægilegt hitastig</text>
+  <text x="1218" y="519" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#101720">Skjánotkun fyrir svefn</text>
+  <circle cx="1223" cy="538" r="4" fill="#DC2626"/>
+  <text x="1238" y="543" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Ljúka sjónvarpi, síma og tölvu 2</text>
+  <text x="1238" y="566" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">klukkustundum eða meira fyrir svefn.</text>
+  <text x="1218" y="600" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#101720">Hitastig</text>
+  <circle cx="1223" cy="619" r="4" fill="#DC2626"/>
+  <text x="1238" y="624" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Gættu þess að hitastig í svefnherbergi sé</text>
+  <text x="1238" y="646" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">þægilegt.</text>
+  <text x="1218" y="681" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#101720">Svefnlengd</text>
+  <circle cx="1223" cy="700" r="4" fill="#D97706"/>
+  <text x="1238" y="705" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">Sofðu 7–8 klukkustundir.</text>
+  <text x="1218" y="740" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#101720">Síðasta máltíð fyrir svefn</text>
+  <circle cx="1223" cy="758" r="4" fill="#D97706"/>
+  <text x="1238" y="764" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#31404f">3 klukkustundir eða meira fyrir svefn.</text>
+  <line x1="0" y1="800" x2="1600" y2="800" stroke="#e4e9ee" stroke-width="1.2"/>
+  </g>
+</svg>
