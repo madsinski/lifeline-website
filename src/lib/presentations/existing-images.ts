@@ -14,6 +14,10 @@ export const COVER_PRESETS: { value: string; label: string }[] = [
   { value: "/presentation-images/nyskopunardagur-intro.svg", label: "Nýsköpunardagur — dökk" },
   { value: "/presentation-images/nyskopunardagur-intro-light.svg", label: "Nýsköpunardagur — ljós" },
   { value: "/presentation-images/nyskopunardagur-intro-soft.svg", label: "Nýsköpunardagur — ljósgrá" },
+  // The hringrás diagram is a full-slide artwork too, and it lives on a
+  // full-bleed slide alongside these — without it in the list, picking a
+  // lockup by mistake left no way back to the diagram.
+  { value: "/presentation-images/hringras-hsu-lifeline.svg", label: "Hringrás — HSU × Lifeline" },
 ];
 
 export const EXISTING_IMAGES: ExistingImage[] = [
@@ -21,6 +25,8 @@ export const EXISTING_IMAGES: ExistingImage[] = [
   { url: "/presentation-images/nyskopunardagur-intro.svg", label: "Nýsköpunardagur lockup (dark)", category: "Backgrounds" },
   { url: "/presentation-images/nyskopunardagur-intro-light.svg", label: "Nýsköpunardagur lockup (light)", category: "Backgrounds" },
   { url: "/presentation-images/nyskopunardagur-intro-soft.svg", label: "Nýsköpunardagur lockup (soft light)", category: "Backgrounds" },
+  { url: "/presentation-images/hringras-hsu-lifeline.svg", label: "Hringrás — HSU × Lifeline (skýringarmynd)", category: "Backgrounds" },
+  { url: "/presentation-images/heilsuskyrsla-svefn-is.svg", label: "Heilsuskýrsla — svefn (íslensk)", category: "App screenshots" },
 
   // Backgrounds (landscape)
   { url: "/presentation-images/eyjar-running.png", label: "Community run (Vestmannaeyjar)", category: "Backgrounds" },
