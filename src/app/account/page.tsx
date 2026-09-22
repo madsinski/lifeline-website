@@ -14,7 +14,6 @@ import { googleCalendarUrl, downloadIcs, type CalendarEvent } from "@/lib/calend
 import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 import AvatarPicker from "../components/AvatarPicker";
-import { PACKAGES as ASSESSMENT_PACKAGES, formatPackagePrice } from "@/lib/assessment-packages";
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
 import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
@@ -63,12 +62,13 @@ interface SubscriptionRow {
 
 /* ---------- nav sections ---------- */
 type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "settings" | "upgrade" | "billing";
+// "upgrade" (app soft-sell) and "assessment" (legacy package picker) still
+// render when linked to directly, but are no longer in the menu: the
+// health-check journey (/account/heilsuferd) is the way in.
 const navItems: { id: Section; label: string; icon: string }[] = [
-  { id: "overview", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
-  { id: "upgrade", label: "Lifeline app", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  { id: "assessment", label: "Book services", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
-  { id: "billing", label: "Billing", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
-  { id: "settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
+  { id: "overview", label: "Yfirlit", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
+  { id: "billing", label: "Greiðslur", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
+  { id: "settings", label: "Stillingar", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
 /* ---------- custom program types ---------- */
@@ -178,14 +178,8 @@ function AccountPageInner() {
   /* subscription state */
   const [currentTier, setCurrentTier] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
-  const [showChangePlan, setShowChangePlan] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  /* plan change confirmation */
-  const [pendingTier, setPendingTier] = useState<string | null>(null);
-  const [showPlanConfirm, setShowPlanConfirm] = useState(false);
-  const [upgradeProcessing, setUpgradeProcessing] = useState(false);
-  const [upgradeMsg, setUpgradeMsg] = useState("");
 
   /* upgrade flow from pricing page */
   const upgradeParam = searchParams.get("upgrade");
@@ -764,14 +758,8 @@ function AccountPageInner() {
       setLoading(false);
     });
 
-    // If coming from pricing page with upgrade param, go to Billing where
-    // plan management now lives.
-    if (upgradeParam) {
-      setActiveSection("billing");
-      setPendingTier(upgradeParam);
-      setShowPlanConfirm(true);
-      setShowChangePlan(true);
-    }
+    // Old pricing-page links (?upgrade=<tier>) land on the app page.
+    if (upgradeParam) setActiveSection("upgrade");
 
     const {
       data: { subscription: authSub },
@@ -967,83 +955,8 @@ function AccountPageInner() {
     });
     setProfileSaving(false);
     setEditingProfile(false);
-    setProfileSaveMsg("Profile saved successfully");
+    setProfileSaveMsg("Upplýsingarnar voru vistaðar.");
     setTimeout(() => setProfileSaveMsg(""), 5000);
-  };
-
-  const handleConfirmPlanChange = async () => {
-    if (!user || !pendingTier) return;
-    setUpgradeProcessing(true);
-    setUpgradeMsg("");
-
-    try {
-      // For paid plans, this is where Rapyd payment would be triggered
-      const selectedTier = tiers.find(t => t.id === pendingTier);
-      const isPaid = selectedTier && selectedTier.price !== "0";
-
-      if (isPaid) {
-        // TODO: Integrate Rapyd payment here
-        // For now, we proceed with plan change and log that payment is pending
-        console.log(`[Payment] Would charge ${selectedTier.price} ISK for ${selectedTier.name}`);
-      }
-
-      // Cancel existing subscription
-      if (subscription) {
-        await supabase
-          .from("subscriptions")
-          .update({ status: "cancelled" })
-          .eq("id", subscription.id);
-      }
-
-      // Ensure client row exists
-      const { data: clientExists } = await supabase.from("clients_decrypted").select("id").eq("id", user.id).single();
-      if (!clientExists) {
-        await supabase.from("clients_decrypted").insert({
-          id: user.id,
-          email: user.email,
-          full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "",
-          created_at: new Date().toISOString(),
-        });
-      }
-
-      const now = new Date().toISOString();
-      const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-
-      const { error: insertErr } = await supabase
-        .from("subscriptions")
-        .insert({
-          client_id: user.id,
-          tier: pendingTier,
-          status: "active",
-          current_period_start: now,
-          current_period_end: periodEnd,
-        });
-
-      if (insertErr) {
-        setUpgradeMsg(`Error: ${insertErr.message}`);
-      } else {
-        setCurrentTier(pendingTier);
-        setUpgradeMsg("Plan updated successfully!");
-        setShowPlanConfirm(false);
-        setShowChangePlan(false);
-        setPendingTier(null);
-        // Reload subscription
-        const { data: subData } = await supabase
-          .from("subscriptions")
-          .select("id, tier, status, trial_ends_at, current_period_start, current_period_end")
-          .eq("client_id", user.id)
-          .eq("status", "active")
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (subData && subData.length > 0) {
-          setSubscription(subData[0]);
-        }
-      }
-    } catch (err) {
-      setUpgradeMsg(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
-    }
-
-    setUpgradeProcessing(false);
   };
 
   // Shared cancel + (optional) refund helper for body_comp_bookings.
@@ -1138,14 +1051,14 @@ function AccountPageInner() {
   const handleChangePassword = async () => {
     setPasswordMsg("");
     if (newPassword !== confirmNewPassword) {
-      setPasswordMsg("Passwords don't match.");
+      setPasswordMsg("Lykilorðin stemma ekki.");
       return;
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       setPasswordMsg(error.message);
     } else {
-      setPasswordMsg("Password updated successfully.");
+      setPasswordMsg("Lykilorðinu var breytt.");
       setNewPassword("");
       setConfirmNewPassword("");
       setTimeout(() => {
@@ -1161,13 +1074,13 @@ function AccountPageInner() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== "DELETE") return;
+    if (deleteConfirmText !== "EYÐA") return;
     setDeleteLoading(true);
     setDeleteError("");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token || !user) {
-        setDeleteError("Not authenticated.");
+        setDeleteError("Þú ert ekki innskráð(ur).");
         setDeleteLoading(false);
         return;
       }
@@ -1209,35 +1122,25 @@ function AccountPageInner() {
 
   const activeTier = tiers.find((t) => t.id === currentTier) ?? null;
   const memberSince = user.created_at
-    ? new Date(user.created_at).toLocaleDateString("en-GB", { year: "numeric", month: "long" })
-    : "N/A";
+    ? (() => { const d = new Date(user.created_at); return `${["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"][d.getMonth()]} ${d.getFullYear()}`; })()
+    : "";
 
   return (
     <div className="min-h-screen bg-[#ecf0f3]">
-      {/* ---- page header ---- */}
-      <section className="bg-gradient-to-b from-white via-[#f0f3f6] to-[#ecf0f3] py-12 sm:py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#10B981] text-white text-lg font-bold flex items-center justify-center shrink-0">
-              {(profileFirstName || user.email || "U").charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">
-                {profileFirstName ? `${profileFirstName} ${profileLastName}`.trim() : "My Account"}
-              </h1>
-              <p className="text-sm text-[#6B7280]">{user.email}</p>
-            </div>
-          </div>
+      {/* ---- page header: context switch + sign out (name lives in the welcome card) ---- */}
+      <section className="bg-gradient-to-b from-white to-[#ecf0f3] pt-8 pb-4 sm:pt-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#10B981]">Mínar síður</p>
           <div className="flex flex-wrap items-center gap-3">
             <ContextSwitcher current="personal" />
             <button
               onClick={handleSignOut}
-              className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-red-200 text-red-600 text-sm font-semibold rounded-full hover:bg-red-50 hover:border-red-300 transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white text-slate-600 text-sm font-semibold rounded-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Sign out
+              Skrá út
             </button>
           </div>
         </div>
@@ -1289,6 +1192,10 @@ function AccountPageInner() {
                   {item.label}
                 </button>
               ))}
+              <Link href="/account/heilsuferd" className="mt-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#065F46] bg-emerald-50 hover:bg-emerald-100 transition-all whitespace-nowrap">
+                <span className="w-5 text-center" aria-hidden>✚</span>
+                Heilsuferðin
+              </Link>
             </nav>
           </aside>
 
@@ -1336,7 +1243,7 @@ function AccountPageInner() {
                       />
                       <div className="min-w-0 flex-1">
                         <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
-                          {staffGreeting ?? `Welcome back, ${profileFirstName || "there"}`}
+                          {staffGreeting ?? (profileFirstName ? `Hæ, ${profileFirstName}` : "Mínar síður")}
                         </h1>
                         {companyName ? (
                           <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -1344,11 +1251,11 @@ function AccountPageInner() {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                               </svg>
-                              <span className="text-xs font-medium">Company account</span>
+                              <span className="text-xs font-medium">Fyrirtækjaaðgangur</span>
                             </span>
                             <span className="text-sm font-semibold text-[#1F2937]">{companyName}</span>
                             <span className="text-[#9CA3AF]">·</span>
-                            <span>Member since {memberSince}</span>
+                            <span>Aðgangur frá {memberSince}</span>
                           </p>
                         ) : (
                           <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -1360,7 +1267,7 @@ function AccountPageInner() {
                                 <span className="text-xs font-medium">{activeTier.name}</span>
                               </span>
                             )}
-                            <span>Member since {memberSince}</span>
+                            <span>Aðgangur frá {memberSince}</span>
                           </p>
                         )}
                       </div>
@@ -1450,10 +1357,6 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* B2C: no booking at all → Get-started hero */}
-                {!companyId && bodyCompStatus === "none" && !pendingBooking && (
-                  <GetStartedHero />
-                )}
 
                 {/* Self Check-in has its own abbreviated journey — only the
                     patient-portal questionnaire remains. Short-circuit before
@@ -1778,38 +1681,34 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Patient portal hero — canonical home for clinical data */}
-                <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
-                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-teal-500 to-emerald-500" />
-                  <div className="p-6 sm:p-8">
-                    <div className="flex items-start gap-4 flex-wrap">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-teal-700 mb-1">Lifeline Health portal</div>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Your report</h2>
-                        <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
-                          Everything clinical lives in Medalia, our secure patient portal. Sign in there to:
-                        </p>
-                        <ul className="text-sm text-[#4B5563] mt-3 space-y-1.5 list-disc list-inside">
-                          <li>View your body-composition, blood-test, and assessment results</li>
-                          <li>Read physician notes and your personalised health report</li>
-                          <li>Book follow-up appointments with your Lifeline physician</li>
-                          <li>Secure message your medical team</li>
-                        </ul>
-                        <div className="mt-5">
-                          <MedaliaButton label="Open patient portal" size="md" />
-                        </div>
-                      </div>
+                {/* Patient portal — the medical record and results live in Medalia */}
+                <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white">
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-lg font-bold text-[#1F2937]">Sjúklingagátt</h2>
+                      <p className="text-sm text-[#6B7280]">Niðurstöður, skýrsla læknis og örugg samskipti við heilbrigðisstarfsfólk eru í Medalia.</p>
+                    </div>
+                    <MedaliaButton label="Opna sjúklingagátt" size="md" />
                   </div>
                 </section>
 
                 {/* After your assessment — teaser for the coaching app */}
-                <AppTeaserCard onGoToCoaching={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }} />
+                <button type="button" onClick={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }}
+                  className="group flex w-full items-center gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-md">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white">
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-lg font-bold text-[#1F2937]">Lifeline appið</span>
+                    <span className="block text-sm text-[#6B7280]">Dagleg markþjálfun í svefni, hreyfingu, næringu og andlegri líðan. Væntanlegt.</span>
+                  </span>
+                  <span className="text-[#10B981] transition group-hover:translate-x-1" aria-hidden>→</span>
+                </button>
 
                 {biodyActivated && (
                   <BiodyReconsentBanner userId={user.id} onGoToSettings={() => setActiveSection("settings")} />
@@ -1828,10 +1727,10 @@ function AccountPageInner() {
             {activeSection === "profile" && (
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                 <div className="flex items-start justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-[#1F2937]">Personal Information</h2>
+                  <h2 className="text-lg font-semibold text-[#1F2937]">Persónuupplýsingar</h2>
                   {!editingProfile && (
                     <button onClick={() => setEditingProfile(true)} className="text-sm font-medium text-[#10B981] hover:underline">
-                      Edit
+                      Breyta
                     </button>
                   )}
                 </div>
@@ -1840,60 +1739,60 @@ function AccountPageInner() {
                   <div className="space-y-4 max-w-lg">
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fornafn</label>
                         <input value={profileFirstName} onChange={(e) => setProfileFirstName(e.target.value)}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Eftirnafn</label>
                         <input value={profileLastName} onChange={(e) => setProfileLastName(e.target.value)}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Netfang</label>
                       <input value={user.email || ""} disabled
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sími</label>
                       <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                        placeholder="Phone number" />
+                        placeholder="Símanúmer" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Heimilisfang</label>
                       <input value={address} onChange={(e) => setAddress(e.target.value)}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                        placeholder="Your address" />
+                        placeholder="Heimilisfang" />
                     </div>
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Emergency contact</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tengiliður í neyð</label>
                         <input value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                          placeholder="Contact name" />
+                          placeholder="Nafn tengiliðs" />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Emergency phone</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sími tengiliðs</label>
                         <input value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} type="tel"
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                          placeholder="Contact phone" />
+                          placeholder="Sími tengiliðs" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of birth</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Fæðingardagur</label>
                       <input value={dob} onChange={(e) => setDob(e.target.value)} type="date"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Kyn</label>
                       <div className="flex gap-2">
                         {[
-                          { key: "male", label: "Male" },
-                          { key: "female", label: "Female" },
-                          { key: "other", label: "Other" },
-                          { key: "prefer_not_to_say", label: "Prefer not to say" },
+                          { key: "male", label: "Karl" },
+                          { key: "female", label: "Kona" },
+                          { key: "other", label: "Annað" },
+                          { key: "prefer_not_to_say", label: "Vil ekki svara" },
                         ].map((opt) => (
                           <button key={opt.key} type="button" onClick={() => setSex(opt.key)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
@@ -1915,11 +1814,11 @@ function AccountPageInner() {
                       <button onClick={handleSaveProfile} disabled={profileSaving}
                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50">
                         {profileSaving && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                        {profileSaving ? "Saving..." : "Save changes"}
+                        {profileSaving ? "Vista…" : "Vista breytingar"}
                       </button>
                       <button onClick={() => { setEditingProfile(false); setProfileError(""); }}
                         className="px-5 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                        Cancel
+                        Hætta við
                       </button>
                     </div>
                     {profileSaveMsg && (
@@ -1931,43 +1830,43 @@ function AccountPageInner() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Name</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Nafn</span>
                       <p className={`font-medium mt-0.5 ${profileFirstName ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
-                        {profileFirstName || profileLastName ? `${profileFirstName} ${profileLastName}`.trim() : "Not set"}
+                        {profileFirstName || profileLastName ? `${profileFirstName} ${profileLastName}`.trim() : "Ekki skráð"}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Email</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Netfang</span>
                       <p className="text-[#1F2937] font-medium mt-0.5">{user.email}</p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Phone</span>
-                      <p className={`font-medium mt-0.5 ${phone ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{phone || "Not set"}</p>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Sími</span>
+                      <p className={`font-medium mt-0.5 ${phone ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{phone || "Ekki skráð"}</p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Address</span>
-                      <p className={`font-medium mt-0.5 ${address ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{address || "Not set"}</p>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Heimilisfang</span>
+                      <p className={`font-medium mt-0.5 ${address ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{address || "Ekki skráð"}</p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Emergency contact</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Tengiliður í neyð</span>
                       <p className={`font-medium mt-0.5 ${emergencyName ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
-                        {emergencyName ? `${emergencyName}${emergencyPhone ? ` (${emergencyPhone})` : ""}` : "Not set"}
+                        {emergencyName ? `${emergencyName}${emergencyPhone ? ` (${emergencyPhone})` : ""}` : "Ekki skráð"}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Date of birth</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Fæðingardagur</span>
                       <p className={`font-medium mt-0.5 ${dob ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
-                        {dob ? new Date(dob).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" }) : "Not set"}
+                        {dob ? new Date(dob).toLocaleDateString("is-IS") : "Ekki skráð"}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Sex</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Kyn</span>
                       <p className={`font-medium mt-0.5 ${sex ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
-                        {sex ? ({ male: "Male", female: "Female", other: "Other", prefer_not_to_say: "Prefer not to say" }[sex] || "Not set") : "Not set"}
+                        {sex ? ({ male: "Karl", female: "Kona", other: "Annað", prefer_not_to_say: "Vil ekki svara" }[sex] || "Ekki skráð") : "Ekki skráð"}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Member since</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Aðgangur frá</span>
                       <p className="text-[#1F2937] font-medium mt-0.5">{memberSince}</p>
                     </div>
                   </div>
@@ -2702,171 +2601,45 @@ function AccountPageInner() {
             {/* ============ BILLING ============ */}
             {activeSection === "billing" && (
               <section className="space-y-6">
-                {/* Your plan */}
-                <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-                    <h2 className="text-lg font-semibold text-[#1F2937]">Lifeline app subscription</h2>
-                    {activeTier && (
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => setShowChangePlan(!showChangePlan)} className="text-sm font-medium text-[#10B981] hover:underline">
-                          {showChangePlan ? "Hide plans" : "Change plan"}
-                        </button>
-                        {currentTier !== "free-trial" && (
-                          <button onClick={() => setShowCancelConfirm(true)} className="text-sm text-red-500 hover:underline">
-                            Cancel subscription
+                {/* App subscription — only shown while a paid plan is active.
+                    The old plan picker is gone; the app is sold on /coaching. */}
+                {activeTier && currentTier !== "free-trial" && (
+                  <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <h2 className="text-lg font-semibold text-[#1F2937]">Áskrift að Lifeline appinu</h2>
+                        <p className="mt-1 text-sm text-[#6B7280]">
+                          <span className={`mr-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>{activeTier.name}</span>
+                          {subscription?.current_period_end && <>Næsta greiðsla {new Date(subscription.current_period_end).toLocaleDateString("is-IS")}</>}
+                        </p>
+                      </div>
+                      {!showCancelConfirm && (
+                        <button onClick={() => setShowCancelConfirm(true)} className="text-sm text-red-600 hover:underline">Segja upp áskrift</button>
+                      )}
+                    </div>
+                    {showCancelConfirm && (
+                      <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
+                        <p className="text-sm text-red-700 mb-3">Ertu viss? Þú heldur aðganginum út yfirstandandi greiðslutímabil.</p>
+                        <div className="flex gap-3">
+                          <button onClick={async () => {
+                            setCancelLoading(true);
+                            if (subscription) {
+                              await supabase.from("subscriptions").update({ status: "cancelled" }).eq("id", subscription.id);
+                            }
+                            setCurrentTier(null);
+                            setSubscription(null);
+                            setShowCancelConfirm(false);
+                            setCancelLoading(false);
+                          }} disabled={cancelLoading}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+                            {cancelLoading ? "Segi upp…" : "Já, segja upp"}
                           </button>
-                        )}
+                          <button onClick={() => setShowCancelConfirm(false)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937]">Hætta við</button>
+                        </div>
                       </div>
                     )}
-                  </div>
-                  {activeTier ? (
-                    <>
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>
-                          {activeTier.name}
-                        </span>
-                        <span className="text-sm text-[#6B7280]">
-                          {activeTier.price === "0" ? "Free" : `${activeTier.price} ISK / ${activeTier.period}`}
-                        </span>
-                      </div>
-                      {subscription?.current_period_end && currentTier !== "free-trial" && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 mb-4">
-                          Next billing date:{" "}
-                          <span className="font-semibold">
-                            {new Date(subscription.current_period_end).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
-                      <p className="text-sm text-[#6B7280] mb-3">You don&apos;t have an active subscription.</p>
-                      <button onClick={() => setShowChangePlan(true)}
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-colors">
-                        Choose a plan
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Cancel confirmation */}
-                  {showCancelConfirm && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4">
-                      <p className="text-sm text-red-700 mb-3">
-                        Are you sure? You&apos;ll keep access until the end of your current billing period.
-                      </p>
-                      <div className="flex gap-3">
-                        <button onClick={async () => {
-                          setCancelLoading(true);
-                          if (subscription) {
-                            await supabase.from("subscriptions").update({ status: "cancelled" }).eq("id", subscription.id);
-                          }
-                          setCurrentTier(null);
-                          setSubscription(null);
-                          setShowCancelConfirm(false);
-                          setCancelLoading(false);
-                        }} disabled={cancelLoading}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
-                          {cancelLoading && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                          {cancelLoading ? "Cancelling..." : "Yes, cancel"}
-                        </button>
-                        <button onClick={() => setShowCancelConfirm(false)}
-                          className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                          Keep my plan
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Plan picker */}
-                  {showChangePlan && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                      {tiers.map((tier) => {
-                        const isCurrent = tier.id === currentTier;
-                        const isSelected = tier.id === pendingTier;
-                        return (
-                          <button key={tier.id}
-                            onClick={() => {
-                              if (!isCurrent) {
-                                setPendingTier(tier.id);
-                                setShowPlanConfirm(true);
-                              }
-                            }}
-                            className={`rounded-xl border-2 p-5 text-left transition-all ${
-                              isCurrent ? "border-[#10B981] bg-[#10B981]/5" :
-                              isSelected ? "border-blue-400 bg-blue-50" :
-                              "border-gray-200 hover:border-[#10B981]/50"
-                            }`}>
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold mb-2 ${tier.badgeColor}`}>
-                              {tier.name}
-                            </span>
-                            <p className="text-xl font-bold text-[#1F2937]">
-                              {tier.price === "0" ? "Free" : `${tier.price} ISK`}
-                            </p>
-                            <p className="text-xs text-[#6B7280] mb-3">{tier.period}</p>
-                            <ul className="space-y-1">
-                              {tier.features.map((f) => (
-                                <li key={f} className="text-xs text-[#6B7280] flex items-start gap-1.5">
-                                  <svg className="w-3.5 h-3.5 text-[#10B981] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                  {f}
-                                </li>
-                              ))}
-                            </ul>
-                            {isCurrent && (
-                              <p className="text-xs font-medium text-[#10B981] mt-3">Current plan</p>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Confirm plan change */}
-                  {showPlanConfirm && pendingTier && pendingTier !== currentTier && (
-                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl px-5 py-5">
-                      <h3 className="text-sm font-semibold text-[#1F2937] mb-2">Confirm plan change</h3>
-                      {(() => {
-                        const target = tiers.find(t => t.id === pendingTier);
-                        if (!target) return null;
-                        const isPaid = target.price !== "0";
-                        return (
-                          <>
-                            <p className="text-sm text-[#6B7280] mb-1">
-                              You are switching to <span className="font-semibold text-[#1F2937]">{target.name}</span>
-                              {isPaid ? ` at ${target.price} ISK / ${target.period}.` : " (free)."}
-                            </p>
-                            {isPaid && (
-                              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 mb-3">
-                                Payment integration coming soon — contact us at{" "}
-                                <a href="mailto:contact@lifelinehealth.is" className="font-semibold underline">contact@lifelinehealth.is</a>
-                              </div>
-                            )}
-                            {!isPaid && (
-                              <p className="text-xs text-[#6B7280] mb-3">
-                                Your plan will be changed immediately.
-                              </p>
-                            )}
-                            {upgradeMsg && (
-                              <p className={`text-sm mb-3 ${upgradeMsg.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>{upgradeMsg}</p>
-                            )}
-                            <div className="flex gap-3">
-                              <button onClick={handleConfirmPlanChange} disabled={upgradeProcessing || isPaid}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                {upgradeProcessing && <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                                {upgradeProcessing ? "Processing..." : isPaid ? "Confirm & Pay" : "Confirm change"}
-                              </button>
-                              <button onClick={() => { setShowPlanConfirm(false); setPendingTier(null); setUpgradeMsg(""); }}
-                                className="px-5 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                                Cancel
-                              </button>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </section>
+                  </section>
+                )}
 
                 {/* Payment methods + history — shared BillingPanel */}
                 <BillingPanel ownerType="client" ownerId={user.id} />
@@ -2877,18 +2650,18 @@ function AccountPageInner() {
             {/* ============ SETTINGS ============ */}
             {activeSection === "settings" && (
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Account Settings</h2>
+                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Stillingar</h2>
 
                 {/* Personal information entry (opens the Profile section) */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Personal information</p>
-                      <p className="text-xs text-[#6B7280]">Name, phone, address, emergency contact</p>
+                      <p className="text-sm font-medium text-[#1F2937]">Persónuupplýsingar</p>
+                      <p className="text-xs text-[#6B7280]">Nafn, sími, heimilisfang og tengiliður í neyð</p>
                     </div>
                     <button onClick={() => setActiveSection("profile")}
                       className="text-sm font-medium text-[#10B981] hover:underline">
-                      Edit
+                      Breyta
                     </button>
                   </div>
                 </div>
@@ -2908,20 +2681,20 @@ function AccountPageInner() {
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Password</p>
-                      <p className="text-xs text-[#6B7280]">Update your account password</p>
+                      <p className="text-sm font-medium text-[#1F2937]">Lykilorð</p>
+                      <p className="text-xs text-[#6B7280]">Breyttu lykilorðinu þínu</p>
                     </div>
                     <button onClick={() => setShowPasswordForm(!showPasswordForm)}
                       className="text-sm font-medium text-[#10B981] hover:underline">
-                      {showPasswordForm ? "Cancel" : "Change"}
+                      {showPasswordForm ? "Hætta við" : "Breyta"}
                     </button>
                   </div>
                   {showPasswordForm && (
                     <div className="mt-4 max-w-sm space-y-3">
-                      <input type="password" placeholder="New password (min 6 characters)" value={newPassword}
+                      <input type="password" placeholder="Nýtt lykilorð (a.m.k. 6 stafir)" value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
-                      <input type="password" placeholder="Confirm new password" value={confirmNewPassword}
+                      <input type="password" placeholder="Staðfestu nýja lykilorðið" value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)} autoComplete="new-password"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                       {passwordMsg && (
@@ -2929,7 +2702,7 @@ function AccountPageInner() {
                       )}
                       <button onClick={handleChangePassword} disabled={newPassword.length < 6 || confirmNewPassword.length < 6}
                         className="px-5 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        Update Password
+                        Vista lykilorð
                       </button>
                     </div>
                   )}
@@ -2940,8 +2713,8 @@ function AccountPageInner() {
                   <div className="border-b border-gray-100 pb-5 mb-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-[#1F2937]">Beta feedback button</p>
-                        <p className="text-xs text-[#6B7280]">Show or hide the floating feedback button across the site</p>
+                        <p className="text-sm font-medium text-[#1F2937]">Ábendingahnappur</p>
+                        <p className="text-xs text-[#6B7280]">Sýna eða fela ábendingahnappinn neðst á síðunni</p>
                       </div>
                       <button
                         onClick={toggleFeedbackHidden}
@@ -2970,12 +2743,12 @@ function AccountPageInner() {
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-red-600">Delete Account</p>
-                      <p className="text-xs text-[#6B7280]">Permanently remove your account and all data</p>
+                      <p className="text-sm font-medium text-red-600">Eyða aðgangi</p>
+                      <p className="text-xs text-[#6B7280]">Eyðir aðganginum og öllum gögnum varanlega</p>
                     </div>
                     <button onClick={() => setShowDeleteConfirm(true)}
                       className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
-                      Delete
+                      Eyða
                     </button>
                   </div>
                   {showDeleteConfirm && (
@@ -2984,20 +2757,20 @@ function AccountPageInner() {
                         This will permanently delete your account and all data. This cannot be undone.
                       </p>
                       <p className="text-sm text-red-700 mb-2">
-                        Type <span className="font-bold">DELETE</span> to confirm:
+                        Skrifaðu <span className="font-bold">EYÐA</span> til að staðfesta:
                       </p>
                       <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
-                        placeholder="Type DELETE"
+                        placeholder="Skrifaðu EYÐA"
                         className="w-full max-w-[200px] px-3 py-2 border border-red-300 rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-red-400 text-gray-900" />
                       {deleteError && <p className="text-sm text-red-600 mb-2">{deleteError}</p>}
                       <div className="flex gap-3">
-                        <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== "DELETE" || deleteLoading}
+                        <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== "EYÐA" || deleteLoading}
                           className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                          {deleteLoading ? "Deleting..." : "Yes, delete my account"}
+                          {deleteLoading ? "Eyði…" : "Já, eyða aðganginum mínum"}
                         </button>
                         <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); setDeleteError(""); }}
                           className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                          Cancel
+                          Hætta við
                         </button>
                       </div>
                     </div>
@@ -3032,38 +2805,38 @@ const BIODY_CONSENT_KEY = "biody-import-v1";
 const DSR_OPTIONS: Array<{ value: string; label: string; help: string }> = [
   {
     value: "access",
-    label: "Get a copy of all my data",
-    help: "We'll prepare a downloadable file with everything we have about you in this app and email it within 30 days. (Your medical record lives in Medalia and has its own way to request it.)",
+    label: "Fá afrit af öllum gögnum mínum",
+    help: "Við tökum saman skrá með öllu sem við geymum um þig í þessu kerfi og sendum hana innan 30 daga. (Sjúkraskráin er í Medalia og um hana gilda sérstakar reglur.)",
   },
   {
     value: "rectification",
-    label: "Correct something that's wrong",
-    help: "For your name, phone, address, and other personal details, the fastest way is to use \"Personal information\" above. Use this option when something else needs fixing — describe what's wrong below.",
+    label: "Leiðrétta rangar upplýsingar",
+    help: "Nafni, síma og heimilisfangi getur þú breytt sjálf(ur) undir „Persónuupplýsingar“ hér að ofan. Notaðu þennan valkost ef eitthvað annað þarf að laga og lýstu því hér fyrir neðan.",
   },
   {
     value: "erasure",
-    label: "Delete my account and data",
-    help: "Permanently removes your Lifeline account and the data we've collected. The fastest way is the \"Delete Account\" button below. Use this option only if you'd rather have us do it manually. Your medical record in Medalia stays under its own retention rules (Icelandic law nr. 55/2009).",
+    label: "Eyða aðgangi og gögnum",
+    help: "Eyðir aðganginum þínum og þeim gögnum sem við höfum safnað. Fljótlegast er að nota „Eyða aðgangi“ hér fyrir neðan. Sjúkraskráin í Medalia fylgir eigin varðveislureglum (lög nr. 55/2009).",
   },
   {
     value: "restriction",
-    label: "Pause processing while a question is sorted",
-    help: "We'll stop using your data for new things while we discuss a concern with you. Your account stays open. Useful if you're disputing something.",
+    label: "Stöðva vinnslu á meðan mál er skoðað",
+    help: "Við hættum að nota gögnin þín í nýjum tilgangi á meðan við förum yfir athugasemd þína. Aðgangurinn helst opinn.",
   },
   {
     value: "portability",
-    label: "Export my data to another service",
-    help: "Same as \"Get a copy\" but in a machine-readable format suitable for moving to another app or service.",
+    label: "Flytja gögnin mín annað",
+    help: "Eins og afrit, en á tölvulesanlegu sniði sem hentar til að flytja í aðra þjónustu.",
   },
   {
     value: "objection",
-    label: "Stop using my data for a specific purpose",
-    help: "For example, marketing emails or anonymised research. Tell us specifically what you want stopped.",
+    label: "Hætta notkun gagna í tilteknum tilgangi",
+    help: "Til dæmis markpóstur eða ópersónugreinanlegar rannsóknir. Segðu okkur nákvæmlega hvað á að stöðva.",
   },
   {
     value: "withdraw_consent",
-    label: "Withdraw a consent I gave earlier",
-    help: "If there's an opt-in you'd like to take back. The Biody toggle above is the most common case — flip it off and you're done. Use this for anything you can't toggle yourself.",
+    label: "Draga samþykki til baka",
+    help: "Ef þú vilt afturkalla samþykki sem þú gafst. Biody-rofinn hér að ofan er algengasta dæmið. Notaðu þetta fyrir allt sem þú getur ekki breytt sjálf(ur).",
   },
 ];
 
@@ -3094,7 +2867,7 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
     try {
       const { data: s } = await supabase.auth.getSession();
       const token = s.session?.access_token;
-      if (!token) throw new Error("Not signed in");
+      if (!token) throw new Error("Ekki innskráð(ur)");
       const action = biodyConsent ? "revoke" : "grant";
       const res = await fetch("/api/account/consent/biody-import", {
         method: "POST",
@@ -3102,10 +2875,10 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
         body: JSON.stringify({ action }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j.ok) throw new Error(j.error || "Consent update failed");
+      if (!res.ok || !j.ok) throw new Error(j.error || "Ekki tókst að vista samþykkið");
       setBiodyConsent(action === "grant");
     } catch (e) {
-      alert("Could not save your choice: " + (e as Error).message);
+      alert("Ekki tókst að vista valið: " + (e as Error).message);
     } finally {
       setSavingConsent(false);
     }
@@ -3117,17 +2890,17 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
     try {
       const { data: s } = await supabase.auth.getSession();
       const token = s.session?.access_token;
-      if (!token) throw new Error("Not signed in");
+      if (!token) throw new Error("Ekki innskráð(ur)");
       const res = await fetch("/api/account/data-subject-request", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ type: dsrType, details: dsrDetails }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j.ok) throw new Error(j.error || "Request failed");
+      if (!res.ok || !j.ok) throw new Error(j.error || "Beiðnin mistókst");
       setDsrMsg({
         type: "ok",
-        text: "Request received — our DPO will respond within 30 days.",
+        text: "Beiðnin er móttekin. Persónuverndarfulltrúi svarar innan 30 daga.",
       });
       setDsrDetails("");
     } catch (e) {
@@ -3140,18 +2913,18 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm font-medium text-[#1F2937]">Data &amp; privacy</p>
-        <p className="text-xs text-[#6B7280]">Control how your health data flows in this app</p>
+        <p className="text-sm font-medium text-[#1F2937]">Gögn og persónuvernd</p>
+        <p className="text-xs text-[#6B7280]">Stjórnaðu hvernig heilsufarsgögnin þín eru notuð hér</p>
       </div>
 
       {/* Biody import consent */}
       <div className="bg-[#F9FAFB] rounded-xl p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <p className="text-sm font-medium text-[#1F2937]">Show my Biody body composition here</p>
+            <p className="text-sm font-medium text-[#1F2937]">Sýna Biody-líkamssamsetningu hér</p>
             <p className="text-xs text-[#6B7280] mt-0.5">
-              Sync your Biody scan results into this dashboard for self-tracking.
-              Off by default. Your medical record in Medalia is unaffected either way.
+              Sækir niðurstöður Biody-mælinga inn á þetta yfirlit. Slökkt sjálfgefið.
+              Sjúkraskráin í Medalia breytist ekki.
             </p>
           </div>
           <button
@@ -3162,7 +2935,7 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
               biodyConsent ? "bg-[#10B981]" : "bg-gray-300"
             } ${savingConsent || biodyConsent === null ? "opacity-60" : ""}`}
             aria-pressed={!!biodyConsent}
-            aria-label="Toggle Biody import"
+            aria-label="Kveikja eða slökkva á Biody-gögnum"
           >
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
@@ -3175,13 +2948,11 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
 
       {/* Privacy request — plain-language menu */}
       <div className="bg-[#F9FAFB] rounded-xl p-4">
-        <p className="text-sm font-medium text-[#1F2937] mb-1">Ask us to do something with your data</p>
+        <p className="text-sm font-medium text-[#1F2937] mb-1">Beiðni um gögnin þín</p>
         <p className="text-xs text-[#6B7280] mb-3 leading-relaxed">
-          Under EU and Icelandic privacy law you have rights over your personal data —
-          you can ask for a copy, ask us to fix something, ask us to delete it, and more.
-          Most things you can do yourself in this app (edit your profile, toggle Biody on/off,
-          delete your account). For anything else, pick an option below and we&apos;ll respond
-          within 30 days.
+          Samkvæmt persónuverndarlögum átt þú rétt á afriti af gögnunum þínum, leiðréttingu,
+          eyðingu og fleiru. Flest getur þú gert sjálf(ur) hér. Fyrir annað skaltu velja
+          valkost hér fyrir neðan og við svörum innan 30 daga.
         </p>
         <div className="space-y-3">
           <select
@@ -3189,7 +2960,7 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
             onChange={(e) => { setDsrType(e.target.value); setDsrMsg(null); }}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
           >
-            <option value="">— Choose what you&apos;d like to do —</option>
+            <option value="">Veldu beiðni</option>
             {DSR_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -3203,7 +2974,7 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
             <textarea
               value={dsrDetails}
               onChange={(e) => setDsrDetails(e.target.value)}
-              placeholder="Anything else we should know? (optional)"
+              placeholder="Eitthvað sem við ættum að vita? (valfrjálst)"
               rows={2}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 resize-y"
               maxLength={4000}
@@ -3216,7 +2987,7 @@ function DataPrivacyPanel({ userId }: { userId: string }) {
             disabled={dsrSending || !dsrType}
             className="px-4 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {dsrSending ? "Sending…" : "Send request"}
+            {dsrSending ? "Sendi…" : "Senda beiðni"}
           </button>
           {dsrMsg && (
             <p className={`text-xs ${dsrMsg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>
@@ -3399,30 +3170,11 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
 // lives.
 function WellnessFramingCard() {
   return (
-    <section className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5 sm:p-6">
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 mt-0.5">
-          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div className="text-sm text-slate-700 leading-relaxed">
-          <p className="font-medium text-slate-900 mb-1">About your dashboard</p>
-          <p>
-            This is your self-tracking and scheduling dashboard — not your medical record.
-            Your formal medical record (sjúkraskrá) is held in <strong>Medalia</strong>, a
-            licensed health-record system under Icelandic law nr. 55/2009. Open the patient
-            portal from your assessment cards to see your clinical results, doctor&apos;s notes,
-            and blood-test outcomes. For coaching messages here, please remember they are not
-            medical advice — clinical questions go through Medalia or a doctor&apos;s appointment.
-          </p>
-          <p className="mt-2 text-xs text-slate-500">
-            Read more in our{" "}
-            <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-700">privacy policy</Link>.
-          </p>
-        </div>
-      </div>
-    </section>
+    <p className="px-1 text-xs leading-relaxed text-slate-500">
+      Þetta er yfirlit yfir bókanir og aðgang, ekki sjúkraskrá. Sjúkraskráin þín er varðveitt í Medalia samkvæmt lögum nr. 55/2009.
+      Klínískum spurningum er svarað í gegnum sjúklingagáttina eða í tíma hjá lækni.{" "}
+      <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-700">Persónuvernd</Link>
+    </p>
   );
 }
 
@@ -4236,17 +3988,19 @@ function CurrentBookings({
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   );
+  // Nothing booked: the health-check journey shows the next step instead.
+  if (nothing) return null;
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-[#1F2937]">Current bookings</h3>
-          <p className="text-sm text-[#6B7280]">Your confirmed appointments.</p>
+          <h3 className="text-lg font-semibold text-[#1F2937]">Bókanir</h3>
+          <p className="text-sm text-[#6B7280]">Staðfestir tímar.</p>
         </div>
         {!nothing && (
           <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Confirmed
+            Staðfest
           </span>
         )}
       </div>
@@ -5537,108 +5291,6 @@ function ResumeBookingHero({
   );
 }
 
-function GetStartedHero() {
-  const [showPackages, setShowPackages] = useState(false);
-  return (
-    <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #10B981, #0D9488)" }}>
-      <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-12 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-      <div className="relative p-8 sm:p-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 backdrop-blur-sm mb-4">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <span className="text-xs font-semibold uppercase tracking-wide">Get started</span>
-        </div>
-        <h2 className="text-3xl sm:text-4xl font-bold leading-tight max-w-xl">
-          Ready to take the first step?
-        </h2>
-        <p className="mt-3 text-base opacity-95 leading-relaxed max-w-xl">
-          Your Lifeline journey begins with the Foundational Health assessment — a 360° snapshot of your body-composition, blood work, and lifestyle, with a doctor-led action plan to take home.
-        </p>
-        <ul className="mt-5 space-y-2 text-sm text-white/95 max-w-xl">
-          {[
-            "On-site measurements at a Lifeline station",
-            "Targeted blood panel (fasting)",
-            "Full health questionnaire",
-            "Doctor-reviewed personal report + 1:1 consultation",
-          ].map((x) => (
-            <li key={x} className="flex items-start gap-2">
-              <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-              {x}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-7 flex flex-wrap items-center gap-3">
-          <Link
-            href="/account/book"
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#0F172A] text-base font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 hover:opacity-95 transition-all"
-          >
-            Book your assessment
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <button
-            type="button"
-            onClick={() => setShowPackages((v) => !v)}
-            aria-expanded={showPackages}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/40 text-white text-sm font-semibold hover:bg-white/10"
-          >
-            {showPackages ? "Hide packages" : "Compare packages"}
-            <svg className={`w-4 h-4 transition-transform ${showPackages ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Packages dropdown — mirrors /account/book package cards */}
-        {showPackages && (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-            {ASSESSMENT_PACKAGES.map((pkg) => (
-              <div key={pkg.key} className="rounded-xl bg-white text-gray-900 shadow-sm overflow-hidden">
-                <div className={`h-1.5 bg-gradient-to-r ${pkg.accent}`} />
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className={`text-[10px] font-semibold uppercase tracking-wider ${pkg.dot}`}>{pkg.tag}</div>
-                      <h3 className="text-base font-bold text-[#0F172A] mt-0.5">{pkg.name}</h3>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-[#0F172A] whitespace-nowrap">{formatPackagePrice(pkg.priceIsk)}</div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-2 leading-relaxed">{pkg.summary}</p>
-                  <ul className="mt-3 space-y-1.5">
-                    {pkg.includes.map((inc) => (
-                      <li key={inc} className="flex items-start gap-1.5 text-xs text-gray-700">
-                        <svg className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${pkg.dot}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>{inc}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href={`/account/book?pkg=${pkg.key}`}
-                    className={`mt-4 inline-flex items-center justify-center w-full gap-1 py-2 rounded-lg text-white text-xs font-semibold bg-gradient-to-r ${pkg.accent} hover:opacity-95`}
-                  >
-                    Choose this package
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
 
 function ServicesSection({
   companyName, onGoToCoaching,
@@ -5822,47 +5474,6 @@ function ServicesSection({
 }
 
 
-function AppTeaserCard({ onGoToCoaching }: { onGoToCoaching: () => void }) {
-  return (
-    <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
-      <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] to-[#8B5CF6]" />
-      <div className="p-6 sm:p-8">
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">After your assessment</div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Keep building health with the Lifeline app</h2>
-            <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
-              Your report is the starting line. The app is how you move — every day, across all four pillars of health.
-            </p>
-            <ul className="text-sm text-[#4B5563] mt-3 space-y-1.5 list-disc list-inside">
-              <li>Daily actions personalised to your results</li>
-              <li>Your own health coach, in your pocket</li>
-              <li>Accountability partner, community &amp; events</li>
-              <li>Advanced macro tracking, made ridiculously simple</li>
-            </ul>
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={onGoToCoaching}
-                className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:opacity-95 transition-all group"
-              >
-                Explore the coaching app
-                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /**
  * Full "What's inside the app" block used on the Coaching app page.

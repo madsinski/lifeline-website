@@ -111,7 +111,7 @@ export default function BillingPanel({
   }
 
   async function removeMethod(id: string) {
-    if (!confirm("Remove this payment method?")) return;
+    if (!confirm("Fjarlægja þetta greiðslukort?")) return;
     setActionId(id);
     const { error: delErr } = await supabase.from("payment_methods").delete().eq("id", id);
     setActionId(null);
@@ -128,7 +128,7 @@ export default function BillingPanel({
     };
     return (
       <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${map[status]}`}>
-        {status}
+        {({ pending: "Í bið", succeeded: "Greitt", refunded: "Endurgreitt", failed: "Mistókst" } as Record<string, string>)[status] ?? status}
       </span>
     );
   }
@@ -139,14 +139,14 @@ export default function BillingPanel({
       <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#1F2937]">Payment methods</h2>
+            <h2 className="text-lg font-semibold text-[#1F2937]">Greiðslukort</h2>
             <p className="text-sm text-[#6B7280] mt-1">
               {(() => {
                 const providers = Array.from(new Set(methods.map((m) => m.provider).filter(Boolean)));
                 const name = providers.length === 1
                   ? (providers[0] === "straumur" ? STRAUMUR_BRAND.name : providers[0].replace(/^./, (c) => c.toUpperCase()))
                   : STRAUMUR_BRAND.name;
-                return `Secured by ${name}. We store a token — never the card number.`;
+                return `Öruggt hjá ${name}. Við geymum aðeins tákn, aldrei kortanúmerið.`;
               })()}
             </p>
           </div>
@@ -156,15 +156,15 @@ export default function BillingPanel({
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60 shadow-sm"
           >
             {adding && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {adding ? "Saving…" : "+ Add card"}
+            {adding ? "Vista…" : "+ Bæta við korti"}
           </button>
         </div>
         {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
         {loading ? (
-          <div className="text-sm text-gray-500">Loading…</div>
+          <div className="text-sm text-gray-500">Hleð…</div>
         ) : methods.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-            No payment methods on file yet. Add a card to pay for services.
+            Ekkert greiðslukort skráð.
           </div>
         ) : (
           <div className="space-y-2">
@@ -175,8 +175,8 @@ export default function BillingPanel({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-gray-900">
-                    {m.brand || "Card"} •••• {m.last4 || "0000"}
-                    {m.is_default && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">Default</span>}
+                    {m.brand || "Kort"} •••• {m.last4 || "0000"}
+                    {m.is_default && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">Aðalkort</span>}
                   </div>
                   {m.exp_month && m.exp_year && (
                     <div className="text-xs text-gray-500">Expires {String(m.exp_month).padStart(2, "0")}/{m.exp_year}</div>
@@ -185,11 +185,11 @@ export default function BillingPanel({
                 <div className="flex items-center gap-2">
                   {!m.is_default && (
                     <button onClick={() => setDefault(m.id)} disabled={actionId === m.id} className="text-xs font-medium text-[#10B981] hover:underline disabled:opacity-50">
-                      Set default
+                      Gera að aðalkorti
                     </button>
                   )}
                   <button onClick={() => removeMethod(m.id)} disabled={actionId === m.id} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50">
-                    Remove
+                    Fjarlægja
                   </button>
                 </div>
               </div>
@@ -201,35 +201,35 @@ export default function BillingPanel({
       {/* Payment history */}
       <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[#1F2937]">Payment history</h2>
+          <h2 className="text-lg font-semibold text-[#1F2937]">Greiðslusaga</h2>
           {!showAllPayments && payments.length > 5 && (
             <button onClick={() => setShowAllPayments(true)} className="text-sm font-medium text-[#10B981] hover:underline">
-              View all
+              Sjá allt
             </button>
           )}
         </div>
         {loading ? (
-          <div className="text-sm text-gray-500">Loading…</div>
+          <div className="text-sm text-gray-500">Hleð…</div>
         ) : payments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-            Your payment history will appear here after your first transaction.
+            Greiðslur birtast hér eftir fyrstu færslu.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[#6B7280] border-b border-gray-100">
-                  <th className="pb-3 font-medium">Date</th>
-                  <th className="pb-3 font-medium">Description</th>
-                  <th className="pb-3 font-medium text-right">Amount</th>
-                  <th className="pb-3 font-medium text-right">Status</th>
+                  <th className="pb-3 font-medium">Dagsetning</th>
+                  <th className="pb-3 font-medium">Lýsing</th>
+                  <th className="pb-3 font-medium text-right">Upphæð</th>
+                  <th className="pb-3 font-medium text-right">Staða</th>
                 </tr>
               </thead>
               <tbody>
                 {visiblePayments.map((p) => (
                   <tr key={p.id} className="border-b border-gray-50 last:border-0">
                     <td className="py-3 text-[#1F2937] whitespace-nowrap">
-                      {new Date(p.paid_at || p.created_at).toLocaleDateString("en-GB")}
+                      {new Date(p.paid_at || p.created_at).toLocaleDateString("is-IS")}
                     </td>
                     <td className="py-3 text-[#1F2937]">
                       {p.description}
@@ -254,7 +254,7 @@ export default function BillingPanel({
                                 body: JSON.stringify({ bookingId: p.related_id }),
                               });
                               const body = await res.json().catch(() => ({}));
-                              if (!res.ok || !body?.url) { setError(body?.error || "Receipt failed"); return; }
+                              if (!res.ok || !body?.url) { setError(body?.error || "Ekki tókst að sækja kvittun"); return; }
                               window.open(body.url, "_blank", "noopener,noreferrer");
                               load();
                             } finally {
@@ -264,7 +264,7 @@ export default function BillingPanel({
                           disabled={actionId === p.id}
                           className="ml-2 text-xs text-[#10B981] hover:underline disabled:opacity-60"
                         >
-                          {actionId === p.id ? "…" : "Get receipt"}
+                          {actionId === p.id ? "…" : "Sækja kvittun"}
                         </button>
                       ) : null}
                     </td>
