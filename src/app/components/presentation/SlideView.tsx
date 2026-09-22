@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- deck renders CMS/storage/full-bleed imagery where next/image's layout constraints don't fit; plain <img> is intentional. */
 "use client";
 
+import { applySvgTexts, isSvgUrl } from "@/lib/presentations/svg-text";
 import React from "react";
 import { createPortal } from "react-dom";
 import type { Slide, MemberItem, IconKey } from "@/lib/presentations/types";
@@ -281,6 +282,25 @@ function FocusView({ src, rect, title, body, onClose }: { src: string; rect: Hig
   );
 }
 
+/** An SVG with the slide's edited texts written in, as an object URL. Null
+ *  until ready (or when there is nothing to replace) — the original shows. */
+function useSvgTexts(img: string | undefined, texts: string[] | undefined): string | null {
+  const [url, setUrl] = React.useState<string | null>(null);
+  const key = isSvgUrl(img) && texts?.some((t) => t && t.trim()) ? JSON.stringify(texts) : "";
+  React.useEffect(() => {
+    if (!key || !img) { setUrl(null); return; }
+    let live = true;
+    let made: string | null = null;
+    fetch(img).then((r) => r.text()).then((src) => {
+      if (!live) return;
+      made = URL.createObjectURL(new Blob([applySvgTexts(src, JSON.parse(key) as string[])], { type: "image/svg+xml" }));
+      setUrl(made);
+    }).catch(() => { if (live) setUrl(null); });
+    return () => { live = false; if (made) URL.revokeObjectURL(made); };
+  }, [img, key]);
+  return key ? url : null;
+}
+
 /** Full-bleed image slide. When interactive (zoomable), the image opens in a
  *  lightbox on click, and any focus areas become clickable zoom-in hotspots. */
 function FullbleedView({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
@@ -289,10 +309,11 @@ function FullbleedView({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
   const img = s.image;
   const spots = (zoomable && s.hotspots) ? s.hotspots : [];
   const objectFit = s.fit === "contain" ? "contain" : "cover";
+  const shown = useSvgTexts(img, s.svgText);
   return (
     <div className="fullbleed">
       {img
-        ? <img src={img} alt={s.heading || "Illustration"} style={{ objectFit, cursor: zoomable && !spots.length ? "zoom-in" : "default" }}
+        ? <img src={shown ?? img} alt={s.heading || "Illustration"} style={{ objectFit, cursor: zoomable && !spots.length ? "zoom-in" : "default" }}
             onClick={zoomable && !spots.length ? () => setZoom(true) : undefined} />
         : <span className="hero-ph">No image yet</span>}
       {img && spots.map((h, i) => (

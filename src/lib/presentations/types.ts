@@ -169,6 +169,9 @@ export interface Slide {
   // wordmark, so a full-bleed diagram can carry the same chrome as every other
   // slide. Default "bottom", which is how existing decks already read.
   capPos?: "bottom" | "top" | "none";
+  // fullbleed — replacement text for an SVG illustration, one entry per text
+  // slot in the drawing (see lib/presentations/svg-text.ts); "" keeps the original.
+  svgText?: string[];
   // fullbleed — clickable focus areas; each zooms into that region of the image
   // with an optional caption. x,y,w,h in % of the image.
   hotspots?: { x: number; y: number; w: number; h: number; title?: string; body?: string }[];
@@ -490,6 +493,7 @@ export const SLIDE_SCHEMAS: Record<SlideType, SlideSchema> = {
       { key: "fit", label: "Fit", kind: "select", noTranslate: true, options: [{ value: "cover", label: "Cover (fill)" }, { value: "contain", label: "Contain (show all)" }] },
       { key: "capPos", label: "Heading position", kind: "select", noTranslate: true, help: "Top also shows the corner logo, like every other slide. None shows the image alone: no heading band, no logo (the heading is kept as alt text).", options: [{ value: "bottom", label: "Bottom (over the image)" }, { value: "top", label: "Top (with corner logo)" }, { value: "none", label: "None (image only)" }] },
       F.kicker, F.heading,
+      { key: "svgText", label: "Texts in the image", kind: "list", itemFields: [{ key: "value", label: "Text", kind: "text" }], help: "SVG illustrations only: one line per text in the drawing, in order. Leave a line empty to keep the drawing's own text. Use „Load texts from image“ to start." },
       { key: "hotspots", label: "Focus areas (click to zoom)", kind: "text", noTranslate: true, help: "Clickable regions that enlarge part of the image with a caption — draw them on the image below." },
     ],
   },

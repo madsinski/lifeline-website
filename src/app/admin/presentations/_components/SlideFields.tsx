@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- editor thumbnails preview CMS/storage image URLs; plain <img> is intentional. */
 
+import { isSvgUrl, readSvgTexts } from "@/lib/presentations/svg-text";
 import { useMemo, useRef, useState } from "react";
 import {
   SLIDE_SCHEMAS,
@@ -472,7 +473,23 @@ export function SlideFields({ slide, presentationId, onChange, textOnly }: { sli
                 {(f.options || []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             )}
-            {f.kind === "list" && <ListEditor field={f} value={(raw as unknown[]) ?? []} presentationId={presentationId} onChange={(v) => setField(key, v)} textOnly={textOnly} />}
+            {f.kind === "list" && key === "svgText" && !isSvgUrl(slide.image) && (
+              <p className="text-[11px] text-gray-400">Only for SVG images.</p>
+            )}
+            {f.kind === "list" && key === "svgText" && isSvgUrl(slide.image) && !textOnly && (
+              <button type="button" className="mb-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                onClick={async () => {
+                  const cur = ((raw as string[]) ?? []).filter((x) => x && x.trim());
+                  if (cur.length && !confirm("Replace the current texts with the ones in the image?")) return;
+                  try {
+                    const src = await (await fetch(slide.image!)).text();
+                    setField(key, readSvgTexts(src));
+                  } catch { alert("Could not read the image."); }
+                }}>
+                Load texts from image
+              </button>
+            )}
+            {f.kind === "list" && (key !== "svgText" || isSvgUrl(slide.image)) && <ListEditor field={f} value={(raw as unknown[]) ?? []} presentationId={presentationId} onChange={(v) => setField(key, v)} textOnly={textOnly} />}
             {f.help && <p className="mt-1 text-[11px] text-gray-400">{f.help}</p>}
           </div>
         );
