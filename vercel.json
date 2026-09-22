@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/payday-invoice-sync",
       "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/cron/hc-report-escalation",
+      "schedule": "* * * * *"
     }
   ]
 }

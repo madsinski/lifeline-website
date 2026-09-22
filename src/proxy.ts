@@ -38,6 +38,9 @@ const BYPASS_PREFIXES = [
   "/leidbeiningar",         // public, printable measurement-station instructions
   "/legal-review",          // no-login tokenised legal-document review links (external counsel)
   "/privacy",               // public privacy policy — must be reachable pre-launch (GDPR)
+  "/heilsuskodun",          // public health-check entry per location (posters, employers, heilsugæsla)
+  "/vinnustod",             // nurse/doctor workstation — own cookie auth (src/lib/hc/ws-auth.ts)
+  "/account/heilsuferd",    // health-check journey — own Supabase session check; signup must reach it
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
   "/_next",

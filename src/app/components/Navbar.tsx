@@ -95,7 +95,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   // render their own self-contained header (logo + back button), so the
   // marketing nav must not also render — otherwise the header doubles up.
   // Placed after all hooks so the rules of hooks are respected.
-  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar"];
+  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod"];
   if (chromeFree.some((p) => pathname.startsWith(p))) {
     return null;
   }

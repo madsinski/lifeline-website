@@ -249,6 +249,13 @@ export default function CoachDashboardPage() {
             {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <Link
+          href="/admin/coach/plans"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors"
+        >
+          Aðgerðaáætlanir
+        </Link>
         <button
           onClick={loadDashboard}
           disabled={loading}
@@ -259,6 +266,7 @@ export default function CoachDashboardPage() {
           </svg>
           Refresh
         </button>
+        </div>
       </div>
 
       {/* Quick Actions */}

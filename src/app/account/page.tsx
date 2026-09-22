@@ -1368,6 +1368,21 @@ function AccountPageInner() {
                   </div>
                 </section>
 
+                {/* Heilsuferð — the self-service health-check journey
+                    (/account/heilsuferd). Same entry for B2C and B2B. */}
+                <Link
+                  href="/account/heilsuferd"
+                  className="group flex items-center gap-4 rounded-2xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white shadow-md transition hover:shadow-lg"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg">✚</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Heilsuferðin þín</span>
+                    <span className="block font-semibold">Heilsufarsskoðun, skref fyrir skref</span>
+                    <span className="block text-sm text-emerald-100">Sjáðu næsta skref, fræðsluna og aðgerðaáætlunina þína.</span>
+                  </span>
+                  <span className="text-emerald-200 transition group-hover:translate-x-1" aria-hidden>→</span>
+                </Link>
+
                 {/* New service teaser — Heilsufarsskoðun hjá Lyfju.
                     Booking + QR both open the Medalia patient portal. */}
                 <HealthCheckTeaser

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
+import PinPad from "@/app/components/hc/PinPad";
 import {
   PUBLIC_PRIVACY_VERSION,
   PUBLIC_TERMS_VERSION,
@@ -48,6 +49,47 @@ function AccountLoginContent() {
       : "",
   );
   const [loading, setLoading] = useState(false);
+  // The health-check journey has its own onboarding (welcome lecture), so
+  // people arriving for it skip the generic welcome slideshow.
+  const journeyNext = nextPath.startsWith("/account/heilsuferd");
+
+  // PIN sign-in on a trusted device (set up from the journey settings).
+  const [pinAvailable, setPinAvailable] = useState<{ email_hint: string | null } | null>(null);
+  const [usePin, setUsePin] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  useEffect(() => {
+    fetch("/api/account/pin")
+      .then((r) => r.json())
+      .then((j) => { if (j.enabled) { setPinAvailable({ email_hint: j.email_hint ?? null }); setUsePin(true); } })
+      .catch(() => {});
+  }, []);
+
+  const handlePin = async (value: string) => {
+    setPinError("");
+    setLoading(true);
+    const r = await fetch("/api/account/pin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: value }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      setLoading(false);
+      setPin("");
+      setPinError(j.error || "Innskráning mistókst.");
+      if (j.locked || j.error === "no_device") { setPinAvailable(null); setUsePin(false); }
+      return;
+    }
+    const { error: otpErr } = await supabase.auth.verifyOtp({ token_hash: j.token_hash, type: "magiclink" });
+    if (otpErr) {
+      setLoading(false);
+      setPin("");
+      setPinError(otpErr.message);
+      return;
+    }
+    router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
+  };
 
   // Versioned together — when either text changes bump both. The
   // public renderers (renderPublicTermsOfService /
@@ -83,7 +125,7 @@ function AccountLoginContent() {
           .select("welcome_seen_at")
           .eq("id", signInData.user.id)
           .maybeSingle();
-        if (profile && !profile.welcome_seen_at) {
+        if (profile && !profile.welcome_seen_at && !journeyNext) {
           router.push("/account/welcome");
           return;
         }
@@ -143,7 +185,7 @@ function AccountLoginContent() {
         email,
         password,
         options: {
-          emailRedirectTo: `${origin}/account/welcome`,
+          emailRedirectTo: journeyNext ? `${origin}${nextPath}` : `${origin}/account/welcome`,
           data: {
             full_name: fullName,
             ...(refCode ? { referred_by: refCode } : {}),
@@ -271,7 +313,23 @@ function AccountLoginContent() {
           </div>
 
           <div className="p-8">
-          {mode === "signup" && signupStage === "terms" ? (
+          {mode === "login" && usePin && pinAvailable ? (
+            <div>
+              <p className="text-center text-sm text-gray-600">
+                Sláðu inn PIN{pinAvailable.email_hint ? <> fyrir <span className="font-medium text-gray-800">{pinAvailable.email_hint}</span></> : null}
+              </p>
+              <div className="mt-5">
+                <PinPad value={pin} onChange={setPin} onComplete={handlePin} disabled={loading} error={!!pinError} />
+              </div>
+              {pinError && <p role="alert" className="mt-4 text-center text-sm text-red-600">{pinError}</p>}
+              <button
+                onClick={() => { setUsePin(false); setPinError(""); }}
+                className="mt-5 block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981]"
+              >
+                Nota lykilorð í staðinn
+              </button>
+            </div>
+          ) : mode === "signup" && signupStage === "terms" ? (
             <TermsConsentStage
               firstName={firstName}
               email={email}
@@ -440,7 +498,15 @@ function AccountLoginContent() {
           </form>
           )}
 
-          {mode === "login" && (
+          {mode === "login" && !usePin && pinAvailable && (
+            <button
+              onClick={() => setUsePin(true)}
+              className="block w-full text-center text-sm font-medium text-[#10B981] hover:text-[#047857] mt-4 transition-colors"
+            >
+              Skrá inn með PIN
+            </button>
+          )}
+          {mode === "login" && !usePin && (
             <button
               onClick={handleForgotPassword}
               className="block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981] mt-4 transition-colors"

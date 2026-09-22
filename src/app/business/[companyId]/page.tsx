@@ -11,6 +11,7 @@ import ScheduleBloodTests from "./ScheduleBloodTests";
 import ScheduleMeasurementDays from "./ScheduleMeasurementDays";
 import ScheduleLecture, { type EditableLecture } from "./ScheduleLecture";
 import DoctorInterviews from "./DoctorInterviews";
+import HcCodesCard from "./HcCodesCard";
 
 interface Company {
   id: string;
@@ -1084,6 +1085,9 @@ export default function BusinessDashboardPage() {
 
         <div id="billing" className="scroll-mt-24" />
         {/* Billing card — PayDay invoices specific to this company's programme */}
+        {company.agreement_signed_at && members.length > 0 && (
+          <HcCodesCard companyId={companyId!} members={members} />
+        )}
         <BillingCard companyId={companyId!} />
 
         {/* Payment methods removed — companies are invoiced via PayDay, not billed via card */}
