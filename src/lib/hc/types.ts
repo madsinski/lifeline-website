@@ -74,8 +74,23 @@ export interface HcJourney {
   reevaluation_due_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
+  interview_notes?: InterviewNotes | null;
+  doctor_review_requested_at?: string | null;
+  doctor_review_note?: string | null;
+  doctor_reviewed_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Nurse's structured interview notes (workstation), one free-text field per topic. */
+export interface InterviewNotes {
+  sleep?: string;
+  exercise?: string;
+  nutrition?: string;
+  mental?: string;
+  measurements?: string;
+  goals?: string;
+  other?: string;
 }
 
 export interface HcOrder {

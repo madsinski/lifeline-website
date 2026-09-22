@@ -7,7 +7,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { applyJourneyEvent, DOCTOR_ONLY, isJourneyEvent } from "@/lib/hc/events";
-import { decryptKennitala, getClientProfile, siteOrigin } from "@/lib/hc/server";
+import { decryptKennitala, getClientProfile, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
+import { supabaseAdmin as db } from "@/lib/supabase-admin";
+import { sendEmail, renderBrandedEmail } from "@/lib/email";
+import { sendSms } from "@/lib/sms";
 import { actorLocationFilter, getHcActor, type HcActor } from "@/lib/hc/ws-auth";
 import { sameOrigin } from "@/lib/hc/secrets";
 import type { HcJourney } from "@/lib/hc/types";
@@ -70,6 +73,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
+  if (typeof body.action === "string") return handleAction(req, actor, journey, body);
   if (!isJourneyEvent(body.event)) return NextResponse.json({ error: "bad_event" }, { status: 400 });
   if (DOCTOR_ONLY.includes(body.event) && !actor.isDoctor) {
     return NextResponse.json({ error: "Aðeins læknir getur skráð þetta." }, { status: 403 });
@@ -86,4 +90,83 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   });
   if (!updated) return NextResponse.json({ error: "update_failed" }, { status: 500 });
   return NextResponse.json({ journey: updated });
+}
+
+// ── Save interview notes (autosave from the guided interview) ──────────────
+const NOTE_KEYS = ["sleep", "exercise", "nutrition", "mental", "measurements", "goals", "other"] as const;
+
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const actor = await getHcActor(req);
+  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (actor.kind === "worker" && !sameOrigin(req)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const journey = await loadAllowed(actor, (await ctx.params).id);
+  if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const body = await req.json().catch(() => ({}));
+  const src = (body.interview_notes && typeof body.interview_notes === "object" ? body.interview_notes : {}) as Record<string, unknown>;
+  const notes: Record<string, string> = {};
+  for (const k of NOTE_KEYS) if (typeof src[k] === "string") notes[k] = (src[k] as string).slice(0, 6000);
+  // Plain update: notes are working text, not a milestone — no audit per keystroke.
+  const { error } = await db.from("hc_journeys").update({ interview_notes: notes, updated_at: new Date().toISOString() }).eq("id", journey.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, saved_at: new Date().toISOString() });
+}
+
+// ── Workstation actions that are not journey milestones ─────────────────────
+async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney, body: Record<string, unknown>) {
+  const origin = siteOrigin(req);
+
+  // Paid but not activated: resend the activation code to the client.
+  if (body.action === "remind_client") {
+    const [{ data: order }, { data: u }] = await Promise.all([
+      db.from("hc_orders").select("activation_code").eq("journey_id", journey.id).in("kind", ["health_check", "reevaluation"]).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      db.auth.admin.getUserById(journey.client_id),
+    ]);
+    const email = u?.user?.email;
+    if (!email || !order?.activation_code) return NextResponse.json({ error: "Enginn virkjunarkóði eða netfang fannst." }, { status: 409 });
+    const r = await sendEmail({
+      to: email,
+      subject: "Áminning: virkjaðu heilsufarsskoðunina þína",
+      html: renderBrandedEmail({
+        title: "Næsta skref bíður þín",
+        accentLabel: "Áminning",
+        bodyHtml: `<p style="margin:0 0 12px;">Heilsufarsskoðunin þín er greidd. Næsta skref er að virkja hana í sjúklingagáttinni með kóðanum:</p>
+          <div style="font-family:ui-monospace,monospace;font-size:24px;letter-spacing:.12em;text-align:center;background:#ECFDF5;border-radius:10px;padding:14px;margin:16px 0;color:#065F46;font-weight:700;">${order.activation_code}</div>
+          <p style="margin:0;">Þar bókar þú líka blóðprufu og mælingar.</p>`,
+        ctaLabel: "Opna heilsuferðina",
+        ctaUrl: `${origin}/account/heilsuferd`,
+      }),
+      text: `Virkjunarkóðinn þinn er ${order.activation_code}. ${origin}/account/heilsuferd`,
+    });
+    if (!r.ok) return NextResponse.json({ error: r.error || "Sending mistókst." }, { status: 502 });
+    await hcAudit(actor.label, "reminder_sent", journey.id);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Nurse asks a Lifeline doctor to look at something before or after the interview.
+  if (body.action === "request_doctor") {
+    const note = typeof body.note === "string" ? body.note.trim().slice(0, 2000) : "";
+    if (!note) return NextResponse.json({ error: "Lýstu stuttlega hvað læknirinn á að meta." }, { status: 400 });
+    const updated = await patchJourney(journey.id, { doctor_review_requested_at: new Date().toISOString(), doctor_review_note: note, doctor_reviewed_at: null }, actor.label, "doctor_review_requested", { note });
+    const { data: doctors } = await db.from("hc_workers").select("email, phone, location_ids").in("role", ["doctor", "admin"]).eq("active", true);
+    const mine = (doctors || []).filter((d) => !d.location_ids?.length || (journey.location_id && d.location_ids.includes(journey.location_id)));
+    await Promise.all(mine.flatMap((d) => [
+      d.email ? sendEmail({
+        to: d.email,
+        subject: "Beiðni um mat læknis – Lifeline",
+        html: renderBrandedEmail({ title: "Hjúkrunarfræðingur óskar eftir mati læknis", bodyHtml: `<p style="margin:0;">Opnaðu vinnustöðina til að sjá beiðnina.</p>`, ctaLabel: "Opna vinnustöð", ctaUrl: `${origin}/vinnustod?p=${journey.id}` }),
+        text: `Hjúkrunarfræðingur óskar eftir mati læknis. ${origin}/vinnustod?p=${journey.id}`,
+      }) : null,
+      d.phone ? sendSms({ to: d.phone, body: `Lifeline: Beidni um mat laeknis bidur i vinnustodinni. ${origin}/vinnustod` }) : null,
+    ].filter(Boolean)));
+    return NextResponse.json({ journey: updated });
+  }
+
+  if (body.action === "doctor_reviewed") {
+    if (!actor.isDoctor) return NextResponse.json({ error: "Aðeins læknir getur skráð þetta." }, { status: 403 });
+    const updated = await patchJourney(journey.id, { doctor_reviewed_at: new Date().toISOString() }, actor.label, "doctor_reviewed",
+      { note: typeof body.note === "string" ? body.note.slice(0, 2000) : null });
+    return NextResponse.json({ journey: updated });
+  }
+
+  return NextResponse.json({ error: "unknown_action" }, { status: 400 });
 }

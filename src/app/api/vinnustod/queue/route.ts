@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabaseAdmin
     .from("hc_journeys")
-    .select("id, client_id, location_id, stage, entry, paid_at, protocol_activated_at, blood_test_done_at, blood_results_at, measurements_done_at, report_generated_at, report_sms_sent_at, interview_booked_for, interview_mode, interviewer_id, interview_done_at, plan_published_at, followup_booked_for, followup_done_at, referral_to_heilsugaesla, updated_at")
+    .select("id, client_id, location_id, stage, entry, paid_at, protocol_activated_at, blood_test_booked_for, blood_test_done_at, blood_results_at, measurements_booked_for, measurements_done_at, report_generated_at, report_sms_sent_at, interview_booked_for, interview_mode, interviewer_id, interview_done_at, plan_published_at, followup_booked_for, followup_done_at, referral_to_heilsugaesla, doctor_review_requested_at, doctor_reviewed_at, updated_at")
     .is("cancelled_at", null)
     .in("stage", ["tests", "report", "interview", "plan", "action", "protocol"])
     .order("updated_at", { ascending: false })
@@ -26,10 +26,10 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const ids = Array.from(new Set((journeys || []).map((j) => j.client_id)));
-  const names: Record<string, { full_name: string | null; phone: string | null }> = {};
+  const names: Record<string, { full_name: string | null; phone: string | null; date_of_birth: string | null }> = {};
   if (ids.length) {
-    const { data: clients } = await supabaseAdmin.from("clients_decrypted").select("id, full_name, phone").in("id", ids);
-    for (const c of clients || []) names[c.id] = { full_name: c.full_name, phone: c.phone };
+    const { data: clients } = await supabaseAdmin.from("clients_decrypted").select("id, full_name, phone, date_of_birth").in("id", ids);
+    for (const c of clients || []) names[c.id] = { full_name: c.full_name, phone: c.phone, date_of_birth: c.date_of_birth };
   }
   const { data: plans } = await supabaseAdmin
     .from("hc_action_plans")
@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
       ...j,
       client_name: names[j.client_id]?.full_name ?? "—",
       client_phone: names[j.client_id]?.phone ?? null,
+      client_dob: names[j.client_id]?.date_of_birth ?? null,
       plan_status: planStatus[j.id] ?? null,
     })),
   });

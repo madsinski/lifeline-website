@@ -45,7 +45,13 @@ const stripActive = <T extends { active: boolean }>(t: T): Omit<T, "active"> => 
   return rest;
 };
 
-export default function PlanBuilder({ journeyId, api, onPublished }: { journeyId: string; api: Api; onPublished?: () => void }) {
+export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
+  journeyId: string;
+  api: Api;
+  onPublished?: () => void;
+  /** Prefill for a brand-new plan (from the nurse's interview notes). */
+  seed?: { headline?: string; summary?: string; goals?: PlanGoal[] };
+}) {
   const [lib, setLib] = useState<PlanLibrary | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
@@ -80,10 +86,12 @@ export default function PlanBuilder({ journeyId, api, onPublished }: { journeyId
         start_date: plan.start_date ?? today(),
         review_date: plan.review_date ?? plus(91),
       } : {
-        template_key: null, headline: "", summary: "", goals: [], modules: [], exercise: null, nutrition: null,
+        template_key: null, headline: seed?.headline ?? "", summary: seed?.summary ?? "", goals: seed?.goals ?? [], modules: [], exercise: null, nutrition: null,
         nurse_note: "", start_date: today(), review_date: plus(91),
       });
+      if (!plan && (seed?.summary || seed?.goals?.length)) setDirty(true);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- seed is only read for a brand-new plan on first load
   }, [api, journeyId]);
 
   const update = useCallback((patch: Partial<Draft>) => {
