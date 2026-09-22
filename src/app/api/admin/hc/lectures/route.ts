@@ -35,10 +35,20 @@ export async function POST(req: NextRequest) {
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/ð/g, "d").replace(/þ/g, "th").replace(/æ/g, "ae").replace(/ö/g, "o")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const LAYOUTS = ["text", "image", "fullimage", "video", "quote", "bullets", "stat", "tip"];
   const slides = (Array.isArray(b.slides) ? b.slides : [])
     .filter((x: unknown) => x && typeof x === "object")
     .slice(0, 60)
-    .map((x: Record<string, unknown>) => ({ title: s(x.title, 200) || "", body: s(x.body, 4000) || "", image_url: s(x.image_url, 1000) }));
+    .map((x: Record<string, unknown>) => ({
+      layout: LAYOUTS.includes(x.layout as string) ? x.layout : undefined,
+      title: s(x.title, 200) || "",
+      body: s(x.body, 4000) || "",
+      image_url: s(x.image_url, 1000),
+      video_url: s(x.video_url, 1000),
+      items: (Array.isArray(x.items) ? x.items : []).map((it) => s(it, 400)).filter(Boolean).slice(0, 12),
+      stat: s(x.stat, 40),
+      caption: s(x.caption, 300),
+    }));
   const row = {
     slug,
     title,

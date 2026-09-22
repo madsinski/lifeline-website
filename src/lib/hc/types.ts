@@ -97,10 +97,36 @@ export interface HcOrder {
   created_at: string;
 }
 
+/** Layout of one lecture slide. Missing = "text" (or "image" when image_url is set) for older slides. */
+export type SlideLayout = "text" | "image" | "fullimage" | "video" | "quote" | "bullets" | "stat" | "tip";
+
+export const SLIDE_LAYOUTS: { key: SlideLayout; label: string; hint: string }[] = [
+  { key: "text", label: "Texti", hint: "Fyrirsögn og texti" },
+  { key: "image", label: "Mynd og texti", hint: "Mynd eða skýringarmynd við hlið texta" },
+  { key: "fullimage", label: "Heil mynd", hint: "Mynd yfir alla glæruna með myndatexta" },
+  { key: "video", label: "Myndband", hint: "YouTube, Vimeo eða mp4" },
+  { key: "quote", label: "Tilvitnun", hint: "Stór tilvitnun og höfundur" },
+  { key: "bullets", label: "Listi", hint: "Fyrirsögn og punktar" },
+  { key: "stat", label: "Tala", hint: "Stór tala með skýringu" },
+  { key: "tip", label: "Ráð", hint: "Hagnýtt ráð í áberandi kassa" },
+];
+
 export interface LectureSlide {
+  layout?: SlideLayout;
   title: string;
   body: string;
   image_url?: string | null;
+  video_url?: string | null;
+  /** bullets */
+  items?: string[];
+  /** stat: the big number, e.g. "7–9" */
+  stat?: string | null;
+  /** fullimage / video caption, quote attribution */
+  caption?: string | null;
+}
+
+export function slideLayout(s: LectureSlide): SlideLayout {
+  return s.layout ?? (s.image_url ? "image" : "text");
 }
 
 export interface HcLecture {
