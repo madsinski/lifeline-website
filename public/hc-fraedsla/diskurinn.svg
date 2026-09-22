@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" font-family="Inter, Helvetica, Arial, sans-serif">
+  <rect width="760" height="520" rx="28" fill="#FBFDF7"/>
+  <text x="40" y="54" font-size="26" font-weight="700" fill="#1A2E05">Diskaaðferðin</text>
+  <text x="40" y="82" font-size="15" fill="#4D7C0F">Einföld leið til að stilla skammta án þess að vigta</text>
+  <circle cx="280" cy="300" r="178" fill="#E7E5E4"/><circle cx="280" cy="300" r="160" fill="#fff"/>
+  <path d="M280 300 L280 140 A160 160 0 0 0 280 460 Z" fill="#86EFAC"/>
+  <path d="M280 300 L280 140 A160 160 0 0 1 440 300 Z" fill="#FDBA74"/>
+  <path d="M280 300 L440 300 A160 160 0 0 1 280 460 Z" fill="#FDE68A"/>
+  <g stroke="#fff" stroke-width="4"><line x1="280" y1="140" x2="280" y2="460"/><line x1="280" y1="300" x2="440" y2="300"/></g>
+  <text x="200" y="296" text-anchor="middle" font-size="22" font-weight="800" fill="#14532D">½</text>
+  <text x="200" y="320" text-anchor="middle" font-size="15" font-weight="700" fill="#14532D">Grænmeti</text>
+  <text x="352" y="236" text-anchor="middle" font-size="20" font-weight="800" fill="#7C2D12">¼</text>
+  <text x="352" y="258" text-anchor="middle" font-size="14" font-weight="700" fill="#7C2D12">Prótein</text>
+  <text x="352" y="370" text-anchor="middle" font-size="20" font-weight="800" fill="#713F12">¼</text>
+  <text x="352" y="392" text-anchor="middle" font-size="14" font-weight="700" fill="#713F12">Trefjarík</text><text x="352" y="410" text-anchor="middle" font-size="14" font-weight="700" fill="#713F12">kolvetni</text>
+  <g><rect x="500" y="170" width="64" height="120" rx="10" fill="#E0F2FE" stroke="#7DD3FC" stroke-width="3"/><rect x="506" y="200" width="52" height="84" rx="6" fill="#7DD3FC" opacity=".6"/><text x="532" y="316" text-anchor="middle" font-size="14" font-weight="700" fill="#075985">Vatn</text></g>
+  <g font-size="14" fill="#3F6212">
+    <text x="500" y="370" font-weight="700">Dæmi</text>
+    <text x="500" y="394">Fiskur eða kjúklingur</text>
+    <text x="500" y="416">Kartöflur, bygg eða gróft brauð</text>
+    <text x="500" y="438">Salat og gufusoðið grænmeti</text>
+  </g>
+</svg>

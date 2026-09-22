@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" font-family="Inter, Helvetica, Arial, sans-serif">
+  <rect width="1000" height="380" rx="28" fill="#0F2A23"/>
+  <text x="500" y="56" text-anchor="middle" font-size="26" font-weight="700" fill="#F7FAF8">Heilsuferðin í átta skrefum</text>
+  <path d="M90 200 H910" stroke="#1F5446" stroke-width="10" stroke-linecap="round"/>
+  <path d="M90 200 H910" stroke="#34D399" stroke-width="4" stroke-dasharray="2 14" stroke-linecap="round"/>
+  <g font-size="15" text-anchor="middle">
+    <g><circle cx="90" cy="200" r="30" fill="#10B981"/><text x="90" y="207" font-size="20" font-weight="800" fill="#fff">1</text><text x="90" y="262" fill="#D1FAE5" font-weight="700">Aðgangur</text></g>
+    <g><circle cx="207" cy="200" r="30" fill="#10B981"/><text x="207" y="207" font-size="20" font-weight="800" fill="#fff">2</text><text x="207" y="262" fill="#D1FAE5" font-weight="700">Greiðsla</text></g>
+    <g><circle cx="324" cy="200" r="30" fill="#10B981"/><text x="324" y="207" font-size="20" font-weight="800" fill="#fff">3</text><text x="324" y="262" fill="#D1FAE5" font-weight="700">Fræðsla</text></g>
+    <g><circle cx="441" cy="200" r="30" fill="#34D399"/><text x="441" y="207" font-size="20" font-weight="800" fill="#0F2A23">4</text><text x="441" y="262" fill="#D1FAE5" font-weight="700">Blóðprufa</text><text x="441" y="282" fill="#8FBFAE" font-size="12">Heilsugæslan</text></g>
+    <g><circle cx="558" cy="200" r="30" fill="#34D399"/><text x="558" y="207" font-size="20" font-weight="800" fill="#0F2A23">5</text><text x="558" y="262" fill="#D1FAE5" font-weight="700">Mælingar</text><text x="558" y="282" fill="#8FBFAE" font-size="12">Vera</text></g>
+    <g><circle cx="675" cy="200" r="30" fill="#10B981"/><text x="675" y="207" font-size="20" font-weight="800" fill="#fff">6</text><text x="675" y="262" fill="#D1FAE5" font-weight="700">Skýrsla</text><text x="675" y="282" fill="#8FBFAE" font-size="12">læknir</text></g>
+    <g><circle cx="792" cy="200" r="30" fill="#34D399"/><text x="792" y="207" font-size="20" font-weight="800" fill="#0F2A23">7</text><text x="792" y="262" fill="#D1FAE5" font-weight="700">Viðtal</text><text x="792" y="282" fill="#8FBFAE" font-size="12">hjúkrunarfr.</text></g>
+    <g><circle cx="910" cy="200" r="34" fill="#F7FAF8"/><text x="910" y="208" font-size="22" font-weight="800" fill="#065F46">8</text><text x="910" y="262" fill="#fff" font-weight="800">Áætlun</text><text x="910" y="282" fill="#8FBFAE" font-size="12">3 mánuðir</text></g>
+  </g>
+  <text x="500" y="340" text-anchor="middle" font-size="14" fill="#8FBFAE">Ljósgrænu skrefin fara fram hjá samstarfsaðilum í heimabyggð</text>
+</svg>

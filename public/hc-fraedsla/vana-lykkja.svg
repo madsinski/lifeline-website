@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" font-family="Inter, Helvetica, Arial, sans-serif">
+  <rect width="760" height="480" rx="28" fill="#F7FAF8"/>
+  <text x="380" y="46" text-anchor="middle" font-size="26" font-weight="700" fill="#0F2A23">Svona myndast venja</text>
+  <text x="380" y="72" text-anchor="middle" font-size="15" fill="#4A5A54">Tengdu nýja venju við eitthvað sem þú gerir nú þegar</text>
+  <g fill="none" stroke="#A7F3D0" stroke-width="8" stroke-linecap="round">
+    <path d="M300 170 A150 150 0 0 1 505 290"/><path d="M470 360 A150 150 0 0 1 270 370"/><path d="M235 320 A150 150 0 0 1 270 185"/>
+  </g>
+  <g fill="#10B981"><path d="M505 290 l-18 -6 l14 -13z"/><path d="M270 370 l14 -12 l4 18z"/><path d="M270 185 l-2 18 l-14 -10z"/></g>
+  <g text-anchor="middle">
+    <circle cx="380" cy="168" r="66" fill="#0F2A23"/><text x="380" y="164" font-size="17" font-weight="800" fill="#fff">Vísbending</text><text x="380" y="186" font-size="12" fill="#A7F3D0">eftir morgunkaffi</text>
+    <circle cx="530" cy="360" r="70" fill="#10B981"/><text x="530" y="356" font-size="17" font-weight="800" fill="#fff">Venja</text><text x="530" y="378" font-size="12" fill="#ECFDF5">10 mín. ganga</text>
+    <circle cx="230" cy="360" r="70" fill="#34D399"/><text x="230" y="356" font-size="17" font-weight="800" fill="#0F2A23">Umbun</text><text x="230" y="378" font-size="12" fill="#064E3B">hakað við</text>
+  </g>
+  <text x="380" y="452" text-anchor="middle" font-size="14" fill="#4A5A54">Smátt og oft vinnur stórt og sjaldan.</text>
+</svg>

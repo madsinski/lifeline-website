@@ -26,7 +26,23 @@ function embedUrl(url: string): { kind: "iframe" | "file"; src: string } {
   return { kind: "file", src: url };
 }
 
-/** Minimal, safe markdown: headings, lists, paragraphs, bold/italic. No HTML passes through. */
+function VideoEmbed({ url, title, onEnded }: { url: string; title: string; onEnded?: () => void }) {
+  const v = embedUrl(url);
+  return (
+    <div className="aspect-video overflow-hidden rounded-2xl bg-black shadow-lg">
+      {v.kind === "iframe"
+        ? <iframe src={v.src} title={title} className="h-full w-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+        : <video src={v.src} controls className="h-full w-full" onEnded={onEnded} />}
+    </div>
+  );
+}
+
+/**
+ * Minimal, safe markdown — no HTML passes through. Supports:
+ *   ## heading · - list · **bold** · *italic* · > callout
+ *   ![caption](/image.svg)          a figure
+ *   @[video](https://youtu.be/...)  an embedded video (optional title after |)
+ */
 function Markdown({ text }: { text: string }) {
   const inline = (s: string) =>
     s.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, i) =>
@@ -35,9 +51,35 @@ function Markdown({ text }: { text: string }) {
           : part);
   const blocks = text.split(/\n{2,}/);
   return (
-    <div className="space-y-4 text-[17px] leading-relaxed text-slate-700">
+    <div className="space-y-5 text-[17px] leading-relaxed text-slate-700">
       {blocks.map((b, i) => {
         const lines = b.split("\n");
+        const img = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(b.trim());
+        if (img) {
+          return (
+            <figure key={i} className="my-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img[2]} alt={img[1]} className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm" loading="lazy" />
+              {img[1] && <figcaption className="mt-2 text-center text-sm text-slate-500">{img[1]}</figcaption>}
+            </figure>
+          );
+        }
+        const vid = /^@\[video\]\(([^)\s]+)\)(?:\s*\|\s*(.+))?$/.exec(b.trim());
+        if (vid) {
+          return (
+            <figure key={i} className="my-2">
+              <VideoEmbed url={vid[1]} title={vid[2] || "Myndband"} />
+              {vid[2] && <figcaption className="mt-2 text-center text-sm text-slate-500">{vid[2]}</figcaption>}
+            </figure>
+          );
+        }
+        if (lines.every((l) => /^>\s?/.test(l))) {
+          return (
+            <aside key={i} className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-[16px] text-emerald-950">
+              {inline(lines.map((l) => l.replace(/^>\s?/, "")).join(" "))}
+            </aside>
+          );
+        }
         if (/^#{1,3}\s/.test(b)) {
           const level = b.match(/^#+/)![0].length;
           const t = b.replace(/^#+\s*/, "");
@@ -116,28 +158,25 @@ export default function LecturePage() {
             {lecture.subtitle && <p className="mt-1 text-lg text-slate-500">{lecture.subtitle}</p>}
 
             <div className="mt-6">
-              {lecture.kind === "video" && lecture.video_url && (() => {
-                const v = embedUrl(lecture.video_url);
-                return (
-                  <div className="aspect-video overflow-hidden rounded-2xl bg-black shadow-lg">
-                    {v.kind === "iframe"
-                      ? <iframe src={v.src} title={lecture.title} className="h-full w-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
-                      : <video src={v.src} controls className="h-full w-full" onEnded={() => void complete()} />}
-                  </div>
-                );
-              })()}
+              {lecture.kind === "video" && lecture.video_url && (
+                <VideoEmbed url={lecture.video_url} title={lecture.title} onEnded={() => void complete()} />
+              )}
 
               {lecture.kind === "slides" && slides.length > 0 && (
                 <div>
-                  <div className="relative flex aspect-[16/10] flex-col justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-8 text-white shadow-lg sm:p-12">
-                    {slides[slide].image_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={slides[slide].image_url!} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25" />
-                    )}
-                    <div className="relative">
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{slide + 1} / {slides.length}</p>
-                      <h2 className="mt-3 text-2xl font-bold sm:text-4xl">{slides[slide].title}</h2>
-                      <p className="mt-4 whitespace-pre-line text-base leading-relaxed text-emerald-50 sm:text-xl">{slides[slide].body}</p>
+                  <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] text-white shadow-lg">
+                    <div className={`grid min-h-[340px] items-center gap-6 p-7 sm:p-10 ${slides[slide].image_url ? "md:grid-cols-[1fr_1.15fr]" : ""}`}>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{slide + 1} / {slides.length}</p>
+                        <h2 className="mt-3 text-2xl font-bold sm:text-3xl">{slides[slide].title}</h2>
+                        <p className="mt-4 whitespace-pre-line text-base leading-relaxed text-emerald-50 sm:text-lg">{slides[slide].body}</p>
+                      </div>
+                      {slides[slide].image_url && (
+                        <div className="rounded-2xl bg-white/95 p-2 shadow-inner">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={slides[slide].image_url!} alt={slides[slide].title} className="h-auto w-full rounded-xl" />
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between">

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 600" font-family="Inter, Helvetica, Arial, sans-serif">
+  <rect width="640" height="600" rx="28" fill="#F0F9FF"/>
+  <text x="320" y="56" text-anchor="middle" font-size="26" font-weight="700" fill="#0C4A6E">Kassaöndun</text>
+  <text x="320" y="84" text-anchor="middle" font-size="15" fill="#0369A1">Fjórar hliðar, fjórir taktar. Endurtaktu 4–6 sinnum.</text>
+  <rect x="170" y="150" width="300" height="300" rx="24" fill="#fff" stroke="#7DD3FC" stroke-width="6"/>
+  <g fill="#0EA5E9"><circle cx="170" cy="450" r="12"/><circle cx="170" cy="150" r="12"/><circle cx="470" cy="150" r="12"/><circle cx="470" cy="450" r="12"/></g>
+  <g font-size="18" font-weight="700" fill="#075985" text-anchor="middle">
+    <text x="112" y="306" transform="rotate(-90 112 306)">Anda inn · 4</text>
+    <text x="320" y="130">Halda · 4</text>
+    <text x="528" y="306" transform="rotate(90 528 306)">Anda út · 4</text>
+    <text x="320" y="488">Halda · 4</text>
+  </g>
+  <g fill="#0EA5E9"><path d="M170 300 l-9 16 h18z"/><path d="M320 150 l-16 -9 v18z"/><path d="M470 300 l-9 -16 h18z"/><path d="M320 450 l16 -9 v18z"/></g>
+  <circle cx="320" cy="300" r="64" fill="#BAE6FD"/><circle cx="320" cy="300" r="40" fill="#7DD3FC"/>
+  <text x="320" y="306" text-anchor="middle" font-size="16" font-weight="700" fill="#0C4A6E">róleg</text>
+  <text x="320" y="548" text-anchor="middle" font-size="14" fill="#0369A1">Gott fyrir fund, fyrir svefn eða þegar streitan hleðst upp.</text>
+</svg>

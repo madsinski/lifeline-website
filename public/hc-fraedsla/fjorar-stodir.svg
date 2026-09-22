@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" font-family="Inter, Helvetica, Arial, sans-serif">
+  <rect width="800" height="520" rx="28" fill="#F7FAF8"/>
+  <text x="400" y="54" text-anchor="middle" font-size="26" font-weight="700" fill="#0F2A23">Fjórar stoðir heilsu</text>
+  <text x="400" y="84" text-anchor="middle" font-size="16" fill="#4A5A54">Hver stoð styður við hinar þrjár</text>
+  <g stroke="#DCE5E0" stroke-width="3" stroke-dasharray="6 8" fill="none">
+    <line x1="400" y1="300" x2="220" y2="190"/><line x1="400" y1="300" x2="580" y2="190"/>
+    <line x1="400" y1="300" x2="220" y2="420"/><line x1="400" y1="300" x2="580" y2="420"/>
+  </g>
+  <g>
+    <rect x="80" y="130" width="250" height="120" rx="22" fill="#F1F0F6" stroke="#C9C6DA" stroke-width="2"/>
+    <circle cx="130" cy="190" r="30" fill="#767194"/><path d="M138 172a20 20 0 1 0 12 32a16 16 0 1 1-12-32z" fill="#fff"/>
+    <text x="178" y="182" font-size="22" font-weight="700" fill="#3F3A5C">Svefn</text>
+    <text x="178" y="208" font-size="14" fill="#5B5675">Endurheimt og orka</text>
+  </g>
+  <g>
+    <rect x="470" y="130" width="250" height="120" rx="22" fill="#FFF4ED" stroke="#FBC9A6" stroke-width="2"/>
+    <circle cx="520" cy="190" r="30" fill="#EA580C"/><rect x="503" y="185" width="34" height="10" rx="3" fill="#fff"/><rect x="498" y="178" width="8" height="24" rx="3" fill="#fff"/><rect x="534" y="178" width="8" height="24" rx="3" fill="#fff"/>
+    <text x="568" y="182" font-size="22" font-weight="700" fill="#9A3412">Hreyfing</text>
+    <text x="568" y="208" font-size="14" fill="#9A3412">Styrkur og þol</text>
+  </g>
+  <g>
+    <rect x="80" y="360" width="250" height="120" rx="22" fill="#F4FAE9" stroke="#C8E39A" stroke-width="2"/>
+    <circle cx="130" cy="420" r="30" fill="#65A30D"/><path d="M118 432c0-20 14-30 26-32c-2 14-10 28-26 32z" fill="#fff"/><path d="M118 432l14-16" stroke="#65A30D" stroke-width="2"/>
+    <text x="178" y="412" font-size="22" font-weight="700" fill="#3F6212">Næring</text>
+    <text x="178" y="438" font-size="14" fill="#4D7C0F">Eldsneyti líkamans</text>
+  </g>
+  <g>
+    <rect x="470" y="360" width="250" height="120" rx="22" fill="#EAF7FD" stroke="#A5DDF5" stroke-width="2"/>
+    <circle cx="520" cy="420" r="30" fill="#0EA5E9"/><path d="M506 424c0-12 8-20 16-20s14 6 14 14c0 10-8 16-16 16c-2 4-6 6-10 6c2-3 2-6 0-8c-2-2-4-4-4-6z" fill="#fff"/>
+    <text x="568" y="412" font-size="22" font-weight="700" fill="#075985">Andleg líðan</text>
+    <text x="568" y="438" font-size="14" fill="#0369A1">Streita, hvíld, tengsl</text>
+  </g>
+  <circle cx="400" cy="300" r="62" fill="#10B981"/><circle cx="400" cy="300" r="62" fill="none" stroke="#A7F3D0" stroke-width="6" opacity=".6"/>
+  <text x="400" y="296" text-anchor="middle" font-size="26" font-weight="800" fill="#fff">ÞÚ</text>
+  <text x="400" y="320" text-anchor="middle" font-size="12" fill="#ECFDF5">í miðjunni</text>
+</svg>
