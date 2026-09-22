@@ -19,6 +19,7 @@ import { COACHING_FIELDS, COACHING_SECTIONS, COACHING_DEFAULTS_IS, COACHING_DEFA
 import { ASSESSMENT_FIELDS, ASSESSMENT_SECTIONS, ASSESSMENT_DEFAULTS_IS, ASSESSMENT_DEFAULTS_EN } from "./assessment";
 import { BUSINESS_FIELDS, BUSINESS_SECTIONS, BUSINESS_DEFAULTS_IS, BUSINESS_DEFAULTS_EN } from "./business";
 import { CONTACT_FIELDS, CONTACT_SECTIONS, CONTACT_DEFAULTS_IS, CONTACT_DEFAULTS_EN } from "./contact";
+import { ACCOUNT_FIELDS, ACCOUNT_SECTIONS, ACCOUNT_DEFAULTS_IS, ACCOUNT_DEFAULTS_EN } from "./account";
 
 export interface SitePage {
   key: string;
@@ -83,6 +84,16 @@ export const SITE_PAGES: SitePage[] = [
     sections: CONTACT_SECTIONS,
     defaultsIs: CONTACT_DEFAULTS_IS,
     defaultsEn: CONTACT_DEFAULTS_EN,
+  },
+  {
+    key: "account",
+    label: "Aðgangur (Mínar síður)",
+    desc: "Kynningarspjaldið efst á forsíðu aðgangsins — sjálfgefið falið.",
+    path: "/account",
+    fields: ACCOUNT_FIELDS,
+    sections: ACCOUNT_SECTIONS,
+    defaultsIs: ACCOUNT_DEFAULTS_IS,
+    defaultsEn: ACCOUNT_DEFAULTS_EN,
   },
 ];
 

@@ -19,7 +19,7 @@ import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
 import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 import SignedDocumentsList from "./SignedDocumentsList";
-import HealthCheckTeaser from "../components/HealthCheckTeaser";
+import AccountPromoCard from "../components/AccountPromoCard";
 import ContextSwitcher from "../components/ContextSwitcher";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
@@ -1290,11 +1290,9 @@ function AccountPageInner() {
                   <span className="text-emerald-200 transition group-hover:translate-x-1" aria-hidden>→</span>
                 </Link>
 
-                {/* New service teaser — Heilsufarsskoðun hjá Lyfju.
-                    Booking + QR both open the Medalia patient portal. */}
-                <HealthCheckTeaser
-                  ctaOverride={{ is: "Panta heilsufarsskoðun", en: "Book health check" }}
-                />
+                {/* Promo card — managed in /admin/website → "Aðgangur".
+                    Hidden unless an admin turns it on and publishes. */}
+                <AccountPromoCard />
 
                 {/* B2C: recently-resolved cancellation request. Shown for
                     14 days after the admin approved or denied, so the user
