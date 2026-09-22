@@ -301,7 +301,7 @@ function FullbleedView({ s, zoomable }: { s: Slide; zoomable?: boolean }) {
           <span className="fb-hotspot-badge"><ZoomGlyph /></span>
         </button>
       ))}
-      {(s.kicker || s.heading) && (
+      {(s.kicker || s.heading) && s.capPos !== "none" && (
         <div className={`fb-cap${(s.capPos ?? "bottom") === "top" ? " fb-top" : ""}`}>
           {s.kicker && <span className="kicker">{s.kicker}</span>}
           {s.heading && <h2>{rich(s.heading)}</h2>}
