@@ -55,6 +55,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
   const [lib, setLib] = useState<PlanLibrary | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
+  const [author, setAuthor] = useState<string | null>(null);
+  const [printAfter, setPrintAfter] = useState(false);
   const [status, setStatus] = useState<"draft" | "published" | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -72,6 +74,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
       const pj = await p.json();
       setLib(library);
       setClientName(pj.client?.full_name ?? null);
+      setAuthor(pj.plan?.created_by ?? pj.actor ?? null);
       const plan = pj.plan as ActionPlan | null;
       setStatus(plan?.status ?? null);
       setDraft(plan ? {
@@ -194,6 +197,13 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
       (!q || m.title.toLowerCase().includes(q) || m.summary.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q))));
   }, [lib, filter, search]);
 
+  // "Prenta": render the preview (which holds the print layout), then print.
+  useEffect(() => {
+    if (!preview || !printAfter) return;
+    const t = setTimeout(() => { window.print(); setPrintAfter(false); }, 300);
+    return () => clearTimeout(t);
+  }, [preview, printAfter]);
+
   if (!draft || !lib) {
     return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{msg?.text ?? "Hleð áætlun…"}</div>;
   }
@@ -211,7 +221,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
           <span>Forskoðun: svona sér skjólstæðingurinn áætlunina.</span>
           <button onClick={() => setPreview(false)} className="rounded-full bg-white px-4 py-1.5 font-semibold ring-1 ring-amber-200">Til baka í ritil</button>
         </div>
-        <PlanView plan={asPlan} clientName={clientName} />
+        <PlanView plan={asPlan} clientName={clientName} author={author} />
       </div>
     );
   }
@@ -240,7 +250,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
           <option value="">Byrja út frá sniðmáti…</option>
           {lib.templates.map((t) => <option key={t.key} value={t.key}>{t.name}{t.scenario ? ` — ${t.scenario}` : ""}</option>)}
         </select>
-        <button onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
+        <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
+        <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
         <button onClick={save} disabled={busy} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
         <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
           {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}

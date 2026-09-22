@@ -255,6 +255,8 @@ export interface ActionPlan {
   published_at: string | null;
   version: number;
   updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface PlanLibrary {

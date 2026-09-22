@@ -44,7 +44,7 @@ function PlanPageInner() {
               <p className="mt-1 text-slate-500">Hún birtist hér eftir viðtalið við hjúkrunarfræðinginn.</p>
             </div>
           )}
-          {plan && <PlanView plan={plan} clientName={name} />}
+          {plan && <PlanView plan={plan} clientName={name} author={plan.created_by ?? null} />}
         </div>
       </div>
     </div>

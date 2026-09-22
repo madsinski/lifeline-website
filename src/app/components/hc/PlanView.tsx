@@ -1,22 +1,29 @@
 "use client";
 
 // The customer's action plan. On screen: tabs, cards and dropdowns (phone
-// first). In print: every section expanded on its own page, nothing hidden —
-// the screen and print trees are separate so a closed <details> can never
-// swallow content on paper.
+// first). In print: a separate one-page A4 summary (PrintPage) — client name,
+// who made the plan, the four pillars, the week and the nurse's message.
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 
 type Tab = "overview" | "detail" | "exercise" | "nutrition";
 
-const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" }) : null;
+// Spelled out by hand: browsers without Icelandic ICU data fall back to English.
+const MONTHS_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+const fmtDate = (d: string | null) => {
+  if (!d) return null;
+  const x = new Date(d);
+  return Number.isNaN(x.getTime()) ? null : `${x.getDate()}. ${MONTHS_IS[x.getMonth()]} ${x.getFullYear()}`;
+};
+const noopSubscribe = () => () => {};
 
 const LEVEL: Record<string, string> = { beginner: "Byrjandi", intermediate: "Miðlungs", advanced: "Lengra komin" };
 
-export default function PlanView({ plan, clientName }: { plan: ActionPlan; clientName?: string | null }) {
+export default function PlanView({ plan, clientName, author }: { plan: ActionPlan; clientName?: string | null; author?: string | null }) {
   const [tab, setTab] = useState<Tab>("overview");
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const byPillar = (p: Pillar) => plan.modules.filter((m) => m.pillar === p);
   const tabs: { key: Tab; label: string; show: boolean }[] = [
     { key: "overview", label: "Yfirlit", show: true },
@@ -72,35 +79,20 @@ export default function PlanView({ plan, clientName }: { plan: ActionPlan; clien
         {tab === "nutrition" && plan.nutrition && <Nutrition plan={plan} />}
       </div>
 
-      {/* ── Print ──────────────────────────────────────────────── */}
-      <div className="hidden print:block">
-        <Header plan={plan} clientName={clientName} print />
-        <Overview plan={plan} byPillar={byPillar} />
-        <div className="break-before-page">
-          <h2 className="mb-4 text-xl font-bold">Ítarleg áætlun</h2>
-          {PILLARS.filter((p) => byPillar(p).length).map((p) => (
-            <section key={p} className="mb-6 break-inside-avoid">
-              <PillarHeading pillar={p} />
-              {byPillar(p).map((m) => (
-                <div key={m.uid} className="mt-2 break-inside-avoid border-l-4 pl-3" style={{ borderColor: PILLAR_META[p].color }}>
-                  <p className="font-semibold">{m.title}{m.frequency ? ` · ${m.frequency}` : ""}</p>
-                  <p className="text-sm">{m.summary}</p>
-                  {m.details && <p className="text-sm text-slate-600">{m.details}</p>}
-                  {m.note && <p className="text-sm italic">Athugasemd: {m.note}</p>}
-                </div>
-              ))}
-            </section>
-          ))}
-        </div>
-        {plan.exercise?.sessions?.length ? <div className="break-before-page"><Exercise plan={plan} /></div> : null}
-        {plan.nutrition ? <div className="break-before-page"><Nutrition plan={plan} /></div> : null}
-      </div>
+      {/* ── Print: one A4 page, portalled to <body> so nothing else on the
+          page (navbar, footer, floating buttons) can end up on the sheet. */}
+      {mounted && createPortal(
+        <div className="plan-print-root hidden print:block">
+          <PrintPage plan={plan} clientName={clientName} author={author ?? plan.created_by ?? null} byPillar={byPillar} />
+        </div>,
+        document.body,
+      )}
 
       <style jsx global>{`
         @media print {
-          @page { size: A4; margin: 14mm; }
-          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          nav, footer, header.site-header { display: none !important; }
+          @page { size: A4; margin: 9mm 10mm; }
+          html, body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body > *:not(.plan-print-root) { display: none !important; }
         }
       `}</style>
     </div>
@@ -265,6 +257,135 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** "Anna Jónsdóttir (vera)" → "Anna Jónsdóttir · Vera lífsgæðasetur" */
+function authorLabel(a: string | null | undefined): string | null {
+  if (!a) return null;
+  const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(a);
+  if (!m) return a;
+  const org: Record<string, string> = { lifeline: "Lifeline Health", vera: "Vera lífsgæðasetur", heilsugaesla: "Heilsugæslan", Lifeline: "Lifeline Health" };
+  return `${m[1]} · ${org[m[2]] ?? m[2]}`;
+}
+
+/**
+ * The printed plan: exactly one A4 page. Fixed height with overflow hidden,
+ * short caps per section (4 actions per pillar, 4 principles, 7 days), so
+ * nothing can push onto a second sheet. The detailed view stays on screen.
+ */
+function PrintPage({ plan, clientName, author, byPillar }: {
+  plan: ActionPlan; clientName?: string | null; author: string | null; byPillar: (p: Pillar) => PlanItem[];
+}) {
+  const start = fmtDate(plan.start_date);
+  const review = fmtDate(plan.review_date);
+  const by = authorLabel(author);
+  const clip = (t: string | null | undefined, n: number) => (t && t.length > n ? `${t.slice(0, n - 1)}…` : t || "");
+  // Rough line budget: a busy plan drops per-action notes and shows fewer
+  // actions so the week, the message and the footer still fit on the sheet.
+  const lines = PILLARS.reduce((n, p) => n + Math.min(byPillar(p).length, 5) * 2, 0)
+    + (plan.exercise?.sessions?.length ?? 0) * 2 + (plan.nurse_note ? 4 : 0);
+  const dense = lines > 44;
+  const perPillar = dense ? 4 : 5;
+  return (
+    <div className="plan-print mx-auto flex h-[276mm] w-[190mm] flex-col overflow-hidden text-[9.5pt] leading-snug text-slate-800">
+      <div className="h-1.5 w-full rounded-full bg-[#10B981]" />
+      <header className="mt-3 flex items-start justify-between gap-6">
+        <div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/lifeline-logo-rebrand.png" alt="Lifeline Health" className="h-[9mm] w-auto" />
+          <p className="mt-2 text-[7.5pt] font-bold uppercase tracking-[0.2em] text-emerald-700">Aðgerðaáætlun</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[14pt] font-bold text-slate-900">{clientName || ""}</p>
+          {by && <p className="text-[8.5pt] text-slate-600">Unnin af {by}</p>}
+          <p className="text-[8.5pt] text-slate-500">{start ? `${start}` : ""}{review ? ` – endurmat ${review}` : ""}</p>
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <section className="mt-4 rounded-lg bg-slate-50 px-4 py-3">
+        <h1 className="text-[13pt] font-bold text-slate-900">{plan.headline || "Áætlun til næstu þriggja mánaða"}</h1>
+        {plan.summary && <p className={`mt-1 whitespace-pre-line text-[9pt] text-slate-600 ${dense ? "line-clamp-2" : "line-clamp-3"}`}>{clip(plan.summary, 420)}</p>}
+      </section>
+
+      <section className="mt-3 grid grid-cols-2 gap-3">
+        {PILLARS.map((p) => {
+          const meta = PILLAR_META[p];
+          const goal = plan.goals.find((g) => g.pillar === p);
+          const items = byPillar(p).slice(0, perPillar);
+          const more = byPillar(p).length - items.length;
+          return (
+            <div key={p} className="overflow-hidden rounded-lg border px-3 py-2.5" style={{ borderColor: meta.ring, borderTopWidth: 4, borderTopColor: meta.color }}>
+              <p className="text-[10.5pt] font-bold" style={{ color: meta.color }}>{meta.label}</p>
+              {goal && <p className="mt-0.5 text-[9pt] font-semibold text-slate-900">{clip(goal.text, 140)}</p>}
+              {items.length === 0 && <p className="mt-1 text-[8.5pt] text-slate-400">Engar aðgerðir.</p>}
+              <ul className="mt-1.5 space-y-1.5">
+                {items.map((m) => (
+                  <li key={m.uid} className="flex gap-2">
+                    <span className="mt-[3px] inline-block h-3 w-3 shrink-0 rounded-sm border-[1.5px]" style={{ borderColor: meta.color }} />
+                    <span className="min-w-0">
+                      <span className="font-semibold text-slate-900">{clip(m.title, 60)}</span>
+                      {m.frequency && <span className="text-slate-500"> · {m.frequency}</span>}
+                      {m.note && !dense && <span className="block text-[8pt] italic text-slate-600">{clip(m.note, 110)}</span>}
+                    </span>
+                  </li>
+                ))}
+                {more > 0 && <li className="text-[8pt] text-slate-400">+ {more} til viðbótar á aðganginum</li>}
+              </ul>
+            </div>
+          );
+        })}
+      </section>
+
+      {(plan.exercise?.sessions?.length || plan.nutrition) ? (
+        <section className="mt-3 grid grid-cols-[1.25fr_1fr] gap-3">
+          {plan.exercise?.sessions?.length ? (
+            <div className="rounded-lg border border-orange-200 px-3 py-2.5">
+              <p className="text-[9.5pt] font-bold text-orange-700">Hreyfing: {clip(plan.exercise.name, 40)}</p>
+              <table className="mt-1 w-full text-[8.5pt]">
+                <tbody>
+                  {plan.exercise.sessions.slice(0, 7).map((s, i) => (
+                    <tr key={i} className="border-t border-orange-100 align-top first:border-t-0">
+                      <td className="w-[22mm] py-1 pr-2 font-semibold text-slate-800">{clip(s.day, 14)}</td>
+                      <td className="py-1 text-slate-700">
+                        <span className="font-semibold">{clip(s.title, 40)}</span>
+                        {s.items.length ? (
+                          <span className={`block text-[8pt] text-slate-500 ${dense ? "line-clamp-1" : ""}`}>
+                            {clip(s.items.slice(0, 5).map((it) => (it.prescription ? `${it.name} ${it.prescription}` : it.name)).join(" · "), dense ? 90 : 150)}
+                          </span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <div />}
+          {plan.nutrition ? (
+            <div className="rounded-lg border border-lime-200 px-3 py-2.5">
+              <p className="text-[9.5pt] font-bold text-lime-700">Næring: {clip(plan.nutrition.name, 40)}</p>
+              <ul className="mt-1 space-y-0.5 text-[8.5pt] text-slate-700">
+                {plan.nutrition.principles.slice(0, 6).map((x, i) => <li key={i}>• {clip(x, 80)}</li>)}
+              </ul>
+            </div>
+          ) : <div />}
+        </section>
+      ) : null}
+
+      {plan.nurse_note && (
+        <section className="mt-3 rounded-lg bg-emerald-50 px-4 py-2.5">
+          <p className="text-[7.5pt] font-bold uppercase tracking-wide text-emerald-700">Skilaboð</p>
+          <p className={`mt-0.5 whitespace-pre-line text-[9pt] text-slate-800 ${dense ? "line-clamp-2" : "line-clamp-3"}`}>{clip(plan.nurse_note, 360)}</p>
+        </section>
+      )}
+
+      </div>
+      <footer className="mt-3 flex shrink-0 justify-between border-t border-slate-200 pt-1.5 text-[7.5pt] text-slate-400">
+        <span>Lifeline Health ehf. · lifelinehealth.is</span>
+        <span>Ítarleg útgáfa, æfingar og fræðsla á aðganginum þínum</span>
+      </footer>
     </div>
   );
 }
