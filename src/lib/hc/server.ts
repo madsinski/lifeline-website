@@ -2,12 +2,13 @@
 // "use client" file (pulls in supabase-admin).
 // Schema: supabase/migration-health-journey.sql
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
 import { stageFor } from "./stages";
+import { syncForJourney } from "./calendar-sync";
 import type { HcJourney } from "./types";
 import type { UnionRules } from "./reimbursement";
 
@@ -128,6 +129,12 @@ export async function patchJourney(
   action: string,
   detail: Record<string, unknown> = {},
 ): Promise<HcJourney | null> {
+  const touchesCalendar = Object.keys(patch).some((k) => CALENDAR_FIELDS.has(k));
+  let previousInterviewer: string | null = null;
+  if (touchesCalendar && "interviewer_id" in patch) {
+    const { data: before } = await supabaseAdmin.from("hc_journeys").select("interviewer_id").eq("id", journeyId).maybeSingle();
+    previousInterviewer = before?.interviewer_id ?? null;
+  }
   const { data, error } = await supabaseAdmin
     .from("hc_journeys")
     .update({ ...patch, updated_at: new Date().toISOString() })
@@ -136,7 +143,29 @@ export async function patchJourney(
     .single();
   if (error || !data) return null;
   await hcAudit(actor, action, journeyId, { ...detail, patch });
+  if (touchesCalendar) scheduleCalendarSync(data as HcJourney, previousInterviewer);
   return refreshStage(data as HcJourney);
+}
+
+// Journey fields that change what appears in someone's calendar.
+const CALENDAR_FIELDS = new Set([
+  "blood_test_booked_for", "blood_test_done_at", "measurements_booked_for", "measurements_done_at",
+  "interview_booked_for", "interview_mode", "interviewer_id", "interview_done_at",
+  "followup_booked_for", "followup_done_at", "cancelled_at", "completed_at",
+]);
+
+/**
+ * Instant Google Calendar sync: runs right after the response is sent, so a
+ * booking lands in the person's (and the nurse's) calendar within seconds
+ * without slowing the request. Outside a request scope, just fire it.
+ */
+function scheduleCalendarSync(j: HcJourney, previousInterviewer: string | null) {
+  const run = () => syncForJourney(j, previousInterviewer).catch(() => {});
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
 }
 
 export async function hcAudit(actor: string, action: string, journeyId: string | null, detail: Record<string, unknown> = {}) {

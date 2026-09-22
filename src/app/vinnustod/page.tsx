@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
+import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 
 interface Me { id: string; name: string; email: string; organization: string; role: "nurse" | "doctor" | "admin"; has_pin: boolean }
@@ -26,6 +27,15 @@ const ws = (url: string, init: RequestInit = {}) =>
 
 const fmt = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("is-IS", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+
+// Nurse/doctor calendar: their assigned interviews, pushed to Google instantly or via .ics.
+const WORKER_CALENDAR: CalendarApi = {
+  call: ws,
+  googleStatusUrl: "/api/vinnustod/google",
+  startGoogle: async () => { window.location.href = "/api/vinnustod/google/start"; },
+  icsTokenUrl: "/api/vinnustod/calendar-token",
+  subscriptionName: "Lifeline — viðtöl",
+};
 
 function minutesSince(iso: string | null) {
   return iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 60000) : 0;
@@ -122,6 +132,11 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
   const [q, setQ] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showCal, setShowCal] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const q = new URLSearchParams(window.location.search);
+    return q.has("google") || q.get("cal") === "1";
+  });
 
   const load = useCallback(async () => {
     const r = await ws("/api/vinnustod/queue");
@@ -159,6 +174,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
           <span className="flex-1" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita að nafni…" className="hidden w-56 rounded-lg border border-slate-200 px-3 py-1.5 text-sm sm:block" />
           <button onClick={() => setShowGuide(true)} className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">Verklag</button>
+          <button onClick={() => setShowCal(true)} className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">Dagatal</button>
           <button onClick={() => setShowPin(true)} className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">{me.has_pin ? "Breyta PIN" : "Setja PIN"}</button>
           <span className="hidden text-sm text-slate-500 md:inline">{me.name} · {me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfr."}</span>
           <button onClick={logout} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium">Útskrá</button>
@@ -213,6 +229,12 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
       {selected && <PatientDrawer id={selected} me={me} onClose={() => setSelected(null)} onChanged={load} onPlan={(id) => { setSelected(null); setPlanFor(id); }} />}
       {showPin && <PinModal onClose={() => setShowPin(false)} onDone={() => { setShowPin(false); onPinSet(); }} />}
       {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
+      <CalendarConnect
+        api={WORKER_CALENDAR}
+        open={showCal}
+        onClose={() => setShowCal(false)}
+        intro="Viðtöl og eftirfylgd sem þér eru úthlutuð birtast í dagatalinu þínu um leið og þau eru bókuð. Aðeins upphafsstafir skjólstæðings koma fram."
+      />
     </div>
   );
 }

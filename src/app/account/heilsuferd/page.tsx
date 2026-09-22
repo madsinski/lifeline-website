@@ -7,10 +7,12 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import BackLink from "@/app/components/hc/BackLink";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
+import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import type { JourneyStep, StepKey } from "@/lib/hc/stages";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 
@@ -145,7 +147,7 @@ function Heilsuferd() {
           )}
           <LecturesCard lectures={data.lectures} />
           <ClaimsCard claims={data.claims} reload={load} />
-          <SettingsCard calendarConnected={data.calendar_connected} reload={load} />
+          <SettingsCard />
           <p className="px-1 text-xs text-slate-400">
             Spurningar? Skrifaðu á <a className="underline" href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
           </p>
@@ -160,7 +162,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
       <div className="mx-auto max-w-5xl px-4 pb-16 pt-24 sm:pt-28">
         <div className="mb-4 flex items-center justify-between">
-          <Link href="/account" className="text-sm font-medium text-slate-500 hover:text-slate-800">← Aðgangurinn minn</Link>
+          <BackLink href="/account" label="Aðgangurinn minn" />
         </div>
         {children}
       </div>
@@ -751,13 +753,33 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
   );
 }
 
-function SettingsCard({ calendarConnected, reload }: { calendarConnected: boolean; reload: () => Promise<void> }) {
+// Customer calendar: Google push sync (instant) or .ics subscription.
+const CUSTOMER_CALENDAR: CalendarApi = {
+  call: api,
+  googleStatusUrl: "/api/hc/google",
+  startGoogle: async () => {
+    const r = await api("/api/hc/google/start", { method: "POST", body: "{}" });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.url) window.location.href = j.url;
+    else alert(j.error || "Tókst ekki að tengja við Google.");
+  },
+  icsTokenUrl: "/api/hc/calendar-token",
+  subscriptionName: "Lifeline heilsuferð",
+};
+
+function SettingsCard() {
   const [pinStep, setPinStep] = useState<"idle" | "first" | "confirm" | "done">("idle");
   const [pin, setPin] = useState("");
   const [first, setFirst] = useState("");
   const [pinErr, setPinErr] = useState("");
   const [pinEnabled, setPinEnabled] = useState<boolean | null>(null);
-  const [cal, setCal] = useState<{ https: string; webcal: string; google: string } | null>(null);
+  // Opens by itself when coming back from Google (?google=…) or a ?cal=1 link.
+  const [calOpen, setCalOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const q = new URLSearchParams(window.location.search);
+    return q.has("google") || q.get("cal") === "1";
+  });
+  const [calKey, setCalKey] = useState(0);
 
   useEffect(() => {
     fetch("/api/account/pin").then((r) => r.json()).then((j) => setPinEnabled(!!j.enabled)).catch(() => setPinEnabled(false));
@@ -770,11 +792,6 @@ function SettingsCard({ calendarConnected, reload }: { calendarConnected: boolea
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { setPinErr(j.error || "Tókst ekki."); setPin(""); setFirst(""); setPinStep("first"); return; }
     setPinStep("done"); setPinEnabled(true); setPin("");
-  };
-
-  const connect = async () => {
-    const r = await api("/api/hc/calendar-token", { method: "POST", body: "{}" });
-    if (r.ok) { setCal(await r.json()); await reload(); }
   };
 
   return (
@@ -802,18 +819,14 @@ function SettingsCard({ calendarConnected, reload }: { calendarConnected: boolea
 
       <div className="mt-4 border-t border-slate-100 pt-3">
         <p className="text-sm font-medium text-slate-800">Dagatal</p>
-        <p className="text-xs text-slate-500">Blóðprufa, mælingar og viðtöl birtast sjálfkrafa í dagatalinu þínu.</p>
-        {!cal ? (
-          <button onClick={connect} className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold">
-            {calendarConnected ? "Sýna dagatalstengla" : "Tengja dagatal"}
-          </button>
-        ) : (
-          <div className="mt-2 flex flex-col gap-2">
-            <a href={cal.google} target="_blank" rel="noreferrer" className="rounded-lg bg-slate-800 px-3 py-2 text-center text-xs font-semibold text-white">Bæta við Google Calendar</a>
-            <a href={cal.webcal} className="rounded-lg border border-slate-300 px-3 py-2 text-center text-xs font-semibold text-slate-800">Apple dagatal / Outlook</a>
-            <button onClick={() => navigator.clipboard.writeText(cal.https)} className="text-xs text-slate-500 underline">Afrita slóð</button>
-          </div>
-        )}
+        <p className="text-xs text-slate-500">Blóðprufa, mælingar og viðtöl.</p>
+        <div className="mt-1"><CalendarStatus key={calKey} api={CUSTOMER_CALENDAR} onOpen={() => setCalOpen(true)} /></div>
+        <CalendarConnect
+          api={CUSTOMER_CALENDAR}
+          open={calOpen}
+          onClose={() => { setCalOpen(false); setCalKey((k) => k + 1); }}
+          intro="Blóðprufa, mælingar og viðtöl birtast í dagatalinu þínu með áminningu og uppfærast sjálfkrafa ef tími breytist."
+        />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import BackLink from "@/app/components/hc/BackLink";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { HcLecture } from "@/lib/hc/types";
@@ -106,7 +107,7 @@ export default function LecturePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
       <div className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:pt-28">
-        <Link href="/account/heilsuferd" className="text-sm font-medium text-slate-500 hover:text-slate-800">← Heilsuferðin</Link>
+        <BackLink href="/account/heilsuferd" label="Heilsuferðin" />
         {error && <p className="mt-8 text-slate-600">{error}</p>}
         {lecture && (
           <article className="mt-4">

@@ -4,7 +4,7 @@
 // complete multi-page layout in print (see PlanView).
 
 import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
+import BackLink from "@/app/components/hc/BackLink";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
@@ -35,7 +35,7 @@ function PlanPageInner() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5] print:bg-white">
       <div className="mx-auto max-w-4xl px-4 pb-16 pt-24 sm:pt-28 print:max-w-none print:p-0">
-        <Link href="/account/heilsuferd" className="text-sm font-medium text-slate-500 hover:text-slate-800 print:hidden">← Heilsuferðin</Link>
+        <BackLink href="/account/heilsuferd" label="Heilsuferðin" />
         <div className="mt-4">
           {plan === undefined && <p className="text-slate-500">Hleð…</p>}
           {plan === null && (
