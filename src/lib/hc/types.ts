@@ -172,17 +172,57 @@ export interface PlanModule {
   active: boolean;
 }
 
+/** Where an exercise sits in a session. */
+export type ExerciseBlock = "warmup" | "main" | "finisher";
+
+/**
+ * One exercise in a plan. Picked from the exercise library (/admin/content,
+ * table `exercises`) when `exercise_id` is set; the media and cues are a
+ * snapshot so a published plan never changes under the customer.
+ */
 export interface ExerciseItem {
   name: string;
   prescription: string;
   note?: string | null;
+  exercise_id?: string | null;
+  image?: string | null;
+  video?: string | null;
+  muscles?: string[];
+  equipment?: string | null;
+  cues?: string[];
+  rest?: string | null;
+  block?: ExerciseBlock | null;
 }
 
 export interface ExerciseSession {
   day: string;
   title: string;
   focus?: string | null;
+  minutes?: number | null;
   items: ExerciseItem[];
+}
+
+/** A phase of the 12-week progression, e.g. weeks 1–4 "Læra hreyfingarnar". */
+export interface ExercisePhase {
+  weeks: string;
+  title: string;
+  text: string;
+}
+
+/** A row of the exercise library (`exercises`), as the picker sees it. */
+export interface LibraryExercise {
+  id: string;
+  name: string;
+  category: string | null;
+  equipment: string | null;
+  level: string | null;
+  mechanic: string | null;
+  illustration_url: string | null;
+  video_url: string | null;
+  instructions: string[] | null;
+  primary_muscles: string[] | null;
+  secondary_muscles: string[] | null;
+  bang_for_buck: boolean | null;
 }
 
 export interface ExerciseTemplate {
@@ -194,6 +234,9 @@ export interface ExerciseTemplate {
   session_minutes: number | null;
   description: string | null;
   sessions: ExerciseSession[];
+  /** "Why this works" — the few rules that give most of the benefit. */
+  principles?: string[];
+  progression?: ExercisePhase[];
   active: boolean;
 }
 

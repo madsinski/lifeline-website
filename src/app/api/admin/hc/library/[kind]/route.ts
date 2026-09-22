@@ -49,7 +49,7 @@ function rowFor(kind: string, b: Record<string, unknown>): Record<string, unknow
       };
     case "exercise": {
       const clean = sanitizePlan({ exercise: { ...b, key } }).exercise!;
-      return { ...base, name, level: clean.level, goal: clean.goal, days_per_week: clean.days_per_week, session_minutes: clean.session_minutes, description: clean.description, sessions: clean.sessions };
+      return { ...base, name, level: clean.level, goal: clean.goal, days_per_week: clean.days_per_week, session_minutes: clean.session_minutes, description: clean.description, sessions: clean.sessions, principles: clean.principles ?? [], progression: clean.progression ?? [] };
     }
     case "nutrition": {
       const clean = sanitizePlan({ nutrition: { ...b, key } }).nutrition!;

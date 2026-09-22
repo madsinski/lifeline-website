@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PlanView from "./PlanView";
+import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import {
   PILLARS, PILLAR_META,
   type ActionPlan, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanGoal,
@@ -390,6 +391,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
             value={draft.exercise}
             templates={lib.exercise}
             onChange={(exercise) => update({ exercise })}
+            api={api}
           />
           <NutritionEditor
             value={draft.nutrition}
@@ -407,16 +409,20 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
   );
 }
 
-function ExerciseEditor({ value, templates, onChange }: {
+function ExerciseEditor({ value, templates, onChange, api }: {
   value: ActionPlan["exercise"];
   templates: ExerciseTemplate[];
   onChange: (v: ActionPlan["exercise"]) => void;
+  api: Api;
 }) {
   const pick = (key: string) => {
     if (!key) { onChange(null); return; }
     const t = templates.find((x) => x.key === key);
     if (t) onChange(stripActive(t));
   };
+  // Any edit makes the plan personal; the key keeps pointing at its origin.
+  const edit = (patch: Partial<NonNullable<ActionPlan["exercise"]>>) =>
+    value && onChange({ ...value, ...patch, key: `${value.key.replace(/-custom$/, "")}-custom` });
   return (
     <div className="rounded-2xl border border-orange-100 bg-white p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -430,29 +436,20 @@ function ExerciseEditor({ value, templates, onChange }: {
       </div>
       {value && (
         <div className="mt-3 space-y-3">
-          {value.sessions.map((s, si) => (
-            <details key={si} className="rounded-xl border border-slate-100 p-3" open={si === 0}>
-              <summary className="cursor-pointer text-sm font-semibold text-slate-800">{s.day} · {s.title}</summary>
-              <div className="mt-2 space-y-1.5">
-                {s.items.map((it, ii) => (
-                  <div key={ii} className="flex gap-2">
-                    <input value={it.name} aria-label="Æfing"
-                      onChange={(e) => onChange({ ...value, key: `${value.key.replace(/-custom$/, "")}-custom`, sessions: value.sessions.map((x, a) => a !== si ? x : { ...x, items: x.items.map((y, b) => b !== ii ? y : { ...y, name: e.target.value }) }) })}
-                      className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
-                    <input value={it.prescription} aria-label="Magn"
-                      onChange={(e) => onChange({ ...value, key: `${value.key.replace(/-custom$/, "")}-custom`, sessions: value.sessions.map((x, a) => a !== si ? x : { ...x, items: x.items.map((y, b) => b !== ii ? y : { ...y, prescription: e.target.value }) }) })}
-                      className="w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
-                    <button aria-label="Fjarlægja æfingu" className="px-1 text-slate-400 hover:text-red-500"
-                      onClick={() => onChange({ ...value, sessions: value.sessions.map((x, a) => a !== si ? x : { ...x, items: x.items.filter((_, b) => b !== ii) }) })}>×</button>
-                  </div>
-                ))}
-                <button className="text-xs font-semibold text-orange-700"
-                  onClick={() => onChange({ ...value, sessions: value.sessions.map((x, a) => a !== si ? x : { ...x, items: [...x.items, { name: "", prescription: "" }] }) })}>
-                  + Bæta við æfingu
-                </button>
-              </div>
+          <p className="text-xs text-slate-500">
+            Æfingar úr æfingasafninu fylgja með mynd, myndbandi og leiðbeiningum. Skiptu um æfingu ef eitthvað hentar ekki, t.d. vegna verkja eða búnaðar.
+          </p>
+          <ExerciseSessionsEditor api={api} sessions={value.sessions} onChange={(sessions) => edit({ sessions, days_per_week: sessions.length || value.days_per_week })} />
+          {!!value.principles?.length && (
+            <details className="rounded-xl border border-slate-100 p-3 text-sm">
+              <summary className="cursor-pointer font-semibold text-slate-700">Meginreglur og stigvaxandi álag</summary>
+              <label className="mt-2 block text-xs text-slate-500">Meginreglur (ein lína á reglu)
+                <textarea value={value.principles.join("\n")} rows={4}
+                  onChange={(e) => edit({ principles: e.target.value.split("\n") })}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800" />
+              </label>
             </details>
-          ))}
+          )}
         </div>
       )}
     </div>

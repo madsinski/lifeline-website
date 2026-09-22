@@ -6,7 +6,8 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
+import { PILLARS, PILLAR_META, type ActionPlan, type ExerciseBlock, type ExerciseItem, type ExerciseSession, type Pillar, type PlanItem } from "@/lib/hc/types";
+import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 
 type Tab = "overview" | "detail" | "exercise" | "nutrition";
 
@@ -192,39 +193,170 @@ function ModuleCard({ m }: { m: PlanItem }) {
   );
 }
 
+const WEEK = [
+  { short: "Mán", full: "mánudagur" }, { short: "Þri", full: "þriðjudagur" }, { short: "Mið", full: "miðvikudagur" },
+  { short: "Fim", full: "fimmtudagur" }, { short: "Fös", full: "föstudagur" }, { short: "Lau", full: "laugardagur" },
+  { short: "Sun", full: "sunnudagur" },
+];
+
 function Exercise({ plan }: { plan: ActionPlan }) {
   const e = plan.exercise!;
+  const dayIdx = (d: string) => WEEK.findIndex((w) => d.toLowerCase().startsWith(w.full.slice(0, 3)));
+  const byDay = new Map<number, ExerciseSession>();
+  for (const s of e.sessions) { const i = dayIdx(s.day); if (i >= 0 && !byDay.has(i)) byDay.set(i, s); }
+  const total = e.sessions.reduce((n, s) => n + s.items.length, 0);
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-[#0F172A]">{e.name}</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          {LEVEL[e.level] ?? e.level} · {e.days_per_week} dagar í viku{e.session_minutes ? ` · um ${e.session_minutes} mín.` : ""}
-          {e.goal ? ` · ${e.goal}` : ""}
-        </p>
-        {e.description && <p className="mt-2 text-sm text-slate-600">{e.description}</p>}
+    <div className="space-y-6">
+      {/* Hero */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-400 p-5 text-white shadow-sm sm:p-6">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">Æfingaáætlun</p>
+        <h2 className="mt-1 text-2xl font-bold">{e.name}</h2>
+        {e.goal && <p className="mt-1 text-white/90">{e.goal}</p>}
+        <div className="mt-4 flex flex-wrap gap-2 text-sm">
+          <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{e.sessions.length || e.days_per_week} dagar í viku</span>
+          {e.session_minutes && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">um {e.session_minutes} mín.</span>}
+          <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{LEVEL[e.level] ?? e.level}</span>
+          {total > 0 && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{total} æfingar</span>}
+        </div>
+        {byDay.size > 0 && (
+          <div className="mt-5 grid grid-cols-7 gap-1.5">
+            {WEEK.map((w, i) => {
+              const s = byDay.get(i);
+              return (
+                <div key={w.short} className={`rounded-xl px-1 py-2 text-center ${s ? "bg-white text-orange-700" : "bg-white/15 text-white/70"}`}>
+                  <p className="text-[11px] font-bold uppercase">{w.short}</p>
+                  <p className="mt-0.5 truncate text-[10px] font-medium">{s ? s.title : "Hvíld"}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-      <div className="grid gap-4 md:grid-cols-2 print:grid-cols-2">
-        {e.sessions.map((s, i) => (
-          <div key={i} className="break-inside-avoid overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
-            <div className="bg-orange-50 px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{s.day}</p>
-              <p className="font-semibold text-[#0F172A]">{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</p>
-            </div>
-            <table className="w-full text-sm">
-              <tbody>
-                {s.items.map((it, j) => (
-                  <tr key={j} className="border-t border-slate-100">
-                    <td className="px-4 py-2 text-slate-800">{it.name}{it.note ? <span className="block text-xs text-slate-500">{it.note}</span> : null}</td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right font-semibold text-slate-700">{it.prescription}</td>
-                  </tr>
+
+      {e.description && <p className="text-slate-600">{e.description}</p>}
+
+      {!!e.principles?.length && (
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Af hverju þetta virkar</h3>
+          <ol className="mt-2 grid gap-2 sm:grid-cols-2">
+            {e.principles.map((p, i) => (
+              <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-white p-3 shadow-sm">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">{i + 1}</span>
+                <span className="text-sm text-slate-700">{p}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {!!e.progression?.length && (
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Næstu 12 vikur</h3>
+          <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+            {e.progression.map((p, i) => (
+              <li key={i} className="relative rounded-2xl bg-white p-4 shadow-sm ring-1 ring-orange-100">
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-orange-500" style={{ opacity: 0.35 + (0.65 * (i + 1)) / e.progression!.length }} />
+                <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{p.weeks}</p>
+                <p className="mt-0.5 font-semibold text-slate-900">{p.title}</p>
+                <p className="mt-1 text-sm text-slate-600">{p.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <section className="space-y-4">
+        {e.sessions.map((s, i) => <SessionCard key={i} s={s} n={i + 1} />)}
+      </section>
+    </div>
+  );
+}
+
+function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
+  const blocks: { key: ExerciseBlock; items: ExerciseItem[] }[] = (["warmup", "main", "finisher"] as ExerciseBlock[])
+    .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
+    .filter((b) => b.items.length);
+  return (
+    <div className="overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-sm">
+      <div className="flex items-center gap-3 border-b border-orange-100 bg-orange-50/70 px-4 py-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-600 font-bold text-white">{n}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{s.day}</p>
+          <p className="font-semibold text-[#0F172A]">{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</p>
+        </div>
+        {s.minutes ? <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
+      </div>
+      <div className="divide-y divide-slate-100">
+        {blocks.map((b) => (
+          <div key={b.key} className="px-4 py-3">
+            {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">{BLOCK_IS[b.key]}</p>}
+            <ul className={b.key === "main" ? "space-y-3" : "flex flex-wrap gap-2"}>
+              {b.items.map((it, j) => b.key === "main"
+                ? <ExerciseRow key={j} it={it} />
+                : (
+                  <li key={j} className="flex items-center gap-2 rounded-full bg-slate-50 py-1 pl-1 pr-3 text-sm ring-1 ring-slate-100">
+                    {it.image
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={it.image} alt="" className="h-7 w-7 rounded-full object-cover" />
+                      : <span className="h-7 w-7 rounded-full bg-orange-100" />}
+                    <span className="font-medium text-slate-800">{it.name}</span>
+                    {it.prescription && <span className="text-slate-500">{it.prescription}</span>}
+                  </li>
                 ))}
-              </tbody>
-            </table>
+            </ul>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function ExerciseRow({ it }: { it: ExerciseItem }) {
+  const [open, setOpen] = useState(false);
+  const how = !!(it.cues?.length || it.video);
+  return (
+    <li className="rounded-2xl ring-1 ring-slate-100">
+      <div className="flex gap-3 p-2">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-orange-50 sm:h-24 sm:w-24">
+          {it.image
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={it.image} alt={it.name} loading="lazy" className="h-full w-full object-cover" />
+            : <span className="flex h-full items-center justify-center text-2xl text-orange-300">●</span>}
+        </div>
+        <div className="min-w-0 flex-1 py-0.5">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-semibold leading-tight text-slate-900">{it.name}</p>
+            <p className="shrink-0 rounded-lg bg-orange-50 px-2 py-0.5 text-sm font-bold text-orange-700">{it.prescription}</p>
+          </div>
+          {!!it.muscles?.length && (
+            <p className="mt-1 flex flex-wrap gap-1">
+              {it.muscles.slice(0, 3).map((m) => <span key={m} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{muscleIs(m)}</span>)}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-slate-500">
+            {it.rest ? `Hvíld ${it.rest}` : ""}
+            {it.rest && it.equipment ? " · " : ""}
+            {it.equipment ? EQUIPMENT_IS[it.equipment] ?? it.equipment : ""}
+          </p>
+          {it.note && <p className="mt-1 text-sm italic text-slate-700">{it.note}</p>}
+          {how && (
+            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="mt-1.5 text-xs font-semibold text-orange-700 hover:underline">
+              {open ? "Fela" : it.video ? "▶ Sjá hvernig" : "Hvernig?"}
+            </button>
+          )}
+        </div>
+      </div>
+      {open && (
+        <div className="space-y-3 border-t border-slate-100 p-3">
+          {it.video && <video src={it.video} poster={it.image ?? undefined} controls playsInline preload="none" className="w-full max-w-md rounded-xl bg-black" />}
+          {!!it.cues?.length && (
+            <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
+              {it.cues.map((c, k) => <li key={k}>{c}</li>)}
+            </ol>
+          )}
+        </div>
+      )}
+    </li>
   );
 }
 

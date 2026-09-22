@@ -1,7 +1,7 @@
 // Shape-checks an action plan coming from the builder before it is stored.
 // Client-safe. Strings are trimmed and length-capped; unknown pillars drop.
 
-import { PILLARS, type ActionPlan, type ExerciseSession, type Pillar, type PlanGoal, type PlanItem } from "./types";
+import { PILLARS, type ActionPlan, type ExerciseItem, type ExercisePhase, type ExerciseSession, type Pillar, type PlanGoal, type PlanItem } from "./types";
 
 const str = (v: unknown, max = 2000): string | null => {
   if (typeof v !== "string") return null;
@@ -9,6 +9,30 @@ const str = (v: unknown, max = 2000): string | null => {
   return t ? t.slice(0, max) : null;
 };
 const isPillar = (v: unknown): v is Pillar => typeof v === "string" && (PILLARS as string[]).includes(v);
+const url = (v: unknown): string | null => {
+  const t = str(v, 1000);
+  return t && /^https:\/\//.test(t) ? t : null;
+};
+const strs = (v: unknown, n: number, max: number): string[] =>
+  (Array.isArray(v) ? v : []).map((x) => str(x, max)).filter((x): x is string => !!x).slice(0, n);
+const uuid = (v: unknown): string | null => (typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v) ? v : null);
+
+function exerciseItem(it: Record<string, unknown>): ExerciseItem {
+  return {
+    name: str(it.name, 120) || "",
+    prescription: str(it.prescription, 80) || "",
+    note: str(it.note, 300),
+    exercise_id: uuid(it.exercise_id),
+    image: url(it.image),
+    video: url(it.video),
+    muscles: strs(it.muscles, 6, 40),
+    equipment: str(it.equipment, 40),
+    cues: strs(it.cues, 5, 240),
+    rest: str(it.rest, 40),
+    block: it.block === "warmup" || it.block === "finisher" ? it.block : "main",
+  };
+}
+
 const date = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
 export type PlanDraft = Pick<ActionPlan,
@@ -46,10 +70,11 @@ export function sanitizePlan(b: Record<string, unknown>): PlanDraft {
         day: str(s.day, 40) || "",
         title: str(s.title, 120) || "",
         focus: str(s.focus, 120),
+        minutes: s.minutes ? Math.max(5, Math.min(240, Number(s.minutes) || 0)) || null : null,
         items: (Array.isArray(s.items) ? s.items : [])
           .filter((it): it is Record<string, unknown> => !!it && typeof it === "object")
           .slice(0, 15)
-          .map((it) => ({ name: str(it.name, 120) || "", prescription: str(it.prescription, 80) || "", note: str(it.note, 300) }))
+          .map(exerciseItem)
           .filter((it) => it.name),
       }));
     exercise = {
@@ -61,6 +86,12 @@ export function sanitizePlan(b: Record<string, unknown>): PlanDraft {
       session_minutes: e.session_minutes ? Math.max(5, Math.min(240, Number(e.session_minutes) || 30)) : null,
       description: str(e.description, 1000),
       sessions,
+      principles: strs(e.principles, 8, 300),
+      progression: (Array.isArray(e.progression) ? e.progression : [])
+        .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
+        .map((p): ExercisePhase => ({ weeks: str(p.weeks, 30) || "", title: str(p.title, 80) || "", text: str(p.text, 400) || "" }))
+        .filter((p) => p.title || p.text)
+        .slice(0, 4),
     };
   }
 

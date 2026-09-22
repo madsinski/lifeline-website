@@ -12,9 +12,10 @@ import AdminTabs from "../../components/AdminTabs";
 import { adminApi, adminJson } from "../../hc-api";
 import {
   PILLARS, PILLAR_META,
-  type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanModule, type PlanTemplate,
+  type ExercisePhase, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanModule, type PlanTemplate,
 } from "@/lib/hc/types";
 import { STAGE_LABELS } from "@/lib/hc/stages";
+import ExerciseSessionsEditor from "../../../components/hc/ExerciseSessionsEditor";
 
 const TABS = [
   { key: "clients", label: "Skjólstæðingar" },
@@ -232,28 +233,29 @@ function Exercise() {
             <input value={edit.goal ?? ""} onChange={(e) => setEdit({ ...edit, goal: e.target.value })} placeholder="Markmið" className="rounded-lg border border-slate-300 px-2 py-2 sm:col-span-4" />
             <textarea value={edit.description ?? ""} onChange={(e) => setEdit({ ...edit, description: e.target.value })} rows={2} placeholder="Lýsing" className="rounded-lg border border-slate-300 px-2 py-2 sm:col-span-4" />
           </div>
-          {sessions.map((s, si) => (
-            <div key={si} className="rounded-xl border border-orange-100 p-3">
-              <div className="flex gap-2">
-                <input value={s.day} onChange={(e) => setSessions(sessions.map((x, i) => (i === si ? { ...x, day: e.target.value } : x)))} placeholder="Dagur" className="w-32 rounded-lg border border-slate-300 px-2 py-1.5" />
-                <input value={s.title} onChange={(e) => setSessions(sessions.map((x, i) => (i === si ? { ...x, title: e.target.value } : x)))} placeholder="Heiti æfingar" className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 font-semibold" />
-                <input value={s.focus ?? ""} onChange={(e) => setSessions(sessions.map((x, i) => (i === si ? { ...x, focus: e.target.value } : x)))} placeholder="Áhersla" className="w-36 rounded-lg border border-slate-300 px-2 py-1.5" />
-                <button onClick={() => setSessions(sessions.filter((_, i) => i !== si))} className="px-1 text-red-500" aria-label="Eyða æfingadegi">×</button>
-              </div>
-              <div className="mt-2 space-y-1">
-                {s.items.map((it, ii) => (
-                  <div key={ii} className="flex gap-2">
-                    <input value={it.name} onChange={(e) => setSessions(sessions.map((x, i) => (i !== si ? x : { ...x, items: x.items.map((y, j) => (j === ii ? { ...y, name: e.target.value } : y)) })))} placeholder="Æfing" className="flex-1 rounded border border-slate-200 px-2 py-1" />
-                    <input value={it.prescription} onChange={(e) => setSessions(sessions.map((x, i) => (i !== si ? x : { ...x, items: x.items.map((y, j) => (j === ii ? { ...y, prescription: e.target.value } : y)) })))} placeholder="3 x 10" className="w-24 rounded border border-slate-200 px-2 py-1" />
-                    <input value={it.note ?? ""} onChange={(e) => setSessions(sessions.map((x, i) => (i !== si ? x : { ...x, items: x.items.map((y, j) => (j === ii ? { ...y, note: e.target.value } : y)) })))} placeholder="Athugasemd" className="w-40 rounded border border-slate-200 px-2 py-1" />
-                    <button onClick={() => setSessions(sessions.map((x, i) => (i !== si ? x : { ...x, items: x.items.filter((_, j) => j !== ii) })))} className="px-1 text-slate-400" aria-label="Eyða">×</button>
+          <ExerciseSessionsEditor api={adminApi} sessions={sessions} onChange={setSessions} />
+          <div className="grid gap-3 lg:grid-cols-2">
+            <label className="block text-xs font-semibold text-slate-600">Af hverju þetta virkar (ein regla á línu)
+              <textarea value={(edit.principles ?? []).join("\n")} rows={5}
+                onChange={(e) => setEdit({ ...edit, principles: e.target.value.split("\n") })}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm font-normal" />
+            </label>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-600">Stigvaxandi álag á 12 vikum</p>
+              {(edit.progression?.length ? edit.progression : [{ weeks: "", title: "", text: "" }]).map((ph, i, arr) => {
+                const setPh = (patch: Partial<ExercisePhase>) => setEdit({ ...edit, progression: arr.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+                return (
+                  <div key={i} className="grid grid-cols-[80px_1fr_auto] gap-1.5">
+                    <input value={ph.weeks} onChange={(e) => setPh({ weeks: e.target.value })} placeholder="Vika 1–4" aria-label="Vikur" className="rounded border border-slate-200 px-2 py-1" />
+                    <input value={ph.title} onChange={(e) => setPh({ title: e.target.value })} placeholder="Heiti tímabils" aria-label="Heiti tímabils" className="rounded border border-slate-200 px-2 py-1 font-semibold" />
+                    <button type="button" onClick={() => setEdit({ ...edit, progression: arr.filter((_, j) => j !== i) })} className="px-1 text-slate-400" aria-label="Eyða tímabili">×</button>
+                    <textarea value={ph.text} onChange={(e) => setPh({ text: e.target.value })} rows={2} placeholder="Hvað breytist?" aria-label="Lýsing tímabils" className="col-span-3 rounded border border-slate-200 px-2 py-1" />
                   </div>
-                ))}
-                <button onClick={() => setSessions(sessions.map((x, i) => (i !== si ? x : { ...x, items: [...x.items, { name: "", prescription: "" }] })))} className="text-xs font-semibold text-orange-700">+ Æfing</button>
-              </div>
+                );
+              })}
+              <button type="button" onClick={() => setEdit({ ...edit, progression: [...(edit.progression ?? []), { weeks: "", title: "", text: "" }] })} className="text-xs font-semibold text-orange-700">+ Tímabil</button>
             </div>
-          ))}
-          <button onClick={() => setSessions([...sessions, { day: "", title: "", focus: "", items: [] }])} className="text-sm font-semibold text-slate-600">+ Æfingadagur</button>
+          </div>
           <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
             <button onClick={async () => { const r = await save({ ...edit, days_per_week: sessions.length || edit.days_per_week }); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista</button>
             {edit.key && <button onClick={() => { void remove(edit.key!); setEdit(null); }} className="text-red-600">Taka úr notkun</button>}
