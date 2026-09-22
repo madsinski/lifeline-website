@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="Inter, Helvetica, Arial, sans-serif">
+<rect width="1600" height="900" fill="#F7FAF8"/>
+<line x1="400" y1="90" x2="1436" y2="90" stroke="#0F2A23" stroke-width="3" opacity=".25"/>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(400 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">1</text><text y="56" fill="#0F172A">Aðgangur</text></g>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(548 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">2</text><text y="56" fill="#0F172A">Greiðsla</text></g>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(696 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">3</text><text y="56" fill="#0F172A">Fræðsla</text></g>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(844 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">4</text><text y="56" fill="#0F172A">Blóðprufa</text></g>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(992 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">5</text><text y="56" fill="#0F172A">Mælingar</text></g>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(1140 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">6</text><text y="56" fill="#0F172A">Skýrsla</text></g>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(1288 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">7</text><text y="56" fill="#0F172A">Viðtal</text></g>
+<g font-size="17" font-weight="700" text-anchor="middle" transform="translate(1436 90)"><circle r="22" fill="#0F2A23"/><text y="7" fill="#fff">8</text><text y="56" fill="#0F172A">Áætlun</text></g>
+<rect x="40" y="190" width="1520" height="140" rx="20" fill="#fff" stroke="#E2E8F0"/>
+<text x="64" y="252" font-size="21" font-weight="800" fill="#0F172A">Skjólstæðingur</text><text x="64" y="278" font-size="14" fill="#64748B">á eigin aðgangi</text>
+<rect x="40" y="350" width="1520" height="140" rx="20" fill="#fff" stroke="#E2E8F0"/>
+<text x="64" y="412" font-size="21" font-weight="800" fill="#065F46">Lifeline</text><text x="64" y="438" font-size="14" fill="#64748B">kerfi og læknar</text>
+<rect x="40" y="510" width="1520" height="140" rx="20" fill="#fff" stroke="#E2E8F0"/>
+<text x="64" y="572" font-size="21" font-weight="800" fill="#1E3A8A">Heilsugæslan</text><text x="64" y="598" font-size="14" fill="#64748B">blóðprufa, öryggisnet</text>
+<rect x="40" y="670" width="1520" height="140" rx="20" fill="#fff" stroke="#E2E8F0"/>
+<text x="64" y="732" font-size="21" font-weight="800" fill="#78350F">Vera</text><text x="64" y="758" font-size="14" fill="#64748B">mælingar og viðtöl</text>
+<rect x="336" y="232" width="128" height="56" rx="14" fill="#E2E8F0"/>
+<text x="400.0" y="266" text-anchor="middle" font-size="15" font-weight="700" fill="#0F172A">Stofnar aðgang</text>
+<rect x="484" y="232" width="128" height="56" rx="14" fill="#E2E8F0"/>
+<text x="548.0" y="266" text-anchor="middle" font-size="15" font-weight="700" fill="#0F172A">Velur, greiðir</text>
+<rect x="632" y="232" width="128" height="56" rx="14" fill="#E2E8F0"/>
+<text x="696.0" y="266" text-anchor="middle" font-size="15" font-weight="700" fill="#0F172A">Horfir, les</text>
+<rect x="780" y="232" width="276" height="56" rx="14" fill="#E2E8F0"/>
+<text x="918.0" y="266" text-anchor="middle" font-size="15" font-weight="700" fill="#0F172A">Bókar í sjúklingagátt</text>
+<rect x="1372" y="232" width="128" height="56" rx="14" fill="#E2E8F0"/>
+<text x="1436.0" y="266" text-anchor="middle" font-size="15" font-weight="700" fill="#0F172A">Fylgir áætlun</text>
+<rect x="336" y="392" width="424" height="56" rx="14" fill="#D1FAE5"/>
+<text x="548.0" y="426" text-anchor="middle" font-size="15" font-weight="700" fill="#065F46">Aðgangur · greiðsla · fræðsla</text>
+<rect x="1076" y="392" width="128" height="56" rx="14" fill="#10B981"/>
+<text x="1140.0" y="417" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Læknir</text><text x="1140.0" y="436" text-anchor="middle" font-size="13" fill="#fff">staðfestir</text>
+<rect x="1224" y="392" width="276" height="56" rx="14" fill="#D1FAE5" stroke="#10B981" stroke-dasharray="6 5"/>
+<text x="1362.0" y="426" text-anchor="middle" font-size="15" font-weight="700" fill="#065F46">Læknar til vara · vinnustöð</text>
+<rect x="780" y="552" width="128" height="56" rx="14" fill="#2563EB"/>
+<text x="844.0" y="586" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Blóðprufa</text>
+<rect x="1224" y="552" width="276" height="56" rx="14" fill="#DBEAFE" stroke="#2563EB" stroke-dasharray="6 5"/>
+<text x="1362.0" y="577" text-anchor="middle" font-size="15" font-weight="700" fill="#1E3A8A">Tekur við ef vandi</text><text x="1362.0" y="596" text-anchor="middle" font-size="13" fill="#1E3A8A">greinist (tilvísun)</text>
+<rect x="928" y="712" width="128" height="56" rx="14" fill="#D97706"/>
+<text x="992.0" y="746" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Mælingar</text>
+<rect x="1224" y="712" width="276" height="56" rx="14" fill="#D97706"/>
+<text x="1362.0" y="737" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Viðtal · áætlun</text><text x="1362.0" y="756" text-anchor="middle" font-size="13" fill="#fff">eftirfylgd eftir 3 mán.</text>
+<text x="800" y="862" text-anchor="middle" font-size="16" fill="#64748B">Brotalína = til vara eða eftir þörfum. Hvert skref opnast sjálfkrafa þegar fyrra skrefi lýkur.</text>
+</svg>

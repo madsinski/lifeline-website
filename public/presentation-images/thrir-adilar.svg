@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="Inter, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94A3B8"/></marker>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0F172A" flood-opacity=".08"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="#F7FAF8"/>
+
+  <!-- connections -->
+  <g stroke="#94A3B8" stroke-width="3" fill="none">
+    <path d="M560 600 L678 530" marker-end="url(#ah)"/>
+    <path d="M1040 600 L922 530" marker-end="url(#ah)"/>
+    <path d="M565 250 C420 280 330 400 330 520" marker-start="url(#ah)" marker-end="url(#ah)" stroke="#10B981" stroke-dasharray="0"/>
+    <path d="M1035 250 C1180 280 1270 400 1270 520" marker-start="url(#ah)" marker-end="url(#ah)" stroke="#10B981"/>
+    <path d="M560 760 L1040 760" stroke-dasharray="8 10" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  </g>
+  <!-- connection labels -->
+  <g font-size="19" font-weight="700" text-anchor="middle">
+    <rect x="300" y="300" width="210" height="64" rx="32" fill="#ECFDF5" stroke="#A7F3D0"/>
+    <text x="405" y="328" fill="#065F46">Tilvísanir</text><text x="405" y="352" fill="#065F46" font-weight="500" font-size="16">í báðar áttir</text>
+    <rect x="1090" y="300" width="210" height="64" rx="32" fill="#ECFDF5" stroke="#A7F3D0"/>
+    <text x="1195" y="328" fill="#065F46">Vinnustöð</text><text x="1195" y="352" fill="#065F46" font-weight="500" font-size="16">verklag · læknar til vara</text>
+    <rect x="690" y="735" width="220" height="50" rx="25" fill="#fff" stroke="#CBD5E1"/>
+    <text x="800" y="767" fill="#475569" font-size="17">Sama heimabyggð</text>
+  </g>
+
+  <!-- centre: client -->
+  <g filter="url(#sh)">
+    <circle cx="800" cy="470" r="132" fill="#0F2A23"/>
+  </g>
+  <circle cx="800" cy="470" r="132" fill="none" stroke="#34D399" stroke-width="4" stroke-dasharray="4 10"/>
+  <g text-anchor="middle">
+    <circle cx="800" cy="415" r="22" fill="#34D399"/><path d="M768 475c4-24 20-36 32-36s28 12 32 36z" fill="#34D399"/>
+    <text x="800" y="515" font-size="21" font-weight="800" fill="#fff">Skjólstæðingurinn</text>
+    <text x="800" y="540" font-size="14" fill="#A7F3D0">stýrir eigin ferð</text>
+  </g>
+
+  <!-- Lifeline (top) -->
+  <g filter="url(#sh)"><rect x="565" y="70" width="470" height="260" rx="26" fill="#fff"/></g>
+  <rect x="565" y="70" width="470" height="12" rx="6" fill="#10B981"/>
+  <text x="600" y="130" font-size="30" font-weight="800" fill="#0F2A23">Lifeline Health</text>
+  <text x="600" y="158" font-size="16" fill="#047857" font-weight="700">KERFIÐ OG LÆKNISFRÆÐILEG ÁBYRGÐ</text>
+  <g font-size="19" fill="#334155">
+    <circle cx="608" cy="197" r="5" fill="#10B981"/><text x="624" y="203">Aðgangur, greiðslur og fræðsla</text>
+    <circle cx="608" cy="235" r="5" fill="#10B981"/><text x="624" y="241">Læknir staðfestir skýrslu, bakland</text>
+    <circle cx="608" cy="273" r="5" fill="#10B981"/><text x="624" y="279">Vinnustöð og sniðmát áætlana</text>
+  </g>
+
+  <!-- Heilsugæslan (left) -->
+  <g filter="url(#sh)"><rect x="90" y="530" width="470" height="260" rx="26" fill="#fff"/></g>
+  <rect x="90" y="530" width="470" height="12" rx="6" fill="#2563EB"/>
+  <text x="125" y="590" font-size="30" font-weight="800" fill="#1E3A8A">Heilsugæslan</text>
+  <text x="125" y="618" font-size="16" fill="#1D4ED8" font-weight="700">BLÓÐPRUFA OG ÖRYGGISNET</text>
+  <g font-size="19" fill="#334155">
+    <circle cx="133" cy="657" r="5" fill="#2563EB"/><text x="149" y="663">Tekur blóðprufuna</text>
+    <circle cx="133" cy="695" r="5" fill="#2563EB"/><text x="149" y="701">Tekur við ef vandi greinist</text>
+    <circle cx="133" cy="733" r="5" fill="#2563EB"/><text x="149" y="739">Vísar í lífsstílsinngrip</text>
+  </g>
+
+  <!-- Vera (right) -->
+  <g filter="url(#sh)"><rect x="1040" y="530" width="470" height="260" rx="26" fill="#fff"/></g>
+  <rect x="1040" y="530" width="470" height="12" rx="6" fill="#D97706"/>
+  <text x="1075" y="590" font-size="30" font-weight="800" fill="#78350F">Vera lífsgæðasetur</text>
+  <text x="1075" y="618" font-size="16" fill="#B45309" font-weight="700">MÆLINGAR OG VIÐTÖL</text>
+  <g font-size="19" fill="#334155">
+    <circle cx="1083" cy="657" r="5" fill="#D97706"/><text x="1099" y="663">Mælingar samkvæmt verklagi</text>
+    <circle cx="1083" cy="695" r="5" fill="#D97706"/><text x="1099" y="701">Viðtal og aðgerðaáætlun</text>
+    <circle cx="1083" cy="733" r="5" fill="#D97706"/><text x="1099" y="739">Eftirfylgd eftir 3 mánuði</text>
+  </g>
+</svg>
