@@ -63,14 +63,23 @@ function Heilsuferd() {
   const [error, setError] = useState("");
   const [open, setOpen] = useState<StepKey | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<JourneyData | null> => {
     const r = await api(`/api/hc/journey${stadur ? `?stadur=${encodeURIComponent(stadur)}` : ""}`);
-    if (r.status === 401) { setAuthed(false); return; }
-    if (!r.ok) { setError("Ekki tókst að sækja heilsuferðina. Reyndu aftur."); return; }
+    if (r.status === 401) { setAuthed(false); return null; }
+    if (!r.ok) { setError("Ekki tókst að sækja heilsuferðina. Reyndu aftur."); return null; }
     const j = (await r.json()) as JourneyData;
     setData(j);
     setOpen((o) => o ?? j.steps.find((s) => s.state === "current")?.key ?? null);
+    return j;
   }, [stadur]);
+
+  /** After a step is completed: reload and open the next step. */
+  const advance = useCallback(async () => {
+    const j = await load();
+    const next = j?.steps.find((s) => s.state === "current")?.key ?? null;
+    setOpen(next);
+    if (next) setTimeout(() => document.getElementById(`step-${next}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }, [load]);
 
   useEffect(() => {
     (async () => {
@@ -132,7 +141,7 @@ function Heilsuferd() {
               open={open === s.key}
               onToggle={() => setOpen(open === s.key ? null : s.key)}
             >
-              <StepBody step={s} data={data} reload={load} healthOrder={healthOrder ?? null} />
+              <StepBody step={s} data={data} reload={async () => { await load(); }} advance={advance} healthOrder={healthOrder ?? null} />
             </StepCard>
           ))}
         </ol>
@@ -147,7 +156,7 @@ function Heilsuferd() {
             </div>
           )}
           <LecturesCard lectures={data.lectures} />
-          <ClaimsCard claims={data.claims} reload={load} />
+          <ClaimsCard claims={data.claims} reload={async () => { await load(); }} />
           <SettingsCard />
           <p className="px-1 text-xs text-slate-400">
             Spurningar? Skrifaðu á <a className="underline" href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
@@ -206,7 +215,7 @@ function StepCard({ index, step, open, onToggle, children }: {
       ? { dot: "bg-[#0F172A] text-white", ring: "border-slate-300 shadow-md" }
       : { dot: "bg-slate-100 text-slate-400", ring: "border-slate-100" };
   return (
-    <li className={`overflow-hidden rounded-2xl border bg-white transition ${tone.ring}`}>
+    <li id={`step-${step.key}`} className={`scroll-mt-24 overflow-hidden rounded-2xl border bg-white transition ${tone.ring}`}>
       <button onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-4 p-4 text-left sm:p-5">
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${tone.dot}`}>
           {step.state === "done" ? "✓" : index}
@@ -228,7 +237,7 @@ function StepCard({ index, step, open, onToggle, children }: {
   );
 }
 
-function StepBody({ step, data, reload, healthOrder }: { step: JourneyStep; data: JourneyData; reload: () => Promise<void>; healthOrder: HcOrder | null }) {
+function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyStep; data: JourneyData; reload: () => Promise<void>; advance: () => Promise<void>; healthOrder: HcOrder | null }) {
   const loc = data.location;
   const j = data.journey;
   const portal = loc?.patient_portal_url || "https://app.medalia.is";
@@ -255,8 +264,11 @@ function StepBody({ step, data, reload, healthOrder }: { step: JourneyStep; data
                 <li>Sláðu inn kóðann og svaraðu spurningalistanum.</li>
                 <li>Bókaðu blóðprufu og mælingar í gáttinni.</li>
               </ol>
-              <a href={portal} target="_blank" rel="noreferrer" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Opna sjúklingagátt</a>
-              <p className="text-xs text-slate-500">Þetta skref merkist sjálfkrafa um leið og kóðinn er virkjaður.</p>
+              <div className="flex flex-wrap gap-2">
+                <a href={portal} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-slate-300 bg-white px-5 font-semibold text-slate-800 hover:bg-slate-50">Opna sjúklingagátt</a>
+                {step.state !== "done" && <CompleteButton label="Ég hef virkjað, ljúka skrefi" action="confirm_activated" onDone={advance} />}
+              </div>
+              <p className="text-xs text-slate-500">Skrefið merkist líka sjálfkrafa um leið og gáttin staðfestir kóðann.</p>
             </>
           )}
         </div>
@@ -298,6 +310,30 @@ function StepBody({ step, data, reload, healthOrder }: { step: JourneyStep; data
     default:
       return null;
   }
+}
+
+/** Completes a step the customer can vouch for, then opens the next step. */
+function CompleteButton({ label, action, onDone }: { label: string; action: string; onDone: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  return (
+    <>
+      <button type="button" disabled={busy}
+        onClick={async () => {
+          setBusy(true); setErr("");
+          const r = await api("/api/hc/journey", { method: "POST", body: JSON.stringify({ action }) });
+          const j = await r.json().catch(() => ({}));
+          setBusy(false);
+          if (!r.ok) { setErr(j.error || "Tókst ekki."); return; }
+          await onDone();
+        }}
+        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#10B981] px-5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+        <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        {busy ? "Augnablik…" : label}
+      </button>
+      {err && <p role="alert" className="w-full text-sm text-red-600">{err}</p>}
+    </>
+  );
 }
 
 function CodeBox({ code }: { code: string }) {
@@ -730,10 +766,10 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
     a.href = url; a.download = "umsokn-endurgreidsla.pdf"; a.click();
     URL.revokeObjectURL(url);
   };
-  const send = async (orderId: string) => {
-    if (!confirm("Senda umsóknina á stéttarfélagið? Þú færð afrit í tölvupósti.")) return;
+  const send = async (orderId: string, resend = false) => {
+    if (!confirm(resend ? "Senda umsóknina aftur á stéttarfélagið? Þú færð afrit í tölvupósti." : "Senda umsóknina á stéttarfélagið? Þú færð afrit í tölvupósti.")) return;
     setBusy(orderId);
-    const r = await api(`/api/hc/claims/${orderId}`, { method: "POST", body: JSON.stringify({ action: "send" }) });
+    const r = await api(`/api/hc/claims/${orderId}`, { method: "POST", body: JSON.stringify({ action: "send", resend }) });
     const j = await r.json().catch(() => ({}));
     setBusy(null);
     setMsg({ ...msg, [orderId]: r.ok ? `Sent á ${j.sent_to}` : j.error || "Sending mistókst." });
@@ -750,12 +786,11 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
             <p className="text-slate-500">Endurgreiðsla: {formatIsk(c.reimbursable_isk)}</p>
             <p className="text-xs text-slate-400">{c.sent_at ? `Send ${fmtDate(c.sent_at)} á ${c.sent_to}` : "Ekki send"}</p>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => download(c.order_id)} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold">Sækja PDF</button>
-              {!c.sent_at && (
-                <button onClick={() => send(c.order_id)} disabled={busy === c.order_id} className="rounded-lg bg-[#10B981] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
-                  {busy === c.order_id ? "Sendir…" : "Senda á félagið"}
-                </button>
-              )}
+              <button type="button" onClick={() => download(c.order_id)} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold">Sækja PDF</button>
+              <button type="button" onClick={() => send(c.order_id, !!c.sent_at)} disabled={busy === c.order_id}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-slate-300 bg-white text-slate-700" : "bg-[#10B981] text-white"}`}>
+                {busy === c.order_id ? "Sendir…" : c.sent_at ? "Senda aftur" : "Senda á félagið"}
+              </button>
             </div>
             {msg[c.order_id] && <p className="mt-1 text-xs text-slate-600">{msg[c.order_id]}</p>}
           </div>

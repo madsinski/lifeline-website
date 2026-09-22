@@ -104,6 +104,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ journey: j });
   }
 
+  // The customer confirms they entered the activation code in the patient
+  // portal. The portal's partner API sets the same field when it is wired;
+  // this lets people move on without waiting for it.
+  if (body.action === "confirm_activated") {
+    if (!journey.paid_at) return NextResponse.json({ error: "Greiðsla vantar." }, { status: 409 });
+    const j = journey.protocol_activated_at ? journey : await patchJourney(journey.id, { protocol_activated_at: new Date().toISOString() }, actor, "protocol_confirmed_by_client");
+    return NextResponse.json({ journey: j });
+  }
+
   // The customer books blood test / measurements in the patient portal and
   // may note the time here so it lands in their calendar feed. The partner
   // API overwrites it when the portal reports the real booking.

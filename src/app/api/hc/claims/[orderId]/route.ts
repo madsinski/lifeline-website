@@ -33,7 +33,8 @@ async function build(req: NextRequest, userId: string, orderId: string) {
   const kennitala = await decryptKennitala(profile.kennitala_encrypted, {
     actorRole: "client", purpose: "union_claim_pdf", subjectId: userId, req,
   });
-  const r = computeReimbursement(union.rules as UnionRules, pkg.union_category, order.price_isk);
+  // Rules apply to what the member paid, after any employer contribution.
+  const r = computeReimbursement(union.rules as UnionRules, pkg.union_category, order.price_isk - (order.company_contribution_isk || 0));
   const reimbursable = existing?.reimbursable_isk ?? order.union_reimbursement_isk ?? r.amountIsk;
   const claimNumber = `LLU-${new Date(order.created_at).getFullYear()}-${String(order.id).slice(0, 6).toUpperCase()}`;
   const pdf = await renderUnionClaimPdf({
@@ -56,7 +57,9 @@ async function build(req: NextRequest, userId: string, orderId: string) {
       paidAtIso: order.paid_at,
       paymentReference: order.provider_reference,
     },
-    amountPaidIsk: order.amount_charged_isk || order.price_isk,
+    priceIsk: order.price_isk,
+    employerIsk: order.company_contribution_isk || 0,
+    amountPaidIsk: order.amount_charged_isk ?? order.price_isk,
     reimbursableIsk: reimbursable,
     ruleExplanation: r.explanation,
   });
