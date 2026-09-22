@@ -24,6 +24,7 @@ import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar } from "@/lib/hc/types";
+import { MESSAGE_TEMPLATES, smsSize, type MessageTemplateKey } from "@/lib/hc/message-templates";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -50,9 +51,10 @@ interface Detail {
   audit: { actor: string; action: string; at: string; note: string | null }[];
   plan: { status: string; published_at: string | null; headline: string | null } | null;
   location: { name: string } | null;
-  actor: { label: string; isDoctor: boolean };
+  actor: { label: string; isDoctor: boolean; name: string | null };
+  messages: { id: string; channel: "sms" | "email"; recipient: string; template: string | null; subject: string | null; body: string; status: string; error: string | null; sent_by: string; sent_at: string }[];
 }
-type View = { tab: "today" | "clients" } | { patient: string; section?: Section };
+type View = { tab: "today" | "clients" } | { patient: string; section?: Section; compose?: boolean };
 type Section = "overview" | "interview" | "plan" | "history";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -141,7 +143,7 @@ function readView(): View {
   if (typeof window === "undefined") return { tab: "today" };
   const q = new URLSearchParams(window.location.search);
   const p = q.get("p");
-  if (p) return { patient: p, section: (q.get("s") as Section) || undefined };
+  if (p) return { patient: p, section: (q.get("s") as Section) || undefined, compose: q.get("m") === "1" };
   return { tab: q.get("t") === "clients" ? "clients" : "today" };
 }
 
@@ -160,8 +162,8 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
   const setView = useCallback((v: View) => {
     setViewState(v);
     const u = new URL(window.location.href);
-    ["p", "s", "t"].forEach((k) => u.searchParams.delete(k));
-    if ("patient" in v) { u.searchParams.set("p", v.patient); if (v.section) u.searchParams.set("s", v.section); }
+    ["p", "s", "t", "m"].forEach((k) => u.searchParams.delete(k));
+    if ("patient" in v) { u.searchParams.set("p", v.patient); u.searchParams.set("s", v.section ?? "overview"); if (v.compose) u.searchParams.set("m", "1"); }
     else if (v.tab === "clients") u.searchParams.set("t", "clients");
     window.history.pushState(null, "", u);
     window.scrollTo({ top: 0 });
@@ -184,7 +186,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
   }, [load]);
 
   const logout = async () => { await ws("/api/vinnustod/auth/logout", { method: "POST" }); onLogout(); };
-  const open = (id: string, section?: Section) => setView({ patient: id, section });
+  const open = (id: string, section: Section = "overview", compose = false) => setView({ patient: id, section, compose });
   const tab = "tab" in view ? view.tab : null;
 
   return (
@@ -213,7 +215,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
-          : "patient" in view ? <PatientView key={view.patient} id={view.patient} section={view.section ?? null} me={me} onBack={() => window.history.length > 1 ? window.history.back() : setView({ tab: "today" })} onChanged={load} onSection={(s) => setView({ patient: view.patient, section: s })} />
+          : "patient" in view ? <PatientView key={view.patient} id={view.patient} section={view.section ?? null} compose={!!view.compose} me={me} onBack={() => window.history.length > 1 ? window.history.back() : setView({ tab: "today" })} onChanged={load} onSection={(s) => setView({ patient: view.patient, section: s })} />
           : view.tab === "clients" ? <Clients rows={rows} isDoctor={isDoctor} onOpen={open} />
           : <Today rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
       </main>
@@ -227,7 +229,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
 
 // ── Í dag ───────────────────────────────────────────────────────────────────
 
-function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, s?: Section) => void; onChanged: () => void }) {
+function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, s?: Section, compose?: boolean) => void; onChanged: () => void }) {
   const hour = new Date().getHours();
   const greet = hour < 11 ? "Góðan daginn" : hour < 18 ? "Góðan dag" : "Gott kvöld";
 
@@ -289,7 +291,7 @@ function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me;
           <ol className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {agenda.map((a, i) => (
               <li key={`${a.id}-${i}`}>
-                <button type="button" onClick={() => onOpen(a.id, a.section)} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
+                <button type="button" onClick={() => onOpen(a.id, "overview")} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
                   <span className="w-14 text-lg font-bold tabular-nums text-slate-900">{time(a.at)}</span>
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">{a.icon}</span>
                   <span className="min-w-0 flex-1">
@@ -333,41 +335,31 @@ function TestBadge() {
   return <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase text-amber-800">Prufa</span>;
 }
 
-function TaskRow({ row, task, onOpen, onChanged }: { row: Row; task: Task; onOpen: (id: string, s?: Section) => void; onChanged: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState("");
+function TaskRow({ row, task, onOpen }: { row: Row; task: Task; onOpen: (id: string, s?: Section, compose?: boolean) => void; onChanged: () => void }) {
   const late = task.key === "report" && minutesSince(row.blood_results_at) >= 5;
-  const remind = async () => {
-    setBusy(true);
-    const r = await ws(`/api/vinnustod/journeys/${row.id}`, { method: "POST", body: JSON.stringify({ action: "remind_client" }) });
-    setBusy(false);
-    setDone(r.ok ? "Áminning send" : "Tókst ekki");
-    onChanged();
-  };
   return (
     <li className={`flex flex-wrap items-center gap-3 px-4 py-3 ${late ? "bg-red-50/60" : ""}`}>
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold text-slate-900">
+      <button type="button" onClick={() => onOpen(row.id, "overview")} className="min-w-0 flex-1 rounded-lg text-left hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+        <span className="block font-semibold text-slate-900">
           {cleanName(row.client_name)} {isTest(row.client_name) && <TestBadge />}
           {row.entry === "b2b" && <span className="ml-1 rounded bg-blue-50 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-blue-700">Fyrirtæki</span>}
           {row.entry === "heilsugaesla" && <span className="ml-1 rounded bg-violet-50 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-violet-700">Tilvísun HG</span>}
-        </p>
-        <p className="text-sm text-slate-500">
+        </span>
+        <span className="block text-sm text-slate-500">
           {task.label}
           {task.key === "report" && ` · svör fyrir ${minutesSince(row.blood_results_at)} mín.${row.report_sms_sent_at ? " · SMS sent" : ""}`}
           {age(row.client_dob) ? ` · ${age(row.client_dob)}` : ""}
-          {done && <span className="ml-2 font-semibold text-emerald-700">{done}</span>}
-        </p>
-      </div>
+        </span>
+      </button>
       {row.client_phone && (
         <a href={`tel:${row.client_phone}`} className={`${btnGhost} min-h-9`} aria-label={`Hringja í ${cleanName(row.client_name)}`}><Phone className="h-4 w-4" /><span className="hidden sm:inline">{row.client_phone}</span></a>
       )}
-      {task.key === "activate"
-        ? <button type="button" disabled={busy || !!done} onClick={remind} className={`${btnSecondary} min-h-9`}><Bell className="h-4 w-4" /> {task.cta}</button>
-        : null}
-      <button type="button" onClick={() => onOpen(row.id, task.section)} className={`${task.tone === "urgent" ? btnPrimary : btnSecondary} min-h-9`}>
-        {task.key === "activate" ? "Opna" : task.cta} <ChevronRight className="h-4 w-4" />
-      </button>
+      <button type="button" onClick={() => onOpen(row.id, "overview", true)} className={`${btnSecondary} min-h-9`}><Bell className="h-4 w-4" /> Minna á</button>
+      {task.key !== "activate" && task.key !== "tests" && (
+        <button type="button" onClick={() => onOpen(row.id, task.section)} className={`${task.tone === "urgent" ? btnPrimary : btnSecondary} min-h-9`}>
+          {task.cta} <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
     </li>
   );
 }
@@ -380,7 +372,7 @@ const STAGE_FILTERS: { key: string; label: string }[] = [
 ];
 const STAGE_TEXT: Record<string, string> = { protocol: "Virkjun", tests: "Rannsóknir", report: "Skýrsla", interview: "Viðtal", plan: "Áætlun", action: "Í aðgerð" };
 
-function Clients({ rows, isDoctor, onOpen }: { rows: Row[]; isDoctor: boolean; onOpen: (id: string, s?: Section) => void }) {
+function Clients({ rows, isDoctor, onOpen }: { rows: Row[]; isDoctor: boolean; onOpen: (id: string, s?: Section, compose?: boolean) => void }) {
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("all");
   const list = useMemo(() => {
@@ -418,7 +410,7 @@ function Clients({ rows, isDoctor, onOpen }: { rows: Row[]; isDoctor: boolean; o
           const t = nextTask(r, isDoctor);
           return (
             <li key={r.id}>
-              <button type="button" onClick={() => onOpen(r.id, t.section)} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
+              <button type="button" onClick={() => onOpen(r.id, "overview")} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 font-bold text-emerald-800">
                   {cleanName(r.client_name).split(" ").map((p) => p[0]).slice(0, 2).join("")}
                 </span>
@@ -450,8 +442,8 @@ const PROGRESS: { label: string; at: (j: Journey) => string | null }[] = [
   { label: "Eftirfylgd", at: (j) => j.followup_done_at },
 ];
 
-function PatientView({ id, section, me, onBack, onChanged, onSection }: {
-  id: string; section: Section | null; me: Me; onBack: () => void; onChanged: () => void; onSection: (s: Section) => void;
+function PatientView({ id, section, compose, me, onBack, onChanged, onSection }: {
+  id: string; section: Section | null; compose: boolean; me: Me; onBack: () => void; onChanged: () => void; onSection: (s: Section) => void;
 }) {
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
@@ -483,7 +475,7 @@ function PatientView({ id, section, me, onBack, onChanged, onSection }: {
 
   const j = d.journey;
   const task = nextTask(j, isDoctor);
-  const active: Section = section ?? task.section;
+  const active: Section = section ?? "overview";
   const kt = d.patient.kennitala;
   const doneCount = PROGRESS.filter((p) => p.at(j)).length;
 
@@ -554,7 +546,7 @@ function PatientView({ id, section, me, onBack, onChanged, onSection }: {
         ))}
       </div>
 
-      {active === "overview" && <Overview d={d} isDoctor={isDoctor} record={record} />}
+      {active === "overview" && <Overview d={d} isDoctor={isDoctor} record={record} compose={compose} reload={load} />}
       {active === "interview" && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={() => onSection("plan")} />}
       {active === "plan" && (
         <PlanBuilder journeyId={id} api={ws} onPublished={() => { void load(); onChanged(); }}
@@ -584,7 +576,7 @@ function Card({ title, icon, children }: { title: string; icon: React.ReactNode;
   );
 }
 
-function Overview({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null> }) {
+function Overview({ d, isDoctor, record, compose, reload }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; compose: boolean; reload: () => Promise<void> }) {
   const j = d.journey;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -597,6 +589,7 @@ function Overview({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; recor
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <Messages d={d} startOpen={compose} reload={reload} />
       <Card title="Rannsóknir" icon={<Droplet className="h-5 w-5" />}>
         <Milestone label="Blóðprufa (Heilsugæslan)" booked={j.blood_test_booked_for} done={j.blood_test_done_at ?? j.blood_results_at}
           action={!(j.blood_test_done_at || j.blood_results_at) ? { label: "Skrá blóðprufu tekna", run: () => run({ event: "blood_test_done" }, "Skráð.") } : undefined} busy={busy} />
@@ -671,6 +664,146 @@ function Overview({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; recor
       </Card>
 
       {msg && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800 lg:col-span-2">{msg}</p>}
+    </div>
+  );
+}
+
+// ── Skilaboð: SMS + email to the client ────────────────────────────────────
+
+function defaultTemplate(j: Journey): MessageTemplateKey {
+  switch (j.stage) {
+    case "protocol": return "activate";
+    case "tests":
+      if (j.blood_test_booked_for && !j.blood_test_done_at && isFutureIso(j.blood_test_booked_for)) return "blood_reminder";
+      if (j.measurements_booked_for && !j.measurements_done_at && isFutureIso(j.measurements_booked_for)) return "measure_reminder";
+      return "book_tests";
+    case "report": return "free";
+    case "interview": return j.interview_booked_for ? "interview_reminder" : "book_interview";
+    case "action": return j.followup_booked_for && !j.followup_done_at ? "followup_reminder" : "plan_ready";
+    default: return "free";
+  }
+}
+const isFutureIso = (iso: string) => new Date(iso).getTime() > Date.now();
+
+function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; reload: () => Promise<void> }) {
+  const j = d.journey;
+  const ref = useRef<HTMLDivElement>(null);
+  const code = d.orders.find((o) => o.activation_code && (o.kind === "health_check" || o.kind === "reevaluation"))?.activation_code ?? null;
+  const ctx = useMemo(() => ({
+    firstName: cleanName(d.patient.full_name).split(" ")[0] || "",
+    activationCode: code,
+    bloodAt: j.blood_test_booked_for, measurementsAt: j.measurements_booked_for,
+    interviewAt: j.interview_booked_for, interviewMode: j.interview_mode, followupAt: j.followup_booked_for,
+    bloodSite: "Heilsugæslunni", measurementSite: d.location?.name ? "Veru" : null, interviewSite: null,
+    nurseName: d.actor.name,
+  }), [d, j, code]);
+  const [open, setOpen] = useState(startOpen);
+  const [tpl, setTpl] = useState<MessageTemplateKey>(() => defaultTemplate(j));
+  const [text, setText] = useState(() => MESSAGE_TEMPLATES.find((t) => t.key === defaultTemplate(j))!.body(ctx));
+  const [subject, setSubject] = useState(() => MESSAGE_TEMPLATES.find((t) => t.key === defaultTemplate(j))!.subject);
+  const [sms, setSms] = useState(!!d.patient.phone);
+  const [email, setEmail] = useState(!d.patient.phone && !!d.patient.email);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (startOpen) setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  }, [startOpen]);
+
+  const pick = (k: MessageTemplateKey) => {
+    const t = MESSAGE_TEMPLATES.find((x) => x.key === k)!;
+    setTpl(k); setText(t.body(ctx)); setSubject(t.subject); setMsg(null);
+  };
+  const size = smsSize(text);
+  const send = async () => {
+    const channels = [sms && "sms", email && "email"].filter(Boolean);
+    if (!confirm(`Senda ${channels.map((c) => (c === "sms" ? "SMS" : "tölvupóst")).join(" og ")} til ${cleanName(d.patient.full_name)}?`)) return;
+    setBusy(true); setMsg(null);
+    const r = await ws(`/api/vinnustod/journeys/${j.id}`, { method: "POST", body: JSON.stringify({ action: "message", channels, template: tpl, subject, body: text }) });
+    const res = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok && !res.results) { setMsg({ ok: false, text: res.error || "Sending mistókst." }); return; }
+    const parts = (res.results as { channel: string; ok: boolean; status: string; error?: string }[]).map((x) =>
+      `${x.channel === "sms" ? "SMS" : "Tölvupóstur"}: ${x.ok ? (x.status === "dry-run" ? "prufukeyrsla (ekki sent, lyklar vantar)" : "sent") : x.error || "mistókst"}`);
+    setMsg({ ok: !!res.ok, text: parts.join(" · ") });
+    await reload();
+  };
+
+  return (
+    <div ref={ref} className="scroll-mt-24 lg:col-span-2">
+      <Card title="Skilaboð til skjólstæðings" icon={<MessageSquare className="h-5 w-5" />}>
+        {!open ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="flex-1 text-sm text-slate-600">
+              Sendu áminningu með SMS{d.patient.phone ? ` (${d.patient.phone})` : ""} eða tölvupósti{d.patient.email ? ` (${d.patient.email})` : ""}.
+            </p>
+            <button type="button" onClick={() => setOpen(true)} className={btnPrimary}><Bell className="h-4 w-4" /> Skrifa skilaboð</button>
+          </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sniðmát</p>
+                <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Sniðmát">
+                  {MESSAGE_TEMPLATES.map((t) => (
+                    <button key={t.key} type="button" role="radio" aria-checked={tpl === t.key} onClick={() => pick(t.key)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${tpl === t.key ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Rás">
+                <button type="button" aria-pressed={sms} disabled={!d.patient.phone} onClick={() => setSms((v) => !v)}
+                  className={`${btn} min-h-9 ${sms ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+                  <Phone className="h-4 w-4" /> SMS {sms && "✓"}
+                </button>
+                <button type="button" aria-pressed={email} disabled={!d.patient.email} onClick={() => setEmail((v) => !v)}
+                  className={`${btn} min-h-9 ${email ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+                  <Mail className="h-4 w-4" /> Tölvupóstur {email && "✓"}
+                </button>
+              </div>
+              {email && (
+                <label className="block text-sm"><span className="font-medium text-slate-700">Efni tölvupósts</span>
+                  <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              )}
+              <label className="block text-sm"><span className="font-medium text-slate-700">Texti</span>
+                <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              {sms && (
+                <p className={`text-xs ${size.segments > 3 ? "text-amber-700" : "text-slate-500"}`}>
+                  SMS: {size.chars} stafir · {size.segments} {size.segments === 1 ? "hluti" : "hlutar"}{size.encoding === "UCS-2" ? " (íslenskir stafir: 70 í hluta)" : ""}. Vefslóðir geta verið síaðar hjá símafyrirtækjum.
+                </p>
+              )}
+              {msg && <p role="status" className={`rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>{msg.text}</p>}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" disabled={busy || (!sms && !email) || text.trim().length < 5} onClick={send} className={btnPrimary}>
+                  {busy ? "Sendir…" : `Senda${sms && email ? " SMS og tölvupóst" : sms ? " SMS" : email ? " tölvupóst" : ""}`}
+                </button>
+                <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className={btnGhost}>Loka</button>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Send skilaboð</p>
+              <ul className="mt-2 max-h-80 space-y-2 overflow-y-auto">
+                {d.messages.length === 0 && <li className="text-sm text-slate-400">Engin skilaboð enn.</li>}
+                {d.messages.map((m) => (
+                  <li key={m.id} className="rounded-xl bg-slate-50 p-2.5 text-xs">
+                    <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+                      {m.channel === "sms" ? <Phone className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
+                      {dayTime(m.sent_at)}
+                      <span className={`ml-auto rounded px-1.5 py-0.5 ${m.status === "sent" ? "bg-emerald-100 text-emerald-800" : m.status === "dry-run" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700"}`}>
+                        {m.status === "sent" ? "Sent" : m.status === "dry-run" ? "Prufa" : "Mistókst"}
+                      </span>
+                    </p>
+                    <p className="mt-1 line-clamp-3 whitespace-pre-line text-slate-600">{m.body}</p>
+                    <p className="mt-1 text-slate-400">{m.sent_by}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
@@ -962,7 +1095,7 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
 const ACTION_TEXT: Record<string, string> = {
   paid: "Greitt", paid_followup: "Eftirfylgd greidd", profile_complete: "Upplýsingar skráðar", welcome_seen: "Kynning skoðuð",
   plan_published: "Áætlun birt", plan_republished: "Áætlun uppfærð", plan_created: "Drög að áætlun", report_sms_escalation: "SMS til læknis",
-  union_claim_sent: "Umsókn send stéttarfélagi", reminder_sent: "Áminning send", doctor_review_requested: "Beðið um mat læknis",
+  union_claim_sent: "Umsókn send stéttarfélagi", reminder_sent: "Áminning send", message_sent: "Skilaboð send", doctor_review_requested: "Beðið um mat læknis",
   doctor_reviewed: "Læknir mat", protocol_confirmed_by_client: "Skjólstæðingur staðfesti virkjun", test_patient_seeded: "Prufuskjólstæðingur búinn til", set_booking: "Tími skráður af skjólstæðingi",
 };
 function actionText(a: string) {

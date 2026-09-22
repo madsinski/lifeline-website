@@ -38,12 +38,13 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     subjectId: journey.client_id,
     req,
   });
-  const [{ data: orders }, { data: audit }, { data: plan }, { data: loc }, { data: workers }] = await Promise.all([
+  const [{ data: orders }, { data: audit }, { data: plan }, { data: loc }, { data: workers }, { data: messages }] = await Promise.all([
     supabaseAdmin.from("hc_orders").select("id, package_key, kind, payment_route, price_isk, amount_charged_isk, paid_at, activation_code, activation_redeemed_at").eq("journey_id", journey.id).order("created_at"),
     supabaseAdmin.from("hc_audit").select("actor, action, at, detail").eq("journey_id", journey.id).order("at", { ascending: false }).limit(60),
     supabaseAdmin.from("hc_action_plans").select("id, status, published_at, updated_at, headline").eq("journey_id", journey.id).maybeSingle(),
     journey.location_id ? supabaseAdmin.from("hc_locations").select("id, name").eq("id", journey.location_id).maybeSingle() : Promise.resolve({ data: null }),
     supabaseAdmin.from("hc_workers").select("id, name, organization, role").eq("active", true),
+    supabaseAdmin.from("hc_messages").select("id, channel, recipient, template, subject, body, status, error, sent_by, sent_at").eq("journey_id", journey.id).order("sent_at", { ascending: false }).limit(50),
   ]);
 
   return NextResponse.json({
@@ -61,7 +62,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     plan,
     location: loc,
     workers: workers || [],
-    actor: { label: actor.label, isDoctor: actor.isDoctor },
+    messages: messages || [],
+    actor: { label: actor.label, isDoctor: actor.isDoctor, name: actor.kind === "worker" ? actor.worker.name : null },
   });
 }
 
@@ -161,6 +163,49 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
     return NextResponse.json({ journey: updated });
   }
 
+  // SMS and/or email to the client, text approved by the nurse in the composer.
+  if (body.action === "message") {
+    const channels = (Array.isArray(body.channels) ? body.channels : []).filter((c): c is "sms" | "email" => c === "sms" || c === "email");
+    const text = typeof body.body === "string" ? body.body.trim().slice(0, 1600) : "";
+    const subject = typeof body.subject === "string" && body.subject.trim() ? body.subject.trim().slice(0, 150) : "Skilaboð frá Lifeline";
+    const template = typeof body.template === "string" ? body.template.slice(0, 40) : null;
+    if (!channels.length) return NextResponse.json({ error: "Veldu SMS, tölvupóst eða hvort tveggja." }, { status: 400 });
+    if (text.length < 5) return NextResponse.json({ error: "Skilaboðin eru tóm." }, { status: 400 });
+
+    // Guard against accidental spam: at most 6 messages per client per day.
+    const since = new Date(Date.now() - 86400_000).toISOString();
+    const { count } = await db.from("hc_messages").select("id", { count: "exact", head: true }).eq("journey_id", journey.id).gte("sent_at", since);
+    if ((count ?? 0) + channels.length > 6) return NextResponse.json({ error: "Of mörg skilaboð til þessa skjólstæðings í dag." }, { status: 429 });
+
+    const profile = await getClientProfile(journey.client_id);
+    const results: { channel: string; ok: boolean; to: string | null; error?: string; status: string }[] = [];
+    for (const ch of channels) {
+      if (ch === "sms") {
+        if (!profile?.phone) { results.push({ channel: "sms", ok: false, to: null, error: "Ekkert símanúmer skráð.", status: "failed" }); continue; }
+        const r = await sendSms({ to: profile.phone, body: text });
+        const status = r.dryRun ? "dry-run" : r.ok ? "sent" : "failed";
+        results.push({ channel: "sms", ok: r.ok, to: profile.phone, error: r.error, status });
+        await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "sms", recipient: profile.phone, template, body: text, status, error: r.error ?? null, provider_id: r.sid ?? null, sent_by: actor.label });
+      } else {
+        const email = profile?.email;
+        if (!email) { results.push({ channel: "email", ok: false, to: null, error: "Ekkert netfang skráð.", status: "failed" }); continue; }
+        const html = renderBrandedEmail({
+          title: subject,
+          bodyHtml: text.split(/\n{2,}/).map((p) => `<p style="margin:0 0 12px;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`).join(""),
+          ctaLabel: "Opna heilsuferðina",
+          ctaUrl: `${origin}/account/heilsuferd`,
+        });
+        const r = await sendEmail({ to: email, subject, html, text: `${text}\n\n${origin}/account/heilsuferd`, replyTo: actor.kind === "worker" ? actor.worker.email : undefined });
+        const status = r.id === "dev-log" ? "dry-run" : r.ok ? "sent" : "failed";
+        results.push({ channel: "email", ok: r.ok, to: email, error: r.error, status });
+        await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "email", recipient: email, template, subject, body: text, status, error: r.error ?? null, provider_id: r.id ?? null, sent_by: actor.label });
+      }
+    }
+    await hcAudit(actor.label, "message_sent", journey.id, { channels, template, results: results.map((r) => ({ channel: r.channel, status: r.status })) });
+    const ok = results.some((r) => r.ok);
+    return NextResponse.json({ ok, results }, { status: ok ? 200 : 502 });
+  }
+
   if (body.action === "doctor_reviewed") {
     if (!actor.isDoctor) return NextResponse.json({ error: "Aðeins læknir getur skráð þetta." }, { status: 403 });
     const updated = await patchJourney(journey.id, { doctor_reviewed_at: new Date().toISOString() }, actor.label, "doctor_reviewed",
@@ -169,4 +214,8 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
   }
 
   return NextResponse.json({ error: "unknown_action" }, { status: 400 });
+}
+
+function escapeHtml(t: string) {
+  return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
