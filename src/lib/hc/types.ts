@@ -3,7 +3,7 @@
 
 export type Pillar = "sleep" | "exercise" | "nutrition" | "mental";
 export type PackageKind = "health_check" | "followup_3m" | "reevaluation" | "extra_followup";
-export type PaymentRoute = "self" | "union" | "company";
+export type PaymentRoute = "self" | "union" | "company" | "company_union";
 
 export const PILLARS: Pillar[] = ["sleep", "exercise", "nutrition", "mental"];
 

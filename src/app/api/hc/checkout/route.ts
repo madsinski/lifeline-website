@@ -4,7 +4,8 @@
 //
 // GET  ?package=<key>&code=<company code>  → price, approved unions with the
 //                                            computed reimbursement, code check
-// POST { package_key, route: self|union|company, union_id?, company_code?,
+// POST { package_key, use_company?, company_code?, use_union?, union_id?,
+//        (legacy: route: self|union|company)
 //        union_consent?, accept_terms }     → charges (Straumur), issues the
 //                                            activation code, advances journey
 //
@@ -31,14 +32,14 @@ async function loadPackage(key: string): Promise<HcPackage | null> {
 }
 
 type CodeCheck =
-  | { ok: true; id: string; company_id: string; company_name: string | null; package_key: string }
+  | { ok: true; id: string; company_id: string; company_name: string | null; package_key: string; contribution_percent: number; contribution_isk: number | null }
   | { ok: false; error: string };
 
 async function checkCompanyCode(raw: string, userId: string, email: string | null, profile: ClientProfile | null): Promise<CodeCheck> {
   const code = normalizeCode(raw);
   const { data: c } = await supabaseAdmin
     .from("company_hc_codes")
-    .select("id, company_id, member_id, package_key, redeemed_by, redeemed_at, expires_at, revoked_at")
+    .select("id, company_id, member_id, package_key, redeemed_by, redeemed_at, expires_at, revoked_at, contribution_percent, contribution_isk")
     .eq("code", code)
     .maybeSingle();
   if (!c || c.revoked_at) return { ok: false, error: "Kóðinn fannst ekki." };
@@ -64,7 +65,10 @@ async function checkCompanyCode(raw: string, userId: string, email: string | nul
     if (!match) return { ok: false, error: "Kóðinn er skráður á annan starfsmann. Skráðu þig inn með netfanginu sem fyrirtækið skráði, eða sláðu inn kennitöluna þína fyrst." };
   }
   const { data: co } = await supabaseAdmin.from("companies").select("name").eq("id", c.company_id).maybeSingle();
-  return { ok: true, id: c.id, company_id: c.company_id, company_name: co?.name ?? null, package_key: c.package_key };
+  return {
+    ok: true, id: c.id, company_id: c.company_id, company_name: co?.name ?? null, package_key: c.package_key,
+    contribution_percent: c.contribution_percent ?? 100, contribution_isk: c.contribution_isk ?? null,
+  };
 }
 
 /** Which journey this purchase belongs to, and whether it is allowed now. */
@@ -89,7 +93,7 @@ export async function GET(req: NextRequest) {
   const unions = (await approvedUnions()).map((u) => {
     const r = computeReimbursement(u.rules, pkg.union_category, pkg.price_isk);
     return {
-      id: u.id, name: u.name, settlement: u.settlement, rules_summary: u.rules_summary,
+      id: u.id, name: u.name, settlement: u.settlement, rules_summary: u.rules_summary, rules: u.rules,
       reimbursement_isk: r.amountIsk, explanation: r.explanation, can_email: !!u.contact_email,
     };
   });
@@ -110,8 +114,10 @@ export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
   const b = await req.json().catch(() => ({}));
-  const route = b.route as PaymentRoute;
-  if (!["self", "union", "company"].includes(route)) return NextResponse.json({ error: "bad_route" }, { status: 400 });
+  // Employer and union can both apply. `route` is the legacy single choice.
+  const useCompany = b.use_company === true || b.route === "company";
+  const useUnion = b.use_union === true || b.route === "union";
+  const route: PaymentRoute = useCompany && useUnion ? "company_union" : useCompany ? "company" : useUnion ? "union" : "self";
   if (!b.accept_terms) return NextResponse.json({ error: "Samþykkja þarf söluskilmála." }, { status: 400 });
 
   const pkg = await loadPackage(String(b.package_key || ""));
@@ -127,7 +133,7 @@ export async function POST(req: NextRequest) {
   // Pricing
   let unionRow: { id: string; name: string; settlement: "reimbursement" | "direct"; rules: UnionRules } | null = null;
   let companyCode: Extract<CodeCheck, { ok: true }> | null = null;
-  if (route === "union") {
+  if (useUnion) {
     const u = (await approvedUnions()).find((x) => x.id === b.union_id);
     if (!u) return NextResponse.json({ error: "Stéttarfélagið er ekki í samstarfi við Lifeline." }, { status: 400 });
     if (u.settlement === "direct" && !b.union_consent) {
@@ -135,7 +141,7 @@ export async function POST(req: NextRequest) {
     }
     unionRow = u;
   }
-  if (route === "company") {
+  if (useCompany) {
     const c = await checkCompanyCode(String(b.company_code || ""), user.id, user.email ?? null, profile);
     if (!c.ok) return NextResponse.json({ error: c.error }, { status: 400 });
     if (c.package_key !== pkg.key) return NextResponse.json({ error: "Kóðinn gildir ekki fyrir þennan pakka." }, { status: 400 });
@@ -143,7 +149,7 @@ export async function POST(req: NextRequest) {
   }
   const q = buildQuote({
     priceIsk: pkg.price_isk,
-    route,
+    employer: companyCode ? { percent: companyCode.contribution_percent, fixed_isk: companyCode.contribution_isk } : null,
     union: unionRow ? { settlement: unionRow.settlement, rules: unionRow.rules } : null,
     unionCategory: pkg.union_category,
   });
@@ -217,7 +223,8 @@ export async function POST(req: NextRequest) {
         company_id: companyCode?.company_id ?? null,
         company_code_id: companyCode?.id ?? null,
         amount_charged_isk: q.chargedIsk,
-        provider: q.chargedIsk > 0 ? "straumur" : route === "company" ? "company_invoice" : null,
+        provider: q.chargedIsk > 0 ? "straumur" : companyCode ? "company_invoice" : null,
+        company_contribution_isk: q.employerIsk,
         provider_reference: providerReference,
         status: "paid",
         paid_at: now,
@@ -231,7 +238,7 @@ export async function POST(req: NextRequest) {
   }
   if (!order) return NextResponse.json({ error: "order_failed" }, { status: 500 });
 
-  if (route === "union" && unionRow && q.reimbursementIsk > 0) {
+  if (unionRow && q.reimbursementIsk > 0) {
     await supabaseAdmin.from("hc_union_claims").insert({
       order_id: order.id,
       union_id: unionRow.id,

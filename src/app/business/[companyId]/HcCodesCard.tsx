@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-interface Code { id: string; member_id: string | null; code: string; redeemed_at: string | null; revoked_at: string | null; emailed_at: string | null; expires_at: string | null }
+interface Code { id: string; member_id: string | null; code: string; redeemed_at: string | null; revoked_at: string | null; emailed_at: string | null; expires_at: string | null; contribution_percent: number; contribution_isk: number | null }
 interface MemberLite { id: string; full_name: string; email: string }
 
 async function call(url: string, init: RequestInit = {}) {
@@ -22,6 +22,9 @@ export default function HcCodesCard({ companyId, members }: { companyId: string;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [mode, setMode] = useState<"all" | "percent" | "fixed">("all");
+  const [pct, setPct] = useState(50);
+  const [fixed, setFixed] = useState(25000);
 
   const load = useCallback(async () => {
     const r = await call(`/api/business/companies/${companyId}/hc-codes`);
@@ -36,7 +39,7 @@ export default function HcCodesCard({ companyId, members }: { companyId: string;
 
   const issue = async (email: boolean) => {
     setBusy(true); setMsg("");
-    const r = await call(`/api/business/companies/${companyId}/hc-codes`, { method: "POST", body: JSON.stringify({ all: true, email }) });
+    const r = await call(`/api/business/companies/${companyId}/hc-codes`, { method: "POST", body: JSON.stringify({ all: true, email, contribution_percent: mode === "percent" ? pct : 100, contribution_isk: mode === "fixed" ? fixed : null }) });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
     setMsg(r.ok ? `${j.created} kóðar búnir til${email ? `, ${j.emailed} sendir í tölvupósti` : ""}.` : j.error || "Tókst ekki.");
@@ -67,6 +70,18 @@ export default function HcCodesCard({ companyId, members }: { companyId: string;
         </div>
       </div>
 
+      <div className="mt-4 rounded-xl bg-slate-50 p-3">
+        <p className="text-sm font-semibold text-slate-800">Hve mikið greiðir fyrirtækið?</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Þátttaka fyrirtækis">
+          {([["all", "Allt"], ["percent", "Hlutfall"], ["fixed", "Föst upphæð"]] as const).map(([k, l]) => (
+            <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${mode === k ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>{l}</button>
+          ))}
+          {mode === "percent" && <label className="flex items-center gap-1 text-sm"><input type="number" min={1} max={100} value={pct} onChange={(e) => setPct(Number(e.target.value))} className="w-20 rounded-lg border border-slate-300 px-2 py-1" />%</label>}
+          {mode === "fixed" && <label className="flex items-center gap-1 text-sm"><input type="number" min={0} step={1000} value={fixed} onChange={(e) => setFixed(Number(e.target.value))} className="w-28 rounded-lg border border-slate-300 px-2 py-1" />kr.</label>}
+        </div>
+        <p className="mt-2 text-xs text-slate-500">Starfsmaður greiðir mismuninn og getur sótt um endurgreiðslu hjá sínu stéttarfélagi. Gildir fyrir nýja kóða.</p>
+      </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <button onClick={() => issue(true)} disabled={busy || without.length === 0} className="rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
           {busy ? "Augnablik…" : `Búa til og senda kóða (${without.length})`}
@@ -86,7 +101,7 @@ export default function HcCodesCard({ companyId, members }: { companyId: string;
                 return (
                   <tr key={m.id} className="border-t border-slate-100 first:border-t-0">
                     <td className="px-3 py-2"><p className="font-medium text-slate-800">{m.full_name}</p><p className="text-xs text-slate-500">{m.email}</p></td>
-                    <td className="px-3 py-2 font-mono text-xs">{c?.code ?? "—"}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{c?.code ?? "—"}{c && <span className="ml-2 font-sans text-slate-400">{c.contribution_isk != null ? `${c.contribution_isk.toLocaleString("is-IS")} kr.` : `${c.contribution_percent}%`}</span>}</td>
                     <td className="px-3 py-2 text-xs text-slate-500">
                       {!c ? "Enginn kóði" : c.redeemed_at ? <span className="font-semibold text-emerald-700">Notaður</span> : c.emailed_at ? "Sendur" : "Ósendur"}
                     </td>

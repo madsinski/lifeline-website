@@ -75,15 +75,31 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+export interface EmployerContribution {
+  /** 0–100, used when fixed_isk is not set. */
+  percent: number;
+  fixed_isk: number | null;
+}
+
+/** What the employer pays of a price. */
+export function employerShare(c: EmployerContribution | null | undefined, priceIsk: number): number {
+  if (!c) return 0;
+  const raw = c.fixed_isk != null ? c.fixed_isk : Math.round((priceIsk * Math.max(0, Math.min(100, c.percent))) / 100);
+  return Math.max(0, Math.min(raw, priceIsk));
+}
+
 export interface QuoteInput {
   priceIsk: number;
-  route: "self" | "union" | "company";
+  /** Employer contribution (company code), if used. */
+  employer?: EmployerContribution | null;
+  /** Union, if used. Reimbursement is computed on what the member pays after the employer. */
   union?: { settlement: "reimbursement" | "direct"; rules: UnionRules } | null;
   unionCategory: string;
 }
 
 export interface Quote {
   priceIsk: number;
+  employerIsk: number;
   chargedIsk: number;
   directGrantIsk: number;
   reimbursementIsk: number;
@@ -91,23 +107,30 @@ export interface Quote {
   explanation: string;
 }
 
+/**
+ * Price → employer pays its share → the member's share → the union
+ * reimburses (or, with direct settlement, discounts) according to its rules,
+ * applied to what the member actually pays.
+ */
 export function quote(input: QuoteInput): Quote {
-  const { priceIsk, route } = input;
-  if (route === "company") {
-    return { priceIsk, chargedIsk: 0, directGrantIsk: 0, reimbursementIsk: 0, netCostIsk: 0, explanation: "Vinnuveitandi greiðir." };
-  }
-  if (route === "union" && input.union) {
-    const r = computeReimbursement(input.union.rules, input.unionCategory, priceIsk);
+  const { priceIsk } = input;
+  const employerIsk = employerShare(input.employer, priceIsk);
+  const memberShare = priceIsk - employerIsk;
+  if (input.union && memberShare > 0) {
+    const r = computeReimbursement(input.union.rules, input.unionCategory, memberShare);
     if (input.union.settlement === "direct") {
       return {
-        priceIsk, chargedIsk: priceIsk - r.amountIsk, directGrantIsk: r.amountIsk, reimbursementIsk: 0,
-        netCostIsk: priceIsk - r.amountIsk, explanation: r.explanation,
+        priceIsk, employerIsk, chargedIsk: memberShare - r.amountIsk, directGrantIsk: r.amountIsk, reimbursementIsk: 0,
+        netCostIsk: memberShare - r.amountIsk, explanation: r.explanation,
       };
     }
     return {
-      priceIsk, chargedIsk: priceIsk, directGrantIsk: 0, reimbursementIsk: r.amountIsk,
-      netCostIsk: priceIsk - r.amountIsk, explanation: r.explanation,
+      priceIsk, employerIsk, chargedIsk: memberShare, directGrantIsk: 0, reimbursementIsk: r.amountIsk,
+      netCostIsk: memberShare - r.amountIsk, explanation: r.explanation,
     };
   }
-  return { priceIsk, chargedIsk: priceIsk, directGrantIsk: 0, reimbursementIsk: 0, netCostIsk: priceIsk, explanation: "" };
+  return {
+    priceIsk, employerIsk, chargedIsk: memberShare, directGrantIsk: 0, reimbursementIsk: 0, netCostIsk: memberShare,
+    explanation: employerIsk >= priceIsk ? "Vinnuveitandi greiðir." : "",
+  };
 }
