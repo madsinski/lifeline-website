@@ -132,11 +132,19 @@ async function seed() {
     const uid = created.user.id;
     const kt = fakeKennitala(n * 3);
     const { data: enc } = await db.rpc("enc_kennitala", { p_text: kt });
-    await db.from("clients_decrypted").upsert({
-      id: uid, email, full_name: p.name, phone: `69${String(90000 + n).slice(-5)}`,
+    // clients_decrypted is a view with INSTEAD OF triggers: upsert (ON
+    // CONFLICT) silently does nothing there. The row is created by the
+    // new-user trigger, so update it; insert only if it isn't there.
+    const profile = {
+      email, full_name: p.name, phone: `69${String(90000 + n).slice(-5)}`,
       address: `Prufugata ${n}, 900 Vestmannaeyjum`, kennitala_encrypted: enc,
       date_of_birth: "1901-01-01", terms_accepted_at: new Date().toISOString(),
-    }, { onConflict: "id" });
+    };
+    const { data: upd } = await db.from("clients_decrypted").update(profile).eq("id", uid).select("id");
+    if (!upd?.length) {
+      const { error: insErr } = await db.from("clients_decrypted").insert({ id: uid, ...profile });
+      if (insErr) throw insErr;
+    }
 
     const created_at = p.t.paid_at ? new Date(new Date(p.t.paid_at).getTime() - 86400_000).toISOString() : new Date().toISOString();
     const { data: j, error: jErr } = await db.from("hc_journeys").insert({

@@ -112,6 +112,7 @@ const COLUMNS: { key: string; title: string; hint: string }[] = [
   { key: "interview", title: "Bíður viðtals", hint: "Skýrsla tilbúin." },
   { key: "plan", title: "Bíður áætlunar", hint: "Viðtali lokið." },
   { key: "action", title: "Í aðgerð", hint: "Áætlun birt, eftirfylgd." },
+  { key: "protocol", title: "Bíður virkjunar", hint: "Greitt, ekki virkjað í gátt." },
 ];
 
 function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void; onPinSet: () => void }) {
@@ -165,7 +166,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-3 2xl:grid-cols-6">
           {COLUMNS.map((c) => {
             const list = filtered.filter((r) => r.stage === c.key);
             return (
@@ -192,6 +193,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
                           {c.key === "interview" && (r.interview_booked_for ? `Bókað ${fmt(r.interview_booked_for)}` : "Óbókað")}
                           {c.key === "plan" && (r.plan_status === "draft" ? "Drög í vinnslu" : "Engin drög")}
                           {c.key === "action" && (r.followup_booked_for ? `Eftirfylgd ${fmt(r.followup_booked_for)}` : "Áætlun birt")}
+                          {c.key === "protocol" && "Kóði ekki slegin inn"}
                         </p>
                         <div className="mt-1 flex gap-1">
                           {r.entry === "b2b" && <span className="rounded bg-blue-50 px-1.5 text-[10px] font-semibold text-blue-700">Fyrirtæki</span>}
