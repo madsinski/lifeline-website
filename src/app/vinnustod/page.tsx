@@ -22,6 +22,8 @@ import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
+import WeekCalendar from "@/app/components/hc/WeekCalendar";
+import ClientsView from "@/app/components/hc/ClientsView";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
@@ -84,7 +86,9 @@ interface Detail {
   messages: { id: string; channel: "sms" | "email"; recipient: string; template: string | null; subject: string | null; body: string; status: string; error: string | null; sent_by: string; sent_at: string }[];
 }
 /** The workstation is either on the home screen or on one client. */
-type View = { home: true } | { patient: string; compose?: boolean };
+/** The three places on the home side, plus a client's workspace. */
+type HomeTab = "today" | "calendar" | "clients";
+type View = { home: HomeTab } | { patient: string; compose?: boolean };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -218,13 +222,18 @@ export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
 
 // ── Shell ───────────────────────────────────────────────────────────────────
 
+const HOME_TABS: HomeTab[] = ["today", "calendar", "clients"];
+const isHomeTab = (v: unknown): v is HomeTab => typeof v === "string" && (HOME_TABS as string[]).includes(v);
+
 function readView(): View {
-  if (typeof window === "undefined") return { home: true };
+  if (typeof window === "undefined") return { home: "today" };
   const q = new URLSearchParams(window.location.search);
   const p = q.get("p");
   // ?s= used to pick a tab on the client page; the flow opens itself now, so
   // old links still land on the right client and simply ignore it.
-  return p ? { patient: p, compose: q.get("m") === "1" } : { home: true };
+  if (p) return { patient: p, compose: q.get("m") === "1" };
+  const t = q.get("t");
+  return { home: isHomeTab(t) ? t : "today" };
 }
 
 function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" | "staff"; onLogout: () => void; onPinSet: () => void }) {
@@ -247,6 +256,8 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
     if ("patient" in v) {
       u.searchParams.set("p", v.patient);
       if (v.compose) u.searchParams.set("m", "1");
+    } else if (v.home !== "today") {
+      u.searchParams.set("t", v.home);
     }
     window.history.pushState(null, "", u);
     window.scrollTo({ top: 0 });
@@ -275,7 +286,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
   const menu: WsMenuItem[] = [
     { label: "Fletta upp", icon: "book", hint: "⌘K", onClick: () => setShowBook(true) },
     ...(mode === "worker" ? [
-      { label: "Dagatal", icon: "calendar" as const, onClick: () => setShowCal(true) },
+      { label: "Tengja dagatal", icon: "calendar" as const, onClick: () => setShowCal(true) },
       { label: me.has_pin ? "Breyta PIN" : "Setja PIN", icon: "key" as const, onClick: () => setShowPin(true) },
       { label: "Útskrá", icon: "logout" as const, onClick: () => void logout() },
     ] : []),
@@ -289,8 +300,26 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
         {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
           : "patient" in view
             ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} me={me}
-                onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: true }))} onChanged={load} />
-            : <Home rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
+                onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: "today" }))} onChanged={load} />
+            : (
+              <div className="space-y-4">
+                <nav className="flex rounded-xl bg-white p-1 ring-1 ring-slate-200" aria-label="Vinnustöðin">
+                  {([["today", "Í dag"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"]] as const).map(([k, label]) => (
+                    <button key={k} type="button" onClick={() => setView({ home: k })}
+                      aria-current={view.home === k ? "page" : undefined}
+                      className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                        view.home === k ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+                {view.home === "today" && <Home rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
+                {view.home === "calendar" && (
+                  <WeekCalendar api={api} onOpenClient={(id) => open(id)} onConnect={() => setShowCal(true)} />
+                )}
+                {view.home === "clients" && <ClientsView api={api} onOpenClient={(id) => open(id)} />}
+              </div>
+            )}
       </main>
 
       <KnowledgeSearch api={api} open={showBook} onClose={() => setShowBook(false)} />
