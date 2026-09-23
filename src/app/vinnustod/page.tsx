@@ -724,7 +724,14 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
       detail: j.blood_results_at ? day(j.blood_results_at) : "bíður" },
     { key: "results", label: "Mælingar", state: j.measurements_done_at ? "done" : "waiting",
       detail: j.measurements_done_at ? day(j.measurements_done_at) : j.measurements_booked_for ? day(j.measurements_booked_for) : "ekki bókaðar" },
-    ...live.map((x) => ({ key: x.key, label: x.title.replace(/ eftir 3 mánuði$/, ""), state: x.state, detail: x.status })),
+    ...live.map((x) => ({
+      key: x.key,
+      label: x.title.replace(/ eftir 3 mánuði$/, ""),
+      state: x.state,
+      // The step's own status line is written for a full-width row; on the
+      // strip it has to survive in one short line.
+      detail: shortStatus(x.status),
+    })),
   ];
 
   // Whatever the last plan proposal suggested referring on.
@@ -806,10 +813,6 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
             reading the report. */}
         <aside className="space-y-3">
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
-            <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-700">
-              Skilaboð til skjólstæðings
-              {d.messages.length > 0 && <span className="ml-1.5 font-normal text-slate-400">{d.messages.length}</span>}
-            </h2>
             <Messages d={d} startOpen={compose} reload={load} />
             <div className="mt-3">
               <BookVideo api={api} journey={j} onBooked={(kind, at) =>
@@ -837,6 +840,17 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
       </div>
     </div>
   );
+}
+
+/** A step's status line, cut down to something that fits under a checkpoint.
+ *  Drops a trailing clause and rewrites a bare ISO date as a day and month. */
+function shortStatus(status: string): string {
+  const s = status
+    .replace(/(\d{4})-(\d{2})-(\d{2})/g, (_m, _y, mo, d) => `${Number(d)}. ${MONTHS_IS[Number(mo) - 1]}`)
+    .split(" — ")[0]
+    .split(" · ")[0]
+    .trim();
+  return s.length > 28 ? `${s.slice(0, 27)}…` : s;
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {

@@ -297,7 +297,10 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
         if (VALUE_WORDS.test(line)) { label ??= line; continue; }
       }
       if (line.startsWith("•")) { advice.push(line.replace(/^•\s*/, "")); continue; }
-      if (/^Endurmat/i.test(line)) { review = line; break; }
+      // "Endurmat ráðlagt í" / "samráði við lækni." — one sentence, two lines.
+      if (/^Endurmat/i.test(line)) { review = line; continue; }
+      if (review && !/[.!?]$/.test(review)) { review = `${review} ${line}`.replace(/\s+/g, " "); continue; }
+      if (review) break;
       if (advice.length) advice[advice.length - 1] = `${advice[advice.length - 1]} ${line}`.replace(/\s+/g, " ");
     }
 

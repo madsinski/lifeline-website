@@ -57,13 +57,14 @@ export default function StatusStrip({ steps, onOpen, right }: {
           {steps.map((s, i) => (
             <li key={s.key} className="flex min-w-0 shrink-0 items-start lg:flex-1">
               <button type="button" onClick={() => onOpen?.(s.key)} disabled={!onOpen}
-                className="group flex w-[5.5rem] flex-col items-center gap-1 text-center lg:w-auto lg:flex-1"
+                className="group flex w-[5.5rem] min-w-0 flex-col items-center gap-1 text-center lg:w-auto lg:flex-1"
                 title={s.detail ?? undefined}>
                 <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition ${DOT[s.state]} ${onOpen ? "group-hover:scale-105" : ""}`}>
                   {s.state === "done" ? <Check className="h-3.5 w-3.5" /> : i + 1}
                 </span>
-                <span className={`text-[11px] leading-tight ${TEXT[s.state]}`}>{s.label}</span>
-                {s.detail && <span className="hidden text-[10px] leading-tight text-slate-400 lg:block">{s.detail}</span>}
+                <span className={`w-full truncate text-[11px] leading-tight ${TEXT[s.state]}`}>{s.label}</span>
+                {/* One line only: a wrapped status turns the strip into a wall. */}
+                {s.detail && <span className="hidden w-full truncate text-[10px] leading-tight text-slate-400 lg:block">{s.detail}</span>}
               </button>
               {i < steps.length - 1 && (
                 <span className={`mt-3.5 h-0.5 w-4 shrink-0 rounded lg:w-full lg:min-w-2 ${LINE[steps[i + 1].state === "done" ? "done" : s.state]}`} aria-hidden />
