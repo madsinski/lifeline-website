@@ -67,6 +67,10 @@ VO2MAX     vo2max, hámarkssúrefnisupptaka              ml/kg/mín
 `.trim();
 
 const schema = z.object({
+  patient: z.object({
+    name: z.string().nullable().describe("Nafn skjólstæðingsins eins og það stendur í skjalinu"),
+    kennitala: z.string().nullable().describe("Kennitala, aðeins tölustafir, ef hún stendur í skjalinu"),
+  }),
   report: z.object({
     date_iso: z.string().nullable().describe("Date of the measurements, YYYY-MM-DD, if stated"),
     source: z.enum(["medalia", "lab", "measurement", "other"]).describe("What kind of document this is"),
@@ -103,6 +107,7 @@ Verkefnið:
 • Ef sama mæling kemur oftar en einu sinni skaltu nota nýjustu dagsetninguna.
 • Giskaðu aldrei á tölu. Ef þú ert ekki viss skaltu setja confidence = "low" og útskýra í warnings.
 • Athugasemdir og viðvaranir skal skrifa á íslensku.
+• Lestu líka nafn og kennitölu skjólstæðingsins ef þau standa í skjalinu. Skilaðu kennitölu sem tölustöfum án bandstriks. Ef þau standa ekki þar skaltu skila null.
 
 KÓÐALISTI (kóði — heiti sem geta birst — venjuleg eining):
 ${CATALOG}`;

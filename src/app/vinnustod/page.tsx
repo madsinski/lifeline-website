@@ -23,7 +23,9 @@ import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
+import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
+import ReportIntake from "@/app/components/hc/ReportIntake";
 import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar, type PlanItem } from "@/lib/hc/types";
@@ -65,8 +67,9 @@ type Section = "overview" | "interview" | "plan" | "history";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const ws = (url: string, init: RequestInit = {}) =>
-  fetch(url, { ...init, credentials: "same-origin", headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...(init.headers as Record<string, string> | undefined) } });
+// The login and PIN screens only exist in the standalone workstation, so they
+// always talk over the nurse's own cookie session.
+const ws = cookieApi;
 
 const WORKER_CALENDAR: CalendarApi = {
   call: ws,
@@ -143,16 +146,32 @@ function nextTask(r: Row | Journey, isDoctor: boolean): Task {
 // ── Root ────────────────────────────────────────────────────────────────────
 
 export default function Vinnustod() {
+  return <WorkstationApp mode="worker" />;
+}
+
+/**
+ * The workstation itself. In "worker" mode it owns sign-in (the partner
+ * nurse's own session); in "staff" mode the admin layout has already
+ * authenticated, so there is nothing to sign into and no PIN to set.
+ */
+export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
+  const api = useWsApi();
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const load = useCallback(async () => {
-    const r = await ws("/api/vinnustod/me");
+    const r = await api("/api/vinnustod/me");
     setMe(r.ok ? (await r.json()).me : null);
-  }, []);
+  }, [api]);
   useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   if (me === undefined) return <div className="p-10 text-center text-slate-500">Hleð…</div>;
-  if (me === null) return <Login onDone={load} />;
-  return <Workstation me={me} onLogout={() => setMe(null)} onPinSet={load} />;
+  if (me === null) {
+    return mode === "worker" ? <Login onDone={load} /> : (
+      <div className="p-10 text-center text-slate-500">
+        Vinnustöðin er opin starfsfólki Lifeline með tveggja þátta staðfestingu.
+      </div>
+    );
+  }
+  return <Workstation me={me} mode={mode} onLogout={() => setMe(null)} onPinSet={load} />;
 }
 
 // ── Shell ───────────────────────────────────────────────────────────────────
@@ -165,7 +184,8 @@ function readView(): View {
   return { tab: q.get("t") === "clients" ? "clients" : "today" };
 }
 
-function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void; onPinSet: () => void }) {
+function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" | "staff"; onLogout: () => void; onPinSet: () => void }) {
+  const api = useWsApi();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [view, setViewState] = useState<View>(readView);
   const [showPin, setShowPin] = useState(false);
@@ -194,10 +214,10 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
   }, []);
 
   const load = useCallback(async () => {
-    const r = await ws("/api/vinnustod/queue");
+    const r = await api("/api/vinnustod/queue");
     if (r.status === 401) { onLogout(); return; }
     if (r.ok) setRows((await r.json()).journeys);
-  }, [onLogout]);
+  }, [api, onLogout]);
   useEffect(() => {
     const first = setTimeout(() => void load(), 0);
     const t = setInterval(() => void load(), 60_000);
@@ -227,10 +247,16 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
           </nav>
           <span className="flex-1" />
           <button type="button" onClick={() => setShowBook(true)} title="Ctrl/⌘ + K" className={`${btnSecondary} min-h-9`}><BookOpen className="h-4 w-4" /> Fletta upp</button>
-          <button type="button" onClick={() => setShowCal(true)} className={`${btnGhost} min-h-9`}><CalendarDays className="h-4 w-4" /> Dagatal</button>
-          <button type="button" onClick={() => setShowPin(true)} className={`${btnGhost} min-h-9`}>{me.has_pin ? "Breyta PIN" : "Setja PIN"}</button>
+          {mode === "worker" && (
+            <>
+              <button type="button" onClick={() => setShowCal(true)} className={`${btnGhost} min-h-9`}><CalendarDays className="h-4 w-4" /> Dagatal</button>
+              <button type="button" onClick={() => setShowPin(true)} className={`${btnGhost} min-h-9`}>{me.has_pin ? "Breyta PIN" : "Setja PIN"}</button>
+            </>
+          )}
           <span className="hidden text-sm text-slate-500 lg:inline">{me.name} · {me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfræðingur"}</span>
-          <button type="button" onClick={logout} className={`${btnSecondary} min-h-9`}><LogOut className="h-4 w-4" /> Útskrá</button>
+          {mode === "worker" && (
+            <button type="button" onClick={logout} className={`${btnSecondary} min-h-9`}><LogOut className="h-4 w-4" /> Útskrá</button>
+          )}
         </div>
       </header>
 
@@ -241,9 +267,9 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
           : <Today rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
       </main>
 
-      <KnowledgeSearch api={ws} open={showBook} onClose={() => setShowBook(false)} />
+      <KnowledgeSearch api={api} open={showBook} onClose={() => setShowBook(false)} />
       {showPin && <PinModal onClose={() => setShowPin(false)} onDone={() => { setShowPin(false); onPinSet(); }} />}
-      <CalendarConnect api={WORKER_CALENDAR} open={showCal} onClose={() => setShowCal(false)}
+      <CalendarConnect api={WORKER_CALENDAR} open={showCal && mode === "worker"} onClose={() => setShowCal(false)}
         intro="Viðtöl og eftirfylgd sem þér eru úthlutuð birtast í dagatalinu þínu um leið og þau eru bókuð. Aðeins upphafsstafir skjólstæðings koma fram." />
     </div>
   );
@@ -252,6 +278,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
 // ── Í dag ───────────────────────────────────────────────────────────────────
 
 function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, s?: Section, compose?: boolean) => void; onChanged: () => void }) {
+  const api = useWsApi();
   const hour = new Date().getHours();
   const greet = hour < 11 ? "Góðan daginn" : hour < 18 ? "Góðan dag" : "Gott kvöld";
 
@@ -296,6 +323,8 @@ function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me;
 
   return (
     <div className="space-y-6">
+      <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId, "overview")} />
+
       <section className="rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-6 text-white shadow-sm">
         <p className="text-sm text-emerald-200">{new Date().toLocaleDateString("is-IS", { weekday: "long", day: "numeric", month: "long" })}</p>
         <h1 className="mt-1 text-2xl font-bold">{greet}, {me.name.split(" ")[0]}</h1>
@@ -616,25 +645,26 @@ const PROGRESS: { label: string; at: (j: Journey) => string | null }[] = [
 function PatientView({ id, section, compose, me, onBack, onChanged, onSection }: {
   id: string; section: Section | null; compose: boolean; me: Me; onBack: () => void; onChanged: () => void; onSection: (s: Section) => void;
 }) {
+  const api = useWsApi();
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
   const load = useCallback(async () => {
-    const r = await ws(`/api/vinnustod/journeys/${id}`);
+    const r = await api(`/api/vinnustod/journeys/${id}`);
     if (!r.ok) { setErr(r.status === 404 ? "Skjólstæðingur fannst ekki eða er ekki á þínu svæði." : "Villa kom upp."); return; }
     setD(await r.json());
-  }, [id]);
+  }, [api, id]);
   useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
   const record = useCallback(async (payload: Record<string, unknown>): Promise<string | null> => {
-    const r = await ws(`/api/vinnustod/journeys/${id}`, { method: "POST", body: JSON.stringify(payload) });
+    const r = await api(`/api/vinnustod/journeys/${id}`, { method: "POST", body: JSON.stringify(payload) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return j.error || "Tókst ekki.";
     await load();
     onChanged();
     return null;
-  }, [id, load, onChanged]);
+  }, [api, id, load, onChanged]);
 
   const backBtn = (
     <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
@@ -723,7 +753,7 @@ function PatientView({ id, section, compose, me, onBack, onChanged, onSection }:
       {active === "overview" && <Overview d={d} isDoctor={isDoctor} record={record} compose={compose} reload={load} />}
       {active === "interview" && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={() => onSection("plan")} />}
       {active === "plan" && (
-        <PlanBuilder journeyId={id} api={ws} onPublished={() => { void load(); onChanged(); }}
+        <PlanBuilder journeyId={id} api={api} onPublished={() => { void load(); onChanged(); }}
           seed={seedFromNotes(j.interview_notes)} />
       )}
       {active === "history" && <History audit={d.audit} />}
@@ -788,6 +818,7 @@ function Card({ title, icon, children }: { title: string; icon: React.ReactNode;
 }
 
 function Overview({ d, isDoctor, record, compose, reload }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; compose: boolean; reload: () => Promise<void> }) {
+  const api = useWsApi();
   const j = d.journey;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -801,7 +832,7 @@ function Overview({ d, isDoctor, record, compose, reload }: { d: Detail; isDocto
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="lg:col-span-2">
-        <ResultsCard api={ws} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
+        <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
       </div>
       <Messages d={d} startOpen={compose} reload={reload} />
       <Card title="Rannsóknir" icon={<Droplet className="h-5 w-5" />}>
@@ -900,6 +931,7 @@ function defaultTemplate(j: Journey): MessageTemplateKey {
 const isFutureIso = (iso: string) => new Date(iso).getTime() > Date.now();
 
 function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; reload: () => Promise<void> }) {
+  const api = useWsApi();
   const j = d.journey;
   const ref = useRef<HTMLDivElement>(null);
   const code = d.orders.find((o) => o.activation_code && (o.kind === "health_check" || o.kind === "reevaluation"))?.activation_code ?? null;
@@ -933,7 +965,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
     const channels = [sms && "sms", email && "email"].filter(Boolean);
     if (!confirm(`Senda ${channels.map((c) => (c === "sms" ? "SMS" : "tölvupóst")).join(" og ")} til ${cleanName(d.patient.full_name)}?`)) return;
     setBusy(true); setMsg(null);
-    const r = await ws(`/api/vinnustod/journeys/${j.id}`, { method: "POST", body: JSON.stringify({ action: "message", channels, template: tpl, subject, body: text }) });
+    const r = await api(`/api/vinnustod/journeys/${j.id}`, { method: "POST", body: JSON.stringify({ action: "message", channels, template: tpl, subject, body: text }) });
     const res = await r.json().catch(() => ({}));
     setBusy(false);
     if (!r.ok && !res.results) { setMsg({ ok: false, text: res.error || "Sending mistókst." }); return; }
@@ -1100,6 +1132,7 @@ const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts
 const STEPS = ["Undirbúningur", "Samtal", "Mat", "Áætlun", "Ljúka"] as const;
 
 function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan: () => void }) {
+  const api = useWsApi();
   const j = d.journey;
   const isFollowup = !!j.interview_done_at;
   const [step, setStep] = useState(0);
@@ -1118,7 +1151,7 @@ function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boole
     setSaved("saving");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
-      const r = await ws(`/api/vinnustod/journeys/${j.id}`, { method: "PATCH", body: JSON.stringify({ interview_notes: next }) });
+      const r = await api(`/api/vinnustod/journeys/${j.id}`, { method: "PATCH", body: JSON.stringify({ interview_notes: next }) });
       setSaved(r.ok ? "saved" : "error");
     }, 900);
   };
