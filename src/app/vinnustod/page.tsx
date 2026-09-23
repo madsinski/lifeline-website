@@ -15,8 +15,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Bell, BookOpen, CalendarClock, CalendarDays, Check, ChevronRight, ClipboardList, Droplet, ExternalLink, Video,
-  FileCheck2, HeartPulse, LogOut, Mail, MessageSquare, Phone, Ruler, Search, Stethoscope, Users,
+  ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, Droplet, ExternalLink, Video,
+  FileCheck2, Mail, MessageSquare, Phone, Ruler, Search, Stethoscope, Users,
 } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
@@ -24,6 +24,8 @@ import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
+import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
+import Flow, { Drawer, type FlowStep } from "@/app/components/hc/Flow";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
@@ -63,8 +65,8 @@ interface Detail {
   actor: { label: string; isDoctor: boolean; name: string | null };
   messages: { id: string; channel: "sms" | "email"; recipient: string; template: string | null; subject: string | null; body: string; status: string; error: string | null; sent_by: string; sent_at: string }[];
 }
-type View = { tab: "today" | "clients" } | { patient: string; section?: Section; compose?: boolean };
-type Section = "overview" | "interview" | "plan" | "history";
+/** The workstation is either on the home screen or on one client. */
+type View = { home: true } | { patient: string; compose?: boolean };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -122,28 +124,28 @@ const btnSecondary = `${btn} border border-slate-300 bg-white text-slate-700 hov
 const btnGhost = `${btn} text-slate-600 hover:bg-slate-100`;
 
 /** What the next action for a client is — the heart of the to-do list. */
-type Task = { key: string; label: string; cta: string; section: Section; tone: "urgent" | "normal" | "waiting"; doctorOnly?: boolean };
+type Task = { key: string; label: string; cta: string; tone: "urgent" | "normal" | "waiting"; doctorOnly?: boolean };
 function nextTask(r: Row | Journey, isDoctor: boolean): Task {
   if (isDoctor && r.doctor_review_requested_at && !r.doctor_reviewed_at)
-    return { key: "review", label: "Beiðni um mat læknis", cta: "Meta", section: "overview", tone: "urgent", doctorOnly: true };
+    return { key: "review", label: "Beiðni um mat læknis", cta: "Meta", tone: "urgent", doctorOnly: true };
   switch (r.stage) {
-    case "protocol": return { key: "activate", label: "Hefur ekki virkjað í gátt", cta: "Senda áminningu", section: "overview", tone: "waiting" };
+    case "protocol": return { key: "activate", label: "Hefur ekki virkjað í gátt", cta: "Senda áminningu", tone: "waiting" };
     case "tests": {
       const todo = [!(r.blood_test_done_at || r.blood_results_at) && "blóðprufa", !r.measurements_done_at && "mælingar"].filter(Boolean).join(" og ");
-      return { key: "tests", label: `Bíður: ${todo}`, cta: "Skrá", section: "overview", tone: "waiting" };
+      return { key: "tests", label: `Bíður: ${todo}`, cta: "Skrá", tone: "waiting" };
     }
     case "report":
       return isDoctor
-        ? { key: "report", label: "Skýrsla bíður staðfestingar", cta: "Staðfesta", section: "overview", tone: "urgent", doctorOnly: true }
-        : { key: "report", label: "Bíður þess að læknir staðfesti skýrslu", cta: "Opna", section: "overview", tone: "waiting" };
+        ? { key: "report", label: "Skýrsla bíður staðfestingar", cta: "Staðfesta", tone: "urgent", doctorOnly: true }
+        : { key: "report", label: "Bíður þess að læknir staðfesti skýrslu", cta: "Opna", tone: "waiting" };
     case "interview":
       return r.interview_booked_for
-        ? { key: "interview", label: `Viðtal ${isToday(r.interview_booked_for) ? `í dag kl. ${time(r.interview_booked_for)}` : dayTime(r.interview_booked_for)}`, cta: "Hefja viðtal", section: "interview", tone: isToday(r.interview_booked_for) ? "urgent" : "normal" }
-        : { key: "book", label: "Viðtal ekki bókað", cta: "Bóka viðtal", section: "overview", tone: "normal" };
-    case "plan": return { key: "plan", label: "Viðtali lokið, áætlun vantar", cta: "Klára áætlun", section: "plan", tone: "urgent" };
+        ? { key: "interview", label: `Viðtal ${isToday(r.interview_booked_for) ? `í dag kl. ${time(r.interview_booked_for)}` : dayTime(r.interview_booked_for)}`, cta: "Hefja viðtal", tone: isToday(r.interview_booked_for) ? "urgent" : "normal" }
+        : { key: "book", label: "Viðtal ekki bókað", cta: "Bóka viðtal", tone: "normal" };
+    case "plan": return { key: "plan", label: "Viðtali lokið, áætlun vantar", cta: "Klára áætlun", tone: "urgent" };
     case "action": {
       if (r.followup_booked_for && !r.followup_done_at) {
-        return { key: "followup", label: `Eftirfylgd ${dayTime(r.followup_booked_for)}`, cta: "Opna", section: "interview", tone: isToday(r.followup_booked_for) ? "urgent" : "normal" };
+        return { key: "followup", label: `Eftirfylgd ${dayTime(r.followup_booked_for)}`, cta: "Opna", tone: isToday(r.followup_booked_for) ? "urgent" : "normal" };
       }
       // The three-month follow-up is the promise we made when the plan was
       // published, so it becomes urgent once that date passes.
@@ -151,10 +153,10 @@ function nextTask(r: Row | Journey, isDoctor: boolean): Task {
       return {
         key: "bookfollow",
         label: due ? "Þrír mánuðir liðnir — eftirfylgd ekki bókuð" : "Áætlun birt, eftirfylgd ekki bókuð",
-        cta: "Bóka eftirfylgd", section: "overview", tone: due ? "urgent" : "normal",
+        cta: "Bóka eftirfylgd", tone: due ? "urgent" : "normal",
       };
     }
-    default: return { key: "none", label: "", cta: "Opna", section: "overview", tone: "waiting" };
+    default: return { key: "none", label: "", cta: "Opna", tone: "waiting" };
   }
 }
 
@@ -192,11 +194,12 @@ export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
 // ── Shell ───────────────────────────────────────────────────────────────────
 
 function readView(): View {
-  if (typeof window === "undefined") return { tab: "today" };
+  if (typeof window === "undefined") return { home: true };
   const q = new URLSearchParams(window.location.search);
   const p = q.get("p");
-  if (p) return { patient: p, section: (q.get("s") as Section) || undefined, compose: q.get("m") === "1" };
-  return { tab: q.get("t") === "clients" ? "clients" : "today" };
+  // ?s= used to pick a tab on the client page; the flow opens itself now, so
+  // old links still land on the right client and simply ignore it.
+  return p ? { patient: p, compose: q.get("m") === "1" } : { home: true };
 }
 
 function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" | "staff"; onLogout: () => void; onPinSet: () => void }) {
@@ -208,17 +211,18 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
   const [showCal, setShowCal] = useState(() => {
     if (typeof window === "undefined") return false;
     const q = new URLSearchParams(window.location.search);
-    return q.has("google") || q.get("cal") === "1";
+    return q.get("google") === "connected" || q.get("google") === "error";
   });
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
-  // URL mirrors the view so the browser's back button and links work.
   const setView = useCallback((v: View) => {
     setViewState(v);
     const u = new URL(window.location.href);
-    ["p", "s", "t", "m"].forEach((k) => u.searchParams.delete(k));
-    if ("patient" in v) { u.searchParams.set("p", v.patient); u.searchParams.set("s", v.section ?? "overview"); if (v.compose) u.searchParams.set("m", "1"); }
-    else if (v.tab === "clients") u.searchParams.set("t", "clients");
+    u.searchParams.delete("p"); u.searchParams.delete("s"); u.searchParams.delete("m"); u.searchParams.delete("t");
+    if ("patient" in v) {
+      u.searchParams.set("p", v.patient);
+      if (v.compose) u.searchParams.set("m", "1");
+    }
     window.history.pushState(null, "", u);
     window.scrollTo({ top: 0 });
   }, []);
@@ -241,45 +245,27 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
 
   const logout = async () => { await ws("/api/vinnustod/auth/logout", { method: "POST" }); onLogout(); };
   useKnowledgeHotkey(() => setShowBook(true));
-  const open = (id: string, section: Section = "overview", compose = false) => setView({ patient: id, section, compose });
-  const tab = "tab" in view ? view.tab : null;
+  const open = (id: string, compose = false) => setView({ patient: id, compose });
+
+  const menu: WsMenuItem[] = [
+    { label: "Fletta upp", icon: "book", hint: "⌘K", onClick: () => setShowBook(true) },
+    ...(mode === "worker" ? [
+      { label: "Dagatal", icon: "calendar" as const, onClick: () => setShowCal(true) },
+      { label: me.has_pin ? "Breyta PIN" : "Setja PIN", icon: "key" as const, onClick: () => setShowPin(true) },
+      { label: "Útskrá", icon: "logout" as const, onClick: () => void logout() },
+    ] : []),
+  ];
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-2.5">
-          <LifelineLogo size="sm" />
-          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800">Vinnustöð</span>
-          <nav className="ml-2 flex gap-1" aria-label="Aðalvalmynd">
-            <button type="button" aria-current={tab === "today" ? "page" : undefined} onClick={() => setView({ tab: "today" })}
-              className={`${btn} min-h-9 ${tab === "today" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-              <ClipboardList className="h-4 w-4" /> Í dag
-            </button>
-            <button type="button" aria-current={tab === "clients" ? "page" : undefined} onClick={() => setView({ tab: "clients" })}
-              className={`${btn} min-h-9 ${tab === "clients" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-              <Users className="h-4 w-4" /> Skjólstæðingar
-            </button>
-          </nav>
-          <span className="flex-1" />
-          <button type="button" onClick={() => setShowBook(true)} title="Ctrl/⌘ + K" className={`${btnSecondary} min-h-9`}><BookOpen className="h-4 w-4" /> Fletta upp</button>
-          {mode === "worker" && (
-            <>
-              <button type="button" onClick={() => setShowCal(true)} className={`${btnGhost} min-h-9`}><CalendarDays className="h-4 w-4" /> Dagatal</button>
-              <button type="button" onClick={() => setShowPin(true)} className={`${btnGhost} min-h-9`}>{me.has_pin ? "Breyta PIN" : "Setja PIN"}</button>
-            </>
-          )}
-          <span className="hidden text-sm text-slate-500 lg:inline">{me.name} · {me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfræðingur"}</span>
-          {mode === "worker" && (
-            <button type="button" onClick={logout} className={`${btnSecondary} min-h-9`}><LogOut className="h-4 w-4" /> Útskrá</button>
-          )}
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#f7f9f8]">
+      <WsHeader name={me.name} role={me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfræðingur"} items={menu} />
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
-          : "patient" in view ? <PatientView key={view.patient} id={view.patient} section={view.section ?? null} compose={!!view.compose} me={me} onBack={() => window.history.length > 1 ? window.history.back() : setView({ tab: "today" })} onChanged={load} onSection={(s) => setView({ patient: view.patient, section: s })} />
-          : view.tab === "clients" ? <Clients rows={rows} me={me} isDoctor={isDoctor} onOpen={open} />
-          : <Today rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
+          : "patient" in view
+            ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} me={me}
+                onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: true }))} onChanged={load} />
+            : <Home rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
       </main>
 
       <KnowledgeSearch api={api} open={showBook} onClose={() => setShowBook(false)} />
@@ -290,75 +276,81 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
   );
 }
 
-// ── Í dag ───────────────────────────────────────────────────────────────────
+// ── Heim: skýrsla inn, leit, dagurinn, það sem bíður ───────────────────────
 
-function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, s?: Section, compose?: boolean) => void; onChanged: () => void }) {
+function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean) => void; onChanged: () => void }) {
   const api = useWsApi();
+  const [q, setQ] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const hour = new Date().getHours();
   const greet = hour < 11 ? "Góðan daginn" : hour < 18 ? "Góðan dag" : "Gott kvöld";
 
-  // Today's timetable: every booking that falls on today.
+  const enriched = useMemo(
+    () => rows.map((r) => { const t = nextTask(r, isDoctor); return { r, t, f: rowFlags(r, t) }; }),
+    [rows, isDoctor],
+  );
+
+  // Today's bookings, in the order they happen.
   const agenda = useMemo(() => {
-    const out: { id: string; at: string; what: string; icon: React.ReactNode; row: Row; section: Section }[] = [];
+    const out: { id: string; at: string; what: string; icon: React.ReactNode; row: Row }[] = [];
     for (const r of rows) {
-      if (isToday(r.interview_booked_for) && !r.interview_done_at) out.push({ id: r.id, at: r.interview_booked_for!, what: `Viðtal${r.interview_mode === "video" ? " (myndsímtal)" : ""}`, icon: <MessageSquare className="h-4 w-4" />, row: r, section: "interview" });
-      if (isToday(r.followup_booked_for) && !r.followup_done_at) out.push({ id: r.id, at: r.followup_booked_for!, what: "Eftirfylgd", icon: <CalendarClock className="h-4 w-4" />, row: r, section: "interview" });
-      if (isToday(r.measurements_booked_for) && !r.measurements_done_at) out.push({ id: r.id, at: r.measurements_booked_for!, what: "Mælingar", icon: <Ruler className="h-4 w-4" />, row: r, section: "overview" });
-      if (isToday(r.blood_test_booked_for) && !r.blood_test_done_at) out.push({ id: r.id, at: r.blood_test_booked_for!, what: "Blóðprufa (Heilsugæslan)", icon: <Droplet className="h-4 w-4" />, row: r, section: "overview" });
+      if (isToday(r.interview_booked_for) && !r.interview_done_at) out.push({ id: r.id, at: r.interview_booked_for!, what: `Viðtal${r.interview_mode === "video" ? " (myndsímtal)" : ""}`, icon: <MessageSquare className="h-4 w-4" />, row: r });
+      if (isToday(r.followup_booked_for) && !r.followup_done_at) out.push({ id: r.id, at: r.followup_booked_for!, what: "Eftirfylgd", icon: <CalendarClock className="h-4 w-4" />, row: r });
+      if (isToday(r.measurements_booked_for) && !r.measurements_done_at) out.push({ id: r.id, at: r.measurements_booked_for!, what: "Mælingar", icon: <Ruler className="h-4 w-4" />, row: r });
+      if (isToday(r.blood_test_booked_for) && !r.blood_test_done_at) out.push({ id: r.id, at: r.blood_test_booked_for!, what: "Blóðprufa", icon: <Droplet className="h-4 w-4" />, row: r });
     }
     return out.sort((a, b) => a.at.localeCompare(b.at));
   }, [rows]);
 
-  // To-do list grouped by the kind of next action.
-  const groups = useMemo(() => {
-    const order: { key: string; title: string; hint: string }[] = [
-      ...(isDoctor ? [
-        { key: "review", title: "Beiðnir um mat læknis", hint: "Hjúkrunarfræðingur óskar eftir áliti." },
-        { key: "report", title: "Skýrslur til staðfestingar", hint: "Blóðprufusvör komin. Læknir fær SMS eftir 5 mínútur." },
-      ] : []),
-      { key: "plan", title: "Klára aðgerðaáætlun", hint: "Viðtali lokið en áætlun ekki birt." },
-      { key: "book", title: "Bóka viðtal", hint: "Skýrslan er tilbúin. Hafðu samband og finndu tíma." },
-      { key: "interview", title: "Viðtöl framundan", hint: "Bókuð viðtöl." },
-      { key: "bookfollow", title: "Bóka eftirfylgd", hint: "Ráðlögð eftir 3 mánuði — verður aðkallandi þegar þeir eru liðnir." },
-      { key: "followup", title: "Eftirfylgd framundan", hint: "Bókuð eftirfylgdarviðtöl." },
-      { key: "tests", title: "Bíða rannsókna", hint: "Blóðprufa eða mælingar ekki komnar. Ekkert þarf að gera nema skrá ef það berst ekki sjálfkrafa." },
-      { key: "activate", title: "Hafa ekki virkjað", hint: "Greitt, en virkjunarkóði ekki sleginn inn í sjúklingagátt." },
-    ];
-    const byKey = new Map<string, { row: Row; task: Task }[]>();
-    for (const r of rows) {
-      const t = nextTask(r, isDoctor);
-      if (t.key === "none") continue;
-      if (!byKey.has(t.key)) byKey.set(t.key, []);
-      byKey.get(t.key)!.push({ row: r, task: t });
-    }
-    return order.map((g) => ({ ...g, items: byKey.get(g.key) ?? [] })).filter((g) => g.items.length);
-  }, [rows, isDoctor]);
+  // What is waiting on this nurse, most pressing first. One list, no groups.
+  const waiting = useMemo(
+    () => enriched.filter((x) => x.f.rank < 2).sort((a, b) => a.f.rank - b.f.rank || b.f.waitingDays - a.f.waitingDays),
+    [enriched],
+  );
 
-  const urgent = groups.filter((g) => ["review", "report", "plan", "book"].includes(g.key)).reduce((n, g) => n + g.items.length, 0);
+  const search = q.trim().toLowerCase();
+  const found = useMemo(() => {
+    if (!search) return [];
+    return enriched
+      .filter((x) => cleanName(x.r.client_name).toLowerCase().includes(search) || (x.r.client_phone || "").replace(/\s/g, "").includes(search.replace(/\s/g, "")))
+      .slice(0, 8);
+  }, [enriched, search]);
 
   return (
     <div className="space-y-6">
-      <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId, "overview")} />
+      <div>
+        <p className="text-sm text-slate-500">{longDate(new Date())}</p>
+        <h1 className="text-2xl font-bold text-slate-900">{greet}, {me.name.split(" ")[0]}</h1>
+      </div>
 
-      <section className="rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-6 text-white shadow-sm">
-        <p className="text-sm text-emerald-200">{longDate(new Date())}</p>
-        <h1 className="mt-1 text-2xl font-bold">{greet}, {me.name.split(" ")[0]}</h1>
-        <p className="mt-1 text-emerald-100">
-          {agenda.length ? `${agenda.length} ${agenda.length === 1 ? "tími" : "tímar"} í dag` : "Engir bókaðir tímar í dag"}
-          {urgent ? ` · ${urgent} ${urgent === 1 ? "verkefni bíður" : "verkefni bíða"} þín` : ""}
-        </p>
-      </section>
+      {/* 1. The day usually starts with a report landing on the desk. */}
+      <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} />
 
-      <section>
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900"><CalendarDays className="h-5 w-5 text-emerald-600" /> Tímar í dag</h2>
-        {agenda.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">Ekkert bókað í dag.</p>
-        ) : (
+      {/* 2. Or with looking someone up. */}
+      <div>
+        <label className="relative block">
+          <span className="sr-only">Leita að skjólstæðingi</span>
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita að skjólstæðingi — nafn eða sími"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-base shadow-sm outline-none focus:border-emerald-400" />
+        </label>
+        {search && (
+          <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {found.length === 0 && <li className="p-4 text-sm text-slate-500">Enginn fannst.</li>}
+            {found.map(({ r, t, f }) => <SearchHit key={r.id} r={r} t={t} f={f} onOpen={onOpen} />)}
+          </ul>
+        )}
+      </div>
+
+      {/* 3. What is booked today. */}
+      {agenda.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Í dag</h2>
           <ol className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {agenda.map((a, i) => (
               <li key={`${a.id}-${i}`}>
-                <button type="button" onClick={() => onOpen(a.id, "overview")} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
-                  <span className="w-14 text-lg font-bold tabular-nums text-slate-900">{time(a.at)}</span>
+                <button type="button" onClick={() => onOpen(a.id)} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
+                  <span className="w-12 text-lg font-bold tabular-nums text-slate-900">{time(a.at)}</span>
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">{a.icon}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-slate-900">{cleanName(a.row.client_name)} {isTest(a.row.client_name) && <TestBadge />}</span>
@@ -369,31 +361,74 @@ function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me;
               </li>
             ))}
           </ol>
+        </section>
+      )}
+
+      {/* 4. Everything that needs a decision from you. */}
+      <section>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+          Bíður þín {waiting.length > 0 && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
+        </h2>
+        {waiting.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">Ekkert bíður. Vel gert.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} />)}
+          </ul>
         )}
       </section>
 
+      {/* 5. The whole list, only when asked for. */}
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900"><ClipboardList className="h-5 w-5 text-emerald-600" /> Verkefni</h2>
-        {groups.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">Ekkert bíður. Vel gert.</p>}
-        <div className="space-y-4">
-          {groups.map((g) => (
-            <div key={g.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="flex items-baseline justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                <div>
-                  <h3 className="font-bold text-slate-900">{g.title} <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">{g.items.length}</span></h3>
-                  <p className="text-xs text-slate-500">{g.hint}</p>
-                </div>
-              </div>
-              <ul className="divide-y divide-slate-100">
-                {g.items.map(({ row, task }) => (
-                  <TaskRow key={row.id} row={row} task={task} onOpen={onOpen} onChanged={onChanged} />
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+        <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}
+          className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50">
+          <Users className="h-4 w-4 text-slate-400" />
+          <span className="font-semibold text-slate-700">Allir skjólstæðingar</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{rows.length}</span>
+          <span className="flex-1" />
+          <ChevronRight className={`h-5 w-5 text-slate-300 transition ${showAll ? "rotate-90" : ""}`} />
+        </button>
+        {showAll && <div className="mt-3"><Clients rows={rows} me={me} isDoctor={isDoctor} onOpen={onOpen} /></div>}
       </section>
     </div>
+  );
+}
+
+/** A search result: name, what is next, one tap in. */
+function SearchHit({ r, t, f, onOpen }: { r: Row; t: Task; f: RowFlags; onOpen: (id: string) => void }) {
+  return (
+    <li>
+      <button type="button" onClick={() => onOpen(r.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONE_DOT[t.tone]}`} aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold text-slate-900">{cleanName(r.client_name)} {isTest(r.client_name) && <TestBadge />}</span>
+          <span className="block truncate text-sm text-slate-500">{t.label}</span>
+        </span>
+        {f.nextAt && <span className="hidden text-xs text-slate-500 sm:block">{isToday(f.nextAt) ? `${f.nextWhat} kl. ${time(f.nextAt)}` : `${f.nextWhat} ${day(f.nextAt)}`}</span>}
+        <ChevronRight className="h-5 w-5 text-slate-300" />
+      </button>
+    </li>
+  );
+}
+
+/** One thing waiting on the nurse: who, what, and the single next action. */
+function WaitingRow({ r, t, f, onOpen }: {
+  r: Row; t: Task; f: RowFlags; onOpen: (id: string, compose?: boolean) => void; onChanged: () => void;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-3 px-4 py-3">
+      <button type="button" onClick={() => onOpen(r.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONE_DOT[t.tone]}`} aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold text-slate-900">{cleanName(r.client_name)} {isTest(r.client_name) && <TestBadge />}</span>
+          <span className="block text-sm text-slate-500">
+            <span className={f.reportLate ? "font-semibold text-red-600" : ""}>{t.label}</span>
+            {f.waitingDays > 2 && <span className="text-slate-400"> · {f.waitingDays} d.</span>}
+          </span>
+        </span>
+      </button>
+      <button type="button" onClick={() => onOpen(r.id)} className={`${btnPrimary} min-h-9 px-3 text-xs`}>{t.cta}</button>
+    </li>
   );
 }
 
@@ -401,34 +436,6 @@ function TestBadge() {
   return <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase text-amber-800">Prufa</span>;
 }
 
-function TaskRow({ row, task, onOpen }: { row: Row; task: Task; onOpen: (id: string, s?: Section, compose?: boolean) => void; onChanged: () => void }) {
-  const late = task.key === "report" && minutesSince(row.blood_results_at) >= 5;
-  return (
-    <li className={`flex flex-wrap items-center gap-3 px-4 py-3 ${late ? "bg-red-50/60" : ""}`}>
-      <button type="button" onClick={() => onOpen(row.id, "overview")} className="min-w-0 flex-1 rounded-lg text-left hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-        <span className="block font-semibold text-slate-900">
-          {cleanName(row.client_name)} {isTest(row.client_name) && <TestBadge />}
-          {row.entry === "b2b" && <span className="ml-1 rounded bg-blue-50 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-blue-700">Fyrirtæki</span>}
-          {row.entry === "heilsugaesla" && <span className="ml-1 rounded bg-violet-50 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-violet-700">Tilvísun HG</span>}
-        </span>
-        <span className="block text-sm text-slate-500">
-          {task.label}
-          {task.key === "report" && ` · svör fyrir ${minutesSince(row.blood_results_at)} mín.${row.report_sms_sent_at ? " · SMS sent" : ""}`}
-          {age(row.client_dob) ? ` · ${age(row.client_dob)}` : ""}
-        </span>
-      </button>
-      {row.client_phone && (
-        <a href={`tel:${row.client_phone}`} className={`${btnGhost} min-h-9`} aria-label={`Hringja í ${cleanName(row.client_name)}`}><Phone className="h-4 w-4" /><span className="hidden sm:inline">{row.client_phone}</span></a>
-      )}
-      <button type="button" onClick={() => onOpen(row.id, "overview", true)} className={`${btnSecondary} min-h-9`}><Bell className="h-4 w-4" /> Minna á</button>
-      {task.key !== "activate" && task.key !== "tests" && (
-        <button type="button" onClick={() => onOpen(row.id, task.section)} className={`${task.tone === "urgent" ? btnPrimary : btnSecondary} min-h-9`}>
-          {task.cta} <ChevronRight className="h-4 w-4" />
-        </button>
-      )}
-    </li>
-  );
-}
 
 // ── Skjólstæðingar ──────────────────────────────────────────────────────────
 
@@ -462,7 +469,7 @@ const SORTS = [
   { key: "name", label: "Nafn" },
 ] as const;
 
-function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, s?: Section, compose?: boolean) => void }) {
+function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean) => void }) {
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("all");
   const [mine, setMine] = useState(false);
@@ -560,7 +567,7 @@ function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor
 
 /** One client: the line a nurse scans, and the detail underneath it. */
 function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
-  r: Row; t: Task; f: RowFlags; expanded: boolean; onToggle: () => void; onOpen: (id: string, s?: Section, compose?: boolean) => void;
+  r: Row; t: Task; f: RowFlags; expanded: boolean; onToggle: () => void; onOpen: (id: string, compose?: boolean) => void;
 }) {
   const name = cleanName(r.client_name);
   const planChip = r.plan_published_at ? { text: "Áætlun birt", cls: "bg-emerald-50 text-emerald-700" }
@@ -599,31 +606,19 @@ function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
           <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 sm:inline">{STAGE_TEXT[r.stage] ?? r.stage}</span>
           <ChevronRight className={`h-5 w-5 shrink-0 text-slate-300 transition ${expanded ? "rotate-90" : ""}`} />
         </button>
-        <button type="button" onClick={() => onOpen(r.id, t.section)} className={`${btnPrimary} hidden min-h-9 px-3 text-xs sm:inline-flex`}>{t.cta}</button>
+        <button type="button" onClick={() => onOpen(r.id)} className={`${btnPrimary} hidden min-h-9 px-3 text-xs sm:inline-flex`}>{t.cta}</button>
       </div>
 
       {expanded && (
         <div className="space-y-4 border-t border-slate-200 bg-white px-4 py-4">
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => onOpen(r.id, "overview")} className={`${btnDark} min-h-9 px-3 text-xs`}>Opna skjólstæðing</button>
-            <button type="button" onClick={() => onOpen(r.id, "interview")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><ClipboardList className="h-4 w-4" /> Viðtal</button>
-            <button type="button" onClick={() => onOpen(r.id, "plan")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><FileCheck2 className="h-4 w-4" /> Áætlun</button>
-            <button type="button" onClick={() => onOpen(r.id, "overview", true)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Bell className="h-4 w-4" /> Skilaboð</button>
+            <button type="button" onClick={() => onOpen(r.id)} className={`${btnDark} min-h-9 px-3 text-xs`}>Opna skjólstæðing</button>
+            <button type="button" onClick={() => onOpen(r.id)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><ClipboardList className="h-4 w-4" /> Viðtal</button>
+            <button type="button" onClick={() => onOpen(r.id)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><FileCheck2 className="h-4 w-4" /> Áætlun</button>
+            <button type="button" onClick={() => onOpen(r.id, true)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Bell className="h-4 w-4" /> Skilaboð</button>
             {r.client_phone && <a href={`tel:${r.client_phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {r.client_phone}</a>}
             {planChip && <span className={`ml-auto self-center rounded-full px-2.5 py-1 text-xs font-semibold ${planChip.cls}`}>{planChip.text}</span>}
           </div>
-
-          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-            {PROGRESS.map((p) => {
-              const at = p.at(r as unknown as Journey);
-              return (
-                <li key={p.label} className={`rounded-xl px-2 py-1.5 text-center ${at ? "bg-emerald-50" : "bg-slate-50"}`}>
-                  <span className={`block text-[11px] font-semibold ${at ? "text-emerald-800" : "text-slate-400"}`}>{p.label}</span>
-                  <span className="block text-[10px] text-slate-400">{at ? day(at) : "—"}</span>
-                </li>
-              );
-            })}
-          </ol>
 
           <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -646,23 +641,14 @@ function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
 
 // ── Client page ─────────────────────────────────────────────────────────────
 
-const PROGRESS: { label: string; at: (j: Journey) => string | null }[] = [
-  { label: "Greitt", at: (j) => j.paid_at },
-  { label: "Virkjað", at: (j) => j.protocol_activated_at },
-  { label: "Blóðprufa", at: (j) => j.blood_test_done_at ?? j.blood_results_at },
-  { label: "Mælingar", at: (j) => j.measurements_done_at },
-  { label: "Skýrsla", at: (j) => j.report_generated_at },
-  { label: "Viðtal", at: (j) => j.interview_done_at },
-  { label: "Áætlun", at: (j) => j.plan_published_at },
-  { label: "Eftirfylgd", at: (j) => j.followup_done_at },
-];
-
-function PatientView({ id, section, compose, me, onBack, onChanged, onSection }: {
-  id: string; section: Section | null; compose: boolean; me: Me; onBack: () => void; onChanged: () => void; onSection: (s: Section) => void;
+function PatientView({ id, compose, me, onBack, onChanged }: {
+  id: string; compose: boolean; me: Me; onBack: () => void; onChanged: () => void;
 }) {
   const api = useWsApi();
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
+  const [openStep, setOpenStep] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
   const load = useCallback(async () => {
@@ -690,93 +676,294 @@ function PatientView({ id, section, compose, me, onBack, onChanged, onSection }:
   if (!d) return <div className="space-y-4">{backBtn}<p className="p-6 text-slate-500">Hleð…</p></div>;
 
   const j = d.journey;
-  const task = nextTask(j, isDoctor);
-  const active: Section = section ?? "overview";
   const kt = d.patient.kennitala;
-  const doneCount = PROGRESS.filter((p) => p.at(j)).length;
+  const steps = buildSteps({ d, isDoctor, api, record, reload: load, onChanged });
+  // Open the step that needs attention; on a finished journey fall back to
+  // what comes next, so the page is never just a wall of closed rows.
+  const live = steps.filter((x) => !x.hidden);
+  const current =
+    live.find((x) => x.state === "current") ??
+    live.find((x) => x.state === "waiting") ??
+    live.find((x) => x.state === "upcoming") ??
+    live.at(-1);
+  const shownOpen = touched ? openStep : current?.key ?? null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {backBtn}
 
-      {/* Header */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-start gap-4">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-800">
+      {/* Who this is, and how to reach them. */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800">
             {cleanName(d.patient.full_name).split(" ").map((p) => p[0]).slice(0, 2).join("")}
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">{cleanName(d.patient.full_name)} {isTest(d.patient.full_name) && <TestBadge />}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{cleanName(d.patient.full_name)} {isTest(d.patient.full_name) && <TestBadge />}</h1>
             <p className="text-sm text-slate-500">
               {[kt ? `${kt.slice(0, 6)}-${kt.slice(6)}` : null, age(d.patient.date_of_birth), d.location?.name].filter(Boolean).join(" · ")}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {d.patient.phone && <a href={`tel:${d.patient.phone}`} className={`${btnSecondary} min-h-9`}><Phone className="h-4 w-4" /> {d.patient.phone}</a>}
-              {d.patient.email && <a href={`mailto:${d.patient.email}`} className={`${btnSecondary} min-h-9`}><Mail className="h-4 w-4" /> Tölvupóstur</a>}
-              <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={`${btnSecondary} min-h-9`}><ExternalLink className="h-4 w-4" /> Opna í Medalia</a>
-            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {d.patient.phone && <a href={`tel:${d.patient.phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {d.patient.phone}</a>}
+            <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={`${btnSecondary} min-h-9 px-3 text-xs`}><ExternalLink className="h-4 w-4" /> Medalia</a>
           </div>
         </div>
-
-        {/* Progress */}
-        <ol className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-8" aria-label={`${doneCount} af ${PROGRESS.length} skrefum lokið`}>
-          {PROGRESS.map((p, i) => {
-            const at = p.at(j);
-            const current = !at && PROGRESS.slice(0, i).every((x) => x.at(j) || x.label === "Blóðprufa" || x.label === "Mælingar");
-            return (
-              <li key={p.label} className="text-center">
-                <span className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${at ? "bg-emerald-500 text-white" : current ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400"}`}>
-                  {at ? <Check className="h-4 w-4" /> : i + 1}
-                </span>
-                <span className={`mt-1 block text-[11px] font-semibold ${at ? "text-emerald-800" : "text-slate-500"}`}>{p.label}</span>
-                <span className="block text-[10px] text-slate-400">{at ? day(at) : ""}</span>
-              </li>
-            );
-          })}
-        </ol>
+        {j.plan_published_at && <div className="mt-3"><Adherence d={d} /></div>}
       </section>
 
-      {/* How the plan is going, once one is published */}
-      {j.plan_published_at && <Adherence d={d} />}
+      <Flow steps={steps} openKey={shownOpen} onOpen={(k) => { setTouched(true); setOpenStep(k); }} />
 
-      {/* Next task */}
-      {task.key !== "none" && (
-        <section className={`flex flex-wrap items-center gap-4 rounded-2xl p-4 ${task.tone === "urgent" ? "bg-emerald-600 text-white" : "border border-slate-200 bg-slate-50"}`}>
-          <HeartPulse className={`h-6 w-6 ${task.tone === "urgent" ? "text-emerald-100" : "text-emerald-600"}`} />
-          <div className="min-w-0 flex-1">
-            <p className={`text-xs font-bold uppercase tracking-wide ${task.tone === "urgent" ? "text-emerald-100" : "text-slate-500"}`}>Næsta verk</p>
-            <p className="font-semibold">{task.label}</p>
-          </div>
-          {active !== task.section && (
-            <button type="button" onClick={() => onSection(task.section)} className={task.tone === "urgent" ? `${btn} bg-white text-emerald-800 hover:bg-emerald-50` : btnPrimary}>
-              {task.cta} <ChevronRight className="h-4 w-4" />
-            </button>
-          )}
-        </section>
-      )}
-
-      {/* Sections */}
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
-        {([["overview", "Yfirlit"], ["interview", "Viðtal"], ["plan", "Áætlun"], ["history", "Saga"]] as const).map(([k, l]) => (
-          <button key={k} type="button" role="tab" aria-selected={active === k} onClick={() => onSection(k)}
-            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold ${active === k ? "border-emerald-600 text-emerald-800" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
-            {l}
-          </button>
-        ))}
-      </div>
-
-      {active === "overview" && <Overview d={d} isDoctor={isDoctor} record={record} compose={compose} reload={load} />}
-      {active === "interview" && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={() => onSection("plan")} />}
-      {active === "plan" && (
-        <PlanBuilder journeyId={id} api={api} onPublished={() => { void load(); onChanged(); }}
-          seed={seedFromNotes(j.interview_notes)} />
-      )}
-      {active === "history" && <History audit={d.audit} />}
+      {/* Everything else, tucked away until it is wanted. */}
+      <Drawer title="Skilaboð til skjólstæðings" count={d.messages.length} defaultOpen={compose}>
+        <Messages d={d} startOpen={compose} reload={load} />
+      </Drawer>
+      <Drawer title="Mat læknis og tilvísun">
+        <DoctorReview d={d} isDoctor={isDoctor} record={record} />
+      </Drawer>
+      <Drawer title="Greiðslur og kóðar" count={d.orders.length}>
+        <Orders d={d} record={record} />
+      </Drawer>
+      <Drawer title="Saga" count={d.audit.length}>
+        <History audit={d.audit} />
+      </Drawer>
     </div>
   );
 }
 
-/** What the client has actually been doing since the plan was published. */
+/** The journey as the nurse walks it: tests in, report confirmed, interview,
+ *  plan, follow-up. Each step knows whether it is waiting on us or on someone
+ *  else, so the page can open itself on the one that matters. */
+function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
+  d: Detail; isDoctor: boolean; api: WsApi;
+  record: (p: Record<string, unknown>) => Promise<string | null>;
+  reload: () => Promise<void>; onChanged: () => void;
+}): FlowStep[] {
+  const j = d.journey;
+  const hasResults = (d.results ?? []).length > 0;
+  const resultsIn = !!(j.blood_results_at && j.measurements_done_at);
+
+  return [
+    {
+      key: "results",
+      title: "Niðurstöður",
+      icon: <Droplet className="h-4 w-4" />,
+      state: hasResults ? "done" : resultsIn ? "current" : "waiting",
+      status: hasResults
+        ? `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`
+        : resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga",
+      body: <ResultsStep d={d} api={api} record={record} reload={reload} />,
+    },
+    {
+      key: "report",
+      title: "Skýrsla læknis",
+      icon: <FileCheck2 className="h-4 w-4" />,
+      state: j.report_generated_at ? "done" : j.blood_results_at ? (isDoctor ? "current" : "waiting") : "upcoming",
+      status: j.report_generated_at
+        ? `Staðfest ${dayTime(j.report_generated_at)}`
+        : j.blood_results_at
+          ? (isDoctor ? "Þú getur staðfest skýrsluna" : `Svör komin fyrir ${minutesSince(j.blood_results_at)} mín. — bíður læknis`)
+          : "Bíður blóðprufusvara",
+      body: <ReportStep d={d} isDoctor={isDoctor} record={record} />,
+    },
+    {
+      key: "interview",
+      title: "Viðtal",
+      icon: <MessageSquare className="h-4 w-4" />,
+      state: j.interview_done_at ? "done" : j.interview_booked_for ? "current" : j.report_generated_at ? "current" : "upcoming",
+      status: j.interview_done_at
+        ? `Lokið ${day(j.interview_done_at)}`
+        : j.interview_booked_for
+          ? `${dayTime(j.interview_booked_for)}${j.interview_mode === "video" ? " · myndsímtal" : ""}`
+          : j.report_generated_at ? "Ekki bókað — hafðu samband og finndu tíma" : "Bókast þegar skýrslan er staðfest",
+      body: <InterviewStep d={d} isDoctor={isDoctor} record={record} />,
+    },
+    {
+      key: "plan",
+      title: "Aðgerðaáætlun",
+      icon: <ClipboardList className="h-4 w-4" />,
+      state: j.plan_published_at ? "done" : j.interview_done_at ? "current" : "upcoming",
+      status: j.plan_published_at
+        ? `Birt skjólstæðingi ${day(j.plan_published_at)}`
+        : d.plan?.status === "draft" ? "Drög til — á eftir að birta" : j.interview_done_at ? "Viðtali lokið — gerðu áætlunina" : "Gerð í eða eftir viðtalið",
+      body: <PlanBuilder journeyId={j.id} api={api} onPublished={() => { void reload(); onChanged(); }} seed={seedFromNotes(j.interview_notes)} />,
+    },
+    {
+      key: "followup",
+      title: "Eftirfylgd eftir 3 mánuði",
+      icon: <CalendarClock className="h-4 w-4" />,
+      hidden: !j.plan_published_at && !j.followup_booked_for,
+      state: j.followup_done_at ? "done" : j.followup_booked_for ? "waiting" : daysSince(j.plan_published_at) >= 90 ? "current" : "upcoming",
+      status: j.followup_done_at
+        ? `Lokið ${day(j.followup_done_at)}`
+        : j.followup_booked_for
+          ? dayTime(j.followup_booked_for)
+          : daysSince(j.plan_published_at) >= 90 ? "Þrír mánuðir liðnir — ekki bókað" : `Bókast um ${day(new Date(new Date(j.plan_published_at ?? Date.now()).getTime() + 90 * 86400_000).toISOString())}`,
+      body: <FollowupStep d={d} record={record} />,
+    },
+  ];
+}
+
+// ── Step bodies ────────────────────────────────────────────────────────────
+
+function ResultsStep({ d, api, record, reload }: {
+  d: Detail; api: WsApi; record: (p: Record<string, unknown>) => Promise<string | null>; reload: () => Promise<void>;
+}) {
+  const j = d.journey;
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const run = async (p: Record<string, unknown>, ok: string) => {
+    setBusy(true); setMsg("");
+    const e = await record(p);
+    setBusy(false); setMsg(e ?? ok);
+  };
+  return (
+    <div className="space-y-4">
+      <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
+      <div className="rounded-2xl bg-slate-50 p-3">
+        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Rannsóknir</p>
+        <Milestone label="Blóðprufa (Heilsugæslan)" booked={j.blood_test_booked_for} done={j.blood_test_done_at ?? j.blood_results_at}
+          action={!(j.blood_test_done_at || j.blood_results_at) ? { label: "Skrá tekna", run: () => run({ event: "blood_test_done" }, "Skráð.") } : undefined} busy={busy} />
+        <Milestone label="Blóðprufusvör" done={j.blood_results_at}
+          action={!j.blood_results_at ? { label: "Skrá svör komin", run: () => run({ event: "blood_results_ready" }, "Skráð. Læknir fær tilkynningu.") } : undefined} busy={busy} />
+        <Milestone label="Mælingar (Vera)" booked={j.measurements_booked_for} done={j.measurements_done_at}
+          action={!j.measurements_done_at ? { label: "Skrá lokið", run: () => run({ event: "measurements_done" }, "Skráð.") } : undefined} busy={busy} />
+        <p className="mt-2 text-xs text-slate-500">Sjúklingagáttin skráir þetta sjálfkrafa þegar tenging er komin.</p>
+      </div>
+      {msg && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800">{msg}</p>}
+    </div>
+  );
+}
+
+function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; }) {
+  const j = d.journey;
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (j.report_generated_at) {
+    return <p className="text-sm text-slate-600">Skýrslan var staðfest {dayTime(j.report_generated_at)} og skjólstæðingurinn fékk tilkynningu. Hún er í Medalia.</p>;
+  }
+  if (!j.blood_results_at) return <p className="text-sm text-slate-500">Skýrslan er staðfest þegar blóðprufusvörin eru komin.</p>;
+  return (
+    <div className="space-y-2">
+      {isDoctor ? (
+        <>
+          <p className="text-sm text-slate-600">Farðu yfir gildin að ofan og staðfestu skýrsluna. Skjólstæðingurinn fær tölvupóst um leið.</p>
+          <button type="button" disabled={busy} onClick={async () => { setBusy(true); const e = await record({ event: "report_generated" }); setBusy(false); setMsg(e ?? "Skýrsla staðfest."); }}
+            className={`${btnDark} w-full sm:w-auto`}><Stethoscope className="h-4 w-4" /> Staðfesta skýrsluna</button>
+        </>
+      ) : (
+        <p className="text-sm text-amber-800">
+          Svörin komu fyrir {minutesSince(j.blood_results_at)} mínútum. Læknir fær SMS ef skýrslan er ekki staðfest innan fimm mínútna.
+        </p>
+      )}
+      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+    </div>
+  );
+}
+
+function InterviewStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; }) {
+  const j = d.journey;
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const run = async (p: Record<string, unknown>, ok: string) => {
+    setBusy(true); setMsg("");
+    const e = await record(p);
+    setBusy(false); setMsg(e ?? ok);
+  };
+  return (
+    <div className="space-y-4">
+      <Booking label="Viðtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode} meetingUrl={j.meeting_url}
+        disabled={!j.report_generated_at} disabledText="Hægt að bóka þegar skýrsla er staðfest."
+        onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
+      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} />}
+    </div>
+  );
+}
+
+function FollowupStep({ d, record }: { d: Detail; record: (p: Record<string, unknown>) => Promise<string | null> }) {
+  const j = d.journey;
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const run = async (p: Record<string, unknown>, ok: string) => {
+    setBusy(true); setMsg("");
+    const e = await record(p);
+    setBusy(false); setMsg(e ?? ok);
+  };
+  return (
+    <div className="space-y-3">
+      <Booking label="Eftirfylgd" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_booked_for ? j.interview_mode : "video"} meetingUrl={j.meeting_url}
+        disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
+        onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy} />
+      {j.followup_booked_for && !j.followup_done_at && (
+        <button type="button" disabled={busy} onClick={() => run({ event: "followup_done" }, "Eftirfylgd skráð.")} className={`${btnSecondary} w-full sm:w-auto`}>Merkja eftirfylgd lokið</button>
+      )}
+      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+    </div>
+  );
+}
+
+function DoctorReview({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null> }) {
+  const j = d.journey;
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [note, setNote] = useState("");
+  const run = async (p: Record<string, unknown>, ok: string) => {
+    setBusy(true); setMsg("");
+    const e = await record(p);
+    setBusy(false); setMsg(e ?? ok);
+  };
+  return (
+    <div className="space-y-2">
+      {j.doctor_review_requested_at && (
+        <div className={`rounded-xl p-3 text-sm ${j.doctor_reviewed_at ? "bg-slate-50 text-slate-600" : "bg-amber-50 text-amber-900"}`}>
+          <p className="font-semibold">{j.doctor_reviewed_at ? `Læknir hefur metið (${day(j.doctor_reviewed_at)})` : `Beðið um mat læknis (${day(j.doctor_review_requested_at)})`}</p>
+          {j.doctor_review_note && <p className="mt-1">{j.doctor_review_note}</p>}
+          {isDoctor && !j.doctor_reviewed_at && (
+            <button type="button" disabled={busy} onClick={() => run({ action: "doctor_reviewed" }, "Skráð sem metið.")} className={`${btnDark} mt-2`}>Merkja sem metið</button>
+          )}
+        </div>
+      )}
+      {j.referral_to_heilsugaesla ? (
+        <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><b>Vísað á Heilsugæsluna</b> {day(j.referred_at)}{j.referral_note ? `: ${j.referral_note}` : ""}</p>
+      ) : (
+        <>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={isDoctor ? "Ástæða tilvísunar (fer ekki til skjólstæðings)" : "Hvað á læknirinn að meta?"}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <div className="flex flex-wrap gap-2">
+            {!isDoctor && <button type="button" disabled={busy || !note.trim()} onClick={() => run({ action: "request_doctor", note }, "Læknar hafa fengið beiðnina.").then(() => setNote(""))} className={btnSecondary}>Biðja lækni að meta</button>}
+            {isDoctor && <button type="button" disabled={busy || !note.trim()} onClick={() => run({ event: "referral_heilsugaesla", note }, "Tilvísun skráð.").then(() => setNote(""))} className={`${btn} bg-amber-600 text-white hover:bg-amber-700`}>Skrá tilvísun á Heilsugæsluna</button>}
+          </div>
+        </>
+      )}
+      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+    </div>
+  );
+}
+
+function Orders({ d, record }: { d: Detail; record: (p: Record<string, unknown>) => Promise<string | null> }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  return (
+    <div className="space-y-2">
+      <ul className="space-y-1.5 text-sm">
+        {d.orders.length === 0 && <li className="text-slate-500">Engar greiðslur skráðar.</li>}
+        {d.orders.map((o) => (
+          <li key={o.id} className="flex justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
+            <span>{o.kind === "health_check" ? "Heilsufarsskoðun" : o.kind === "followup_3m" ? "Eftirfylgd" : o.kind === "reevaluation" ? "Endurmat" : "Aukaviðtal"} · {o.payment_route === "company" ? "fyrirtæki" : o.payment_route === "union" ? "stéttarfélag" : "sjálf(ur)"}</span>
+            <span className="font-mono text-xs text-slate-500">{o.activation_code}{o.activation_redeemed_at ? " ✓" : ""}</span>
+          </li>
+        ))}
+      </ul>
+      {d.journey.stage === "protocol" && (
+        <button type="button" disabled={busy} onClick={async () => { setBusy(true); const e = await record({ action: "remind_client" }); setBusy(false); setMsg(e ?? "Áminning send."); }}
+          className={btnSecondary}><Bell className="h-4 w-4" /> Senda áminningu um virkjun</button>
+      )}
+      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+    </div>
+  );
+}
+
 function Adherence({ d }: { d: Detail }) {
   const a = adherence(d.plan?.modules ?? [], d.logs ?? [], d.prefs ?? []);
   const status = nudgeStatus(a, !!d.plan);
@@ -832,101 +1019,6 @@ function Card({ title, icon, children }: { title: string; icon: React.ReactNode;
   );
 }
 
-function Overview({ d, isDoctor, record, compose, reload }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; compose: boolean; reload: () => Promise<void> }) {
-  const api = useWsApi();
-  const j = d.journey;
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [note, setNote] = useState("");
-  const run = async (p: Record<string, unknown>, ok: string) => {
-    setBusy(true); setMsg("");
-    const e = await record(p);
-    setBusy(false); setMsg(e ?? ok);
-  };
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="lg:col-span-2">
-        <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
-      </div>
-      <Messages d={d} startOpen={compose} reload={reload} />
-      <Card title="Rannsóknir" icon={<Droplet className="h-5 w-5" />}>
-        <Milestone label="Blóðprufa (Heilsugæslan)" booked={j.blood_test_booked_for} done={j.blood_test_done_at ?? j.blood_results_at}
-          action={!(j.blood_test_done_at || j.blood_results_at) ? { label: "Skrá blóðprufu tekna", run: () => run({ event: "blood_test_done" }, "Skráð.") } : undefined} busy={busy} />
-        <Milestone label="Blóðprufusvör" done={j.blood_results_at}
-          action={!j.blood_results_at ? { label: "Skrá svör komin", run: () => run({ event: "blood_results_ready" }, "Skráð. Læknir fær tilkynningu.") } : undefined} busy={busy} />
-        <Milestone label="Mælingar (Vera)" booked={j.measurements_booked_for} done={j.measurements_done_at}
-          action={!j.measurements_done_at ? { label: "Skrá mælingum lokið", run: () => run({ event: "measurements_done" }, "Skráð.") } : undefined} busy={busy} />
-        <p className="mt-2 text-xs text-slate-500">Sjúklingagáttin skráir þetta sjálfkrafa þegar tenging er komin. Skráðu hér ef það berst ekki.</p>
-      </Card>
-
-      <Card title="Skýrsla læknis" icon={<FileCheck2 className="h-5 w-5" />}>
-        {j.report_generated_at ? (
-          <p className="text-sm text-slate-700">Staðfest {dayTime(j.report_generated_at)}.</p>
-        ) : j.blood_results_at ? (
-          isDoctor
-            ? <button type="button" disabled={busy} onClick={() => run({ event: "report_generated" }, "Skýrsla staðfest. Skjólstæðingur fær tölvupóst.")} className={`${btnDark} w-full`}>
-                <Stethoscope className="h-4 w-4" /> Staðfesta og búa til skýrslu
-              </button>
-            : <p className="text-sm text-amber-800">Svör komin fyrir {minutesSince(j.blood_results_at)} mín. Bíður læknis.</p>
-        ) : <p className="text-sm text-slate-500">Bíður blóðprufusvara.</p>}
-      </Card>
-
-      <Card title="Viðtal og eftirfylgd" icon={<CalendarClock className="h-5 w-5" />}>
-        <Booking label="Viðtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode} meetingUrl={j.meeting_url}
-          disabled={!j.report_generated_at} disabledText="Hægt að bóka þegar skýrsla er staðfest."
-          onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
-        <div className="my-3 border-t border-slate-100" />
-        <Booking label="Eftirfylgd eftir 3 mánuði" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_booked_for ? j.interview_mode : "video"} meetingUrl={j.meeting_url}
-          disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
-          onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy} />
-        {j.followup_booked_for && !j.followup_done_at && (
-          <button type="button" disabled={busy} onClick={() => run({ event: "followup_done" }, "Eftirfylgd skráð.")} className={`${btnSecondary} mt-3 w-full`}>Merkja eftirfylgd lokið</button>
-        )}
-      </Card>
-
-      <Card title="Mat læknis og tilvísun" icon={<Stethoscope className="h-5 w-5" />}>
-        {j.doctor_review_requested_at && (
-          <div className={`mb-3 rounded-xl p-3 text-sm ${j.doctor_reviewed_at ? "bg-slate-50 text-slate-600" : "bg-amber-50 text-amber-900"}`}>
-            <p className="font-semibold">{j.doctor_reviewed_at ? `Læknir hefur metið (${day(j.doctor_reviewed_at)})` : `Beðið um mat læknis (${day(j.doctor_review_requested_at)})`}</p>
-            {j.doctor_review_note && <p className="mt-1">{j.doctor_review_note}</p>}
-            {isDoctor && !j.doctor_reviewed_at && (
-              <button type="button" disabled={busy} onClick={() => run({ action: "doctor_reviewed" }, "Skráð sem metið.")} className={`${btnDark} mt-2`}>Merkja sem metið</button>
-            )}
-          </div>
-        )}
-        {j.referral_to_heilsugaesla ? (
-          <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><b>Vísað á Heilsugæsluna</b> {day(j.referred_at)}{j.referral_note ? `: ${j.referral_note}` : ""}</p>
-        ) : (
-          <div className="space-y-2">
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={isDoctor ? "Ástæða tilvísunar (fer ekki til skjólstæðings)" : "Hvað á læknirinn að meta?"}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <div className="flex flex-wrap gap-2">
-              {!isDoctor && <button type="button" disabled={busy || !note.trim()} onClick={() => run({ action: "request_doctor", note }, "Læknar hafa fengið beiðnina.").then(() => setNote(""))} className={btnSecondary}>Biðja lækni að meta</button>}
-              {isDoctor && <button type="button" disabled={busy || !note.trim()} onClick={() => run({ event: "referral_heilsugaesla", note }, "Tilvísun skráð.").then(() => setNote(""))} className={`${btn} bg-amber-600 text-white hover:bg-amber-700`}>Skrá tilvísun á Heilsugæsluna</button>}
-            </div>
-          </div>
-        )}
-      </Card>
-
-      <Card title="Greiðslur og kóðar" icon={<ClipboardList className="h-5 w-5" />}>
-        <ul className="space-y-1.5 text-sm">
-          {d.orders.map((o) => (
-            <li key={o.id} className="flex justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
-              <span>{o.kind === "health_check" ? "Heilsufarsskoðun" : o.kind === "followup_3m" ? "Eftirfylgd" : o.kind === "reevaluation" ? "Endurmat" : "Aukaviðtal"} · {o.payment_route === "company" ? "fyrirtæki" : o.payment_route === "union" ? "stéttarfélag" : "sjálf(ur)"}</span>
-              <span className="font-mono text-xs text-slate-500">{o.activation_code}{o.activation_redeemed_at ? " ✓" : ""}</span>
-            </li>
-          ))}
-        </ul>
-        {j.stage === "protocol" && (
-          <button type="button" disabled={busy} onClick={() => run({ action: "remind_client" }, "Áminning send með virkjunarkóða.")} className={`${btnSecondary} mt-3`}><Bell className="h-4 w-4" /> Senda áminningu um virkjun</button>
-        )}
-      </Card>
-
-      {msg && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800 lg:col-span-2">{msg}</p>}
-    </div>
-  );
-}
 
 // ── Skilaboð: SMS + email to the client ────────────────────────────────────
 
@@ -1161,7 +1253,7 @@ const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts
 
 const STEPS = ["Undirbúningur", "Samtal", "Mat", "Áætlun", "Ljúka"] as const;
 
-function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan: () => void }) {
+function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan?: () => void }) {
   const api = useWsApi();
   const j = d.journey;
   const isFollowup = !!j.interview_done_at;
@@ -1307,7 +1399,7 @@ function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boole
             <div className="mt-4 flex justify-between">
               <button type="button" onClick={() => setStep(2)} className={btnGhost}><ArrowLeft className="h-4 w-4" /> Mat</button>
               <div className="flex gap-2">
-                <button type="button" onClick={onPlan} className={btnPrimary}>{d.plan ? "Opna áætlun" : "Búa til áætlun"} <ChevronRight className="h-4 w-4" /></button>
+                {onPlan && <button type="button" onClick={onPlan} className={btnPrimary}>{d.plan ? "Opna áætlun" : "Búa til áætlun"} <ChevronRight className="h-4 w-4" /></button>}
                 <button type="button" onClick={() => setStep(4)} className={btnSecondary}>Ljúka viðtali</button>
               </div>
             </div>
