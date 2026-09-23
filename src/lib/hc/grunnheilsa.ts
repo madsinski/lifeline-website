@@ -121,6 +121,67 @@ const VERDICTS: { re: RegExp; signal: Signal }[] = [
 /** Lines that describe a value without being the traffic light itself. */
 const VALUE_WORDS = /^(vægt hækkað|hækkað|lækkað|lágt|hátt|eðlilegt|kjörsvið|of hátt|of lágt|þarfnast athygli|lítil áhætta|miðlungs áhætta|há áhætta)$/i;
 
+/**
+ * Medalia's own verdict, as it prints on the head line of a block
+ * ("10 stig Gott Fjárhættuspil", "Þarfnast athygli" above "HOMA-IR").
+ * Order matters — "vægt hækkað" has to be tried before "hækkað".
+ * Kept for the footnote only; our own bands decide the light.
+ */
+const HEAD_VERDICTS: { re: RegExp; signal: Signal }[] = [
+  { re: /þarfnast athygli/i, signal: "yellow" },
+  { re: /vægt hækkað/i, signal: "yellow" },
+  { re: /miðlungs áhætta/i, signal: "yellow" },
+  { re: /sæmilegt/i, signal: "yellow" },
+  { re: /ábótavant/i, signal: "red" },
+  { re: /há áhætta/i, signal: "red" },
+  { re: /of (hátt|lágt)/i, signal: "red" },
+  { re: /hækkað|lækkað/i, signal: "red" },
+  { re: /lítil áhætta/i, signal: "green" },
+  { re: /eðlileg(t| þyngd)?/i, signal: "green" },
+  { re: /æskilegt|kjörsvið/i, signal: "green" },
+  { re: /gott/i, signal: "green" },
+  { re: /normal range/i, signal: "green" },
+  { re: /out of range/i, signal: "red" },
+];
+
+/**
+ * The heading that opens every value block. Medalia ships the report with
+ * Icelandic or English column headings depending on the account, and only the
+ * headings change — the rest of the layout is identical, so both parse here.
+ * Global: parseGrunnheilsa iterates it, isGrunnheilsa only tests it.
+ */
+const BLOCK_HEAD_SRC = "(?:Dagsetning\\s*\\n?\\s*Gildi|Date\\s*\\n?\\s*Value)";
+/** Kept separate on purpose: a /g regex carries lastIndex, so the one we
+ *  .test() must not be the one we iterate. */
+const BLOCK_HEAD = new RegExp(BLOCK_HEAD_SRC);
+const BLOCK_HEAD_G = new RegExp(BLOCK_HEAD_SRC, "g");
+
+const HEAD_UNIT = /^(-?\d+(?:[.,]\d+)?)\s*(%|stig|mmol\/L|mmol\/mol|mIU\/L|µg\/L|U\/L|mmHg|kg\/m²|kg)?\b/i;
+
+/**
+ * Where a row stops and the page furniture begins: the band legend that
+ * repeats at the foot of every page, the arrow key, and the next section's
+ * column headings. Without this the advice swallows the rest of the report.
+ */
+const SECTION_END = /Stig \(0-10\)|Tímalína|Ráðleggingar|Forgangur \d|(Gott|Sæmilegt|Ábótavant)\s+[\d.,]+\s*-|^=|^(Dagsetning|Gildi)$/i;
+
+/** The verdict and current value the report prints just above the history. */
+function parseHead(before: string[]): { value: number | null; label: string | null; signal: Signal | null } {
+  let value: number | null = null;
+  let label: string | null = null;
+  let signal: Signal | null = null;
+  // Only the label lines, never the explanation prose above them — prose runs
+  // long and ends in a full stop, and it can happen to contain a verdict word.
+  for (const line of before.slice(-2)) {
+    if (!line || line.length > 60 || /\.$/.test(line)) continue;
+    const v = HEAD_VERDICTS.find((x) => x.re.test(line));
+    if (v && !signal) { signal = v.signal; label = line.match(v.re)?.[0] ?? null; }
+    const m = line.match(HEAD_UNIT);
+    if (m && value == null) value = Number(m[1].replace(",", "."));
+  }
+  return { value: Number.isFinite(value as number) ? value : null, label, signal };
+}
+
 /** PDF text as the extractor gives it: soft hyphens, words split over lines. */
 export function normalizeReportText(raw: string): string {
   return raw
@@ -130,17 +191,10 @@ export function normalizeReportText(raw: string): string {
     .replace(/[ \t]+\n/g, "\n");
 }
 
-const num = (s: string): number | null => {
-  const m = s.replace(/\./g, ".").match(/-?\d+(?:[.,]\d+)?/);
-  if (!m) return null;
-  const n = Number(m[0].replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-};
-
 /** Is this a Lifeline Grunnheilsa report at all? */
 export function isGrunnheilsa(raw: string): boolean {
   const text = normalizeReportText(raw);
-  return /Grunnheilsa skýrsla/i.test(text) && /Dagsetning\s*\n?\s*Gildi/i.test(text);
+  return /Grunnheilsa skýrsla/i.test(text) && BLOCK_HEAD.test(text);
 }
 
 function parsePatient(text: string): ReportPatient {
@@ -185,7 +239,7 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
   // Each row prints its label, then "Dagsetning / Gildi", then dated values.
   // The text extractor runs the date straight into the value ("2026-09-134.5")
   // and drops the unit on its own line, so read them as one stream.
-  const heads = [...text.matchAll(/Dagsetning\s*\n?\s*Gildi/g)];
+  const heads = [...text.matchAll(BLOCK_HEAD_G)];
   for (const h of heads) {
     const at = h.index ?? 0;
     const before = text.slice(Math.max(0, at - 200), at).split("\n").map((l) => l.trim()).filter(Boolean);
@@ -197,6 +251,8 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
       CATALOG.find((c) => !seen.has(c.key) && c.match.test(lastLine)) ??
       CATALOG.find((c) => !seen.has(c.key) && c.match.test(labelText));
     if (!entry) continue;
+
+    const head = parseHead(before);
 
     const window = text.slice(at + h[0].length, at + h[0].length + 1400);
     const points: ReportPoint[] = [];
@@ -221,12 +277,20 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
 
     // The traffic light and the report's advice follow the values.
     const after = window.slice(cursor, cursor + 1400).split("\n").map((l) => l.trim());
-    let label: string | null = null;
-    let signal: Signal | null = null;
+    let label: string | null = head.label;
+    let signal: Signal | null = head.signal;
     const advice: string[] = [];
     let review: string | null = null;
     for (const line of after) {
       if (!line) continue;
+      // The page furniture marks the end of this row; anything past it belongs
+      // to the next one.
+      if (SECTION_END.test(line)) break;
+      // Sections can also butt straight up against each other with no legend
+      // in between, so a short line naming a row we have not reached yet ends
+      // this one. An already-seen name is just a wrapped bullet.
+      if (line.length <= 40 && !/\.$/.test(line) &&
+          CATALOG.some((c) => c.key !== entry.key && !seen.has(c.key) && c.match.test(line.toLowerCase()))) break;
       if (!signal) {
         const v = VERDICTS.find((x) => x.re.test(line));
         if (v) { signal = v.signal; label ??= line; continue; }
@@ -244,7 +308,7 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
       kind: entry.kind,
       pillar: entry.pillar,
       slug: entry.slug,
-      value: Math.round(last.value * 100) / 100,
+      value: Math.round((head.value ?? last.value) * 100) / 100,
       unit: entry.unit ?? unit,
       date: last.date,
       label,
@@ -254,6 +318,13 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
       review,
     });
   }
+
+  // The report closes every page with the same generic advice ("Ræddu við
+  // lækninn þinn"). It reads as a bullet, so it lands on whichever row happens
+  // to sit at the foot of the page. Anything repeated across rows is furniture.
+  const times = new Map<string, number>();
+  for (const i of items) for (const a of new Set(i.advice)) times.set(a, (times.get(a) ?? 0) + 1);
+  for (const i of items) i.advice = i.advice.filter((a) => (times.get(a) ?? 0) < 3);
 
   // Report order, not the order they happened to appear.
   items.sort((a, b) => CATALOG.findIndex((c) => c.key === a.key) - CATALOG.findIndex((c) => c.key === b.key));
@@ -275,11 +346,16 @@ export function signalForItem(
   item: ReportItem,
   band: (slug: string, value: number) => Signal | null,
 ): Signal | null {
+  // A Grunnheilsa score is already on Lifeline's 0–10 scale, where higher is
+  // better. The slug on a score row points at the questionnaire behind it
+  // (PGSI, CIUS, caffeine mg/day) and those bands run on another scale — often
+  // in the opposite direction — so they must never decide a score's light.
+  // A perfect 10 on the gambling screen is not "PGSI 10 = problem gambler".
+  if (item.kind === "score") return scoreSignal(item.value);
   if (item.slug) {
     const ours = band(item.slug, item.value);
     if (ours) return ours;
   }
-  if (item.kind === "score") return scoreSignal(item.value);
   if (item.kind === "risk") return item.value < 5 ? "green" : item.value < 10 ? "yellow" : "red";
   return item.reportSignal;
 }

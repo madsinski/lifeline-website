@@ -41,12 +41,21 @@ async function pdfText(files: ReportFile[]): Promise<string> {
   return parts.join("\n");
 }
 
-/** Grunnheilsa rows → the flat value list the rest of the workstation speaks. */
+/**
+ * Grunnheilsa rows → the flat value list the rest of the workstation speaks.
+ *
+ * Only measurements and blood values carry their hc_knowledge slug, because
+ * only those sit on the same scale as that entry's reference bands. A 0–10
+ * lifestyle score does not: nine of them share the "stodaeinkunnir" entry and
+ * would overwrite each other, and a score whose questionnaire runs the other
+ * way (PGSI, CIUS) would come back out of hc_results wearing the wrong light.
+ * Scores keep their own key instead and are read from the report itself.
+ */
 export function valuesFromReport(report: Grunnheilsa): MappedValue[] {
   return report.items
     .filter((i) => i.slug || i.kind === "score" || i.kind === "risk")
     .map((i) => ({
-      slug: i.slug ?? null,
+      slug: i.kind === "score" ? null : i.slug ?? null,
       code: i.key.toUpperCase(),
       label: i.title,
       value: i.value,

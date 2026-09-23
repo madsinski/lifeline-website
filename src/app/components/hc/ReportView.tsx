@@ -31,6 +31,17 @@ const GROUPS: { key: string; title: string; kinds: ReportItem["kind"][]; blurb: 
 ];
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100).replace(".", ",");
+/** One decimal, for averages we compute ourselves. */
+const fmt1 = (n: number) => String(Math.round(n * 10) / 10).replace(".", ",");
+
+// Written out by hand: a browser without the Icelandic locale data falls back
+// to English and prints "July 12, 2026" in the middle of an Icelandic page.
+const MONTHS_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+function longDateIs(iso: string | null): string | null {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return iso;
+  return `${Number(m[3])}. ${MONTHS_IS[Number(m[2]) - 1]} ${m[1]}`;
+}
 
 export default function ReportView({ report, signals, audience = "staff" }: {
   report: Grunnheilsa;
@@ -63,7 +74,7 @@ export default function ReportView({ report, signals, audience = "staff" }: {
               {overall ? `Lífstílseinkunn ${fmt(overall.value)}` : "Niðurstöður"}
             </h2>
             <p className="mt-0.5 text-sm text-emerald-100">
-              {report.reportDate ? `Skýrsla ${report.reportDate}` : "Úr heilsufarsskoðuninni"}
+              {report.reportDate ? `Skýrsla ${longDateIs(report.reportDate)}` : "Úr heilsufarsskoðuninni"}
               {report.patient.name && audience === "staff" ? ` · ${report.patient.name}` : ""}
             </p>
           </div>
@@ -142,7 +153,7 @@ function Pillars({ lit }: { lit: { item: ReportItem; signal: Signal | null }[] }
           return (
             <div key={pillar} className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-xs font-bold uppercase tracking-wide" style={{ color: meta.color }}>{meta.label}</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{fmt(avg)}</p>
+              <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{fmt1(avg)}</p>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
                 <div className={`h-full rounded-full ${DOT[signal]}`} style={{ width: `${Math.min(100, avg * 10)}%` }} />
               </div>
