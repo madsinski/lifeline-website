@@ -10,9 +10,16 @@
 
 import { extractText, getDocumentProxy } from "unpdf";
 import { isGrunnheilsa, parseGrunnheilsa, type Grunnheilsa } from "./grunnheilsa";
-import { mapValues, parseReport, type MappedValue, type ReportFile } from "./report-import";
+import { mapValues, parseReport, parseReportText, type MappedValue, type ReportFile } from "./report-import";
 
-export type ReadMethod = "local" | "ai";
+/**
+ * How the report was read.
+ *   local        — our own parser, on our own server, nothing left the box.
+ *   ai-text      — scrubbed text sent to the model; the document stayed here.
+ *   ai-document  — the document itself was sent. Scans and photos only.
+ *   needs-consent — we could not read it here and nobody has agreed to send it.
+ */
+export type ReadMethod = "local" | "ai-text" | "ai-document" | "needs-consent";
 
 export interface ReadResult {
   method: ReadMethod;
@@ -64,7 +71,11 @@ export function valuesFromReport(report: Grunnheilsa): MappedValue[] {
     }));
 }
 
-export async function readReport(files: ReportFile[]): Promise<ReadResult> {
+export async function readReport(
+  files: ReportFile[],
+  /** Set once the nurse has agreed to send a document we cannot read here. */
+  opts: { allowAi?: boolean } = {},
+): Promise<ReadResult> {
   const text = await pdfText(files);
 
   if (text && isGrunnheilsa(text)) {
@@ -88,14 +99,31 @@ export async function readReport(files: ReportFile[]): Promise<ReadResult> {
     }
   }
 
-  // Not one of ours, or not readable as text: hand it to the model.
+  // Not one of ours. Anything past this point leaves the building, so it is
+  // the nurse's call, not a silent fallback.
+  if (!opts.allowAi) {
+    return {
+      method: "needs-consent",
+      report: null,
+      values: [],
+      identity: { name: null, kennitala: null, sex: null, age: null, email: null, phone: null },
+      reportDate: null,
+      warnings: [
+        text
+          ? "Skjalið er ekki Lifeline-skýrsla. Við getum lesið það með AI, en þá fer textinn úr því til OpenAI í Bandaríkjunum. Kennitala, netfang og símanúmer eru fjarlægð fyrst."
+          : "Það er enginn texti í skjalinu, svo það er líklega skannað eða mynd. Við getum lesið það með AI, en þá fer skjalið sjálft til OpenAI í Bandaríkjunum og ekki er hægt að fjarlægja auðkenni úr mynd.",
+      ],
+    };
+  }
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("Skráin er ekki Lifeline-skýrsla og AI-lestur er ekki uppsettur.");
   }
-  const parsed = await parseReport(files);
+  // Text can be scrubbed and costs less; only a scan has to travel whole.
+  const viaText = text.trim().length > 200;
+  const parsed = viaText ? await parseReportText(text) : await parseReport(files);
   const kt = (parsed.patient?.kennitala || "").replace(/\D/g, "");
   return {
-    method: "ai",
+    method: viaText ? "ai-text" : "ai-document",
     report: null,
     values: mapValues(parsed),
     identity: {
@@ -108,7 +136,9 @@ export async function readReport(files: ReportFile[]): Promise<ReadResult> {
     },
     reportDate: parsed.report?.date_iso ?? null,
     warnings: [
-      "Skráin var ekki lesin sem Lifeline-skýrsla, svo hún var send í AI-lestur.",
+      viaText
+        ? "Skjalið var ekki lesið sem Lifeline-skýrsla. Textinn úr því var sendur í AI-lestur án kennitölu, netfangs og símanúmers."
+        : "Skjalið var ekki lesið sem Lifeline-skýrsla og hafði engan texta, svo það var sent sjálft í AI-lestur.",
       ...(parsed.warnings ?? []),
     ],
   };

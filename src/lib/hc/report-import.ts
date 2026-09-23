@@ -113,6 +113,47 @@ KÓÐALISTI (kóði — heiti sem geta birst — venjuleg eining):
 ${CATALOG}`;
 
 /**
+ * Direct identifiers, removed before any text is sent out of the building.
+ *
+ * The model has no need to know whose report it is: the nurse is sitting with
+ * the person and picks them from the list afterwards. Kennitala, email and
+ * phone go out as placeholders. A name written in running text can still slip
+ * through — this narrows the exposure, it does not remove it, which is why the
+ * send is something the nurse has to agree to.
+ */
+export function scrubIdentifiers(text: string): { text: string; removed: number } {
+  let removed = 0;
+  const cut = (re: RegExp, tag: string) => {
+    text = text.replace(re, () => { removed++; return tag; });
+  };
+  cut(/\b\d{6}\s?-?\s?\d{4}\b/g, "[kennitala]");
+  cut(/\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b/g, "[netfang]");
+  cut(/(?<!\d)(?:\+354[\s-]?)?[5-8]\d{2}[\s-]?\d{4}(?!\d)/g, "[sími]");
+  return { text, removed };
+}
+
+/**
+ * Read a report we could pull text out of, without sending the document.
+ *
+ * Text costs a fraction of a scanned page and, unlike the binary, it can be
+ * scrubbed first. Only a report with no extractable text — a photo, a scan —
+ * has to travel as an image.
+ */
+export async function parseReportText(raw: string): Promise<ParsedReport> {
+  const { text } = scrubIdentifiers(raw);
+  const result = await generateText({
+    model: openai(REPORT_MODEL),
+    output: Output.object({ schema }),
+    maxOutputTokens: 8000,
+    messages: [
+      { role: "system", content: PROMPT },
+      { role: "user", content: `Lestu þessa skýrslu. Auðkenni hafa verið fjarlægð.\n\n${text.slice(0, 60000)}` },
+    ],
+  });
+  return result.experimental_output as ParsedReport;
+}
+
+/**
  * Parse one or more files (a PDF and/or images of the same report) into
  * structured values. Throws on model/transport errors.
  */

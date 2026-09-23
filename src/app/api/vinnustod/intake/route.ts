@@ -47,11 +47,26 @@ export async function POST(req: NextRequest) {
     files.push({ data: new Uint8Array(await f.arrayBuffer()), mediaType: type, filename: f.name });
   }
 
+  // The nurse has to agree before a document we cannot read here is sent out.
+  const allowAi = String(form?.get("allow_ai") ?? "") === "true";
+
   let read;
   try {
-    read = await readReport(files);
+    read = await readReport(files, { allowAi });
   } catch (e) {
     return NextResponse.json({ error: `Lesturinn mistókst: ${e instanceof Error ? e.message : "unknown"}` }, { status: 502 });
+  }
+
+  if (read.method === "needs-consent") {
+    return NextResponse.json({
+      method: read.method,
+      identity: { name: null, kennitala: null, kennitala_last4: null, sex: null, age: null, email: null, phone: null },
+      report: { date_iso: null },
+      grunnheilsa: null,
+      values: [],
+      warnings: read.warnings,
+      matches: [],
+    });
   }
 
   const kt = digits(read.identity.kennitala);

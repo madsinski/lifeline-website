@@ -7,9 +7,19 @@
 // never stored — only the values, after the nurse has looked at them.
 
 import { useRef, useState } from "react";
-import { FileUp, Loader2, UserPlus, Check } from "lucide-react";
+import { FileUp, Loader2, UserPlus, Check, ShieldAlert } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
+
+/** Mirrors ReadMethod in src/lib/hc/report-local.ts. */
+type ReadMethod = "local" | "ai-text" | "ai-document" | "needs-consent";
+
+const METHOD_BADGE: Record<ReadMethod, { label: string; title: string; className: string }> = {
+  local: { label: "Lesið hjá okkur", title: "Lesið á okkar eigin vél — skráin fór hvergi.", className: "bg-emerald-50 text-emerald-800" },
+  "ai-text": { label: "AI-lestur á texta", title: "Textinn úr skjalinu var sendur í AI-lestur án kennitölu, netfangs og símanúmers.", className: "bg-amber-50 text-amber-800" },
+  "ai-document": { label: "AI-lestur á skjali", title: "Skjalið sjálft var sent í AI-lestur.", className: "bg-amber-100 text-amber-900" },
+  "needs-consent": { label: "Bíður samþykkis", title: "Skjalið var ekki lesið hér.", className: "bg-slate-100 text-slate-700" },
+};
 
 interface Identity { name: string | null; kennitala: string | null; kennitala_last4: string | null; sex?: "m" | "f" | null; email?: string | null; phone?: string | null }
 interface Match { client_id: string; full_name: string | null; email: string | null; kennitala_last4: string | null; journey_id: string | null; confident: boolean }
@@ -23,21 +33,27 @@ export default function ReportIntake({ api, onOpen }: {
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [result, setResult] = useState<{ method?: "local" | "ai"; identity: Identity; report: { date_iso: string | null }; grunnheilsa?: unknown; values: Value[]; warnings: string[]; matches: Match[] } | null>(null);
+  const [result, setResult] = useState<{ method?: ReadMethod; identity: Identity; report: { date_iso: string | null }; grunnheilsa?: unknown; values: Value[]; warnings: string[]; matches: Match[] } | null>(null);
   const [take, setTake] = useState<Record<number, boolean>>({});
   const [creating, setCreating] = useState(false);
+  const [pending, setPending] = useState<File[]>([]);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", kennitala: "" });
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const read = async (files: FileList | File[]) => {
+  const read = async (files: FileList | File[], allowAi = false) => {
+    const list = Array.from(files).slice(0, 8);
     setBusy(true); setMsg(""); setResult(null);
     const fd = new FormData();
-    for (const f of Array.from(files).slice(0, 8)) fd.append("files", f);
+    for (const f of list) fd.append("files", f);
+    if (allowAi) fd.append("allow_ai", "true");
     const r = await api("/api/vinnustod/intake", { method: "POST", body: fd });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
     if (!r.ok) { setMsg(j.error || "Lesturinn mistókst."); return; }
+    // Held only so the nurse can agree to send them; never written anywhere.
+    setPending(list);
     setResult(j);
+    if (j.method === "needs-consent") return;
     setTake(Object.fromEntries((j.values as Value[]).map((v, i) => [i, v.confidence !== "low"])));
     setForm({
       full_name: j.identity?.name ?? "",
@@ -112,13 +128,32 @@ export default function ReportIntake({ api, onOpen }: {
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
               {result.values.length} gildi{result.report?.date_iso ? ` · ${result.report.date_iso}` : ""}
             </span>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${result.method === "ai" ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}
-              title={result.method === "ai" ? "Skráin var send í AI-lestur." : "Lesið á okkar eigin vél — skráin fór hvergi."}>
-              {result.method === "ai" ? "AI-lestur" : "Lesið hjá okkur"}
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${METHOD_BADGE[result.method ?? "local"].className}`}
+              title={METHOD_BADGE[result.method ?? "local"].title}>
+              {METHOD_BADGE[result.method ?? "local"].label}
             </span>
             <span className="flex-1" />
             <button type="button" onClick={() => setResult(null)} className="text-sm font-semibold text-slate-500 hover:underline">Hætta við</button>
           </div>
+
+          {result.method === "needs-consent" && (
+            <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
+              <p className="flex items-center gap-2 font-bold text-amber-900">
+                <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden /> Við gátum ekki lesið þetta skjal hér
+              </p>
+              {result.warnings.map((w, i) => (
+                <p key={i} className="mt-1 text-sm leading-relaxed text-amber-900">{w}</p>
+              ))}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button type="button" disabled={busy || !pending.length} onClick={() => void read(pending, true)}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-amber-900 px-4 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Senda í AI-lestur
+                </button>
+                <button type="button" onClick={() => { setResult(null); setPending([]); }}
+                  className="text-sm font-semibold text-amber-900 hover:underline">Nei, ég skrái gildin sjálf</button>
+              </div>
+            </div>
+          )}
 
           {/* Who is this? */}
           {result.matches.length > 0 && !creating && (
@@ -188,6 +223,7 @@ export default function ReportIntake({ api, onOpen }: {
           )}
 
           {/* The values we are about to keep */}
+          {result.values.length > 0 && (
           <div>
             <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Gildi úr skýrslunni</p>
             <ul className="grid gap-1 sm:grid-cols-2">
@@ -209,6 +245,7 @@ export default function ReportIntake({ api, onOpen }: {
               </ul>
             )}
           </div>
+          )}
         </div>
       )}
     </section>

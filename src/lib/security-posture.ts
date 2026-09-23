@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.7";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-06-10";
+export const SECURITY_POSTURE_VERSION = "v1.8";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-09-23";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -143,6 +143,8 @@ Starfsmanna- og rekstrargögn:
   Supabase Inc.        | Gagnagrunnur, auðkenning              | Þýskaland (EES)
   Vercel Inc.          | Vefhýsing, framenda þjónusta          | EES + USA (SCC)
   Resend (Lilo Labs)   | Tölvupóstþjónusta (afhending)         | EES + USA (SCC)
+  OpenAI, L.L.C.       | AI-lestur skjala og tillaga að         | USA (SCC)
+                       | lífsstílsáætlun (sjá 10. kafla)        |
 
 Allir aðilar utan EES nota staðlaða samningsskilmála (Standard
 Contractual Clauses) skv. 46. gr. GDPR.
@@ -325,6 +327,21 @@ Vinnsluaðilar (28. gr. GDPR):
   - Supabase Inc. — DPA samþykktur með notkunarskilmálum.
   - Vercel Inc. — DPA samþykktur með notkunarskilmálum.
   - Resend (Lilo Labs) — DPA samþykktur með notkunarskilmálum.
+  - OpenAI, L.L.C. — **vinnslusamningur ógerður, í forgangi.**
+    Notkun er tvíþætt og afmörkuð:
+      (a) Tillaga að lífsstílsáætlun. Mæligildi, aldur, kyn og
+          viðtalsnótur fara út. Engin bein auðkenni: hvorki nafn,
+          kennitala, netfang né símanúmer.
+      (b) Varalestur skjals sem við lesum ekki sjálf. Krefst
+          staðfestingar heilbrigðisstarfsmanns í hvert sinn. Sé texti
+          í skjalinu er hann hreinsaður af kennitölu, netfangi og
+          símanúmeri áður en hann fer; aðeins skannað skjal eða mynd
+          fer óbreytt.
+    Lifeline-skýrslur eru lesnar staðdeterminískt á eigin vél og fara
+    hvergi (src/lib/hc/grunnheilsa.ts). Varaleiðin á því aðeins við um
+    skjöl frá öðrum en Medalia.
+    Útistandandi: vinnslusamningur, mat á ESB-hýstum valkosti í stað
+    SCC, og beiðni um zero data retention.
 
 ═══════════════════════════════════════════════════════════════════
 11. ATVIKASTJÓRNUN / BREACH RESPONSE
@@ -506,6 +523,18 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.8 (2026-09-23)
+  OpenAI skráð sem vinnsluaðili (10. kafli) og fært í hýsingartöflu
+  (5. kafli). Vinnslan var þegar í gangi en vantaði í skrána skv.
+  30. gr. — þetta leiðréttir þá gloppu. Samhliða var varalestur
+  skjala hertur: hann var áður þögul varaleið sem sendi allt skjalið
+  út um leið og útlit þess þekktist ekki, og er nú háður staðfestingu
+  starfsmanns, sendir hreinsaðan texta í stað skjalsins þar sem texti
+  er læsilegur, og sendir ekki kennitölu, netfang né símanúmer.
+  Lestur Lifeline-skýrslna færðist alfarið á eigin vél (báðar
+  dálkaheitaútgáfur), svo venjubundin innlesning fer ekki út úr húsi.
+  Mat á regluverki vinnustöðvarinnar: docs/vinnustod-personuvernd.md.
 
 v1.7 (2026-06-10)
   Fyrirhuguð arkitektúrbreyting skjalfest (engin kerfisbreyting enn):
@@ -714,6 +743,8 @@ Staff and business data:
   Supabase Inc.        | Database, authentication            | Germany (EEA)
   Vercel Inc.          | Web hosting, frontend services      | EEA + USA (SCC)
   Resend (Lilo Labs)   | Email delivery                      | EEA + USA (SCC)
+  OpenAI, L.L.C.       | AI document reading and lifestyle-  | USA (SCC)
+                       | plan proposal (see section 10)      |
 
 All parties outside the EEA rely on Standard Contractual Clauses
 under GDPR Art. 46.
@@ -900,6 +931,21 @@ Processors (GDPR Art. 28):
   - Supabase Inc. — DPA accepted via terms of service.
   - Vercel Inc. — DPA accepted via terms of service.
   - Resend (Lilo Labs) — DPA accepted via terms of service.
+  - OpenAI, L.L.C. — **DPA not yet in place; being prioritised.**
+    Two narrow uses:
+      (a) Lifestyle-plan proposal. Measured values, age, sex and
+          interview notes are sent. No direct identifiers: no name,
+          kennitala, email or phone number.
+      (b) Fallback reading of a document we cannot parse ourselves.
+          Requires a health professional to confirm each time. Where
+          the document has extractable text, that text is stripped of
+          kennitala, email and phone number before it is sent; only a
+          scan or photograph travels unaltered.
+    Lifeline reports are parsed deterministically on our own server and
+    do not leave it (src/lib/hc/grunnheilsa.ts), so the fallback applies
+    only to documents from parties other than Medalia.
+    Outstanding: the DPA itself, an assessment of an EU-hosted option in
+    place of SCCs, and a zero-data-retention request.
 
 ═══════════════════════════════════════════════════════════════════
 11. BREACH RESPONSE
