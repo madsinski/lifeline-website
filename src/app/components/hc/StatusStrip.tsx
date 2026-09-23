@@ -56,8 +56,11 @@ export default function StatusStrip({ steps, onOpen, right }: {
         <ol className="-mx-1 flex min-w-0 flex-1 items-start gap-0 overflow-x-auto px-1 pb-1">
           {steps.map((s, i) => (
             <li key={s.key} className="flex min-w-0 shrink-0 items-start lg:flex-1">
+              {/* The button takes the width and the connector is fixed. They
+                  were both flex-1, which gave the button a basis of 0 — and a
+                  truncating label inside a zero-width box shows nothing. */}
               <button type="button" onClick={() => onOpen?.(s.key)} disabled={!onOpen}
-                className="group flex w-[5.5rem] min-w-0 flex-col items-center gap-1 text-center lg:w-auto lg:flex-1"
+                className="group flex w-[5.5rem] min-w-0 shrink-0 flex-col items-center gap-1 text-center lg:w-auto lg:flex-1"
                 title={s.detail ?? undefined}>
                 <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition ${DOT[s.state]} ${onOpen ? "group-hover:scale-105" : ""}`}>
                   {s.state === "done" ? <Check className="h-3.5 w-3.5" /> : i + 1}
@@ -67,7 +70,7 @@ export default function StatusStrip({ steps, onOpen, right }: {
                 {s.detail && <span className="hidden w-full truncate text-[10px] leading-tight text-slate-400 lg:block">{s.detail}</span>}
               </button>
               {i < steps.length - 1 && (
-                <span className={`mt-3.5 h-0.5 w-4 shrink-0 rounded lg:w-full lg:min-w-2 ${LINE[steps[i + 1].state === "done" ? "done" : s.state]}`} aria-hidden />
+                <span className={`mt-3.5 h-0.5 w-4 shrink-0 rounded lg:w-6 ${LINE[steps[i + 1].state === "done" ? "done" : s.state]}`} aria-hidden />
               )}
             </li>
           ))}
