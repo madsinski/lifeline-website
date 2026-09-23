@@ -51,14 +51,12 @@ export default function Flow({ steps, openKey, onOpen }: {
     <ol className="space-y-2">
       {shown.map((s, i) => {
         const open = openKey === s.key;
-        const last = i === shown.length - 1;
         return (
           <li key={s.key} className="relative">
-            {!last && <span className="absolute left-[27px] top-12 h-[calc(100%-1rem)] w-px bg-slate-200" aria-hidden />}
             <div className={`overflow-hidden rounded-2xl border bg-white transition ${open ? "border-slate-300 shadow-sm" : "border-slate-200"}`}>
               <button type="button" onClick={() => onOpen(open ? null : s.key)} aria-expanded={open}
                 className="flex w-full items-center gap-3 p-3 text-left hover:bg-slate-50 sm:p-4">
-                <span className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${DOT[s.state]}`}>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${DOT[s.state]}`}>
                   {s.state === "done" ? <Check className="h-4 w-4" /> : s.icon}
                 </span>
                 <span className="min-w-0 flex-1">

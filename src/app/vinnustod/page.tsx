@@ -694,20 +694,22 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
       {/* Who this is, and how to reach them. */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800">
             {cleanName(d.patient.full_name).split(" ").map((p) => p[0]).slice(0, 2).join("")}
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-slate-900">{cleanName(d.patient.full_name)} {isTest(d.patient.full_name) && <TestBadge />}</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="truncate text-xl font-bold text-slate-900">{cleanName(d.patient.full_name)}</h1>
+            <p className="truncate text-sm text-slate-500">
               {[kt ? `${kt.slice(0, 6)}-${kt.slice(6)}` : null, age(d.patient.date_of_birth), d.location?.name].filter(Boolean).join(" · ")}
+              {isTest(d.patient.full_name) && <> <TestBadge /></>}
             </p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {d.patient.phone && <a href={`tel:${d.patient.phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {d.patient.phone}</a>}
-            <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={`${btnSecondary} min-h-9 px-3 text-xs`}><ExternalLink className="h-4 w-4" /> Medalia</a>
-          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {d.patient.phone && <a href={`tel:${d.patient.phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {d.patient.phone}</a>}
+          {d.patient.email && <a href={`mailto:${d.patient.email}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Mail className="h-4 w-4" /> Tölvupóstur</a>}
+          <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={`${btnSecondary} min-h-9 px-3 text-xs`}><ExternalLink className="h-4 w-4" /> Medalia</a>
         </div>
         {j.plan_published_at && <div className="mt-3"><Adherence d={d} /></div>}
       </section>
