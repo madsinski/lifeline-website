@@ -962,7 +962,8 @@ function ResultsStep({ d, api, reload }: {
           </p>
         </>
       )}
-      <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
+      <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []}
+        reportShown={!!d.report} onSaved={() => void reload()} />
     </div>
   );
 }

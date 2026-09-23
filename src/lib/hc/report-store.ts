@@ -31,7 +31,7 @@ export async function loadReport(journeyId: string, clientId: string): Promise<S
       .maybeSingle(),
     supabaseAdmin
       .from("hc_knowledge")
-      .select("slug, bands, unit, title, summary, higher_better, improves, worsens")
+      .select("slug, bands, unit, title, summary, higher_better, improves, worsens, components")
       .eq("active", true),
     supabaseAdmin.from("clients_decrypted").select("sex").eq("id", clientId).maybeSingle(),
   ]);
@@ -64,6 +64,7 @@ export async function loadReport(journeyId: string, clientId: string): Promise<S
       higher_better: e.higher_better,
       improves: (e as unknown as { improves?: string[] }).improves ?? [],
       worsens: (e as unknown as { worsens?: string[] }).worsens ?? [],
+      components: (e as unknown as { components?: string[] }).components ?? [],
     };
   }
 

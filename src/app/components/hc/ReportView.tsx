@@ -144,7 +144,10 @@ export default function ReportView({ report, signals, reference, sex, audience =
           <ul className="grid gap-2 sm:grid-cols-2">
             {focus.map(({ item }) => {
               const r = reference?.[item.key];
-              const first = r?.improves?.[0] ?? item.advice[0];
+              // The report's own priority-1 line is about this person; our
+              // generic lever is only the fallback.
+              const first = item.recommendations.find((x) => x.priority === "red")?.text
+                ?? r?.improves?.[0] ?? item.advice[0];
               return (
                 <li key={item.key} className="rounded-2xl bg-red-50 px-4 py-3 ring-1 ring-red-200">
                   <p className="flex items-baseline gap-2">
@@ -177,20 +180,24 @@ export default function ReportView({ report, signals, reference, sex, audience =
         const off = rows.filter((r) => r.signal === "red").length;
         const watch = rows.filter((r) => r.signal === "yellow").length;
         return (
-          <section key={s.key}>
-            <div className="mb-1.5 flex flex-wrap items-center gap-2">
-              <span className="h-4 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: s.accent }} aria-hidden />
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-700">{s.title}</h3>
+          <section key={s.key}
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            style={{ borderLeftWidth: 3, borderLeftColor: s.accent }}>
+            {/* A wash of the section's own colour behind the heading. Enough
+                to break the page into blocks, not enough to compete with the
+                traffic lights, which are the only thing that means anything. */}
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2.5" style={{ backgroundColor: `${s.accent}14` }}>
+              <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: s.accent }}>{s.title}</h3>
               {off > 0 ? (
-                <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700 ring-1 ring-red-200">{off} utan viðmiða</span>
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">{off} utan viðmiða</span>
               ) : watch > 0 ? (
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-200">{watch} til að fylgjast með</span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{watch} til að fylgjast með</span>
               ) : (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 ring-1 ring-emerald-200">Allt í lagi</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-900">Allt í lagi</span>
               )}
+              {s.blurb && <p className="w-full text-xs font-normal normal-case tracking-normal text-slate-500">{s.blurb}</p>}
             </div>
-            {s.blurb && <p className="mb-2 text-xs text-slate-500">{s.blurb}</p>}
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <ul className="divide-y divide-slate-100">
               {rows.map(({ item, signal }) => (
                 <Row key={item.key} item={item} signal={signal} entry={reference?.[item.key]} sex={sex ?? null} />
               ))}
@@ -300,6 +307,37 @@ function Row({ item, signal, entry, sex }: {
         <div className="space-y-4 border-t border-slate-100 bg-slate-50/70 px-4 py-4">
           {entry && entry.bands.length > 0 && (
             <BandScale bands={entry.bands} value={item.value} unit={item.unit || entry.unit} sex={sex} />
+          )}
+
+          {item.recommendations.length > 0 && (
+            <Block title="Það sem á að taka á">
+              <ul className="space-y-1.5">
+                {item.recommendations.map((r, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${DOT[r.priority]}`} aria-hidden />
+                    <span className="text-sm leading-snug text-slate-800">
+                      {r.component && <span className="font-semibold">{r.component}: </span>}
+                      {r.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                Úr ráðleggingum skýrslunnar. Rauður punktur er forgangur 1, gulur forgangur 2.
+              </p>
+            </Block>
+          )}
+
+          {!!entry?.components?.length && (
+            <Block title="Einkunnin er samsett úr">
+              <ul className="space-y-0.5">
+                {entry.components.map((c, i) => (
+                  <li key={i} className="flex gap-1.5 text-sm leading-snug text-slate-700">
+                    <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-slate-400" />{c}
+                  </li>
+                ))}
+              </ul>
+            </Block>
           )}
 
           {entry?.summary && (

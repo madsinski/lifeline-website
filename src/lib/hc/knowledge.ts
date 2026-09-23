@@ -44,6 +44,8 @@ export interface ReportReference {
   higher_better: boolean | null;
   improves: string[];
   worsens: string[];
+  /** What a composite score is made of, in the report's own terms. */
+  components: string[];
 }
 
 export const CATEGORY_IS: Record<KnowledgeCategory, string> = {

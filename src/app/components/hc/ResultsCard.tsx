@@ -55,7 +55,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** Sex-specific bands with no sex on file: we must not pick one and pretend. */
 const sexUnknown = (e: KnowledgeEntry, sex: "m" | "f" | null) => !sex && e.bands.some((b) => b.sex);
 
-export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
+export default function ResultsCard({ api, journeyId, sex, results, onSaved, reportShown }: {
+  /** The full report is already rendered above, so listing every value here
+   *  again just repeats it — a second "Niðurstöður" heading under the first. */
+  reportShown?: boolean;
   api: Api;
   journeyId: string;
   sex: "m" | "f" | null;
@@ -184,7 +187,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-bold text-slate-900">Niðurstöður</h3>
+        <h3 className="font-bold text-slate-900">{reportShown ? "Skrá eða lesa gildi" : "Niðurstöður"}</h3>
         {recorded.length > 0 && (
           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{recorded.length} skráð</span>
         )}
@@ -279,7 +282,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
         </p>
       )}
 
-      {!editing && recorded.length > 0 && (
+      {!editing && !reportShown && recorded.length > 0 && (
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {recorded.map((e) => {
             const v = valueOf(e.slug)!;
@@ -308,7 +311,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
         </ul>
       )}
 
-      {!editing && extras.length > 0 && (
+      {!editing && !reportShown && extras.length > 0 && (
         <div className="mt-3">
           <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Önnur gildi úr skýrslunni</p>
           <ul className="grid gap-2 sm:grid-cols-2">

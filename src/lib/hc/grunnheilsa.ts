@@ -16,6 +16,16 @@ export type ItemKind = "score" | "risk" | "measure" | "blood";
 
 export interface ReportPoint { date: string; value: number }
 
+/** One row of the report's recommendation column. */
+export interface ReportRecommendation {
+  /** What it is about — "Reglubundinn svefntími", "Birta", "Hitastig". */
+  component: string;
+  /** What to do. The report's own words. */
+  text: string;
+  /** red = Forgangur 1 · yellow = Forgangur 2 · green = Í jafnvægi. */
+  priority: Signal;
+}
+
 export interface ReportItem {
   key: string;
   title: string;
@@ -37,6 +47,11 @@ export interface ReportItem {
   trend: ReportPoint[];
   /** The report's bullet advice for this item. */
   advice: string[];
+  /**
+   * The far-right "Ráðleggingar" column: the individual things to address,
+   * each with the priority dot the report printed beside it.
+   */
+  recommendations: ReportRecommendation[];
   /** "Endurmat ráðlagt eftir 12 mánuði." and the like. */
   review: string | null;
 }
@@ -182,6 +197,79 @@ function parseHead(before: string[]): { value: number | null; label: string | nu
   return { value: Number.isFinite(value as number) ? value : null, label, signal };
 }
 
+/**
+ * The priority dots, as the text extractor mangles them.
+ *
+ * The report draws a coloured dot beside every recommendation and explains
+ * them in its own legend: "=4 Forgangur 1 — Byrja á þessum atriðum",
+ * "=á Forgangur 2 — Taka á þessum atriðum næst", "=â Í jafnvægi — Halda
+ * áfram á sömu braut". They come out of the PDF as "=" followed by one of
+ * three characters, which is what we match on.
+ */
+const DOTS: Record<string, Signal> = { "4": "red", "\u00e1": "yellow", "\u00e2": "green" };
+const DOT_RE = /=([4\u00e1\u00e2])/g;
+
+/**
+ * Pull the recommendation column apart.
+ *
+ * The cells arrive concatenated with no separator, so the dot is the only
+ * reliable anchor: the text reads <component><dot><what to do><component>
+ * <dot>… The boundary between a recommendation and the next component name
+ * is the last full stop in the chunk — component names carry none, and a
+ * recommendation may well carry one ("Sofa 7-8 klst.").
+ *
+ * The report prints the same list once per priority tier, so a component is
+ * kept at its most urgent dot and not repeated.
+ */
+function parseRecommendations(region: string): ReportRecommendation[] {
+  const marks = [...region.matchAll(DOT_RE)];
+  if (!marks.length) return [];
+  const tidy = (x: string) => x.replace(/\s+/g, " ").replace(/^[-–\s]+|[-–\s]+$/g, "").trim();
+
+  const out: ReportRecommendation[] = [];
+  let component = tidy(region.slice(0, marks[0].index ?? 0));
+  // "Í jafnvægi — halda áfram á sömu braut" is a verdict, not an action, and
+  // the words that follow it belong to the next section rather than to a
+  // recommendation. Those markers are read for nothing but their position.
+  const isBalance = (t: string) => /^Í jafnvægi/i.test(t);
+
+  /**
+   * A component is a short label ("Birta", "Koffín fyrir svefn"). Some rows
+   * have no component column at all, and then what precedes the dot is the
+   * tail of the row's own status bullet ("stig • Almennar þarfir…"). Those are
+   * dropped rather than shown as a heading — the recommendation still stands
+   * on its own.
+   */
+  const asComponent = (t: string) => {
+    const c = t.replace(/^stig\b/i, "").replace(/^[•\-–\s]+/, "").trim();
+    return !c || c.length > 46 || /[.!?]$/.test(c) || c.includes("•") ? "" : c;
+  };
+  for (let i = 0; i < marks.length; i++) {
+    const priority = DOTS[marks[i][1]];
+    const from = (marks[i].index ?? 0) + marks[i][0].length;
+    const to = i + 1 < marks.length ? marks[i + 1].index : region.length;
+    const chunk = region.slice(from, to);
+    // The recommendation ends at its last full stop; the rest names the next.
+    const cut = chunk.lastIndexOf(".");
+    const text = tidy(cut >= 0 ? chunk.slice(0, cut + 1) : chunk);
+    const next = cut >= 0 ? tidy(chunk.slice(cut + 1)) : "";
+    if (text && priority !== "green" && !isBalance(text) && text.length <= 240) {
+      out.push({ component: asComponent(component), text, priority });
+    }
+    component = next;
+  }
+
+  // Same component twice: keep the more urgent dot, keep the first wording.
+  const rank: Record<Signal, number> = { red: 0, yellow: 1, green: 2 };
+  const best = new Map<string, ReportRecommendation>();
+  for (const r of out) {
+    const key = r.component || r.text;
+    const had = best.get(key);
+    if (!had || rank[r.priority] < rank[had.priority]) best.set(key, r);
+  }
+  return [...best.values()].sort((a, b) => rank[a.priority] - rank[b.priority]);
+}
+
 /** PDF text as the extractor gives it: soft hyphens, words split over lines. */
 export function normalizeReportText(raw: string): string {
   return raw
@@ -304,6 +392,16 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
       if (advice.length) advice[advice.length - 1] = `${advice[advice.length - 1]} ${line}`.replace(/\s+/g, " ");
     }
 
+    // The recommendation column runs from this row's values to whichever
+    // comes first: the page legend, or the next row's own value block. Without
+    // the second bound a row inherits the column of the row below it.
+    const tail = window.slice(cursor);
+    const ends = [
+      tail.search(/Gott [\d.,]+-[\d.,]+ stig|Stig \(0-10\)|Tímalína/),
+      tail.search(new RegExp(BLOCK_HEAD_SRC)),
+    ].filter((n) => n > 0);
+    const recommendations = parseRecommendations(ends.length ? tail.slice(0, Math.min(...ends)) : tail);
+
     seen.add(entry.key);
     items.push({
       key: entry.key,
@@ -318,6 +416,7 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
       reportSignal: signal,
       trend: points.slice(0, -1).map((p) => ({ ...p, value: Math.round(p.value * 100) / 100 })),
       advice: advice.map((a) => a.trim()).filter(Boolean).slice(0, 6),
+      recommendations: recommendations.slice(0, 12),
       // One sentence. The report sometimes runs the whole band legend onto
       // the same line with no space after the full stop, and then the review
       // line is four paragraphs of boilerplate.
