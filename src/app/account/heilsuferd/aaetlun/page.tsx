@@ -101,14 +101,17 @@ function PlanPageInner() {
 
         {hasSomething && data && (
           <>
-            <div className="mt-4 flex gap-1 overflow-x-auto border-b border-slate-200 print:hidden" role="tablist">
+            {/* Same control as the workstation's nav, so the two sides of the
+                same journey do not look like two products. */}
+            <nav className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-slate-200 print:hidden" role="tablist">
               {tabs.filter((t) => t.show).map((t) => (
                 <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTabState(t.key)}
-                  className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold ${tab === t.key ? "border-emerald-600 text-emerald-800" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+                  className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    tab === t.key ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
                   {t.label}
                 </button>
               ))}
-            </div>
+            </nav>
 
             <div className="mt-4">
               {tab === "today" && plan && (

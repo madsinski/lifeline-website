@@ -14,6 +14,7 @@ import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import type { JourneyStep, StepKey } from "@/lib/hc/stages";
+import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
 
@@ -104,6 +105,12 @@ function Heilsuferd() {
   const done = data.steps.filter((s) => s.state === "done" && !s.optional).length;
   const required = data.steps.filter((s) => !s.optional).length;
   const current = data.steps.find((s) => s.state === "current");
+  // The step being worked on, unless the customer has picked another.
+  const shownStep = data.steps.find((x) => x.key === open)
+    ?? current
+    ?? data.steps.find((x) => x.state === "upcoming")
+    ?? data.steps.at(-1)
+    ?? null;
   const healthOrder = data.orders.find((o) => o.journey_id === data.journey.id && (o.kind === "health_check" || o.kind === "reevaluation"));
 
   return (
@@ -130,21 +137,37 @@ function Heilsuferd() {
         )}
       </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* Stepper */}
-        <ol className="space-y-3" aria-label="Skref heilsuferðarinnar">
-          {data.steps.map((s, i) => (
-            <StepCard
-              key={s.key}
-              index={i + 1}
-              step={s}
-              open={open === s.key}
-              onToggle={() => setOpen(open === s.key ? null : s.key)}
-            >
-              <StepBody step={s} data={data} reload={async () => { await load(); }} advance={advance} healthOrder={healthOrder ?? null} />
-            </StepCard>
-          ))}
-        </ol>
+      {/* The journey on one line, the same way the nurse sees it. Twelve steps
+          is too many to stack: as a strip it reads as a sequence, and only the
+          step being worked on takes up the page. */}
+      <div className="mt-6">
+        <StatusStrip steps={data.steps.map(stepCheckpoint)} onOpen={(k) => setOpen(k as StepKey)} />
+      </div>
+
+      <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div>
+          {shownStep ? (
+            <section className="overflow-hidden rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5" aria-label={shownStep.title}>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-bold text-slate-900">{shownStep.title}</h2>
+                {shownStep.state === "done" && (
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 ring-1 ring-emerald-200">Lokið</span>
+                )}
+                {shownStep.optional && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">valfrjálst</span>
+                )}
+              </div>
+              <p className="mt-0.5 text-sm text-slate-500">{shownStep.blurb}</p>
+              <div className="mt-3">
+                <StepBody step={shownStep} data={data} reload={async () => { await load(); }} advance={advance} healthOrder={healthOrder ?? null} />
+              </div>
+            </section>
+          ) : (
+            <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
+              Veldu skref hér fyrir ofan til að sjá hvað er í því.
+            </p>
+          )}
+        </div>
 
         {/* Side */}
         <aside className="space-y-4">
@@ -165,6 +188,40 @@ function Heilsuferd() {
       </div>
     </Shell>
   );
+}
+
+/** The strip has room for a word, not a sentence. */
+const SHORT_IS: Record<string, string> = {
+  account: "Aðgangur",
+  profile: "Upplýsingar",
+  welcome: "Fyrirlestur",
+  package: "Greiðsla",
+  protocol: "Virkjun",
+  blood: "Blóðprufa",
+  measurements: "Mælingar",
+  report: "Skýrsla",
+  interview: "Viðtal",
+  plan: "Áætlun",
+  followup: "Eftirfylgd",
+  reassessment: "Endurmat",
+};
+
+const MONTHS_IS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
+/** "20. sept." — written out, because a browser without the Icelandic locale
+ *  prints "Sept 20" in the middle of an Icelandic page. */
+const shortDate = (iso: string | null) => {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${Number(m[3])}. ${MONTHS_IS[Number(m[2]) - 1]}` : null;
+};
+
+function stepCheckpoint(step: JourneyStep): Checkpoint {
+  return {
+    key: step.key,
+    label: SHORT_IS[step.key] ?? step.title,
+    // "optional" is not something anyone is waiting on, so it reads as ahead.
+    state: step.state === "optional" ? "upcoming" : step.state,
+    detail: step.doneAt ? shortDate(step.doneAt) : step.optional ? "valfrjálst" : null,
+  };
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -205,37 +262,6 @@ function FirstStep({ stadur }: { stadur: string }) {
 }
 
 // ── Step shell ─────────────────────────────────────────────────────────────
-
-function StepCard({ index, step, open, onToggle, children }: {
-  index: number; step: JourneyStep; open: boolean; onToggle: () => void; children: React.ReactNode;
-}) {
-  const tone = step.state === "done"
-    ? { dot: "bg-[#10B981] text-white", ring: "border-emerald-100" }
-    : step.state === "current"
-      ? { dot: "bg-[#0F172A] text-white", ring: "border-slate-300 shadow-md" }
-      : { dot: "bg-slate-100 text-slate-400", ring: "border-slate-100" };
-  return (
-    <li id={`step-${step.key}`} className={`scroll-mt-24 overflow-hidden rounded-2xl border bg-white transition ${tone.ring}`}>
-      <button onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-4 p-4 text-left sm:p-5">
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${tone.dot}`}>
-          {step.state === "done" ? "✓" : index}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className={`font-semibold ${step.state === "upcoming" ? "text-slate-400" : "text-[#0F172A]"}`}>{step.title}</span>
-            {step.optional && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-500">Valfrjálst</span>}
-            {step.state === "current" && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800">Næst</span>}
-          </span>
-          <span className="block truncate text-sm text-slate-500">
-            {step.state === "done" && step.doneAt ? `Lokið ${fmtDate(step.doneAt)}` : step.blurb}
-          </span>
-        </span>
-        <span className={`text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden>▾</span>
-      </button>
-      {open && <div className="border-t border-slate-100 p-4 sm:p-5">{children}</div>}
-    </li>
-  );
-}
 
 function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyStep; data: JourneyData; reload: () => Promise<void>; advance: () => Promise<void>; healthOrder: HcOrder | null }) {
   const loc = data.location;
