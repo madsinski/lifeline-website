@@ -14,6 +14,7 @@ import PlanView from "./PlanView";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
 import AiProposalPanel, { type ProposedAction } from "./AiProposalPanel";
+import { bangScore, byScore, scoreBand, timeCost, GRADE_IS, type Rated } from "@/lib/hc/rating";
 import {
   PILLARS, PILLAR_META,
   type ActionPlan, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanGoal,
@@ -47,6 +48,39 @@ const stripActive = <T extends { active: boolean }>(t: T): Omit<T, "active"> => 
   void _a;
   return rest;
 };
+
+/**
+ * "Mest fyrir minnst", on the action itself.
+ *
+ * The score is one number so the list can be sorted by it, but the three
+ * things behind it are shown too — an action can score well for very
+ * different reasons, and a nurse choosing between two of them needs to know
+ * whether she is buying effect or convenience. The evidence letter is never
+ * dressed up: a C says C.
+ */
+function Rating({ m }: { m: Rated }) {
+  const score = bangScore(m);
+  if (score == null) return null;
+  const band = scoreBand(score);
+  const time = timeCost(m.minutes_per_week);
+  const grade = m.evidence_grade ? GRADE_IS[m.evidence_grade] : null;
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${band.className}`} title={band.label}>
+        {String(score).replace(".", ",")}
+      </span>
+      <span className="text-[11px] text-slate-500">
+        áhrif {m.effect} · auðvelt {m.ease}
+      </span>
+      {grade && (
+        <span className={`rounded px-1 text-[10px] font-bold ${grade.className}`} title={m.evidence_note ?? grade.hint}>
+          {grade.label}
+        </span>
+      )}
+      {time && <span className="text-[11px] text-slate-400">{time}</span>}
+    </div>
+  );
+}
 
 export default function PlanBuilder({ journeyId, api, onPublished, seed, readyProposal }: {
   /** A proposal already computed in the background at import time. */
@@ -216,9 +250,13 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   const libModules = useMemo(() => {
     if (!lib) return [];
     const q = search.trim().toLowerCase();
-    return lib.modules.filter((m) =>
-      (filter === "all" || m.pillar === filter) &&
-      (!q || m.title.toLowerCase().includes(q) || m.summary.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q))));
+    // Sorted by "mest fyrir minnst" rather than by hand-set order: the point
+    // of rating the library is that the list itself makes the argument.
+    return lib.modules
+      .filter((m) =>
+        (filter === "all" || m.pillar === filter) &&
+        (!q || m.title.toLowerCase().includes(q) || m.summary.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q))))
+      .sort(byScore);
   }, [lib, filter, search]);
 
   // "Prenta": render the preview (which holds the print layout), then print.
@@ -322,6 +360,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                     <div className="flex-1">
                       <p className="font-semibold text-[#0F172A]">{m.title}</p>
                       <p className="text-xs text-slate-600">{m.summary}</p>
+                      <Rating m={m} />
                     </div>
                     <button onClick={() => addModule(m.key)} className="rounded-lg bg-white px-2 py-0.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200" aria-label={`Bæta við ${m.title}`}>+</button>
                   </div>

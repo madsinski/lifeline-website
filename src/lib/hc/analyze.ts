@@ -14,6 +14,7 @@ import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { bandForValue, type KnowledgeEntry } from "./knowledge";
+import { bangScore, byScore } from "./rating";
 import { PILLARS, type Pillar, type PlanModule } from "./types";
 
 export const ANALYZE_MODEL = process.env.OPENAI_MODEL_ANALYZE || "gpt-5.4";
@@ -138,6 +139,8 @@ Aðferðafræði Lifeline — „mest fyrir minnst“:
 • Ein lykilvenja fyrst — oftast fastur fótaferðartími eða dagleg ganga — hún dregur hinar með sér.
 • Stórar hreyfingar í æfingum: hnébeygja, mjaðmalyfta, ýta, toga, bera.
 • Samkvæmni fram yfir fullkomnun.
+• Hver aðgerð í safninu hefur gildi frá 0–10: mest áhrif fyrir minnstan tíma, að teknu tilliti til þess hversu auðvelt er að halda henni og hversu góðar rannsóknir styðja hana. Safnið er raðað eftir því. Veldu ofarlega á listanum nema niðurstöður skjólstæðingsins kalli sérstaklega á annað — og segðu þá í rökstuðningnum af hverju.
+• Aðgerð með rannsóknastig C má vera með, en hún á ekki að vera í kjarnanum nema hún taki á rauðu gildi sem ekkert betur staðfest tekur á.
 
 Reglur sem þú mátt ekki brjóta:
 • Notaðu aðgerðir úr aðgerðasafninu þegar þær passa (module_key). Búðu aðeins til nýja aðgerð þegar ekkert í safninu á við.
@@ -156,8 +159,17 @@ Tilvísanir (referrals):
 
 /** Ask the model for a ranked plan. Throws on model/transport errors. */
 export async function proposePlan(input: AnalyzeInput): Promise<Proposal> {
-  const library = input.modules
-    .map((m) => `${m.key} [${m.pillar}] ${m.title} — ${m.summary}${m.frequency ? ` (${m.frequency})` : ""}`)
+  // Best value first, with the numbers, so "mest fyrir minnst" is something
+  // the model can read rather than infer from prose.
+  const library = [...input.modules]
+    .sort(byScore)
+    .map((m) => {
+      const score = bangScore(m);
+      const rating = score == null
+        ? ""
+        : ` · gildi ${String(score).replace(".", ",")}/10 (áhrif ${m.effect}, auðvelt ${m.ease}, rannsóknir ${m.evidence}${m.evidence_grade ? `, stig ${m.evidence_grade}` : ""})`;
+      return `${m.key} [${m.pillar}] ${m.title} — ${m.summary}${m.frequency ? ` (${m.frequency})` : ""}${rating}`;
+    })
     .join("\n");
 
   const lines = (input.reportLines ?? [])

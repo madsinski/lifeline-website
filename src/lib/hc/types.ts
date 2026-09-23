@@ -172,6 +172,14 @@ export interface PlanModule {
   tags: string[];
   sort: number;
   active: boolean;
+  /** Rating: 1–5 each, higher is better. See src/lib/hc/rating.ts. */
+  effect: number | null;
+  ease: number | null;
+  evidence: number | null;
+  /** A = meta-analyses/RCTs · B = RCTs with limits or cohorts · C = smaller. */
+  evidence_grade: string | null;
+  evidence_note: string | null;
+  minutes_per_week: number | null;
 }
 
 /** Where an exercise sits in a session. */
