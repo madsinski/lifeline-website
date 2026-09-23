@@ -32,6 +32,8 @@ import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
+import Referrals, { type ReferralSuggestion } from "@/app/components/hc/Referrals";
+import type { Referral } from "@/lib/hc/referrals";
 import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar, type PlanItem } from "@/lib/hc/types";
@@ -71,6 +73,9 @@ interface Detail {
   logs: ActionLog[];
   prefs: ActionPref[];
   orders: { id: string; kind: string; payment_route: string; paid_at: string | null; activation_code: string | null; activation_redeemed_at: string | null }[];
+  referrals: Referral[];
+  ai_referrals: ReferralSuggestion[];
+  ai_proposal: React.ComponentProps<typeof PlanBuilder>["readyProposal"];
   audit: { actor: string; action: string; at: string; note: string | null }[];
   plan: { status: string; published_at: string | null; headline: string | null; modules: PlanItem[] } | null;
   location: { name: string } | null;
@@ -721,6 +726,9 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
     ...live.map((x) => ({ key: x.key, label: x.title.replace(/ eftir 3 mánuði$/, ""), state: x.state, detail: x.status })),
   ];
 
+  // Whatever the last plan proposal suggested referring on.
+  const aiReferrals = d.ai_referrals ?? [];
+
   const open = live.find((x) => x.key === shownOpen);
   const jump = (k: string) => { setTouched(true); setOpenStep(k); };
 
@@ -803,8 +811,12 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
             </h2>
             <Messages d={d} startOpen={compose} reload={load} />
           </section>
-          <Drawer title="Þarf tilvísun?">
-            <DoctorReview d={d} isDoctor={isDoctor} record={record} />
+          <Drawer title="Þarf tilvísun?" count={(d.referrals ?? []).filter((r) => r.status === "requested").length || undefined} defaultOpen>
+            <div className="space-y-3">
+              <DoctorReview d={d} isDoctor={isDoctor} record={record} />
+              <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []}
+                suggestions={aiReferrals} isDoctor={isDoctor} onChanged={() => void load()} />
+            </div>
           </Drawer>
         </aside>
       </div>
@@ -888,7 +900,7 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
       status: j.plan_published_at
         ? `Birt skjólstæðingi ${day(j.plan_published_at)}`
         : d.plan?.status === "draft" ? "Drög til — á eftir að birta" : j.interview_done_at ? "Viðtali lokið — gerðu áætlunina" : "Gerð í eða eftir viðtalið",
-      body: <PlanBuilder journeyId={j.id} api={api} onPublished={() => { void reload(); onChanged(); }} seed={seedFromNotes(j.interview_notes)} />,
+      body: <PlanBuilder journeyId={j.id} api={api} readyProposal={d.ai_proposal} onPublished={() => { void reload(); onChanged(); }} seed={seedFromNotes(j.interview_notes)} />,
     },
     {
       key: "followup",

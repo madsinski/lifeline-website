@@ -48,7 +48,9 @@ const stripActive = <T extends { active: boolean }>(t: T): Omit<T, "active"> => 
   return rest;
 };
 
-export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
+export default function PlanBuilder({ journeyId, api, onPublished, seed, readyProposal }: {
+  /** A proposal already computed in the background at import time. */
+  readyProposal?: React.ComponentProps<typeof AiProposalPanel>["ready"];
   journeyId: string;
   api: Api;
   onPublished?: () => void;
@@ -283,7 +285,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
         <div role="status" className={`rounded-xl px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>{msg.text}</div>
       )}
 
-      <AiProposalPanel api={api} journeyId={journeyId} onApply={applyProposal} />
+      <AiProposalPanel api={api} journeyId={journeyId} ready={readyProposal} onApply={applyProposal} />
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         {/* Library */}

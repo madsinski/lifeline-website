@@ -12,11 +12,33 @@
 // Actor: workstation session or Lifeline staff.
 // Schema: supabase/migration-health-journey.sql, migration-hc-results.sql
 
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
 import { DEFAULT_LOCATION, getOrCreateJourney, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
 import { renderBrandedEmail, sendEmail } from "@/lib/email";
+import { buildProposal } from "@/lib/hc/propose";
+
+/**
+ * Start the plan proposal without making anyone wait for it.
+ *
+ * The nurse's next few minutes go on reading the report, so the model can
+ * think while she does and the proposal is waiting when she reaches the plan.
+ * after() runs once the response has been sent but inside the same function
+ * invocation, which is what keeps it alive on Vercel — a bare floating
+ * promise gets killed when the response closes.
+ *
+ * Failure here is silent on purpose: the nurse can always press the button.
+ */
+function proposeInBackground(journeyId: string, actorLabel: string) {
+  after(async () => {
+    try {
+      await buildProposal(journeyId, actorLabel);
+    } catch {
+      // Nothing to report to — the on-demand path will say what went wrong.
+    }
+  });
+}
 
 export const runtime = "nodejs";
 
@@ -149,6 +171,10 @@ export async function POST(req: NextRequest) {
       imported_by: actor.label,
     });
   }
+
+  // Values are in, so the model has something to work from: start now and the
+  // proposal is ready by the time the nurse has read the report.
+  if (rows.length || body.grunnheilsa) proposeInBackground(journey.id, actor.label);
 
   await hcAudit(actor.label, created ? "client_created_from_report" : "report_intake", journey.id, { values: rows.length, report: !!body.grunnheilsa });
   return NextResponse.json({ journey_id: journey.id, client_id: clientId, created, saved: rows.length });

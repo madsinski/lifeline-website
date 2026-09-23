@@ -44,17 +44,29 @@ const PRESETS = [
   { key: "full", label: "Allt", hint: "Allar tillögur", tiers: ["core", "standard", "extra"] },
 ] as const;
 
-export default function AiProposalPanel({ api, journeyId, onApply }: {
+/** Which actions a preset ticks. Pure, so the panel can seed its own state
+ *  from a proposal that was made before the component existed. */
+function tierPick(p: Proposal, tiers: readonly string[]): Record<number, boolean> {
+  const out: Record<number, boolean> = {};
+  p.actions.forEach((a, i) => { out[i] = tiers.includes(a.tier); });
+  return out;
+}
+
+export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
   api: Api;
   journeyId: string;
+  /** A proposal made earlier — importing a report starts one in the
+   *  background, so by the time the nurse gets here it is usually waiting. */
+  ready?: { proposal: Proposal; flagged: Flagged[]; at: string } | null;
   /** Hand the chosen actions to the builder, which turns them into plan items. */
   onApply: (actions: ProposedAction[], headline: string, summary: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [flagged, setFlagged] = useState<Flagged[] | null>(null);
-  const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [picked, setPicked] = useState<Record<number, boolean>>({});
+  const [flagged, setFlagged] = useState<Flagged[] | null>(ready?.flagged ?? null);
+  const [proposal, setProposal] = useState<Proposal | null>(ready?.proposal ?? null);
+  const [picked, setPicked] = useState<Record<number, boolean>>(() =>
+    ready?.proposal ? tierPick(ready.proposal, ["core", "standard"]) : {});
 
   const run = async () => {
     setBusy(true); setMsg("");

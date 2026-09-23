@@ -96,6 +96,11 @@ const proposalSchema = z.object({
     tier: z.enum(["core", "standard", "extra"]),
     why: z.string().describe("Af hverju þetta skiptir máli fyrir þennan einstakling. Íslenska, ein setning."),
   })).describe("Raðað eftir mikilvægi, 5–9 atriði alls"),
+  referrals: z.array(z.object({
+    target: z.enum(["heilsugaesla", "physio", "psychologist", "nutritionist", "specialist"]),
+    reason: z.string().describe("Hvað á að skoða. Niðurstaða eða einkenni — ALDREI sjúkdómsgreining. Íslenska."),
+    why: z.string().describe("Ein setning um af hverju þetta á að fara áfram. Íslenska."),
+  })).describe("Tilvísanir sem hjúkrunarfræðingur ætti að leggja fyrir lækni. Tómur listi ef engin þörf er."),
 });
 
 export type Proposal = z.infer<typeof proposalSchema>;
@@ -141,7 +146,13 @@ Reglur sem þú mátt ekki brjóta:
 • Allur texti er á íslensku og ávarpar skjólstæðinginn með „þú“.
 • tier: core = það sem verður að gerast, standard = ráðlögð viðbót, extra = ef viðkomandi vill meira.
 • Þegar heilsufarsskýrsla fylgir skaltu byrja á þeirri stoð sem kemur verst út þar (svefn, hreyfing, næring eða andleg líðan) og vísa í töluna í rökstuðningnum.
-• Umferðarljósin sem þú sérð eru viðmið Lifeline. Notaðu þau, ekki orðalag skýrslunnar.`;
+• Umferðarljósin sem þú sérð eru viðmið Lifeline. Notaðu þau, ekki orðalag skýrslunnar.
+
+Tilvísanir (referrals):
+• Leggðu til tilvísun þegar niðurstaða kallar á mat annars fagmanns: heilsugæslu fyrir gildi utan viðmiða eða þekkta sjúkdóma, sjúkraþjálfara fyrir verki og stoðkerfi, sálfræðing fyrir andlega líðan og fíkn, næringarfræðing fyrir mataræði og matarhegðun, sérfræðing þegar sérgrein á við.
+• reason er ÞAÐ SEM Á AÐ SKOÐA, aldrei sjúkdómsgreining: „Fastandi blóðsykur yfir viðmiðum“, ekki „sykursýki“.
+• Leggðu ekki til tilvísun fyrir gildi sem er innan viðmiða.
+• Tómur listi er rétt svar þegar ekkert kallar á tilvísun.`;
 
 /** Ask the model for a ranked plan. Throws on model/transport errors. */
 export async function proposePlan(input: AnalyzeInput): Promise<Proposal> {
@@ -191,6 +202,7 @@ export async function proposePlan(input: AnalyzeInput): Promise<Proposal> {
   // Keep only pillars we actually render.
   out.focus = (out.focus ?? []).filter((f) => (PILLARS as readonly string[]).includes(f.pillar)) as Proposal["focus"];
   out.actions = (out.actions ?? []).filter((a) => (PILLARS as readonly string[]).includes(a.pillar)) as Proposal["actions"];
+  out.referrals = (out.referrals ?? []).filter((r) => r.reason?.trim()) as Proposal["referrals"];
   return out;
 }
 

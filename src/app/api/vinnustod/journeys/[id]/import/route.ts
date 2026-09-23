@@ -17,12 +17,34 @@
 //
 // Actor: workstation session or Lifeline staff, limited to their locations.
 
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
 import { hcAudit } from "@/lib/hc/server";
 import { type ReportFile } from "@/lib/hc/report-import";
 import { readReport } from "@/lib/hc/report-local";
+import { buildProposal } from "@/lib/hc/propose";
+
+/**
+ * Start the plan proposal without making anyone wait for it.
+ *
+ * The nurse's next few minutes go on reading the report, so the model can
+ * think while she does and the proposal is waiting when she reaches the plan.
+ * after() runs once the response has been sent but inside the same function
+ * invocation, which is what keeps it alive on Vercel — a bare floating
+ * promise gets killed when the response closes.
+ *
+ * Failure here is silent on purpose: the nurse can always press the button.
+ */
+function proposeInBackground(journeyId: string, actorLabel: string) {
+  after(async () => {
+    try {
+      await buildProposal(journeyId, actorLabel);
+    } catch {
+      // Nothing to report to — the on-demand path will say what went wrong.
+    }
+  });
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -89,6 +111,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         .update({ report_generated_at: new Date().toISOString() })
         .eq("id", journey.id)
         .is("report_generated_at", null);
+    
+      // The report is in; start thinking about the plan now.
+      proposeInBackground(journey.id, actor.label);
     }
 
     // The audit trail records that a report was read, never its contents.
