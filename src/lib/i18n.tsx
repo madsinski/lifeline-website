@@ -17,7 +17,9 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType>({
-  locale: "en",
+  // Icelandic, like DEFAULT_LOCALE below: a component rendered outside the
+  // provider should not quietly fall back to English.
+  locale: "is",
   setLocale: () => {},
   t: (_key: string, fallback?: string) => fallback || "",
   loading: true,

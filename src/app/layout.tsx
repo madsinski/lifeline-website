@@ -104,7 +104,7 @@ export default async function RootLayout({
   // final order/visibility (no flash of the default setup).
   const navItems = showMarketingChrome ? resolveNav(await getPublishedBlob("nav")) : undefined;
   return (
-    <html lang="en" className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} ${schibsted.variable} ${newsreader.variable} ${publicSans.variable} ${archivo.variable} ${plexSans.variable} ${plexMono.variable} antialiased`} style={{ overflow: "auto" }}>
+    <html lang="is" className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} ${schibsted.variable} ${newsreader.variable} ${publicSans.variable} ${archivo.variable} ${plexSans.variable} ${plexMono.variable} antialiased`} style={{ overflow: "auto" }}>
       <body className="min-h-screen flex flex-col font-sans" style={{ overflow: "auto" }}>
         <script
           dangerouslySetInnerHTML={{
