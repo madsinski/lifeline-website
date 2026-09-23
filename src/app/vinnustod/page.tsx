@@ -25,7 +25,8 @@ import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarC
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
-import Flow, { Drawer, type FlowStep } from "@/app/components/hc/Flow";
+import { Drawer, type FlowStep } from "@/app/components/hc/Flow";
+import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
@@ -704,6 +705,25 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   const landOn = d.report ? "results" : current?.key ?? null;
   const shownOpen = touched ? openStep : landOn;
 
+  // Payment as a chip on the status line rather than a drawer of its own.
+  const paid = d.orders.some((o) => o.paid_at);
+  const code = d.orders.find((o) => o.activation_code);
+
+  // The tests are milestones, not steps with work in them, so they live on the
+  // line and nowhere else. After them come the steps, which do carry work.
+  const checkpoints: Checkpoint[] = [
+    { key: "results", label: "Blóðprufa", state: j.blood_test_done_at || j.blood_results_at ? "done" : "waiting",
+      detail: j.blood_results_at ? day(j.blood_results_at) : j.blood_test_booked_for ? day(j.blood_test_booked_for) : "ekki bókuð" },
+    { key: "results", label: "Svör", state: j.blood_results_at ? "done" : "waiting",
+      detail: j.blood_results_at ? day(j.blood_results_at) : "bíður" },
+    { key: "results", label: "Mælingar", state: j.measurements_done_at ? "done" : "waiting",
+      detail: j.measurements_done_at ? day(j.measurements_done_at) : j.measurements_booked_for ? day(j.measurements_booked_for) : "ekki bókaðar" },
+    ...live.map((x) => ({ key: x.key, label: x.title.replace(/ eftir 3 mánuði$/, ""), state: x.state, detail: x.status })),
+  ];
+
+  const open = live.find((x) => x.key === shownOpen);
+  const jump = (k: string) => { setTouched(true); setOpenStep(k); };
+
   return (
     <div className="space-y-4">
       {backBtn}
@@ -722,30 +742,92 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
             </p>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {d.patient.phone && <a href={`tel:${d.patient.phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {d.patient.phone}</a>}
-          {d.patient.email && <a href={`mailto:${d.patient.email}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Mail className="h-4 w-4" /> Tölvupóstur</a>}
-          <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={`${btnSecondary} min-h-9 px-3 text-xs`}><ExternalLink className="h-4 w-4" /> Medalia</a>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-600">
+          {d.patient.phone && (
+            <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+              <a href={`tel:${d.patient.phone}`} className="hover:underline">{d.patient.phone}</a>
+            </span>
+          )}
+          {d.patient.email && (
+            <span className="inline-flex min-w-0 items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+              <a href={`mailto:${d.patient.email}`} className="truncate hover:underline">{d.patient.email}</a>
+            </span>
+          )}
+          <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={`${btnSecondary} ml-auto min-h-8 px-3 text-xs`}>
+            <ExternalLink className="h-4 w-4" /> Medalia
+          </a>
         </div>
         {j.plan_published_at && <div className="mt-3"><Adherence d={d} /></div>}
       </section>
 
-      <Flow steps={steps} openKey={shownOpen} onOpen={(k) => { setTouched(true); setOpenStep(k); }} />
+      <StatusStrip steps={checkpoints} onOpen={jump} right={
+        <button type="button" onClick={() => jump("orders")}
+          className="flex flex-col items-start gap-0.5 rounded-xl px-2 py-1 text-left hover:bg-slate-50">
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${paid ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}>
+            {paid ? "Greitt" : "Ógreitt"}
+          </span>
+          <span className="text-[10px] leading-tight text-slate-400">
+            {code?.activation_redeemed_at ? "kóði virkjaður" : code ? "kóði ónotaður" : "Greiðslur og kóðar"}
+          </span>
+        </button>
+      } />
 
-      {/* Everything else, tucked away until it is wanted. */}
-      <Drawer title="Skilaboð til skjólstæðings" count={d.messages.length} defaultOpen={compose}>
-        <Messages d={d} startOpen={compose} reload={load} />
-      </Drawer>
-      <Drawer title="Mat læknis og tilvísun">
-        <DoctorReview d={d} isDoctor={isDoctor} record={record} />
-      </Drawer>
-      <Drawer title="Greiðslur og kóðar" count={d.orders.length}>
-        <Orders d={d} record={record} />
-      </Drawer>
-      <Drawer title="Saga" count={d.audit.length}>
-        <History audit={d.audit} />
-      </Drawer>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* What you are doing right now. One panel, chosen from the line. */}
+        <div className="lg:col-span-2">
+          {open ? (
+            <section className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">{open.icon}</span>
+                <div className="min-w-0">
+                  <h2 className="truncate font-bold text-slate-900">{open.title}</h2>
+                  <p className="truncate text-xs text-slate-500">{open.status}</p>
+                </div>
+              </div>
+              {open.body}
+            </section>
+          ) : shownOpen === "orders" ? (
+            <Panel title="Greiðslur og kóðar"><Orders d={d} record={record} /></Panel>
+          ) : shownOpen === "history" ? (
+            <Panel title="Saga"><History audit={d.audit} /></Panel>
+          ) : null}
+        </div>
+
+        {/* Alongside, not underneath: the two things a nurse reaches for while
+            reading the report. */}
+        <aside className="space-y-3">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-700">
+              Skilaboð til skjólstæðings
+              {d.messages.length > 0 && <span className="ml-1.5 font-normal text-slate-400">{d.messages.length}</span>}
+            </h2>
+            <Messages d={d} startOpen={compose} reload={load} />
+          </section>
+          <Drawer title="Þarf tilvísun?">
+            <DoctorReview d={d} isDoctor={isDoctor} record={record} />
+          </Drawer>
+        </aside>
+      </div>
+
+      {/* Out of the way, but one click from anywhere. */}
+      <div className="flex flex-wrap gap-4 px-1 pt-1 text-xs">
+        <button type="button" onClick={() => jump("history")} className="font-semibold text-slate-400 hover:text-slate-700 hover:underline">
+          Saga ({d.audit.length})
+        </button>
+        <button type="button" onClick={() => jump("orders")} className="font-semibold text-slate-400 hover:text-slate-700 hover:underline">
+          Greiðslur og kóðar ({d.orders.length})
+        </button>
+      </div>
     </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+      <h2 className="mb-3 font-bold text-slate-900">{title}</h2>
+      {children}
+    </section>
   );
 }
 
@@ -772,7 +854,7 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
         : hasResults
           ? `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`
           : resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga",
-      body: <ResultsStep d={d} api={api} record={record} reload={reload} />,
+      body: <ResultsStep d={d} api={api} reload={reload} />,
     },
     {
       key: "report",
@@ -826,17 +908,10 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
 
 // ── Step bodies ────────────────────────────────────────────────────────────
 
-function ResultsStep({ d, api, record, reload }: {
-  d: Detail; api: WsApi; record: (p: Record<string, unknown>) => Promise<string | null>; reload: () => Promise<void>;
+function ResultsStep({ d, api, reload }: {
+  d: Detail; api: WsApi; reload: () => Promise<void>;
 }) {
   const j = d.journey;
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  const run = async (p: Record<string, unknown>, ok: string) => {
-    setBusy(true); setMsg("");
-    const e = await record(p);
-    setBusy(false); setMsg(e ?? ok);
-  };
   return (
     <div className="space-y-4">
       {d.report && (
@@ -850,17 +925,6 @@ function ResultsStep({ d, api, record, reload }: {
         </>
       )}
       <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
-      <div className="rounded-2xl bg-slate-50 p-3">
-        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Rannsóknir</p>
-        <Milestone label="Blóðprufa (Heilsugæslan)" booked={j.blood_test_booked_for} done={j.blood_test_done_at ?? j.blood_results_at}
-          action={!(j.blood_test_done_at || j.blood_results_at) ? { label: "Skrá tekna", run: () => run({ event: "blood_test_done" }, "Skráð.") } : undefined} busy={busy} />
-        <Milestone label="Blóðprufusvör" done={j.blood_results_at}
-          action={!j.blood_results_at ? { label: "Skrá svör komin", run: () => run({ event: "blood_results_ready" }, "Skráð. Læknir fær tilkynningu.") } : undefined} busy={busy} />
-        <Milestone label="Mælingar (Vera)" booked={j.measurements_booked_for} done={j.measurements_done_at}
-          action={!j.measurements_done_at ? { label: "Skrá lokið", run: () => run({ event: "measurements_done" }, "Skráð.") } : undefined} busy={busy} />
-        <p className="mt-2 text-xs text-slate-500">Sjúklingagáttin skráir þetta sjálfkrafa þegar tenging er komin.</p>
-      </div>
-      {msg && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800">{msg}</p>}
     </div>
   );
 }
@@ -1187,19 +1251,6 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
           </div>
         )}
       </Card>
-    </div>
-  );
-}
-
-function Milestone({ label, booked, done, action, busy }: { label: string; booked?: string | null; done: string | null; action?: { label: string; run: () => void }; busy: boolean }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3 py-2">
-      <span className={`flex h-6 w-6 items-center justify-center rounded-full ${done ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>{done ? <Check className="h-3.5 w-3.5" /> : null}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-800">{label}</p>
-        <p className="text-xs text-slate-500">{done ? `Lokið ${dayTime(done)}` : booked ? `Bókað ${dayTime(booked)}` : "Ekki bókað"}</p>
-      </div>
-      {action && <button type="button" disabled={busy} onClick={action.run} className={`${btnSecondary} min-h-9`}>{action.label}</button>}
     </div>
   );
 }
