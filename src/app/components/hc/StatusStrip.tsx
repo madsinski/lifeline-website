@@ -41,12 +41,10 @@ const TEXT: Record<Checkpoint["state"], string> = {
   upcoming: "text-slate-400",
 };
 
-export default function StatusStrip({ steps, onOpen, right }: {
+export default function StatusStrip({ steps, onOpen }: {
   steps: Checkpoint[];
   /** Jump to the step this checkpoint belongs to, when it has a body. */
   onOpen?: (key: string) => void;
-  /** Anything that belongs on the line but is not a checkpoint — payment. */
-  right?: React.ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
@@ -75,7 +73,6 @@ export default function StatusStrip({ steps, onOpen, right }: {
             </li>
           ))}
         </ol>
-        {right && <div className="shrink-0 border-slate-200 lg:border-l lg:pl-4">{right}</div>}
       </div>
     </section>
   );
