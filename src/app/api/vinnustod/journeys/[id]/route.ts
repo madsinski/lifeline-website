@@ -46,6 +46,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     supabaseAdmin.from("hc_workers").select("id, name, organization, role").eq("active", true),
     supabaseAdmin.from("hc_messages").select("id, channel, recipient, template, subject, body, status, error, sent_by, sent_at").eq("journey_id", journey.id).order("sent_at", { ascending: false }).limit(50),
   ]);
+  const { data: results } = await supabaseAdmin
+    .from("hc_results")
+    .select("marker, value, unit, measured_at, source, note, entered_by, updated_at")
+    .eq("journey_id", journey.id);
 
   return NextResponse.json({
     journey,
@@ -56,7 +60,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       phone: profile?.phone ?? null,
       address: profile?.address ?? null,
       date_of_birth: profile?.date_of_birth ?? null,
+      sex: profile?.sex ?? null,
     },
+    results: results || [],
     orders: orders || [],
     audit: (audit || []).map((a) => ({ actor: a.actor, action: a.action, at: a.at, note: (a.detail as { note?: string } | null)?.note ?? null })),
     plan,

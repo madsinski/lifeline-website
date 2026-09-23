@@ -17,9 +17,13 @@ import {
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type Sex = "m" | "f" | null;
 
-export default function KnowledgeSearch({ api, open, onClose }: { api: Api; open: boolean; onClose: () => void }) {
+export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" }: {
+  api: Api; open: boolean; onClose: () => void;
+  /** Prefill, e.g. "Insúlín 18" when opened from a recorded value. */
+  initialQuery?: string;
+}) {
   const [entries, setEntries] = useState<KnowledgeEntry[] | null>(null);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
   const [sex, setSex] = useState<Sex>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +37,13 @@ export default function KnowledgeSearch({ api, open, onClose }: { api: Api; open
       .catch(() => { if (live) setEntries([]); });
     return () => { live = false; };
   }, [open, entries, api]);
+
+  // Opening with a prefill replaces whatever was typed last time.
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => { setQ(initialQuery); setPicked(null); }, 0);
+    return () => clearTimeout(t);
+  }, [open, initialQuery]);
 
   useEffect(() => {
     if (!open) return;

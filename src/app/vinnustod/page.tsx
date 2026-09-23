@@ -23,6 +23,7 @@ import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
+import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar } from "@/lib/hc/types";
 import { MESSAGE_TEMPLATES, smsSize, type MessageTemplateKey } from "@/lib/hc/message-templates";
@@ -47,7 +48,8 @@ interface Journey extends Omit<Row, "client_name" | "client_phone" | "client_dob
 }
 interface Detail {
   journey: Journey;
-  patient: { full_name: string | null; kennitala: string | null; email: string | null; phone: string | null; address: string | null; date_of_birth: string | null };
+  patient: { full_name: string | null; kennitala: string | null; email: string | null; phone: string | null; address: string | null; date_of_birth: string | null; sex: string | null };
+  results: HcResult[];
   orders: { id: string; kind: string; payment_route: string; paid_at: string | null; activation_code: string | null; activation_redeemed_at: string | null }[];
   audit: { actor: string; action: string; at: string; note: string | null }[];
   plan: { status: string; published_at: string | null; headline: string | null } | null;
@@ -755,6 +757,9 @@ function Overview({ d, isDoctor, record, compose, reload }: { d: Detail; isDocto
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <div className="lg:col-span-2">
+        <ResultsCard api={ws} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
+      </div>
       <Messages d={d} startOpen={compose} reload={reload} />
       <Card title="Rannsóknir" icon={<Droplet className="h-5 w-5" />}>
         <Milestone label="Blóðprufa (Heilsugæslan)" booked={j.blood_test_booked_for} done={j.blood_test_done_at ?? j.blood_results_at}

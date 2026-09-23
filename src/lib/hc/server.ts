@@ -35,12 +35,13 @@ export interface ClientProfile {
   company_id: string | null;
   kennitala_encrypted: string | null;
   date_of_birth: string | null;
+  sex: string | null;
 }
 
 export async function getClientProfile(userId: string): Promise<ClientProfile | null> {
   const { data } = await supabaseAdmin
     .from("clients_decrypted")
-    .select("id, email, full_name, phone, address, company_id, kennitala_encrypted, date_of_birth")
+    .select("id, email, full_name, phone, address, company_id, kennitala_encrypted, date_of_birth, sex")
     .eq("id", userId)
     .maybeSingle();
   return (data as ClientProfile | null) ?? null;
