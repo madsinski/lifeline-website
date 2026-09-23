@@ -10,7 +10,7 @@
 // wrapper that adds its own credentials.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 import PlanView from "./PlanView";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
@@ -19,8 +19,7 @@ import { bangScore, byScore, scoreBand, timeCost, GRADE_IS, type Rated } from "@
 import {
   PILLARS, PILLAR_META,
   type ActionPlan, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanGoal,
-  type PlanItem, type PlanLibrary, type PlanModule,
-} from "@/lib/hc/types";
+  type PlanItem, type PlanLibrary, type PlanModule, type ExerciseSession } from "@/lib/hc/types";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -521,6 +520,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           templates={lib.exercise}
           onChange={(exercise) => update({ exercise })}
           api={api}
+          journeyId={journeyId}
         />
       </div>
       <div className={step === 3 ? "" : "hidden"}>
@@ -529,6 +529,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           templates={lib.nutrition}
           onChange={(nutrition) => update({ nutrition })}
           api={api}
+          journeyId={journeyId}
         />
       </div>
 
@@ -559,11 +560,77 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   );
 }
 
-function ExerciseEditor({ value, templates, onChange, api }: {
+/**
+ * "Láta AI setja saman" — fill the chosen preset from our own libraries.
+ *
+ * The preset decides the shape; this decides which of the 976 exercises or
+ * 110 meals go in it, against the client's own values and whatever the nurse
+ * wrote about pain or equipment. The model is handed library ids and may
+ * only answer with those, so if it returns something we did not offer, that
+ * item is dropped and the count says so.
+ */
+function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: {
+  api: Api;
+  journeyId: string;
+  kind: "exercise" | "nutrition";
+  templateKey: string | null;
+  disabled?: boolean;
+  onDone: (r: { sessions?: ExerciseSession[]; day_example?: { meal: string; example: string }[]; note: string; dropped: number }) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const run = async () => {
+    setBusy(true); setMsg("");
+    const r = await api(`/api/vinnustod/journeys/${journeyId}/compose`, {
+      method: "POST",
+      body: JSON.stringify({ kind, template: templateKey, constraints: constraints.trim() || null }),
+    });
+    const j = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok) { setMsg(j.error || "Samsetningin mistókst."); return; }
+    setOpen(false);
+    setMsg(j.dropped ? `Sett saman. ${j.dropped} atriði voru sleppt því þau voru ekki í safninu.` : "Sett saman úr safninu.");
+    onDone(j);
+  };
+
+  return (
+    <div className="w-full">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" disabled={disabled || busy} onClick={() => setOpen(!open)}
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-emerald-700 px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-40">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy ? "Set saman…" : "Láta AI setja saman"}
+        </button>
+        {disabled && <span className="text-xs text-slate-500">Veldu sniðmát fyrst.</span>}
+        {msg && <span className="text-xs text-emerald-800">{msg}</span>}
+      </div>
+      {open && !disabled && (
+        <div className="mt-2 rounded-xl bg-slate-50 p-3">
+          <label className="block text-xs font-semibold text-slate-600">
+            Eitthvað sem á að taka mið af? Verkir, búnaður, hvað viðkomandi gerir í raun.
+            <textarea value={constraints} onChange={(e) => setConstraints(e.target.value)} rows={2}
+              placeholder="T.d. verkur í hægra hné, engin lóð heima, kemst tvisvar í viku"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-normal" />
+          </label>
+          <button type="button" disabled={busy} onClick={run}
+            className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Setja saman
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
   value: ActionPlan["exercise"];
   templates: ExerciseTemplate[];
   onChange: (v: ActionPlan["exercise"]) => void;
   api: Api;
+  journeyId: string;
 }) {
   const pick = (key: string) => {
     if (!key) { onChange(null); return; }
@@ -589,6 +656,8 @@ function ExerciseEditor({ value, templates, onChange, api }: {
           <p className="text-xs text-slate-500">
             Æfingar úr æfingasafninu fylgja með mynd, myndbandi og leiðbeiningum. Skiptu um æfingu ef eitthvað hentar ekki, t.d. vegna verkja eða búnaðar.
           </p>
+          <ComposeButton api={api} journeyId={journeyId} kind="exercise" templateKey={value.key ?? null}
+            onDone={(r) => r.sessions && edit({ sessions: r.sessions, days_per_week: r.sessions.length || value.days_per_week })} />
           <ExerciseSessionsEditor api={api} sessions={value.sessions} onChange={(sessions) => edit({ sessions, days_per_week: sessions.length || value.days_per_week })} />
           {!!value.principles?.length && (
             <details className="rounded-xl border border-slate-100 p-3 text-sm">
@@ -606,11 +675,12 @@ function ExerciseEditor({ value, templates, onChange, api }: {
   );
 }
 
-function NutritionEditor({ value, templates, onChange, api }: {
+function NutritionEditor({ value, templates, onChange, api, journeyId }: {
   value: ActionPlan["nutrition"];
   templates: NutritionTemplate[];
   onChange: (v: ActionPlan["nutrition"]) => void;
   api: Api;
+  journeyId: string;
 }) {
   const pick = (key: string) => {
     if (!key) { onChange(null); return; }
@@ -642,6 +712,8 @@ function NutritionEditor({ value, templates, onChange, api }: {
           <div className="mt-3 rounded-xl border border-slate-100 p-3">
             <p className="text-sm font-semibold text-slate-700">Dæmi um dag</p>
             <p className="mb-2 mt-0.5 text-xs text-slate-500">Veldu máltíðir úr safninu til að fá mynd og næringargildi með í áætlunina.</p>
+            <ComposeButton api={api} journeyId={journeyId} kind="nutrition" templateKey={value.key ?? null}
+              onDone={(r) => r.day_example && onChange({ ...value, day_example: r.day_example })} />
             <DayExampleEditor api={api} value={value.day_example ?? []} onChange={(day_example) => onChange({ ...value, day_example })} />
           </div>
         </div>
