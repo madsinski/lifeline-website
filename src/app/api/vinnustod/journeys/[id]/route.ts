@@ -7,8 +7,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { applyJourneyEvent, DOCTOR_ONLY, isJourneyEvent } from "@/lib/hc/events";
-import { decryptKennitala, getClientProfile, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
+import { decryptKennitala, getClientProfile, hcAudit, isProfileComplete, patchJourney, siteOrigin } from "@/lib/hc/server";
 import { loadReport } from "@/lib/hc/report-store";
+import { journeySteps } from "@/lib/hc/stages";
+
 import { supabaseAdmin as db } from "@/lib/supabase-admin";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 import { sendSms } from "@/lib/sms";
@@ -77,6 +79,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     prefs: prefs || [],
     orders: orders || [],
     referrals: referrals || [],
+    // The same call the customer's account makes, so the nurse's timeline and
+    // the client's are one list and not two that drift.
+    steps: journeySteps(journey, isProfileComplete(profile)),
     // The last plan proposal. It is usually already here: importing a report
     // starts one in the background, so the nurse does not wait for the model
     // after she has finished reading the results.

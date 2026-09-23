@@ -78,6 +78,55 @@ export function journeySteps(j: HcJourney, profileComplete: boolean): JourneySte
 }
 
 /**
+ * The journey as a row of checkpoints.
+ *
+ * One definition for both sides: the customer's account and the nurse's
+ * workstation used to build their own lists, so the same person had two
+ * journeys with different names and different lengths. They share this now
+ * and the nurse sees exactly what her client sees.
+ *
+ * Labels are short because a checkpoint is a word wide; the full titles live
+ * on the step itself.
+ */
+export const STEP_SHORT: Record<StepKey, string> = {
+  account: "Aðgangur",
+  profile: "Upplýsingar",
+  welcome: "Fyrirlestur",
+  package: "Greiðsla",
+  tests: "Virkjun",
+  report: "Skýrsla",
+  interview: "Viðtal",
+  plan: "Áætlun",
+  followup: "Eftirfylgd",
+  reevaluation: "Endurmat",
+};
+
+const CP_MONTHS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
+
+/** "20. sept." — written by hand; a browser without Icelandic prints "Sep 20". */
+function shortDate(iso: string | null): string | null {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${Number(m[3])}. ${CP_MONTHS[Number(m[2]) - 1]}` : null;
+}
+
+export interface JourneyCheckpoint {
+  key: StepKey;
+  label: string;
+  state: "done" | "current" | "waiting" | "upcoming";
+  detail: string | null;
+}
+
+export function journeyCheckpoints(steps: JourneyStep[]): JourneyCheckpoint[] {
+  return steps.map((s) => ({
+    key: s.key,
+    label: STEP_SHORT[s.key] ?? s.title,
+    // "optional" is not something anyone is waiting on, so it reads as ahead.
+    state: s.state === "optional" ? "upcoming" : s.state,
+    detail: s.doneAt ? shortDate(s.doneAt) : s.optional ? "valfrjálst" : null,
+  }));
+}
+
+/**
  * The earliest the interview can be booked.
  *
  * The lab needs time to return the blood work, and an interview held before

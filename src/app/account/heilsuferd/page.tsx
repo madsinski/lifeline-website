@@ -13,8 +13,8 @@ import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
-import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey } from "@/lib/hc/stages";
-import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
+import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, journeyCheckpoints, type JourneyStep, type StepKey } from "@/lib/hc/stages";
+import StatusStrip from "@/app/components/hc/StatusStrip";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
 
@@ -141,7 +141,7 @@ function Heilsuferd() {
           is too many to stack: as a strip it reads as a sequence, and only the
           step being worked on takes up the page. */}
       <div className="mt-6">
-        <StatusStrip steps={data.steps.map(stepCheckpoint)} onOpen={(k) => setOpen(k as StepKey)} />
+        <StatusStrip steps={journeyCheckpoints(data.steps)} onOpen={(k) => setOpen(k as StepKey)} />
       </div>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -188,38 +188,6 @@ function Heilsuferd() {
       </div>
     </Shell>
   );
-}
-
-/** The strip has room for a word, not a sentence. */
-const SHORT_IS: Record<string, string> = {
-  account: "Aðgangur",
-  profile: "Upplýsingar",
-  welcome: "Fyrirlestur",
-  package: "Greiðsla",
-  tests: "Virkjun",
-  report: "Skýrsla",
-  interview: "Viðtal",
-  plan: "Áætlun",
-  followup: "Eftirfylgd",
-  reassessment: "Endurmat",
-};
-
-const MONTHS_IS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
-/** "20. sept." — written out, because a browser without the Icelandic locale
- *  prints "Sept 20" in the middle of an Icelandic page. */
-const shortDate = (iso: string | null) => {
-  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${Number(m[3])}. ${MONTHS_IS[Number(m[2]) - 1]}` : null;
-};
-
-function stepCheckpoint(step: JourneyStep): Checkpoint {
-  return {
-    key: step.key,
-    label: SHORT_IS[step.key] ?? step.title,
-    // "optional" is not something anyone is waiting on, so it reads as ahead.
-    state: step.state === "optional" ? "upcoming" : step.state,
-    detail: step.doneAt ? shortDate(step.doneAt) : step.optional ? "valfrjálst" : null,
-  };
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

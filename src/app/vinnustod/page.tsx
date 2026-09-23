@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, Droplet, ExternalLink, Video,
+  ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, CreditCard, Droplet, ExternalLink, Video,
   FileCheck2, Mail, MessageSquare, Phone, Ruler, Search, Send, Stethoscope, Users,
 } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
@@ -28,7 +28,8 @@ import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/Knowled
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
 import { type FlowStep } from "@/app/components/hc/Flow";
-import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
+import StatusStrip from "@/app/components/hc/StatusStrip";
+import { journeyCheckpoints, type JourneyStep as ClientStep } from "@/lib/hc/stages";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
@@ -77,6 +78,8 @@ interface Detail {
   prefs: ActionPref[];
   orders: { id: string; kind: string; payment_route: string; paid_at: string | null; activation_code: string | null; activation_redeemed_at: string | null }[];
   referrals: Referral[];
+  /** The journey as the customer sees it — one definition for both sides. */
+  steps: ClientStep[];
   ai_referrals: ReferralSuggestion[];
   ai_proposal: React.ComponentProps<typeof PlanBuilder>["readyProposal"];
   audit: { actor: string; action: string; at: string; note: string | null }[];
@@ -702,7 +705,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
   const [openStep, setOpenStep] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"messages" | "referral" | null>(null);
+  const [sheet, setSheet] = useState<"messages" | "referral" | "orders" | "history" | null>(null);
   const [touched, setTouched] = useState(false);
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
@@ -754,29 +757,20 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
   // The tests are milestones, not steps with work in them, so they live on the
   // line and nowhere else. After them come the steps, which do carry work.
-  const checkpoints: Checkpoint[] = [
-    { key: "results", label: "Blóðprufa", state: j.blood_test_done_at || j.blood_results_at ? "done" : "waiting",
-      detail: j.blood_results_at ? day(j.blood_results_at) : j.blood_test_booked_for ? day(j.blood_test_booked_for) : "ekki bókuð" },
-    { key: "results", label: "Svör", state: j.blood_results_at ? "done" : "waiting",
-      detail: j.blood_results_at ? day(j.blood_results_at) : "bíður" },
-    { key: "results", label: "Mælingar", state: j.measurements_done_at ? "done" : "waiting",
-      detail: j.measurements_done_at ? day(j.measurements_done_at) : j.measurements_booked_for ? day(j.measurements_booked_for) : "ekki bókaðar" },
-    ...live.map((x) => ({
-      key: x.key,
-      label: x.title.replace(/ eftir 3 mánuði$/, ""),
-      state: x.state,
-      // The step's own status line is written for a full-width row; on the
-      // strip it has to survive in one short line.
-      detail: shortStatus(x.status),
-    })),
-  ];
+  // One timeline for both sides: this is the customer's own journey, computed
+  // on the server by the same call their account makes. The nurse's panels
+  // hang off the steps she acts on; the rest open as a read-only summary.
+  const checkpoints = journeyCheckpoints(d.steps ?? []);
+  const PANEL_FOR: Record<string, string> = { report: "results", interview: "interview", plan: "plan", followup: "followup" };
 
   // Whatever the last plan proposal suggested referring on.
   const aiReferrals = d.ai_referrals ?? [];
   const openReferrals = (d.referrals ?? []).filter((r) => r.status === "requested").length;
 
   const open = live.find((x) => x.key === shownOpen);
-  const jump = (k: string) => { setTouched(true); setOpenStep(k); };
+  const jump = (k: string) => { setTouched(true); setOpenStep(PANEL_FOR[k] ?? k); };
+  // A checkpoint the nurse does not act on still has something to say.
+  const info = !open ? (d.steps ?? []).find((x) => x.key === shownOpen) : null;
 
   return (
     <div className="space-y-4">
@@ -815,13 +809,18 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
       </section>
 
       <StatusStrip steps={checkpoints} onOpen={jump} right={
-        <button type="button" onClick={() => jump("orders")}
-          className="flex flex-col items-start gap-0.5 rounded-xl px-2 py-1 text-left hover:bg-slate-50">
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${paid ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}>
-            {paid ? "Greitt" : "Ógreitt"}
+        <button type="button" onClick={() => setSheet("orders")}
+          className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-left hover:bg-slate-50">
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${paid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+            <CreditCard className="h-4 w-4" aria-hidden />
           </span>
-          <span className="text-[10px] leading-tight text-slate-400">
-            {code?.activation_redeemed_at ? "kóði virkjaður" : code ? "kóði ónotaður" : "Greiðslur og kóðar"}
+          <span className="min-w-0">
+            <span className={`block text-xs font-bold ${paid ? "text-emerald-800" : "text-amber-800"}`}>{paid ? "Greitt" : "Ógreitt"}</span>
+            {/* The activation code is the thing a nurse actually reads out, so
+                its state belongs on the line and not three clicks away. */}
+            <span className="block text-[10px] leading-tight text-slate-400">
+              {code?.activation_redeemed_at ? "kóði virkjaður" : code ? `kóði ${code.activation_code}` : "enginn kóði"}
+            </span>
           </span>
         </button>
       } />
@@ -860,10 +859,14 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
               </div>
               {open.body}
             </section>
-          ) : shownOpen === "orders" ? (
-            <Panel title="Greiðslur og kóðar"><Orders d={d} record={record} /></Panel>
-          ) : shownOpen === "history" ? (
-            <Panel title="Saga"><History audit={d.audit} /></Panel>
+          ) : info ? (
+            <Panel title={info.title}>
+              <p className="text-sm text-slate-600">{info.blurb}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {info.doneAt ? `Lokið ${day(info.doneAt)}.` : info.state === "current" ? "Bíður skjólstæðingsins." : "Ekki komið að þessu."}
+                {" "}Þetta skref klárar skjólstæðingurinn sjálfur á aðganginum sínum.
+              </p>
+            </Panel>
           ) : null}
         </div>
 
@@ -879,6 +882,18 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         </Sheet>
       )}
 
+      {sheet === "orders" && (
+        <Sheet title="Greiðslur og kóðar" onClose={() => setSheet(null)}>
+          <Orders d={d} record={record} />
+        </Sheet>
+      )}
+
+      {sheet === "history" && (
+        <Sheet title="Saga" onClose={() => setSheet(null)}>
+          <History audit={d.audit} />
+        </Sheet>
+      )}
+
       {sheet === "referral" && (
         <Sheet title="Þarf tilvísun?" onClose={() => setSheet(null)}>
           <div className="space-y-3">
@@ -891,26 +906,12 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
       {/* Out of the way, but one click from anywhere. */}
       <div className="flex flex-wrap gap-4 px-1 pt-1 text-xs">
-        <button type="button" onClick={() => jump("history")} className="font-semibold text-slate-400 hover:text-slate-700 hover:underline">
+        <button type="button" onClick={() => setSheet("history")} className="font-semibold text-slate-400 hover:text-slate-700 hover:underline">
           Saga ({d.audit.length})
-        </button>
-        <button type="button" onClick={() => jump("orders")} className="font-semibold text-slate-400 hover:text-slate-700 hover:underline">
-          Greiðslur og kóðar ({d.orders.length})
         </button>
       </div>
     </div>
   );
-}
-
-/** A step's status line, cut down to something that fits under a checkpoint.
- *  Drops a trailing clause and rewrites a bare ISO date as a day and month. */
-function shortStatus(status: string): string {
-  const s = status
-    .replace(/(\d{4})-(\d{2})-(\d{2})/g, (_m, _y, mo, d) => `${Number(d)}. ${MONTHS_IS[Number(mo) - 1]}`)
-    .split(" — ")[0]
-    .split(" · ")[0]
-    .trim();
-  return s.length > 28 ? `${s.slice(0, 27)}…` : s;
 }
 
 /**
