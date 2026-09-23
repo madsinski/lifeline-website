@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
-import type { JourneyStep, StepKey } from "@/lib/hc/stages";
+import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey } from "@/lib/hc/stages";
 import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
@@ -196,9 +196,7 @@ const SHORT_IS: Record<string, string> = {
   profile: "Upplýsingar",
   welcome: "Fyrirlestur",
   package: "Greiðsla",
-  protocol: "Virkjun",
-  blood: "Blóðprufa",
-  measurements: "Mælingar",
+  tests: "Virkjun og próf",
   report: "Skýrsla",
   interview: "Viðtal",
   plan: "Áætlun",
@@ -263,6 +261,67 @@ function FirstStep({ stadur }: { stadur: string }) {
 
 // ── Step shell ─────────────────────────────────────────────────────────────
 
+/**
+ * When the interview can be booked, and why not yet if it cannot.
+ *
+ * Two clear days after the later of the blood draw and the measurements, so
+ * the numbers are back before anyone sits down. Saying which of the two is
+ * still outstanding is more use than a disabled button with no reason.
+ */
+function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
+  // The clock is read after mount, not during render: reading it in render is
+  // impure, and the server and the browser would disagree about "now".
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const t = setTimeout(() => setNow(Date.now()), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  const bloodDone = !!(j.blood_test_done_at ?? j.blood_results_at);
+  const measured = !!j.measurements_done_at;
+  const from = interviewEligibleFrom(j);
+  const ready = !!from && now != null && from.getTime() <= now;
+
+  if (!bloodDone || !measured) {
+    const missing = [!measured ? "mælingarnar" : null, !bloodDone ? "blóðprufan" : null].filter(Boolean);
+    return (
+      <p className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">
+        Viðtalið bókast þegar {missing.join(" og ")} {missing.length > 1 ? "eru" : "er"} búin.
+        Eftir það líða {INTERVIEW_WAIT_DAYS} dagar á meðan niðurstöðurnar koma.
+      </p>
+    );
+  }
+  if (!ready && from) {
+    return (
+      <p className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">
+        Niðurstöðurnar eru á leiðinni. Þú getur bókað viðtalið frá <strong>{fmtDate(from.toISOString())}</strong>.
+      </p>
+    );
+  }
+  return (
+    <a href={portal} target="_blank" rel="noreferrer"
+      className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white">
+      Bóka viðtal í sjúklingagátt
+    </a>
+  );
+}
+
+/** One of the three things inside the tests step, ticked when it is done. */
+function TestTask({ n, title, done, children }: { n: number; title: string; done: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`rounded-xl border p-3 ${done ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-white"}`}>
+      <p className="flex items-center gap-2 font-semibold text-slate-900">
+        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+          done ? "bg-emerald-500 text-white" : "bg-slate-900 text-white"}`}>
+          {done ? "✓" : n}
+        </span>
+        {title}
+      </p>
+      <div className="mt-2">{children}</div>
+    </div>
+  );
+}
+
 function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyStep; data: JourneyData; reload: () => Promise<void>; advance: () => Promise<void>; healthOrder: HcOrder | null }) {
   const loc = data.location;
   const j = data.journey;
@@ -278,31 +337,55 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
       return j.paid_at
         ? <PaidSummary order={healthOrder} />
         : <Checkout packages={data.packages.filter((p) => p.kind === "health_check")} profileComplete={data.profile.complete} reload={reload} />;
-    case "protocol":
+    case "tests":
       return (
-        <div className="space-y-3 text-sm text-slate-700">
+        <div className="space-y-4 text-sm text-slate-700">
           {!healthOrder ? <p>Virkjunarkóðinn birtist hér eftir greiðslu.</p> : (
             <>
-              <p>Heilsufarsskoðunin sjálf fer fram í sjúklingagáttinni, þar sem heilbrigðisgögnin þín eru varðveitt. Sláðu inn virkjunarkóðann þinn þar til að opna hana:</p>
-              {healthOrder.activation_code && <CodeBox code={healthOrder.activation_code} />}
-              <ol className="list-decimal space-y-1 pl-5 text-slate-600">
-                <li>Opnaðu sjúklingagáttina og skráðu þig inn með rafrænum skilríkjum.</li>
-                <li>Sláðu inn kóðann og svaraðu spurningalistanum.</li>
-                <li>Bókaðu blóðprufu og mælingar í gáttinni.</li>
-              </ol>
-              <div className="flex flex-wrap gap-2">
-                <a href={portal} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-slate-300 bg-white px-5 font-semibold text-slate-800 hover:bg-slate-50">Opna sjúklingagátt</a>
-                {step.state !== "done" && <CompleteButton label="Ég hef virkjað, ljúka skrefi" action="confirm_activated" onDone={advance} />}
-              </div>
-              <p className="text-xs text-slate-500">Skrefið merkist líka sjálfkrafa um leið og gáttin staðfestir kóðann.</p>
+              <p>
+                Heilsufarsskoðunin fer fram í sjúklingagáttinni, þar sem heilbrigðisgögnin þín eru
+                varðveitt. Þrennt þarf að gerast og þú ræður röðinni á tvennu af því.
+              </p>
+
+              <TestTask n={1} title="Virkjaðu í sjúklingagáttinni" done={!!j.protocol_activated_at}>
+                {healthOrder.activation_code && <CodeBox code={healthOrder.activation_code} />}
+                <p className="mt-1">
+                  Skráðu þig inn með rafrænum skilríkjum, sláðu inn kóðann og svaraðu
+                  spurningalistanum. Hann er í gáttinni, ekki hér.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a href={portal} target="_blank" rel="noreferrer"
+                    className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-white px-4 font-semibold text-slate-800 hover:bg-slate-50">
+                    Opna sjúklingagátt
+                  </a>
+                  {!j.protocol_activated_at && <CompleteButton label="Ég hef virkjað" action="confirm_activated" onDone={advance} />}
+                </div>
+              </TestTask>
+
+              <TestTask n={2} title="Bókaðu mælingar" done={!!j.measurements_done_at}>
+                <TestStep kind="measurements" title={loc?.measurement_site || "Mælingar"} address={loc?.measurement_address}
+                  info={loc?.measurement_info} bookedFor={j.measurements_booked_for}
+                  done={!!j.measurements_done_at} portal={portal} reload={reload} />
+              </TestTask>
+
+              <TestTask n={3} title="Farðu í blóðprufu" done={!!(j.blood_test_done_at ?? j.blood_results_at)}>
+                <p className="mb-2">
+                  Blóðprufuna þarf ekki að bóka — mættu hvenær sem er á opnunartíma.
+                  Eina skilyrðið er að þú sért <strong>fastandi</strong>: ekkert nema vatn í 10–12 klukkustundir á undan.
+                </p>
+                <TestStep kind="blood" title={loc?.blood_test_site || "Heilsugæslan"} address={loc?.blood_test_address}
+                  info={loc?.blood_test_info} bookedFor={j.blood_test_booked_for}
+                  done={!!(j.blood_test_done_at ?? j.blood_results_at)} portal={portal} reload={reload} />
+              </TestTask>
+
+              <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Viðtalið er bókað þegar bæði mælingar og blóðprufa eru búnar — og í fyrsta lagi
+                tveimur dögum síðar, svo niðurstöðurnar séu komnar þegar þið setjist niður.
+              </p>
             </>
           )}
         </div>
       );
-    case "blood":
-      return <TestStep kind="blood" title={loc?.blood_test_site || "Heilsugæslan"} address={loc?.blood_test_address} info={loc?.blood_test_info} bookedFor={j.blood_test_booked_for} done={step.state === "done"} portal={portal} reload={reload} />;
-    case "measurements":
-      return <TestStep kind="measurements" title={loc?.measurement_site || "Mælingar"} address={loc?.measurement_address} info={loc?.measurement_info} bookedFor={j.measurements_booked_for} done={step.state === "done"} portal={portal} reload={reload} />;
     case "report":
       return (
         <p className="text-sm text-slate-600">
@@ -327,7 +410,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
                 )}
               </div>
             )
-            : j.report_generated_at && <a href={portal} target="_blank" rel="noreferrer" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white">Bóka viðtal í sjúklingagátt</a>}
+            : <InterviewBooking j={j} portal={portal} />}
         </div>
       );
     case "plan":

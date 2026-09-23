@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarClock, Check, Loader2, Video } from "lucide-react";
+import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom } from "@/lib/hc/stages";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -64,6 +65,9 @@ export default function BookVideo({ api, journey, onBooked }: {
     followup_booked_for: string | null;
     followup_done_at: string | null;
     plan_published_at: string | null;
+    blood_test_done_at?: string | null;
+    blood_results_at?: string | null;
+    measurements_done_at?: string | null;
   };
   /** Record the booking through the journey's own event endpoint. */
   onBooked: (kind: Kind, at: string) => Promise<string | null>;
@@ -75,6 +79,8 @@ export default function BookVideo({ api, journey, onBooked }: {
   const [busy, setBusy] = useState<Busy[]>([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  // Read after mount: the clock is not pure and the server would disagree.
+  const [now, setNow] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const r = await api("/api/vinnustod/agenda?days=60");
@@ -87,7 +93,7 @@ export default function BookVideo({ api, journey, onBooked }: {
   // react-hooks/set-state-in-effect, and the diary is not needed on the
   // first paint.
   useEffect(() => {
-    const t = setTimeout(() => { void load(); }, 0);
+    const t = setTimeout(() => { setNow(Date.now()); void load(); }, 0);
     return () => clearTimeout(t);
   }, [load]);
 
@@ -156,6 +162,28 @@ export default function BookVideo({ api, journey, onBooked }: {
           <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden /> Lokið {dayLabel(new Date(done))}.
         </p>
       )}
+
+      {/* The customer is told the interview comes two days after the tests, so
+          the nurse is told the same thing — as a note, not a block: she may
+          have a reason the rule does not know about. */}
+      {kind === "interview" && !journey.interview_done_at && (() => {
+        const from = interviewEligibleFrom(journey as Parameters<typeof interviewEligibleFrom>[0]);
+        if (!from) {
+          return (
+            <p className="mt-2 rounded-lg bg-slate-100 px-2 py-1.5 text-[11px] leading-snug text-slate-600">
+              Mælingar eða blóðprufa eru ekki búnar. Viðtalið er venjulega bókað eftir að hvort tveggja liggur fyrir.
+            </p>
+          );
+        }
+        if (now != null && from.getTime() > now) {
+          return (
+            <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-900">
+              Niðurstöður koma venjulega {INTERVIEW_WAIT_DAYS} dögum eftir síðustu rannsókn — eftir {dayLabel(from)}.
+            </p>
+          );
+        }
+        return null;
+      })()}
 
       {/* Day, then time */}
       <div className="mt-2 flex gap-1 overflow-x-auto pb-1">

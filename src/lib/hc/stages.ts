@@ -11,8 +11,12 @@
 import type { HcJourney } from "./types";
 
 export type StepKey =
-  | "account" | "profile" | "welcome" | "package" | "protocol"
-  | "blood" | "measurements" | "report" | "interview" | "plan"
+  | "account" | "profile" | "welcome" | "package"
+  // Activation, measurements and the blood draw are one step: they are all
+  // done off the back of the same code, in the same week, and splitting them
+  // into three made a customer think they were three separate errands.
+  | "tests"
+  | "report" | "interview" | "plan"
   | "followup" | "reevaluation";
 
 export type StepState = "done" | "current" | "upcoming" | "optional";
@@ -31,9 +35,7 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
   { key: "profile", title: "Upplýsingar um þig", blurb: "Kennitala, sími og heimilisfang. Þú getur líka sett upp PIN og tengt dagatal." },
   { key: "welcome", title: "Móttökufyrirlestur", blurb: "Stutt kynning á ferlinu og fjórum stoðum heilsu." },
   { key: "package", title: "Pakki og greiðsla", blurb: "Veldu pakka. Stéttarfélag eða vinnuveitandi getur tekið þátt í kostnaði." },
-  { key: "protocol", title: "Virkjaðu heilsufarsskoðunina", blurb: "Notaðu virkjunarkóðann þinn í sjúklingagáttinni." },
-  { key: "blood", title: "Blóðprufa", blurb: "Á Heilsugæslunni. Bókað í sjúklingagáttinni." },
-  { key: "measurements", title: "Mælingar", blurb: "Blóðþrýstingur og líkamssamsetning hjá samstarfsaðila." },
+  { key: "tests", title: "Virkjun, mælingar og blóðprufa", blurb: "Virkjaðu í sjúklingagáttinni, bókaðu mælingar og farðu fastandi í blóðprufu." },
   { key: "report", title: "Skýrslan þín", blurb: "Læknir Lifeline staðfestir skýrsluna þegar niðurstöður liggja fyrir." },
   { key: "interview", title: "Viðtal", blurb: "Þú og hjúkrunarfræðingur farið yfir niðurstöðurnar og gerið áætlun." },
   { key: "plan", title: "Aðgerðaáætlun", blurb: "Áætlunin þín til næstu þriggja mánaða." },
@@ -47,9 +49,13 @@ function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string
     case "profile": return profileComplete ? (j.profile_completed_at ?? j.created_at) : null;
     case "welcome": return j.welcome_seen_at;
     case "package": return j.paid_at;
-    case "protocol": return j.protocol_activated_at;
-    case "blood": return j.blood_test_done_at ?? j.blood_results_at;
-    case "measurements": return j.measurements_done_at;
+    // Done only when all three are: the code is redeemed, the measurements
+    // are taken and the blood is drawn. The step's date is the last of them.
+    case "tests": {
+      const blood = j.blood_test_done_at ?? j.blood_results_at;
+      const all = [j.protocol_activated_at, blood, j.measurements_done_at];
+      return all.every(Boolean) ? all.filter((x): x is string => !!x).sort().at(-1)! : null;
+    }
     case "report": return j.report_generated_at;
     case "interview": return j.interview_done_at;
     case "plan": return j.plan_published_at;
@@ -60,18 +66,36 @@ function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string
 
 export function journeySteps(j: HcJourney, profileComplete: boolean): JourneyStep[] {
   const steps = DEFS.map((d) => ({ ...d, doneAt: doneAtFor(d.key, j, profileComplete), state: "upcoming" as StepState }));
-  // Blood test and measurements run in parallel: both are "current" once the
-  // protocol is active. Everything else is strictly sequential.
+  // Strictly sequential now that activation, measurements and the blood draw
+  // are one step — the parallelism lives inside it instead.
   let foundCurrent = false;
   for (const s of steps) {
     if (s.doneAt) { s.state = "done"; continue; }
     if (s.optional) { s.state = foundCurrent ? "upcoming" : "optional"; continue; }
-    if (!foundCurrent) { s.state = "current"; foundCurrent = true; continue; }
-    if (s.key === "measurements" && steps.find((x) => x.key === "blood")?.state === "current") {
-      s.state = "current";
-    }
+    if (!foundCurrent) { s.state = "current"; foundCurrent = true; }
   }
   return steps;
+}
+
+/**
+ * The earliest the interview can be booked.
+ *
+ * The lab needs time to return the blood work, and an interview held before
+ * the numbers are in is an interview held twice. Two clear days after the
+ * later of the blood draw and the measurements.
+ *
+ * Returns null while either is still outstanding — there is nothing to count
+ * from yet.
+ */
+export const INTERVIEW_WAIT_DAYS = 2;
+
+export function interviewEligibleFrom(j: HcJourney): Date | null {
+  const blood = j.blood_test_done_at ?? j.blood_results_at;
+  if (!blood || !j.measurements_done_at) return null;
+  const later = [blood, j.measurements_done_at].sort().at(-1)!;
+  const d = new Date(later);
+  d.setDate(d.getDate() + INTERVIEW_WAIT_DAYS);
+  return d;
 }
 
 /** Compact stage name stored on the journey row (for queues and filters). */
@@ -80,7 +104,6 @@ export function stageFor(j: HcJourney, profileComplete: boolean): string {
   if (j.completed_at) return "completed";
   const current = journeySteps(j, profileComplete).find((s) => s.state === "current");
   if (!current) return j.plan_published_at ? "action" : "completed";
-  if (current.key === "blood" || current.key === "measurements") return "tests";
   return current.key;
 }
 
