@@ -235,6 +235,48 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
     return NextResponse.json({ ok, results }, { status: ok ? 200 : 502 });
   }
 
+  // Share the confirmed report with the client.
+  //
+  // Nothing is attached and nothing is copied: the report already renders on
+  // their account, so this is a message pointing at it. It reuses the same
+  // send path as any other message, which is what keeps the rate limit, the
+  // hc_messages record and the audit trail honest.
+  if (body.action === "share_report") {
+    if (!journey.report_generated_at) {
+      return NextResponse.json({ error: "Skýrslan er ekki staðfest enn." }, { status: 409 });
+    }
+    const profile = await getClientProfile(journey.client_id);
+    const first = (profile?.full_name ?? "").split(" ")[0] || "þú";
+    const text = `Hæ ${first}. Heilsufarsskýrslan þín er tilbúin og komin á aðganginn þinn hjá Lifeline. Þar sérðu niðurstöðurnar þínar, viðmiðin og hvað hefur áhrif á hvert gildi.`;
+    const link = `${origin}/account/heilsuferd/aaetlun`;
+
+    const results: { channel: string; ok: boolean; status: string }[] = [];
+    if (profile?.phone) {
+      const r = await sendSms({ to: profile.phone, body: `${text}\n\n${link}` });
+      const status = r.dryRun ? "dry-run" : r.ok ? "sent" : "failed";
+      results.push({ channel: "sms", ok: r.ok, status });
+      await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "sms", recipient: profile.phone, template: "report_shared", body: text, status, error: r.error ?? null, provider_id: r.sid ?? null, sent_by: actor.label });
+    }
+    if (profile?.email) {
+      const subject = "Heilsufarsskýrslan þín er tilbúin";
+      const r = await sendEmail({
+        to: profile.email,
+        subject,
+        html: renderBrandedEmail({ title: subject, bodyHtml: `<p style="margin:0 0 12px;">${escapeHtml(text)}</p>`, ctaLabel: "Opna skýrsluna", ctaUrl: link }),
+        text: `${text}\n\n${link}`,
+      });
+      const status = r.id === "dev-log" ? "dry-run" : r.ok ? "sent" : "failed";
+      results.push({ channel: "email", ok: r.ok, status });
+      await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "email", recipient: profile.email, template: "report_shared", subject, body: text, status, error: r.error ?? null, provider_id: r.id ?? null, sent_by: actor.label });
+    }
+    if (!results.length) return NextResponse.json({ error: "Hvorki sími né netfang er skráð." }, { status: 400 });
+
+    const ok = results.some((r) => r.ok);
+    if (ok) await patchJourney(journey.id, { report_sms_sent_at: new Date().toISOString() }, actor.label, "report_shared");
+    await hcAudit(actor.label, "report_shared", journey.id, { results });
+    return NextResponse.json({ ok, results }, { status: ok ? 200 : 502 });
+  }
+
   if (body.action === "doctor_reviewed") {
     if (!actor.isDoctor) return NextResponse.json({ error: "Aðeins læknir getur skráð þetta." }, { status: 403 });
     const updated = await patchJourney(journey.id, { doctor_reviewed_at: new Date().toISOString() }, actor.label, "doctor_reviewed",

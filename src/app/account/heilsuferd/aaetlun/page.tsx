@@ -79,8 +79,11 @@ function PlanPageInner() {
   const tabs: { key: Tab; label: string; show: boolean }[] = [
     { key: "today", label: "Í dag", show: !!plan },
     { key: "plan", label: "Áætlunin", show: !!plan },
+    // One name for one thing. "Skýrslan" and "Niðurstöður" were two tabs for
+    // the same content — the second only appears when the full report has not
+    // been parsed and all we have is the flat values.
     { key: "report", label: "Skýrslan mín", show: !!data?.report },
-    { key: "results", label: "Niðurstöður", show: !!data?.flagged.length && !data?.report },
+    { key: "results", label: "Skýrslan mín", show: !!data?.flagged.length && !data?.report },
   ];
 
   return (

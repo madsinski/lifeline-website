@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, Droplet, ExternalLink, Video,
-  FileCheck2, Mail, MessageSquare, Phone, Ruler, Search, Stethoscope, Users,
+  FileCheck2, Mail, MessageSquare, Phone, Ruler, Search, Send, Stethoscope, Users,
 } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
@@ -970,27 +970,19 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
   return [
     {
       key: "results",
-      title: "Niðurstöður",
+      // The report IS the results — they were two steps saying the same thing,
+      // one holding the values and one holding the doctor's confirmation.
+      title: "Skýrslan",
       icon: <Droplet className="h-4 w-4" />,
-      state: hasResults ? "done" : resultsIn ? "current" : "waiting",
-      status: d.report
-        ? `Heilsufarsskýrsla ${isDate(d.report.report.reportDate)} · ${d.report.report.items.length} niðurstöður`.trim()
-        : hasResults
-          ? `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`
-          : resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga",
-      body: <ResultsStep d={d} api={api} reload={reload} />,
-    },
-    {
-      key: "report",
-      title: "Skýrsla læknis",
-      icon: <FileCheck2 className="h-4 w-4" />,
-      state: j.report_generated_at ? "done" : j.blood_results_at ? (isDoctor ? "current" : "waiting") : "upcoming",
+      state: j.report_generated_at ? "done" : hasResults || resultsIn ? "current" : "waiting",
       status: j.report_generated_at
-        ? `Staðfest ${dayTime(j.report_generated_at)}`
-        : j.blood_results_at
-          ? (isDoctor ? "Þú getur staðfest skýrsluna" : `Svör komin fyrir ${minutesSince(j.blood_results_at)} mín. — bíður læknis`)
-          : "Bíður blóðprufusvara",
-      body: <ReportStep d={d} isDoctor={isDoctor} record={record} />,
+        ? `Staðfest ${dayTime(j.report_generated_at)}${j.report_sms_sent_at ? " · deilt með skjólstæðingi" : ""}`
+        : d.report
+          ? `Heilsufarsskýrsla ${isDate(d.report.report.reportDate)} · ${d.report.report.items.length} niðurstöður · bíður staðfestingar læknis`.trim()
+          : hasResults
+            ? `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`
+            : resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga",
+      body: <ResultsStep d={d} api={api} isDoctor={isDoctor} record={record} reload={reload} />,
     },
     {
       key: "interview",
@@ -1032,8 +1024,10 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
 
 // ── Step bodies ────────────────────────────────────────────────────────────
 
-function ResultsStep({ d, api, reload }: {
-  d: Detail; api: WsApi; reload: () => Promise<void>;
+function ResultsStep({ d, api, isDoctor, record, reload }: {
+  d: Detail; api: WsApi; isDoctor: boolean;
+  record: (p: Record<string, unknown>) => Promise<string | null>;
+  reload: () => Promise<void>;
 }) {
   const j = d.journey;
   return (
@@ -1050,6 +1044,7 @@ function ResultsStep({ d, api, reload }: {
       )}
       <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []}
         reportShown={!!d.report} onSaved={() => void reload()} />
+      <ReportStep d={d} isDoctor={isDoctor} record={record} />
     </div>
   );
 }
@@ -1058,8 +1053,36 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
   const j = d.journey;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  // Confirmed: the remaining question is whether the client has been told it
+  // is there. The report lives on their account, so sharing it is a message
+  // pointing at it rather than an attachment.
   if (j.report_generated_at) {
-    return <p className="text-sm text-slate-600">Skýrslan var staðfest {dayTime(j.report_generated_at)} og skjólstæðingurinn fékk tilkynningu. Hún er í Medalia.</p>;
+    const shared = j.report_sms_sent_at;
+    return (
+      <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+        <p className="text-sm text-slate-600">
+          Skýrslan var staðfest {dayTime(j.report_generated_at)}. Hún er í Medalia og á aðgangi skjólstæðingsins.
+        </p>
+        {shared ? (
+          <p className="flex items-center gap-1.5 text-sm text-emerald-800">
+            <Check className="h-4 w-4" aria-hidden /> Deilt með skjólstæðingi {dayTime(shared)}.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-600">Skjólstæðingurinn hefur ekki fengið sérstaka ábendingu um að hún sé tilbúin.</p>
+        )}
+        <button type="button" disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const e = await record({ action: "share_report" });
+            setBusy(false);
+            setMsg(e ?? "Skýrslunni deilt — skjólstæðingurinn fékk skilaboð.");
+          }}
+          className={shared ? btnSecondary : btnDark}>
+          <Send className="h-4 w-4" /> {shared ? "Senda aftur" : "Deila með skjólstæðingi"}
+        </button>
+        {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      </div>
+    );
   }
   if (!j.blood_results_at) return <p className="text-sm text-slate-500">Skýrslan er staðfest þegar blóðprufusvörin eru komin.</p>;
   return (
