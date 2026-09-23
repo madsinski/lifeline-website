@@ -110,6 +110,18 @@ const E = [
     sources: [APP],
   },
   {
+    slug: "blodthrystingur-nedri", category: "body", sort: 23, title: "Blóðþrýstingur — neðri mörk", unit: "mmHg",
+    aliases: ["neðri mörk", "diastolic", "diastólískur"], tags: ["hjarta"], higher_better: false,
+    summary: "Kjörsvið undir 80 mmHg. 80–89 er vöktunarbil, 90 og yfir er hátt.",
+    body_md: "Neðri mörkin (þanbilsþrýstingur) eru metin með efri mörkunum — sjá „Blóðþrýstingur — efri mörk“ fyrir mælitækni og hvenær á að endurtaka mælingu.",
+    bands: [
+      { label: "Kjörsvið", tone: "good", max: 80 },
+      { label: "Fylgjast með", tone: "watch", min: 80, max: 90 },
+      { label: "Yfir mörkum", tone: "high", min: 90 },
+    ],
+    sources: [APP],
+  },
+  {
     slug: "vo2max", category: "body", sort: 24, title: "VO2max (þolgeta)", unit: "ml/kg/mín",
     aliases: ["vo2max", "vo2", "súrefnisupptaka", "þolgeta"], tags: ["þol", "hreyfing"], higher_better: true,
     summary: "Hærra er betra. Viðmiðin ráðast af aldri og kyni — bilin hér miðast við 40–49 ára.",

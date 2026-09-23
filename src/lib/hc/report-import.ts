@@ -36,6 +36,7 @@ export const CODE_TO_SLUG: Record<string, string> = {
   FAT: "fitumassi",
   MUSCLE: "vodvamassi",
   "BP-SYS": "blodthrystingur",
+  "BP-DIA": "blodthrystingur-nedri",
   VO2MAX: "vo2max",
 };
 

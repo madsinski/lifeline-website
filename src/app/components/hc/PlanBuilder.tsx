@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import PlanView from "./PlanView";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
+import AiProposalPanel, { type ProposedAction } from "./AiProposalPanel";
 import {
   PILLARS, PILLAR_META,
   type ActionPlan, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanGoal,
@@ -103,6 +104,25 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
     setDraft((d) => (d ? { ...d, ...patch } : d));
     setDirty(true);
   }, []);
+
+  /** Drop the picked proposal into the draft: library actions keep their
+   *  library copy, new ones come in as written, and the rationale rides
+   *  along as the personal note. */
+  const applyProposal = (actions: ProposedAction[], headline: string, summary: string) => {
+    if (!draft) return;
+    const items: PlanItem[] = actions.map((a) => {
+      const fromLib = a.module_key ? lib?.modules.find((m) => m.key === a.module_key) : undefined;
+      return fromLib
+        ? { ...fromModule(fromLib), frequency: a.frequency || fromLib.frequency, note: a.why || null }
+        : { uid: uid(), key: null, pillar: a.pillar, title: a.title, summary: a.detail, details: null, frequency: a.frequency || null, note: a.why || null };
+    });
+    const have = new Set(draft.modules.map((m) => `${m.pillar}:${m.title}`));
+    update({
+      headline: draft.headline || headline,
+      summary: draft.summary || summary,
+      modules: [...draft.modules, ...items.filter((i) => !have.has(`${i.pillar}:${i.title}`))],
+    });
+  };
 
   const applyTemplate = (key: string) => {
     if (!lib || !draft) return;
@@ -262,6 +282,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
       {msg && (
         <div role="status" className={`rounded-xl px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>{msg.text}</div>
       )}
+
+      <AiProposalPanel api={api} journeyId={journeyId} onApply={applyProposal} />
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         {/* Library */}

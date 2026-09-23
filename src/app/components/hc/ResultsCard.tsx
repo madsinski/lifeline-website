@@ -15,6 +15,9 @@ import {
   type KnowledgeEntry,
 } from "@/lib/hc/knowledge";
 import KnowledgeSearch from "./KnowledgeSearch";
+import { sexOf } from "@/lib/hc/sex";
+
+export { sexOf };
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -38,14 +41,6 @@ export interface HcResult {
   note: string | null;
   entered_by: string | null;
   updated_at: string;
-}
-
-/** "kvk"/"female"/"f" → f, "kk"/"male"/"m" → m. Anything else: no sex-specific band. */
-export function sexOf(raw: string | null | undefined): "m" | "f" | null {
-  const v = (raw || "").toLowerCase();
-  if (["f", "female", "kona", "kvk", "kvenkyn"].includes(v)) return "f";
-  if (["m", "male", "karl", "kk", "karlkyn"].includes(v)) return "m";
-  return null;
 }
 
 const TONE_PILL: Record<string, string> = {
