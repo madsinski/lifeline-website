@@ -15,13 +15,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Bell, CalendarClock, CalendarDays, Check, ChevronRight, ClipboardList, Droplet, ExternalLink,
+  ArrowLeft, Bell, BookOpen, CalendarClock, CalendarDays, Check, ChevronRight, ClipboardList, Droplet, ExternalLink,
   FileCheck2, HeartPulse, LogOut, Mail, MessageSquare, Phone, Ruler, Search, Stethoscope, Users,
 } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
+import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar } from "@/lib/hc/types";
 import { MESSAGE_TEMPLATES, smsSize, type MessageTemplateKey } from "@/lib/hc/message-templates";
@@ -70,10 +71,22 @@ const WORKER_CALENDAR: CalendarApi = {
   subscriptionName: "Lifeline — viðtöl",
 };
 
-const time = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" }) : "");
-const dayTime = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("is-IS", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
-const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("is-IS", { day: "numeric", month: "short" }) : "");
+// Icelandic dates/times written out by hand: a browser without Icelandic ICU
+// data silently falls back to English ("Wed, Sep 23, 01:24 PM").
+const WEEKDAYS_IS = ["sun.", "mán.", "þri.", "mið.", "fim.", "fös.", "lau."];
+const MONTHS_IS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
+const clock = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const time = (iso: string | null) => (iso ? clock(new Date(iso)) : "");
+const dayTime = (iso: string | null) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return `${WEEKDAYS_IS[d.getDay()]} ${d.getDate()}. ${MONTHS_IS[d.getMonth()]} kl. ${clock(d)}`;
+};
+const day = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${d.getDate()}. ${MONTHS_IS[d.getMonth()]}`;
+};
 const isToday = (iso: string | null) => !!iso && new Date(iso).toDateString() === new Date().toDateString();
 const minutesSince = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 60000) : 0);
 function age(dob: string | null): string {
@@ -151,6 +164,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
   const [rows, setRows] = useState<Row[] | null>(null);
   const [view, setViewState] = useState<View>(readView);
   const [showPin, setShowPin] = useState(false);
+  const [showBook, setShowBook] = useState(false);
   const [showCal, setShowCal] = useState(() => {
     if (typeof window === "undefined") return false;
     const q = new URLSearchParams(window.location.search);
@@ -186,6 +200,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
   }, [load]);
 
   const logout = async () => { await ws("/api/vinnustod/auth/logout", { method: "POST" }); onLogout(); };
+  useKnowledgeHotkey(() => setShowBook(true));
   const open = (id: string, section: Section = "overview", compose = false) => setView({ patient: id, section, compose });
   const tab = "tab" in view ? view.tab : null;
 
@@ -206,6 +221,7 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
             </button>
           </nav>
           <span className="flex-1" />
+          <button type="button" onClick={() => setShowBook(true)} title="Ctrl/⌘ + K" className={`${btnSecondary} min-h-9`}><BookOpen className="h-4 w-4" /> Fletta upp</button>
           <button type="button" onClick={() => setShowCal(true)} className={`${btnGhost} min-h-9`}><CalendarDays className="h-4 w-4" /> Dagatal</button>
           <button type="button" onClick={() => setShowPin(true)} className={`${btnGhost} min-h-9`}>{me.has_pin ? "Breyta PIN" : "Setja PIN"}</button>
           <span className="hidden text-sm text-slate-500 lg:inline">{me.name} · {me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfræðingur"}</span>
@@ -216,10 +232,11 @@ function Workstation({ me, onLogout, onPinSet }: { me: Me; onLogout: () => void;
       <main className="mx-auto max-w-6xl px-4 py-6">
         {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
           : "patient" in view ? <PatientView key={view.patient} id={view.patient} section={view.section ?? null} compose={!!view.compose} me={me} onBack={() => window.history.length > 1 ? window.history.back() : setView({ tab: "today" })} onChanged={load} onSection={(s) => setView({ patient: view.patient, section: s })} />
-          : view.tab === "clients" ? <Clients rows={rows} isDoctor={isDoctor} onOpen={open} />
+          : view.tab === "clients" ? <Clients rows={rows} me={me} isDoctor={isDoctor} onOpen={open} />
           : <Today rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
       </main>
 
+      <KnowledgeSearch api={ws} open={showBook} onClose={() => setShowBook(false)} />
       {showPin && <PinModal onClose={() => setShowPin(false)} onDone={() => { setShowPin(false); onPinSet(); }} />}
       <CalendarConnect api={WORKER_CALENDAR} open={showCal} onClose={() => setShowCal(false)}
         intro="Viðtöl og eftirfylgd sem þér eru úthlutuð birtast í dagatalinu þínu um leið og þau eru bókuð. Aðeins upphafsstafir skjólstæðings koma fram." />
@@ -372,20 +389,83 @@ const STAGE_FILTERS: { key: string; label: string }[] = [
 ];
 const STAGE_TEXT: Record<string, string> = { protocol: "Virkjun", tests: "Rannsóknir", report: "Skýrsla", interview: "Viðtal", plan: "Áætlun", action: "Í aðgerð" };
 
-function Clients({ rows, isDoctor, onOpen }: { rows: Row[]; isDoctor: boolean; onOpen: (id: string, s?: Section, compose?: boolean) => void }) {
+/** Urgency + waiting time, computed from the queue row (no extra queries). */
+type RowFlags = { rank: number; waitingDays: number; reportLate: boolean; interviewToday: boolean; nextAt: string | null; nextWhat: string };
+function rowFlags(r: Row, t: Task): RowFlags {
+  const reportLate = r.stage === "report" && !r.report_generated_at && minutesSince(r.blood_results_at) >= 5;
+  const interviewToday = isToday(r.interview_booked_for) && !r.interview_done_at;
+  const waitingDays = Math.max(0, Math.floor((Date.now() - new Date(r.updated_at).getTime()) / 86400_000));
+  const upcoming: { at: string | null; what: string }[] = [
+    { at: !r.interview_done_at ? r.interview_booked_for : null, what: "Viðtal" },
+    { at: !r.followup_done_at ? r.followup_booked_for : null, what: "Eftirfylgd" },
+    { at: !r.measurements_done_at ? r.measurements_booked_for : null, what: "Mælingar" },
+    { at: !(r.blood_test_done_at || r.blood_results_at) ? r.blood_test_booked_for : null, what: "Blóðprufa" },
+  ].filter((x): x is { at: string; what: string } => !!x.at).sort((a, b) => a.at.localeCompare(b.at));
+  const rank = t.tone === "urgent" || reportLate ? 0 : t.tone === "normal" ? 1 : 2;
+  return { rank, waitingDays, reportLate, interviewToday, nextAt: upcoming[0]?.at ?? null, nextWhat: upcoming[0]?.what ?? "" };
+}
+
+const TONE_DOT: Record<Task["tone"], string> = { urgent: "bg-red-500", normal: "bg-amber-400", waiting: "bg-slate-300" };
+const SORTS = [
+  { key: "urgent", label: "Mest aðkallandi" },
+  { key: "next", label: "Næsti tími" },
+  { key: "waiting", label: "Beðið lengst" },
+  { key: "name", label: "Nafn" },
+] as const;
+
+function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, s?: Section, compose?: boolean) => void }) {
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("all");
+  const [mine, setMine] = useState(false);
+  const [hideTest, setHideTest] = useState(false);
+  const [sort, setSort] = useState<(typeof SORTS)[number]["key"]>("urgent");
+  const [open, setOpenRow] = useState<string | null>(null);
+
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return rows
-      .filter((r) => stage === "all" || r.stage === stage)
-      .filter((r) => !s || cleanName(r.client_name).toLowerCase().includes(s) || (r.client_phone || "").includes(s))
-      .sort((a, b) => cleanName(a.client_name).localeCompare(cleanName(b.client_name), "is"));
-  }, [rows, q, stage]);
+    const enriched = rows.map((r) => { const t = nextTask(r, isDoctor); return { r, t, f: rowFlags(r, t) }; });
+    const filtered = enriched
+      .filter((x) => stage === "all" || x.r.stage === stage)
+      .filter((x) => !mine || x.r.interviewer_id === me.id)
+      .filter((x) => !hideTest || !isTest(x.r.client_name))
+      .filter((x) => !s || cleanName(x.r.client_name).toLowerCase().includes(s) || (x.r.client_phone || "").replace(/\s/g, "").includes(s.replace(/\s/g, "")));
+    const byName = (a: typeof filtered[number], b: typeof filtered[number]) =>
+      cleanName(a.r.client_name).localeCompare(cleanName(b.r.client_name), "is");
+    return filtered.sort((a, b) => {
+      if (sort === "name") return byName(a, b);
+      if (sort === "waiting") return b.f.waitingDays - a.f.waitingDays || byName(a, b);
+      if (sort === "next") {
+        if (a.f.nextAt && b.f.nextAt) return a.f.nextAt.localeCompare(b.f.nextAt);
+        if (a.f.nextAt) return -1;
+        if (b.f.nextAt) return 1;
+        return byName(a, b);
+      }
+      return a.f.rank - b.f.rank || b.f.waitingDays - a.f.waitingDays || byName(a, b);
+    });
+  }, [rows, q, stage, mine, hideTest, sort, isDoctor, me.id]);
+
+  const counts = useMemo(() => {
+    let urgent = 0, today = 0;
+    for (const r of rows) {
+      const f = rowFlags(r, nextTask(r, isDoctor));
+      if (f.rank === 0) urgent++;
+      if (isToday(f.nextAt)) today++;
+    }
+    return { urgent, today, total: rows.length };
+  }, [rows, isDoctor]);
+
+  const toggle = (on: boolean) =>
+    `${btn} min-h-9 ${on ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Skjólstæðingar</h1>
+        <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
+          <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">{counts.urgent} aðkallandi</span>
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">{counts.today} í dag</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{counts.total} alls</span>
+        </div>
         <span className="flex-1" />
         <label className="relative w-full sm:w-72">
           <span className="sr-only">Leita</span>
@@ -393,6 +473,7 @@ function Clients({ rows, isDoctor, onOpen }: { rows: Row[]; isDoctor: boolean; o
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nafn eða sími…" className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm" />
         </label>
       </div>
+
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Sía eftir stöðu">
         {STAGE_FILTERS.map((f) => {
           const n = f.key === "all" ? rows.length : rows.filter((r) => r.stage === f.key).length;
@@ -404,28 +485,113 @@ function Clients({ rows, isDoctor, onOpen }: { rows: Row[]; isDoctor: boolean; o
           );
         })}
       </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" aria-pressed={mine} onClick={() => setMine(!mine)} className={toggle(mine)}>Mín viðtöl</button>
+        <button type="button" aria-pressed={hideTest} onClick={() => setHideTest(!hideTest)} className={toggle(hideTest)}>Fela prufugögn</button>
+        <span className="flex-1" />
+        <label className="flex items-center gap-2 text-sm text-slate-500">
+          Raða
+          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="rounded-xl border border-slate-300 px-2 py-1.5 text-sm font-semibold text-slate-800">
+            {SORTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+        </label>
+      </div>
+
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {list.length === 0 && <li className="p-6 text-center text-sm text-slate-500">Enginn fannst.</li>}
-        {list.map((r) => {
-          const t = nextTask(r, isDoctor);
-          return (
-            <li key={r.id}>
-              <button type="button" onClick={() => onOpen(r.id, "overview")} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 font-bold text-emerald-800">
-                  {cleanName(r.client_name).split(" ").map((p) => p[0]).slice(0, 2).join("")}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-slate-900">{cleanName(r.client_name)} {isTest(r.client_name) && <TestBadge />}</span>
-                  <span className="block truncate text-sm text-slate-500">{t.label}</span>
-                </span>
-                <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 sm:inline">{STAGE_TEXT[r.stage] ?? r.stage}</span>
-                <ChevronRight className="h-5 w-5 text-slate-300" />
-              </button>
-            </li>
-          );
-        })}
+        {list.map(({ r, t, f }) => (
+          <ClientRow key={r.id} r={r} t={t} f={f} expanded={open === r.id}
+            onToggle={() => setOpenRow(open === r.id ? null : r.id)} onOpen={onOpen} />
+        ))}
       </ul>
     </div>
+  );
+}
+
+/** One client: the line a nurse scans, and the detail underneath it. */
+function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
+  r: Row; t: Task; f: RowFlags; expanded: boolean; onToggle: () => void; onOpen: (id: string, s?: Section, compose?: boolean) => void;
+}) {
+  const name = cleanName(r.client_name);
+  const planChip = r.plan_published_at ? { text: "Áætlun birt", cls: "bg-emerald-50 text-emerald-700" }
+    : r.plan_status === "draft" ? { text: "Áætlun í drögum", cls: "bg-amber-50 text-amber-800" } : null;
+  return (
+    <li className={expanded ? "bg-slate-50/60" : ""}>
+      <div className="flex w-full items-center gap-3 px-3 py-3 sm:px-4">
+        <button type="button" onClick={onToggle} aria-expanded={expanded} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 font-bold text-emerald-800">
+            {name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
+            <span className={`absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full ring-2 ring-white ${TONE_DOT[t.tone]}`} aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-x-2 font-semibold text-slate-900">
+              {name}
+              {isTest(r.client_name) && <TestBadge />}
+              {age(r.client_dob) && <span className="text-xs font-normal text-slate-400">{age(r.client_dob)}</span>}
+            </span>
+            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+              <span className={f.reportLate ? "font-semibold text-red-600" : ""}>{t.label}</span>
+              {f.reportLate && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-bold text-red-700">Tímamörk liðin</span>}
+              {r.doctor_review_requested_at && !r.doctor_reviewed_at && (
+                <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-bold text-purple-700">Bíður læknis</span>
+              )}
+              {r.referral_to_heilsugaesla && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[11px] font-bold text-blue-700">Tilvísun</span>}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs sm:block">
+            {f.nextAt ? (
+              <span className={`block font-semibold ${isToday(f.nextAt) ? "text-emerald-700" : "text-slate-600"}`}>
+                {f.nextWhat} {isToday(f.nextAt) ? `kl. ${time(f.nextAt)}` : day(f.nextAt)}
+              </span>
+            ) : <span className="block text-slate-400">Ekkert bókað</span>}
+            <span className="block text-slate-400">{f.waitingDays === 0 ? "Uppfært í dag" : `${f.waitingDays} d. síðan`}</span>
+          </span>
+          <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 sm:inline">{STAGE_TEXT[r.stage] ?? r.stage}</span>
+          <ChevronRight className={`h-5 w-5 shrink-0 text-slate-300 transition ${expanded ? "rotate-90" : ""}`} />
+        </button>
+        <button type="button" onClick={() => onOpen(r.id, t.section)} className={`${btnPrimary} hidden min-h-9 px-3 text-xs sm:inline-flex`}>{t.cta}</button>
+      </div>
+
+      {expanded && (
+        <div className="space-y-4 border-t border-slate-200 bg-white px-4 py-4">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => onOpen(r.id, "overview")} className={`${btnDark} min-h-9 px-3 text-xs`}>Opna skjólstæðing</button>
+            <button type="button" onClick={() => onOpen(r.id, "interview")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><ClipboardList className="h-4 w-4" /> Viðtal</button>
+            <button type="button" onClick={() => onOpen(r.id, "plan")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><FileCheck2 className="h-4 w-4" /> Áætlun</button>
+            <button type="button" onClick={() => onOpen(r.id, "overview", true)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Bell className="h-4 w-4" /> Skilaboð</button>
+            {r.client_phone && <a href={`tel:${r.client_phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {r.client_phone}</a>}
+            {planChip && <span className={`ml-auto self-center rounded-full px-2.5 py-1 text-xs font-semibold ${planChip.cls}`}>{planChip.text}</span>}
+          </div>
+
+          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+            {PROGRESS.map((p) => {
+              const at = p.at(r as unknown as Journey);
+              return (
+                <li key={p.label} className={`rounded-xl px-2 py-1.5 text-center ${at ? "bg-emerald-50" : "bg-slate-50"}`}>
+                  <span className={`block text-[11px] font-semibold ${at ? "text-emerald-800" : "text-slate-400"}`}>{p.label}</span>
+                  <span className="block text-[10px] text-slate-400">{at ? day(at) : "—"}</span>
+                </li>
+              );
+            })}
+          </ol>
+
+          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Blóðprufa", r.blood_test_done_at || r.blood_results_at ? `Komin ${day(r.blood_test_done_at ?? r.blood_results_at)}` : r.blood_test_booked_for ? `Bókuð ${dayTime(r.blood_test_booked_for)}` : "Ekki bókuð"],
+              ["Mælingar", r.measurements_done_at ? `Komnar ${day(r.measurements_done_at)}` : r.measurements_booked_for ? `Bókaðar ${dayTime(r.measurements_booked_for)}` : "Ekki bókaðar"],
+              ["Viðtal", r.interview_done_at ? `Lokið ${day(r.interview_done_at)}` : r.interview_booked_for ? `${dayTime(r.interview_booked_for)}${r.interview_mode === "video" ? " (mynd)" : ""}` : "Ekki bókað"],
+              ["Eftirfylgd", r.followup_done_at ? `Lokið ${day(r.followup_done_at)}` : r.followup_booked_for ? dayTime(r.followup_booked_for) : "Ekki bókuð"],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">{k}</dt>
+                <dd className="text-slate-800">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+    </li>
   );
 }
 
