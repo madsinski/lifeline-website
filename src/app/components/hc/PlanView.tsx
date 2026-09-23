@@ -379,11 +379,24 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
       {n.day_example.length > 0 && (
         <div className="mt-6 break-inside-avoid">
           <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Dæmi um dag</h3>
-          <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-100 bg-white">
+          <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
             {n.day_example.map((d, i) => (
-              <div key={i} className="flex gap-4 px-4 py-3 text-sm">
-                <span className="w-28 shrink-0 font-semibold text-slate-800">{d.meal}</span>
-                <span className="text-slate-600">{d.example}</span>
+              <div key={i} className="flex break-inside-avoid items-center gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white p-2 shadow-sm">
+                {d.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={d.image} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                ) : (
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-lime-50 text-xl text-lime-400">🍽️</span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold uppercase tracking-wide text-lime-700">{d.meal}</p>
+                  <p className="font-semibold leading-tight text-slate-900">{d.example}</p>
+                  {(d.protein != null || d.kcal != null) && (
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {[d.protein != null ? `${d.protein} g prótein` : null, d.kcal != null ? `${d.kcal} kcal` : null].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

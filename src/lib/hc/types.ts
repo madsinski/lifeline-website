@@ -240,13 +240,42 @@ export interface ExerciseTemplate {
   active: boolean;
 }
 
+/** One meal in the day example. `meal_id` links to the meal library
+ *  (`meals`, /admin/content); the snapshot keeps a published plan stable. */
+export interface DayExampleItem {
+  meal: string;
+  example: string;
+  meal_id?: string | null;
+  image?: string | null;
+  kcal?: number | null;
+  protein?: number | null;
+  tags?: string[];
+}
+
+/** A row of the meal library (`meals`), as the picker sees it. */
+export interface LibraryMeal {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  ingredients: string[] | null;
+  instructions: string[] | null;
+  prep_time_min: number | null;
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  dietary_tags: string[] | null;
+  illustration_url: string | null;
+}
+
 export interface NutritionTemplate {
   key: string;
   name: string;
   goal: string | null;
   description: string | null;
   principles: string[];
-  day_example: { meal: string; example: string }[];
+  day_example: DayExampleItem[];
   active: boolean;
 }
 

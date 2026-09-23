@@ -106,7 +106,15 @@ export function sanitizePlan(b: Record<string, unknown>): PlanDraft {
       principles: (Array.isArray(n.principles) ? n.principles : []).map((p) => str(p, 300)).filter((p): p is string => !!p).slice(0, 12),
       day_example: (Array.isArray(n.day_example) ? n.day_example : [])
         .filter((d): d is Record<string, unknown> => !!d && typeof d === "object")
-        .map((d) => ({ meal: str(d.meal, 60) || "", example: str(d.example, 300) || "" }))
+        .map((d) => ({
+          meal: str(d.meal, 60) || "",
+          example: str(d.example, 300) || "",
+          meal_id: uuid(d.meal_id),
+          image: url(d.image),
+          kcal: d.kcal == null || d.kcal === "" ? null : Math.max(0, Math.min(5000, Number(d.kcal) || 0)),
+          protein: d.protein == null || d.protein === "" ? null : Math.max(0, Math.min(500, Number(d.protein) || 0)),
+          tags: strs(d.tags, 6, 40),
+        }))
         .filter((d) => d.meal && d.example)
         .slice(0, 8),
     };

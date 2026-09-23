@@ -16,6 +16,7 @@ import {
 } from "@/lib/hc/types";
 import { STAGE_LABELS } from "@/lib/hc/stages";
 import ExerciseSessionsEditor from "../../../components/hc/ExerciseSessionsEditor";
+import DayExampleEditor from "../../../components/hc/DayExampleEditor";
 
 const TABS = [
   { key: "clients", label: "Skjólstæðingar" },
@@ -291,12 +292,13 @@ function Nutrition() {
           <label className="block text-xs text-slate-600">Meginreglur (ein lína á reglu)
             <textarea value={(edit.principles ?? []).join("\n")} onChange={(e) => setEdit({ ...edit, principles: e.target.value.split("\n") })} rows={5} className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
           </label>
-          <label className="block text-xs text-slate-600">Dæmi um dag (máltíð: dæmi, ein lína á máltíð)
-            <textarea
-              value={(edit.day_example ?? []).map((d) => `${d.meal}: ${d.example}`).join("\n")}
-              onChange={(e) => setEdit({ ...edit, day_example: e.target.value.split("\n").map((l) => { const i = l.indexOf(":"); return i < 0 ? { meal: l, example: "" } : { meal: l.slice(0, i).trim(), example: l.slice(i + 1).trim() }; }) })}
-              rows={5} className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
-          </label>
+          <div className="text-xs text-slate-600">
+            Dæmi um dag
+            <p className="mt-0.5 text-[11px] text-slate-500">Veldu máltíðir úr safninu (/admin/content) til að fá mynd og næringargildi með.</p>
+            <div className="mt-1.5">
+              <DayExampleEditor api={adminApi} value={edit.day_example ?? []} onChange={(day_example) => setEdit({ ...edit, day_example })} />
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <button onClick={async () => { const r = await save({ ...edit, principles: (edit.principles ?? []).map((p) => p.trim()).filter(Boolean) }); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista</button>
             {edit.key && <button onClick={() => { void remove(edit.key!); setEdit(null); }} className="text-red-600">Taka úr notkun</button>}

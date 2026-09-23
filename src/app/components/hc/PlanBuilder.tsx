@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PlanView from "./PlanView";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
+import DayExampleEditor from "./DayExampleEditor";
 import {
   PILLARS, PILLAR_META,
   type ActionPlan, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanGoal,
@@ -397,6 +398,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
             value={draft.nutrition}
             templates={lib.nutrition}
             onChange={(nutrition) => update({ nutrition })}
+            api={api}
           />
 
           <label className="block rounded-2xl border border-slate-200 bg-white p-4 text-sm">
@@ -456,10 +458,11 @@ function ExerciseEditor({ value, templates, onChange, api }: {
   );
 }
 
-function NutritionEditor({ value, templates, onChange }: {
+function NutritionEditor({ value, templates, onChange, api }: {
   value: ActionPlan["nutrition"];
   templates: NutritionTemplate[];
   onChange: (v: ActionPlan["nutrition"]) => void;
+  api: Api;
 }) {
   const pick = (key: string) => {
     if (!key) { onChange(null); return; }
@@ -488,6 +491,11 @@ function NutritionEditor({ value, templates, onChange }: {
             </div>
           ))}
           <button className="text-xs font-semibold text-lime-700" onClick={() => onChange({ ...value, principles: [...value.principles, ""] })}>+ Bæta við reglu</button>
+          <div className="mt-3 rounded-xl border border-slate-100 p-3">
+            <p className="text-sm font-semibold text-slate-700">Dæmi um dag</p>
+            <p className="mb-2 mt-0.5 text-xs text-slate-500">Veldu máltíðir úr safninu til að fá mynd og næringargildi með í áætlunina.</p>
+            <DayExampleEditor api={api} value={value.day_example ?? []} onChange={(day_example) => onChange({ ...value, day_example })} />
+          </div>
         </div>
       )}
     </div>
