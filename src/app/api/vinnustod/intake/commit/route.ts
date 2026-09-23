@@ -143,7 +143,8 @@ export async function POST(req: NextRequest) {
       journey_id: journey.id,
       client_id: clientId,
       report_date: /^\d{4}-\d{2}-\d{2}$/.test(String(body.measured_at)) ? String(body.measured_at) : null,
-      method: body.method === "ai" ? "ai" : "local",
+      // "ai-text" and "ai-document" both mean it left the building.
+      method: String(body.method ?? "").startsWith("ai") ? "ai" : "local",
       payload: body.grunnheilsa,
       imported_by: actor.label,
     });

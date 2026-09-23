@@ -74,17 +74,27 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
   const [foundDate, setFoundDate] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [take, setTake] = useState<Record<number, boolean>>({});
+  // Held only so the nurse can agree to send a file we could not read here.
+  const [pending, setPending] = useState<File[]>([]);
+  const [needsConsent, setNeedsConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   /** Read a Medalia PDF / lab printout / photos and show what was found. */
-  const readReport = async (files: FileList) => {
-    setReading(true); setMsg(""); setFound(null); setWarnings([]);
+  const readReport = async (files: FileList | File[], allowAi = false) => {
+    const list = Array.from(files).slice(0, 8);
+    setReading(true); setMsg(""); setFound(null); setWarnings([]); setNeedsConsent(false);
     const fd = new FormData();
-    for (const f of Array.from(files).slice(0, 8)) fd.append("files", f);
+    for (const f of list) fd.append("files", f);
+    if (allowAi) fd.append("allow_ai", "true");
     const r = await api(`/api/vinnustod/journeys/${journeyId}/import`, { method: "POST", body: fd });
     const j = await r.json().catch(() => ({}));
     setReading(false);
     if (!r.ok) { setMsg(j.error || "Lesturinn mistókst."); return; }
+    setPending(list);
+    if (j.method === "needs-consent") { setWarnings(j.warnings ?? []); setNeedsConsent(true); return; }
+    // A Lifeline report is stored whole on the server, so the surrounding
+    // view has to reload to pick up the pillars and the lifestyle scores.
+    if (j.method === "local") onSaved?.();
     const values: ImportedValue[] = j.values ?? [];
     setFound(values);
     setWarnings(j.warnings ?? []);
@@ -199,6 +209,21 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
         )}
         <span className="text-xs text-slate-500">{msg}</span>
       </div>
+
+      {needsConsent && (
+        <div className="mt-3 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
+          <p className="font-bold text-amber-900">Við gátum ekki lesið þetta skjal hér</p>
+          {warnings.map((w, i) => <p key={i} className="mt-1 text-sm leading-relaxed text-amber-900">{w}</p>)}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button type="button" disabled={reading || !pending.length} onClick={() => void readReport(pending, true)}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-amber-900 px-4 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50">
+              {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Senda í AI-lestur
+            </button>
+            <button type="button" onClick={() => { setNeedsConsent(false); setWarnings([]); setPending([]); }}
+              className="text-sm font-semibold text-amber-900 hover:underline">Nei, ég skrái gildin sjálf</button>
+          </div>
+        </div>
+      )}
 
       {found && found.length > 0 && (
         <div className="mt-3 rounded-2xl border border-slate-900/10 bg-slate-50 p-3">
