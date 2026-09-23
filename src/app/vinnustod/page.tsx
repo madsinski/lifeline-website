@@ -27,7 +27,7 @@ import ClientsView from "@/app/components/hc/ClientsView";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
-import { Drawer, type FlowStep } from "@/app/components/hc/Flow";
+import { type FlowStep } from "@/app/components/hc/Flow";
 import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportIntake from "@/app/components/hc/ReportIntake";
@@ -702,6 +702,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
   const [openStep, setOpenStep] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<"messages" | "referral" | null>(null);
   const [touched, setTouched] = useState(false);
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
@@ -772,6 +773,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
   // Whatever the last plan proposal suggested referring on.
   const aiReferrals = d.ai_referrals ?? [];
+  const openReferrals = (d.referrals ?? []).filter((r) => r.status === "requested").length;
 
   const open = live.find((x) => x.key === shownOpen);
   const jump = (k: string) => { setTouched(true); setOpenStep(k); };
@@ -824,9 +826,29 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         </button>
       } />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/* Messages and referral used to sit in a column beside the panel, which
+          left the plan builder two thirds of a screen to drag four pillars
+          around in. They are buttons now and open over the top, so whatever
+          step is open gets the whole width. */}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setSheet("messages")}
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <Bell className="h-4 w-4" /> Skilaboð
+          {d.messages.length > 0 && <span className="text-slate-400">{d.messages.length}</span>}
+        </button>
+        <button type="button" onClick={() => setSheet("referral")}
+          className={`inline-flex min-h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold ${
+            openReferrals > 0
+              ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}>
+          <Stethoscope className="h-4 w-4" /> Þarf tilvísun?
+          {openReferrals > 0 && <span className="rounded-full bg-amber-200 px-1.5 text-xs">{openReferrals}</span>}
+        </button>
+      </div>
+
+      <div className="grid gap-4">
         {/* What you are doing right now. One panel, chosen from the line. */}
-        <div className="lg:col-span-2">
+        <div>
           {open ? (
             <section className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center gap-2">
@@ -845,25 +867,27 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           ) : null}
         </div>
 
-        {/* Alongside, not underneath: the two things a nurse reaches for while
-            reading the report. */}
-        <aside className="space-y-3">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4">
-            <Messages d={d} startOpen={compose} reload={load} />
-            <div className="mt-3">
-              <BookVideo api={api} journey={j} onBooked={(kind, at) =>
-                record({ event: kind === "interview" ? "interview_booked" : "followup_booked", at, mode: "video", meeting_url: null })} />
-            </div>
-          </section>
-          <Drawer title="Þarf tilvísun?" count={(d.referrals ?? []).filter((r) => r.status === "requested").length || undefined} defaultOpen>
-            <div className="space-y-3">
-              <DoctorReview d={d} isDoctor={isDoctor} record={record} />
-              <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []}
-                suggestions={aiReferrals} isDoctor={isDoctor} onChanged={() => void load()} />
-            </div>
-          </Drawer>
-        </aside>
       </div>
+
+      {sheet === "messages" && (
+        <Sheet title="Skilaboð til skjólstæðings" onClose={() => setSheet(null)}>
+          <Messages d={d} startOpen={compose} reload={load} />
+          <div className="mt-3">
+            <BookVideo api={api} journey={j} onBooked={(kind, at) =>
+              record({ event: kind === "interview" ? "interview_booked" : "followup_booked", at, mode: "video", meeting_url: null })} />
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === "referral" && (
+        <Sheet title="Þarf tilvísun?" onClose={() => setSheet(null)}>
+          <div className="space-y-3">
+            <DoctorReview d={d} isDoctor={isDoctor} record={record} />
+            <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []}
+              suggestions={aiReferrals} isDoctor={isDoctor} onChanged={() => void load()} />
+          </div>
+        </Sheet>
+      )}
 
       {/* Out of the way, but one click from anywhere. */}
       <div className="flex flex-wrap gap-4 px-1 pt-1 text-xs">
@@ -887,6 +911,39 @@ function shortStatus(status: string): string {
     .split(" · ")[0]
     .trim();
   return s.length > 28 ? `${s.slice(0, 27)}…` : s;
+}
+
+/**
+ * A panel that opens over the page rather than beside it.
+ *
+ * Messages and referral both belong to the client you are looking at, but
+ * neither is the work — and as a side column they cost the plan builder a
+ * third of the screen it needs to drag four pillars around in.
+ *
+ * Wide and scrollable, because the referral catalogue is long.
+ */
+function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+      onClick={onClose} role="presentation">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-5"
+        onClick={(e) => e.stopPropagation()} role="dialog" aria-label={title}>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="font-bold text-slate-900">{title}</h2>
+          <span className="flex-1" />
+          <button type="button" onClick={onClose} aria-label="Loka"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
