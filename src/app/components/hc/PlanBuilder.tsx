@@ -82,6 +82,51 @@ function Rating({ m }: { m: Rated }) {
   );
 }
 
+/**
+ * The plan in five steps rather than one page.
+ *
+ * With a proposal applied the builder ran to several screens: the AI panel,
+ * the action library beside four pillars, the exercise programme, the
+ * nutrition programme and the closing note, all stacked. You could not see
+ * what you were doing without scrolling past what you had already done.
+ */
+const WIZARD_STEPS = ["Tillaga", "Aðgerðir", "Æfingar", "Næring", "Frágangur"] as const;
+
+function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) {
+  return (
+    <nav className="flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-slate-200" aria-label="Skref áætlunarinnar">
+      {WIZARD_STEPS.map((label, i) => (
+        <button key={label} type="button" onClick={() => onGo(i)} aria-current={step === i ? "step" : undefined}
+          className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+            step === i ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+          <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
+            step === i ? "bg-white/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>
+            {i < step ? "✓" : i + 1}
+          </span>
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void }) {
+  const last = WIZARD_STEPS.length - 1;
+  return (
+    <div className="flex items-center gap-2 border-t border-slate-200 pt-3">
+      <button type="button" disabled={step === 0} onClick={() => onGo(step - 1)}
+        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">
+        Til baka
+      </button>
+      <span className="flex-1 text-center text-xs text-slate-400">Skref {step + 1} af {WIZARD_STEPS.length} · {WIZARD_STEPS[step]}</span>
+      <button type="button" disabled={step === last} onClick={() => onGo(step + 1)}
+        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40">
+        Næsta
+      </button>
+    </div>
+  );
+}
+
 export default function PlanBuilder({ journeyId, api, onPublished, seed, readyProposal }: {
   /** A proposal already computed in the background at import time. */
   readyProposal?: React.ComponentProps<typeof AiProposalPanel>["ready"];
@@ -103,6 +148,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   const [filter, setFilter] = useState<Pillar | "all">("all");
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState(false);
+  const [step, setStep] = useState(0);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
   useEffect(() => {
@@ -158,6 +204,9 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       summary: draft.summary || summary,
       modules: [...draft.modules, ...items.filter((i) => !have.has(`${i.pillar}:${i.title}`))],
     });
+    // Applying the proposal is the end of that step; the actions it just put
+    // in the plan are on the next one.
+    setStep(1);
   };
 
   const applyTemplate = (key: string) => {
@@ -323,9 +372,11 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
         <div role="status" className={`rounded-xl px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>{msg.text}</div>
       )}
 
-      <AiProposalPanel api={api} journeyId={journeyId} ready={readyProposal} onApply={applyProposal} />
+      <WizardNav step={step} onGo={setStep} />
 
-      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+      {step === 0 && <AiProposalPanel api={api} journeyId={journeyId} ready={readyProposal} onApply={applyProposal} />}
+
+      <div className={`grid gap-4 lg:grid-cols-[320px_1fr] ${step === 1 ? "" : "hidden"}`}>
         {/* Library */}
         <aside
           className={`h-fit rounded-2xl border bg-white p-4 lg:sticky lg:top-4 ${dragOver === "out" ? "border-red-300 bg-red-50/40" : "border-slate-200"}`}
@@ -451,25 +502,51 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
             })}
           </div>
 
-          <ExerciseEditor
-            value={draft.exercise}
-            templates={lib.exercise}
-            onChange={(exercise) => update({ exercise })}
-            api={api}
-          />
-          <NutritionEditor
-            value={draft.nutrition}
-            templates={lib.nutrition}
-            onChange={(nutrition) => update({ nutrition })}
-            api={api}
-          />
+        </div>
+      </div>
 
+      {/* Kept mounted behind `hidden` rather than unmounted: these editors hold
+          unsaved local state, and stepping away and back should not lose it. */}
+      <div className={step === 2 ? "" : "hidden"}>
+        <ExerciseEditor
+          value={draft.exercise}
+          templates={lib.exercise}
+          onChange={(exercise) => update({ exercise })}
+          api={api}
+        />
+      </div>
+      <div className={step === 3 ? "" : "hidden"}>
+        <NutritionEditor
+          value={draft.nutrition}
+          templates={lib.nutrition}
+          onChange={(nutrition) => update({ nutrition })}
+          api={api}
+        />
+      </div>
+
+      {step === 4 && (
+        <div className="space-y-4">
           <label className="block rounded-2xl border border-slate-200 bg-white p-4 text-sm">
             <span className="font-semibold text-slate-700">Skilaboð til skjólstæðings</span>
             <textarea value={draft.nurse_note} onChange={(e) => update({ nurse_note: e.target.value })} rows={4} placeholder="Birtist efst á yfirlitinu." className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
           </label>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="font-bold text-[#0F172A]">Tilbúið?</p>
+            <p className="mt-0.5 text-sm text-slate-600">
+              {draft.modules.length} aðgerðir · {draft.exercise ? "æfingaáætlun" : "engin æfingaáætlun"} · {draft.nutrition ? "næringaráætlun" : "engin næringaráætlun"}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
+              <button onClick={publish} disabled={busy || draft.modules.length === 0}
+                className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+                {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      <WizardFooter step={step} onGo={setStep} />
     </div>
   );
 }
