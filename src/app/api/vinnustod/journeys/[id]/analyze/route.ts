@@ -12,7 +12,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
 import { getClientProfile, hcAudit } from "@/lib/hc/server";
-import { ANALYZE_MODEL, proposePlan, trafficLights } from "@/lib/hc/analyze";
+import { ANALYZE_MODEL, proposePlan, trafficLights, type ReportLine } from "@/lib/hc/analyze";
+import { loadReport } from "@/lib/hc/report-store";
 import { sexOf } from "@/lib/hc/sex";
 import type { KnowledgeEntry } from "@/lib/hc/knowledge";
 import type { InterviewNotes, PlanModule } from "@/lib/hc/types";
@@ -63,7 +64,20 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   ]);
 
   const rows = (results || []).map((r) => ({ marker: r.marker, value: Number(r.value), unit: r.unit, note: r.note }));
-  if (!rows.length) return NextResponse.json({ error: "Engin mæligildi skráð — skráðu eða lestu inn niðurstöður fyrst." }, { status: 409 });
+  const stored = await loadReport(id, journey.client_id);
+  if (!rows.length && !stored) return NextResponse.json({ error: "Engin mæligildi skráð — skráðu eða lestu inn niðurstöður fyrst." }, { status: 409 });
+
+  // The report's scores and pillars matter as much as the blood panel.
+  const reportLines: ReportLine[] = (stored?.report.items ?? [])
+    .filter((i) => i.kind === "score" || i.kind === "risk")
+    .map((i) => ({
+      title: i.title,
+      value: i.value,
+      unit: i.unit,
+      signal: stored?.signals[i.key] ?? null,
+      advice: i.advice,
+      previous: i.trend.at(-1)?.value ?? null,
+    }));
 
   const sex = sexOf(profile?.sex);
   const flagged = trafficLights(rows, (entries || []) as KnowledgeEntry[], sex);
@@ -75,6 +89,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   try {
     const input = {
       flagged,
+      reportLines,
       otherValues: other,
       modules: (modules || []) as PlanModule[],
       age: ageOf(profile?.date_of_birth ?? null),

@@ -95,6 +95,12 @@ export async function POST(req: NextRequest) {
 
   if (!clientId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
+  // The report states the client's sex; our reference bands need it.
+  if (body.sex === "m" || body.sex === "f") {
+    const { data: prof } = await supabaseAdmin.from("clients_decrypted").select("sex").eq("id", clientId).maybeSingle();
+    if (!prof?.sex) await supabaseAdmin.from("clients_decrypted").update({ sex: body.sex === "m" ? "male" : "female" }).eq("id", clientId);
+  }
+
   const journey = await getOrCreateJourney(clientId, str(body.location, 60) || DEFAULT_LOCATION);
   const locs = actorLocationFilter(actor);
   if (locs && (!journey.location_id || !locs.includes(journey.location_id))) {
@@ -130,6 +136,19 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  await hcAudit(actor.label, created ? "client_created_from_report" : "report_intake", journey.id, { values: rows.length });
+  // Keep the whole parsed report: the workstation and the client's account
+  // both render it, and the next one gives us the comparison for free.
+  if (body.grunnheilsa && typeof body.grunnheilsa === "object") {
+    await supabaseAdmin.from("hc_reports").insert({
+      journey_id: journey.id,
+      client_id: clientId,
+      report_date: /^\d{4}-\d{2}-\d{2}$/.test(String(body.measured_at)) ? String(body.measured_at) : null,
+      method: body.method === "ai" ? "ai" : "local",
+      payload: body.grunnheilsa,
+      imported_by: actor.label,
+    });
+  }
+
+  await hcAudit(actor.label, created ? "client_created_from_report" : "report_intake", journey.id, { values: rows.length, report: !!body.grunnheilsa });
   return NextResponse.json({ journey_id: journey.id, client_id: clientId, created, saved: rows.length });
 }

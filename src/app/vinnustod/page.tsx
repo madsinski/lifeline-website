@@ -28,6 +28,8 @@ import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
 import Flow, { Drawer, type FlowStep } from "@/app/components/hc/Flow";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportIntake from "@/app/components/hc/ReportIntake";
+import ReportView from "@/app/components/hc/ReportView";
+import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar, type PlanItem } from "@/lib/hc/types";
@@ -56,6 +58,7 @@ interface Detail {
   journey: Journey;
   patient: { full_name: string | null; kennitala: string | null; email: string | null; phone: string | null; address: string | null; date_of_birth: string | null; sex: string | null };
   results: HcResult[];
+  report: { report: Grunnheilsa; signals: Record<string, ReportSignal | null>; method: "local" | "ai"; created_at: string } | null;
   logs: ActionLog[];
   prefs: ActionPref[];
   orders: { id: string; kind: string; payment_route: string; paid_at: string | null; activation_code: string | null; activation_redeemed_at: string | null }[];
@@ -751,9 +754,11 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
       title: "Niðurstöður",
       icon: <Droplet className="h-4 w-4" />,
       state: hasResults ? "done" : resultsIn ? "current" : "waiting",
-      status: hasResults
-        ? `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`
-        : resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga",
+      status: d.report
+        ? `Heilsufarsskýrsla ${d.report.report.reportDate ?? ""} · ${d.report.report.items.length} niðurstöður`.trim()
+        : hasResults
+          ? `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`
+          : resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga",
       body: <ResultsStep d={d} api={api} record={record} reload={reload} />,
     },
     {
@@ -821,6 +826,15 @@ function ResultsStep({ d, api, record, reload }: {
   };
   return (
     <div className="space-y-4">
+      {d.report && (
+        <>
+          <ReportView report={d.report.report} signals={d.report.signals} />
+          <p className="text-xs text-slate-500">
+            Umferðarljósin eru viðmið Lifeline — þau sömu og í appinu. Skýrslan frá Medalia notar eigin orðalag og mörk;
+            þar sem þeim ber ekki saman stendur það við gildið.
+          </p>
+        </>
+      )}
       <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []} onSaved={() => void reload()} />
       <div className="rounded-2xl bg-slate-50 p-3">
         <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Rannsóknir</p>

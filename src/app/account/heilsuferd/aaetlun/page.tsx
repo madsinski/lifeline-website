@@ -11,10 +11,12 @@ import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
 import MyActions from "@/app/components/hc/MyActions";
 import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSignals";
+import ReportView from "@/app/components/hc/ReportView";
+import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ActionPlan } from "@/lib/hc/types";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 
-type Tab = "today" | "plan" | "results";
+type Tab = "today" | "plan" | "report" | "results";
 
 interface Loaded {
   journey_id: string;
@@ -22,6 +24,7 @@ interface Loaded {
   logs: ActionLog[];
   prefs: ActionPref[];
   flagged: FlaggedValue[];
+  report: { report: Grunnheilsa; signals: Record<string, ReportSignal | null> } | null;
 }
 
 export default function PlanPage() {
@@ -33,7 +36,7 @@ function PlanPageInner() {
   const journey = useSearchParams().get("journey");
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
   const [name, setName] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTabState] = useState<Tab | null>(null);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data: s } = await supabase.auth.getSession();
@@ -57,15 +60,21 @@ function PlanPageInner() {
       const aj = await a.json().catch(() => ({}));
       const pj = await p.json().catch(() => ({}));
       setName(pj.client_name ?? null);
-      setData(a.ok ? { journey_id: aj.journey_id, plan: aj.plan ?? pj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [] } : null);
+      const loaded = a.ok ? { journey_id: aj.journey_id, plan: aj.plan ?? pj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null } : null;
+      setData(loaded);
+      // Land on the plan when there is one, otherwise on the report.
+      setTabState(loaded?.plan ? "today" : loaded?.report ? "report" : "today");
     })();
   }, [journey, router, api]);
 
   const plan = data?.plan ?? null;
+  // The report often lands before the plan is written; show it either way.
+  const hasSomething = !!plan || !!data?.report;
   const tabs: { key: Tab; label: string; show: boolean }[] = [
     { key: "today", label: "Í dag", show: !!plan },
     { key: "plan", label: "Áætlunin", show: !!plan },
-    { key: "results", label: "Niðurstöður", show: !!data?.flagged.length },
+    { key: "report", label: "Skýrslan mín", show: !!data?.report },
+    { key: "results", label: "Niðurstöður", show: !!data?.flagged.length && !data?.report },
   ];
 
   return (
@@ -77,18 +86,18 @@ function PlanPageInner() {
 
         {data === undefined && <p className="mt-4 text-slate-500">Hleð…</p>}
 
-        {data !== undefined && !plan && (
+        {data !== undefined && !hasSomething && (
           <div className="mt-4 rounded-3xl bg-white p-8 text-center shadow-sm">
             <p className="text-lg font-semibold text-slate-800">Áætlunin er ekki tilbúin enn</p>
             <p className="mt-1 text-slate-500">Hún birtist hér eftir viðtalið við hjúkrunarfræðinginn.</p>
           </div>
         )}
 
-        {plan && data && (
+        {hasSomething && data && (
           <>
             <div className="mt-4 flex gap-1 overflow-x-auto border-b border-slate-200 print:hidden" role="tablist">
               {tabs.filter((t) => t.show).map((t) => (
-                <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
+                <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTabState(t.key)}
                   className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold ${tab === t.key ? "border-emerald-600 text-emerald-800" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
                   {t.label}
                 </button>
@@ -96,9 +105,18 @@ function PlanPageInner() {
             </div>
 
             <div className="mt-4">
-              {tab === "today" && (
+              {tab === "today" && plan && (
                 <div className="print:hidden">
                   <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs} />
+                </div>
+              )}
+              {tab === "report" && data.report && (
+                <div className="print:hidden">
+                  <ReportView report={data.report.report} signals={data.report.signals} audience="client" />
+                  <p className="mt-4 px-1 text-xs leading-relaxed text-slate-500">
+                    Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Læknir fer yfir niðurstöðurnar með þér og
+                    fullbúna skýrslan er í sjúklingagáttinni.
+                  </p>
                 </div>
               )}
               {tab === "results" && (
@@ -106,7 +124,7 @@ function PlanPageInner() {
                   <ResultSignals flagged={data.flagged} />
                 </div>
               )}
-              {tab === "plan" && <PlanView plan={plan} clientName={name} author={plan.created_by ?? null} />}
+              {tab === "plan" && plan && <PlanView plan={plan} clientName={name} author={plan.created_by ?? null} />}
             </div>
           </>
         )}

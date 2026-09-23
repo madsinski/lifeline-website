@@ -101,8 +101,22 @@ const proposalSchema = z.object({
 export type Proposal = z.infer<typeof proposalSchema>;
 export type ProposedAction = Proposal["actions"][number];
 
+/** A line from the Grunnheilsa report: a lifestyle score, a pillar, a risk. */
+export interface ReportLine {
+  title: string;
+  value: number;
+  unit: string;
+  signal: Signal | null;
+  /** The report's own advice for this row. */
+  advice: string[];
+  /** Earlier values, so the model can see the direction of travel. */
+  previous?: number | null;
+}
+
 export interface AnalyzeInput {
   flagged: FlaggedValue[];
+  /** The scores and pillars from the health report, when one was uploaded. */
+  reportLines?: ReportLine[];
   /** Values we could not interpret, still useful context for the model. */
   otherValues: { title: string; value: number; unit: string | null }[];
   modules: PlanModule[];
@@ -125,12 +139,22 @@ Reglur sem þú mátt ekki brjóta:
 • Þú greinir ekki sjúkdóma, ávísar ekki meðferð og lofar engum árangri. Þú leggur til lífsstílsaðgerðir.
 • Ef gildi er langt utan viðmiða skaltu nefna í summary að læknir fari yfir það — ekki setja læknisfræðilega meðferð sem aðgerð.
 • Allur texti er á íslensku og ávarpar skjólstæðinginn með „þú“.
-• tier: core = það sem verður að gerast, standard = ráðlögð viðbót, extra = ef viðkomandi vill meira.`;
+• tier: core = það sem verður að gerast, standard = ráðlögð viðbót, extra = ef viðkomandi vill meira.
+• Þegar heilsufarsskýrsla fylgir skaltu byrja á þeirri stoð sem kemur verst út þar (svefn, hreyfing, næring eða andleg líðan) og vísa í töluna í rökstuðningnum.
+• Umferðarljósin sem þú sérð eru viðmið Lifeline. Notaðu þau, ekki orðalag skýrslunnar.`;
 
 /** Ask the model for a ranked plan. Throws on model/transport errors. */
 export async function proposePlan(input: AnalyzeInput): Promise<Proposal> {
   const library = input.modules
     .map((m) => `${m.key} [${m.pillar}] ${m.title} — ${m.summary}${m.frequency ? ` (${m.frequency})` : ""}`)
+    .join("\n");
+
+  const lines = (input.reportLines ?? [])
+    .map((l) => {
+      const arrow = l.previous == null ? "" : l.value > l.previous ? ` (upp úr ${l.previous})` : l.value < l.previous ? ` (niður úr ${l.previous})` : " (óbreytt)";
+      const light = l.signal ? SIGNAL_IS[l.signal] : "engin viðmið";
+      return `${l.title}: ${l.value}${l.unit ? ` ${l.unit}` : ""} → ${light}${arrow}${l.advice.length ? ` — skýrslan ráðleggur: ${l.advice[0]}` : ""}`;
+    })
     .join("\n");
 
   const flagged = input.flagged.length
@@ -144,6 +168,7 @@ export async function proposePlan(input: AnalyzeInput): Promise<Proposal> {
   const prompt = [
     `Skjólstæðingur: ${[input.age, input.sex === "m" ? "karl" : input.sex === "f" ? "kona" : null].filter(Boolean).join(", ") || "engar lýðfræðiupplýsingar"}.`,
     "",
+    ...(lines ? ["ÚR HEILSUFARSSKÝRSLUNNI (lífsstílseinkunnir, stoðirnar og áhætta):", lines, ""] : []),
     "MÆLIGILDI OG VIÐMIÐ:",
     flagged,
     other ? `\nÖNNUR GILDI (engin viðmið reiknuð):\n${other}` : "",

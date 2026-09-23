@@ -10,7 +10,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getHcActor } from "@/lib/hc/ws-auth";
-import { mapValues, parseReport, type ReportFile } from "@/lib/hc/report-import";
+import type { ReportFile } from "@/lib/hc/report-import";
+import { readReport } from "@/lib/hc/report-local";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -33,8 +34,6 @@ function tokens(name: string | null): string[] {
 export async function POST(req: NextRequest) {
   const actor = await getHcActor(req);
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: "AI-lestur er ekki uppsettur." }, { status: 503 });
-
   const form = await req.formData().catch(() => null);
   const uploaded = form?.getAll("files").filter((f): f is File => f instanceof File) ?? [];
   if (!uploaded.length) return NextResponse.json({ error: "Engin skrá fylgdi." }, { status: 400 });
@@ -48,15 +47,15 @@ export async function POST(req: NextRequest) {
     files.push({ data: new Uint8Array(await f.arrayBuffer()), mediaType: type, filename: f.name });
   }
 
-  let parsed;
+  let read;
   try {
-    parsed = await parseReport(files);
+    read = await readReport(files);
   } catch (e) {
     return NextResponse.json({ error: `Lesturinn mistókst: ${e instanceof Error ? e.message : "unknown"}` }, { status: 502 });
   }
 
-  const kt = digits(parsed.patient?.kennitala);
-  const name = parsed.patient?.name ?? null;
+  const kt = digits(read.identity.kennitala);
+  const name = read.identity.name;
 
   // Find the person. Kennitala is encrypted with a randomised cipher, so it
   // cannot be matched by equality — we shortlist on name and confirm on the
@@ -96,10 +95,12 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    identity: { name, kennitala: kt || null, kennitala_last4: kt ? kt.slice(-4) : null },
-    report: parsed.report,
-    values: mapValues(parsed),
-    warnings: parsed.warnings ?? [],
+    method: read.method,
+    identity: { name, kennitala: kt || null, kennitala_last4: kt ? kt.slice(-4) : null, sex: read.identity.sex, age: read.identity.age, email: read.identity.email, phone: read.identity.phone },
+    report: { date_iso: read.reportDate },
+    grunnheilsa: read.report,
+    values: read.values,
+    warnings: read.warnings,
     matches,
   });
 }

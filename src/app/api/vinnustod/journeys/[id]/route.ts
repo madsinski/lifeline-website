@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { applyJourneyEvent, DOCTOR_ONLY, isJourneyEvent } from "@/lib/hc/events";
 import { decryptKennitala, getClientProfile, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
+import { loadReport } from "@/lib/hc/report-store";
 import { supabaseAdmin as db } from "@/lib/supabase-admin";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 import { sendSms } from "@/lib/sms";
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journey.id).gte("done_on", since),
     supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note").eq("journey_id", journey.id),
   ]);
+  const storedReport = await loadReport(journey.id, journey.client_id);
   const { data: results } = await supabaseAdmin
     .from("hc_results")
     .select("marker, value, unit, measured_at, source, note, entered_by, updated_at")
@@ -68,6 +70,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       sex: profile?.sex ?? null,
     },
     results: results || [],
+    report: storedReport,
     logs: logs || [],
     prefs: prefs || [],
     orders: orders || [],

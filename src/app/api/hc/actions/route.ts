@@ -13,6 +13,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser } from "@/lib/hc/server";
 import { isoDay, lastDays } from "@/lib/hc/adherence";
 import { trafficLights } from "@/lib/hc/analyze";
+import { loadReport } from "@/lib/hc/report-store";
 import { sexOf } from "@/lib/hc/sex";
 import type { KnowledgeEntry } from "@/lib/hc/knowledge";
 
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
 
   const rows = (results || []).map((r) => ({ marker: r.marker, value: Number(r.value), unit: r.unit }));
   const flagged = trafficLights(rows, (entries || []) as KnowledgeEntry[], sexOf(profile?.sex));
+  const report = await loadReport(journey.id, user.id);
 
   return NextResponse.json({
     journey_id: journey.id,
@@ -52,6 +54,7 @@ export async function GET(req: NextRequest) {
     logs: logs || [],
     prefs: prefs || [],
     flagged,
+    report,
     today: isoDay(),
   });
 }

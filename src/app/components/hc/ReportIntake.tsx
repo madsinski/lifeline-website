@@ -11,7 +11,7 @@ import { FileUp, Loader2, UserPlus, Check } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-interface Identity { name: string | null; kennitala: string | null; kennitala_last4: string | null }
+interface Identity { name: string | null; kennitala: string | null; kennitala_last4: string | null; sex?: "m" | "f" | null; email?: string | null; phone?: string | null }
 interface Match { client_id: string; full_name: string | null; email: string | null; kennitala_last4: string | null; journey_id: string | null; confident: boolean }
 interface Value { slug: string | null; code: string; label: string; value: number; unit: string; confidence: "high" | "medium" | "low"; converted_from?: string }
 
@@ -23,7 +23,7 @@ export default function ReportIntake({ api, onOpen }: {
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [result, setResult] = useState<{ identity: Identity; report: { date_iso: string | null }; values: Value[]; warnings: string[]; matches: Match[] } | null>(null);
+  const [result, setResult] = useState<{ method?: "local" | "ai"; identity: Identity; report: { date_iso: string | null }; grunnheilsa?: unknown; values: Value[]; warnings: string[]; matches: Match[] } | null>(null);
   const [take, setTake] = useState<Record<number, boolean>>({});
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", kennitala: "" });
@@ -41,8 +41,8 @@ export default function ReportIntake({ api, onOpen }: {
     setTake(Object.fromEntries((j.values as Value[]).map((v, i) => [i, v.confidence !== "low"])));
     setForm({
       full_name: j.identity?.name ?? "",
-      email: "",
-      phone: "",
+      email: j.identity?.email ?? "",
+      phone: j.identity?.phone ?? "",
       kennitala: j.identity?.kennitala ?? "",
     });
     setCreating(!j.matches?.length);
@@ -61,6 +61,9 @@ export default function ReportIntake({ api, onOpen }: {
         create: clientId ? undefined : form,
         values,
         measured_at: result.report?.date_iso ?? null,
+        grunnheilsa: result.grunnheilsa ?? null,
+        method: result.method ?? "local",
+        sex: result.identity?.sex ?? null,
       }),
     });
     const j = await r.json().catch(() => ({}));
@@ -108,6 +111,10 @@ export default function ReportIntake({ api, onOpen }: {
             </p>
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
               {result.values.length} gildi{result.report?.date_iso ? ` · ${result.report.date_iso}` : ""}
+            </span>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${result.method === "ai" ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}
+              title={result.method === "ai" ? "Skráin var send í AI-lestur." : "Lesið á okkar eigin vél — skráin fór hvergi."}>
+              {result.method === "ai" ? "AI-lestur" : "Lesið hjá okkur"}
             </span>
             <span className="flex-1" />
             <button type="button" onClick={() => setResult(null)} className="text-sm font-semibold text-slate-500 hover:underline">Hætta við</button>
