@@ -244,7 +244,7 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   q1_q: "Hversu langan tíma tekur Grunnstoð heilsu?",
   q1_a: "Heimsóknin á stöðina tekur um 20 mínútur. Blóðprufan hjá Sameind tekur 10–15 mínútur. Læknisviðtalið er 30 mínútur. Alls má gera ráð fyrir um klukkustund sem dreifist á tvær heimsóknir auk viðtalsins.",
   q2_q: "Þarf ég að fasta fyrir blóðprufuna?",
-  q2_a: "Já, við mælum með föstu í 10–12 klukkustundir fyrir blóðprufuna til að fá sem nákvæmastar niðurstöður. Vatn og svart kaffi er í lagi.",
+  q2_a: "Já, við mælum með föstu í 10–12 klukkustundir fyrir blóðprufuna til að fá sem nákvæmastar niðurstöður. Vatn og svart kaffi eru í lagi.",
   q3_q: "Hversu fljótt fæ ég niðurstöðurnar?",
   q3_a: "Niðurstöður líkamssamsetningar eru tilbúnar strax. Blóðprufuniðurstöður taka yfirleitt 3–5 virka daga. Þegar allar niðurstöður liggja fyrir fer læknirinn yfir þær innan 2 virkra daga og bókar viðtalið þitt.",
   q4_q: "Get ég farið í blóðprufu á hvaða Sameindarstöð sem er?",

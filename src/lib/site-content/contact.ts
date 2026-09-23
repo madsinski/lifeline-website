@@ -65,7 +65,7 @@ export const CONTACT_DEFAULTS_IS: LocaleContent = {
   form_message_label: "Skilaboð",
   form_message_ph: "Segðu okkur meira...",
   form_submit: "Senda skilaboð",
-  form_success_title: "Skilaboð send!",
+  form_success_title: "Skilaboð send",
   form_success_desc: "Þakka þér fyrir að hafa samband. Við svörum innan 1-2 virkra daga.",
   form_send_another: "Senda önnur skilaboð",
   info_title: "Samskiptaupplýsingar",

@@ -2712,7 +2712,7 @@ function AccountPageInner() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-[#1F2937]">Ábendingahnappur</p>
-                        <p className="text-xs text-[#6B7280]">Sýna eða fela ábendingahnappinn neðst á síðunni</p>
+                        <p className="text-xs text-[#6B7280]">Sýna eða fela ábendingarhnappinn neðst á síðunni</p>
                       </div>
                       <button
                         onClick={toggleFeedbackHidden}

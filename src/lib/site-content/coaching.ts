@@ -134,7 +134,7 @@ export const COACHING_DEFAULTS_IS: LocaleContent = {
   why_c3_title: "Tengstu þjálfurum",
   why_c3_desc: "Sendu heilsuþjálfaranum þínum skilaboð beint. Fáðu svör, breytingar og stuðning þegar þú þarft.",
   why_c4_title: "Vertu hluti af samfélaginu",
-  why_c4_desc: "Viðburðir, áskoranir og hópur fólks á sömu vegferð. Þú ert ekki að gera þetta einn.",
+  why_c4_desc: "Viðburðir, áskoranir og hópur fólks á sömu vegferð. Þú ferð ekki þessa leið á eigin spýtur.",
   why_c5_title: "Hvatning sem endist",
   why_c5_desc: "Eftirfylgni með framförum, raðir, heilsueinkunnir og þjálfun halda þér við efnið viku eftir viku.",
 

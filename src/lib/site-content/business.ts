@@ -236,7 +236,7 @@ export const BUSINESS_DEFAULTS_IS: LocaleContent = {
   how_s3_title: "Mælingadagur á staðnum", how_s3_desc: "Hjúkrunarfræðingur okkar kemur á staðinn — blóðþrýstingur, hæð, þyngd og full líkamssamsetning á hvern einstakling á um 5 mínútum.",
   how_s4_title: "Blóðprufa", how_s4_desc: "Starfsfólk kemur við á degi sem hentar — hjá samstarfsstofu Lifeline á höfuðborgarsvæðinu, eða við útvegum stofu nálægt skrifstofunni annars staðar á landinu.",
   how_s5_title: "Skýrsla og yfirferð læknis", how_s5_desc: "Hver starfsmaður fær aðgengilega persónulega skýrslu og einkaviðtal við lækni til að móta aðgerðaáætlun.",
-  how_s6_title: "Þjálfun í appinu (valfrjálst)", how_s6_desc: "Daglegar aðgerðir, heilsuþjálfari, samfélag og viðburðir — svo breytingin festist raunverulega í sessi, ekki bara hakað í skoðunarboxið.",
+  how_s6_title: "Þjálfun í appinu (valfrjálst)", how_s6_desc: "Daglegar aðgerðir, heilsuþjálfari, samfélag og viðburðir — svo breytingin festist raunverulega í sessi, ekki bara hakað í reit.",
   how_footnote: "Utan höfuðborgarsvæðisins? Við samræmum við samstarfsstofu nálægt skrifstofunni þinni — starfsfólk þarf aldrei að keyra langt í blóðprufu.",
 
   method_kicker: "Af hverju það borgar sig",
@@ -249,7 +249,7 @@ export const BUSINESS_DEFAULTS_IS: LocaleContent = {
   method_l3_title: "Yfirferð læknis — áætlunin sem knýr breytinguna",
   method_l3_body: "Læknir tengir öll lögin saman, útskýrir helstu heilsuáskoranir á mannamáli og skrifar forgangsraðaða aðgerðaáætlun: mestu áhrifin fyrir minnstan tíma og fyrirhöfn.",
   method_bottom_label: "Niðurstaðan",
-  method_bottom_text: "Þriðja lagið er það sem breytir hegðun — og það er einmitt það sem ódýrari skoðanir sleppa. Þið eruð ekki að borga fyrir fleiri rannsóknir. Þið eruð að borga fyrir breytingu sem teymið ykkar mun raunverulega ná fram.",
+  method_bottom_text: "Þriðja lagið er það sem breytir hegðun — og það er einmitt það sem ódýrari skoðanir sleppa. Þið borgið ekki fyrir fleiri rannsóknir. Þið borgið fyrir breytingu sem teymið ykkar nær raunverulega fram.",
 
   packages_kicker: "Heilsumatspakkar",
   packages_title: "Þrír pakkar. Blandaðu saman fyrir teymið þitt.",

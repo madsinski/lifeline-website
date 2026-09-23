@@ -152,7 +152,7 @@ function Heilsuferd() {
             <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Virkjunarkóði</p>
               <CodeBox code={healthOrder.activation_code} />
-              <p className="mt-2 text-xs text-slate-500">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttinni."}</p>
+              <p className="mt-2 text-xs text-slate-500">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttina."}</p>
             </div>
           )}
           <LecturesCard lectures={data.lectures} />

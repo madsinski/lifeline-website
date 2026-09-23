@@ -138,7 +138,7 @@ export async function readReport(
     warnings: [
       viaText
         ? "Skjalið var ekki lesið sem Lifeline-skýrsla. Textinn úr því var sendur í AI-lestur án kennitölu, netfangs og símanúmers."
-        : "Skjalið var ekki lesið sem Lifeline-skýrsla og hafði engan texta, svo það var sent sjálft í AI-lestur.",
+        : "Skjalið var ekki lesið sem Lifeline-skýrsla og hafði engan texta, svo skjalið sjálft var sent í AI-lestur.",
       ...(parsed.warnings ?? []),
     ],
   };

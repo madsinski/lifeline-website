@@ -830,8 +830,8 @@ function ResultsStep({ d, api, record, reload }: {
         <>
           <ReportView report={d.report.report} signals={d.report.signals} />
           <p className="text-xs text-slate-500">
-            Umferðarljósin eru viðmið Lifeline — þau sömu og í appinu. Skýrslan frá Medalia notar eigin orðalag og mörk;
-            þar sem þeim ber ekki saman stendur það við gildið.
+            Umferðarljósin eru viðmið Lifeline — þau sömu og í appinu. Skýrslan frá Medalia notar eigin orðalag og mörk, og þar sem
+            þeim ber ekki saman birtist orðalag hennar við gildið.
           </p>
         </>
       )}
@@ -1401,7 +1401,7 @@ function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boole
                 </button>
               </div>
             </div>
-            <p className="mt-3 text-xs text-slate-500">Lífsstílsáætlunin heldur áfram þó vísað sé á Heilsugæsluna.</p>
+            <p className="mt-3 text-xs text-slate-500">Lífsstílsáætlunin heldur áfram þótt vísað sé á Heilsugæsluna.</p>
           </section>
         )}
 

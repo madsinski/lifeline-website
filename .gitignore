@@ -49,3 +49,4 @@ supabase/.temp/
 
 # Local git worktrees created by Claude Code sessions (never commit)
 .claude/worktrees/
+scripts/.islib/

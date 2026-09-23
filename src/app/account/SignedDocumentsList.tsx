@@ -86,7 +86,7 @@ export default function SignedDocumentsList() {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-gray-500">
-        Engin undirrituð skjöl. Þú hefur ekki samþykkt nein lögleg skjöl ennþá á þessum aðgangi.
+        Engin undirrituð skjöl. Þú hefur ekki samþykkt nein skjöl á þessum aðgangi enn þá.
       </p>
     );
   }

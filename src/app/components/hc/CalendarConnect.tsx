@@ -295,7 +295,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
             {choice === "other" && (
               <>
                 <h3 className="flex items-center gap-2 text-base font-bold"><Calendar className="h-6 w-6 text-slate-600" /> Annað dagatal</h3>
-                <p className="mt-1 text-sm text-slate-600">Bættu þessum hlekk við sem áskrift („Subscribe from URL“) í dagatalinu þínu.</p>
+                <p className="mt-1 text-sm text-slate-600">Bættu þessari slóð við sem áskrift í dagatalinu þínu — valkosturinn heitir „Gerast áskrifandi að dagatali“ og „Subscribe from URL“ í enskum viðmótum.</p>
                 {!ics ? <p className="mt-3 text-sm text-slate-500">Augnablik…</p> : (
                   <>
                     <code className="mt-3 block break-all rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate-700">{ics.https}</code>

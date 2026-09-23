@@ -109,7 +109,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
 
       {live.length === 0 && (
         <p className="rounded-2xl bg-white p-6 text-center text-slate-500 shadow-sm">
-          Engar aðgerðir virkar. Þú getur tekið aðgerð aftur í notkun hér fyrir neðan.
+          Engar virkar aðgerðir. Þú getur tekið aðgerð aftur í notkun hér fyrir neðan.
         </p>
       )}
 
