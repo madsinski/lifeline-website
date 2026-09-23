@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Bell, BookOpen, CalendarClock, CalendarDays, Check, ChevronRight, ClipboardList, Droplet, ExternalLink,
+  ArrowLeft, Bell, BookOpen, CalendarClock, CalendarDays, Check, ChevronRight, ClipboardList, Droplet, ExternalLink, Video,
   FileCheck2, HeartPulse, LogOut, Mail, MessageSquare, Phone, Ruler, Search, Stethoscope, Users,
 } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
@@ -41,6 +41,7 @@ interface Row {
   measurements_booked_for: string | null; measurements_done_at: string | null;
   report_generated_at: string | null; report_sms_sent_at: string | null;
   interview_booked_for: string | null; interview_mode: string | null; interviewer_id: string | null; interview_done_at: string | null;
+  meeting_url: string | null;
   plan_published_at: string | null; followup_booked_for: string | null; followup_done_at: string | null;
   referral_to_heilsugaesla: boolean; doctor_review_requested_at: string | null; doctor_reviewed_at: string | null;
   plan_status: string | null; updated_at: string;
@@ -82,6 +83,10 @@ const WORKER_CALENDAR: CalendarApi = {
 // Icelandic dates/times written out by hand: a browser without Icelandic ICU
 // data silently falls back to English ("Wed, Sep 23, 01:24 PM").
 const WEEKDAYS_IS = ["sun.", "mán.", "þri.", "mið.", "fim.", "fös.", "lau."];
+const WEEKDAYS_LONG_IS = ["sunnudagur", "mánudagur", "þriðjudagur", "miðvikudagur", "fimmtudagur", "föstudagur", "laugardagur"];
+const MONTHS_LONG_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+/** "miðvikudagur 23. september" */
+const longDate = (d: Date) => `${WEEKDAYS_LONG_IS[d.getDay()]} ${d.getDate()}. ${MONTHS_LONG_IS[d.getMonth()]}`;
 const MONTHS_IS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
 const clock = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const time = (iso: string | null) => (iso ? clock(new Date(iso)) : "");
@@ -96,6 +101,7 @@ const day = (iso: string | null) => {
   return `${d.getDate()}. ${MONTHS_IS[d.getMonth()]}`;
 };
 const isToday = (iso: string | null) => !!iso && new Date(iso).toDateString() === new Date().toDateString();
+const daysSince = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400_000) : 0);
 const minutesSince = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 60000) : 0);
 function age(dob: string | null): string {
   if (!dob) return "";
@@ -135,10 +141,19 @@ function nextTask(r: Row | Journey, isDoctor: boolean): Task {
         ? { key: "interview", label: `Viðtal ${isToday(r.interview_booked_for) ? `í dag kl. ${time(r.interview_booked_for)}` : dayTime(r.interview_booked_for)}`, cta: "Hefja viðtal", section: "interview", tone: isToday(r.interview_booked_for) ? "urgent" : "normal" }
         : { key: "book", label: "Viðtal ekki bókað", cta: "Bóka viðtal", section: "overview", tone: "normal" };
     case "plan": return { key: "plan", label: "Viðtali lokið, áætlun vantar", cta: "Klára áætlun", section: "plan", tone: "urgent" };
-    case "action":
-      return r.followup_booked_for && !r.followup_done_at
-        ? { key: "followup", label: `Eftirfylgd ${dayTime(r.followup_booked_for)}`, cta: "Opna", section: "interview", tone: isToday(r.followup_booked_for) ? "urgent" : "normal" }
-        : { key: "bookfollow", label: "Áætlun birt, eftirfylgd ekki bókuð", cta: "Bóka eftirfylgd", section: "overview", tone: "normal" };
+    case "action": {
+      if (r.followup_booked_for && !r.followup_done_at) {
+        return { key: "followup", label: `Eftirfylgd ${dayTime(r.followup_booked_for)}`, cta: "Opna", section: "interview", tone: isToday(r.followup_booked_for) ? "urgent" : "normal" };
+      }
+      // The three-month follow-up is the promise we made when the plan was
+      // published, so it becomes urgent once that date passes.
+      const due = daysSince(r.plan_published_at) >= 90;
+      return {
+        key: "bookfollow",
+        label: due ? "Þrír mánuðir liðnir — eftirfylgd ekki bókuð" : "Áætlun birt, eftirfylgd ekki bókuð",
+        cta: "Bóka eftirfylgd", section: "overview", tone: due ? "urgent" : "normal",
+      };
+    }
     default: return { key: "none", label: "", cta: "Opna", section: "overview", tone: "waiting" };
   }
 }
@@ -304,7 +319,7 @@ function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me;
       { key: "plan", title: "Klára aðgerðaáætlun", hint: "Viðtali lokið en áætlun ekki birt." },
       { key: "book", title: "Bóka viðtal", hint: "Skýrslan er tilbúin. Hafðu samband og finndu tíma." },
       { key: "interview", title: "Viðtöl framundan", hint: "Bókuð viðtöl." },
-      { key: "bookfollow", title: "Bóka eftirfylgd", hint: "Ráðlögð eftir 3 mánuði." },
+      { key: "bookfollow", title: "Bóka eftirfylgd", hint: "Ráðlögð eftir 3 mánuði — verður aðkallandi þegar þeir eru liðnir." },
       { key: "followup", title: "Eftirfylgd framundan", hint: "Bókuð eftirfylgdarviðtöl." },
       { key: "tests", title: "Bíða rannsókna", hint: "Blóðprufa eða mælingar ekki komnar. Ekkert þarf að gera nema skrá ef það berst ekki sjálfkrafa." },
       { key: "activate", title: "Hafa ekki virkjað", hint: "Greitt, en virkjunarkóði ekki sleginn inn í sjúklingagátt." },
@@ -326,7 +341,7 @@ function Today({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me;
       <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId, "overview")} />
 
       <section className="rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-6 text-white shadow-sm">
-        <p className="text-sm text-emerald-200">{new Date().toLocaleDateString("is-IS", { weekday: "long", day: "numeric", month: "long" })}</p>
+        <p className="text-sm text-emerald-200">{longDate(new Date())}</p>
         <h1 className="mt-1 text-2xl font-bold">{greet}, {me.name.split(" ")[0]}</h1>
         <p className="mt-1 text-emerald-100">
           {agenda.length ? `${agenda.length} ${agenda.length === 1 ? "tími" : "tímar"} í dag` : "Engir bókaðir tímar í dag"}
@@ -858,13 +873,13 @@ function Overview({ d, isDoctor, record, compose, reload }: { d: Detail; isDocto
       </Card>
 
       <Card title="Viðtal og eftirfylgd" icon={<CalendarClock className="h-5 w-5" />}>
-        <Booking label="Viðtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode}
+        <Booking label="Viðtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode} meetingUrl={j.meeting_url}
           disabled={!j.report_generated_at} disabledText="Hægt að bóka þegar skýrsla er staðfest."
-          onBook={(at, mode) => run({ event: "interview_booked", at, mode }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
+          onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
         <div className="my-3 border-t border-slate-100" />
-        <Booking label="Eftirfylgd eftir 3 mánuði" at={j.followup_booked_for} done={j.followup_done_at}
+        <Booking label="Eftirfylgd eftir 3 mánuði" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_booked_for ? j.interview_mode : "video"} meetingUrl={j.meeting_url}
           disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
-          onBook={(at) => run({ event: "followup_booked", at }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy} />
+          onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy} />
         {j.followup_booked_for && !j.followup_done_at && (
           <button type="button" disabled={busy} onClick={() => run({ event: "followup_done" }, "Eftirfylgd skráð.")} className={`${btnSecondary} mt-3 w-full`}>Merkja eftirfylgd lokið</button>
         )}
@@ -939,7 +954,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
     firstName: cleanName(d.patient.full_name).split(" ")[0] || "",
     activationCode: code,
     bloodAt: j.blood_test_booked_for, measurementsAt: j.measurements_booked_for,
-    interviewAt: j.interview_booked_for, interviewMode: j.interview_mode, followupAt: j.followup_booked_for,
+    interviewAt: j.interview_booked_for, interviewMode: j.interview_mode, followupAt: j.followup_booked_for, meetingUrl: j.meeting_url,
     bloodSite: "Heilsugæslunni", measurementSite: d.location?.name ? "Veru" : null, interviewSite: null,
     nurseName: d.actor.name,
   }), [d, j, code]);
@@ -1067,9 +1082,10 @@ function Milestone({ label, booked, done, action, busy }: { label: string; booke
   );
 }
 
-function Booking({ label, at, done, mode, disabled, disabledText, onBook, busy, suggest }: {
-  label: string; at: string | null; done: string | null; mode?: string | null; disabled: boolean; disabledText: string;
-  onBook: (at: string, mode: "in_person" | "video") => void; busy: boolean; suggest?: number;
+function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, onBook, busy, suggest }: {
+  label: string; at: string | null; done: string | null; mode?: string | null; meetingUrl?: string | null;
+  disabled: boolean; disabledText: string;
+  onBook: (at: string, mode: "in_person" | "video", meetingUrl: string | null) => void; busy: boolean; suggest?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [when, setWhen] = useState(() => {
@@ -1079,12 +1095,21 @@ function Booking({ label, at, done, mode, disabled, disabledText, onBook, busy, 
     return toLocalInput(d);
   });
   const [m, setM] = useState<"in_person" | "video">(mode === "video" ? "video" : "in_person");
+  const [link, setLink] = useState(meetingUrl ?? "");
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 text-sm">
           <span className="font-semibold text-slate-800">{label}</span><br />
           <span className="text-slate-500">{done ? `Lokið ${dayTime(done)}` : at ? `${dayTime(at)}${mode === "video" ? " · myndsímtal" : ""}` : disabled ? disabledText : "Ekki bókað"}</span>
+          {!done && at && mode === "video" && meetingUrl && (
+            <>
+              <br />
+              <a href={meetingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline">
+                <Video className="h-3.5 w-3.5" /> Opna fjarfund
+              </a>
+            </>
+          )}
         </p>
         {!done && !disabled && !editing && (
           <button type="button" onClick={() => setEditing(true)} className={`${at ? btnSecondary : btnPrimary} min-h-9`}>{at ? "Breyta tíma" : "Bóka"}</button>
@@ -1102,7 +1127,12 @@ function Booking({ label, at, done, mode, disabled, disabledText, onBook, busy, 
               ))}
             </div>
           )}
-          <button type="button" disabled={busy || !when} onClick={() => { onBook(new Date(when).toISOString(), m); setEditing(false); }} className={`${btnPrimary} min-h-9`}>Vista tíma</button>
+          {m === "video" && (
+            <label className="w-full text-xs font-semibold text-slate-600">Hlekkur á fjarfund (Meet, Teams eða Zoom)
+              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://meet.google.com/…"
+                className="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-normal" /></label>
+          )}
+          <button type="button" disabled={busy || !when} onClick={() => { onBook(new Date(when).toISOString(), m, m === "video" ? (link.trim() || null) : null); setEditing(false); }} className={`${btnPrimary} min-h-9`}>Vista tíma</button>
           <button type="button" onClick={() => setEditing(false)} className={`${btnGhost} min-h-9`}>Hætta við</button>
         </div>
       )}

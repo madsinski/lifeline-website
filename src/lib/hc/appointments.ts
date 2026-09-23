@@ -25,7 +25,7 @@ type Kind = "blood" | "measure" | "interview" | "followup";
 const SUFFIX: Record<Kind, string> = { blood: "a0", measure: "a1", interview: "a2", followup: "a3" };
 export const itemId = (journeyId: string, kind: Kind) => `${journeyId.replace(/-/g, "")}${SUFFIX[kind]}`;
 
-const JOURNEY_COLS = "id, client_id, location_id, interviewer_id, blood_test_booked_for, blood_test_done_at, measurements_booked_for, measurements_done_at, interview_booked_for, interview_mode, interview_done_at, followup_booked_for, followup_done_at";
+const JOURNEY_COLS = "id, client_id, location_id, interviewer_id, blood_test_booked_for, blood_test_done_at, measurements_booked_for, measurements_done_at, interview_booked_for, interview_mode, interview_done_at, meeting_url, followup_booked_for, followup_done_at";
 
 /** How far back events are kept; older ones are history and are left alone. */
 const WINDOW_BACK_DAYS = 30;
@@ -64,13 +64,13 @@ export async function clientAppointments(clientId: string): Promise<CalItem[]> {
     if (recent(j.interview_booked_for)) out.push({
       id: itemId(j.id, "interview"), start: j.interview_booked_for!, minutes: 45,
       summary: "Viðtal við hjúkrunarfræðing – Lifeline",
-      description: `${j.interview_mode === "video" ? "Myndsímtal. Hlekkurinn er í sjúklingagáttinni." : "Farið yfir niðurstöður og gerð aðgerðaáætlun."}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
-      location: j.interview_mode === "video" ? "Myndsímtal" : place(loc?.interview_site, loc?.interview_address), reminderMinutes: 120,
+      description: `${j.interview_mode === "video" ? (j.meeting_url ? `Myndsímtal: ${j.meeting_url}` : "Myndsímtal. Hlekkurinn birtist á aðganginum þínum.") : "Farið yfir niðurstöður og gerð aðgerðaáætlun."}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
+      location: j.interview_mode === "video" ? (j.meeting_url ?? "Myndsímtal") : place(loc?.interview_site, loc?.interview_address), reminderMinutes: 120,
     });
     if (recent(j.followup_booked_for)) out.push({
       id: itemId(j.id, "followup"), start: j.followup_booked_for!, minutes: 30,
       summary: "Eftirfylgdarviðtal – Lifeline",
-      description: "Farið yfir árangur og áætlunin uppfærð.\n\nhttps://www.lifelinehealth.is/account/heilsuferd",
+      description: `Farið yfir árangur og áætlunin uppfærð.${j.meeting_url ? `\n\nMyndsímtal: ${j.meeting_url}` : ""}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
       location: place(loc?.interview_site, loc?.interview_address), reminderMinutes: 120,
     });
   }

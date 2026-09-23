@@ -17,6 +17,8 @@ export interface TemplateContext {
   bloodSite?: string | null;
   measurementSite?: string | null;
   interviewSite?: string | null;
+  /** Video-call link, included in the reminder when the appointment is online. */
+  meetingUrl?: string | null;
   nurseName?: string | null;
 }
 
@@ -48,7 +50,7 @@ export const MESSAGE_TEMPLATES: { key: MessageTemplateKey; label: string; subjec
   },
   {
     key: "interview_reminder", label: "Áminning um viðtal", subject: "Áminning: viðtal",
-    body: (c) => `Hæ ${c.firstName}. Minnum á viðtalið ${when(c.interviewAt)}${c.interviewMode === "video" ? " í myndsímtali" : c.interviewSite ? ` á ${c.interviewSite}` : ""}. Við förum yfir niðurstöðurnar og gerum áætlun saman.${SIGN(c)}`,
+    body: (c) => `Hæ ${c.firstName}. Minnum á viðtalið ${when(c.interviewAt)}${c.interviewMode === "video" ? " í myndsímtali" : c.interviewSite ? ` á ${c.interviewSite}` : ""}. Við förum yfir niðurstöðurnar og gerum áætlun saman.${c.meetingUrl ? `\n\nHlekkur á fjarfundinn: ${c.meetingUrl}` : ""}${SIGN(c)}`,
   },
   {
     key: "plan_ready", label: "Áætlun tilbúin", subject: "Aðgerðaáætlunin þín er tilbúin",
@@ -56,7 +58,7 @@ export const MESSAGE_TEMPLATES: { key: MessageTemplateKey; label: string; subjec
   },
   {
     key: "followup_reminder", label: "Áminning um eftirfylgd", subject: "Áminning: eftirfylgdarviðtal",
-    body: (c) => `Hæ ${c.firstName}. Minnum á eftirfylgdarviðtalið ${when(c.followupAt)}. Við förum yfir hvernig hefur gengið og uppfærum áætlunina.${SIGN(c)}`,
+    body: (c) => `Hæ ${c.firstName}. Minnum á eftirfylgdarviðtalið ${when(c.followupAt)}. Við förum yfir hvernig hefur gengið og uppfærum áætlunina.${c.meetingUrl ? `\n\nHlekkur á fjarfundinn: ${c.meetingUrl}` : ""}${SIGN(c)}`,
   },
   { key: "free", label: "Frjáls texti", subject: "Skilaboð frá Lifeline", body: (c) => `Hæ ${c.firstName}. ${SIGN(c).trim()}` },
 ];

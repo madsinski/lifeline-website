@@ -101,6 +101,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     mode: body.mode === "video" ? "video" : body.mode === "in_person" ? "in_person" : null,
     note: typeof body.note === "string" ? body.note.slice(0, 2000) : null,
     interviewerId: typeof body.interviewer_id === "string" ? body.interviewer_id : actor.kind === "worker" ? actor.worker.id : null,
+    meetingUrl: typeof body.meeting_url === "string"
+      ? (/^https:\/\//.test(body.meeting_url.trim()) ? body.meeting_url.trim().slice(0, 500) : null)
+      : undefined,
     origin: siteOrigin(req),
   });
   if (!updated) return NextResponse.json({ error: "update_failed" }, { status: 500 });

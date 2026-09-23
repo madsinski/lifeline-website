@@ -13,7 +13,7 @@ import type { JourneyEvent } from "./events-labels";
 export async function applyJourneyEvent(
   journey: HcJourney,
   event: JourneyEvent,
-  opts: { at?: string | null; actor: string; mode?: "in_person" | "video" | null; note?: string | null; interviewerId?: string | null; origin?: string },
+  opts: { at?: string | null; actor: string; mode?: "in_person" | "video" | null; note?: string | null; interviewerId?: string | null; meetingUrl?: string | null; origin?: string },
 ): Promise<HcJourney | null> {
   const at = opts.at ? new Date(opts.at).toISOString() : new Date().toISOString();
   const patch: Partial<HcJourney> = {};
@@ -35,6 +35,9 @@ export async function applyJourneyEvent(
       patch.interview_booked_for = at;
       patch.interview_mode = opts.mode ?? "in_person";
       if (opts.interviewerId) patch.interviewer_id = opts.interviewerId;
+      // A video appointment carries its link; switching to in person clears it.
+      if (opts.mode === "video") { if (opts.meetingUrl !== undefined) patch.meeting_url = opts.meetingUrl; }
+      else patch.meeting_url = null;
       break;
     case "interview_done":
       patch.interview_done_at = at;
@@ -45,7 +48,10 @@ export async function applyJourneyEvent(
       patch.referral_note = opts.note ?? null;
       patch.referred_at = at;
       break;
-    case "followup_booked": patch.followup_booked_for = at; break;
+    case "followup_booked":
+      patch.followup_booked_for = at;
+      if (opts.mode === "video" && opts.meetingUrl !== undefined) patch.meeting_url = opts.meetingUrl;
+      break;
     case "followup_done": patch.followup_done_at = at; break;
   }
   const updated = await patchJourney(journey.id, patch, opts.actor, `event:${event}`, { note: opts.note ?? null });

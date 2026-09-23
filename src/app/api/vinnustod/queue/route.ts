@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabaseAdmin
     .from("hc_journeys")
-    .select("id, client_id, location_id, stage, entry, paid_at, protocol_activated_at, blood_test_booked_for, blood_test_done_at, blood_results_at, measurements_booked_for, measurements_done_at, report_generated_at, report_sms_sent_at, interview_booked_for, interview_mode, interviewer_id, interview_done_at, plan_published_at, followup_booked_for, followup_done_at, referral_to_heilsugaesla, doctor_review_requested_at, doctor_reviewed_at, updated_at")
+    .select("id, client_id, location_id, stage, entry, paid_at, protocol_activated_at, blood_test_booked_for, blood_test_done_at, blood_results_at, measurements_booked_for, measurements_done_at, report_generated_at, report_sms_sent_at, interview_booked_for, interview_mode, interviewer_id, interview_done_at, meeting_url, plan_published_at, followup_booked_for, followup_done_at, referral_to_heilsugaesla, doctor_review_requested_at, doctor_reviewed_at, updated_at")
     .is("cancelled_at", null)
     .in("stage", ["tests", "report", "interview", "plan", "action", "protocol"])
     .order("updated_at", { ascending: false })

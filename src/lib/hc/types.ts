@@ -63,6 +63,8 @@ export interface HcJourney {
   report_sms_sent_at: string | null;
   interview_booked_for: string | null;
   interview_mode: "in_person" | "video" | null;
+  /** Video-call link for the interview or follow-up (Meet, Teams, Zoom). */
+  meeting_url: string | null;
   interviewer_id: string | null;
   interview_done_at: string | null;
   referral_to_heilsugaesla: boolean;

@@ -290,7 +290,17 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
         <div className="space-y-2 text-sm text-slate-600">
           <p>Í viðtalinu farið þið yfir svefn, hreyfingu, næringu og andlega líðan, mælingar og blóðprufur, og gerið saman áætlun til þriggja mánaða.</p>
           {j.interview_booked_for
-            ? <p className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-900">Bókað: <strong>{fmtDateTime(j.interview_booked_for)}</strong>{j.interview_mode === "video" ? " · myndsímtal" : loc?.interview_site ? ` · ${loc.interview_site}` : ""}</p>
+            ? (
+              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-900">
+                <p>Bókað: <strong>{fmtDateTime(j.interview_booked_for)}</strong>{j.interview_mode === "video" ? " · myndsímtal" : loc?.interview_site ? ` · ${loc.interview_site}` : ""}</p>
+                {j.meeting_url && (
+                  <a href={j.meeting_url} target="_blank" rel="noreferrer"
+                    className="mt-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-[#10B981] px-3 text-sm font-semibold text-white hover:bg-[#047857]">
+                    Fara í fjarfundinn
+                  </a>
+                )}
+              </div>
+            )
             : j.report_generated_at && <a href={portal} target="_blank" rel="noreferrer" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white">Bóka viðtal í sjúklingagátt</a>}
         </div>
       );

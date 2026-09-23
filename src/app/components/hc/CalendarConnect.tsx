@@ -69,7 +69,11 @@ const ago = (iso: string | null) => {
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "rétt í þessu";
   if (s < 3600) return `fyrir ${Math.round(s / 60)} mín.`;
-  return new Date(iso).toLocaleString("is-IS", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  // Written out: a browser without Icelandic locale data falls back to English.
+  const MONTHS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getDate()}. ${MONTHS[d.getMonth()]} kl. ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 /** Compact status line + button that opens the setup. */
