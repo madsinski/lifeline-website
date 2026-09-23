@@ -8,8 +8,8 @@
 // and "Fletta upp" opens the entry behind it. The formal record stays in
 // Medalia — this is the working copy, and the doctor confirms the report.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { BookOpen, Check } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BookOpen, Check, FileUp, Loader2 } from "lucide-react";
 import {
   CATEGORY_IS, TONE_IS, bandForValue, bandRangeText, bandsFor,
   type KnowledgeEntry,
@@ -17,6 +17,17 @@ import {
 import KnowledgeSearch from "./KnowledgeSearch";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
+
+/** One value the AI read out of an uploaded report. */
+export interface ImportedValue {
+  slug: string | null;
+  code: string;
+  label: string;
+  value: number;
+  unit: string;
+  confidence: "high" | "medium" | "low";
+  converted_from?: string;
+}
 
 export interface HcResult {
   marker: string;
@@ -63,6 +74,44 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
   const [msg, setMsg] = useState("");
   const [editing, setEditing] = useState(false);
   const [lookup, setLookup] = useState<string | null>(null);
+  const [reading, setReading] = useState(false);
+  const [found, setFound] = useState<ImportedValue[] | null>(null);
+  const [foundDate, setFoundDate] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [take, setTake] = useState<Record<number, boolean>>({});
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  /** Read a Medalia PDF / lab printout / photos and show what was found. */
+  const readReport = async (files: FileList) => {
+    setReading(true); setMsg(""); setFound(null); setWarnings([]);
+    const fd = new FormData();
+    for (const f of Array.from(files).slice(0, 8)) fd.append("files", f);
+    const r = await api(`/api/vinnustod/journeys/${journeyId}/import`, { method: "POST", body: fd });
+    const j = await r.json().catch(() => ({}));
+    setReading(false);
+    if (!r.ok) { setMsg(j.error || "Lesturinn mistókst."); return; }
+    const values: ImportedValue[] = j.values ?? [];
+    setFound(values);
+    setWarnings(j.warnings ?? []);
+    setFoundDate(j.report?.date_iso ?? null);
+    setTake(Object.fromEntries(values.map((v, i) => [i, v.confidence !== "low"])));
+    if (j.report?.date_iso) setDate(j.report.date_iso);
+    if (!values.length) setMsg("Engin gildi fundust í skránni.");
+  };
+
+  /** Write the ticked values onto the journey. */
+  const saveImported = async () => {
+    if (!found) return;
+    setBusy(true); setMsg("");
+    const values = found
+      .filter((_, i) => take[i])
+      .map((v) => ({ marker: v.slug ?? `x:${v.code}`, value: v.value, unit: v.unit, measured_at: foundDate ?? date, note: v.slug ? null : v.label }));
+    const r = await api("/api/vinnustod/results", { method: "POST", body: JSON.stringify({ journey_id: journeyId, values }) });
+    setBusy(false);
+    if (!r.ok) { setMsg("Tókst ekki að vista."); return; }
+    setFound(null); setMsg(`${values.length} gildi vistuð`);
+    onSaved?.();
+  };
 
   useEffect(() => {
     let live = true;
@@ -102,6 +151,11 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
   }, [markers, valueOf, sex]);
 
   const recorded = markers.filter((e) => { const v = valueOf(e.slug); return v != null && Number.isFinite(v); });
+  // Values read out of a report that our reference book does not cover.
+  const extras = useMemo(
+    () => results.filter((r) => !markers.some((m) => m.slug === r.marker)),
+    [results, markers],
+  );
 
   const save = async () => {
     setBusy(true); setMsg("");
@@ -134,15 +188,72 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
         )}
         <span className="flex-1" />
         {!editing && (
-          <button type="button" onClick={() => setEditing(true)}
-            className="inline-flex min-h-9 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            {recorded.length ? "Breyta gildum" : "Skrá gildi"}
-          </button>
+          <>
+            <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
+              onChange={(e) => { if (e.target.files?.length) void readReport(e.target.files); e.target.value = ""; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={reading}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+              {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+              {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
+            </button>
+            <button type="button" onClick={() => setEditing(true)}
+              className="inline-flex min-h-9 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              {recorded.length ? "Breyta gildum" : "Skrá gildi"}
+            </button>
+          </>
         )}
         <span className="text-xs text-slate-500">{msg}</span>
       </div>
 
-      {recorded.length === 0 && !editing && (
+      {found && found.length > 0 && (
+        <div className="mt-3 rounded-2xl border border-slate-900/10 bg-slate-50 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-slate-900">Úr skýrslunni{foundDate ? ` · ${foundDate}` : ""}</p>
+            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{found.length} gildi fundust</span>
+            <span className="flex-1" />
+            <button type="button" onClick={() => setFound(null)} className="text-sm font-semibold text-slate-500 hover:underline">Hætta við</button>
+          </div>
+          <p className="mt-0.5 text-xs text-slate-500">Farðu yfir gildin áður en þau eru vistuð. Skráin sjálf er hvergi geymd.</p>
+
+          <ul className="mt-2 divide-y divide-slate-200 rounded-xl bg-white">
+            {found.map((v, i) => {
+              const entry = markers.find((m) => m.slug === v.slug);
+              const b = entry && !sexUnknown(entry, sex) ? bandForValue(entry, v.value, sex) : null;
+              return (
+                <li key={`${v.code}-${i}`} className="flex items-center gap-3 px-3 py-2">
+                  <input type="checkbox" checked={!!take[i]} onChange={(e) => setTake({ ...take, [i]: e.target.checked })}
+                    aria-label={`Vista ${entry?.title ?? v.label}`} className="h-4 w-4 accent-emerald-600" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-slate-900">{entry?.title ?? v.label}</span>
+                    <span className="block text-xs text-slate-500">
+                      {[!entry ? "ekki í uppflettiriti" : null,
+                        v.converted_from ? `umreiknað úr ${v.converted_from}` : null,
+                        v.confidence !== "high" ? `öryggi: ${v.confidence === "medium" ? "miðlungs" : "lágt"}` : null,
+                      ].filter(Boolean).join(" · ") || v.label}
+                    </span>
+                  </span>
+                  <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+                    {String(v.value).replace(".", ",")}{v.unit ? ` ${v.unit}` : ""}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {warnings.length > 0 && (
+            <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-amber-800">
+              {warnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          )}
+
+          <button type="button" onClick={saveImported} disabled={busy || !Object.values(take).some(Boolean)}
+            className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
+            <Check className="h-4 w-4" /> Vista valin gildi
+          </button>
+        </div>
+      )}
+
+      {recorded.length === 0 && !editing && !found && (
         <p className="mt-2 text-sm text-slate-500">
           Engin gildi skráð. Skráðu lykilgildin úr blóðprufunni og mælingunni — þau eru þá við höndina í viðtalinu og merkt við viðmið Lifeline.
         </p>
@@ -175,6 +286,23 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved }: {
             );
           })}
         </ul>
+      )}
+
+      {!editing && extras.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Önnur gildi úr skýrslunni</p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {extras.map((r) => (
+              <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-slate-100">
+                <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{r.note || r.marker.replace(/^x:/, "")}</span>
+                <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-sm font-bold tabular-nums text-slate-700 ring-1 ring-slate-200">
+                  {String(r.value).replace(".", ",")}{r.unit ? ` ${r.unit}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-[11px] text-slate-400">Ekki í uppflettiritinu — engin viðmið reiknuð. Bættu við færslu í /admin/knowledge ef þetta á að flaggast.</p>
+        </div>
       )}
 
       {editing && (
