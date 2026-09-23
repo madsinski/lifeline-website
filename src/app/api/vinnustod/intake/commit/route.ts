@@ -54,16 +54,16 @@ export async function POST(req: NextRequest) {
       created = true;
 
       const enc = kt ? (await supabaseAdmin.rpc("enc_kennitala", { p_text: kt })).data : null;
-      const { error: rowErr } = await supabaseAdmin.from("clients_decrypted").insert({
-        id: clientId,
-        email,
-        full_name: fullName,
-        phone: str(c.phone, 40),
-        kennitala_encrypted: enc ?? null,
-      });
+      const row = { email, full_name: fullName, phone: str(c.phone, 40), kennitala_encrypted: enc ?? null, updated_at: new Date().toISOString() };
+      // Creating the auth user already makes the clients row, so fill that one
+      // in rather than inserting a second.
+      const { data: existingRow } = await supabaseAdmin.from("clients_decrypted").select("id").eq("id", clientId).maybeSingle();
+      const { error: rowErr } = existingRow
+        ? await supabaseAdmin.from("clients_decrypted").update(row).eq("id", clientId)
+        : await supabaseAdmin.from("clients_decrypted").insert({ id: clientId, ...row });
       if (rowErr) {
-        // Never leave an auth user behind without the client row that makes
-        // it usable — roll the account back so the nurse can simply retry.
+        // Never leave an auth user behind without a usable client record —
+        // roll the account back so the nurse can simply retry.
         await supabaseAdmin.auth.admin.deleteUser(clientId).catch(() => {});
         return NextResponse.json({ error: `Gat ekki vistað skjólstæðing: ${rowErr.message}` }, { status: 400 });
       }
