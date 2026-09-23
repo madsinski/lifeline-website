@@ -78,7 +78,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
     setBusy(false);
     if (!r.ok) { setMsg(j.error || "Tókst ekki að skrá tilvísun."); return; }
     setStaged([]); setNote("");
-    setMsg(j.note ?? (j.notified ? "Skráð og læknir fékk skeyti." : "Skráð."));
+    setMsg(j.note ?? (j.notified ? "Skráð og skeyti sent til læknis." : "Skráð."));
     onChanged();
   };
 

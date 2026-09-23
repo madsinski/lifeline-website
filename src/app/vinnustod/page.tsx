@@ -33,6 +33,7 @@ import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
 import Referrals, { type ReferralSuggestion } from "@/app/components/hc/Referrals";
+import BookVideo from "@/app/components/hc/BookVideo";
 import type { Referral } from "@/lib/hc/referrals";
 import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
@@ -810,6 +811,10 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
               {d.messages.length > 0 && <span className="ml-1.5 font-normal text-slate-400">{d.messages.length}</span>}
             </h2>
             <Messages d={d} startOpen={compose} reload={load} />
+            <div className="mt-3">
+              <BookVideo api={api} journey={j} onBooked={(kind, at) =>
+                record({ event: kind === "interview" ? "interview_booked" : "followup_booked", at, mode: "video", meeting_url: null })} />
+            </div>
           </section>
           <Drawer title="Þarf tilvísun?" count={(d.referrals ?? []).filter((r) => r.status === "requested").length || undefined} defaultOpen>
             <div className="space-y-3">
