@@ -10,6 +10,7 @@
 // wrapper that adds its own credentials.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import PlanView from "./PlanView";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
@@ -112,17 +113,24 @@ function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) 
 
 function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void }) {
   const last = WIZARD_STEPS.length - 1;
+  const next = step < last ? WIZARD_STEPS[step + 1] : null;
   return (
     <div className="flex items-center gap-2 border-t border-slate-200 pt-3">
       <button type="button" disabled={step === 0} onClick={() => onGo(step - 1)}
         className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">
         Til baka
       </button>
-      <span className="flex-1 text-center text-xs text-slate-400">Skref {step + 1} af {WIZARD_STEPS.length} · {WIZARD_STEPS[step]}</span>
-      <button type="button" disabled={step === last} onClick={() => onGo(step + 1)}
-        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40">
-        Næsta
-      </button>
+      <span className="flex-1 text-center text-xs text-slate-400">Skref {step + 1} af {WIZARD_STEPS.length}</span>
+      {/* The button says where it goes. "Næsta" makes you guess; "Næsta:
+          Æfingar" does not, and that is the whole job of this control. */}
+      {next ? (
+        <button type="button" onClick={() => onGo(step + 1)}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+          Næsta: {next} <ArrowRight className="h-4 w-4" />
+        </button>
+      ) : (
+        <span className="px-4 py-2 text-xs text-slate-400">Síðasta skrefið</span>
+      )}
     </div>
   );
 }

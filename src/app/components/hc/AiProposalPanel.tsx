@@ -8,7 +8,7 @@
 // plan and then drags the actions around as usual.
 
 import { useState } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { ArrowRight, ChevronDown, Loader2, Sparkles } from "lucide-react";
 import { PILLAR_META, type Pillar } from "@/lib/hc/types";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -67,6 +67,10 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
   const [proposal, setProposal] = useState<Proposal | null>(ready?.proposal ?? null);
   const [picked, setPicked] = useState<Record<number, boolean>>(() =>
     ready?.proposal ? tierPick(ready.proposal, ["core", "standard"]) : {});
+  const [scope, setScope] = useState<(typeof PRESETS)[number]["key"]>("core");
+  // Which action's reasoning is open. One at a time: the detail is reference,
+  // not something to read down a list of nine.
+  const [why, setWhy] = useState<number | null>(null);
 
   const run = async () => {
     setBusy(true); setMsg("");
@@ -76,11 +80,13 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
     if (!r.ok) { setMsg(j.error || "Tillagan mistókst."); return; }
     setFlagged(j.flagged ?? []);
     setProposal(j.proposal);
+    setScope("core");
     preset("core", j.proposal);
   };
 
   const preset = (key: (typeof PRESETS)[number]["key"], p: Proposal | null = proposal) => {
     if (!p) return;
+    setScope(key);
     const tiers = PRESETS.find((x) => x.key === key)!.tiers as readonly string[];
     setPicked(Object.fromEntries(p.actions.map((a, i) => [i, tiers.includes(a.tier)])));
   };
@@ -106,73 +112,107 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
       )}
       {msg && <p className="mt-2 text-sm text-red-700">{msg}</p>}
 
+      {/* Reference, not a task: the values are why the proposal says what it
+          says, and they are already on the report above. Folded away. */}
       {flagged && flagged.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-1.5">
-          {flagged.map((f) => (
-            <li key={f.slug} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${SIGNAL_RING[f.signal]}`}>
-              <span className={`h-2 w-2 rounded-full ${SIGNAL_DOT[f.signal]}`} aria-hidden />
-              {f.title} {String(f.value).replace(".", ",")}{f.unit ? ` ${f.unit}` : ""}
-            </li>
-          ))}
-        </ul>
+        <details className="mt-2 text-xs">
+          <summary className="cursor-pointer font-semibold text-slate-600">Gildin sem liggja að baki ({flagged.length})</summary>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {flagged.map((f) => (
+              <li key={f.slug} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ring-1 ${SIGNAL_RING[f.signal]}`}>
+                <span className={`h-2 w-2 rounded-full ${SIGNAL_DOT[f.signal]}`} aria-hidden />
+                {f.title} {String(f.value).replace(".", ",")}{f.unit ? ` ${f.unit}` : ""}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       {proposal && (
         <div className="mt-3 space-y-3">
-          <div className="rounded-xl bg-white p-3">
-            <p className="font-semibold text-slate-900">{proposal.headline}</p>
-            <p className="mt-0.5 text-sm text-slate-600">{proposal.summary}</p>
-            {proposal.focus.length > 0 && (
-              <ul className="mt-2 space-y-1 text-sm">
-                {proposal.focus.map((f, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: PILLAR_META[f.pillar].color }} aria-hidden />
-                    <span><span className="font-semibold text-slate-800">{PILLAR_META[f.pillar].label}:</span> <span className="text-slate-600">{f.why}</span></span>
+          {/* 1 ── the scope. The first real decision, so it comes first and
+                  says what it means rather than needing a hover. */}
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">1. Veldu umfang</p>
+            <div className="flex gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200">
+              {PRESETS.map((pr) => (
+                <button key={pr.key} type="button" onClick={() => preset(pr.key)}
+                  aria-pressed={scope === pr.key}
+                  className={`flex-1 rounded-lg px-2 py-1.5 text-sm font-semibold transition ${
+                    scope === pr.key ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                  {pr.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">{PRESETS.find((x) => x.key === scope)?.hint}</p>
+          </div>
+
+          {/* 2 ── the actions. One line each; the reasoning opens on demand. */}
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
+              2. Hakaðu við það sem fer í áætlunina
+              <span className="ml-1.5 font-normal normal-case tracking-normal text-slate-400">{chosen.length} af {proposal.actions.length} valin</span>
+            </p>
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+              {proposal.actions.map((a, i) => {
+                const meta = PILLAR_META[a.pillar];
+                const open = why === i;
+                return (
+                  <li key={i}>
+                    <div className="flex items-center gap-2 px-2.5 py-2">
+                      <input type="checkbox" checked={!!picked[i]} onChange={(e) => setPicked({ ...picked, [i]: e.target.checked })}
+                        aria-label={`Taka með: ${a.title}`} className="h-4 w-4 shrink-0 accent-emerald-600" />
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden title={meta.label} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-slate-900">{a.title}</span>
+                        <span className="block truncate text-xs text-slate-500">{a.frequency || meta.label}</span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{TIER_IS[a.tier]}</span>
+                      <button type="button" onClick={() => setWhy(open ? null : i)} aria-expanded={open}
+                        aria-label={`Af hverju: ${a.title}`}
+                        className="shrink-0 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                        <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
+                      </button>
+                    </div>
+                    {open && (
+                      <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-2">
+                        <p className="text-sm text-slate-700">{a.detail}</p>
+                        {a.why && <p className="mt-1 text-xs italic text-slate-500">{a.why}</p>}
+                        {!a.module_key && <p className="mt-1 text-[11px] text-slate-400">Ný aðgerð — ekki úr aðgerðasafninu.</p>}
+                      </div>
+                    )}
                   </li>
-                ))}
-              </ul>
-            )}
+                );
+              })}
+            </ul>
           </div>
 
+          {/* 3 ── the only green button on the panel. */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Umfang</span>
-            {PRESETS.map((p) => (
-              <button key={p.key} type="button" onClick={() => preset(p.key)} title={p.hint}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                {p.label}
-              </button>
-            ))}
-            <span className="text-xs text-slate-500">{chosen.length} valin</span>
+            <button type="button" disabled={!chosen.length}
+              onClick={() => onApply(chosen, proposal.headline, proposal.summary)}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
+              3. Setja {chosen.length} aðgerðir í áætlunina <ArrowRight className="h-4 w-4" />
+            </button>
+            {/* The prose the model wrote: useful once, not worth a screen. */}
+            <details className="text-xs">
+              <summary className="cursor-pointer font-semibold text-slate-600">Forsendur tillögunnar</summary>
+              <div className="mt-1.5 max-w-prose rounded-xl bg-white p-3">
+                <p className="font-semibold text-slate-900">{proposal.headline}</p>
+                <p className="mt-0.5 text-sm text-slate-600">{proposal.summary}</p>
+                {proposal.focus.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {proposal.focus.map((f, k) => (
+                      <li key={k} className="flex gap-2 text-sm">
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: PILLAR_META[f.pillar].color }} aria-hidden />
+                        <span><span className="font-semibold text-slate-800">{PILLAR_META[f.pillar].label}:</span> <span className="text-slate-600">{f.why}</span></span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </details>
           </div>
-
-          <ul className="space-y-1.5">
-            {proposal.actions.map((a, i) => {
-              const meta = PILLAR_META[a.pillar];
-              return (
-                <li key={i} className="flex items-start gap-2 rounded-xl bg-white p-2.5">
-                  <input type="checkbox" checked={!!picked[i]} onChange={(e) => setPicked({ ...picked, [i]: e.target.checked })}
-                    aria-label={`Taka með: ${a.title}`} className="mt-1 h-4 w-4 accent-emerald-600" />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-x-2">
-                      <span className="font-semibold text-slate-900">{a.title}</span>
-                      <span className="rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ background: meta.soft, color: meta.color }}>{meta.label}</span>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{TIER_IS[a.tier]}</span>
-                      {a.frequency && <span className="text-xs text-slate-500">{a.frequency}</span>}
-                      {!a.module_key && <span className="text-[11px] text-slate-400">ný aðgerð</span>}
-                    </span>
-                    <span className="mt-0.5 block text-sm text-slate-600">{a.detail}</span>
-                    {a.why && <span className="mt-0.5 block text-xs italic text-slate-500">{a.why}</span>}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-
-          <button type="button" disabled={!chosen.length}
-            onClick={() => onApply(chosen, proposal.headline, proposal.summary)}
-            className="inline-flex min-h-10 items-center rounded-xl bg-[#10B981] px-4 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
-            Setja {chosen.length} aðgerðir í áætlunina
-          </button>
           <p className="text-xs text-slate-500">
             Þú getur dregið aðgerðir til, breytt þeim og bætt við úr safninu eftir að tillagan er sett inn.
           </p>
