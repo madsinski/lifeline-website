@@ -318,7 +318,10 @@ export function parseGrunnheilsa(raw: string): Grunnheilsa {
       reportSignal: signal,
       trend: points.slice(0, -1).map((p) => ({ ...p, value: Math.round(p.value * 100) / 100 })),
       advice: advice.map((a) => a.trim()).filter(Boolean).slice(0, 6),
-      review,
+      // One sentence. The report sometimes runs the whole band legend onto
+      // the same line with no space after the full stop, and then the review
+      // line is four paragraphs of boilerplate.
+      review: review ? review.match(/^[^.!?]*[.!?]/)?.[0]?.trim() ?? review.slice(0, 120) : null,
     });
   }
 
