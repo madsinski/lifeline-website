@@ -61,7 +61,12 @@ export async function POST(req: NextRequest) {
         phone: str(c.phone, 40),
         kennitala_encrypted: enc ?? null,
       });
-      if (rowErr) return NextResponse.json({ error: `Gat ekki vistað skjólstæðing: ${rowErr.message}` }, { status: 400 });
+      if (rowErr) {
+        // Never leave an auth user behind without the client row that makes
+        // it usable — roll the account back so the nurse can simply retry.
+        await supabaseAdmin.auth.admin.deleteUser(clientId).catch(() => {});
+        return NextResponse.json({ error: `Gat ekki vistað skjólstæðing: ${rowErr.message}` }, { status: 400 });
+      }
 
       // Invite, so the person can reach their plan in /account.
       const origin = siteOrigin(req);
