@@ -24,8 +24,9 @@ import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
+import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
-import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar } from "@/lib/hc/types";
+import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { MESSAGE_TEMPLATES, smsSize, type MessageTemplateKey } from "@/lib/hc/message-templates";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -50,9 +51,11 @@ interface Detail {
   journey: Journey;
   patient: { full_name: string | null; kennitala: string | null; email: string | null; phone: string | null; address: string | null; date_of_birth: string | null; sex: string | null };
   results: HcResult[];
+  logs: ActionLog[];
+  prefs: ActionPref[];
   orders: { id: string; kind: string; payment_route: string; paid_at: string | null; activation_code: string | null; activation_redeemed_at: string | null }[];
   audit: { actor: string; action: string; at: string; note: string | null }[];
-  plan: { status: string; published_at: string | null; headline: string | null } | null;
+  plan: { status: string; published_at: string | null; headline: string | null; modules: PlanItem[] } | null;
   location: { name: string } | null;
   actor: { label: string; isDoctor: boolean; name: string | null };
   messages: { id: string; channel: "sms" | "email"; recipient: string; template: string | null; subject: string | null; body: string; status: string; error: string | null; sent_by: string; sent_at: string }[];
@@ -688,6 +691,9 @@ function PatientView({ id, section, compose, me, onBack, onChanged, onSection }:
         </ol>
       </section>
 
+      {/* How the plan is going, once one is published */}
+      {j.plan_published_at && <Adherence d={d} />}
+
       {/* Next task */}
       {task.key !== "none" && (
         <section className={`flex flex-wrap items-center gap-4 rounded-2xl p-4 ${task.tone === "urgent" ? "bg-emerald-600 text-white" : "border border-slate-200 bg-slate-50"}`}>
@@ -722,6 +728,43 @@ function PatientView({ id, section, compose, me, onBack, onChanged, onSection }:
       )}
       {active === "history" && <History audit={d.audit} />}
     </div>
+  );
+}
+
+/** What the client has actually been doing since the plan was published. */
+function Adherence({ d }: { d: Detail }) {
+  const a = adherence(d.plan?.modules ?? [], d.logs ?? [], d.prefs ?? []);
+  const status = nudgeStatus(a, !!d.plan);
+  const hidden = (d.prefs ?? []).filter((p) => p.hidden);
+  const tone = status === "on-track" ? "bg-emerald-50 text-emerald-900 ring-emerald-200"
+    : status === "needs-nudge" ? "bg-amber-50 text-amber-900 ring-amber-200"
+    : "bg-slate-50 text-slate-700 ring-slate-200";
+  return (
+    <section className={`flex flex-wrap items-center gap-4 rounded-2xl px-4 py-3 ring-1 ${tone}`}>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wide opacity-70">Framvinda</p>
+        <p className="font-semibold">{NUDGE_IS[status]}</p>
+      </div>
+      <div className="text-center">
+        <p className="text-xl font-bold tabular-nums">{a.percent}%</p>
+        <p className="text-[11px] opacity-70">7 dagar</p>
+      </div>
+      {a.streak > 1 && (
+        <div className="text-center">
+          <p className="text-xl font-bold tabular-nums">{a.streak}</p>
+          <p className="text-[11px] opacity-70">dagar í röð</p>
+        </div>
+      )}
+      <div className="text-center">
+        <p className="text-xl font-bold tabular-nums">{a.done}/{a.target}</p>
+        <p className="text-[11px] opacity-70">merkingar</p>
+      </div>
+      <span className="flex-1" />
+      <p className="text-sm">
+        {a.lastDoneOn ? `Síðast merkt ${day(a.lastDoneOn)}` : "Ekkert merkt enn"}
+        {hidden.length ? ` · ${hidden.length} lagt til hliðar` : ""}
+      </p>
+    </section>
   );
 }
 

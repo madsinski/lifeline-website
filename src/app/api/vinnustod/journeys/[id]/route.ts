@@ -41,10 +41,15 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const [{ data: orders }, { data: audit }, { data: plan }, { data: loc }, { data: workers }, { data: messages }] = await Promise.all([
     supabaseAdmin.from("hc_orders").select("id, package_key, kind, payment_route, price_isk, amount_charged_isk, paid_at, activation_code, activation_redeemed_at").eq("journey_id", journey.id).order("created_at"),
     supabaseAdmin.from("hc_audit").select("actor, action, at, detail").eq("journey_id", journey.id).order("at", { ascending: false }).limit(60),
-    supabaseAdmin.from("hc_action_plans").select("id, status, published_at, updated_at, headline").eq("journey_id", journey.id).maybeSingle(),
+    supabaseAdmin.from("hc_action_plans").select("id, status, published_at, updated_at, headline, modules").eq("journey_id", journey.id).maybeSingle(),
     journey.location_id ? supabaseAdmin.from("hc_locations").select("id, name").eq("id", journey.location_id).maybeSingle() : Promise.resolve({ data: null }),
     supabaseAdmin.from("hc_workers").select("id, name, organization, role").eq("active", true),
     supabaseAdmin.from("hc_messages").select("id, channel, recipient, template, subject, body, status, error, sent_by, sent_at").eq("journey_id", journey.id).order("sent_at", { ascending: false }).limit(50),
+  ]);
+  const since = new Date(Date.now() - 28 * 86400_000).toISOString().slice(0, 10);
+  const [{ data: logs }, { data: prefs }] = await Promise.all([
+    supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journey.id).gte("done_on", since),
+    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note").eq("journey_id", journey.id),
   ]);
   const { data: results } = await supabaseAdmin
     .from("hc_results")
@@ -63,6 +68,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       sex: profile?.sex ?? null,
     },
     results: results || [],
+    logs: logs || [],
+    prefs: prefs || [],
     orders: orders || [],
     audit: (audit || []).map((a) => ({ actor: a.actor, action: a.action, at: a.at, note: (a.detail as { note?: string } | null)?.note ?? null })),
     plan,

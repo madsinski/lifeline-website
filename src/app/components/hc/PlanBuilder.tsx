@@ -256,17 +256,17 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed }: {
     <div className="space-y-4">
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[150px] flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Aðgerðaáætlun</p>
           <p className="truncate font-semibold text-[#0F172A]">{clientName || "Skjólstæðingur"}</p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
           {status === "published" ? (dirty ? "Birt · óvistaðar breytingar" : "Birt") : dirty ? "Óvistað" : status === "draft" ? "Drög" : "Ný"}
         </span>
         <select
           value=""
           onChange={(e) => e.target.value && applyTemplate(e.target.value)}
-          className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-sm"
           aria-label="Byrja út frá sniðmáti"
         >
           <option value="">Byrja út frá sniðmáti…</option>
