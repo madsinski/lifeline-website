@@ -51,18 +51,18 @@ async function pdfText(files: ReportFile[]): Promise<string> {
 /**
  * Grunnheilsa rows → the flat value list the rest of the workstation speaks.
  *
- * Only measurements and blood values carry their hc_knowledge slug, because
- * only those sit on the same scale as that entry's reference bands. A 0–10
- * lifestyle score does not: nine of them share the "stodaeinkunnir" entry and
- * would overwrite each other, and a score whose questionnaire runs the other
- * way (PGSI, CIUS) would come back out of hc_results wearing the wrong light.
- * Scores keep their own key instead and are read from the report itself.
+ * Every row carries its hc_knowledge slug, and each slug is on the same scale
+ * as the value: the 0–10 scores point at their own "skor-*" entries, not at
+ * the questionnaire behind them. That matters twice over — nine of them used
+ * to share "stodaeinkunnir" and overwrite each other in hc_results, and a
+ * score pointed at PGSI or CIUS came back out wearing the inverted light.
+ * See scripts/hc-seed-score-knowledge.mjs.
  */
 export function valuesFromReport(report: Grunnheilsa): MappedValue[] {
   return report.items
     .filter((i) => i.slug || i.kind === "score" || i.kind === "risk")
     .map((i) => ({
-      slug: i.kind === "score" ? null : i.slug ?? null,
+      slug: i.slug ?? null,
       code: i.key.toUpperCase(),
       label: i.title,
       value: i.value,
