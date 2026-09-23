@@ -106,6 +106,13 @@ const WEEKDAYS_IS = ["sun.", "mán.", "þri.", "mið.", "fim.", "fös.", "lau."]
 const WEEKDAYS_LONG_IS = ["sunnudagur", "mánudagur", "þriðjudagur", "miðvikudagur", "fimmtudagur", "föstudagur", "laugardagur"];
 const MONTHS_LONG_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
 /** "miðvikudagur 23. september" */
+/** "2026-09-20" → "20. september 2026". A browser without the Icelandic
+ *  locale prints "September 20, 2026" mid-page, so this is done by hand. */
+const isDate = (iso: string | null) => {
+  const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${Number(m[3])}. ${MONTHS_LONG_IS[Number(m[2]) - 1]} ${m[1]}` : (iso ?? "");
+};
+
 const longDate = (d: Date) => `${WEEKDAYS_LONG_IS[d.getDay()]} ${d.getDate()}. ${MONTHS_LONG_IS[d.getMonth()]}`;
 const MONTHS_IS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
 const clock = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -881,7 +888,7 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
       icon: <Droplet className="h-4 w-4" />,
       state: hasResults ? "done" : resultsIn ? "current" : "waiting",
       status: d.report
-        ? `Heilsufarsskýrsla ${d.report.report.reportDate ?? ""} · ${d.report.report.items.length} niðurstöður`.trim()
+        ? `Heilsufarsskýrsla ${isDate(d.report.report.reportDate)} · ${d.report.report.items.length} niðurstöður`.trim()
         : hasResults
           ? `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`
           : resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga",
