@@ -1423,12 +1423,16 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
         <p className="min-w-0 flex-1 text-sm">
           <span className="font-semibold text-slate-800">{label}</span><br />
           <span className="text-slate-500">{done ? `Lokið ${dayTime(done)}` : at ? `${dayTime(at)}${mode === "video" ? " · myndsímtal" : ""}` : disabled ? disabledText : "Ekki bókað"}</span>
-          {!done && at && mode === "video" && meetingUrl && (
+          {!done && at && mode === "video" && (
             <>
               <br />
-              <a href={meetingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline">
-                <Video className="h-3.5 w-3.5" /> Opna fjarfund
-              </a>
+              {meetingUrl ? (
+                <a href={meetingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline">
+                  <Video className="h-3.5 w-3.5" /> Opna fjarfund
+                </a>
+              ) : (
+                <span className="text-amber-800">Myndsímtal án hlekks — bættu honum við svo hann fylgi í dagatalið og til skjólstæðingsins.</span>
+              )}
             </>
           )}
         </p>
@@ -1449,9 +1453,24 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
             </div>
           )}
           {m === "video" && (
-            <label className="w-full text-xs font-semibold text-slate-600">Hlekkur á fjarfund (Meet, Teams eða Zoom)
-              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://meet.google.com/…"
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-normal" /></label>
+            <div className="w-full">
+              <label className="text-xs font-semibold text-slate-600">Hlekkur á fjarfund (Meet, Teams eða Zoom)
+                <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://meet.google.com/…"
+                  className="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-normal" /></label>
+              {/* We hold the narrow calendar.app.created scope on purpose — it
+                  cannot touch anyone's own calendar and needs no yearly Google
+                  security assessment — and that scope cannot mint a Meet link.
+                  So the nurse makes one in a click and pastes it back; it then
+                  travels with the booking into the calendar event, the
+                  client's account and the reminder. */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <a href="https://meet.google.com/new" target="_blank" rel="noreferrer"
+                  className={`${btnSecondary} min-h-8 px-2.5 text-xs`}>
+                  <Video className="h-3.5 w-3.5" /> Búa til Google Meet
+                </a>
+                <span className="text-[11px] text-slate-500">Opnast í nýjum flipa — afritaðu slóðina og límdu hér að ofan.</span>
+              </div>
+            </div>
           )}
           <button type="button" disabled={busy || !when} onClick={() => { onBook(new Date(when).toISOString(), m, m === "video" ? (link.trim() || null) : null); setEditing(false); }} className={`${btnPrimary} min-h-9`}>Vista tíma</button>
           <button type="button" onClick={() => setEditing(false)} className={`${btnGhost} min-h-9`}>Hætta við</button>
