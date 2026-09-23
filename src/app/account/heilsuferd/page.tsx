@@ -196,7 +196,7 @@ const SHORT_IS: Record<string, string> = {
   profile: "Upplýsingar",
   welcome: "Fyrirlestur",
   package: "Greiðsla",
-  tests: "Virkjun og próf",
+  tests: "Virkjun",
   report: "Skýrsla",
   interview: "Viðtal",
   plan: "Áætlun",
