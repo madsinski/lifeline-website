@@ -35,6 +35,7 @@ const exerciseSchema = z.object({
     minutes: z.number().nullable(),
     items: z.array(z.object({
       exercise_id: z.string().describe("id ÚR SAFNINU sem fylgir. Aldrei annað."),
+      name_is: z.string().describe("Heiti æfingarinnar á íslensku. Safnið er á ensku og skjólstæðingurinn les íslensku — t.d. „Lat Pulldown“ verður „Niðurtog“."),
       prescription: z.string().describe("Lotur og endurtekningar, t.d. „3 × 8–12“ eða „40 mín.“"),
       note: z.string().nullable().describe("Ein stutt ábending ef þörf er. Íslenska."),
       block: z.enum(["warmup", "main", "finisher"]).nullable(),
@@ -46,7 +47,7 @@ const exerciseSchema = z.object({
 const nutritionSchema = z.object({
   day_example: z.array(z.object({
     meal: z.string().describe("Máltíðin, t.d. „Morgunmatur“, „Hádegi“, „Millimál“, „Kvöldmatur“"),
-    example: z.string().describe("Hvað er á borðinu. Íslenska, hnitmiðað."),
+    example: z.string().describe("Hvað er á borðinu, á ÍSLENSKU. Máltíðasafnið er á ensku — þýddu heitið, ekki afritaðu það."),
     meal_id: z.string().nullable().describe("id úr máltíðasafninu ef ein þeirra passar, annars null"),
   })).describe("Dagur eins og hann getur litið út, 3–5 máltíðir"),
   note: z.string().describe("Tvær til fjórar setningar til skjólstæðingsins. Íslenska."),
@@ -73,7 +74,8 @@ Reglur sem þú mátt ekki brjóta:
 • Notaðu EINGÖNGU exercise_id eða meal_id úr safninu sem fylgir. Aldrei búa til æfingu eða máltíð sem er ekki þar.
 • Taktu mið af mæligildum og af því sem áætlunin tekur á. Ef verkir eru nefndir skaltu velja hreyfingar sem forðast þá og segja það í note.
 • Þú greinir ekki sjúkdóma, ávísar ekki meðferð og lofar engum árangri.
-• Allur texti er á íslensku og ávarpar skjólstæðinginn með „þú“.`;
+• Allur texti er á íslensku og ávarpar skjólstæðinginn með „þú“.
+• SAFNIÐ ER Á ENSKU en skjólstæðingurinn les íslensku. Skilaðu id-inu óbreyttu og heitinu á íslensku.`;
 
 interface LibRow {
   id: string;
@@ -186,7 +188,9 @@ export async function composeProgram(opts: {
           const e = byId.get(it.exercise_id);
           if (!e) { dropped++; return acc; }
           acc.push({
-            name: e.name,
+            // The Icelandic name is what the client reads; the id is what
+            // carries the illustration, the cues and the muscles.
+            name: it.name_is?.trim() || e.name,
             prescription: it.prescription,
             note: it.note,
             exercise_id: e.id,
@@ -228,10 +232,11 @@ export async function composeProgram(opts: {
     const names = new Map(lib.map((m) => [m.id, m.name]));
     let dropped = 0;
     const day_example = (out.day_example ?? []).map((d) => {
-      // A named meal from the library is better than a paraphrase of it.
       if (d.meal_id && !names.has(d.meal_id)) dropped++;
-      const fromLib = d.meal_id ? names.get(d.meal_id) : null;
-      return { meal: d.meal, example: fromLib ? `${fromLib} — ${d.example}` : d.example };
+      // The model has already written the meal in Icelandic. Prefixing the
+      // library's English name produced "Salmon quinoa bowl — Salmon quinoa
+      // bowl. Byrjaðu á…", so it is left alone.
+      return { meal: d.meal, example: d.example.trim() };
     });
     return { ok: true, result: { day_example, note: out.note, dropped } };
   } catch (e) {
