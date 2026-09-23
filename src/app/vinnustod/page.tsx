@@ -689,7 +689,12 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
     live.find((x) => x.state === "waiting") ??
     live.find((x) => x.state === "upcoming") ??
     live.at(-1);
-  const shownOpen = touched ? openStep : current?.key ?? null;
+  // Once a report is in, that is what the nurse is here to read — the whole
+  // interview is spent on it. Opening the current step instead buried it
+  // behind a one-line summary and it looked as though the questionnaire had
+  // never imported.
+  const landOn = d.report ? "results" : current?.key ?? null;
+  const shownOpen = touched ? openStep : landOn;
 
   return (
     <div className="space-y-4">
