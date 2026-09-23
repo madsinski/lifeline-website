@@ -251,8 +251,19 @@ function parseRecommendations(region: string): ReportRecommendation[] {
     const chunk = region.slice(from, to);
     // The recommendation ends at its last full stop; the rest names the next.
     const cut = chunk.lastIndexOf(".");
-    const text = tidy(cut >= 0 ? chunk.slice(0, cut + 1) : chunk);
+    let text = tidy(cut >= 0 ? chunk.slice(0, cut + 1) : chunk);
     const next = cut >= 0 ? tidy(chunk.slice(cut + 1)) : "";
+
+    // Some rows carry no full stop at all and the cells simply run together
+    // ("Mjög há áhættaÞarf frekara mat…"). A lower-case letter followed
+    // straight by a capital is where one cell ended and the next began.
+    if (!component) {
+      const glue = text.search(/[a-zá-öð-ÿ](?=[A-ZÁÉÍÓÚÝÐÞÆÖ])/u);
+      if (glue > 0 && glue < 40) {
+        component = tidy(text.slice(0, glue + 1));
+        text = tidy(text.slice(glue + 1));
+      }
+    }
     if (text && priority !== "green" && !isBalance(text) && text.length <= 240) {
       out.push({ component: asComponent(component), text, priority });
     }
@@ -267,7 +278,16 @@ function parseRecommendations(region: string): ReportRecommendation[] {
     const had = best.get(key);
     if (!had || rank[r.priority] < rank[had.priority]) best.set(key, r);
   }
-  return [...best.values()].sort((a, b) => rank[a.priority] - rank[b.priority]);
+
+  // The same advice can arrive twice: once where the component name was
+  // readable and once where it was the tail of the previous cell and got
+  // dropped. Same words, so keep the labelled one.
+  const byText = new Map<string, ReportRecommendation>();
+  for (const r of best.values()) {
+    const had = byText.get(r.text);
+    if (!had || (!had.component && r.component) || rank[r.priority] < rank[had.priority]) byText.set(r.text, r);
+  }
+  return [...byText.values()].sort((a, b) => rank[a.priority] - rank[b.priority]);
 }
 
 /** PDF text as the extractor gives it: soft hyphens, words split over lines. */
