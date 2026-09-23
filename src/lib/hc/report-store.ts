@@ -2,13 +2,19 @@
 // Server-only (reads hc_knowledge and hc_reports).
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { bandForValue, type KnowledgeEntry } from "./knowledge";
+import { bandForValue, type KnowledgeEntry, type ReportReference } from "./knowledge";
 import { signalsForReport, type Grunnheilsa, type Signal } from "./grunnheilsa";
 import { sexOf } from "./sex";
+
+export type { ReportReference };
 
 export interface StoredReport {
   report: Grunnheilsa;
   signals: Record<string, Signal | null>;
+  /** Keyed by report item key, so the view needs no slug logic of its own. */
+  reference: Record<string, ReportReference>;
+  /** Which sex the bands were read for — a row can say so when it matters. */
+  sex: "m" | "f" | null;
   method: "local" | "ai";
   created_at: string;
 }
@@ -23,7 +29,10 @@ export async function loadReport(journeyId: string, clientId: string): Promise<S
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabaseAdmin.from("hc_knowledge").select("slug, bands, unit, title").eq("active", true),
+    supabaseAdmin
+      .from("hc_knowledge")
+      .select("slug, bands, unit, title, summary, higher_better, improves, worsens")
+      .eq("active", true),
     supabaseAdmin.from("clients_decrypted").select("sex").eq("id", clientId).maybeSingle(),
   ]);
   if (!row?.payload) return null;
@@ -41,9 +50,28 @@ export async function loadReport(journeyId: string, clientId: string): Promise<S
     return b.tone === "good" ? "green" : b.tone === "watch" ? "yellow" : "red";
   };
 
+  // The reference entry for every row that has one, keyed by the row so the
+  // view does not have to know about slugs at all.
+  const reference: Record<string, ReportReference> = {};
+  for (const item of report.items) {
+    const e = item.slug ? bySlug.get(item.slug) : undefined;
+    if (!e) continue;
+    reference[item.key] = {
+      title: e.title,
+      unit: e.unit,
+      summary: e.summary,
+      bands: e.bands ?? [],
+      higher_better: e.higher_better,
+      improves: (e as unknown as { improves?: string[] }).improves ?? [],
+      worsens: (e as unknown as { worsens?: string[] }).worsens ?? [],
+    };
+  }
+
   return {
     report,
     signals: signalsForReport(report, band),
+    reference,
+    sex,
     method: row.method === "ai" ? "ai" : "local",
     created_at: row.created_at,
   };

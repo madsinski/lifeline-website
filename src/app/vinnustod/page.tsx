@@ -30,6 +30,7 @@ import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCa
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
+import type { ReportReference } from "@/lib/hc/knowledge";
 import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar, type PlanItem } from "@/lib/hc/types";
@@ -58,7 +59,14 @@ interface Detail {
   journey: Journey;
   patient: { full_name: string | null; kennitala: string | null; email: string | null; phone: string | null; address: string | null; date_of_birth: string | null; sex: string | null };
   results: HcResult[];
-  report: { report: Grunnheilsa; signals: Record<string, ReportSignal | null>; method: "local" | "ai"; created_at: string } | null;
+  report: {
+    report: Grunnheilsa;
+    signals: Record<string, ReportSignal | null>;
+    reference?: Record<string, ReportReference>;
+    sex?: "m" | "f" | null;
+    method: "local" | "ai";
+    created_at: string;
+  } | null;
   logs: ActionLog[];
   prefs: ActionPref[];
   orders: { id: string; kind: string; payment_route: string; paid_at: string | null; activation_code: string | null; activation_redeemed_at: string | null }[];
@@ -833,7 +841,8 @@ function ResultsStep({ d, api, record, reload }: {
     <div className="space-y-4">
       {d.report && (
         <>
-          <ReportView report={d.report.report} signals={d.report.signals} />
+          <ReportView report={d.report.report} signals={d.report.signals}
+            reference={d.report.reference} sex={d.report.sex} />
           <p className="text-xs text-slate-500">
             Umferðarljósin eru viðmið Lifeline — þau sömu og í appinu. Skýrslan frá Medalia notar eigin orðalag og mörk, og þar sem
             þeim ber ekki saman birtist orðalag hennar við gildið.

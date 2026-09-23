@@ -31,6 +31,21 @@ export interface KnowledgeEntry {
   sort: number;
 }
 
+/**
+ * What one report row needs in order to teach: its range, why the number
+ * matters, and what moves it either way. Built server-side (report-store)
+ * and handed to the view, which then needs no slug logic of its own.
+ */
+export interface ReportReference {
+  title: string;
+  unit: string | null;
+  summary: string;
+  bands: KnowledgeBand[];
+  higher_better: boolean | null;
+  improves: string[];
+  worsens: string[];
+}
+
 export const CATEGORY_IS: Record<KnowledgeCategory, string> = {
   blood: "Blóðprufa",
   body: "Mælingar",

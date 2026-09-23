@@ -13,6 +13,7 @@ import MyActions from "@/app/components/hc/MyActions";
 import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSignals";
 import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
+import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan } from "@/lib/hc/types";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 
@@ -24,7 +25,12 @@ interface Loaded {
   logs: ActionLog[];
   prefs: ActionPref[];
   flagged: FlaggedValue[];
-  report: { report: Grunnheilsa; signals: Record<string, ReportSignal | null> } | null;
+  report: {
+    report: Grunnheilsa;
+    signals: Record<string, ReportSignal | null>;
+    reference?: Record<string, ReportReference>;
+    sex?: "m" | "f" | null;
+  } | null;
 }
 
 export default function PlanPage() {
@@ -112,7 +118,8 @@ function PlanPageInner() {
               )}
               {tab === "report" && data.report && (
                 <div className="print:hidden">
-                  <ReportView report={data.report.report} signals={data.report.signals} audience="client" />
+                  <ReportView report={data.report.report} signals={data.report.signals}
+                    reference={data.report.reference} sex={data.report.sex} audience="client" />
                   <p className="mt-4 px-1 text-xs leading-relaxed text-slate-500">
                     Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Læknir fer yfir niðurstöðurnar með þér og
                     fullbúna skýrslan er í sjúklingagáttinni.
