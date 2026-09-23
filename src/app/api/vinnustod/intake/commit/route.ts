@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       created = true;
 
       const enc = kt ? (await supabaseAdmin.rpc("enc_kennitala", { p_text: kt })).data : null;
-      const row = { email, full_name: fullName, phone: str(c.phone, 40), kennitala_encrypted: enc ?? null, updated_at: new Date().toISOString() };
+      const row = { email, full_name: fullName, phone: str(c.phone, 40), kennitala_encrypted: enc ?? null, kennitala_last4: kt ? kt.slice(-4) : null, updated_at: new Date().toISOString() };
       // Creating the auth user already makes the clients row, so fill that one
       // in rather than inserting a second.
       const { data: existingRow } = await supabaseAdmin.from("clients_decrypted").select("id").eq("id", clientId).maybeSingle();
