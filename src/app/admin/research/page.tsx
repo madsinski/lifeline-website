@@ -1382,7 +1382,20 @@ function AreaDetail({ area }: { area: InsightArea }) {
       <div className="grid md:grid-cols-3 gap-6 mt-5">
         <div>
           <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Staðan</div>
-          {area.factGroups.length === 0 && <p className="text-sm text-gray-400">Engin gögn.</p>}
+          {area.factGroups.length === 0 && area.subScores.length === 0 && <p className="text-sm text-gray-400">Engin gögn.</p>}
+          {area.subScores.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs font-medium text-gray-500 mb-1.5">Undireinkunnir (0–10, 10 er best)</div>
+              <div className="space-y-2">
+                {area.subScores.map((sc) => (
+                  <div key={sc.label} title={`${sc.below6} af ${sc.n} undir 6`}>
+                    <div className="flex justify-between gap-2 text-xs"><span className="text-gray-700">{sc.label}</span><span className={`font-semibold tabular-nums ${sc.mean >= 7 ? "text-emerald-700" : sc.mean >= 5 ? "text-amber-600" : "text-orange-700"}`}>{sc.mean.toLocaleString("is-IS", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span></div>
+                    <div className="h-1.5 mt-1 rounded-full bg-gray-100"><div className={`h-full rounded-full ${sc.mean >= 7 ? "bg-emerald-500" : sc.mean >= 5 ? "bg-amber-400" : "bg-orange-500"}`} style={{ width: `${sc.mean * 10}%` }} /></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="space-y-4">
             {area.factGroups.map((g) => (
               <div key={g.title}>
@@ -1421,10 +1434,11 @@ function AreaDetail({ area }: { area: InsightArea }) {
             {area.change.map((c) => (
               <div key={c.label} className="rounded-lg bg-white border border-gray-100 px-3 py-2">
                 <div className="text-xs text-gray-500">{c.label}</div>
-                <div className={`text-lg font-bold tabular-nums ${c.tone === "good" ? "text-emerald-700" : c.tone === "bad" ? "text-orange-700" : "text-gray-800"}`}>{c.value}</div>
+                <div className={`${c.value.length > 16 ? "text-sm" : "text-lg"} font-bold tabular-nums ${c.tone === "good" ? "text-emerald-700" : c.tone === "bad" ? "text-orange-700" : "text-gray-800"}`}>{c.value}</div>
                 {c.note && <div className="text-[11px] text-gray-500">{c.note}</div>}
               </div>
             ))}
+            {area.changeNote && <p className="text-[11px] text-gray-500 leading-snug">{area.changeNote}</p>}
             {area.changePending && <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">{area.changePending}</p>}
           </div>
         </div>

@@ -8,7 +8,7 @@
 // (share of participants), links to risk markers (age-adjusted, only
 // p < 0.05, any direction), and change (measured or self-reported).
 
-import type { CohortInsights, HabitFact, MatrixCell } from "./lifestyle";
+import type { CohortInsights, HabitFact, MatrixCell, SubScore } from "./lifestyle";
 import type { MetricResult } from "./before-after";
 
 export type AreaKey = "body" | "exercise" | "nutrition" | "sleep" | "mental";
@@ -24,8 +24,27 @@ export interface InsightArea {
   headline: string;         // one relatable sentence
   factGroups: { title: string; facts: AreaFact[] }[];
   links: { text: string; expected: boolean }[];   // "Betri hreyfivenjur tengdust lægra BMI."
+  subScores: SubScore[];    // 0–10 component scores for the area
   change: AreaChange[];
+  changeNote?: string;      // caveat under the change list
   changePending?: string;   // shown when no change data yet
+}
+
+const EXPLORATORY = "Könnunarleg greining: Lífsstíll var aðeins metinn við heilsufarsskoðun, svo hér er mæld breyting á þyngd og blóðþrýstingi borin saman eftir venjum við upphaf. Hóparnir byrjuðu ekki á sama blóðþrýstingi og margir samanburðir auka líkur á tilviljun; túlka varlega.";
+
+function habitChangeRows(ins: CohortInsights, area: string, subject: string): AreaChange[] {
+  return (ins.habitChange?.[area] ?? []).map((g) => {
+    const parts: string[] = [];
+    if (g.sbp) parts.push(`blóðþrýstingur ${g.sbp.delta > 0 ? "+" : g.sbp.delta < 0 ? "−" : ""}${num(Math.abs(g.sbp.delta))} mmHg${g.sbp.p !== null && g.sbp.p < 0.05 ? "*" : ""}`);
+    if (g.weight) parts.push(`þyngd ${g.weight.delta > 0 ? "+" : g.weight.delta < 0 ? "−" : ""}${num(Math.abs(g.weight.delta))} kg${g.weight.p !== null && g.weight.p < 0.05 ? "*" : ""}`);
+    const sig = (g.sbp?.p ?? 1) < 0.05 && (g.sbp?.delta ?? 0) < 0;
+    return {
+      label: `${subject} ${g.label.toLowerCase()} (${g.n} manns)`,
+      value: parts.join(" · "),
+      tone: sig ? "good" : "neutral",
+      note: g.sbp ? `Blóðþrýstingur við upphaf ${num(g.sbp.baseline, 0)} mmHg.${sig ? " Marktæk lækkun (*)." : ""}` : undefined,
+    } as AreaChange;
+  });
 }
 
 const num = (x: number, d = 1) => x.toLocaleString("is-IS", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -127,16 +146,17 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       { title: "Nikótín, koffín og áfengi", facts: habits(ins, "substances") },
     ].filter((g) => g.facts.length),
     links: linkSentences(ins, null, null).filter((l) => !l.text.includes("þunglyndis")),
+    subScores: ins.subScores?.body ?? [],
     change: bodyChange,
   });
 
   // ── 2–4. Lifestyle pillars ──
-  const lifestyle: { key: AreaKey; pillarKey: string; title: string; row: string; surveyLabel: string; what: string; lead: (f: AreaFact[]) => string }[] = [
-    { key: "exercise", pillarKey: "exercise", title: "Hreyfing", row: "lifeline_health_exercise_behavioural_score", surveyLabel: "Hreyfing", what: "hreyfingu",
+  const lifestyle: { key: AreaKey; pillarKey: string; title: string; subject: string; row: string; surveyLabel: string; what: string; lead: (f: AreaFact[]) => string }[] = [
+    { key: "exercise", pillarKey: "exercise", title: "Hreyfing", subject: "Hreyfivenjur", row: "lifeline_health_exercise_behavioural_score", surveyLabel: "Hreyfing", what: "hreyfingu",
       lead: (f) => f[0] ? `${pct(f[0].n, f[0].of)}% ${f[0].label}.` : "" },
-    { key: "nutrition", pillarKey: "nutrition", title: "Næring", row: "lifeline_health_nutrition_behavioural_score", surveyLabel: "Mataræði", what: "mataræði",
+    { key: "nutrition", pillarKey: "nutrition", title: "Næring", subject: "Matarvenjur", row: "lifeline_health_nutrition_behavioural_score", surveyLabel: "Mataræði", what: "mataræði",
       lead: (f) => f[0] ? `${pct(f[0].n, f[0].of)}% ${f[0].label}.` : "" },
-    { key: "sleep", pillarKey: "sleep", title: "Svefn", row: "lifeline_health_sleep_behaviour_score", surveyLabel: "Svefn", what: "svefni",
+    { key: "sleep", pillarKey: "sleep", title: "Svefn", subject: "Svefnvenjur", row: "lifeline_health_sleep_behaviour_score", surveyLabel: "Svefn", what: "svefni",
       lead: (f) => f[0] ? `${pct(f[0].n, f[0].of)}% ${f[0].label}.` : "" },
   ];
   const weakest = [...ins.pillars].filter((p) => ["sleep", "exercise", "nutrition"].includes(p.key)).sort((a, b) => (a.mean ?? 99) - (b.mean ?? 99))[0];
@@ -154,7 +174,9 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       headline: `${weakest?.key === l.pillarKey ? "Veikasta stoð hópsins. " : ""}${l.lead(f)}${links.find((x) => x.expected) ? ` ${links.find((x) => x.expected)!.text}` : ""}`.trim(),
       factGroups: f.length ? [{ title: "Venjur við heilsufarsskoðun", facts: f }] : [],
       links,
-      change: sc.change,
+      subScores: ins.subScores?.[l.pillarKey] ?? [],
+      change: [...habitChangeRows(ins, l.pillarKey, l.subject), ...sc.change],
+      changeNote: ins.habitChange?.[l.pillarKey]?.length ? EXPLORATORY : undefined,
       changePending: sc.pending,
     });
   }
@@ -175,7 +197,9 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       + " við heilsufarsskoðunina." + (linkSentences(ins, null, "phq9").find((x) => x.expected) ? ` ${linkSentences(ins, null, "phq9").find((x) => x.expected)!.text}` : ""),
     factGroups: mf.length ? [{ title: "Við heilsufarsskoðun", facts: mf }] : [],
     links: linkSentences(ins, null, "phq9"),
-    change: [...ms.change, ...energy.change],
+    subScores: ins.subScores?.mental ?? [],
+    change: [...habitChangeRows(ins, "mental", "Streitueinkunn"), ...ms.change, ...energy.change],
+    changeNote: ins.habitChange?.mental?.length ? EXPLORATORY : undefined,
     changePending: ms.pending,
   });
 

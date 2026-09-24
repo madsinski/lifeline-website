@@ -14,7 +14,9 @@
 //
 // Pure functions; the route loads the rows.
 
-import type { ObsRow, PatientRow, BeforeAfterResult, ProfileItem } from "./before-after";
+import type { ObsRow, PatientRow, BeforeAfterResult, ProfileItem, Pair } from "./before-after";
+import { buildPairs } from "./before-after";
+import { wilcoxonSignedRank } from "./stats";
 
 export interface AnswerRow {
   medalia_patient_id: string;
@@ -256,4 +258,82 @@ export interface CohortInsights {
   habits: HabitFact[];
   matrix: RiskMatrix;
   survey: SurveyChange | null;
+  subScores: Record<string, SubScore[]>;
+  habitChange: Record<string, HabitGroupChange[]>;
+}
+
+// ── sub-scores (all 0–10, higher is better) ───────────────────────
+export interface SubScore { label: string; mean: number; n: number; below6: number }
+export const SUBSCORES: Record<string, { label: string; feature: string }[]> = {
+  sleep: [
+    { label: "Svefnvenjur", feature: "lifeline_health_sleep_behaviour_score" },
+    { label: "Læknisfræðilegir þættir (til dæmis kæfisvefn og verkir)", feature: "lifeline_health_sleep_medical_score" },
+  ],
+  exercise: [
+    { label: "Hreyfivenjur", feature: "lifeline_health_exercise_behavioural_score" },
+    { label: "Læknisfræðilegir þættir (verkir, sjúkdómar)", feature: "lifeline_health_exercise_medical_score" },
+  ],
+  nutrition: [
+    { label: "Matarvenjur", feature: "lifeline_health_nutrition_behavioural_score" },
+    { label: "Læknisfræðilegir þættir (melting, óþol)", feature: "lifeline_health_nutrition_medical_score" },
+    { label: "Matarhegðun", feature: "lifeline_health_food_addiction_1_10" },
+  ],
+  mental: [
+    { label: "Andleg heilsa (einkenni þunglyndis)", feature: "lifeline_health_depression_score_1_10" },
+    { label: "Streita (einkenni kvíða)", feature: "lifeline_health_anxiety_score_1_10" },
+    { label: "Almenn vellíðan", feature: "pwi" },
+    { label: "Skjánotkun", feature: "lifeline_health_screen_use_1_10" },
+  ],
+  body: [
+    { label: "Lífsstílseinkunn", feature: "lifstilseinkunn" },
+    { label: "Nikótín", feature: "lifeline_health_nicotine_use_1_10" },
+    { label: "Áfengi", feature: "lifeline_health_alcohol_addiction_1_10" },
+    { label: "Koffín", feature: "lifeline_health_caffine_score" },
+  ],
+};
+export function subScores(obs: ObsRow[]): Record<string, SubScore[]> {
+  const out: Record<string, SubScore[]> = {};
+  for (const [area, defs] of Object.entries(SUBSCORES)) {
+    out[area] = defs.map((d) => {
+      const v = [...firstValues(obs, d.feature).values()];
+      return { label: d.label, mean: mean(v) ?? 0, n: v.length, below6: v.filter((x) => x < 6).length };
+    }).filter((s) => s.n >= MIN_SURVEY_N);
+  }
+  return out;
+}
+
+// ── measured change split by baseline habit (exploratory) ─────────
+export interface HabitGroupChange {
+  label: string; n: number;
+  weight: { delta: number; p: number | null; n: number } | null;
+  sbp: { delta: number; p: number | null; n: number; baseline: number } | null;
+}
+export const HABIT_SPLIT: Record<string, string> = {
+  sleep: "lifeline_health_sleep_behaviour_score",
+  exercise: "lifeline_health_exercise_behavioural_score",
+  nutrition: "lifeline_health_nutrition_behavioural_score",
+  mental: "lifeline_health_anxiety_score_1_10",
+};
+export function changeByHabit(obs: ObsRow[]): Record<string, HabitGroupChange[]> {
+  const pairs = buildPairs(obs);
+  const w = pairs.get("weight"), s = pairs.get("bp_systolic_avg");
+  const out: Record<string, HabitGroupChange[]> = {};
+  for (const [area, feature] of Object.entries(HABIT_SPLIT)) {
+    const base = firstValues(obs, feature);
+    out[area] = [
+      { label: "Undir 6 við upphaf", pred: (v: number) => v < 6 },
+      { label: "6 eða hærra við upphaf", pred: (v: number) => v >= 6 },
+    ].map(({ label, pred }) => {
+      const ids = [...base].filter(([, v]) => pred(v)).map(([id]) => id);
+      const wd = ids.map((id) => w?.get(id)).filter((p): p is Pair => !!p);
+      const sd = ids.map((id) => s?.get(id)).filter((p): p is Pair => !!p);
+      const dW = wd.map((p) => p.after - p.before), dS = sd.map((p) => p.after - p.before);
+      return {
+        label, n: Math.max(wd.length, sd.length),
+        weight: dW.length >= MIN_SURVEY_N ? { delta: mean(dW)!, p: wilcoxonSignedRank(dW)?.p ?? null, n: dW.length } : null,
+        sbp: dS.length >= MIN_SURVEY_N ? { delta: mean(dS)!, p: wilcoxonSignedRank(dS)?.p ?? null, n: dS.length, baseline: mean(sd.map((p) => p.before))! } : null,
+      };
+    }).filter((g) => g.weight || g.sbp);
+  }
+  return out;
 }

@@ -74,6 +74,23 @@ function surveySection(ins: CohortInsights): string {
     ${s.madeChanges.length ? `<h3>Breytingar sem þátttakendur segjast hafa gert</h3>${factBars(s.madeChanges)}` : ""}`;
 }
 
+const HC_LABEL: Record<string, string> = { exercise: "Hreyfivenjur", nutrition: "Matarvenjur", sleep: "Svefnvenjur", mental: "Streitueinkunn" };
+function habitChangeTable(ins: CohortInsights): string {
+  const hc = ins.habitChange ?? {};
+  const keys = ["exercise", "nutrition", "sleep", "mental"].filter((k) => hc[k]?.length);
+  if (!keys.length) return "";
+  const cell = (v: { delta: number; p: number | null } | null, unit: string) => {
+    if (!v) return "<td class=\"n\">–</td>";
+    const sig = v.p !== null && v.p < 0.05;
+    return `<td class="n" style="font-weight:${sig ? 700 : 400};color:${sig ? (v.delta < 0 ? C.dark : C.bad) : C.ink}">${v.delta > 0 ? "+" : v.delta < 0 ? "−" : ""}${num(Math.abs(v.delta))} ${unit}${sig ? "*" : ""}</td>`;
+  };
+  return `<h2>Mæld breyting eftir lífsstíl við upphaf</h2>
+    <p class="lead">Lífsstíll var aðeins metinn við heilsufarsskoðun. Hér er mæld breyting á blóðþrýstingi og þyngd borin saman eftir því hvort einkunn á hverju sviði var undir 6 eða 6 og hærri við upphaf. Könnunarleg greining: hóparnir byrjuðu ekki á sama blóðþrýstingi og margir samanburðir auka líkur á tilviljun. * = p &lt; 0,05.</p>
+    <table class="tbl"><thead><tr><th>Svið og hópur</th><th class="n">Fjöldi</th><th class="n">BÞ við upphaf</th><th class="n">Breyting BÞ</th><th class="n">Breyting þyngdar</th></tr></thead><tbody>
+    ${keys.flatMap((k) => hc[k].map((g) => `<tr><td>${esc(HC_LABEL[k])}: ${esc(g.label.toLowerCase())}</td><td class="n">${g.n}</td><td class="n">${g.sbp ? num(g.sbp.baseline, 0) + " mmHg" : "–"}</td>${cell(g.sbp, "mmHg")}${cell(g.weight, "kg")}</tr>`)).join("")}
+    </tbody></table>`;
+}
+
 function page(inner: string, n: number, total: number, cohort: string, sub: string, logo: string): string {
   return `<section class="a4"><header class="top"><img src="${esc(logo)}" alt="Lifeline Health"/><div class="org"><b>${esc(cohort)}</b><span>${esc(sub)}</span></div></header>
     ${inner}<footer class="foot"><span>Samantekin gögn; engar upplýsingar um einstaka þátttakendur.</span><span>lifelinehealth.is · ${n}/${total}</span></footer></section>`;
@@ -103,7 +120,8 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
     <p class="lead">Hlutfall af þeim ${ins.habits[0]?.of ?? "–"} sem svöruðu heilsumatinu.</p>
     <div class="grid2">${pillars.map((k) => {
       const a = A(k);
-      return `<div class="pill"><div class="ph"><span>${esc(a.title)}</span><b style="color:${toneCol[a.scoreTone]}">${esc(a.scoreLabel)}</b></div>${a.factGroups.map((g) => factBars(g.facts)).join("")}</div>`;
+      const subs = a.subScores.length ? `<div class="subs">${a.subScores.map((sc) => `<span>${esc(sc.label.split(" (")[0])} <b style="color:${sc.mean >= 7 ? C.dark : sc.mean >= 5 ? "#B45309" : C.bad}">${num(sc.mean)}</b></span>`).join("")}</div>` : "";
+      return `<div class="pill"><div class="ph"><span>${esc(a.title)}</span><b style="color:${toneCol[a.scoreTone]}">${esc(a.scoreLabel)}</b></div>${subs}${a.factGroups.map((g) => factBars(g.facts)).join("")}</div>`;
     }).join("")}</div>
     ${subst.length ? `<div class="pill" style="margin-top:4mm"><div class="ph"><span>${esc(HABIT_PILLAR_LABEL.substances)}</span></div><div class="grid3">${factBars(subst)}</div></div>` : ""}`;
 
@@ -116,7 +134,8 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
     <ul class="links">${links.map((l) => `<li class="${l.expected ? "" : "unexp"}">${esc(l.text)}</li>`).join("")}</ul>
     <h2>Líkami og áhætta</h2>
     <div class="two"><div>${body.factGroups.filter((g) => g.title === "Við heilsufarsskoðun").map((g) => factBars(g.facts)).join("")}</div>
-      <div>${body.change.map((c) => `<div class="card"><div class="cl">${esc(c.label)}</div><div class="big" style="color:${c.tone === "good" ? C.dark : c.tone === "bad" ? C.bad : C.ink}">${esc(c.value)}</div>${c.note ? `<p>${esc(c.note)}</p>` : ""}</div>`).join("")}</div></div>`;
+      <div>${body.change.map((c) => `<div class="card"><div class="cl">${esc(c.label)}</div><div class="big" style="color:${c.tone === "good" ? C.dark : c.tone === "bad" ? C.bad : C.ink}">${esc(c.value)}</div>${c.note ? `<p>${esc(c.note)}</p>` : ""}</div>`).join("")}</div></div>
+    ${habitChangeTable(ins)}`;
 
   const reMeasured = new Set(r.metrics.map((m) => m.feature));
   const steps: string[] = [];
@@ -157,9 +176,11 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 5mm}
   .pill{border:1px solid ${C.faint};border-radius:3mm;padding:3.5mm 4mm}.ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2.5mm}.ph span{font-weight:700;font-size:10pt}.ph b{font-size:11pt}
   .heat{width:100%;border-collapse:separate;border-spacing:1.2mm;font-size:8.5pt}.heat th{font-size:7.8pt;font-weight:600;color:${C.muted};text-align:center}.heat th.rl{text-align:left;color:${C.ink}}
-  .hm{text-align:center;padding:2.2mm 0;border-radius:1.5mm}.hm.na{color:${C.muted}}
-  .links{margin:2mm 0 0;padding-left:4.5mm;font-size:8.3pt;line-height:1.5}.links li.unexp{color:#92400E}
+  .hm{text-align:center;padding:1.5mm 0;border-radius:1.5mm}.hm.na{color:${C.muted}}
+  .links{margin:1.5mm 0 0;padding-left:4.5mm;font-size:8pt;line-height:1.4}.links li.unexp{color:#92400E}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+  .subs{display:flex;flex-wrap:wrap;gap:1mm 4mm;font-size:7.6pt;color:${C.muted};margin:-1mm 0 2.5mm}.subs b{font-size:8.5pt}
+  .tbl{width:100%;border-collapse:collapse;font-size:8pt}.tbl th{text-align:left;font-weight:600;color:${C.muted};border-bottom:1px solid ${C.faint};padding:1.2mm 1mm}.tbl td{border-bottom:1px solid #F3F4F6;padding:1.2mm 1mm}.tbl .n{text-align:right;white-space:nowrap}
   .card{border:1px solid ${C.faint};border-radius:3mm;padding:2.5mm 3.5mm;margin-bottom:2.5mm;font-size:8pt}.card p{margin:.8mm 0 0;color:${C.muted};line-height:1.4}.cl{font-size:7.8pt;color:${C.muted}}.big{font-size:14pt;font-weight:800;color:${C.dark}}
   .note{background:#F9FAFB;border:1px dashed #D1D5DB;border-radius:3mm;padding:4mm 5mm;font-size:8.8pt;line-height:1.5}
   .legend{display:flex;gap:3mm;font-size:7pt;color:${C.muted};margin-bottom:2mm}.legend i{display:inline-block;width:2.5mm;height:2.5mm;border-radius:.5mm;margin-right:1mm;vertical-align:middle}
