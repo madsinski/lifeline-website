@@ -905,7 +905,7 @@ Takk fyrir,
 — Lifeline Health teymið`;
 
   const html = renderBrandedEmail({
-    title: "Hjálpaðu okkur að bæta þjónustuna",
+    title: "Segðu frá þinni upplifun",
     accentLabel: "Þjónustukönnun",
     accentTone: "emerald",
     linkHref: surveyUrl,
