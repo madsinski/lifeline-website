@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, featureDirection, isConditional, METHODS_VERSION, type Domain } from "@/lib/research/clinical";
 import { sigStars } from "@/lib/research/stats";
+import type { BeforeAfterResult, MetricResult } from "@/lib/research/before-after";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -594,7 +595,7 @@ function deltaTitle(feature: string, delta: number | null): string {
   return good === null ? "" : good ? "improvement" : "worsening";
 }
 
-type TabKey = "overview" | "domains" | "longitudinal" | "ai" | "quality" | "codebook" | "data";
+type TabKey = "overview" | "domains" | "longitudinal" | "beforeafter" | "ai" | "quality" | "codebook" | "data";
 
 function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport, onLoadFeature, onSaveExclusions, onLoadCodebook }: {
   detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
@@ -642,6 +643,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
     { k: "overview", label: "Clinical overview" },
     { k: "domains", label: "By domain" },
     { k: "longitudinal", label: "Longitudinal" },
+    { k: "beforeafter", label: "Before / after" },
     { k: "ai", label: "AI analysis" },
     { k: "quality", label: "Data quality" },
     { k: "codebook", label: "Codebook" },
@@ -940,6 +942,9 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
         )}
 
         {/* ---------- AI ---------- */}
+        {/* ---------- BEFORE / AFTER ---------- */}
+        {tab === "beforeafter" && <BeforeAfterTab cohortId={detail.cohort.id} />}
+
         {tab === "ai" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -1046,5 +1051,232 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
         )}
       </div>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Before / after — first vs last measurement per patient BY DATE within one
+// data set (API: /api/admin/research/before-after). Plain-language summary +
+// one-click Icelandic print-to-PDF report.
+// ---------------------------------------------------------------------------
+interface BeforeAfterResponse {
+  exports: { id: string; label: string; exported_at: string | null; patient_count: number; filename: string | null }[];
+  exportId: string;
+  result: BeforeAfterResult;
+}
+
+const fmtNum = (x: number, d = 1) => x.toLocaleString("is-IS", { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtSigned = (x: number, d = 1) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${fmtNum(Math.abs(x), d)}`;
+const metricDec = (f: string) => (f.startsWith("bp_") ? 0 : 1);
+
+function BeforeAfterTab({ cohortId }: { cohortId: string }) {
+  const [exportId, setExportId] = useState<string | null>(null);
+  const [data, setData] = useState<BeforeAfterResponse | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const q = new URLSearchParams({ cohortId });
+      if (exportId) q.set("exportId", exportId);
+      const res = await authedFetch(`/api/admin/research/before-after?${q}`);
+      const j = await res.json().catch(() => ({}));
+      if (cancelled) return;
+      if (!res.ok) { setErr(j.detail || j.error || "Could not load before/after"); return; }
+      setErr(null);
+      setData(j as BeforeAfterResponse);
+    })();
+    return () => { cancelled = true; };
+  }, [cohortId, exportId]);
+
+  async function openReport() {
+    if (!data) return;
+    setBusy(true);
+    const res = await authedFetch(`/api/admin/research/before-after?cohortId=${cohortId}&exportId=${data.exportId}&format=html`);
+    setBusy(false);
+    if (!res.ok) { setErr("Could not generate the report"); return; }
+    const url = URL.createObjectURL(await res.blob());
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  if (err) return <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">{err}</div>;
+  if (!data) return <div className="text-sm text-gray-400">Loading…</div>;
+  const r = data.result;
+  const chosen = data.exports.find((e) => e.id === data.exportId);
+  const keyFeatures = ["weight", "bp_systolic_avg", "bp_diastolic_avg"].filter((f) => r.metrics.some((m) => m.feature === f));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm text-gray-600 max-w-2xl">
+            Each participant&apos;s <b>first</b> and <b>latest</b> measurement (at least 14 days apart), taken from one data set.
+            A Medalia export holds everyone&apos;s full history, so the newest export is usually the right choice.
+          </p>
+          <label className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+            Data set
+            <select value={data.exportId} onChange={(e) => setExportId(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-2 py-1 text-gray-800">
+              {data.exports.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.label} · {e.exported_at ? new Date(e.exported_at).toLocaleDateString("is-IS") : "no date"} · {e.patient_count} patients
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <button onClick={openReport} disabled={busy || r.nFollowed === 0}
+          className="text-sm rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50">
+          {busy ? "Generating…" : "Open PDF report"}
+        </button>
+      </div>
+
+      {chosen?.filename && /test/i.test(chosen.filename) && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3">
+          This data set looks like a TEST upload ({chosen.filename}). Pick a real export before sharing the report.
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat label="Participants" value={String(r.nPatients)} />
+        <Stat label="Measured again" value={`${r.nFollowed} (${r.nPatients ? Math.round((r.nFollowed / r.nPatients) * 100) : 0}%)`} />
+        <Stat label="Typical gap" value={r.medianDays ? `${Math.round(r.medianDays / 30.4)} months` : "–"} />
+        <Stat label="Re-measured" value={r.metrics.map((m) => m.label.split(",")[0].split(" (")[0]).filter((v, i, a) => a.indexOf(v) === i).join(", ") || "–"} small />
+      </div>
+
+      {r.nFollowed === 0 ? (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3">
+          No one has been measured twice in this data set yet.
+        </div>
+      ) : (
+        <>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Whole group</h3>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {r.metrics.map((m) => <BeforeAfterCard key={m.feature} m={m} />)}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">By subgroup</h3>
+            <p className="text-xs text-gray-500 mb-2">Mean change. Subgroups are defined by the <b>first</b> measurement. Bold with * = statistically significant (p &lt; 0.05).</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                    <th className="py-2 pr-3 font-medium">Subgroup</th>
+                    <th className="py-2 px-3 font-medium text-right">n</th>
+                    {keyFeatures.map((f) => (
+                      <th key={f} className="py-2 px-3 font-medium text-right">{f === "weight" ? "Weight (kg)" : f === "bp_systolic_avg" ? "Systolic (mmHg)" : "Diastolic (mmHg)"}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.subgroups.map((s) => (
+                    <tr key={s.key} className="border-b border-gray-50">
+                      <td className="py-1.5 pr-3 text-gray-800">{s.label}</td>
+                      <td className="py-1.5 px-3 text-right tabular-nums text-gray-500">{s.n}</td>
+                      {keyFeatures.map((f) => {
+                        const m = s.metrics.find((x) => x.feature === f);
+                        if (!m) return <td key={f} className="py-1.5 px-3 text-right text-gray-300">–</td>;
+                        const col = m.good === true ? "text-emerald-700" : m.good === false ? "text-orange-700" : "text-gray-600";
+                        return (
+                          <td key={f} className={`py-1.5 px-3 text-right tabular-nums ${col} ${m.significant ? "font-bold" : ""}`} title={`p = ${m.p?.toFixed(3) ?? "–"}`}>
+                            {fmtSigned(m.delta)}{m.significant ? "*" : ""}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {r.weightBands.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">Individual weight change</h3>
+                <div className="space-y-1.5">
+                  {r.weightBands.map((b, i) => {
+                    const total = r.weightBands.reduce((a, x) => a + x.n, 0) || 1;
+                    const col = ["bg-emerald-700", "bg-emerald-400", "bg-gray-300", "bg-orange-400", "bg-orange-700"][i];
+                    return (
+                      <div key={b.key} className="flex items-center gap-2 text-xs">
+                        <span className="w-44 text-gray-700">{b.label}</span>
+                        <div className="flex-1 h-3 rounded bg-gray-100 overflow-hidden">
+                          <div className={`h-full ${col}`} style={{ width: `${(b.n / total) * 100}%` }} />
+                        </div>
+                        <span className="w-8 text-right tabular-nums text-gray-600">{b.n}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {r.bpCategories && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">Blood-pressure category</h3>
+                <table className="text-sm">
+                  <thead><tr className="text-xs text-gray-500"><th className="text-left pr-4 font-medium" /><th className="px-3 font-medium">Normal</th><th className="px-3 font-medium">Elevated</th><th className="px-3 font-medium">High ≥140/90</th></tr></thead>
+                  <tbody>
+                    {(["before", "after"] as const).map((k) => (
+                      <tr key={k}>
+                        <td className="pr-4 text-gray-600">{k === "before" ? "First" : "Latest"}</td>
+                        <td className="px-3 text-center tabular-nums">{r.bpCategories![k].normal}</td>
+                        <td className="px-3 text-center tabular-nums">{r.bpCategories![k].elevated}</td>
+                        <td className="px-3 text-center tabular-nums">{r.bpCategories![k].high}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-gray-500 mt-2">{r.bpCategories.improved} moved to a better category, {r.bpCategories.worsened} to a worse one.</p>
+              </div>
+            )}
+          </div>
+
+          <p className="text-[11px] text-gray-400 border-t border-gray-100 pt-2">
+            Paired comparison per participant; p = Wilcoxon signed-rank (t-test when n is small), 95% CI from the paired t-test.
+            No control group — people measured high once often measure lower next time (regression to the mean), so changes can&apos;t be attributed to the service alone.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, small }: { label: string; value: string; small?: boolean }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+      <div className="text-[11px] uppercase tracking-wide text-gray-400 font-semibold">{label}</div>
+      <div className={`${small ? "text-sm" : "text-xl"} font-bold text-gray-900 mt-0.5`}>{value}</div>
+    </div>
+  );
+}
+
+function BeforeAfterCard({ m }: { m: MetricResult }) {
+  const d = metricDec(m.feature);
+  const tone = m.significant ? (m.good ? "text-emerald-700 border-emerald-300 bg-emerald-50" : "text-orange-700 border-orange-300 bg-orange-50") : "text-gray-500 border-gray-200 bg-white";
+  return (
+    <div className="rounded-xl border border-gray-100 p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-sm font-medium text-gray-800">{m.label}</div>
+        <span className={`text-[11px] px-2 py-0.5 rounded-full border ${tone}`}>
+          {m.significant ? (m.good ? "Significant improvement" : "Significant worsening") : "No significant change"}
+        </span>
+      </div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className="text-lg text-gray-400 tabular-nums">{fmtNum(m.before, d)}</span>
+        <span className="text-gray-400">→</span>
+        <span className="text-2xl font-bold text-gray-900 tabular-nums">{fmtNum(m.after, d)}</span>
+        <span className="text-xs text-gray-400">{m.unit}</span>
+        <span className="ml-auto text-sm font-semibold tabular-nums text-gray-700">{fmtSigned(m.delta)} {m.unit}</span>
+      </div>
+      <div className="text-xs text-gray-400 mt-1">
+        n = {m.n} · {m.improved} improved, {m.worsened} worsened · p = {m.p === null ? "–" : m.p < 0.001 ? "<0.001" : m.p.toFixed(3)}
+      </div>
+    </div>
   );
 }
