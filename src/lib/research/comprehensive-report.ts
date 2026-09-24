@@ -6,7 +6,8 @@
 
 import type { CohortInsights, MatrixCell } from "./lifestyle";
 import { HABIT_PILLAR_LABEL } from "./lifestyle";
-import { buildInsightAreas, type InsightArea } from "./insight-areas";
+import { buildInsightAreas, buildContinuationCase, type InsightArea } from "./insight-areas";
+import type { MetricResult } from "./before-after";
 
 const MONTHS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
 const monthIs = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -74,6 +75,33 @@ function surveySection(ins: CohortInsights): string {
     ${s.madeChanges.some((m) => m.n > 0) ? `<h3>Breytingar sem þátttakendur segjast hafa gert</h3>${factBars(s.madeChanges.filter((m) => m.n > 0).slice(0, 6))}` : ""}`;
 }
 
+
+const dIs = (iso: string | null) => { if (!iso) return "–"; const d = new Date(iso); return `${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+function comparisonPage(ins: CohortInsights): string {
+  const cmp = ins.comparison, r = ins.result;
+  if (!cmp || cmp.datasets.length < 2) return "";
+  const dec = (m: MetricResult) => (m.feature.startsWith("bp_") ? 0 : 1);
+  const pTxt = (p: number | null) => (p === null ? "–" : p < 0.001 ? "&lt;0,001" : num(p, 3));
+  const row = (m: MetricResult, extra = "") => `<tr${extra ? ' class="hl"' : ""}><td>${esc(m.label)}${extra}</td><td class="n">${m.n}</td><td class="n">${num(m.before, dec(m))} → <b>${num(m.after, dec(m))}</b> ${esc(m.unit)}</td><td class="n">${m.improved} / ${m.worsened}</td><td class="n" style="font-weight:${m.significant ? 700 : 400};color:${m.significant ? C.dark : C.ink}">${pTxt(m.p)}</td></tr>`;
+  const hb = r.subgroups.find((s) => s.key === "bp_high");
+  const cs = buildContinuationCase(ins);
+  return `
+    <h2 style="margin-top:0">Samanburður gagnasetta</h2>
+    <div class="dsrow">${cmp.datasets.map((d, i) => `${i ? `<div class="dsarrow">→<span>${cmp.inBoth} mældir í báðum</span></div>` : ""}<div class="ds"><div class="dsl">${esc(d.label)}</div><div class="dsd">${dIs(d.from)} – ${dIs(d.to)}</div><div class="dsn"><b>${d.patients}</b> þátttakendur · <b>${d.variables}</b> breytur</div></div>`).join("")}</div>
+    <h3>Hvað var mælt í hvoru gagnasetti</h3>
+    <table class="tbl"><thead><tr><th>Svið</th>${cmp.datasets.map((d) => `<th class="c">${esc(d.label)}</th>`).join("")}</tr></thead><tbody>
+      ${cmp.coverage.map((c) => `<tr><td>${esc(c.label)}</td>${c.counts.map((n) => `<td class="c">${n ? `<span style="color:${C.dark};font-weight:700">✓</span> <span style="color:${C.muted}">${n}</span>` : `<span style="color:${C.muted}">ekki mælt</span>`}</td>`).join("")}</tr>`).join("")}
+    </tbody></table>
+    <h3>Mældar breytingar milli gagnasetta</h3>
+    <table class="tbl"><thead><tr><th>Mæling</th><th class="n">Fjöldi</th><th class="n">Fyrir → eftir</th><th class="n">Betri / verri</th><th class="n">p-gildi</th></tr></thead><tbody>
+      ${r.metrics.map((m) => row(m)).join("")}
+      ${hb ? hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => row(m, ", háþrýstingur við upphaf")).join("") : ""}
+    </tbody></table>
+    <p class="lead" style="margin-top:1.5mm">Fyrsta og síðasta mæling hvers þátttakanda borin saman; Wilcoxon-próf. Feitletrað p-gildi = tölfræðilega marktækt (p &lt; 0,05).</p>
+    <h2>Af hverju að halda áfram?</h2>
+    <div class="cases">${cs.map((c) => `<div class="case"><div class="ct">${esc(c.title)}</div><p>${esc(c.body)}</p></div>`).join("")}</div>`;
+}
+
 function page(inner: string, n: number, total: number, cohort: string, sub: string, logo: string): string {
   return `<section class="a4"><header class="top"><img src="${esc(logo)}" alt="Lifeline Health"/><div class="org"><b>${esc(cohort)}</b><span>${esc(sub)}</span></div></header>
     ${inner}<footer class="foot"><span>Samantekin gögn; engar upplýsingar um einstaka þátttakendur.</span><span>lifelinehealth.is · ${n}/${total}</span></footer></section>`;
@@ -129,6 +157,7 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
   if (sleepy && pct(sleepy.n, sleepy.of) >= 50) steps.push(`<b>Fræðsla um svefn</b>: ${pct(sleepy.n, sleepy.of)}% vakna ekki úthvíld flesta daga.`);
   const p4 = `
     <h2 style="margin-top:0">Upplifun þátttakenda af breytingum</h2>
+    <p class="lead">Sjálfsmat úr eftirfylgnikönnun. Ekki hluti af gagnasettunum; bætir við mælingarnar.</p>
     ${surveySection(ins)}
     <h2>Næstu skref</h2><div class="steps"><ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol></div>
     <div class="method"><div class="mt">Aðferð</div><ul>
@@ -139,7 +168,8 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
       <li>Samanburðarhópur er ekki til staðar og því er ekki hægt að fullyrða að breytingar séu þjónustunni einni að þakka. Aðferð ${esc(methodsVersion)}.</li>
     </ul></div>`;
 
-  const pages = [p1, p2, p3, p4];
+  const pc = comparisonPage(ins);
+  const pages = pc ? [p1, pc, p2, p3, p4] : [p1, p2, p3, p4];
   return `<!doctype html><html lang="is"><head><meta charset="utf-8"/><title>${esc(ins.cohortName)} — heildarskýrsla</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -161,6 +191,10 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
   .hm{text-align:center;padding:1.5mm 0;border-radius:1.5mm}.hm.na{color:${C.muted}}
   .links{margin:1.5mm 0 0;padding-left:4.5mm;font-size:8pt;line-height:1.4}.links li.unexp{color:#92400E}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+  .dsrow{display:flex;align-items:stretch;gap:3mm;margin-bottom:2mm}.ds{flex:1;background:#F9FAFB;border:1px solid ${C.faint};border-radius:3mm;padding:3mm 4mm}.dsl{font-size:8.5pt;font-weight:700;color:${C.dark}}.dsd{font-size:8.5pt;margin-top:.5mm}.dsn{font-size:8.5pt;color:${C.muted};margin-top:1mm}.dsn b{color:${C.ink};font-size:11pt}
+  .dsarrow{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18pt;color:${C.brand}}.dsarrow span{font-size:7pt;color:${C.muted}}
+  .tbl .c{text-align:center}.tbl tr.hl td{background:#ECFDF5}
+  .cases{display:grid;grid-template-columns:1fr 1fr;gap:3mm}.case{background:#F0FDF4;border-radius:3mm;padding:3mm 4mm}.case .ct{font-weight:700;font-size:9pt;color:${C.dark}}.case p{margin:1mm 0 0;font-size:8.2pt;line-height:1.45}
   .subs{display:flex;flex-wrap:wrap;gap:1mm 4mm;font-size:7.6pt;color:${C.muted};margin:-1mm 0 2.5mm}.subs b{font-size:8.5pt}
   .tbl{width:100%;border-collapse:collapse;font-size:8pt}.tbl th{text-align:left;font-weight:600;color:${C.muted};border-bottom:1px solid ${C.faint};padding:1.2mm 1mm}.tbl td{border-bottom:1px solid #F3F4F6;padding:1.2mm 1mm}.tbl .n{text-align:right;white-space:nowrap}
   .card{border:1px solid ${C.faint};border-radius:3mm;padding:2.5mm 3.5mm;margin-bottom:2.5mm;font-size:8pt}.card p{margin:.8mm 0 0;color:${C.muted};line-height:1.4}.cl{font-size:7.8pt;color:${C.muted}}.big{font-size:14pt;font-weight:800;color:${C.dark}}

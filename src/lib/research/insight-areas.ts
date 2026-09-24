@@ -10,6 +10,8 @@
 
 import type { CohortInsights, HabitFact, MatrixCell, SubScore } from "./lifestyle";
 import { CHANGE_PILLAR, MIN_SURVEY_N } from "./lifestyle";
+import { featureDomain } from "./clinical";
+import { LABEL_IS } from "./before-after";
 import type { MetricResult } from "./before-after";
 
 export type AreaKey = "body" | "exercise" | "nutrition" | "sleep" | "mental";
@@ -84,7 +86,7 @@ function surveyChange(ins: CohortInsights, labels: string[], what: string, pilla
   if (!s) return { change: [], pending: `Engin gögn um breytingar á ${what}: heilsumat var ekki endurtekið og engin eftirfylgnikönnun er tengd hópnum.` };
   if (!s.enough) return {
     change: [],
-    pending: `Heilsumat var ekki endurtekið í eftirfylgni, svo breytingar á ${what} koma úr eftirfylgnikönnuninni. Niðurstöður birtast þegar að minnsta kosti ${MIN_SURVEY_N} hafa svarað.`,
+    pending: `Til viðbótar við mælingarnar: sjálfsmat þátttakenda á breytingum á ${what} úr eftirfylgnikönnun (ekki hluti af gagnasettunum). Birtist þegar að minnsta kosti ${MIN_SURVEY_N} hafa svarað.`,
     progress: { completed: s.completed, sent: s.sent, needed: MIN_SURVEY_N },
   };
   const out: AreaChange[] = [];
@@ -93,7 +95,7 @@ function surveyChange(ins: CohortInsights, labels: string[], what: string, pilla
     if (!c || !c.n) continue;
     const worse = c.dist[3] + c.dist[4];
     out.push({
-      label: label === "Orka" ? "Orka í daglegu lífi" : `${label}: sjálfsmat á breytingu`,
+      label: `Sjálfsmat úr könnun: ${label === "Orka" ? "orka í daglegu lífi" : label.toLowerCase()}`,
       value: `${Math.round(c.better * 100)}% betri`,
       tone: c.better >= 0.5 ? "good" : worse > c.dist[0] + c.dist[1] ? "bad" : "neutral",
       note: `${c.dist[0] + c.dist[1]} af ${c.n} segja betri, ${c.dist[2]} svipað, ${worse} verri.`,
@@ -101,8 +103,42 @@ function surveyChange(ins: CohortInsights, labels: string[], what: string, pilla
     });
   }
   const made = s.madeChanges.filter((m) => CHANGE_PILLAR.find(([re]) => re.test(m.label))?.[1] === pillar && m.n > 0);
-  for (const m of made) out.push({ label: m.label, value: `${pct(m.n, m.of)}%`, tone: "good", note: `${m.n} af ${m.of} svarendum segjast hafa gert þessa breytingu.` });
+  for (const m of made) out.push({ label: `Sjálfsmat úr könnun: ${m.label}`, value: `${pct(m.n, m.of)}%`, tone: "good", note: `${m.n} af ${m.of} svarendum segjast hafa gert þessa breytingu.` });
   return { change: out };
+}
+
+
+// MEASURED change between the uploaded data sets for one foundation: every
+// paired metric (first vs latest by date) whose feature belongs to the domain.
+// When the follow-up data set has no variables for the domain, say so
+// plainly and list what it did contain.
+const SUB_LABEL: Record<string, string> = {
+  lifeline_health_sleep_behaviour_score: "Svefnvenjur", lifeline_health_sleep_medical_score: "Svefn, læknisfræðilegir þættir",
+  lifeline_health_exercise_behavioural_score: "Hreyfivenjur", lifeline_health_exercise_medical_score: "Hreyfing, læknisfræðilegir þættir",
+  lifeline_health_nutrition_behavioural_score: "Matarvenjur", lifeline_health_nutrition_medical_score: "Næring, læknisfræðilegir þættir",
+  lifeline_health_depression_score_1_10: "Andleg heilsa", lifeline_health_anxiety_score_1_10: "Streita", pwi: "Almenn vellíðan",
+  phq9: "Einkenni þunglyndis (PHQ-9)", lifeline_health_anxiety_gad_7: "Einkenni kvíða (GAD-7)",
+};
+function measuredChange(ins: CohortInsights, domains: string[]): AreaChange[] {
+  const ms = ins.result.metrics.filter((m) => domains.includes(featureDomain(m.feature)));
+  const cmp = ins.comparison;
+  if (ms.length) {
+    return ms.map((m) => ({
+      label: `${SUB_LABEL[m.feature] ?? LABEL_IS[m.feature] ?? m.label} (${m.n} manns)`,
+      value: `${num(m.before)} → ${num(m.after)}`,
+      tone: m.significant ? (m.good ? "good" : "bad") : "neutral",
+      note: `${m.improved} bættu sig, ${m.worsened} versnuðu.${m.significant ? " Tölfræðilega marktækt." : " Ekki tölfræðilega marktækt."}`,
+    }));
+  }
+  if (!cmp || cmp.datasets.length < 2) return [{ label: "Samanburður gagnasetta", value: "Aðeins eitt gagnasett", tone: "neutral", note: "Breytingar birtast þegar eftirfylgnigögnum hefur verið hlaðið upp." }];
+  const last = cmp.datasets[cmp.datasets.length - 1];
+  const measured = cmp.coverage.filter((c) => c.counts[c.counts.length - 1] > 0).flatMap((c) => c.examples);
+  return [{
+    label: `${last.label} (eftirfylgni)`,
+    value: "Ekki mælt",
+    tone: "neutral",
+    note: `Þetta svið var aðeins metið í gagnasetti 1. Í gagnasetti ${cmp.datasets.length} var eingöngu mælt: ${[...new Set(measured)].join(", ") || "–"}. Til að mæla breytingu þarf heilsumat í næstu eftirfylgni.`,
+  }];
 }
 
 const metric = (ins: CohortInsights, f: string): MetricResult | undefined => ins.result.metrics.find((m) => m.feature === f);
@@ -174,7 +210,7 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       factGroups: f.length ? [{ title: "Venjur við heilsufarsskoðun", facts: f }] : [],
       links,
       subScores: ins.subScores?.[l.pillarKey] ?? [],
-      change: sc.change,
+      change: [...measuredChange(ins, [l.pillarKey]), ...sc.change],
       changePending: sc.pending,
       surveyProgress: sc.progress,
     });
@@ -196,10 +232,47 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
     factGroups: mf.length ? [{ title: "Við heilsufarsskoðun", facts: mf }] : [],
     links: linkSentences(ins, null, "phq9"),
     subScores: ins.subScores?.mental ?? [],
-    change: ms.change,
+    change: [...measuredChange(ins, ["mental"]), ...ms.change],
     changePending: ms.pending,
     surveyProgress: ms.progress,
   });
 
   return areas;
+}
+
+// ── the case for continuing, from the data sets only ─────────────
+export interface ContinuationPoint { title: string; body: string }
+export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] {
+  const r = ins.result;
+  const pts: ContinuationPoint[] = [];
+  const prof = (k: string) => ins.profile.find((p) => p.key === k);
+  const ow = prof("overweight"), bp = prof("bp_high"), ir = prof("insulin_res");
+  const weakest = [...ins.pillars].filter((p) => ["sleep", "exercise", "nutrition"].includes(p.key)).sort((a, b) => (a.mean ?? 99) - (b.mean ?? 99))[0];
+  pts.push({
+    title: "Þörfin er mikil",
+    body: [ow && `${pct(ow.n, ow.of)}% með ofþyngd eða offitu`, bp && `${pct(bp.n, bp.of)}% með háþrýsting`, ir && `${pct(ir.n, ir.of)}% með insúlínviðnám`].filter(Boolean).join(", ")
+      + ` við heilsufarsskoðun.${weakest?.mean != null ? ` ${weakest.label} er veikasta stoðin (${num(weakest.mean)} af 10).` : ""}`,
+  });
+  const hb = r.subgroups.find((s) => s.key === "bp_high");
+  const hs = hb?.metrics.find((m) => m.feature === "bp_systolic_avg"), hw = hb?.metrics.find((m) => m.feature === "weight");
+  if (hb && hs && hs.good) pts.push({
+    title: "Árangur þar sem áhættan var mest",
+    body: `Hjá þeim ${hb.n} sem voru með háþrýsting lækkuðu efri mörk úr ${num(hs.before, 0)} í ${num(hs.after, 0)} mmHg${hs.significant ? " (tölfræðilega marktækt)" : ""}${hw && hw.good ? ` og þyngd um ${num(Math.abs(hw.delta))} kg` : ""}.${r.bpCategories ? ` Fjöldi með háþrýsting fór úr ${r.bpCategories.before.high} í ${r.bpCategories.after.high}.` : ""}`,
+  });
+  const lost = r.weightBands.filter((b) => b.key.startsWith("lost")).reduce((a, b) => a + b.n, 0);
+  const tot = r.weightBands.reduce((a, b) => a + b.n, 0);
+  pts.push({
+    title: "Góð þátttaka",
+    body: `${r.nFollowed} af ${r.nPatients} (${pct(r.nFollowed, r.nPatients)}%) mættu í endurmælingu.${tot ? ` ${lost} af ${tot} léttust um 2% eða meira.` : ""}`,
+  });
+  const cmp = ins.comparison;
+  if (cmp && cmp.datasets.length >= 2) {
+    const [first, last] = [cmp.datasets[0], cmp.datasets[cmp.datasets.length - 1]];
+    const missing = cmp.coverage.filter((c) => c.counts[0] > 0 && c.counts[c.counts.length - 1] === 0).map((c) => c.label.toLowerCase());
+    if (missing.length) pts.push({
+      title: "Næsta mæling getur sýnt meira",
+      body: `Í gagnasetti ${cmp.datasets.length} voru mældar ${last.variables} breytur en ${first.variables} í gagnasetti 1. Eftirfarandi var aðeins metið við upphaf: ${missing.join(", ")}. Með blóðprufum og heilsumati í næstu mælingu má meta hvort venjur og efnaskipti hafi breyst.`,
+    });
+  }
+  return pts;
 }

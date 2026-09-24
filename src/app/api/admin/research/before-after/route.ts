@@ -16,12 +16,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchRead } from "@/lib/research/access";
-import { METHODS_VERSION } from "@/lib/research/clinical";
+import { METHODS_VERSION, featureDomain } from "@/lib/research/clinical";
 import { computeBeforeAfter, baselineProfile, type ObsRow, type PatientRow } from "@/lib/research/before-after";
 import { buildEmployerOnePager } from "@/lib/research/employer-onepager";
 import { buildComprehensiveReport } from "@/lib/research/comprehensive-report";
 import {
-  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores,
+  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores, datasetComparison,
   type AnswerRow, type CohortInsights, type SurveyQ, type SurveyResp,
 } from "@/lib/research/lifestyle";
 import { buildBeforeAfterReport } from "@/lib/research/before-after-report";
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   if (!cohort) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { data: exportsRaw } = await supabaseAdmin
-    .from("research_exports").select("id, timepoint_label, exported_at, patient_count, source_filename")
+    .from("research_exports").select("id, timepoint_label, timepoint_order, exported_at, patient_count, source_filename")
     .eq("cohort_id", cohortId).order("exported_at", { ascending: false });
   const exports = exportsRaw || [];
   if (!exports.length) return NextResponse.json({ error: "no_data", detail: "Upload a data set first." }, { status: 400 });
@@ -63,9 +63,9 @@ export async function GET(req: NextRequest) {
   const exPatients = new Set<string>((cohort.excluded_patients as string[] | null) ?? []);
   const exFeatures = new Set<string>((cohort.excluded_features as string[] | null) ?? []);
 
-  const obsRaw = await pageAll<ObsRow & { display: string | null }>((from, to) =>
+  const obsRaw = await pageAll<ObsRow & { display: string | null; export_id: string }>((from, to) =>
     supabaseAdmin.from("research_observations")
-      .select("medalia_patient_id, feature, observed_at, value_num, display")
+      .select("medalia_patient_id, feature, observed_at, value_num, display, export_id")
       .in("export_id", usedIds).not("value_num", "is", null)
       .order("id", { ascending: true }).range(from, to));
   const obs = obsRaw.filter((o) => !exPatients.has(o.medalia_patient_id) && !exFeatures.has(o.feature));
@@ -130,6 +130,7 @@ export async function GET(req: NextRequest) {
       matrix: lifestyleRiskMatrix(obs, patients),
       survey,
       subScores: subScores(obs),
+      comparison: datasetComparison(obs, used, featureDomain),
     };
     if (format === "insights") return NextResponse.json(insights);
     const html = buildComprehensiveReport(insights, `${req.nextUrl.origin}/lifeline-logo-rebrand.svg`, METHODS_VERSION);

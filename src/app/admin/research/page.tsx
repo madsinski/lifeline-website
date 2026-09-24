@@ -10,7 +10,7 @@ import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGoo
 import { sigStars } from "@/lib/research/stats";
 import type { BeforeAfterResult, MetricResult } from "@/lib/research/before-after";
 import type { CohortInsights } from "@/lib/research/lifestyle";
-import { buildInsightAreas, type InsightArea, type AreaKey } from "@/lib/research/insight-areas";
+import { buildInsightAreas, buildContinuationCase, type InsightArea, type AreaKey } from "@/lib/research/insight-areas";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -1349,6 +1349,9 @@ function InsightsOverview({ cohortId }: { cohortId: string }) {
         </div>
       </div>
 
+      <DatasetComparisonPanel ins={ins} />
+
+      <h3 className="text-base font-semibold text-gray-900 pt-2">Svið</h3>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" role="tablist" aria-label="Svið">
         {areas.map((a) => {
           const on = a.key === area.key;
@@ -1463,5 +1466,108 @@ function AreaDetail({ area }: { area: InsightArea }) {
         </div>
       </div>
     </div>
+  );
+}
+
+const isDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" }) : "–");
+
+function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
+  const cmp = ins.comparison;
+  const r = ins.result;
+  if (!cmp || cmp.datasets.length === 0) return null;
+  const hb = r.subgroups.find((x) => x.key === "bp_high");
+  const rows: MetricResult[] = r.metrics;
+  const fmt = (m: MetricResult, v: number) => v.toLocaleString("is-IS", { maximumFractionDigits: m.feature.startsWith("bp_") ? 0 : 1, minimumFractionDigits: m.feature.startsWith("bp_") ? 0 : 1 });
+  const caseFor = buildContinuationCase(ins);
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-5">
+      <div>
+        <h3 className="text-base font-semibold text-gray-900">Samanburður gagnasetta</h3>
+        <p className="text-xs text-gray-500">Hvað var mælt í hvoru gagnasetti og hvað breyttist hjá þeim sem voru mældir í báðum.</p>
+      </div>
+
+      <div className="flex flex-wrap items-stretch gap-3">
+        {cmp.datasets.map((d, i) => (
+          <Fragment key={d.id}>
+            {i > 0 && (
+              <div className="flex flex-col items-center justify-center text-xs text-gray-500 px-1">
+                <span className="text-2xl text-emerald-600 leading-none">→</span>
+                <span className="tabular-nums">{cmp.inBoth} mældir í báðum</span>
+              </div>
+            )}
+            <div className="flex-1 min-w-[200px] rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <div className="text-xs font-semibold text-emerald-700">{d.label} · {d.timepoint}</div>
+              <div className="text-sm text-gray-700 mt-0.5">{isDate(d.from)} – {isDate(d.to)}</div>
+              <div className="flex gap-4 mt-2">
+                <div><div className="text-xl font-bold tabular-nums text-gray-900">{d.patients}</div><div className="text-[11px] text-gray-500">þátttakendur</div></div>
+                <div><div className="text-xl font-bold tabular-nums text-gray-900">{d.variables}</div><div className="text-[11px] text-gray-500">breytur mældar</div></div>
+              </div>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Hvað var mælt</div>
+          <table className="w-full text-sm">
+            <thead><tr className="text-xs text-gray-500 border-b border-gray-100"><th className="text-left py-1.5 font-medium">Svið</th>{cmp.datasets.map((d) => <th key={d.id} className="text-center py-1.5 font-medium">{d.label}</th>)}</tr></thead>
+            <tbody>
+              {cmp.coverage.map((c) => (
+                <tr key={c.key} className="border-b border-gray-50">
+                  <td className="py-1.5 text-gray-800">{c.label}</td>
+                  {c.counts.map((n, i) => (
+                    <td key={i} className="py-1.5 text-center">
+                      {n > 0 ? <span className="text-emerald-700 font-medium">✓ <span className="text-xs text-gray-500">{n}</span></span> : <span className="text-xs text-gray-400">ekki mælt</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Mældar breytingar milli gagnasetta</div>
+          {rows.length === 0 ? <p className="text-sm text-gray-400">Engar breytur mældar í báðum gagnasettum.</p> : (
+            <table className="w-full text-sm">
+              <thead><tr className="text-xs text-gray-500 border-b border-gray-100"><th className="text-left py-1.5 font-medium">Mæling</th><th className="text-right font-medium">Fyrir → eftir</th><th className="text-right font-medium">Betri / verri</th><th className="text-right font-medium">p</th></tr></thead>
+              <tbody>
+                {rows.map((m) => (
+                  <tr key={m.feature} className="border-b border-gray-50">
+                    <td className="py-1.5 text-gray-800">{m.label} <span className="text-xs text-gray-400">({m.n})</span></td>
+                    <td className="text-right tabular-nums">{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
+                    <td className="text-right tabular-nums text-xs text-gray-600">{m.improved} / {m.worsened}</td>
+                    <td className={`text-right tabular-nums text-xs ${m.significant ? "font-bold text-emerald-700" : "text-gray-500"}`}>{m.p === null ? "–" : m.p < 0.001 ? "<0,001" : m.p.toFixed(3).replace(".", ",")}</td>
+                  </tr>
+                ))}
+                {hb && hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => (
+                  <tr key={`hb-${m.feature}`} className="bg-emerald-50/60">
+                    <td className="py-1.5 text-gray-800">{m.label}, <span className="font-medium">háþrýstingur við upphaf</span> <span className="text-xs text-gray-400">({m.n})</span></td>
+                    <td className="text-right tabular-nums">{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
+                    <td className="text-right tabular-nums text-xs text-gray-600">{m.improved} / {m.worsened}</td>
+                    <td className={`text-right tabular-nums text-xs ${m.significant ? "font-bold text-emerald-700" : "text-gray-500"}`}>{m.p === null ? "–" : m.p.toFixed(3).replace(".", ",")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="text-[11px] text-gray-400 mt-1.5">Fyrsta og síðasta mæling hvers þátttakanda; Wilcoxon-próf. Feitletrað p = tölfræðilega marktækt.</p>
+        </div>
+      </div>
+
+      {caseFor.length > 0 && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+          <div className="text-sm font-semibold text-emerald-900 mb-2">Af hverju að halda áfram?</div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {caseFor.map((c) => (
+              <div key={c.title}>
+                <div className="text-xs font-semibold text-emerald-800">{c.title}</div>
+                <p className="text-xs text-gray-700 mt-0.5 leading-snug">{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

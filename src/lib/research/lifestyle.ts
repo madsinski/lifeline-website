@@ -256,6 +256,7 @@ export interface CohortInsights {
   matrix: RiskMatrix;
   survey: SurveyChange | null;
   subScores: Record<string, SubScore[]>;
+  comparison: DatasetComparison;
 }
 
 // ── sub-scores (all 0–10, higher is better) ───────────────────────
@@ -307,3 +308,39 @@ export const CHANGE_PILLAR: [RegExp, string][] = [
   [/andleg/i, "mental"],
   [/áfengi|nikótín/i, "substances"],
 ];
+
+// ── dataset comparison (what each uploaded data set actually contains) ──
+export interface DatasetInfo { id: string; label: string; timepoint: string; from: string | null; to: string | null; patients: number; variables: number }
+export interface CoverageRow { key: string; label: string; counts: number[]; examples: string[] }
+export interface DatasetComparison { datasets: DatasetInfo[]; coverage: CoverageRow[]; inBoth: number }
+
+const DOMAIN_IS: [string, string][] = [
+  ["body", "Líkamsmælingar og samsetning"], ["cardio", "Blóðþrýstingur og hjartaáhætta"], ["metabolic", "Blóðprufur"],
+  ["sleep", "Svefn"], ["exercise", "Hreyfing"], ["nutrition", "Næring"], ["mental", "Andleg líðan"],
+  ["addiction", "Nikótín, áfengi, koffín og skjár"],
+];
+const FEATURE_IS: Record<string, string> = { weight: "þyngd", bmi: "BMI", bp_systolic_avg: "efri mörk blóðþrýstings", bp_diastolic_avg: "neðri mörk blóðþrýstings", fat_mass_percent: "fituhlutfall", hba1c: "HbA1c", homa_ir: "insúlínviðnám" };
+
+export function datasetComparison(
+  obs: (ObsRow & { export_id: string })[],
+  exports: { id: string; timepoint_label: string; timepoint_order?: number | null }[],
+  domainOf: (feature: string) => string,
+): DatasetComparison {
+  const ordered = [...exports].sort((a, b) => (a.timepoint_order ?? 0) - (b.timepoint_order ?? 0));
+  const IGNORE = new Set(["bp_systolic", "bp_diastolic", "blood_pressure_panel"]); // panel components duplicate the averages
+  const datasets = ordered.map((e, i) => {
+    const rows = obs.filter((o) => o.export_id === e.id);
+    const dates = rows.map((o) => o.observed_at).filter((d): d is string => !!d).sort();
+    const feats = new Set(rows.filter((o) => !IGNORE.has(o.feature)).map((o) => o.feature));
+    return { id: e.id, label: `Gagnasett ${i + 1}`, timepoint: e.timepoint_label, from: dates[0] ?? null, to: dates[dates.length - 1] ?? null, patients: new Set(rows.map((o) => o.medalia_patient_id)).size, variables: feats.size, feats };
+  });
+  const coverage = DOMAIN_IS.map(([key, label]) => {
+    const counts = datasets.map((d) => [...d.feats].filter((f) => domainOf(f) === key).length);
+    const last = datasets[datasets.length - 1];
+    const examples = last ? [...last.feats].filter((f) => domainOf(f) === key).filter((f) => f !== "height").map((f) => FEATURE_IS[f] ?? f).filter((x) => !x.includes("_")) : [];
+    return { key, label, counts, examples };
+  }).filter((r) => r.counts.some((c) => c > 0));
+  const sets = datasets.map((d) => new Set(obs.filter((o) => o.export_id === d.id).map((o) => o.medalia_patient_id)));
+  const inBoth = sets.length >= 2 ? [...sets[0]].filter((p) => sets.slice(1).some((s) => s.has(p))).length : 0;
+  return { datasets: datasets.map(({ feats: _f, ...d }) => { void _f; return d; }), coverage, inBoth };
+}
