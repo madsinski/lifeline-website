@@ -1435,10 +1435,29 @@ function AreaDetail({ area }: { area: InsightArea }) {
               <div key={c.label} className="rounded-lg bg-white border border-gray-100 px-3 py-2">
                 <div className="text-xs text-gray-500">{c.label}</div>
                 <div className={`${c.value.length > 16 ? "text-sm" : "text-lg"} font-bold tabular-nums ${c.tone === "good" ? "text-emerald-700" : c.tone === "bad" ? "text-orange-700" : "text-gray-800"}`}>{c.value}</div>
-                {c.note && <div className="text-[11px] text-gray-500">{c.note}</div>}
+                {c.dist && (
+                  <div className="flex h-2 mt-1.5 gap-px rounded overflow-hidden" aria-label={c.dist.labels.map((l, i) => `${l}: ${c.dist!.counts[i]}`).join(", ")}>
+                    {c.dist.counts.map((n, i) => n > 0 && (
+                      <div key={i} title={`${c.dist!.labels[i]}: ${n}`} style={{ flex: n, background: ["#047857", "#34D399", "#D1D5DB", "#FB923C", "#C2410C"][i] }} />
+                    ))}
+                  </div>
+                )}
+                {c.note && <div className="text-[11px] text-gray-500 mt-1">{c.note}</div>}
               </div>
             ))}
-            {area.changeNote && <p className="text-[11px] text-gray-500 leading-snug">{area.changeNote}</p>}
+            {area.surveyProgress && (
+              <div className="rounded-lg bg-white border border-gray-100 px-3 py-2.5">
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>Eftirfylgnikönnun</span>
+                  <span className="tabular-nums font-semibold">{area.surveyProgress.completed} af {area.surveyProgress.sent} hafa svarað</span>
+                </div>
+                <div className="relative h-2 mt-1.5 rounded-full bg-gray-100">
+                  <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(area.surveyProgress.completed / Math.max(area.surveyProgress.sent, 1)) * 100}%` }} />
+                  <div className="absolute top-[-3px] h-3.5 w-0.5 bg-gray-500" style={{ left: `${(area.surveyProgress.needed / Math.max(area.surveyProgress.sent, 1)) * 100}%` }} title={`Birtist við ${area.surveyProgress.needed} svör`} />
+                </div>
+                <div className="text-[11px] text-gray-400 mt-1">Niðurstöður birtast við {area.surveyProgress.needed} svör</div>
+              </div>
+            )}
             {area.changePending && <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">{area.changePending}</p>}
           </div>
         </div>

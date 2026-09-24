@@ -71,24 +71,7 @@ function surveySection(ins: CohortInsights): string {
       ${s.lifeline ? `<div class="card"><div class="big">${Math.round(s.lifeline.top2 * 100)}%</div><p>telja Lifeline hafa átt mikinn eða mjög mikinn þátt í breytingunum (${s.lifeline.n} svör).</p></div>` : ""}
       ${s.nps !== null ? `<div class="card"><div class="big">${s.nps > 0 ? "+" : ""}${s.nps}</div><p>meðmælaskor (NPS, á kvarðanum −100 til +100).</p></div>` : ""}
     </div>
-    ${s.madeChanges.length ? `<h3>Breytingar sem þátttakendur segjast hafa gert</h3>${factBars(s.madeChanges)}` : ""}`;
-}
-
-const HC_LABEL: Record<string, string> = { exercise: "Hreyfivenjur", nutrition: "Matarvenjur", sleep: "Svefnvenjur", mental: "Streitueinkunn" };
-function habitChangeTable(ins: CohortInsights): string {
-  const hc = ins.habitChange ?? {};
-  const keys = ["exercise", "nutrition", "sleep", "mental"].filter((k) => hc[k]?.length);
-  if (!keys.length) return "";
-  const cell = (v: { delta: number; p: number | null } | null, unit: string) => {
-    if (!v) return "<td class=\"n\">–</td>";
-    const sig = v.p !== null && v.p < 0.05;
-    return `<td class="n" style="font-weight:${sig ? 700 : 400};color:${sig ? (v.delta < 0 ? C.dark : C.bad) : C.ink}">${v.delta > 0 ? "+" : v.delta < 0 ? "−" : ""}${num(Math.abs(v.delta))} ${unit}${sig ? "*" : ""}</td>`;
-  };
-  return `<h2>Mæld breyting eftir lífsstíl við upphaf</h2>
-    <p class="lead">Lífsstíll var aðeins metinn við heilsufarsskoðun. Hér er mæld breyting á blóðþrýstingi og þyngd borin saman eftir því hvort einkunn á hverju sviði var undir 6 eða 6 og hærri við upphaf. Könnunarleg greining: hóparnir byrjuðu ekki á sama blóðþrýstingi og margir samanburðir auka líkur á tilviljun. * = p &lt; 0,05.</p>
-    <table class="tbl"><thead><tr><th>Svið og hópur</th><th class="n">Fjöldi</th><th class="n">BÞ við upphaf</th><th class="n">Breyting BÞ</th><th class="n">Breyting þyngdar</th></tr></thead><tbody>
-    ${keys.flatMap((k) => hc[k].map((g) => `<tr><td>${esc(HC_LABEL[k])}: ${esc(g.label.toLowerCase())}</td><td class="n">${g.n}</td><td class="n">${g.sbp ? num(g.sbp.baseline, 0) + " mmHg" : "–"}</td>${cell(g.sbp, "mmHg")}${cell(g.weight, "kg")}</tr>`)).join("")}
-    </tbody></table>`;
+    ${s.madeChanges.some((m) => m.n > 0) ? `<h3>Breytingar sem þátttakendur segjast hafa gert</h3>${factBars(s.madeChanges.filter((m) => m.n > 0).slice(0, 6))}` : ""}`;
 }
 
 function page(inner: string, n: number, total: number, cohort: string, sub: string, logo: string): string {
@@ -134,8 +117,7 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
     <ul class="links">${links.map((l) => `<li class="${l.expected ? "" : "unexp"}">${esc(l.text)}</li>`).join("")}</ul>
     <h2>Líkami og áhætta</h2>
     <div class="two"><div>${body.factGroups.filter((g) => g.title === "Við heilsufarsskoðun").map((g) => factBars(g.facts)).join("")}</div>
-      <div>${body.change.map((c) => `<div class="card"><div class="cl">${esc(c.label)}</div><div class="big" style="color:${c.tone === "good" ? C.dark : c.tone === "bad" ? C.bad : C.ink}">${esc(c.value)}</div>${c.note ? `<p>${esc(c.note)}</p>` : ""}</div>`).join("")}</div></div>
-    ${habitChangeTable(ins)}`;
+      <div>${body.change.map((c) => `<div class="card"><div class="cl">${esc(c.label)}</div><div class="big" style="color:${c.tone === "good" ? C.dark : c.tone === "bad" ? C.bad : C.ink}">${esc(c.value)}</div>${c.note ? `<p>${esc(c.note)}</p>` : ""}</div>`).join("")}</div></div>`;
 
   const reMeasured = new Set(r.metrics.map((m) => m.feature));
   const steps: string[] = [];

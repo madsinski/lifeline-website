@@ -21,7 +21,7 @@ import { computeBeforeAfter, baselineProfile, type ObsRow, type PatientRow } fro
 import { buildEmployerOnePager } from "@/lib/research/employer-onepager";
 import { buildComprehensiveReport } from "@/lib/research/comprehensive-report";
 import {
-  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores, changeByHabit,
+  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores,
   type AnswerRow, type CohortInsights, type SurveyQ, type SurveyResp,
 } from "@/lib/research/lifestyle";
 import { buildBeforeAfterReport } from "@/lib/research/before-after-report";
@@ -130,7 +130,6 @@ export async function GET(req: NextRequest) {
       matrix: lifestyleRiskMatrix(obs, patients),
       survey,
       subScores: subScores(obs),
-      habitChange: changeByHabit(obs),
     };
     if (format === "insights") return NextResponse.json(insights);
     const html = buildComprehensiveReport(insights, `${req.nextUrl.origin}/lifeline-logo-rebrand.svg`, METHODS_VERSION);

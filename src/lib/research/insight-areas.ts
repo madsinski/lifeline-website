@@ -9,12 +9,16 @@
 // p < 0.05, any direction), and change (measured or self-reported).
 
 import type { CohortInsights, HabitFact, MatrixCell, SubScore } from "./lifestyle";
+import { CHANGE_PILLAR, MIN_SURVEY_N } from "./lifestyle";
 import type { MetricResult } from "./before-after";
 
 export type AreaKey = "body" | "exercise" | "nutrition" | "sleep" | "mental";
 
 export interface AreaFact { label: string; n: number; of: number }
-export interface AreaChange { label: string; value: string; tone: "good" | "bad" | "neutral"; note?: string }
+export interface AreaChange {
+  label: string; value: string; tone: "good" | "bad" | "neutral"; note?: string;
+  dist?: { labels: string[]; counts: number[] };   // 5-point self-report, index 0 = most positive
+}
 export interface InsightArea {
   key: AreaKey;
   title: string;
@@ -26,26 +30,10 @@ export interface InsightArea {
   links: { text: string; expected: boolean }[];   // "Betri hreyfivenjur tengdust lægra BMI."
   subScores: SubScore[];    // 0–10 component scores for the area
   change: AreaChange[];
-  changeNote?: string;      // caveat under the change list
   changePending?: string;   // shown when no change data yet
+  surveyProgress?: { completed: number; sent: number; needed: number };
 }
 
-const EXPLORATORY = "Könnunarleg greining: Lífsstíll var aðeins metinn við heilsufarsskoðun, svo hér er mæld breyting á þyngd og blóðþrýstingi borin saman eftir venjum við upphaf. Hóparnir byrjuðu ekki á sama blóðþrýstingi og margir samanburðir auka líkur á tilviljun; túlka varlega.";
-
-function habitChangeRows(ins: CohortInsights, area: string, subject: string): AreaChange[] {
-  return (ins.habitChange?.[area] ?? []).map((g) => {
-    const parts: string[] = [];
-    if (g.sbp) parts.push(`blóðþrýstingur ${g.sbp.delta > 0 ? "+" : g.sbp.delta < 0 ? "−" : ""}${num(Math.abs(g.sbp.delta))} mmHg${g.sbp.p !== null && g.sbp.p < 0.05 ? "*" : ""}`);
-    if (g.weight) parts.push(`þyngd ${g.weight.delta > 0 ? "+" : g.weight.delta < 0 ? "−" : ""}${num(Math.abs(g.weight.delta))} kg${g.weight.p !== null && g.weight.p < 0.05 ? "*" : ""}`);
-    const sig = (g.sbp?.p ?? 1) < 0.05 && (g.sbp?.delta ?? 0) < 0;
-    return {
-      label: `${subject} ${g.label.toLowerCase()} (${g.n} manns)`,
-      value: parts.join(" · "),
-      tone: sig ? "good" : "neutral",
-      note: g.sbp ? `Blóðþrýstingur við upphaf ${num(g.sbp.baseline, 0)} mmHg.${sig ? " Marktæk lækkun (*)." : ""}` : undefined,
-    } as AreaChange;
-  });
-}
 
 const num = (x: number, d = 1) => x.toLocaleString("is-IS", { minimumFractionDigits: d, maximumFractionDigits: d });
 const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
@@ -89,21 +77,32 @@ const habits = (ins: CohortInsights, pillar: string): AreaFact[] =>
   ins.habits.filter((h: HabitFact) => h.pillar === pillar).map((h) => ({ label: h.label, n: h.n, of: h.of }))
     .sort((a, b) => b.n / b.of - a.n / a.of);
 
-function surveyChange(ins: CohortInsights, label: string, what: string): { change: AreaChange[]; pending?: string } {
+// Self-reported change for one foundation from the follow-up survey: the
+// 5-point question for that area + the concrete changes people report making.
+function surveyChange(ins: CohortInsights, labels: string[], what: string, pillar: string): { change: AreaChange[]; pending?: string; progress?: InsightArea["surveyProgress"] } {
   const s = ins.survey;
-  if (!s) return { change: [], pending: "Ekki var mælt aftur í eftirfylgni. Engin eftirfylgnikönnun er tengd hópnum." };
-  if (!s.enough) return { change: [], pending: `Upplifun þátttakenda af breytingum á ${what} birtist hér þegar að minnsta kosti 5 hafa svarað eftirfylgnikönnuninni (${s.completed} af ${s.sent} hafa svarað).` };
-  const c = s.change.find((x) => x.label === label);
-  if (!c || !c.n) return { change: [] };
-  const worse = c.dist[3] + c.dist[4];
-  return {
-    change: [{
-      label: `Segja ${what} hafa batnað síðan í heilsufarsskoðuninni`,
-      value: `${Math.round(c.better * 100)}%`,
-      tone: c.better >= 0.5 ? "good" : "neutral",
-      note: `${c.dist[0] + c.dist[1]} af ${c.n} svarendum; ${worse} segja hana hafa versnað.`,
-    }],
+  if (!s) return { change: [], pending: `Engin gögn um breytingar á ${what}: heilsumat var ekki endurtekið og engin eftirfylgnikönnun er tengd hópnum.` };
+  if (!s.enough) return {
+    change: [],
+    pending: `Heilsumat var ekki endurtekið í eftirfylgni, svo breytingar á ${what} koma úr eftirfylgnikönnuninni. Niðurstöður birtast þegar að minnsta kosti ${MIN_SURVEY_N} hafa svarað.`,
+    progress: { completed: s.completed, sent: s.sent, needed: MIN_SURVEY_N },
   };
+  const out: AreaChange[] = [];
+  for (const label of labels) {
+    const c = s.change.find((x) => x.label === label);
+    if (!c || !c.n) continue;
+    const worse = c.dist[3] + c.dist[4];
+    out.push({
+      label: label === "Orka" ? "Orka í daglegu lífi" : `${label}: sjálfsmat á breytingu`,
+      value: `${Math.round(c.better * 100)}% betri`,
+      tone: c.better >= 0.5 ? "good" : worse > c.dist[0] + c.dist[1] ? "bad" : "neutral",
+      note: `${c.dist[0] + c.dist[1]} af ${c.n} segja betri, ${c.dist[2]} svipað, ${worse} verri.`,
+      dist: { labels: c.optionLabels, counts: c.dist },
+    });
+  }
+  const made = s.madeChanges.filter((m) => CHANGE_PILLAR.find(([re]) => re.test(m.label))?.[1] === pillar && m.n > 0);
+  for (const m of made) out.push({ label: m.label, value: `${pct(m.n, m.of)}%`, tone: "good", note: `${m.n} af ${m.of} svarendum segjast hafa gert þessa breytingu.` });
+  return { change: out };
 }
 
 const metric = (ins: CohortInsights, f: string): MetricResult | undefined => ins.result.metrics.find((m) => m.feature === f);
@@ -151,19 +150,19 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
   });
 
   // ── 2–4. Lifestyle pillars ──
-  const lifestyle: { key: AreaKey; pillarKey: string; title: string; subject: string; row: string; surveyLabel: string; what: string; lead: (f: AreaFact[]) => string }[] = [
-    { key: "exercise", pillarKey: "exercise", title: "Hreyfing", subject: "Hreyfivenjur", row: "lifeline_health_exercise_behavioural_score", surveyLabel: "Hreyfing", what: "hreyfingu",
+  const lifestyle: { key: AreaKey; pillarKey: string; title: string; row: string; surveyLabel: string; what: string; lead: (f: AreaFact[]) => string }[] = [
+    { key: "exercise", pillarKey: "exercise", title: "Hreyfing", row: "lifeline_health_exercise_behavioural_score", surveyLabel: "Hreyfing", what: "hreyfingu",
       lead: (f) => f[0] ? `${pct(f[0].n, f[0].of)}% ${f[0].label}.` : "" },
-    { key: "nutrition", pillarKey: "nutrition", title: "Næring", subject: "Matarvenjur", row: "lifeline_health_nutrition_behavioural_score", surveyLabel: "Mataræði", what: "mataræði",
+    { key: "nutrition", pillarKey: "nutrition", title: "Næring", row: "lifeline_health_nutrition_behavioural_score", surveyLabel: "Mataræði", what: "mataræði",
       lead: (f) => f[0] ? `${pct(f[0].n, f[0].of)}% ${f[0].label}.` : "" },
-    { key: "sleep", pillarKey: "sleep", title: "Svefn", subject: "Svefnvenjur", row: "lifeline_health_sleep_behaviour_score", surveyLabel: "Svefn", what: "svefni",
+    { key: "sleep", pillarKey: "sleep", title: "Svefn", row: "lifeline_health_sleep_behaviour_score", surveyLabel: "Svefn", what: "svefni",
       lead: (f) => f[0] ? `${pct(f[0].n, f[0].of)}% ${f[0].label}.` : "" },
   ];
   const weakest = [...ins.pillars].filter((p) => ["sleep", "exercise", "nutrition"].includes(p.key)).sort((a, b) => (a.mean ?? 99) - (b.mean ?? 99))[0];
   for (const l of lifestyle) {
     const p = pillar(l.pillarKey);
     const f = habits(ins, l.pillarKey);
-    const sc = surveyChange(ins, l.surveyLabel, l.what);
+    const sc = surveyChange(ins, [l.surveyLabel], l.what, l.pillarKey);
     const links = linkSentences(ins, l.row, null);
     areas.push({
       key: l.key,
@@ -175,17 +174,16 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       factGroups: f.length ? [{ title: "Venjur við heilsufarsskoðun", facts: f }] : [],
       links,
       subScores: ins.subScores?.[l.pillarKey] ?? [],
-      change: [...habitChangeRows(ins, l.pillarKey, l.subject), ...sc.change],
-      changeNote: ins.habitChange?.[l.pillarKey]?.length ? EXPLORATORY : undefined,
+      change: sc.change,
       changePending: sc.pending,
+      surveyProgress: sc.progress,
     });
   }
 
   // ── 5. Mental wellbeing ──
   const mental = pillar("mental"), wellbeing = pillar("wellbeing");
   const mf = habits(ins, "mental");
-  const ms = surveyChange(ins, "Andleg líðan", "andlegri líðan");
-  const energy = surveyChange(ins, "Orka", "orku");
+  const ms = surveyChange(ins, ["Andleg líðan", "Orka"], "andlegri líðan", "mental");
   const dep = mf.find((x) => x.label.includes("þunglyndis")), anx = mf.find((x) => x.label.includes("kvíða (GAD"));
   areas.push({
     key: "mental",
@@ -198,9 +196,9 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
     factGroups: mf.length ? [{ title: "Við heilsufarsskoðun", facts: mf }] : [],
     links: linkSentences(ins, null, "phq9"),
     subScores: ins.subScores?.mental ?? [],
-    change: [...habitChangeRows(ins, "mental", "Streitueinkunn"), ...ms.change, ...energy.change],
-    changeNote: ins.habitChange?.mental?.length ? EXPLORATORY : undefined,
+    change: ms.change,
     changePending: ms.pending,
+    surveyProgress: ms.progress,
   });
 
   return areas;

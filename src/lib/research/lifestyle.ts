@@ -14,9 +14,7 @@
 //
 // Pure functions; the route loads the rows.
 
-import type { ObsRow, PatientRow, BeforeAfterResult, ProfileItem, Pair } from "./before-after";
-import { buildPairs } from "./before-after";
-import { wilcoxonSignedRank } from "./stats";
+import type { ObsRow, PatientRow, BeforeAfterResult, ProfileItem } from "./before-after";
 
 export interface AnswerRow {
   medalia_patient_id: string;
@@ -237,9 +235,8 @@ export function surveyChange(title: string, sent: number, questions: SurveyQ[], 
       for (const r of rs) for (const v of r.values_array || []) counts.set(v, (counts.get(v) || 0) + 1);
       out.madeChanges = (q.options_jsonb || [])
         .map((o) => ({ label: o.label_is, n: counts.get(o.value) || 0, of: completed }))
-        .filter((x) => x.n > 0 && !/ekki gert breytingar/i.test(x.label))
-        .sort((a, b) => b.n - a.n)
-        .slice(0, 6);
+        .filter((x) => !/ekki gert breytingar/i.test(x.label))
+        .sort((a, b) => b.n - a.n);
     } else if (q.question_type === "nps10" && out.nps === null) {
       const v = rs.map((r) => Number(r.value)).filter((x) => !Number.isNaN(x));
       if (v.length) out.nps = Math.round(((v.filter((x) => x >= 9).length - v.filter((x) => x <= 6).length) / v.length) * 100);
@@ -259,7 +256,6 @@ export interface CohortInsights {
   matrix: RiskMatrix;
   survey: SurveyChange | null;
   subScores: Record<string, SubScore[]>;
-  habitChange: Record<string, HabitGroupChange[]>;
 }
 
 // ── sub-scores (all 0–10, higher is better) ───────────────────────
@@ -302,38 +298,12 @@ export function subScores(obs: ObsRow[]): Record<string, SubScore[]> {
   return out;
 }
 
-// ── measured change split by baseline habit (exploratory) ─────────
-export interface HabitGroupChange {
-  label: string; n: number;
-  weight: { delta: number; p: number | null; n: number } | null;
-  sbp: { delta: number; p: number | null; n: number; baseline: number } | null;
-}
-export const HABIT_SPLIT: Record<string, string> = {
-  sleep: "lifeline_health_sleep_behaviour_score",
-  exercise: "lifeline_health_exercise_behavioural_score",
-  nutrition: "lifeline_health_nutrition_behavioural_score",
-  mental: "lifeline_health_anxiety_score_1_10",
-};
-export function changeByHabit(obs: ObsRow[]): Record<string, HabitGroupChange[]> {
-  const pairs = buildPairs(obs);
-  const w = pairs.get("weight"), s = pairs.get("bp_systolic_avg");
-  const out: Record<string, HabitGroupChange[]> = {};
-  for (const [area, feature] of Object.entries(HABIT_SPLIT)) {
-    const base = firstValues(obs, feature);
-    out[area] = [
-      { label: "Undir 6 við upphaf", pred: (v: number) => v < 6 },
-      { label: "6 eða hærra við upphaf", pred: (v: number) => v >= 6 },
-    ].map(({ label, pred }) => {
-      const ids = [...base].filter(([, v]) => pred(v)).map(([id]) => id);
-      const wd = ids.map((id) => w?.get(id)).filter((p): p is Pair => !!p);
-      const sd = ids.map((id) => s?.get(id)).filter((p): p is Pair => !!p);
-      const dW = wd.map((p) => p.after - p.before), dS = sd.map((p) => p.after - p.before);
-      return {
-        label, n: Math.max(wd.length, sd.length),
-        weight: dW.length >= MIN_SURVEY_N ? { delta: mean(dW)!, p: wilcoxonSignedRank(dW)?.p ?? null, n: dW.length } : null,
-        sbp: dS.length >= MIN_SURVEY_N ? { delta: mean(dS)!, p: wilcoxonSignedRank(dS)?.p ?? null, n: dS.length, baseline: mean(sd.map((p) => p.before))! } : null,
-      };
-    }).filter((g) => g.weight || g.sbp);
-  }
-  return out;
-}
+// Which reported lifestyle changes (follow-up survey multiselect) belong to
+// which foundation — matched on the option text.
+export const CHANGE_PILLAR: [RegExp, string][] = [
+  [/hreyfi|styrktar/i, "exercise"],
+  [/borða|mat|prótein|sykri/i, "nutrition"],
+  [/sef |svefn/i, "sleep"],
+  [/andleg/i, "mental"],
+  [/áfengi|nikótín/i, "substances"],
+];
