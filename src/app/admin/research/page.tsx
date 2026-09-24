@@ -1515,10 +1515,13 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
             <tbody>
               {cmp.coverage.map((c) => (
                 <tr key={c.key} className="border-b border-gray-50">
-                  <td className="py-1.5 text-gray-800">{c.label}</td>
+                  <td className="py-1.5 text-gray-800">
+                    {c.label}
+                    {c.names?.[0]?.length ? <div className="text-[11px] text-gray-400 leading-snug">{c.names[0].join(", ")}</div> : null}
+                  </td>
                   {c.counts.map((n, i) => (
                     <td key={i} className="py-1.5 text-center">
-                      {n > 0 ? <span className="text-emerald-700 font-medium">✓ <span className="text-xs text-gray-500">{n}</span></span> : <span className="text-xs text-gray-400">ekki mælt</span>}
+                      {n > 0 ? <span className="text-emerald-700 font-medium" title={c.names?.[i]?.join(", ")}>✓ <span className="text-xs text-gray-500">{n}</span></span> : <span className="text-xs text-gray-400">ekki mælt</span>}
                     </td>
                   ))}
                 </tr>

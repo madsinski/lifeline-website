@@ -311,7 +311,7 @@ export const CHANGE_PILLAR: [RegExp, string][] = [
 
 // ── dataset comparison (what each uploaded data set actually contains) ──
 export interface DatasetInfo { id: string; label: string; timepoint: string; from: string | null; to: string | null; patients: number; variables: number }
-export interface CoverageRow { key: string; label: string; counts: number[]; examples: string[] }
+export interface CoverageRow { key: string; label: string; counts: number[]; examples: string[]; names: string[][] }   // names[i] = variables in data set i
 export interface DatasetComparison { datasets: DatasetInfo[]; coverage: CoverageRow[]; inBoth: number }
 
 const DOMAIN_IS: [string, string][] = [
@@ -319,7 +319,22 @@ const DOMAIN_IS: [string, string][] = [
   ["sleep", "Svefn"], ["exercise", "Hreyfing"], ["nutrition", "Næring"], ["mental", "Andleg líðan"],
   ["addiction", "Nikótín, áfengi, koffín og skjár"],
 ];
-const FEATURE_IS: Record<string, string> = { weight: "þyngd", bmi: "BMI", bp_systolic_avg: "efri mörk blóðþrýstings", bp_diastolic_avg: "neðri mörk blóðþrýstings", fat_mass_percent: "fituhlutfall", hba1c: "HbA1c", homa_ir: "insúlínviðnám" };
+const FEATURE_IS: Record<string, string> = {
+  weight: "þyngd", bmi: "BMI", height: "hæð", bp_systolic_avg: "efri mörk blóðþrýstings", bp_diastolic_avg: "neðri mörk blóðþrýstings",
+  fat_mass_percent: "fituhlutfall", fat_mass_kg: "fitumassi", skeletal_muscle_mass_kg: "vöðvamassi", skeletal_muscle_mass_percent: "vöðvahlutfall",
+  hba1c: "HbA1c", homa_ir: "insúlínviðnám", glucose: "blóðsykur", insulin: "insúlín", total_cholesterol: "kólesteról", hdl_cholesterol: "HDL",
+  triglycerides: "þríglýseríð", alt: "ALAT", ast: "ASAT", metabolic_health: "efnaskiptaheilsa", heart_health_score_2: "SCORE2", lifeline_health_diabetic: "sykursýki",
+  // foundations — the row already names the area, so only the compartment
+  lifeline_health_sleep_behaviour_score: "venjur", lifeline_health_sleep_medical_score: "læknisfræðilegir þættir",
+  lifeline_health_exercise_behavioural_score: "venjur", lifeline_health_exercise_medical_score: "læknisfræðilegir þættir",
+  lifeline_health_nutrition_behavioural_score: "venjur", lifeline_health_nutrition_medical_score: "læknisfræðilegir þættir",
+  phq9: "PHQ-9", phq2: "PHQ-2", lifeline_health_anxiety_gad_7: "GAD-7", lifeline_health_anxiety_gad_2: "GAD-2", pwi: "almenn vellíðan",
+  lifeline_health_depression_score_1_10: "andleg heilsa", lifeline_health_anxiety_score_1_10: "streita", lifstilseinkunn: "lífsstílseinkunn",
+  lifeline_health_nicotine_use_1_10: "nikótín", lifeline_health_nicotine_use: "nikótínnotkun (já/nei)", lifeline_health_alcohol_addiction_1_10: "áfengi", lifeline_health_audit_10: "AUDIT-10", lifeline_health_audit_c: "AUDIT-C",
+  lifeline_health_caffine_score: "koffín", lifeline_health_cudq_5_score: "CUDQ-5", lifeline_health_food_addiction_1_10: "matarhegðun", lifeline_health_beds_7: "BEDS-7",
+  lifeline_health_screen_use_1_10: "skjánotkun", lifeline_health_screen_use_cius_5: "CIUS-5", lifeline_health_screen_use_cius_14: "CIUS-14",
+  lifeline_health_gambling_1_10: "fjárhættuspil", lifeline_health_gambling_pgsi: "PGSI", lifeline_health_other_substance_addiction_1_10: "önnur efni", lifeline_health_assist_other_substances: "ASSIST",
+};
 
 export function datasetComparison(
   obs: (ObsRow & { export_id: string })[],
@@ -338,7 +353,8 @@ export function datasetComparison(
     const counts = datasets.map((d) => [...d.feats].filter((f) => domainOf(f) === key).length);
     const last = datasets[datasets.length - 1];
     const examples = last ? [...last.feats].filter((f) => domainOf(f) === key).filter((f) => f !== "height").map((f) => FEATURE_IS[f] ?? f).filter((x) => !x.includes("_")) : [];
-    return { key, label, counts, examples };
+    const names = datasets.map((d) => [...d.feats].filter((f) => domainOf(f) === key).map((f) => FEATURE_IS[f] ?? f.replace(/^lifeline_health_/, "").replace(/_/g, " ")).sort());
+    return { key, label, counts, examples, names };
   }).filter((r) => r.counts.some((c) => c > 0));
   const sets = datasets.map((d) => new Set(obs.filter((o) => o.export_id === d.id).map((o) => o.medalia_patient_id)));
   const inBoth = sets.length >= 2 ? [...sets[0]].filter((p) => sets.slice(1).some((s) => s.has(p))).length : 0;

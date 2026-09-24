@@ -90,7 +90,7 @@ function comparisonPage(ins: CohortInsights): string {
     <div class="dsrow">${cmp.datasets.map((d, i) => `${i ? `<div class="dsarrow">→<span>${cmp.inBoth} mældir í báðum</span></div>` : ""}<div class="ds"><div class="dsl">${esc(d.label)}</div><div class="dsd">${dIs(d.from)} – ${dIs(d.to)}</div><div class="dsn"><b>${d.patients}</b> þátttakendur · <b>${d.variables}</b> breytur</div></div>`).join("")}</div>
     <h3>Hvað var mælt í hvoru gagnasetti</h3>
     <table class="tbl"><thead><tr><th>Svið</th>${cmp.datasets.map((d) => `<th class="c">${esc(d.label)}</th>`).join("")}</tr></thead><tbody>
-      ${cmp.coverage.map((c) => `<tr><td>${esc(c.label)}</td>${c.counts.map((n) => `<td class="c">${n ? `<span style="color:${C.dark};font-weight:700">✓</span> <span style="color:${C.muted}">${n}</span>` : `<span style="color:${C.muted}">ekki mælt</span>`}</td>`).join("")}</tr>`).join("")}
+      ${cmp.coverage.map((c) => `<tr><td>${esc(c.label)}${c.names?.[0]?.length ? `<div style="font-size:6.8pt;color:${C.muted}">${esc(c.names[0].join(", "))}</div>` : ""}</td>${c.counts.map((n) => `<td class="c">${n ? `<span style="color:${C.dark};font-weight:700">✓</span> <span style="color:${C.muted}">${n}</span>` : `<span style="color:${C.muted}">ekki mælt</span>`}</td>`).join("")}</tr>`).join("")}
     </tbody></table>
     <h3>Mældar breytingar milli gagnasetta</h3>
     <table class="tbl"><thead><tr><th>Mæling</th><th class="n">Fjöldi</th><th class="n">Fyrir → eftir</th><th class="n">Betri / verri</th><th class="n">p-gildi</th></tr></thead><tbody>
