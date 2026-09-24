@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, featureDirection, isConditional, METHODS_VERSION, type Domain } from "@/lib/research/clinical";
 import { sigStars } from "@/lib/research/stats";
 import type { BeforeAfterResult, MetricResult } from "@/lib/research/before-after";
+import type { CohortInsights } from "@/lib/research/lifestyle";
+import { buildInsightAreas, type InsightArea, type AreaKey } from "@/lib/research/insight-areas";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -701,6 +703,11 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
         {/* ---------- CLINICAL OVERVIEW ---------- */}
         {tab === "overview" && (
           <div className="space-y-6">
+            <InsightsOverview cohortId={detail.cohort.id} />
+            <details className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+              <summary className="cursor-pointer text-sm font-medium text-gray-600 select-none">Allar klínískar tölur (ítarlegt)</summary>
+              <div className="pt-4">
+<div className="space-y-6">
             <p className="text-xs text-gray-500">
               Share of patients crossing each clinical or lifestyle threshold{multiTimepoint ? ", shown as baseline → latest with the change in percentage points (green = fewer affected)" : " at the latest timepoint"}. This is a curated set of decision-relevant thresholds — see the <span className="font-medium text-gray-600">By domain</span> tab for every variable. Denominators vary: conditional screeners and lifestyle sub-scores are only recorded for some patients.
               <InfoTip title="How prevalence & change are calculated">{METHOD.flags}</InfoTip>
@@ -785,6 +792,9 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
               );
             })}
             {!detail.flags.length && <p className="text-sm text-gray-400">No flag-eligible data yet.</p>}
+          </div>
+              </div>
+            </details>
           </div>
         )}
 
@@ -1265,6 +1275,159 @@ function BeforeAfterCard({ m }: { m: MetricResult }) {
       </div>
       <div className="text-xs text-gray-400 mt-1">
         n = {m.n} · {m.improved} improved, {m.worsened} worsened · p = {m.p === null ? "–" : m.p < 0.001 ? "<0.001" : m.p.toFixed(3)}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Clinical overview — five focus areas as cards; click one to see the detail
+// below. Wording comes from src/lib/research/insight-areas.ts (shared with the
+// comprehensive PDF report). Data: /api/admin/research/before-after?format=insights
+// ---------------------------------------------------------------------------
+const AREA_ICON: Record<AreaKey, string> = {
+  body: "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z",
+  exercise: "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z",
+  nutrition: "M5 19c8 0 14-6 14-14C11 5 5 11 5 19zm0 0l7-7",
+  sleep: "M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z",
+  mental: "M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.75h.01M15 9.75h.01",
+};
+const TONE_TEXT = { good: "text-emerald-700", warn: "text-amber-600", bad: "text-orange-700" } as const;
+
+function InsightsOverview({ cohortId }: { cohortId: string }) {
+  const [ins, setIns] = useState<CohortInsights | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [active, setActive] = useState<AreaKey>("body");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await authedFetch(`/api/admin/research/before-after?cohortId=${cohortId}&format=insights`);
+      const j = await res.json().catch(() => ({}));
+      if (cancelled) return;
+      if (!res.ok) { setErr(j.detail || j.error || "Tókst ekki að sækja yfirlit"); return; }
+      setIns(j as CohortInsights);
+    })();
+    return () => { cancelled = true; };
+  }, [cohortId]);
+
+  async function openReport(format: "full" | "employer") {
+    setBusy(format);
+    const res = await authedFetch(`/api/admin/research/before-after?cohortId=${cohortId}&format=${format}`);
+    setBusy(null);
+    if (!res.ok) { setErr("Tókst ekki að búa til skýrslu"); return; }
+    const url = URL.createObjectURL(await res.blob());
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  if (err) return <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">{err}</div>;
+  if (!ins) return <div className="text-sm text-gray-400">Hleð yfirliti…</div>;
+  const areas = buildInsightAreas(ins);
+  const area = areas.find((a) => a.key === active) ?? areas[0];
+  const r = ins.result;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">Hvað segja gögnin?</h3>
+          <p className="text-xs text-gray-500">
+            {r.nPatients} þátttakendur · {r.nFollowed} mældir aftur{r.medianDays ? ` um ${Math.round(r.medianDays / 30.4)} mánuðum síðar` : ""}. Veldu svið til að sjá nánar.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => openReport("employer")} disabled={!!busy}
+            className="text-sm rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50">
+            {busy === "employer" ? "Bý til…" : "Samantekt fyrir vinnuveitanda"}
+          </button>
+          <button onClick={() => openReport("full")} disabled={!!busy}
+            className="text-sm rounded-lg bg-emerald-600 text-white px-3 py-1.5 font-medium hover:bg-emerald-700 disabled:opacity-50">
+            {busy === "full" ? "Bý til…" : "Heildarskýrsla (PDF)"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" role="tablist" aria-label="Svið">
+        {areas.map((a) => {
+          const on = a.key === area.key;
+          return (
+            <button key={a.key} role="tab" aria-selected={on} onClick={() => setActive(a.key)}
+              className={`text-left rounded-xl border p-4 transition-all ${on ? "border-emerald-500 ring-2 ring-emerald-100 bg-white shadow-sm" : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"}`}>
+              <div className="flex items-center gap-2">
+                <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${on ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"}`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.7} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d={AREA_ICON[a.key]} /></svg>
+                </span>
+                <span className="text-sm font-semibold text-gray-900">{a.title}</span>
+              </div>
+              <div className={`mt-3 text-2xl font-bold tabular-nums ${TONE_TEXT[a.scoreTone]}`}>{a.scoreLabel}</div>
+              <div className="text-[11px] text-gray-500">{a.scoreCaption}</div>
+              <p className="mt-2 text-xs text-gray-600 leading-snug line-clamp-3">{a.headline}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <AreaDetail area={area} />
+    </div>
+  );
+}
+
+function AreaDetail({ area }: { area: InsightArea }) {
+  return (
+    <div className="rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50/60 to-white p-5">
+      <h4 className="text-lg font-bold text-gray-900">{area.title}</h4>
+      <p className="text-sm text-gray-700 mt-1 max-w-3xl">{area.headline}</p>
+      <div className="grid md:grid-cols-3 gap-6 mt-5">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Staðan</div>
+          {area.factGroups.length === 0 && <p className="text-sm text-gray-400">Engin gögn.</p>}
+          <div className="space-y-4">
+            {area.factGroups.map((g) => (
+              <div key={g.title}>
+                <div className="text-xs font-medium text-gray-500 mb-1.5">{g.title}</div>
+                <div className="space-y-2">
+                  {g.facts.map((f) => {
+                    const p = f.of ? Math.round((f.n / f.of) * 100) : 0;
+                    return (
+                      <div key={f.label} title={`${f.n} af ${f.of}`}>
+                        <div className="flex justify-between gap-2 text-xs"><span className="text-gray-700">{f.label}</span><span className="font-semibold tabular-nums text-gray-900">{p}%</span></div>
+                        <div className="h-1.5 mt-1 rounded-full bg-gray-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(p, 2)}%` }} /></div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Tengsl við áhættu</div>
+          {area.links.length === 0 ? (
+            <p className="text-sm text-gray-400">Engin marktæk tengsl fundust.</p>
+          ) : (
+            <ul className="space-y-2">
+              {area.links.map((l) => (
+                <li key={l.text} className={`text-sm rounded-lg px-3 py-2 ${l.expected ? "bg-white border border-emerald-100 text-gray-800" : "bg-amber-50 border border-amber-200 text-amber-900"}`}>{l.text}</li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[11px] text-gray-400 mt-2">Leiðrétt fyrir aldri. Tengsl sýna ekki orsök.</p>
+        </div>
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Breytingar</div>
+          <div className="space-y-2">
+            {area.change.map((c) => (
+              <div key={c.label} className="rounded-lg bg-white border border-gray-100 px-3 py-2">
+                <div className="text-xs text-gray-500">{c.label}</div>
+                <div className={`text-lg font-bold tabular-nums ${c.tone === "good" ? "text-emerald-700" : c.tone === "bad" ? "text-orange-700" : "text-gray-800"}`}>{c.value}</div>
+                {c.note && <div className="text-[11px] text-gray-500">{c.note}</div>}
+              </div>
+            ))}
+            {area.changePending && <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">{area.changePending}</p>}
+          </div>
+        </div>
       </div>
     </div>
   );

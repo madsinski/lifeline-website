@@ -6,6 +6,8 @@
 //
 // format=html     → two-page Icelandic before/after report (before-after-report.ts)
 // format=employer → one-page Icelandic employer summary (employer-onepager.ts)
+// format=insights → JSON for the Clinical overview insight cards
+// format=full     → comprehensive Icelandic report incl. lifestyle (comprehensive-report.ts)
 // otherwise JSON for the "Before / after" tab. Read-gated like the rest of
 // the research module; aggregate-only output.
 //
@@ -17,6 +19,11 @@ import { requireResearchRead } from "@/lib/research/access";
 import { METHODS_VERSION } from "@/lib/research/clinical";
 import { computeBeforeAfter, baselineProfile, type ObsRow, type PatientRow } from "@/lib/research/before-after";
 import { buildEmployerOnePager } from "@/lib/research/employer-onepager";
+import { buildComprehensiveReport } from "@/lib/research/comprehensive-report";
+import {
+  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange,
+  type AnswerRow, type CohortInsights, type SurveyQ, type SurveyResp,
+} from "@/lib/research/lifestyle";
 import { buildBeforeAfterReport } from "@/lib/research/before-after-report";
 
 export const maxDuration = 60;
@@ -81,6 +88,53 @@ export async function GET(req: NextRequest) {
   });
 
   const format = req.nextUrl.searchParams.get("format");
+
+  // ---- insights (Clinical overview cards) & comprehensive report ----
+  if (format === "insights" || format === "full") {
+    const answers = (await pageAll<AnswerRow>((from, to) =>
+      supabaseAdmin.from("research_answers")
+        .select("medalia_patient_id, questionnaire_title, question_text, value_text, authored_at")
+        .in("export_id", usedIds).order("id", { ascending: true }).range(from, to)))
+      .filter((a) => !exPatients.has(a.medalia_patient_id));
+
+    // Follow-up feedback survey: ?surveyId=… or the newest approved survey
+    // whose title names the cohort (e.g. "Eftirfylgni – Vestmannaeyjabær").
+    // Aggregate only; suppressed below MIN_SURVEY_N responses.
+    let survey: CohortInsights["survey"] = null;
+    const surveyParam = req.nextUrl.searchParams.get("surveyId");
+    const { data: sv } = surveyParam
+      ? await supabaseAdmin.from("feedback_surveys").select("id, title_is").eq("id", surveyParam).maybeSingle()
+      : await supabaseAdmin.from("feedback_surveys").select("id, title_is").eq("status", "approved")
+          .ilike("title_is", `%${cohort.name}%`).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (sv) {
+      const [{ data: qs }, { data: asg }] = await Promise.all([
+        supabaseAdmin.from("feedback_questions").select("id, section_index, order_index, question_type, label_is, options_jsonb")
+          .eq("survey_id", sv.id).order("order_index"),
+        supabaseAdmin.from("feedback_assignments").select("id, completed_at").eq("survey_id", sv.id),
+      ]);
+      const done = (asg || []).filter((a) => a.completed_at).map((a) => a.id);
+      const resp = done.length
+        ? await pageAll<SurveyResp>((from, to) => supabaseAdmin.from("feedback_responses")
+            .select("assignment_id, question_id, value, values_array, skipped").in("assignment_id", done).range(from, to))
+        : [];
+      survey = surveyChange(sv.title_is, (asg || []).length, (qs || []) as SurveyQ[], resp);
+    }
+
+    const insights: CohortInsights = {
+      cohortName: cohort.name,
+      exportedAt: used[0]?.exported_at ?? null,
+      result,
+      profile: baselineProfile(obs),
+      pillars: pillarSummary(obs),
+      habits: habitFacts(obs, answers),
+      matrix: lifestyleRiskMatrix(obs, patients),
+      survey,
+    };
+    if (format === "insights") return NextResponse.json(insights);
+    const html = buildComprehensiveReport(insights, `${req.nextUrl.origin}/lifeline-logo-rebrand.svg`, METHODS_VERSION);
+    return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+  }
+
   if (format === "employer") {
     const html = buildEmployerOnePager({
       cohortName: cohort.name,
