@@ -286,3 +286,48 @@ export function computeBeforeAfter(obs: ObsRow[], patients: PatientRow[], displa
     bpCategories,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Baseline profile — what the health check found, as the share of
+// participants over standard clinical thresholds at their FIRST measurement.
+// Deliberately clinical (not Lifeline's stricter "optimal" bands in FLAGS) so
+// an employer reads "high blood pressure" the way a doctor would.
+// ---------------------------------------------------------------------------
+export interface ProfileItem { key: string; label: string; threshold: string; n: number; of: number }
+
+export function baselineProfile(obs: ObsRow[]): ProfileItem[] {
+  // earliest-day value per patient × feature
+  const first = new Map<string, Map<string, { day: string; vals: number[] }>>();
+  for (const o of obs) {
+    if (o.value_num === null || !o.observed_at) continue;
+    if (!first.has(o.feature)) first.set(o.feature, new Map());
+    const m = first.get(o.feature)!;
+    const d = day(o.observed_at);
+    const cur = m.get(o.medalia_patient_id);
+    if (!cur || d < cur.day) m.set(o.medalia_patient_id, { day: d, vals: [o.value_num] });
+    else if (d === cur.day) cur.vals.push(o.value_num);
+  }
+  const val = (f: string) => new Map([...(first.get(f) ?? new Map()).entries()].map(([pid, v]) => [pid, mean(v.vals)]));
+  const count = (f: string, pred: (v: number) => boolean) => {
+    const m = val(f);
+    return { n: [...m.values()].filter(pred).length, of: m.size };
+  };
+  const items: ProfileItem[] = [];
+  const push = (key: string, label: string, threshold: string, c: { n: number; of: number }) => { if (c.of >= 5) items.push({ key, label, threshold, ...c }); };
+
+  push("overweight", "Ofþyngd eða offita", "BMI 25 eða hærra", count("bmi", (v) => v >= 25));
+  push("obese", "Offita", "BMI 30 eða hærra", count("bmi", (v) => v >= 30));
+  // high BP needs both averages
+  const sys = val("bp_systolic_avg"), dia = val("bp_diastolic_avg");
+  const bpIds = [...sys.keys()].filter((pid) => dia.has(pid));
+  if (bpIds.length >= 5) items.push({ key: "bp_high", label: "Háþrýstingur", threshold: "140/90 mmHg eða hærra", n: bpIds.filter((pid) => sys.get(pid)! >= 140 || dia.get(pid)! >= 90).length, of: bpIds.length });
+  push("insulin_res", "Insúlínviðnám", "HOMA-IR 2,5 eða hærra", count("homa_ir", (v) => v >= 2.5));
+  push("hba1c", "Forstig sykursýki eða hærra", "HbA1c 42 mmól/mól eða hærra", count("hba1c", (v) => v >= 42));
+  push("chol", "Hækkað kólesteról", "Heildarkólesteról 5,2 mmól/l eða hærra", count("total_cholesterol", (v) => v >= 5.2));
+  // mental: either screen positive
+  const phq = val("phq9"), gad = val("lifeline_health_anxiety_gad_7");
+  const mIds = [...new Set([...phq.keys(), ...gad.keys()])];
+  if (mIds.length >= 5) items.push({ key: "mental", label: "Einkenni þunglyndis eða kvíða", threshold: "PHQ-9 eða GAD-7 10 eða hærra", n: mIds.filter((pid) => (phq.get(pid) ?? 0) >= 10 || (gad.get(pid) ?? 0) >= 10).length, of: mIds.length });
+  push("exercise", "Hreyfing undir viðmiðum", "Hreyfivenjur undir 5 af 10", count("lifeline_health_exercise_behavioural_score", (v) => v < 5));
+  return items;
+}

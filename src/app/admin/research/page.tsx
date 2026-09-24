@@ -222,7 +222,8 @@ export default function ResearchPage() {
   async function openEmployerReport() {
     if (!selectedId) return;
     setMsg(null);
-    const res = await authedFetch(`/api/admin/research/employer-report?cohortId=${selectedId}`);
+    // Icelandic one-page employer summary (paired, by measurement date).
+    const res = await authedFetch(`/api/admin/research/before-after?cohortId=${selectedId}&format=employer`);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       setMsg(j.detail || j.error || "Could not generate employer summary");
@@ -1030,7 +1031,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
               <button onClick={() => onDownload("answers")} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50">CSV (answers)</button>
             </div>
             <p className="text-xs text-gray-500">
-              <span className="font-medium text-gray-600">Employer summary</span> — a layman-friendly, aggregate-only results report (opens in a new tab; print to PDF to share). Needs 2+ timepoints.
+              <span className="font-medium text-gray-600">Employer summary</span> — one A4 page in Icelandic, aggregate-only: what the health check found, what changed by the follow-up, next steps (opens in a new tab; print to PDF to share).
               Excel has 4 sheets — Wide (units in headers, missing data flagged red), Long, Answers, Dictionary.
             </p>
             <div>
@@ -1061,7 +1062,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
 // ---------------------------------------------------------------------------
 interface BeforeAfterResponse {
   exports: { id: string; label: string; exported_at: string | null; patient_count: number; filename: string | null }[];
-  exportId: string;
+  used: string[];
   result: BeforeAfterResult;
 }
 
@@ -1070,7 +1071,6 @@ const fmtSigned = (x: number, d = 1) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${fm
 const metricDec = (f: string) => (f.startsWith("bp_") ? 0 : 1);
 
 function BeforeAfterTab({ cohortId }: { cohortId: string }) {
-  const [exportId, setExportId] = useState<string | null>(null);
   const [data, setData] = useState<BeforeAfterResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -1078,9 +1078,7 @@ function BeforeAfterTab({ cohortId }: { cohortId: string }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const q = new URLSearchParams({ cohortId });
-      if (exportId) q.set("exportId", exportId);
-      const res = await authedFetch(`/api/admin/research/before-after?${q}`);
+      const res = await authedFetch(`/api/admin/research/before-after?cohortId=${cohortId}`);
       const j = await res.json().catch(() => ({}));
       if (cancelled) return;
       if (!res.ok) { setErr(j.detail || j.error || "Could not load before/after"); return; }
@@ -1088,12 +1086,12 @@ function BeforeAfterTab({ cohortId }: { cohortId: string }) {
       setData(j as BeforeAfterResponse);
     })();
     return () => { cancelled = true; };
-  }, [cohortId, exportId]);
+  }, [cohortId]);
 
-  async function openReport() {
+  async function openReport(format: "html" | "employer") {
     if (!data) return;
     setBusy(true);
-    const res = await authedFetch(`/api/admin/research/before-after?cohortId=${cohortId}&exportId=${data.exportId}&format=html`);
+    const res = await authedFetch(`/api/admin/research/before-after?cohortId=${cohortId}&format=${format}`);
     setBusy(false);
     if (!res.ok) { setErr("Could not generate the report"); return; }
     const url = URL.createObjectURL(await res.blob());
@@ -1104,7 +1102,6 @@ function BeforeAfterTab({ cohortId }: { cohortId: string }) {
   if (err) return <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3">{err}</div>;
   if (!data) return <div className="text-sm text-gray-400">Loading…</div>;
   const r = data.result;
-  const chosen = data.exports.find((e) => e.id === data.exportId);
   const keyFeatures = ["weight", "bp_systolic_avg", "bp_diastolic_avg"].filter((f) => r.metrics.some((m) => m.feature === f));
 
   return (
@@ -1112,32 +1109,24 @@ function BeforeAfterTab({ cohortId }: { cohortId: string }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-gray-600 max-w-2xl">
-            Each participant&apos;s <b>first</b> and <b>latest</b> measurement (at least 14 days apart), taken from one data set.
-            A Medalia export holds everyone&apos;s full history, so the newest export is usually the right choice.
+            Each participant&apos;s <b>first</b> and <b>latest</b> measurement (at least 14 days apart), by measurement date,
+            across the data sets below. Data sets dated in the future (test uploads) are ignored.
           </p>
-          <label className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-            Data set
-            <select value={data.exportId} onChange={(e) => setExportId(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-2 py-1 text-gray-800">
-              {data.exports.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.label} · {e.exported_at ? new Date(e.exported_at).toLocaleDateString("is-IS") : "no date"} · {e.patient_count} patients
-                </option>
-              ))}
-            </select>
-          </label>
+          <p className="mt-1 text-xs text-gray-500">
+            Using: {data.exports.filter((e) => data.used.includes(e.id)).map((e) => `${e.label} (${e.patient_count} patients)`).join(" · ") || "–"}
+          </p>
         </div>
-        <button onClick={openReport} disabled={busy || r.nFollowed === 0}
-          className="text-sm rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50">
-          {busy ? "Generating…" : "Open PDF report"}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => openReport("employer")} disabled={busy || r.nFollowed === 0}
+            className="text-sm rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50">
+            Employer one-pager (IS)
+          </button>
+          <button onClick={() => openReport("html")} disabled={busy || r.nFollowed === 0}
+            className="text-sm rounded-lg border border-gray-200 px-4 py-2 font-medium hover:bg-gray-50 disabled:opacity-50">
+            Detailed report (IS, 2 pages)
+          </button>
+        </div>
       </div>
-
-      {chosen?.filename && /test/i.test(chosen.filename) && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3">
-          This data set looks like a TEST upload ({chosen.filename}). Pick a real export before sharing the report.
-        </div>
-      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Participants" value={String(r.nPatients)} />
