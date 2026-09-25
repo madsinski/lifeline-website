@@ -6,11 +6,12 @@
 import { useCallback, useEffect, useState, Fragment, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
-import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, featureDirection, isConditional, METHODS_VERSION, type Domain } from "@/lib/research/clinical";
+import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, featureDirection, featureDomain, isConditional, METHODS_VERSION, type Domain } from "@/lib/research/clinical";
 import { sigStars } from "@/lib/research/stats";
 import type { BeforeAfterResult, MetricResult } from "@/lib/research/before-after";
 import type { CohortInsights } from "@/lib/research/lifestyle";
 import { buildInsightAreas, buildContinuationCase, type InsightArea, type AreaKey } from "@/lib/research/insight-areas";
+import { groupExcluded } from "@/lib/research/comprehensive-report";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -1479,6 +1480,8 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
   const rows: MetricResult[] = r.metrics;
   const fmt = (m: MetricResult, v: number) => v.toLocaleString("is-IS", { maximumFractionDigits: m.feature.startsWith("bp_") ? 0 : 1, minimumFractionDigits: m.feature.startsWith("bp_") ? 0 : 1 });
   const caseFor = buildContinuationCase(ins);
+  const GROUP_ORDER: [string, string][] = [["body", "Líkamsmælingar og samsetning"], ["cardio", "Blóðþrýstingur"], ["nutrition", "Næring"], ["sleep", "Svefn"], ["exercise", "Hreyfing"], ["mental", "Andleg líðan"], ["other", "Heildarmat"], ["addiction", "Nikótín, áfengi og skjár"], ["metabolic", "Blóðprufur"]];
+  const groups = GROUP_ORDER.map(([key, label]) => ({ key, label, rows: rows.filter((m) => featureDomain(m.feature) === key) })).filter((g) => g.rows.length);
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-5">
       <div>
@@ -1507,7 +1510,21 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      {caseFor.length > 0 && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+          <div className="text-sm font-semibold text-emerald-900 mb-2">Af hverju að halda áfram?</div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {caseFor.map((c) => (
+              <div key={c.title}>
+                <div className="text-xs font-semibold text-emerald-800">{c.title}</div>
+                <p className="text-xs text-gray-700 mt-0.5 leading-snug">{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-6">
         <div>
           <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Hvað var mælt</div>
           <table className="w-full text-sm">
@@ -1520,7 +1537,7 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
                     {c.names?.[0]?.length ? <div className="text-[11px] text-gray-400 leading-snug">{c.names[0].join(", ")}</div> : null}
                   </td>
                   {c.counts.map((n, i) => (
-                    <td key={i} className="py-1.5 text-center">
+                    <td key={i} className="py-1.5 text-center align-top">
                       {n > 0 ? <span className="text-emerald-700 font-medium" title={c.names?.[i]?.join(", ")}>✓ <span className="text-xs text-gray-500">{n}</span></span> : <span className="text-xs text-gray-400">ekki mælt</span>}
                     </td>
                   ))}
@@ -1535,42 +1552,41 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
             <table className="w-full text-sm">
               <thead><tr className="text-xs text-gray-500 border-b border-gray-100"><th className="text-left py-1.5 font-medium">Mæling</th><th className="text-right font-medium">Fyrir → eftir</th><th className="text-right font-medium">Betri / verri</th><th className="text-right font-medium">p</th></tr></thead>
               <tbody>
-                {rows.map((m) => (
-                  <tr key={m.feature} className="border-b border-gray-50">
-                    <td className="py-1.5 text-gray-800">{m.label} <span className="text-xs text-gray-400">({m.n})</span></td>
-                    <td className="text-right tabular-nums">{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
-                    <td className="text-right tabular-nums text-xs text-gray-600">{m.improved} / {m.worsened}</td>
-                    <td className={`text-right tabular-nums text-xs ${m.significant ? "font-bold text-emerald-700" : "text-gray-500"}`}>{m.p === null ? "–" : m.p < 0.001 ? "<0,001" : m.p.toFixed(3).replace(".", ",")}</td>
-                  </tr>
-                ))}
-                {hb && hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => (
-                  <tr key={`hb-${m.feature}`} className="bg-emerald-50/60">
-                    <td className="py-1.5 text-gray-800">{m.label}, <span className="font-medium">háþrýstingur við upphaf</span> <span className="text-xs text-gray-400">({m.n})</span></td>
-                    <td className="text-right tabular-nums">{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
-                    <td className="text-right tabular-nums text-xs text-gray-600">{m.improved} / {m.worsened}</td>
-                    <td className={`text-right tabular-nums text-xs ${m.significant ? "font-bold text-emerald-700" : "text-gray-500"}`}>{m.p === null ? "–" : m.p.toFixed(3).replace(".", ",")}</td>
-                  </tr>
+                {groups.map((g) => (
+                  <Fragment key={g.label}>
+                    <tr><td colSpan={4} className="pt-3 pb-1 text-[11px] uppercase tracking-wider text-gray-400 font-semibold">{g.label}</td></tr>
+                    {g.rows.map((m) => <ChangeRow key={m.feature} m={m} fmt={fmt} />)}
+                    {g.key === "cardio" && hb && hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => (
+                      <ChangeRow key={`hb-${m.feature}`} m={m} fmt={fmt} note="háþrýstingur við upphaf" />
+                    ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
           )}
-          <p className="text-[11px] text-gray-400 mt-1.5">Fyrsta og síðasta mæling hvers þátttakanda; Wilcoxon-próf. Feitletrað p = tölfræðilega marktækt.</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">Fyrsta og síðasta mæling hvers þátttakanda; Wilcoxon-próf. Grænt = marktæk framför, appelsínugult = marktæk afturför (p &lt; 0,05).</p>
+          {r.excluded?.length > 0 && (
+            <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+              <div className="text-xs font-semibold text-amber-900">Mælt tvisvar en ekki borið saman</div>
+              <ul className="mt-1 space-y-0.5">
+                {groupExcluded(r.excluded).map((g) => <li key={g.reason} className="text-[11px] text-amber-900"><b>{g.labels}</b>: {g.reason}</li>)}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
-
-      {caseFor.length > 0 && (
-        <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
-          <div className="text-sm font-semibold text-emerald-900 mb-2">Af hverju að halda áfram?</div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {caseFor.map((c) => (
-              <div key={c.title}>
-                <div className="text-xs font-semibold text-emerald-800">{c.title}</div>
-                <p className="text-xs text-gray-700 mt-0.5 leading-snug">{c.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </section>
+  );
+}
+
+function ChangeRow({ m, fmt, note }: { m: MetricResult; fmt: (m: MetricResult, v: number) => string; note?: string }) {
+  const col = m.significant ? (m.good ? "text-emerald-700" : "text-orange-700") : "text-gray-500";
+  return (
+    <tr className={`border-b border-gray-50 ${note ? "bg-emerald-50/60" : ""}`}>
+      <td className="py-1.5 text-gray-800">{m.label}{note && <>, <span className="font-medium">{note}</span></>} <span className="text-xs text-gray-400">({m.n})</span></td>
+      <td className={`text-right tabular-nums ${m.significant ? col : ""}`}>{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
+      <td className="text-right tabular-nums text-xs text-gray-600">{m.improved} / {m.worsened}</td>
+      <td className={`text-right tabular-nums text-xs ${m.significant ? `font-bold ${col}` : "text-gray-500"}`}>{m.p === null ? "–" : m.p < 0.001 ? "<0,001" : m.p.toFixed(3).replace(".", ",")}</td>
+    </tr>
   );
 }

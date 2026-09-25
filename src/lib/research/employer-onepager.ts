@@ -6,12 +6,14 @@
 // individual can be singled out. Print-to-PDF HTML with inline SVG.
 
 import type { BeforeAfterResult, MetricResult, ProfileItem } from "./before-after";
+import type { HabitShift } from "./lifestyle";
 
 export interface EmployerOnePagerInput {
   cohortName: string;
   logoUrl: string;
   result: BeforeAfterResult;
   profile: ProfileItem[];
+  habitShift?: HabitShift[];
   generatedAt?: Date;
 }
 
@@ -48,21 +50,6 @@ function profileChart(items: ProfileItem[]): string {
   return `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img" aria-label="Upphafsstaða hópsins">${rows}</svg>`;
 }
 
-// Before/after bar pair for one metric in one group.
-function pairBars(m: MetricResult, unit: string): string {
-  const W = 150, H = 92, base = 70, bw = 42;
-  const max = Math.max(m.before, m.after);
-  const min = Math.min(m.before, m.after) * 0.85;       // zoomed axis, labelled below
-  const hOf = (v: number) => 8 + ((v - min) / (max - min || 1)) * 50;
-  const bar = (x: number, v: number, col: string, label: string) =>
-    `<rect x="${x}" y="${base - hOf(v)}" width="${bw}" height="${hOf(v)}" rx="3" fill="${col}"/>
-     <text x="${x + bw / 2}" y="${base - hOf(v) - 4}" font-size="10" font-weight="700" text-anchor="middle" fill="${C.ink}">${num(v, unit === "kg" ? 1 : 0)}</text>
-     <text x="${x + bw / 2}" y="${base + 11}" font-size="7.5" text-anchor="middle" fill="${C.muted}">${label}</text>`;
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Fyrir og eftir">
-    <line x1="10" y1="${base}" x2="${W - 10}" y2="${base}" stroke="${C.faint}"/>
-    ${bar(25, m.before, "#D1D5DB", "Fyrir")}${bar(W - 25 - bw, m.after, m.good ? C.dark : C.warn, "Eftir")}
-    <text x="${W / 2}" y="${H - 2}" font-size="6.5" text-anchor="middle" fill="${C.muted}">${esc(unit)} · ás byrjar ekki í núlli</text></svg>`;
-}
 
 export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   const r = input.result;
@@ -72,34 +59,39 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
 
   // ── "what changed" cards (data-driven, honest) ──
   const cards: string[] = [];
+  const minor: string[] = [];
+  const M = (f: string) => r.metrics.find((m) => m.feature === f);
+  const LIFE: [string, string][] = [
+    ["lifeline_health_nutrition_behavioural_score", "Matarvenjur"], ["lifeline_health_sleep_behaviour_score", "Svefnvenjur"],
+    ["lifeline_health_exercise_behavioural_score", "Hreyfivenjur"], ["pwi", "Almenn vellíðan"], ["lifstilseinkunn", "Lífsstílseinkunn"],
+  ];
+  const lifeRows = LIFE.map(([f, label]) => ({ label, m: M(f) })).filter((x): x is { label: string; m: MetricResult } => !!x.m);
+  if (lifeRows.some((x) => x.m.significant && x.m.good)) {
+    cards.push(`<div class="card hl"><div class="ct">Lífsstíll batnaði mælanlega</div>
+      <table class="lt">${lifeRows.map(({ label, m }) => `<tr><td>${esc(label)}</td><td class="bar"><i style="width:${m.before * 10}%;background:#D1D5DB"></i><i style="width:${m.after * 10}%"></i></td><td class="v"${m.significant && m.good ? ` style="color:${C.dark}"` : ""}>${num(m.before, 1)} → <b>${num(m.after, 1)}</b>${m.significant ? "*" : ""}</td></tr>`).join("")}</table>
+      <p class="fn">Einkunn af 10 hjá sömu ${Math.max(...lifeRows.map((x) => x.m.n))} einstaklingum í fyrra og seinna heilsumati. * tölfræðilega marktækt.</p></div>`);
+  }
+  const shifts = (input.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
+  if (shifts.length) {
+    cards.push(`<div class="card"><div class="ct">Venjur sem breyttust</div>
+      ${shifts.map((h) => `<div class="hs"><span>${esc(h.label.charAt(0).toUpperCase() + h.label.slice(1))}</span><b>${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%</b></div>`).join("")}
+      <p class="fn">Hlutfall þátttakenda; allar breytingarnar eru tölfræðilega marktækar.</p></div>`);
+  }
+  const fp = M("fat_mass_percent"), mm = M("skeletal_muscle_mass_kg");
+  if (fp?.significant && fp.good) minor.push(`<div class="card"><div class="ct">Líkamssamsetning</div><div class="big sm">${num(fp.before, 1)}% → ${num(fp.after, 1)}%</div><p>Fituhlutfall lækkaði${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta, 1)} kg` : ""}.</p></div>`);
   const bpHigh = r.subgroups.find((s) => s.key === "bp_high" && s.n >= MIN_GROUP);
   const bpSys = bpHigh?.metrics.find((m) => m.feature === "bp_systolic_avg");
-  const bpWt = bpHigh?.metrics.find((m) => m.feature === "weight");
-  if (bpHigh && bpSys && bpSys.significant && bpSys.good) {
-    cards.push(`<div class="card hl"><div class="ct">Þau sem voru með háþrýsting</div>
-      <div class="pair">${pairBars(bpSys, "mmHg")}<div class="pt">
-        <div class="big">−${num(Math.abs(bpSys.delta))} <small>mmHg</small></div>
-        <p>Hjá þeim ${bpHigh.n} sem mældust með háþrýsting í heilsufarsskoðuninni lækkuðu efri mörk blóðþrýstings að meðaltali um ${num(Math.abs(bpSys.delta))} mmHg.
-        ${bpWt && bpWt.significant && bpWt.good ? `Sami hópur léttist um ${num(Math.abs(bpWt.delta), 1)} kg að meðaltali.` : ""}</p>
-        <span class="tag">Tölfræðilega marktækt</span></div></div></div>`);
-  }
-  const lostBand = r.weightBands.filter((b) => b.key.startsWith("lost")).reduce((a, b) => a + b.n, 0);
-  const totalBand = r.weightBands.reduce((a, b) => a + b.n, 0);
-  const bp = r.bpCategories;
-  const minor: string[] = [];
-  if (totalBand) minor.push(`<div class="card"><div class="big">${lostBand} <small>af ${totalBand}</small></div><p>léttust um 2% eða meira af líkamsþyngd.</p></div>`);
-  if (bp) minor.push(`<div class="card"><div class="big">${bp.before.high} → ${bp.after.high}</div><p>Fjöldi með háþrýsting við fyrstu mælingu og í endurmælingu (af ${bp.n} sem voru mældir tvisvar).</p></div>`);
-  const whole = r.metrics.filter((m) => ["weight", "bp_systolic_avg"].includes(m.feature));
-  const anySig = whole.some((m) => m.significant);
-  minor.push(`<div class="card muted"><div class="ct">Hópurinn í heild</div><p>${anySig
-    ? whole.filter((m) => m.significant).map((m) => `${m.label}: ${m.delta < 0 ? "lækkun" : "hækkun"} um ${num(Math.abs(m.delta), 1)} ${m.unit}`).join(". ") + "."
+  if (bpHigh && bpSys?.significant && bpSys.good) minor.push(`<div class="card"><div class="ct">Þau sem voru með háþrýsting</div><div class="big sm">${num(bpSys.before)} → ${num(bpSys.after)}</div><p>efri mörk blóðþrýstings (mmHg) hjá þeim ${bpHigh.n} sem mældust með háþrýsting.</p></div>`);
+  const w = M("weight");
+  minor.push(`<div class="card muted"><p>${w && !w.significant && fp?.significant && fp.good
+    ? "Meðalþyngd hópsins breyttist lítið, en samsetningin batnaði: fita vék fyrir vöðvum. Þess vegna segir þyngd ein og sér ekki alla söguna."
     : "Að meðaltali var lítil breyting á þyngd og blóðþrýstingi hópsins í heild. Árangurinn var mestur hjá þeim sem voru í mestri áhættu."}</p></div>`);
 
   // ── next steps (data-driven) ──
   const steps: string[] = [];
   const reMeasured = new Set(r.metrics.map((m) => m.feature));
   if (!reMeasured.has("hba1c") && !reMeasured.has("homa_ir")) {
-    steps.push("<b>Endurmæling með blóðprufum</b> eftir 12 mánuði. Í eftirfylgninni voru aðeins þyngd og blóðþrýstingur mæld, en blóðgildi (blóðsykur, insúlínviðnám, blóðfitur) sýna oft fyrst áhrif lífsstílsbreytinga.");
+    steps.push("<b>Endurmæling með blóðprufum</b> eftir 12 mánuði. Í eftirfylgninni voru ekki teknar blóðprufur; þær sýna hvort bættar venjur skili sér í blóðsykri, insúlínviðnámi og blóðfitum.");
   } else {
     steps.push("<b>Endurmæling eftir 12 mánuði</b> til að staðfesta hvort árangurinn helst.");
   }
@@ -120,7 +112,7 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   .a4{width:210mm;height:297mm;margin:10mm auto;background:#fff;padding:11mm 13mm 9mm;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)}
   .top{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:3mm;margin-bottom:4mm;border-bottom:.6mm solid #059669}
   .top img{height:7.5mm}.org{text-align:right;font-size:8pt;color:${C.muted};display:flex;flex-direction:column}.org b{color:${C.dark};font-size:9.5pt}
-  .hero{border-radius:4mm;padding:5mm 7mm;color:#fff;background:linear-gradient(120deg,#047857,#10B981);display:flex;justify-content:space-between;gap:6mm;align-items:center}
+  .hero{border-radius:4mm;padding:4mm 7mm;color:#fff;background:linear-gradient(120deg,#047857,#10B981);display:flex;justify-content:space-between;gap:6mm;align-items:center}
   .hero h1{margin:0;font-size:18pt;line-height:1.15}.hero p{margin:1.5mm 0 0;font-size:9pt;opacity:.92;line-height:1.4}
   .kpis{display:flex;gap:5mm}.kpi{text-align:center;min-width:22mm}.kpi b{display:block;font-size:20pt;font-weight:800;line-height:1}.kpi span{font-size:7pt;opacity:.9}
   h2{font-size:11pt;margin:4.5mm 0 1mm}.lead{font-size:7.8pt;color:${C.muted};margin:0 0 2.5mm;line-height:1.4}
@@ -130,9 +122,12 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   .ct{font-weight:700;font-size:9pt}.big{font-size:17pt;font-weight:800;color:${C.dark};line-height:1.05}.big small{font-size:8.5pt;font-weight:600;color:${C.muted}}
   .pair{display:grid;grid-template-columns:38mm 1fr;gap:3mm;align-items:center;margin-top:1mm}
   .tag{display:inline-block;margin-top:1.5mm;font-size:6.8pt;font-weight:600;color:${C.dark};border:1px solid ${C.brand};border-radius:10px;padding:.3mm 2mm}
-  .stack{display:flex;flex-direction:column;gap:2.5mm}.row2{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm}
+  .stack{display:flex;flex-direction:column;gap:2.5mm}
+  .lt{width:100%;border-collapse:collapse;margin-top:1.5mm;font-size:8.2pt}.lt td{padding:.8mm 0}.lt td.v{text-align:right;white-space:nowrap;padding-left:2mm}
+  .lt td.bar{width:34%;padding:0 2mm}.lt td.bar i{display:block;height:1.6mm;border-radius:1mm;background:${C.brand};margin:.4mm 0}
+  .big.sm{font-size:13pt;white-space:nowrap}.fn{font-size:6.8pt;color:${C.muted};margin-top:1.2mm}.hs{display:flex;justify-content:space-between;gap:3mm;font-size:8.2pt;padding:.7mm 0;border-bottom:1px solid #F3F4F6}.hs b{white-space:nowrap;color:${C.dark}}.row2{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm}
   ol{margin:0;padding-left:4.5mm;font-size:8.3pt;line-height:1.45}ol li{margin:0 0 1.3mm}
-  .steps{background:#F0FDF4;border-radius:3mm;padding:3.5mm 5mm}
+  .steps{background:#F0FDF4;border-radius:3mm;padding:3mm 5mm}
   .foot{margin-top:auto;padding-top:2.5mm;border-top:1px solid ${C.faint};font-size:6.8pt;color:${C.muted};line-height:1.45;display:flex;justify-content:space-between;gap:6mm}
   .printbtn{position:fixed;top:14px;right:14px;background:#059669;color:#fff;border:0;border-radius:8px;padding:10px 16px;font:600 13px Inter,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)}
   @media print{body{background:#fff}.a4{margin:0;box-shadow:none}.printbtn{display:none}}

@@ -118,14 +118,32 @@ const SUB_LABEL: Record<string, string> = {
   lifeline_health_nutrition_behavioural_score: "Matarvenjur", lifeline_health_nutrition_medical_score: "Næring, læknisfræðilegir þættir",
   lifeline_health_depression_score_1_10: "Andleg heilsa", lifeline_health_anxiety_score_1_10: "Streita", pwi: "Almenn vellíðan",
   phq9: "Einkenni þunglyndis (PHQ-9)", lifeline_health_anxiety_gad_7: "Einkenni kvíða (GAD-7)",
+  phq2: "Einkenni þunglyndis, skimun (PHQ-2)", lifeline_health_anxiety_gad_2: "Einkenni kvíða, skimun (GAD-2)",
+  fat_mass_percent: "Fituhlutfall", skeletal_muscle_mass_kg: "Vöðvamassi", fat_mass_kg: "Fitumassi", skeletal_muscle_mass_percent: "Vöðvahlutfall",
 };
+
+// Same habit, same people, first vs latest Heilsumat. Every habit here is an
+// unhealthy one, so a lower share is better. McNemar p on discordant pairs.
+function habitShiftRows(ins: CohortInsights, pillar: string): AreaChange[] {
+  return (ins.habitShift ?? []).filter((h) => h.pillar === pillar).map((h) => {
+    const sig = h.p < 0.05, better = h.after < h.before;
+    return {
+      label: `Hlutfall þeirra sem ${h.label}`,
+      value: `${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%`,
+      tone: sig ? (better ? "good" : "bad") : "neutral",
+      note: `${h.of} manns sem svöruðu báðum heilsumötum.${sig ? " Tölfræðilega marktækt." : ""}`,
+    } as AreaChange;
+  });
+}
+const bestShift = (ins: CohortInsights, pillar: string) =>
+  (ins.habitShift ?? []).filter((h) => h.pillar === pillar && h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p)[0];
 function measuredChange(ins: CohortInsights, domains: string[]): AreaChange[] {
   const ms = ins.result.metrics.filter((m) => domains.includes(featureDomain(m.feature)));
   const cmp = ins.comparison;
   if (ms.length) {
     return ms.map((m) => ({
       label: `${SUB_LABEL[m.feature] ?? LABEL_IS[m.feature] ?? m.label} (${m.n} manns)`,
-      value: `${num(m.before)} → ${num(m.after)}`,
+      value: `${num(m.before)} → ${num(m.after)}${m.unit === "kg" ? " kg" : m.unit === "%" ? "%" : ""}`,
       tone: m.significant ? (m.good ? "good" : "bad") : "neutral",
       note: `${m.improved} bættu sig, ${m.worsened} versnuðu.${m.significant ? " Tölfræðilega marktækt." : " Ekki tölfræðilega marktækt."}`,
     }));
@@ -166,6 +184,12 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
   const lost = r.weightBands.filter((b) => b.key.startsWith("lost")).reduce((a, b) => a + b.n, 0);
   const tot = r.weightBands.reduce((a, b) => a + b.n, 0);
   if (tot) bodyChange.push({ label: "Léttust um 2% eða meira", value: `${lost} af ${tot}`, tone: lost ? "good" : "neutral" });
+  for (const f of ["fat_mass_percent", "skeletal_muscle_mass_kg"]) {
+    const m = metric(ins, f);
+    if (m) bodyChange.push({ label: `${SUB_LABEL[f]} (${m.n} manns)`, value: `${num(m.before)} → ${num(m.after)}${m.unit === "%" ? "%" : ` ${m.unit}`}`, tone: m.significant ? (m.good ? "good" : "bad") : "neutral", note: `${m.improved} bættu sig, ${m.worsened} versnuðu.${m.significant ? " Tölfræðilega marktækt." : ""}` });
+  }
+  bodyChange.push(...habitShiftRows(ins, "substances"));
+  const fatP = metric(ins, "fat_mass_percent"), musc = metric(ins, "skeletal_muscle_mass_kg");
   areas.push({
     key: "body",
     title: "Líkami og áhætta",
@@ -175,7 +199,9 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
     headline: [
       bp ? `${pct(bp.n, bp.of)}% voru með háþrýsting` : null,
       ir ? `${pct(ir.n, ir.of)}% með insúlínviðnám` : null,
-    ].filter(Boolean).join(" og ") + " við heilsufarsskoðunina." + (bpHighSys?.significant && bpHighSys.good ? ` Hjá þeim sem voru með háþrýsting lækkaði blóðþrýstingur um ${num(Math.abs(bpHighSys.delta), 0)} mmHg að meðaltali.` : ""),
+    ].filter(Boolean).join(" og ") + " við heilsufarsskoðunina."
+      + (fatP?.significant && fatP.good ? ` Fituhlutfall lækkaði úr ${num(fatP.before)}% í ${num(fatP.after)}%${musc?.significant && musc.good ? ` og vöðvamassi jókst um ${num(musc.delta)} kg` : ""}.` : "")
+      + (bpHighSys?.significant && bpHighSys.good ? ` Hjá þeim sem voru með háþrýsting lækkaði blóðþrýstingur um ${num(Math.abs(bpHighSys.delta), 0)} mmHg að meðaltali.` : ""),
     factGroups: [
       { title: "Við heilsufarsskoðun", facts: ins.profile.filter((p) => !["mental", "exercise"].includes(p.key)).map((p) => ({ label: `${p.label.toLowerCase()} (${p.threshold})`, n: p.n, of: p.of })) },
       { title: "Nikótín, koffín og áfengi", facts: habits(ins, "substances") },
@@ -203,14 +229,22 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
     areas.push({
       key: l.key,
       title: l.title,
-      scoreLabel: p?.mean != null ? `${num(p.mean)} / 10` : "–",
-      scoreCaption: p ? `venjur · ${pct(p.below6, p.n)}% undir 6` : "",
-      scoreTone: toneFor10(p?.mean ?? null),
-      headline: `${weakest?.key === l.pillarKey ? "Veikasta stoð hópsins. " : ""}${l.lead(f)}${links.find((x) => x.expected) ? ` ${links.find((x) => x.expected)!.text}` : ""}`.trim(),
+      ...(() => {
+        const beh = metric(ins, l.row);
+        if (beh) return { scoreLabel: `${num(beh.before)} → ${num(beh.after)}`, scoreCaption: `venjur af 10 · ${beh.n} manns${beh.significant ? " · marktækt" : ""}`, scoreTone: toneFor10(beh.after) };
+        return { scoreLabel: p?.mean != null ? `${num(p.mean)} / 10` : "–", scoreCaption: p ? `venjur · ${pct(p.below6, p.n)}% undir 6` : "", scoreTone: toneFor10(p?.mean ?? null) };
+      })(),
+      headline: (() => {
+        const beh = metric(ins, l.row), shift = bestShift(ins, l.pillarKey);
+        if (beh?.significant && beh.good) {
+          return `${SUB_LABEL[l.row]} bötnuðu úr ${num(beh.before)} í ${num(beh.after)} af 10.${shift ? ` Hlutfall þeirra sem ${shift.label} fór úr ${pct(shift.before, shift.of)}% í ${pct(shift.after, shift.of)}%.` : ""}`;
+        }
+        return `${weakest?.key === l.pillarKey ? "Veikasta stoð hópsins. " : ""}${l.lead(f)}${shift ? ` Hlutfall þeirra sem ${shift.label} fór úr ${pct(shift.before, shift.of)}% í ${pct(shift.after, shift.of)}%.` : links.find((x) => x.expected) ? ` ${links.find((x) => x.expected)!.text}` : ""}`.trim();
+      })(),
       factGroups: f.length ? [{ title: "Venjur við heilsufarsskoðun", facts: f }] : [],
       links,
       subScores: ins.subScores?.[l.pillarKey] ?? [],
-      change: [...measuredChange(ins, [l.pillarKey]), ...sc.change],
+      change: [...measuredChange(ins, [l.pillarKey]), ...habitShiftRows(ins, l.pillarKey), ...sc.change],
       changePending: sc.pending,
       surveyProgress: sc.progress,
     });
@@ -224,15 +258,25 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
   areas.push({
     key: "mental",
     title: "Andleg líðan",
-    scoreLabel: wellbeing?.mean != null ? `${num(wellbeing.mean)} / 10` : mental?.mean != null ? `${num(mental.mean)} / 10` : "–",
-    scoreCaption: wellbeing ? "almenn vellíðan" : "andleg heilsa",
-    scoreTone: toneFor10(wellbeing?.mean ?? mental?.mean ?? null),
-    headline: [dep ? `${pct(dep.n, dep.of)}% með einkenni þunglyndis` : null, anx ? `${pct(anx.n, anx.of)}% með einkenni kvíða` : null].filter(Boolean).join(" og ")
-      + " við heilsufarsskoðunina." + (linkSentences(ins, null, "phq9").find((x) => x.expected) ? ` ${linkSentences(ins, null, "phq9").find((x) => x.expected)!.text}` : ""),
+    ...(() => {
+      const pw = metric(ins, "pwi");
+      if (pw) return { scoreLabel: `${num(pw.before)} → ${num(pw.after)}`, scoreCaption: `almenn vellíðan af 10 · ${pw.n} manns${pw.significant ? " · marktækt" : ""}`, scoreTone: toneFor10(pw.after) };
+      return {
+        scoreLabel: wellbeing?.mean != null ? `${num(wellbeing.mean)} / 10` : mental?.mean != null ? `${num(mental.mean)} / 10` : "–",
+        scoreCaption: wellbeing ? "almenn vellíðan" : "andleg heilsa",
+        scoreTone: toneFor10(wellbeing?.mean ?? mental?.mean ?? null),
+      };
+    })(),
+    headline: (() => {
+      const pw = metric(ins, "pwi"), p2 = metric(ins, "phq2");
+      const base = [dep ? `${pct(dep.n, dep.of)}% með einkenni þunglyndis` : null, anx ? `${pct(anx.n, anx.of)}% með einkenni kvíða` : null].filter(Boolean).join(" og ") + " við heilsufarsskoðunina.";
+      if (pw?.significant && pw.good) return `Almenn vellíðan jókst úr ${num(pw.before)} í ${num(pw.after)} af 10${p2?.significant && p2.good ? " og einkennum þunglyndis fækkaði" : ""}. ${base}`;
+      return base + (linkSentences(ins, null, "phq9").find((x) => x.expected) ? ` ${linkSentences(ins, null, "phq9").find((x) => x.expected)!.text}` : "");
+    })(),
     factGroups: mf.length ? [{ title: "Við heilsufarsskoðun", facts: mf }] : [],
     links: linkSentences(ins, null, "phq9"),
     subScores: ins.subScores?.mental ?? [],
-    change: [...measuredChange(ins, ["mental"]), ...ms.change],
+    change: [...measuredChange(ins, ["mental"]), ...habitShiftRows(ins, "mental"), ...ms.change],
     changePending: ms.pending,
     surveyProgress: ms.progress,
   });
@@ -259,6 +303,22 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
     title: "Árangur þar sem áhættan var mest",
     body: `Hjá þeim ${hb.n} sem voru með háþrýsting lækkuðu efri mörk úr ${num(hs.before, 0)} í ${num(hs.after, 0)} mmHg${hs.significant ? " (tölfræðilega marktækt)" : ""}${hw && hw.good ? ` og þyngd um ${num(Math.abs(hw.delta))} kg` : ""}.${r.bpCategories ? ` Fjöldi með háþrýsting fór úr ${r.bpCategories.before.high} í ${r.bpCategories.after.high}.` : ""}`,
   });
+  // measured lifestyle change (same questions, same people)
+  const LIFE = ["lifeline_health_nutrition_behavioural_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_behavioural_score", "lifstilseinkunn", "pwi"];
+  const lifeWins = LIFE.map((f) => r.metrics.find((m) => m.feature === f)).filter((m): m is MetricResult => !!m && m.significant && m.good === true);
+  const shifts = (ins.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
+  if (lifeWins.length || shifts.length) pts.push({
+    title: "Lífsstíll batnaði mælanlega",
+    body: [
+      lifeWins.length ? `${lifeWins.map((m) => `${(SUB_LABEL[m.feature] ?? LABEL_IS[m.feature] ?? m.label).toLowerCase()} ${num(m.before)} → ${num(m.after)}`).join(", ")} (af 10, tölfræðilega marktækt)` : "",
+      shifts.length ? `Breytingar á venjum (hlutfall þátttakenda): ${shifts.map((h) => `${h.label} ${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%`).join("; ")}` : "",
+    ].filter(Boolean).join(". ").replace(/^./, (c) => c.toUpperCase()) + ".",
+  });
+  const fp = r.metrics.find((m) => m.feature === "fat_mass_percent"), mm = r.metrics.find((m) => m.feature === "skeletal_muscle_mass_kg");
+  if (fp?.significant && fp.good) pts.push({
+    title: "Líkamssamsetning batnaði",
+    body: `Fituhlutfall lækkaði úr ${num(fp.before)}% í ${num(fp.after)}%${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta)} kg` : ""}, þótt meðalþyngd hafi lítið breyst: fita vék fyrir vöðvum.`,
+  });
   const lost = r.weightBands.filter((b) => b.key.startsWith("lost")).reduce((a, b) => a + b.n, 0);
   const tot = r.weightBands.reduce((a, b) => a + b.n, 0);
   pts.push({
@@ -271,7 +331,9 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
     const missing = cmp.coverage.filter((c) => c.counts[0] > 0 && c.counts[c.counts.length - 1] === 0).map((c) => c.label.toLowerCase());
     if (missing.length) pts.push({
       title: "Næsta mæling getur sýnt meira",
-      body: `Í gagnasetti ${cmp.datasets.length} voru mældar ${last.variables} breytur en ${first.variables} í gagnasetti 1. Eftirfarandi var aðeins metið við upphaf: ${missing.join(", ")}. Með blóðprufum og heilsumati í næstu mælingu má meta hvort venjur og efnaskipti hafi breyst.`,
+      body: missing.length === 1 && missing[0] === "blóðprufur"
+        ? `Blóðprufur voru aðeins teknar við upphaf. Með blóðprufum í næstu mælingu má meta hvort bættar venjur skili sér í blóðsykri, insúlínviðnámi og blóðfitum.`
+        : `Í gagnasetti ${cmp.datasets.length} voru mældar ${last.variables} breytur en ${first.variables} í gagnasetti 1. Eftirfarandi var aðeins metið við upphaf: ${missing.join(", ")}. Með blóðprufum og heilsumati í næstu mælingu má meta hvort venjur og efnaskipti hafi breyst.`,
     });
   }
   return pts;

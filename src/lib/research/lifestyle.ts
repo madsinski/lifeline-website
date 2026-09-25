@@ -15,6 +15,7 @@
 // Pure functions; the route loads the rows.
 
 import type { ObsRow, PatientRow, BeforeAfterResult, ProfileItem } from "./before-after";
+import { mcnemar } from "./stats";
 
 export interface AnswerRow {
   medalia_patient_id: string;
@@ -61,7 +62,7 @@ export function pillarSummary(obs: ObsRow[]): PillarScore[] {
 export interface HabitFact { pillar: string; label: string; n: number; of: number }
 
 type HabitDef =
-  | { pillar: string; label: string; q: string; bad: (v: string) => boolean }
+  | { pillar: string; label: string; q: string; bad: (v: string) => boolean; revised?: boolean }
   | { pillar: string; label: string; score: string; bad: (v: number) => boolean };
 
 const eq = (...xs: string[]) => (v: string) => xs.includes(v);
@@ -92,7 +93,8 @@ const HABITS: HabitDef[] = [
   { pillar: "mental", label: "búa við litla almenna vellíðan (undir 6 af 10)", score: "pwi", bad: (v: number) => v < 6 },
   // efni
   { pillar: "substances", label: "nota nikótín daglega eða flesta daga", q: "notkun þinni á nikótín", bad: starts("Ég nota nikótín/tóbak reglulega") },
-  { pillar: "substances", label: "drekka orkudrykki reglulega", q: "Hvaða koffíndrykki", bad: eq("Orkudrykki") },
+  // revised: the caffeine section was rewritten in the 2026-06 Heilsumat → not comparable over time
+  { pillar: "substances", label: "drekka orkudrykki reglulega", q: "Hvaða koffíndrykki", bad: eq("Orkudrykki"), revised: true },
   { pillar: "substances", label: "drekka meira en 6 drykki í einu mánaðarlega eða oftar", q: "meira en 6 drykki", bad: eq("Mánaðarlega", "Vikulega", "Daglega eða næstum daglega") },
 ];
 
@@ -100,25 +102,63 @@ export const HABIT_PILLAR_LABEL: Record<string, string> = {
   sleep: "Svefn", exercise: "Hreyfing", nutrition: "Næring", mental: "Andleg heilsa", substances: "Nikótín, koffín og áfengi",
 };
 
+// Heilsumat forms per patient: distinct answer days, sorted. The first is the
+// baseline form; the last (≥14 days later) is the follow-up form.
+function heilsumatDays(answers: AnswerRow[]): Map<string, string[]> {
+  const m = new Map<string, Set<string>>();
+  for (const a of answers) {
+    if (!(a.questionnaire_title || "").toLowerCase().startsWith("heilsumat") || !a.authored_at) continue;
+    if (!m.has(a.medalia_patient_id)) m.set(a.medalia_patient_id, new Set());
+    m.get(a.medalia_patient_id)!.add(a.authored_at.slice(0, 10));
+  }
+  return new Map([...m].map(([k, v]) => [k, [...v].sort()]));
+}
+function hitsOnDay(answers: AnswerRow[], h: Extract<HabitDef, { q: string }>, dayOf: Map<string, string>): Set<string> {
+  const hit = new Set<string>();
+  for (const a of answers) {
+    if (!a.question_text || !a.value_text || !a.authored_at || !a.question_text.includes(h.q)) continue;
+    if (dayOf.get(a.medalia_patient_id) !== a.authored_at.slice(0, 10)) continue;
+    if (h.bad(a.value_text.trim())) hit.add(a.medalia_patient_id);
+  }
+  return hit;
+}
+
+/** Habits at BASELINE (each patient's first Heilsumat). */
 export function habitFacts(obs: ObsRow[], answers: AnswerRow[]): HabitFact[] {
-  const heilsumat = answers.filter((a) => (a.questionnaire_title || "").toLowerCase().startsWith("heilsumat"));
-  const respondents = new Set(heilsumat.map((a) => a.medalia_patient_id));
-  const of = respondents.size;
+  const days = heilsumatDays(answers);
+  const of = days.size;
   if (of < MIN_SURVEY_N) return [];
-  const out: HabitFact[] = [];
+  const firstDay = new Map([...days].map(([pid, d]) => [pid, d[0]]));
+  return HABITS.map((h) => {
+    const n = "q" in h
+      ? hitsOnDay(answers, h, firstDay).size
+      : [...firstValues(obs, h.score)].filter(([pid, v]) => days.has(pid) && h.bad(v)).length;
+    return { pillar: h.pillar, label: h.label, n, of };
+  });
+}
+
+/** Same habits for the SAME people at their first vs latest Heilsumat
+ *  (≥14 days apart). Question-based habits only — the mental-health score
+ *  habits depend on instruments that may not be re-administered. */
+export interface HabitShift { pillar: string; label: string; before: number; after: number; of: number; p: number }
+export function habitShift(answers: AnswerRow[]): HabitShift[] {
+  const days = heilsumatDays(answers);
+  const both = [...days].filter(([, d]) => d.length >= 2 && (Date.parse(d[d.length - 1]) - Date.parse(d[0])) / 86400000 >= 14);
+  if (both.length < MIN_SURVEY_N) return [];
+  const firstDay = new Map(both.map(([pid, d]) => [pid, d[0]]));
+  const lastDay = new Map(both.map(([pid, d]) => [pid, d[d.length - 1]]));
+  const out: HabitShift[] = [];
   for (const h of HABITS) {
-    let n: number;
-    if ("q" in h) {
-      const hit = new Set<string>();
-      for (const a of heilsumat) {
-        if (!a.question_text || !a.value_text || !a.question_text.includes(h.q)) continue;
-        if (h.bad(a.value_text.trim())) hit.add(a.medalia_patient_id);
-      }
-      n = hit.size;
-    } else {
-      n = [...firstValues(obs, h.score)].filter(([pid, v]) => respondents.has(pid) && h.bad(v)).length;
-    }
-    out.push({ pillar: h.pillar, label: h.label, n, of });
+    if (!("q" in h) || h.revised) continue;
+    const b = hitsOnDay(answers, h, firstDay), a = hitsOnDay(answers, h, lastDay);
+    // only people who answered the question at both forms
+    const answeredAt = (dayOf: Map<string, string>) => new Set(answers.filter((x) => x.question_text?.includes(h.q) && x.authored_at && dayOf.get(x.medalia_patient_id) === x.authored_at.slice(0, 10)).map((x) => x.medalia_patient_id));
+    const ab = answeredAt(firstDay), aa = answeredAt(lastDay);
+    const ids = [...ab].filter((id) => aa.has(id));
+    if (ids.length < MIN_SURVEY_N) continue;
+    // McNemar on the discordant pairs (stopped vs started the habit)
+    const stopped = ids.filter((id) => b.has(id) && !a.has(id)).length, started = ids.filter((id) => !b.has(id) && a.has(id)).length;
+    out.push({ pillar: h.pillar, label: h.label, before: ids.filter((id) => b.has(id)).length, after: ids.filter((id) => a.has(id)).length, of: ids.length, p: mcnemar(stopped, started).p });
   }
   return out;
 }
@@ -257,6 +297,7 @@ export interface CohortInsights {
   survey: SurveyChange | null;
   subScores: Record<string, SubScore[]>;
   comparison: DatasetComparison;
+  habitShift: HabitShift[];
 }
 
 // ── sub-scores (all 0–10, higher is better) ───────────────────────
@@ -333,6 +374,7 @@ const FEATURE_IS: Record<string, string> = {
   lifeline_health_nicotine_use_1_10: "nikótín", lifeline_health_nicotine_use: "nikótínnotkun (já/nei)", lifeline_health_alcohol_addiction_1_10: "áfengi", lifeline_health_audit_10: "AUDIT-10", lifeline_health_audit_c: "AUDIT-C",
   lifeline_health_caffine_score: "koffín", lifeline_health_cudq_5_score: "CUDQ-5", lifeline_health_food_addiction_1_10: "matarhegðun", lifeline_health_beds_7: "BEDS-7",
   lifeline_health_screen_use_1_10: "skjánotkun", lifeline_health_screen_use_cius_5: "CIUS-5", lifeline_health_screen_use_cius_14: "CIUS-14",
+  svefn_total: "heildareinkunn", hreyfing_total: "heildareinkunn", naering_total: "heildareinkunn", andlegt_total: "heildareinkunn", fikn_total: "heildareinkunn",
   lifeline_health_gambling_1_10: "fjárhættuspil", lifeline_health_gambling_pgsi: "PGSI", lifeline_health_other_substance_addiction_1_10: "önnur efni", lifeline_health_assist_other_substances: "ASSIST",
 };
 
@@ -344,7 +386,7 @@ export function datasetComparison(
   const ordered = [...exports].sort((a, b) => (a.timepoint_order ?? 0) - (b.timepoint_order ?? 0));
   const IGNORE = new Set(["bp_systolic", "bp_diastolic", "blood_pressure_panel"]); // panel components duplicate the averages
   const datasets = ordered.map((e, i) => {
-    const rows = obs.filter((o) => o.export_id === e.id);
+    const rows = obs.filter((o) => o.export_id === e.id && o.value_num !== null);   // yes/no answers are not measurements
     const dates = rows.map((o) => o.observed_at).filter((d): d is string => !!d).sort();
     const feats = new Set(rows.filter((o) => !IGNORE.has(o.feature)).map((o) => o.feature));
     return { id: e.id, label: `Gagnasett ${i + 1}`, timepoint: e.timepoint_label, from: dates[0] ?? null, to: dates[dates.length - 1] ?? null, patients: new Set(rows.map((o) => o.medalia_patient_id)).size, variables: feats.size, feats };

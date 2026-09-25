@@ -21,7 +21,7 @@ import { computeBeforeAfter, baselineProfile, type ObsRow, type PatientRow } fro
 import { buildEmployerOnePager } from "@/lib/research/employer-onepager";
 import { buildComprehensiveReport } from "@/lib/research/comprehensive-report";
 import {
-  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores, datasetComparison,
+  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores, datasetComparison, habitShift,
   type AnswerRow, type CohortInsights, type SurveyQ, type SurveyResp,
 } from "@/lib/research/lifestyle";
 import { buildBeforeAfterReport } from "@/lib/research/before-after-report";
@@ -89,13 +89,15 @@ export async function GET(req: NextRequest) {
 
   const format = req.nextUrl.searchParams.get("format");
 
+  const loadAnswers = async () => (await pageAll<AnswerRow>((from, to) =>
+    supabaseAdmin.from("research_answers")
+      .select("medalia_patient_id, questionnaire_title, question_text, value_text, authored_at")
+      .in("export_id", usedIds).order("id", { ascending: true }).range(from, to)))
+    .filter((a) => !exPatients.has(a.medalia_patient_id));
+
   // ---- insights (Clinical overview cards) & comprehensive report ----
   if (format === "insights" || format === "full") {
-    const answers = (await pageAll<AnswerRow>((from, to) =>
-      supabaseAdmin.from("research_answers")
-        .select("medalia_patient_id, questionnaire_title, question_text, value_text, authored_at")
-        .in("export_id", usedIds).order("id", { ascending: true }).range(from, to)))
-      .filter((a) => !exPatients.has(a.medalia_patient_id));
+    const answers = await loadAnswers();
 
     // Follow-up feedback survey: ?surveyId=… or the newest approved survey
     // whose title names the cohort (e.g. "Eftirfylgni – Vestmannaeyjabær").
@@ -131,6 +133,7 @@ export async function GET(req: NextRequest) {
       survey,
       subScores: subScores(obs),
       comparison: datasetComparison(obs, used, featureDomain),
+      habitShift: habitShift(answers),
     };
     if (format === "insights") return NextResponse.json(insights);
     const html = buildComprehensiveReport(insights, `${req.nextUrl.origin}/lifeline-logo-rebrand.svg`, METHODS_VERSION);
@@ -143,6 +146,7 @@ export async function GET(req: NextRequest) {
       logoUrl: `${req.nextUrl.origin}/lifeline-logo-rebrand.svg`,
       result,
       profile: baselineProfile(obs),
+      habitShift: habitShift(await loadAnswers()),
     });
     return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
   }

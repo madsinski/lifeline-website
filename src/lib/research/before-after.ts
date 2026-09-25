@@ -53,6 +53,21 @@ export const LABEL_IS: Record<string, string> = {
   lifstilseinkunn: "Lífsstílseinkunn",
   pwi: "Almenn vellíðan (PWI)",
   phq9: "Þunglyndiseinkenni (PHQ-9)",
+  phq2: "Þunglyndiseinkenni, skimun (PHQ-2)",
+  lifeline_health_anxiety_gad_2: "Kvíðaeinkenni, skimun (GAD-2)",
+  lifeline_health_depression_score_1_10: "Andleg heilsa (0–10)",
+  lifeline_health_anxiety_score_1_10: "Streita (0–10)",
+  lifeline_health_caffine_score: "Koffín (0–10)",
+  lifeline_health_sleep_behaviour_score: "Svefnvenjur", lifeline_health_sleep_medical_score: "Svefn, læknisfræðilegir þættir",
+  lifeline_health_exercise_behavioural_score: "Hreyfivenjur", lifeline_health_exercise_medical_score: "Hreyfing, læknisfræðilegir þættir",
+  lifeline_health_nutrition_behavioural_score: "Matarvenjur", lifeline_health_nutrition_medical_score: "Næring, læknisfræðilegir þættir",
+  lifeline_health_alcohol_addiction_1_10: "Áfengi (0–10)", lifeline_health_nicotine_use_1_10: "Nikótín (0–10)",
+  lifeline_health_food_addiction_1_10: "Matarhegðun (0–10)", lifeline_health_screen_use_1_10: "Skjánotkun (0–10)",
+  lifeline_health_screen_use_cius_5: "Skjánotkun, skimun (CIUS-5)", lifeline_health_screen_use_cius_14: "Skjánotkun (CIUS-14)",
+  lifeline_health_other_substance_addiction_1_10: "Önnur efni (0–10)", lifeline_health_assist_other_substances: "Önnur efni (ASSIST)",
+  lifeline_health_gambling_1_10: "Fjárhættuspil (0–10)", lifeline_health_gambling_pgsi: "Fjárhættuspil (PGSI)",
+  lifeline_health_audit_c: "Áfengi, skimun (AUDIT-C)", lifeline_health_audit_10: "Áfengi (AUDIT-10)", lifeline_health_beds_7: "Átröskunareinkenni (BEDS-7)",
+  lifeline_health_cudq_5_score: "Koffínnotkun (CUDQ-5)",
   lifeline_health_anxiety_gad_7: "Kvíðaeinkenni (GAD-7)",
 };
 const UNIT_IS: Record<string, string> = { weight: "kg", bp_systolic_avg: "mmHg", bp_diastolic_avg: "mmHg", fat_mass_kg: "kg", skeletal_muscle_mass_kg: "kg", fat_mass_percent: "%", skeletal_muscle_mass_percent: "%" };
@@ -110,6 +125,7 @@ export interface BeforeAfterResult {
   subgroups: Subgroup[];
   weightBands: { key: string; label: string; n: number }[];
   bpCategories: { before: Record<BpCat, number>; after: Record<BpCat, number>; improved: number; worsened: number; n: number } | null;
+  excluded: { feature: string; label: string; reason: string }[];   // measured twice but NOT comparable
 }
 
 export type BpCat = "normal" | "elevated" | "high";
@@ -190,9 +206,48 @@ const sortFeatures = (a: string, b: string) => {
   return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a.localeCompare(b);
 };
 
+// ---------------------------------------------------------------------------
+// Comparability. A score measured at both time points is only comparable if
+// the SAME questions produced it both times.
+//  - Invariant check (data-driven): PHQ-9 contains the PHQ-2 items and GAD-7
+//    the GAD-2 items, so a follow-up PHQ-9 < PHQ-2 (or GAD-7 < GAD-2) on the
+//    same day proves the full instrument was not administered and the value
+//    is a default. Then PHQ-9/GAD-7 and the 0–10 scores derived from them
+//    (depression / stress) are not comparable; PHQ-2/GAD-2 still are.
+//    (Seen in the Vestmannaeyjabær follow-up, 2026-06: only PHQ-2/GAD-2 asked.)
+//  - Known questionnaire revisions: the caffeine section was rewritten in the
+//    2026-06 Heilsumat version ("3–4 daga í viku" → "Neytir þú koffíns?" +
+//    drinks/day), so the caffeine/CUDQ scores changed meaning.
+// ---------------------------------------------------------------------------
+const INSTRUMENT_PAIRS: { short: string; full: string; derived: string[]; reason: string }[] = [
+  { short: "phq2", full: "phq9", derived: ["lifeline_health_depression_score_1_10"], reason: "Í eftirfylgni var aðeins spurt PHQ-2 en ekki allra PHQ-9 spurninganna; notið PHQ-2 til samanburðar." },
+  { short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", derived: ["lifeline_health_anxiety_score_1_10"], reason: "Í eftirfylgni var aðeins spurt GAD-2 en ekki allra GAD-7 spurninganna; notið GAD-2 til samanburðar." },
+];
+const QUESTIONNAIRE_REVISED: Record<string, string> = {
+  lifeline_health_caffine_score: "Spurningum um koffín var breytt á milli mælinga.",
+  lifeline_health_cudq_5_score: "Spurningum um koffín var breytt á milli mælinga.",
+};
+
+function notComparable(obs: ObsRow[], pairs: Map<string, Map<string, Pair>>): Map<string, string> {
+  const out = new Map<string, string>(Object.entries(QUESTIONNAIRE_REVISED).filter(([f]) => pairs.has(f)));
+  const onDay = new Map<string, number>(); // `${pid}|${feature}|${day}` → value
+  for (const o of obs) if (o.value_num !== null && o.observed_at) onDay.set(`${o.medalia_patient_id}|${o.feature}|${day(o.observed_at)}`, o.value_num);
+  for (const ip of INSTRUMENT_PAIRS) {
+    const full = pairs.get(ip.full);
+    if (!full) continue;
+    const broken = [...full.values()].some((p) => {
+      const short = onDay.get(`${p.pid}|${ip.short}|${p.afterAt}`);
+      return short !== undefined && p.after < short;
+    });
+    if (broken) for (const f of [ip.full, ...ip.derived]) if (pairs.has(f)) out.set(f, ip.reason);
+  }
+  return out;
+}
+
 export function computeBeforeAfter(obs: ObsRow[], patients: PatientRow[], displayOf: Record<string, string> = {}): BeforeAfterResult {
   const pairs = buildPairs(obs);
-  const features = [...pairs.keys()].filter((f) => dir(f) !== "neutral").sort(sortFeatures);
+  const invalid = notComparable(obs, pairs);
+  const features = [...pairs.keys()].filter((f) => dir(f) !== "neutral" && !invalid.has(f)).sort(sortFeatures);
 
   const metricsFor = (pids: Set<string> | null) =>
     features
@@ -284,6 +339,7 @@ export function computeBeforeAfter(obs: ObsRow[], patients: PatientRow[], displa
     subgroups,
     weightBands,
     bpCategories,
+    excluded: [...invalid].map(([feature, reason]) => ({ feature, label: LABEL_IS[feature] ?? displayOf[feature] ?? feature, reason })),
   };
 }
 
