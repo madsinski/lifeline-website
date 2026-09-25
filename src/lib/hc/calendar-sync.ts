@@ -43,7 +43,7 @@ const itemsFor = (kind: OwnerKind, id: string) => (kind === "client" ? clientApp
 
 function hashOf(i: CalItem): string {
   return createHash("sha256")
-    .update([i.start, i.minutes, i.summary, i.description, i.location ?? "", i.reminderMinutes ?? ""].join("|"))
+    .update([i.start, i.minutes, i.summary, i.description, i.location ?? "", i.reminderMinutes ?? "", i.wantsMeet ? "meet" : ""].join("|"))
     .digest("hex").slice(0, 16);
 }
 
@@ -99,8 +99,54 @@ async function accessTokenFor(row: GoogleSyncRow): Promise<string> {
   }
 }
 
+/**
+ * Mint a Google Meet link for a video interview, once.
+ *
+ * Runs on the interviewer's calendar only, and only while the journey has no
+ * link. requestId is derived from the event id, so a retry after a timeout
+ * asks Google for the same conference rather than a second one.
+ *
+ * Everything here is best effort. A calendar that does not allow Meet — a
+ * consumer account, or a Workspace policy that blocks it — simply does not
+ * get one, and the nurse's paste-a-link path is still there.
+ */
+async function askForMeet(token: string, calendarId: string, item: CalItem, body: Record<string, unknown>, exists: boolean) {
+  if (!(await G.allowsMeet(token, calendarId))) return null;
+  const withConf = { ...body, conferenceData: G.meetRequest(`lifeline-${item.id}`) };
+  const ev = exists
+    ? await G.patchEvent(token, calendarId, item.id, withConf, true)
+    : await G.insertEvent(token, calendarId, { id: item.id, ...withConf }, true);
+  let link = G.meetLinkOf(ev);
+  // Conferences are made asynchronously; the link often lands a moment later.
+  if (!link) {
+    await new Promise((r) => setTimeout(r, 1500));
+    link = G.meetLinkOf(await G.getEvent(token, calendarId, item.id));
+  }
+  if (!link || !item.journeyId) return link ?? null;
+  // Only fill an empty one — never overwrite a link a nurse pasted.
+  await supabaseAdmin
+    .from("hc_journeys")
+    .update({ meeting_url: link })
+    .eq("id", item.journeyId)
+    .is("meeting_url", null);
+  return link;
+}
+
 async function writeEvent(token: string, calendarId: string, item: CalItem, believedToExist: boolean) {
   const body = bodyOf(item);
+
+  if (item.wantsMeet) {
+    try {
+      const link = await askForMeet(token, calendarId, item, body, believedToExist);
+      if (link) return;
+    } catch (e) {
+      // A refused conference must not cost the person their appointment, so
+      // fall through and write the event without one.
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn(`[calendar] Meet not created for ${item.id}: ${msg}`);
+    }
+  }
+
   if (believedToExist) {
     try { await G.patchEvent(token, calendarId, item.id, body); return; }
     catch (e) { if (!(e instanceof G.GoogleApiError && e.isGone)) throw e; }
@@ -177,8 +223,14 @@ export async function syncOwner(kind: OwnerKind, ownerId: string): Promise<SyncR
  */
 export async function syncForJourney(j: { client_id: string; interviewer_id: string | null }, previousInterviewer?: string | null) {
   if (!G.googleConfigured()) return;
+
+  // The interviewer goes first, on purpose: hers is the calendar that mints
+  // the Meet link and writes it onto the journey. Sync the client in the same
+  // breath and their copy of the event would be written before the link
+  // exists, so it lands a beat later instead — with the link in it.
+  if (j.interviewer_id) await syncOwner("worker", j.interviewer_id).catch(() => ({}));
+
   const jobs: Promise<SyncResult>[] = [syncOwner("client", j.client_id)];
-  if (j.interviewer_id) jobs.push(syncOwner("worker", j.interviewer_id));
   if (previousInterviewer && previousInterviewer !== j.interviewer_id) jobs.push(syncOwner("worker", previousInterviewer));
   await Promise.all(jobs);
 }

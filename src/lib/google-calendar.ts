@@ -164,14 +164,70 @@ export async function getCalendar(token: string, calendarId: string): Promise<{ 
   return json<{ id: string }>(r, "Could not read calendar");
 }
 
-export function insertEvent(token: string, calendarId: string, body: unknown) {
-  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events`, { method: "POST", body: JSON.stringify(body) })
-    .then((r) => json<{ id: string }>(r, "Could not create event"));
+/** What an event write gives back, once conferences are in play. */
+export interface EventResult {
+  id: string;
+  hangoutLink?: string;
+  conferenceData?: {
+    conferenceId?: string;
+    entryPoints?: { entryPointType?: string; uri?: string }[];
+    createRequest?: { status?: { statusCode?: string } };
+  };
 }
 
-export function patchEvent(token: string, calendarId: string, eventId: string, body: unknown) {
-  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, { method: "PATCH", body: JSON.stringify(body) })
-    .then((r) => json<{ id: string }>(r, "Could not update event"));
+/** Meet links only appear on the response when this is 1. */
+const conf = (withConference?: boolean) => (withConference ? "?conferenceDataVersion=1" : "");
+
+export function insertEvent(token: string, calendarId: string, body: unknown, withConference?: boolean) {
+  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events${conf(withConference)}`, { method: "POST", body: JSON.stringify(body) })
+    .then((r) => json<EventResult>(r, "Could not create event"));
+}
+
+export function patchEvent(token: string, calendarId: string, eventId: string, body: unknown, withConference?: boolean) {
+  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}${conf(withConference)}`, { method: "PATCH", body: JSON.stringify(body) })
+    .then((r) => json<EventResult>(r, "Could not update event"));
+}
+
+/**
+ * Ask Google to mint a Meet link on this event.
+ *
+ * requestId is ours and must be stable per event: Google treats a repeat of
+ * the same id as the same request, so a retry cannot leave two conferences
+ * behind. Creation is asynchronous, so the link may arrive on the response or
+ * on a later read.
+ */
+export function meetRequest(requestId: string) {
+  return {
+    createRequest: {
+      requestId,
+      conferenceSolutionKey: { type: "hangoutsMeet" },
+    },
+  };
+}
+
+/** Does this calendar allow Meet at all? Consumer accounts and some Workspace
+ *  policies do not, and asking anyway fails the whole event write. */
+export async function allowsMeet(token: string, calendarId: string): Promise<boolean> {
+  const r = await api(token, `/calendars/${encodeURIComponent(calendarId)}`);
+  if (!r.ok) return false;
+  const cal = await r.json().catch(() => null) as { conferenceProperties?: { allowedConferenceSolutionTypes?: string[] } } | null;
+  return !!cal?.conferenceProperties?.allowedConferenceSolutionTypes?.includes("hangoutsMeet");
+}
+
+/** Read one event back — used to pick up a conference that was still being
+ *  created when the write returned. */
+export async function getEvent(token: string, calendarId: string, eventId: string): Promise<EventResult | null> {
+  const r = await api(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?conferenceDataVersion=1`);
+  if (!r.ok) return null;
+  return (await r.json().catch(() => null)) as EventResult | null;
+}
+
+/** The usable video link out of an event, whichever field Google filled. */
+export function meetLinkOf(e: EventResult | null | undefined): string | null {
+  if (!e) return null;
+  if (e.hangoutLink) return e.hangoutLink;
+  const v = e.conferenceData?.entryPoints?.find((x) => x.entryPointType === "video")?.uri;
+  return v ?? null;
 }
 
 export async function deleteEvent(token: string, calendarId: string, eventId: string): Promise<void> {

@@ -1438,7 +1438,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
                   <Video className="h-3.5 w-3.5" /> Opna fjarfund
                 </a>
               ) : (
-                <span className="text-amber-800">Myndsímtal án hlekks — bættu honum við svo hann fylgi í dagatalið og til skjólstæðingsins.</span>
+                <span className="text-amber-800">Myndsímtal án hlekks — hann kemur sjálfkrafa þegar tíminn fer í Google-dagatalið, eða settu hann inn sjálf.</span>
               )}
             </>
           )}
@@ -1464,18 +1464,20 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
               <label className="text-xs font-semibold text-slate-600">Hlekkur á fjarfund (Meet, Teams eða Zoom)
                 <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://meet.google.com/…"
                   className="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-normal" /></label>
-              {/* We hold the narrow calendar.app.created scope on purpose — it
-                  cannot touch anyone's own calendar and needs no yearly Google
-                  security assessment — and that scope cannot mint a Meet link.
-                  So the nurse makes one in a click and pastes it back; it then
-                  travels with the booking into the calendar event, the
-                  client's account and the reminder. */}
+              {/* Left empty, a Meet link is made for you: the booking syncs to
+                  the interviewer's Google calendar and the conference is
+                  created there, then written back here and on to the client.
+                  That needs Google connected, so the manual route stays for
+                  when it is not — or when the meeting is on Teams or Zoom. */}
+              <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
+                Skildu þetta eftir tómt og Google Meet-hlekkur verður búinn til sjálfkrafa þegar tíminn fer í dagatalið.
+                Límdu hér að ofan ef þú vilt nota Teams, Zoom eða tiltekinn fund.
+              </p>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <a href="https://meet.google.com/new" target="_blank" rel="noreferrer"
                   className={`${btnSecondary} min-h-8 px-2.5 text-xs`}>
-                  <Video className="h-3.5 w-3.5" /> Búa til Google Meet
+                  <Video className="h-3.5 w-3.5" /> Búa til Meet sjálf
                 </a>
-                <span className="text-[11px] text-slate-500">Opnast í nýjum flipa — afritaðu slóðina og límdu hér að ofan.</span>
               </div>
             </div>
           )}

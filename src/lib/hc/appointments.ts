@@ -18,6 +18,15 @@ export interface CalItem {
   description: string;
   location: string | null;
   reminderMinutes: number | null;
+  /**
+   * Ask Google to mint a Meet link for this event and write it back to the
+   * journey. Set only on the interviewer's own copy: the same interview is on
+   * the client's calendar too, and two calendars asking would make two
+   * conferences for one conversation.
+   */
+  wantsMeet?: boolean;
+  /** Which journey to write the link onto, when wantsMeet is set. */
+  journeyId?: string;
 }
 
 type Kind = "blood" | "measure" | "interview" | "followup";
@@ -101,8 +110,11 @@ export async function workerAppointments(workerId: string): Promise<CalItem[]> {
     if (recent(j.interview_booked_for)) out.push({
       id: itemId(j.id, "interview"), start: j.interview_booked_for!, minutes: 45,
       summary: `Lifeline viðtal – ${who}${j.interview_mode === "video" ? " (myndsímtal)" : ""}`,
-      description: `Heilsufarsskoðun: viðtal og aðgerðaáætlun.\nOpnaðu skjólstæðinginn í vinnustöðinni: ${link}`,
-      location: j.interview_mode === "video" ? "Myndsímtal" : place(loc?.interview_site, loc?.interview_address), reminderMinutes: 30,
+      description: `Heilsufarsskoðun: viðtal og aðgerðaáætlun.${j.meeting_url ? `\nMyndsímtal: ${j.meeting_url}` : ""}\nOpnaðu skjólstæðinginn í vinnustöðinni: ${link}`,
+      location: j.interview_mode === "video" ? (j.meeting_url ?? "Myndsímtal") : place(loc?.interview_site, loc?.interview_address), reminderMinutes: 30,
+      // The interviewer hosts, so their calendar is the one that asks.
+      wantsMeet: j.interview_mode === "video" && !j.meeting_url,
+      journeyId: j.id,
     });
     if (recent(j.followup_booked_for)) out.push({
       id: itemId(j.id, "followup"), start: j.followup_booked_for!, minutes: 30,
