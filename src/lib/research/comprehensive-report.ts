@@ -289,7 +289,7 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
   .top img{height:7.5mm}.org{text-align:right;font-size:8pt;color:${C.muted};display:flex;flex-direction:column}.org b{color:${C.dark};font-size:9.5pt}
   .hero{border-radius:4mm;padding:5mm 7mm;color:#fff;background:linear-gradient(120deg,#047857,#10B981);display:flex;gap:6mm;align-items:center;justify-content:space-between}
   .eyebrow{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;opacity:.85}.hero h1{margin:1mm 0 1.5mm;font-size:18pt}.hero p{margin:0;font-size:8.8pt;line-height:1.45;opacity:.95}
-  .kpis{display:flex;gap:4mm}.kpi{text-align:center;min-width:19mm}.kpi b{display:block;font-size:19pt;font-weight:800;line-height:1}.kpi span{font-size:7pt;opacity:.9}
+  .kpis{display:flex;gap:4mm}.kpi{text-align:center;min-width:19mm}.kpi b{display:block;font-size:19pt;font-weight:800;line-height:1}.kpi span{display:block;font-size:7pt;line-height:1.25;margin-top:1mm;opacity:.9}
   h2{font-size:11.5pt;margin:5mm 0 1.5mm}h3{font-size:9.5pt;margin:4mm 0 1.5mm}.lead{font-size:8pt;color:${C.muted};margin:0 0 2.5mm;line-height:1.45}
   .areas{display:grid;grid-template-columns:repeat(5,1fr);gap:2.5mm}
   .area{border:1px solid ${C.faint};border-radius:3mm;padding:3mm}.at{font-size:8.5pt;font-weight:700}.as{font-size:14pt;font-weight:800;margin-top:1mm}.ac{font-size:6.8pt;color:${C.muted}}.area p{font-size:7.4pt;line-height:1.4;margin:1.5mm 0 0}

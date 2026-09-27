@@ -134,7 +134,7 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   .top img{height:7.5mm}.org{text-align:right;font-size:8pt;color:${C.muted};display:flex;flex-direction:column}.org b{color:${C.dark};font-size:9.5pt}
   .hero{border-radius:4mm;padding:4mm 7mm;color:#fff;background:linear-gradient(120deg,#047857,#10B981);display:flex;justify-content:space-between;gap:6mm;align-items:center}
   .hero h1{margin:0;font-size:18pt;line-height:1.15}.hero p{margin:1.5mm 0 0;font-size:9pt;opacity:.92;line-height:1.4}
-  .kpis{display:flex;gap:5mm}.kpi{text-align:center;min-width:22mm}.kpi b{display:block;font-size:20pt;font-weight:800;line-height:1}.kpi span{font-size:7pt;opacity:.9}
+  .kpis{display:flex;gap:5mm}.kpi{text-align:center;min-width:22mm}.kpi b{display:block;font-size:20pt;font-weight:800;line-height:1}.kpi span{display:block;font-size:7pt;line-height:1.25;margin-top:1mm;opacity:.9}
   h2{font-size:11pt;margin:4.5mm 0 1mm}.lead{font-size:7.8pt;color:${C.muted};margin:0 0 2.5mm;line-height:1.4}
   .grid{display:grid;grid-template-columns:1.05fr 1fr;gap:7mm}
   .card{border:1px solid ${C.faint};border-radius:3mm;padding:3mm 4mm;font-size:8.3pt;line-height:1.4}
