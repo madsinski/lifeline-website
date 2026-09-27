@@ -384,6 +384,6 @@ export function baselineProfile(obs: ObsRow[]): ProfileItem[] {
   const phq = val("phq9"), gad = val("lifeline_health_anxiety_gad_7");
   const mIds = [...new Set([...phq.keys(), ...gad.keys()])];
   if (mIds.length >= 5) items.push({ key: "mental", label: "Einkenni þunglyndis eða kvíða", threshold: "PHQ-9 eða GAD-7 10 eða hærra", n: mIds.filter((pid) => (phq.get(pid) ?? 0) >= 10 || (gad.get(pid) ?? 0) >= 10).length, of: mIds.length });
-  push("exercise", "Hreyfing undir viðmiðum", "Hreyfivenjur undir 5 af 10", count("lifeline_health_exercise_behavioural_score", (v) => v < 5));
+  push("exercise", "Hreyfing undir viðmiðum", "hreyfivenjur undir 5 af 10", count("lifeline_health_exercise_behavioural_score", (v) => v < 5));
   return items;
 }

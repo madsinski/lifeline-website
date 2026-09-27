@@ -34,7 +34,7 @@ const C = { ink: "#1F2937", muted: "#6B7280", faint: "#E5E7EB", brand: "#10B981"
 
 // Horizontal bars: share of participants over each threshold at baseline.
 function profileChart(items: ProfileItem[]): string {
-  const W = 360, rowH = 38, labelW = 188, valW = 50;
+  const W = 360, rowH = 34, labelW = 188, valW = 50;
   const barW = W - labelW - valW;
   const h = items.length * rowH;
   const rows = items.map((it, i) => {
@@ -69,36 +69,36 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   if (lifeRows.some((x) => x.m.significant && x.m.good)) {
     cards.push(`<div class="card hl"><div class="ct">Lífsstíll batnaði mælanlega</div>
       <table class="lt">${lifeRows.map(({ label, m }) => `<tr><td>${esc(label)}</td><td class="bar"><i style="width:${m.before * 10}%;background:#D1D5DB"></i><i style="width:${m.after * 10}%"></i></td><td class="v"${m.significant && m.good ? ` style="color:${C.dark}"` : ""}>${num(m.before, 1)} → <b>${num(m.after, 1)}</b>${m.significant ? "*" : ""}</td></tr>`).join("")}</table>
-      <p class="fn">Einkunn af 10 hjá sömu ${Math.max(...lifeRows.map((x) => x.m.n))} einstaklingum í fyrra og seinna heilsumati. * tölfræðilega marktækt.</p></div>`);
+      <p class="fn">Einkunn á kvarðanum 0–10 (hærra er betra) hjá sömu ${Math.max(...lifeRows.map((x) => x.m.n))} einstaklingum í fyrra og seinna heilsumati. * = tölfræðilega marktæk breyting.</p></div>`);
   }
   const shifts = (input.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
   if (shifts.length) {
     cards.push(`<div class="card"><div class="ct">Venjur sem breyttust</div>
       ${shifts.map((h) => `<div class="hs"><span>${esc(h.label.charAt(0).toUpperCase() + h.label.slice(1))}</span><b>${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%</b></div>`).join("")}
-      <p class="fn">Hlutfall þátttakenda; allar breytingarnar eru tölfræðilega marktækar.</p></div>`);
+      <p class="fn">Hlutfall þátttakenda með vanann. Allar breytingarnar eru tölfræðilega marktækar.</p></div>`);
   }
   const fp = M("fat_mass_percent"), mm = M("skeletal_muscle_mass_kg");
   if (fp?.significant && fp.good) minor.push(`<div class="card"><div class="ct">Líkamssamsetning</div><div class="big sm">${num(fp.before, 1)}% → ${num(fp.after, 1)}%</div><p>Fituhlutfall lækkaði${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta, 1)} kg` : ""}.</p></div>`);
   const bpHigh = r.subgroups.find((s) => s.key === "bp_high" && s.n >= MIN_GROUP);
   const bpSys = bpHigh?.metrics.find((m) => m.feature === "bp_systolic_avg");
-  if (bpHigh && bpSys?.significant && bpSys.good) minor.push(`<div class="card"><div class="ct">Þau sem voru með háþrýsting</div><div class="big sm">${num(bpSys.before)} → ${num(bpSys.after)}</div><p>efri mörk blóðþrýstings (mmHg) hjá þeim ${bpHigh.n} sem mældust með háþrýsting.</p></div>`);
+  if (bpHigh && bpSys?.significant && bpSys.good) minor.push(`<div class="card"><div class="ct">Þau sem voru með háþrýsting</div><div class="big sm">${num(bpSys.before)} → ${num(bpSys.after)}</div><p>Efri mörk blóðþrýstings (mmHg) hjá þeim ${bpHigh.n} sem voru með háþrýsting við upphaf.</p></div>`);
   const w = M("weight");
   minor.push(`<div class="card muted"><p>${w && !w.significant && fp?.significant && fp.good
-    ? "Meðalþyngd hópsins breyttist lítið, en samsetningin batnaði: fita vék fyrir vöðvum. Þess vegna segir þyngd ein og sér ekki alla söguna."
+    ? "Meðalþyngd hópsins breyttist lítið en líkamssamsetningin batnaði: fita vék fyrir vöðvum. Þyngd ein og sér segir því ekki alla söguna."
     : "Að meðaltali var lítil breyting á þyngd og blóðþrýstingi hópsins í heild. Árangurinn var mestur hjá þeim sem voru í mestri áhættu."}</p></div>`);
 
   // ── next steps (data-driven) ──
   const steps: string[] = [];
   const reMeasured = new Set(r.metrics.map((m) => m.feature));
   if (!reMeasured.has("hba1c") && !reMeasured.has("homa_ir")) {
-    steps.push("<b>Endurmæling með blóðprufum</b> eftir 12 mánuði. Í eftirfylgninni voru ekki teknar blóðprufur; þær sýna hvort bættar venjur skili sér í blóðsykri, insúlínviðnámi og blóðfitum.");
+    steps.push("<b>Endurmæling eftir 12 mánuði, einnig með blóðprufum.</b> Blóðprufur voru ekki teknar í eftirfylgni en þær sýna hvort bættar venjur skili sér í blóðsykri, insúlínviðnámi og blóðfitum.");
   } else {
     steps.push("<b>Endurmæling eftir 12 mánuði</b> til að staðfesta hvort árangurinn helst.");
   }
-  if (bpHigh) steps.push("<b>Áframhaldandi eftirfylgni</b> með þeim sem mældust með háþrýsting, þar sem árangurinn var mestur.");
+  if (bpHigh) steps.push("<b>Áframhaldandi eftirfylgni</b> með þeim sem mældust með háþrýsting, en þar var árangurinn mestur.");
   const top = [...profile].filter((p) => p.key !== "overweight").sort((a, b) => b.n / b.of - a.n / a.of)[0];
-  if (top) steps.push(`<b>Markviss fræðsla og stuðningur</b> þar sem þörfin er mest: ${esc(top.label.toLowerCase())} (${pct(top.n, top.of)}% þátttakenda).`);
-  if (r.nPatients && r.nFollowed / r.nPatients < 0.9) steps.push(`<b>Hvetja fleiri til endurmælingar</b>: ${r.nPatients - r.nFollowed} af ${r.nPatients} mættu ekki í endurmælingu.`);
+  if (top) steps.push(`<b>Markviss fræðsla og stuðningur</b> þar sem þörfin var mest: ${esc(top.label.toLowerCase())} (${pct(top.n, top.of)}% þátttakenda við upphaf).`);
+  if (r.nPatients && r.nFollowed / r.nPatients < 0.9) steps.push(`<b>Hvetja fleiri til endurmælingar:</b> ${r.nPatients - r.nFollowed} af ${r.nPatients} mættu ekki í endurmælingu.`);
 
   const followPct = pct(r.nFollowed, r.nPatients);
 
@@ -151,11 +151,12 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
       <h2>Hvað kom í ljós í heilsufarsskoðuninni?</h2>
       <p class="lead">Hlutfall þátttakenda yfir viðurkenndum mörkum við fyrstu mælingu.</p>
       ${profileChart(profile)}
+      ${minor.length > 2 ? `<div style="margin-top:4mm">${minor.slice(2).join("")}</div>` : ""}
     </div>
     <div>
       <h2>Hvað breyttist?</h2>
-      <p class="lead">Fyrsta mæling borin saman við endurmælingu hjá sömu einstaklingum (${r.nFollowed} manns).</p>
-      <div class="stack">${cards.join("")}<div class="row2">${minor.slice(0, 2).join("")}</div>${minor.slice(2).join("")}</div>
+      <p class="lead">Fyrsta mæling er borin saman við endurmælingu hjá sömu einstaklingum (${r.nFollowed} manns).</p>
+      <div class="stack">${cards.join("")}<div class="row2">${minor.slice(0, 2).join("")}</div></div>
     </div>
   </div>
 
