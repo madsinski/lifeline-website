@@ -72,7 +72,7 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   const M = (f: string) => r.metrics.find((m) => m.feature === f);
   const LIFE: [string, string][] = [
     ["lifeline_health_nutrition_behavioural_score", "Matarvenjur"], ["lifeline_health_sleep_behaviour_score", "Svefnvenjur"],
-    ["lifeline_health_exercise_behavioural_score", "Hreyfivenjur"], ["pwi", "Almenn vellíðan"], ["lifstilseinkunn", "Lífsstílseinkunn"],
+    ["lifeline_health_exercise_behavioural_score", "Hreyfivenjur"], ["lifstilseinkunn", "Lífsstílseinkunn"],
   ];
   const lifeRows = LIFE.map(([f, label]) => ({ label, m: M(f) })).filter((x): x is { label: string; m: MetricResult } => !!x.m);
   if (lifeRows.some((x) => x.m.significant && x.m.good)) {
@@ -96,9 +96,17 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   }
   // wellbeing: single 0–10 items that improved significantly (left column)
   const items = (input.itemChanges ?? []).filter((it) => it.p !== null && it.p < 0.05 && it.after > it.before);
-  const wellbeing = items.length ? `<div class="card hl" style="margin-top:4mm"><div class="ct">Líðan og heilsa</div>
-      <table class="lt">${items.map((it) => `<tr><td>${esc(it.label)}</td><td class="v" style="color:${C.dark}">${num(it.before, 1)} → <b>${num(it.after, 1)}</b>*</td></tr>`).join("")}</table>
-      <p class="fn">Sjálfsmat 0–10, hærra er betra. * marktæk breyting.</p></div>` : "";
+  // Lifeline 0–10 mental scores (10 = best), gated on PHQ-2/GAD-2 → PHQ-9/GAD-7
+  const MENTAL: [string, string][] = [["lifeline_health_depression_score_1_10", "Andleg heilsa"], ["lifeline_health_anxiety_score_1_10", "Streita"]];
+  const mental = MENTAL.map(([f, label]) => ({ label, m: M(f) })).filter((x): x is { label: string; m: MetricResult } => !!x.m && x.m.significant && x.m.good === true);
+  const gated = r.gatedDropped ?? [];
+  const mentalRows = mental.map(({ label, m }) => `<tr><td>${esc(label)}</td><td class="v" style="color:${C.dark}">${num(m.before, 1)} → <b>${num(m.after, 1)}</b>*${gated.some((g) => g.feature === m.feature) ? "‡" : ""}</td></tr>`).join("");
+  const gatedFn = mental.some(({ m }) => gated.some((g) => g.feature === m.feature))
+    ? ` ‡ ${mental.map(({ m }) => m.n).join(" og ")} manns; heildarlista vantaði hjá ${gated.map((g) => g.n).join(" og ")}.`
+    : "";
+  const wellbeing = items.length || mental.length ? `<div class="card hl"><div class="ct">Líðan og heilsa</div>
+      <table class="lt">${mentalRows}${items.map((it) => `<tr><td>${esc(it.label)}</td><td class="v" style="color:${C.dark}">${num(it.before, 1)} → <b>${num(it.after, 1)}</b>*</td></tr>`).join("")}</table>
+      <p class="fn">0–10, hærra er betra${mental.length ? "; andleg heilsa og streita meta einkenni þunglyndis og kvíða" : ""}. * marktæk breyting.${gatedFn}</p></div>` : "";
   const fp = M("fat_mass_percent"), mm = M("skeletal_muscle_mass_kg"), w = M("weight");
   if (fp?.significant && fp.good) minor.push(`<div class="card wide"><div><div class="ct">Líkamssamsetning</div><p>Fituhlutfall lækkaði${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta, 1)} kg` : ""}.${w && !w.significant ? " Meðalþyngd breyttist lítið." : ""}</p></div><div class="big sm">${num(fp.before, 1)}% → ${num(fp.after, 1)}%</div></div>`);
   const bpHigh = r.subgroups.find((s) => s.key === "bp_high" && s.n >= MIN_GROUP);
@@ -159,7 +167,7 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
 
   <div class="hero">
     <div><h1>Heilsuverkefni starfsfólks</h1>
-      <p>Heilsufarsskoðun ${esc(span(r.baselineRange))}${r.followupRange ? ` · endurmæling ${esc(span(r.followupRange))}` : ""}.<br/>Eingöngu samantekin gögn; engar upplýsingar um einstaka starfsmenn.</p></div>
+      <p>Heilsufarsskoðun ${esc(span(r.baselineRange))}${r.followupRange ? ` · endurmæling ${esc(span(r.followupRange))}` : ""}.<br/>Aðeins samantekin gögn, ekkert um einstaka starfsmenn.</p></div>
     <div class="kpis">
       <div class="kpi"><b>${r.nPatients}</b><span>þátttakendur</span></div>
       <div class="kpi"><b>${followPct}%</b><span>mættu í endurmælingu</span></div>
@@ -175,7 +183,7 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
     </div>
     <div>
       <h2>Hvað breyttist?</h2>
-      <p class="lead">Fyrsta mæling er borin saman við endurmælingu hjá sömu einstaklingum (${r.nFollowed} manns).</p>
+      <p class="lead">Sömu einstaklingar við fyrstu mælingu og endurmælingu.</p>
       <div class="stack">${lifeCard}${wellbeing.replace('style="margin-top:4mm"', "")}</div>
     </div>
   </div>
