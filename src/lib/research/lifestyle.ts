@@ -95,7 +95,7 @@ const HABITS: HabitDef[] = [
   { pillar: "substances", label: "nota nikótín daglega eða flesta daga", q: "notkun þinni á nikótín", bad: starts("Ég nota nikótín/tóbak reglulega") },
   // revised: the caffeine section was rewritten in the 2026-06 Heilsumat → not comparable over time
   { pillar: "substances", label: "drekka orkudrykki reglulega", q: "Hvaða koffíndrykki", bad: eq("Orkudrykki"), revised: true },
-  { pillar: "substances", label: "drekka meira en 6 drykki í einu mánaðarlega eða oftar", q: "meira en 6 drykki", bad: eq("Mánaðarlega", "Vikulega", "Daglega eða næstum daglega") },
+  { pillar: "substances", label: "drekka meira en sex drykki í einu, mánaðarlega eða oftar", q: "meira en 6 drykki", bad: eq("Mánaðarlega", "Vikulega", "Daglega eða næstum daglega") },
 ];
 
 export const HABIT_PILLAR_LABEL: Record<string, string> = {
@@ -140,7 +140,7 @@ export function habitFacts(obs: ObsRow[], answers: AnswerRow[]): HabitFact[] {
 /** Same habits for the SAME people at their first vs latest Heilsumat
  *  (≥14 days apart). Question-based habits only — the mental-health score
  *  habits depend on instruments that may not be re-administered. */
-export interface HabitShift { pillar: string; label: string; before: number; after: number; of: number; p: number }
+export interface HabitShift { pillar: string; label: string; before: number; after: number; of: number; p: number; stopped: number; started: number }
 export function habitShift(answers: AnswerRow[]): HabitShift[] {
   const days = heilsumatDays(answers);
   const both = [...days].filter(([, d]) => d.length >= 2 && (Date.parse(d[d.length - 1]) - Date.parse(d[0])) / 86400000 >= 14);
@@ -158,7 +158,7 @@ export function habitShift(answers: AnswerRow[]): HabitShift[] {
     if (ids.length < MIN_SURVEY_N) continue;
     // McNemar on the discordant pairs (stopped vs started the habit)
     const stopped = ids.filter((id) => b.has(id) && !a.has(id)).length, started = ids.filter((id) => !b.has(id) && a.has(id)).length;
-    out.push({ pillar: h.pillar, label: h.label, before: ids.filter((id) => b.has(id)).length, after: ids.filter((id) => a.has(id)).length, of: ids.length, p: mcnemar(stopped, started).p });
+    out.push({ pillar: h.pillar, label: h.label, before: ids.filter((id) => b.has(id)).length, after: ids.filter((id) => a.has(id)).length, of: ids.length, p: mcnemar(stopped, started).p, stopped, started });
   }
   return out;
 }

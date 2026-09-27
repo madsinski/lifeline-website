@@ -1550,21 +1550,21 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
           <div className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Mældar breytingar milli gagnasetta</div>
           {rows.length === 0 ? <p className="text-sm text-gray-400">Engar breytur mældar í báðum gagnasettum.</p> : (
             <table className="w-full text-sm">
-              <thead><tr className="text-xs text-gray-500 border-b border-gray-100"><th className="text-left py-1.5 font-medium">Mæling</th><th className="text-right font-medium">Fyrir → eftir</th><th className="text-right font-medium">Betri / verri</th><th className="text-right font-medium">p</th></tr></thead>
+              <thead><tr className="text-xs text-gray-500 border-b border-gray-100"><th className="text-left py-1.5 font-medium">Mæling</th><th className="text-right font-medium">Fyrir → eftir</th><th className="text-right font-medium">Bættu sig</th><th className="text-right font-medium">Versnuðu</th><th className="text-right font-medium">p</th></tr></thead>
               <tbody>
                 {groups.map((g) => (
                   <Fragment key={g.label}>
-                    <tr><td colSpan={4} className="pt-3 pb-1 text-[11px] uppercase tracking-wider text-gray-400 font-semibold">{g.label}</td></tr>
+                    <tr><td colSpan={5} className="pt-3 pb-1 text-[11px] uppercase tracking-wider text-gray-400 font-semibold">{g.label}</td></tr>
                     {g.rows.map((m) => <ChangeRow key={m.feature} m={m} fmt={fmt} />)}
                     {g.key === "cardio" && hb && hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => (
-                      <ChangeRow key={`hb-${m.feature}`} m={m} fmt={fmt} note="háþrýstingur við upphaf" />
+                      <ChangeRow key={`hb-${m.feature}`} m={m} fmt={fmt} note="hópur með háþrýsting við upphaf" />
                     ))}
                   </Fragment>
                 ))}
               </tbody>
             </table>
           )}
-          <p className="text-[11px] text-gray-400 mt-1.5">Fyrsta og síðasta mæling hvers þátttakanda; Wilcoxon-próf. Grænt = marktæk framför, appelsínugult = marktæk afturför (p &lt; 0,05).</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">Fyrsta og síðasta mæling hvers þátttakanda eru bornar saman (Wilcoxon-próf). <b>Bættu sig / versnuðu</b>: hve margir færðust í heilsusamlega eða óheilsusamlega átt; aðrir stóðu í stað. Á kvarðanum 0–10 er hærri einkunn betri, líka fyrir nikótín, áfengi og skjánotkun (hærra = minni notkun). Grænt = marktæk framför, appelsínugult = marktæk afturför (p &lt; 0,05).</p>
           {r.excluded?.length > 0 && (
             <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
               <div className="text-xs font-semibold text-amber-900">Mælt tvisvar en ekki borið saman</div>
@@ -1583,9 +1583,10 @@ function ChangeRow({ m, fmt, note }: { m: MetricResult; fmt: (m: MetricResult, v
   const col = m.significant ? (m.good ? "text-emerald-700" : "text-orange-700") : "text-gray-500";
   return (
     <tr className={`border-b border-gray-50 ${note ? "bg-emerald-50/60" : ""}`}>
-      <td className="py-1.5 text-gray-800">{m.label}{note && <>, <span className="font-medium">{note}</span></>} <span className="text-xs text-gray-400">({m.n})</span></td>
+      <td className="py-1.5 text-gray-800">{m.label}{note && <> — <span className="font-medium">{note}</span></>} <span className="text-xs text-gray-400">({m.n})</span></td>
       <td className={`text-right tabular-nums ${m.significant ? col : ""}`}>{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
-      <td className="text-right tabular-nums text-xs text-gray-600">{m.improved} / {m.worsened}</td>
+      <td className="text-right tabular-nums text-xs text-gray-600">{m.improved}</td>
+      <td className="text-right tabular-nums text-xs text-gray-600">{m.worsened}</td>
       <td className={`text-right tabular-nums text-xs ${m.significant ? `font-bold ${col}` : "text-gray-500"}`}>{m.p === null ? "–" : m.p < 0.001 ? "<0,001" : m.p.toFixed(3).replace(".", ",")}</td>
     </tr>
   );

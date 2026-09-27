@@ -52,23 +52,23 @@ export const LABEL_IS: Record<string, string> = {
   heart_health_score_2: "Hjartaáhætta (SCORE2)",
   lifstilseinkunn: "Lífsstílseinkunn",
   pwi: "Almenn vellíðan (PWI)",
-  phq9: "Þunglyndiseinkenni (PHQ-9)",
-  phq2: "Þunglyndiseinkenni, skimun (PHQ-2)",
-  lifeline_health_anxiety_gad_2: "Kvíðaeinkenni, skimun (GAD-2)",
-  lifeline_health_depression_score_1_10: "Andleg heilsa (0–10)",
-  lifeline_health_anxiety_score_1_10: "Streita (0–10)",
-  lifeline_health_caffine_score: "Koffín (0–10)",
+  phq9: "Einkenni þunglyndis (PHQ-9)",
+  phq2: "Einkenni þunglyndis, skimun (PHQ-2)",
+  lifeline_health_anxiety_gad_2: "Einkenni kvíða, skimun (GAD-2)",
+  lifeline_health_depression_score_1_10: "andleg heilsa (einkunn 0–10)",
+  lifeline_health_anxiety_score_1_10: "streita (einkunn 0–10)",
+  lifeline_health_caffine_score: "Koffínvenjur (einkunn 0–10)",
   lifeline_health_sleep_behaviour_score: "Svefnvenjur", lifeline_health_sleep_medical_score: "Svefn, læknisfræðilegir þættir",
   lifeline_health_exercise_behavioural_score: "Hreyfivenjur", lifeline_health_exercise_medical_score: "Hreyfing, læknisfræðilegir þættir",
   lifeline_health_nutrition_behavioural_score: "Matarvenjur", lifeline_health_nutrition_medical_score: "Næring, læknisfræðilegir þættir",
-  lifeline_health_alcohol_addiction_1_10: "Áfengi (0–10)", lifeline_health_nicotine_use_1_10: "Nikótín (0–10)",
-  lifeline_health_food_addiction_1_10: "Matarhegðun (0–10)", lifeline_health_screen_use_1_10: "Skjánotkun (0–10)",
+  lifeline_health_alcohol_addiction_1_10: "Áfengisvenjur (einkunn 0–10)", lifeline_health_nicotine_use_1_10: "Nikótínvenjur (einkunn 0–10)",
+  lifeline_health_food_addiction_1_10: "Matarhegðun (einkunn 0–10)", lifeline_health_screen_use_1_10: "Skjánotkun (einkunn 0–10)",
   lifeline_health_screen_use_cius_5: "Skjánotkun, skimun (CIUS-5)", lifeline_health_screen_use_cius_14: "Skjánotkun (CIUS-14)",
-  lifeline_health_other_substance_addiction_1_10: "Önnur efni (0–10)", lifeline_health_assist_other_substances: "Önnur efni (ASSIST)",
-  lifeline_health_gambling_1_10: "Fjárhættuspil (0–10)", lifeline_health_gambling_pgsi: "Fjárhættuspil (PGSI)",
+  lifeline_health_other_substance_addiction_1_10: "Önnur vímuefni (einkunn 0–10)", lifeline_health_assist_other_substances: "Önnur vímuefni (ASSIST)",
+  lifeline_health_gambling_1_10: "Fjárhættuspil (einkunn 0–10)", lifeline_health_gambling_pgsi: "Fjárhættuspil (PGSI)",
   lifeline_health_audit_c: "Áfengi, skimun (AUDIT-C)", lifeline_health_audit_10: "Áfengi (AUDIT-10)", lifeline_health_beds_7: "Átröskunareinkenni (BEDS-7)",
-  lifeline_health_cudq_5_score: "Koffínnotkun (CUDQ-5)",
-  lifeline_health_anxiety_gad_7: "Kvíðaeinkenni (GAD-7)",
+  lifeline_health_cudq_5_score: "koffínnotkun (CUDQ-5)",
+  lifeline_health_anxiety_gad_7: "Einkenni kvíða (GAD-7)",
 };
 const UNIT_IS: Record<string, string> = { weight: "kg", bp_systolic_avg: "mmHg", bp_diastolic_avg: "mmHg", fat_mass_kg: "kg", skeletal_muscle_mass_kg: "kg", fat_mass_percent: "%", skeletal_muscle_mass_percent: "%" };
 
@@ -220,12 +220,12 @@ const sortFeatures = (a: string, b: string) => {
 //    drinks/day), so the caffeine/CUDQ scores changed meaning.
 // ---------------------------------------------------------------------------
 const INSTRUMENT_PAIRS: { short: string; full: string; derived: string[]; reason: string }[] = [
-  { short: "phq2", full: "phq9", derived: ["lifeline_health_depression_score_1_10"], reason: "Í eftirfylgni var aðeins spurt PHQ-2 en ekki allra PHQ-9 spurninganna; notið PHQ-2 til samanburðar." },
-  { short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", derived: ["lifeline_health_anxiety_score_1_10"], reason: "Í eftirfylgni var aðeins spurt GAD-2 en ekki allra GAD-7 spurninganna; notið GAD-2 til samanburðar." },
+  { short: "phq2", full: "phq9", derived: ["lifeline_health_depression_score_1_10"], reason: "Í eftirfylgni var aðeins lagður fyrir fyrri hluti PHQ-9 (PHQ-2). Því er PHQ-2 notaður til samanburðar." },
+  { short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", derived: ["lifeline_health_anxiety_score_1_10"], reason: "Í eftirfylgni var aðeins lagður fyrir fyrri hluti GAD-7 (GAD-2). Því er GAD-2 notaður til samanburðar." },
 ];
 const QUESTIONNAIRE_REVISED: Record<string, string> = {
-  lifeline_health_caffine_score: "Spurningum um koffín var breytt á milli mælinga.",
-  lifeline_health_cudq_5_score: "Spurningum um koffín var breytt á milli mælinga.",
+  lifeline_health_caffine_score: "Spurningum um koffín var breytt á milli mælinga og því er ekki hægt að bera svörin saman.",
+  lifeline_health_cudq_5_score: "Spurningum um koffín var breytt á milli mælinga og því er ekki hægt að bera svörin saman.",
 };
 
 function notComparable(obs: ObsRow[], pairs: Map<string, Map<string, Pair>>): Map<string, string> {
@@ -378,8 +378,8 @@ export function baselineProfile(obs: ObsRow[]): ProfileItem[] {
   const bpIds = [...sys.keys()].filter((pid) => dia.has(pid));
   if (bpIds.length >= 5) items.push({ key: "bp_high", label: "Háþrýstingur", threshold: "140/90 mmHg eða hærra", n: bpIds.filter((pid) => sys.get(pid)! >= 140 || dia.get(pid)! >= 90).length, of: bpIds.length });
   push("insulin_res", "Insúlínviðnám", "HOMA-IR 2,5 eða hærra", count("homa_ir", (v) => v >= 2.5));
-  push("hba1c", "Forstig sykursýki eða hærra", "HbA1c 42 mmól/mól eða hærra", count("hba1c", (v) => v >= 42));
-  push("chol", "Hækkað kólesteról", "Heildarkólesteról 5,2 mmól/l eða hærra", count("total_cholesterol", (v) => v >= 5.2));
+  push("hba1c", "Forstig sykursýki eða sykursýki", "HbA1c 42 mmól/mól eða hærra", count("hba1c", (v) => v >= 42));
+  push("chol", "Hækkað kólesteról", "heildarkólesteról 5,2 mmól/l eða hærra", count("total_cholesterol", (v) => v >= 5.2));
   // mental: either screen positive
   const phq = val("phq9"), gad = val("lifeline_health_anxiety_gad_7");
   const mIds = [...new Set([...phq.keys(), ...gad.keys()])];

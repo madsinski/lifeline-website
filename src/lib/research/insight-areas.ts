@@ -69,7 +69,7 @@ function linkSentences(ins: CohortInsights, rowKey: string | null, colKey: strin
       const [subj, verb] = ROW_SUBJECT[r.key] ?? [r.label, "tengdist"];
       const [lo, hi] = COL_PHRASE[c.key] ?? [`lægra gildi (${c.label})`, `hærra gildi (${c.label})`];
       const expected = cell.rho < 0;
-      out.push({ text: `${subj} ${verb} ${expected ? lo : hi}.${expected ? "" : " Óvænt samband sem gæti átt sér aðrar skýringar."}`, expected });
+      out.push({ text: `${subj} ${verb} ${expected ? lo : hi}.${expected ? "" : " Óvænt samband sem gæti skýrst af öðrum þáttum."}`, expected });
     });
   });
   return out;
@@ -201,7 +201,7 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       ir ? `${pct(ir.n, ir.of)}% með insúlínviðnám` : null,
     ].filter(Boolean).join(" og ") + " við heilsufarsskoðunina."
       + (fatP?.significant && fatP.good ? ` Fituhlutfall lækkaði úr ${num(fatP.before)}% í ${num(fatP.after)}%${musc?.significant && musc.good ? ` og vöðvamassi jókst um ${num(musc.delta)} kg` : ""}.` : "")
-      + (bpHighSys?.significant && bpHighSys.good ? ` Hjá þeim sem voru með háþrýsting lækkaði blóðþrýstingur um ${num(Math.abs(bpHighSys.delta), 0)} mmHg að meðaltali.` : ""),
+      + (bpHighSys?.significant && bpHighSys.good ? ` Hjá þeim sem voru með háþrýsting lækkuðu efri mörk blóðþrýstings um ${num(Math.abs(bpHighSys.delta), 0)} mmHg að meðaltali.` : ""),
     factGroups: [
       { title: "Við heilsufarsskoðun", facts: ins.profile.filter((p) => !["mental", "exercise"].includes(p.key)).map((p) => ({ label: `${p.label.toLowerCase()} (${p.threshold})`, n: p.n, of: p.of })) },
       { title: "Nikótín, koffín og áfengi", facts: habits(ins, "substances") },
@@ -231,7 +231,7 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       title: l.title,
       ...(() => {
         const beh = metric(ins, l.row);
-        if (beh) return { scoreLabel: `${num(beh.before)} → ${num(beh.after)}`, scoreCaption: `venjur af 10 · ${beh.n} manns${beh.significant ? " · marktækt" : ""}`, scoreTone: toneFor10(beh.after) };
+        if (beh) return { scoreLabel: `${num(beh.before)} → ${num(beh.after)}`, scoreCaption: `venjueinkunn af 10 · ${beh.n} manns${beh.significant ? " · marktækt" : ""}`, scoreTone: toneFor10(beh.after) };
         return { scoreLabel: p?.mean != null ? `${num(p.mean)} / 10` : "–", scoreCaption: p ? `venjur · ${pct(p.below6, p.n)}% undir 6` : "", scoreTone: toneFor10(p?.mean ?? null) };
       })(),
       headline: (() => {
@@ -239,7 +239,9 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
         if (beh?.significant && beh.good) {
           return `${SUB_LABEL[l.row]} bötnuðu úr ${num(beh.before)} í ${num(beh.after)} af 10.${shift ? ` Hlutfall þeirra sem ${shift.label} fór úr ${pct(shift.before, shift.of)}% í ${pct(shift.after, shift.of)}%.` : ""}`;
         }
-        return `${weakest?.key === l.pillarKey ? "Veikasta stoð hópsins. " : ""}${l.lead(f)}${shift ? ` Hlutfall þeirra sem ${shift.label} fór úr ${pct(shift.before, shift.of)}% í ${pct(shift.after, shift.of)}%.` : links.find((x) => x.expected) ? ` ${links.find((x) => x.expected)!.text}` : ""}`.trim();
+        const weak = weakest?.key === l.pillarKey ? `${l.title} var veikasta stoð hópsins við upphaf. ` : "";
+        if (shift) return `${weak}Hlutfall þeirra sem ${shift.label} fór úr ${pct(shift.before, shift.of)}% í ${pct(shift.after, shift.of)}%.`;
+        return `${weak}${l.lead(f)}${links.find((x) => x.expected) ? ` ${links.find((x) => x.expected)!.text}` : ""}`.trim();
       })(),
       factGroups: f.length ? [{ title: "Venjur við heilsufarsskoðun", facts: f }] : [],
       links,
@@ -269,9 +271,10 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
     })(),
     headline: (() => {
       const pw = metric(ins, "pwi"), p2 = metric(ins, "phq2");
-      const base = [dep ? `${pct(dep.n, dep.of)}% með einkenni þunglyndis` : null, anx ? `${pct(anx.n, anx.of)}% með einkenni kvíða` : null].filter(Boolean).join(" og ") + " við heilsufarsskoðunina.";
+      const parts = [dep ? `${pct(dep.n, dep.of)}% með einkenni þunglyndis` : null, anx ? `${pct(anx.n, anx.of)}% með einkenni kvíða` : null].filter(Boolean);
+      const base = parts.length ? `Við heilsufarsskoðun voru ${parts.join(" og ")}.` : "";
       if (pw?.significant && pw.good) return `Almenn vellíðan jókst úr ${num(pw.before)} í ${num(pw.after)} af 10${p2?.significant && p2.good ? " og einkennum þunglyndis fækkaði" : ""}. ${base}`;
-      return base + (linkSentences(ins, null, "phq9").find((x) => x.expected) ? ` ${linkSentences(ins, null, "phq9").find((x) => x.expected)!.text}` : "");
+      return (base + (linkSentences(ins, null, "phq9").find((x) => x.expected) ? ` ${linkSentences(ins, null, "phq9").find((x) => x.expected)!.text}` : "")).trim();
     })(),
     factGroups: mf.length ? [{ title: "Við heilsufarsskoðun", facts: mf }] : [],
     links: linkSentences(ins, null, "phq9"),
@@ -294,8 +297,11 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
   const weakest = [...ins.pillars].filter((p) => ["sleep", "exercise", "nutrition"].includes(p.key)).sort((a, b) => (a.mean ?? 99) - (b.mean ?? 99))[0];
   pts.push({
     title: "Þörfin er mikil",
-    body: [ow && `${pct(ow.n, ow.of)}% með ofþyngd eða offitu`, bp && `${pct(bp.n, bp.of)}% með háþrýsting`, ir && `${pct(ir.n, ir.of)}% með insúlínviðnám`].filter(Boolean).join(", ")
-      + ` við heilsufarsskoðun.${weakest?.mean != null ? ` ${weakest.label} er veikasta stoðin (${num(weakest.mean)} af 10).` : ""}`,
+    body: (() => {
+      const parts = [ow && `${pct(ow.n, ow.of)}% með ofþyngd eða offitu`, bp && `${pct(bp.n, bp.of)}% með háþrýsting`, ir && `${pct(ir.n, ir.of)}% með insúlínviðnám`].filter(Boolean) as string[];
+      const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} og ${parts[parts.length - 1]}` : parts[0] ?? "";
+      return `Við heilsufarsskoðun voru ${list}.${weakest?.mean != null ? ` ${weakest.label} var veikasta stoðin (${num(weakest.mean)} af 10).` : ""}`;
+    })(),
   });
   const hb = r.subgroups.find((s) => s.key === "bp_high");
   const hs = hb?.metrics.find((m) => m.feature === "bp_systolic_avg"), hw = hb?.metrics.find((m) => m.feature === "weight");
@@ -310,14 +316,21 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
   if (lifeWins.length || shifts.length) pts.push({
     title: "Lífsstíll batnaði mælanlega",
     body: [
-      lifeWins.length ? `${lifeWins.map((m) => `${(SUB_LABEL[m.feature] ?? LABEL_IS[m.feature] ?? m.label).toLowerCase()} ${num(m.before)} → ${num(m.after)}`).join(", ")} (af 10, tölfræðilega marktækt)` : "",
-      shifts.length ? `Breytingar á venjum (hlutfall þátttakenda): ${shifts.map((h) => `${h.label} ${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%`).join("; ")}` : "",
-    ].filter(Boolean).join(". ").replace(/^./, (c) => c.toUpperCase()) + ".",
+      lifeWins.length ? (() => {
+        const items = lifeWins.map((m) => `${(SUB_LABEL[m.feature] ?? LABEL_IS[m.feature] ?? m.label).toLowerCase()} úr ${num(m.before)} í ${num(m.after)}`);
+        return `Einkunnir af 10 hækkuðu marktækt: ${items.length > 1 ? `${items.slice(0, -1).join(", ")} og ${items[items.length - 1]}` : items[0]}.`;
+      })() : "",
+      shifts.length ? (() => {
+        const items = shifts.map((h) => `færri ${h.label} (${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%)`);
+        const list = items.length > 1 ? `${items.slice(0, -1).join(", ")} og ${items[items.length - 1]}` : items[0];
+        return `${list.charAt(0).toUpperCase()}${list.slice(1)}.`;
+      })() : "",
+    ].filter(Boolean).join(" "),
   });
   const fp = r.metrics.find((m) => m.feature === "fat_mass_percent"), mm = r.metrics.find((m) => m.feature === "skeletal_muscle_mass_kg");
   if (fp?.significant && fp.good) pts.push({
     title: "Líkamssamsetning batnaði",
-    body: `Fituhlutfall lækkaði úr ${num(fp.before)}% í ${num(fp.after)}%${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta)} kg` : ""}, þótt meðalþyngd hafi lítið breyst: fita vék fyrir vöðvum.`,
+    body: `Fituhlutfall lækkaði úr ${num(fp.before)}% í ${num(fp.after)}%${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta)} kg` : ""}. Meðalþyngd breyttist því lítið: fita vék fyrir vöðvum.`,
   });
   const lost = r.weightBands.filter((b) => b.key.startsWith("lost")).reduce((a, b) => a + b.n, 0);
   const tot = r.weightBands.reduce((a, b) => a + b.n, 0);
