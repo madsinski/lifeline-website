@@ -152,7 +152,7 @@ function SurveyReportPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#1F2937]">Skýrsla: {survey.title_is}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Tvær A4-síður — niðurstöður og frásagnir. Prentaðu eða vistaðu sem PDF.
+            Niðurstöður á einni A4-síðu og frásagnir á annarri síðu þegar þær hafa borist. Prentaðu eða vistaðu sem PDF.
           </p>
         </div>
         <div className="flex gap-2">

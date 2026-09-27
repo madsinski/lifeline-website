@@ -156,7 +156,7 @@ export const PRINT_CSS = `
 }
 `;
 
-// ─── Report (two A4 pages) ────────────────────────────────────────
+// ─── Report (results page + stories page when there are stories) ──────
 export function ReportPages({
   survey, questions, assignments, responses, stories, demo,
 }: {
@@ -240,13 +240,14 @@ export function ReportPages({
           </div>
         </div>
 
-        <Footer page={1}>
+        <Footer page={1} total={stories.length > 0 ? 2 : 1}>
           {firstSent ? `Könnunin var send ${fmtDate(firstSent)}. ` : ""}Svör: {n} af {sent}. Niðurstöður byggja á sjálfsmati
           þátttakenda en ekki á klínískum mælingum. Hlutföll eru reiknuð af þeim sem svöruðu hverri spurningu.
         </Footer>
       </A4>
 
-      {/* ── Page 2: stories ── */}
+      {/* ── Page 2: stories — only when there is at least one to show ── */}
+      {stories.length > 0 && (
       <A4 demo={demo} page={2}>
         <Header org={org} subtitle="Frásagnir þátttakenda" />
         <div className="rounded-[4mm] px-[8mm] py-[6mm] text-white" style={{ background: "linear-gradient(120deg,#047857 0%,#10B981 100%)" }}>
@@ -262,10 +263,11 @@ export function ReportPages({
           </p>
           <p className="text-[8.5pt] text-emerald-800 whitespace-nowrap text-right">contact@lifelinehealth.is<br />lifelinehealth.is</p>
         </div>
-        <Footer page={2}>
+        <Footer page={2} total={2}>
           Frásagnir eru birtar með samþykki þátttakenda og óbreyttar. Fornafn er aðeins birt þar sem sérstakt leyfi var veitt.
         </Footer>
       </A4>
+      )}
     </>
   );
 }
@@ -300,11 +302,11 @@ function Header({ subtitle, org }: { subtitle: string; org: string }) {
   );
 }
 
-function Footer({ children, page }: { children: React.ReactNode; page: number }) {
+function Footer({ children, page, total }: { children: React.ReactNode; page: number; total: number }) {
   return (
     <div className="mt-auto pt-[3mm] border-t border-gray-200 flex items-end justify-between gap-[6mm] text-[7pt] text-gray-500 leading-snug">
       <p className="max-w-[150mm]">{children}</p>
-      <p className="whitespace-nowrap">lifelinehealth.is · {page}/2</p>
+      <p className="whitespace-nowrap">lifelinehealth.is · {page}/{total}</p>
     </div>
   );
 }
