@@ -135,6 +135,13 @@ export interface McNemarResult { b: number; c: number; chi2: number; p: number; 
 export function mcnemar(b: number, c: number): McNemarResult {
   if (b + c === 0) return { b, c, chi2: 0, p: 1 };
   const chi2 = (Math.abs(b - c) - 1) ** 2 / (b + c); // continuity-corrected, df=1
+  // Few discordant pairs: exact two-sided binomial test (b ~ Bin(b+c, ½)).
+  if (b + c < 25) {
+    const n = b + c, k = Math.min(b, c);
+    let tail = 0, coef = 1;
+    for (let i = 0; i <= k; i++) { tail += coef; coef = (coef * (n - i)) / (i + 1); }
+    return { b, c, chi2, p: Math.min(1, (2 * tail) / 2 ** n) };
+  }
   // chi-square(1) survival = 2*(1 - Phi(sqrt(chi2)))
   const p = 2 * (1 - normalCdf(Math.sqrt(Math.max(0, chi2))));
   return { b, c, chi2, p: Math.min(1, p) };

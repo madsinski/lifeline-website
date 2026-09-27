@@ -104,15 +104,22 @@ export const HABIT_PILLAR_LABEL: Record<string, string> = {
 };
 
 // Heilsumat forms per patient: distinct answer days, sorted. The first is the
-// baseline form; the last (≥14 days later) is the follow-up form.
+// baseline form; the last (≥14 days later) is the follow-up form. Partial
+// forms (under half the answers of the patient's fullest form, e.g. a
+// 34-answer form on 29 Jun 2026) are ignored so they don't replace a complete
+// follow-up form.
 function heilsumatDays(answers: AnswerRow[]): Map<string, string[]> {
-  const m = new Map<string, Set<string>>();
+  const m = new Map<string, Map<string, number>>();
   for (const a of answers) {
     if (!(a.questionnaire_title || "").toLowerCase().startsWith("heilsumat") || !a.authored_at) continue;
-    if (!m.has(a.medalia_patient_id)) m.set(a.medalia_patient_id, new Set());
-    m.get(a.medalia_patient_id)!.add(a.authored_at.slice(0, 10));
+    if (!m.has(a.medalia_patient_id)) m.set(a.medalia_patient_id, new Map());
+    const byDay = m.get(a.medalia_patient_id)!, d = a.authored_at.slice(0, 10);
+    byDay.set(d, (byDay.get(d) ?? 0) + 1);
   }
-  return new Map([...m].map(([k, v]) => [k, [...v].sort()]));
+  return new Map([...m].map(([k, byDay]) => {
+    const most = Math.max(...byDay.values());
+    return [k, [...byDay].filter(([, n]) => n >= most / 2).map(([d]) => d).sort()];
+  }));
 }
 function hitsOnDay(answers: AnswerRow[], h: Extract<HabitDef, { q: string }>, dayOf: Map<string, string>): Set<string> {
   const hit = new Set<string>();

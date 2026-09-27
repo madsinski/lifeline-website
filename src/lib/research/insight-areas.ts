@@ -350,7 +350,7 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
   // PWI is reported under "Betri líðan", so it is not repeated here.
   const LIFE = ["lifeline_health_nutrition_behavioural_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_behavioural_score", "lifstilseinkunn"];
   const lifeWins = LIFE.map((f) => r.metrics.find((m) => m.feature === f)).filter((m): m is MetricResult => !!m && m.significant && m.good === true);
-  const shifts = (ins.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before && !(ins.exerciseShift?.length && EXERCISE_OVERLAP.includes(h.label))).sort((a, b) => a.p - b.p).slice(0, 3);
+  const shifts = (ins.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before && !(ins.exerciseShift?.length && EXERCISE_OVERLAP.includes(h.label))).sort((a, b) => a.p - b.p).slice(0, 2);
   const exWins = (ins.exerciseShift ?? []).filter((e) => e.p < 0.05 && e.after > e.before);
   if (lifeWins.length || shifts.length || exWins.length) pts.push({
     title: "Lífsstíll batnaði mælanlega",

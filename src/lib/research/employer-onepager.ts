@@ -85,14 +85,14 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   if (ex.some((e) => e.p < 0.05 && e.after > e.before)) {
     exCard = (`<div class="card"><div class="ct">Hreyfing</div>
       <table class="lt">${ex.map((e) => { const lv = sigLevel(e.p), up = e.after > e.before; return `<tr><td>${esc(EX_SHORT[e.key] ?? e.label)}</td><td class="v"${lv === "sig" && up ? ` style="color:${C.dark}"` : lv === "trend" && up ? ` style="color:${C.brand}"` : ""}>${pct(e.before, e.of)}% → <b>${pct(e.after, e.of)}%</b>${lv === "sig" ? "*" : lv === "trend" && up ? "†" : ""}</td></tr>`; }).join("")}</table>
-      <p class="fn">Hlutfall þátttakenda. * marktæk breyting${ex.some((e) => sigLevel(e.p) === "trend" && e.after > e.before) ? "; † á mörkum marktækni" : ""}.</p></div>`);
+      <p class="fn">Hlutfall af ${Math.max(...ex.map((e) => e.of))} sem svöruðu báðum heilsumötum. * marktæk breyting${ex.some((e) => sigLevel(e.p) === "trend" && e.after > e.before) ? "; † á mörkum marktækni" : ""}.</p></div>`);
   }
   // diet: unhealthy habits that became significantly less common
   const diet = (input.habitShift ?? []).filter((h) => h.pillar === "nutrition" && h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
   if (diet.length) {
     dietCard = (`<div class="card"><div class="ct">Mataræði</div>
       ${diet.map((h) => `<div class="hs"><span>${esc(h.label.charAt(0).toUpperCase() + h.label.slice(1))}</span><b>${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%</b></div>`).join("")}
-      <p class="fn">Hlutfall þátttakenda með vanann. Allar breytingar marktækar.</p></div>`);
+      <p class="fn">Hlutfall af ${Math.max(...diet.map((h) => h.of))} sem svöruðu báðum heilsumötum. Allar breytingar marktækar.</p></div>`);
   }
   // wellbeing: single 0–10 items that improved significantly (left column)
   const items = (input.itemChanges ?? []).filter((it) => it.p !== null && it.p < 0.05 && it.after > it.before);
