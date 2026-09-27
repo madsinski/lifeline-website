@@ -310,6 +310,8 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       const pw = metric(ins, "pwi"), p2 = metric(ins, "phq2");
       const parts = [dep ? `${pct(dep.n, dep.of)}% með einkenni þunglyndis` : null, anx ? `${pct(anx.n, anx.of)}% með einkenni kvíða` : null].filter(Boolean);
       const base = parts.length ? `Við heilsufarsskoðun voru ${parts.join(" og ")}.` : "";
+      const mw = mentalWins(ins);
+      if (mw) return `${mw}${pw?.significant && pw.good ? ` Almenn vellíðan jókst úr ${num(pw.before)} í ${num(pw.after)}.` : ""} ${base}`.trim();
       if (pw?.significant && pw.good) return `Almenn vellíðan jókst úr ${num(pw.before)} í ${num(pw.after)} af 10${p2?.significant && p2.good ? " og einkennum þunglyndis fækkaði" : ""}. ${base}`;
       return (base + (linkSentences(ins, null, "phq9").find((x) => x.expected) ? ` ${linkSentences(ins, null, "phq9").find((x) => x.expected)!.text}` : "")).trim();
     })(),
@@ -322,6 +324,20 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
   });
 
   return areas;
+}
+
+// Lifeline 0–10 mental scores (10 = best) that improved significantly, as one
+// sentence; null when neither did.
+function mentalWins(ins: CohortInsights): string | null {
+  const DEFS = [
+    { f: "lifeline_health_depression_score_1_10", acc: "andlega heilsu", sym: "þunglyndis" },
+    { f: "lifeline_health_anxiety_score_1_10", acc: "streitu", sym: "kvíða" },
+  ];
+  const w = DEFS.map((d) => ({ ...d, m: metric(ins, d.f) })).filter((x) => x.m?.significant && x.m.good === true);
+  if (!w.length) return null;
+  const syms = w.map((x) => x.sym).join(" og ");
+  const scores = w.map((x, i) => `${i ? "fyrir " : ""}${x.acc}${i ? "" : " fór"} úr ${num(x.m!.before)} í ${num(x.m!.after)}`).join(" og ");
+  return `Einkenni ${syms} minnkuðu marktækt: einkunn fyrir ${scores} af 10.`;
 }
 
 // ── the case for continuing, from the data sets only ─────────────
@@ -368,12 +384,16 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
     ].filter(Boolean).join(" "),
   });
   const wins = (ins.itemChanges ?? []).filter((it) => it.p !== null && it.p < 0.05 && it.after > it.before);
-  if (wins.length) pts.push({
+  const mw = mentalWins(ins);
+  if (wins.length || mw) pts.push({
     title: "Betri líðan",
-    body: (() => {
-      const items = wins.map((it) => `${it.label.charAt(0).toLowerCase()}${it.label.slice(1)} úr ${num(it.before)} í ${num(it.after)}`);
-      return `Sjálfsmat á kvarðanum 0–10 hækkaði marktækt: ${items.length > 1 ? `${items.slice(0, -1).join(", ")} og ${items[items.length - 1]}` : items[0]}.`;
-    })(),
+    body: [
+      mw ?? "",
+      wins.length ? (() => {
+        const items = wins.map((it) => `${it.label.charAt(0).toLowerCase()}${it.label.slice(1)} úr ${num(it.before)} í ${num(it.after)}`);
+        return `Sjálfsmat á kvarðanum 0–10 hækkaði marktækt: ${items.length > 1 ? `${items.slice(0, -1).join(", ")} og ${items[items.length - 1]}` : items[0]}.`;
+      })() : "",
+    ].filter(Boolean).join(" "),
   });
   const fp = r.metrics.find((m) => m.feature === "fat_mass_percent"), mm = r.metrics.find((m) => m.feature === "skeletal_muscle_mass_kg");
   if (fp?.significant && fp.good) pts.push({
