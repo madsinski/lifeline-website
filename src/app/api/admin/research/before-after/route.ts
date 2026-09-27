@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireResearchRead } from "@/lib/research/access";
 import { METHODS_VERSION, featureDomain } from "@/lib/research/clinical";
-import { computeBeforeAfter, baselineProfile, type ObsRow, type PatientRow } from "@/lib/research/before-after";
+import { computeBeforeAfter, baselineProfile, validateGatedScores, type ObsRow, type PatientRow } from "@/lib/research/before-after";
 import { buildEmployerOnePager } from "@/lib/research/employer-onepager";
 import { buildComprehensiveReport } from "@/lib/research/comprehensive-report";
 import {
@@ -68,7 +68,9 @@ export async function GET(req: NextRequest) {
       .select("medalia_patient_id, feature, observed_at, value_num, display, export_id")
       .in("export_id", usedIds).not("value_num", "is", null)
       .order("id", { ascending: true }).range(from, to));
-  const obs = obsRaw.filter((o) => !exPatients.has(o.medalia_patient_id) && !exFeatures.has(o.feature));
+  // Gated 0–10 mental scores are validated once here so every view (pillars,
+  // change table, PDFs) sees the same values.
+  const { obs } = validateGatedScores(obsRaw.filter((o) => !exPatients.has(o.medalia_patient_id) && !exFeatures.has(o.feature)));
   const displayOf: Record<string, string> = {};
   for (const o of obsRaw) if (o.display && !displayOf[o.feature]) displayOf[o.feature] = o.display;
 

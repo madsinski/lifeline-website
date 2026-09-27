@@ -11,7 +11,7 @@ import { sigStars } from "@/lib/research/stats";
 import type { BeforeAfterResult, MetricResult } from "@/lib/research/before-after";
 import type { CohortInsights } from "@/lib/research/lifestyle";
 import { buildInsightAreas, buildContinuationCase, type InsightArea, type AreaKey } from "@/lib/research/insight-areas";
-import { groupExcluded } from "@/lib/research/comprehensive-report";
+import { groupExcluded, gatedNote } from "@/lib/research/comprehensive-report";
 
 const TIMEPOINTS = ["baseline", "3mo", "6mo", "9mo", "12mo"] as const;
 
@@ -1572,6 +1572,9 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
                 {groupExcluded(r.excluded).map((g) => <li key={g.reason} className="text-[11px] text-amber-900"><b>{g.labels}</b>: {g.reason}</li>)}
               </ul>
             </div>
+          )}
+          {gatedNote(r) && (
+            <p className="mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] text-amber-900">{gatedNote(r)}</p>
           )}
         </div>
       </div>

@@ -127,6 +127,9 @@ export interface BeforeAfterResult {
   weightBands: { key: string; label: string; n: number }[];
   bpCategories: { before: Record<BpCat, number>; after: Record<BpCat, number>; improved: number; worsened: number; n: number } | null;
   excluded: { feature: string; label: string; reason: string }[];   // measured twice but NOT comparable
+  // Gated 0–10 scores left out for people whose full questionnaire was missing
+  // after a positive screen (see validateGatedScores).
+  gatedDropped?: { feature: string; label: string; n: number }[];
 }
 
 export type BpCat = "normal" | "elevated" | "high";
@@ -221,10 +224,59 @@ const sortFeatures = (a: string, b: string) => {
 //    2026-06 Heilsumat version ("3–4 daga í viku" → "Neytir þú koffíns?" +
 //    drinks/day), so the caffeine/CUDQ scores changed meaning.
 // ---------------------------------------------------------------------------
-const INSTRUMENT_PAIRS: { short: string; full: string; derived: string[]; reason: string }[] = [
-  { short: "phq2", full: "phq9", derived: ["lifeline_health_depression_score_1_10"], reason: "Í eftirfylgni var aðeins lagður fyrir fyrri hluti PHQ-9 (PHQ-2). Því er PHQ-2 notaður til samanburðar." },
-  { short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", derived: ["lifeline_health_anxiety_score_1_10"], reason: "Í eftirfylgni var aðeins lagður fyrir fyrri hluti GAD-7 (GAD-2). Því er GAD-2 notaður til samanburðar." },
+const INSTRUMENT_PAIRS: { short: string; full: string; reason: string }[] = [
+  { short: "phq2", full: "phq9", reason: "Í eftirfylgni var heildarlistinn (PHQ-9) aðeins lagður fyrir fáa. Því eru PHQ-2 og einkunnin fyrir andlega heilsu notuð til samanburðar." },
+  { short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", reason: "Í eftirfylgni var heildarlistinn (GAD-7) aðeins lagður fyrir suma. Því eru GAD-2 og einkunnin fyrir streitu notuð til samanburðar." },
 ];
+
+// ---------------------------------------------------------------------------
+// Gated 0–10 scores (Lifeline "andleg heilsa" / "streita", 10 = best). The
+// Heilsumat asks the 2-item screen first and the full list only when the
+// screen is positive (≥3):
+//   screen < 3 → depression 10, stress 10 − GAD-2·10/6   (stored value kept)
+//   screen ≥ 3 → 10 − PHQ-9·10/27  /  10 − GAD-7·10/21   (recomputed here)
+// When the screen is positive but the full list is missing (or impossible,
+// full < screen) the stored score is a default — e.g. the 2026-06 follow-up
+// stored stress = 0 for everyone with GAD-2 ≥ 4 — so it is dropped and the
+// patient counted in `gatedDropped`. Idempotent.
+// ---------------------------------------------------------------------------
+const GATED_SCORES = [
+  { score: "lifeline_health_depression_score_1_10", short: "phq2", full: "phq9", max: 27 },
+  { score: "lifeline_health_anxiety_score_1_10", short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", max: 21 },
+];
+export const GATE_THRESHOLD = 3;
+
+export function validateGatedScores<T extends ObsRow>(obs: T[]): { obs: T[]; dropped: Record<string, Set<string>> } {
+  const key = (o: ObsRow) => `${o.medalia_patient_id}|${o.observed_at ? day(o.observed_at) : ""}`;
+  const at = new Map<string, Map<string, T>>();
+  for (const o of obs) {
+    if (o.value_num === null || !o.observed_at) continue;
+    if (!at.has(key(o))) at.set(key(o), new Map());
+    at.get(key(o))!.set(o.feature, o);
+  }
+  const dropped: Record<string, Set<string>> = {};
+  const replace = new Map<string, number | null>(); // `${key}|${score}` → value (null = drop)
+  const extra: T[] = [];
+  for (const g of GATED_SCORES) {
+    dropped[g.score] = new Set();
+    for (const [k, byF] of at) {
+      const s = byF.get(g.short)?.value_num;
+      if (s == null || s < GATE_THRESHOLD) continue;
+      const f = byF.get(g.full)?.value_num;
+      const value = f != null && f >= s ? Math.round((10 - (f * 10) / g.max) * 10) / 10 : null;
+      if (value === null) dropped[g.score].add(k.split("|")[0]);
+      if (byF.has(g.score)) replace.set(`${k}|${g.score}`, value);
+      else if (value !== null) extra.push({ ...byF.get(g.short)!, feature: g.score, value_num: value });
+    }
+  }
+  const out: T[] = [];
+  for (const o of obs) {
+    const r = replace.get(`${key(o)}|${o.feature}`);
+    if (r === undefined) out.push(o);
+    else if (r !== null) out.push({ ...o, value_num: r });
+  }
+  return { obs: [...out, ...extra], dropped };
+}
 const QUESTIONNAIRE_REVISED: Record<string, string> = {
   lifeline_health_caffine_score: "Spurningum um koffín var breytt á milli mælinga og því er ekki hægt að bera svörin saman.",
   lifeline_health_cudq_5_score: "Spurningum um koffín var breytt á milli mælinga og því er ekki hægt að bera svörin saman.",
@@ -241,12 +293,13 @@ function notComparable(obs: ObsRow[], pairs: Map<string, Map<string, Pair>>): Ma
       const short = onDay.get(`${p.pid}|${ip.short}|${p.afterAt}`);
       return short !== undefined && p.after < short;
     });
-    if (broken) for (const f of [ip.full, ...ip.derived]) if (pairs.has(f)) out.set(f, ip.reason);
+    if (broken) out.set(ip.full, ip.reason);
   }
   return out;
 }
 
-export function computeBeforeAfter(obs: ObsRow[], patients: PatientRow[], displayOf: Record<string, string> = {}): BeforeAfterResult {
+export function computeBeforeAfter(rawObs: ObsRow[], patients: PatientRow[], displayOf: Record<string, string> = {}): BeforeAfterResult {
+  const { obs, dropped } = validateGatedScores(rawObs);
   const pairs = buildPairs(obs);
   const invalid = notComparable(obs, pairs);
   const features = [...pairs.keys()].filter((f) => dir(f) !== "neutral" && !invalid.has(f)).sort(sortFeatures);
@@ -342,6 +395,10 @@ export function computeBeforeAfter(obs: ObsRow[], patients: PatientRow[], displa
     weightBands,
     bpCategories,
     excluded: [...invalid].map(([feature, reason]) => ({ feature, label: LABEL_IS[feature] ?? displayOf[feature] ?? feature, reason })),
+    gatedDropped: Object.entries(dropped)
+      .filter(([f, pids]) => pids.size > 0 && pairs.has(f))
+      .map(([feature, pids]) => ({ feature, label: LABEL_IS[feature] ?? feature, n: [...pids].filter((pid) => followed.has(pid)).length }))
+      .filter((g) => g.n > 0),
   };
 }
 

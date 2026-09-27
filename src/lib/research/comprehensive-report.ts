@@ -58,7 +58,7 @@ function pillarChart(ins: CohortInsights): string {
       <rect x="${labelW}" y="${y + 3}" width="${(bw * before) / 10}" height="${m ? 9 : 12}" rx="2" fill="${m ? "#D1D5DB" : col(before)}"/>
       ${m ? `<rect x="${labelW}" y="${y + 14}" width="${bw}" height="9" rx="2" fill="#F3F4F6"/><rect x="${labelW}" y="${y + 14}" width="${(bw * m.after) / 10}" height="9" rx="2" fill="${col(m.after)}"/>` : ""}
       <text x="${W}" y="${y + 15}" font-size="10.5" font-weight="700" text-anchor="end" fill="${m ? lvColor(m.p, m.good === true) : C.ink}">${m ? `${num(m.before)} → ${num(m.after)}${sig}` : num(before)}</text>
-      <text x="${W}" y="${y + 25}" font-size="7" text-anchor="end" fill="${C.muted}">${m ? `${m.n} manns` : excluded ? "ekki borið saman" : "aðeins við upphaf"}</text>`;
+      <text x="${W}" y="${y + 25}" font-size="7" text-anchor="end" fill="${C.muted}">${m ? `${m.n} manns${ins.result.gatedDropped?.some((g) => g.feature === f) ? " ‡" : ""}` : excluded ? "ekki borið saman" : "aðeins við upphaf"}</text>`;
   }).join("")}</svg>`;
 }
 
@@ -87,7 +87,7 @@ function surveySection(ins: CohortInsights): string {
       ${s.lifeline ? `<div class="card"><div class="big">${Math.round(s.lifeline.top2 * 100)}%</div><p>telja Lifeline hafa átt mikinn eða mjög mikinn þátt í breytingunum (${s.lifeline.n} svör).</p></div>` : ""}
       ${s.nps !== null ? `<div class="card"><div class="big">${s.nps > 0 ? "+" : ""}${s.nps}</div><p>meðmælaskor (NPS, á kvarðanum −100 til +100).</p></div>` : ""}
     </div>
-    ${s.madeChanges.some((m) => m.n > 0) ? `<h3>Breytingar sem þátttakendur segjast hafa gert</h3>${factBars(s.madeChanges.filter((m) => m.n > 0).slice(0, 6))}` : ""}`;
+    ${s.madeChanges.some((m) => m.n > 0) ? `<h3>Breytingar sem þátttakendur segjast hafa gert</h3><div class="grid2" style="row-gap:0">${factBars(s.madeChanges.filter((m) => m.n > 0).slice(0, 6))}</div>` : ""}`;
 }
 
 
@@ -129,7 +129,8 @@ function changesPage(ins: CohortInsights): string {
   const dec = (m: MetricResult) => (m.feature.startsWith("bp_") ? 0 : 1);
   const pTxt = (p: number | null) => (p === null ? "–" : p < 0.001 ? "&lt;0,001" : num(p, 3));
   const colr = (m: MetricResult) => lvColor(m.p, m.good === true);
-  const row = (m: MetricResult, extra = "") => `<tr${extra ? ' class="hl"' : ""}><td>${esc(m.label)}${extra}</td><td class="n">${m.n}</td><td class="n" style="color:${colr(m)}">${num(m.before, dec(m))} → <b>${num(m.after, dec(m))}</b>${m.unit === "%" ? "%" : m.unit ? ` ${esc(m.unit)}` : ""}</td><td class="n">${m.improved}</td><td class="n">${m.worsened}</td><td class="n" style="font-weight:${m.significant ? 700 : 400};color:${colr(m)}">${pTxt(m.p)}${m.borderline && m.good ? " †" : ""}</td></tr>`;
+  const gated = new Set((r.gatedDropped ?? []).map((g) => g.feature));
+  const row = (m: MetricResult, extra = "") => `<tr${extra ? ' class="hl"' : ""}><td>${esc(cap(m.label))}${gated.has(m.feature) ? " ‡" : ""}${extra}</td><td class="n">${m.n}</td><td class="n" style="color:${colr(m)}">${num(m.before, dec(m))} → <b>${num(m.after, dec(m))}</b>${m.unit === "%" ? "%" : m.unit ? ` ${esc(m.unit)}` : ""}</td><td class="n">${m.improved}</td><td class="n">${m.worsened}</td><td class="n" style="font-weight:${m.significant ? 700 : 400};color:${colr(m)}">${pTxt(m.p)}${m.borderline && m.good ? " †" : ""}</td></tr>`;
   // concrete habit (same people, first vs latest Heilsumat): stopped = improved
   const habitRow = (h: NonNullable<CohortInsights["habitShift"]>[number], total: number) => {
     const sig = h.p < 0.05, c = lvColor(h.p, h.after < h.before);
@@ -152,19 +153,27 @@ function changesPage(ins: CohortInsights): string {
     const rows = r.metrics.filter((m) => (PDF_GROUP[m.feature] ?? featureDomain(m.feature)) === key && (m.improved + m.worsened) >= 5 && !isConditional(m.feature) && !PDF_SKIP.has(m.feature));
     const habits = key === "addiction" ? shifts.filter((h) => h.pillar === "substances") : [];
     if (!rows.length && !habits.length && !(key === "exercise" && ins.exerciseShift?.length) && !(key === "mental" && ins.itemChanges?.length)) return "";
+    const tail = key === "mental" && gated.size ? `<tr><td colspan="6" class="gnote">‡ Aðeins þau sem fengu heildarlista eftir jákvæða skimun; breytingin gæti verið ofmetin (sjá aðferð).</td></tr>` : "";
     const note = key === "addiction" ? `<tr><td colspan="6" class="gnote">Einkunn 0–10: hærri einkunn merkir minni notkun eða minni vanda. Prósentur: hlutfall þátttakenda sem hafa vanann.</td></tr>` : "";
     const extra = key === "exercise" ? (ins.exerciseShift ?? []).map(exRow).join("") : key === "mental" ? (ins.itemChanges ?? []).map(itRow).join("") : "";
-    return `<tr><td colspan="6" class="grp">${esc(label)}</td></tr>${note}${rows.map((m) => row(m)).join("")}${extra}${habits.map((h) => habitRow(h, total)).join("")}${key === "cardio" && hb ? hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => row(m, " — hópur með háþrýsting við upphaf")).join("") : ""}`;
+    return `<tr><td colspan="6" class="grp">${esc(label)}</td></tr>${note}${rows.map((m) => row(m)).join("")}${extra}${tail}${habits.map((h) => habitRow(h, total)).join("")}${key === "cardio" && hb ? hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => row(m, " — hópur með háþrýsting við upphaf")).join("") : ""}`;
   }).join("");
   return `
     <h2 style="margin-top:0">Mældar breytingar milli gagnasetta</h2>
-    <p class="lead">Fyrsta og síðasta mæling hvers þátttakanda eru bornar saman. <b>Bættu sig</b> og <b>versnuðu</b> sýna hve margir færðust í heilsusamlega eða óheilsusamlega átt; aðrir stóðu í stað. Á kvarðanum 0–10 er hærri einkunn betri. Dökkgrænt = tölfræðilega marktæk framför, rautt = marktæk afturför (p &lt; 0,05); † grænt = á mörkum marktækni (0,05 ≤ p &lt; 0,10). Wilcoxon-próf fyrir mælingar, McNemar-próf fyrir hlutföll.${r.excluded?.length ? " Þættir sem voru mældir tvisvar en ekki bornir saman eru taldir upp á síðustu síðu." : ""}</p>
+    <p class="lead">Fyrsta og síðasta mæling hvers þátttakanda eru bornar saman. <b>Bættu sig</b> og <b>versnuðu</b> sýna hve margir færðust í heilsusamlega eða óheilsusamlega átt; aðrir stóðu í stað. Á kvarðanum 0–10 er hærri einkunn betri. Dökkgrænt = marktæk framför, rautt = marktæk afturför (p &lt; 0,05); † = á mörkum marktækni (p &lt; 0,10). Aðferð og þættir sem ekki eru bornir saman: sjá síðustu síðu.</p>
     <table class="tbl compact"><thead><tr><th>Mæling</th><th class="n">Fjöldi</th><th class="n">Fyrir → eftir</th><th class="n">Bættu sig</th><th class="n">Versnuðu</th><th class="n">p-gildi</th></tr></thead><tbody>${body}</tbody></table>
 `;
 }
 function excludedNote(ins: CohortInsights): string {
   const r = ins.result;
-  return r.excluded?.length ? `<div class="note" style="margin-top:4mm"><b>Mælt tvisvar en ekki borið saman.</b><ul style="margin:1mm 0 0;padding-left:4mm">${groupExcluded(r.excluded).map((g) => `<li><b>${esc(g.labels)}</b>: ${esc(g.reason)}</li>`).join("")}</ul></div>` : "";
+  return r.excluded?.length ? `<li><b>Mælt tvisvar en ekki borið saman:</b> ${groupExcluded(r.excluded).map((g) => `${esc(g.labels)}: ${esc(g.reason.split(/\. | og því /)[0].replace(/\.$/, ""))}`).join(". ")}.</li>` : "";
+}
+/** Gated 0–10 mental scores: who is missing and why the change may be overstated. */
+export function gatedNote(r: CohortInsights["result"]): string | null {
+  const g = r.gatedDropped ?? [];
+  if (!g.length) return null;
+  const parts = g.map((x) => `${x.label.split(" (")[0]} (${x.n})`).join(" og ");
+  return `Andleg heilsa og streita (‡) byggja á heildarlista (PHQ-9/GAD-7) þegar skimun er jákvæð. Í eftirfylgni vantaði heildarlistann hjá sumum sem skimuðust jákvætt: ${parts}. Þeir eru ekki með í samanburði einkunnanna og breytingin gæti því verið ofmetin; PHQ-2 og GAD-2 ná til allra og sýna sömu stefnu.`;
 }
 
 function page(inner: string, n: number, total: number, cohort: string, sub: string, logo: string): string {
@@ -186,7 +195,7 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
     <h2>Helstu niðurstöður eftir sviðum</h2>
     <div class="areas">${areas.map((a) => `<div class="area"><div class="at">${esc(a.title)}</div><div class="as" style="color:${toneCol[a.scoreTone]}">${esc(a.scoreLabel)}</div><div class="ac">${esc(a.scoreCaption)}</div><p>${esc(a.headline)}</p></div>`).join("")}</div>
     <h2>Stoðir lífsstíls: fyrir og eftir</h2>
-    <p class="lead">Meðaleinkunn á kvarðanum 0–10 þar sem 10 er best. Grá stika: fyrsta mæling; lituð stika: endurmæling hjá sömu einstaklingum. Litur sýnir stöðuna eftir á: grænt 7 eða hærra, gult 5–7, rautt undir 5. Brotalínan markar einkunnina 6. * = tölfræðilega marktæk breyting; † = á mörkum marktækni (0,05 ≤ p &lt; 0,10).</p>
+    <p class="lead">Meðaleinkunn á kvarðanum 0–10 þar sem 10 er best. Grá stika: fyrsta mæling; lituð stika: endurmæling hjá sömu einstaklingum. Litur sýnir stöðuna eftir á: grænt 7 eða hærra, gult 5–7, rautt undir 5. Brotalínan markar einkunnina 6. * = tölfræðilega marktæk breyting; † = á mörkum marktækni (0,05 ≤ p &lt; 0,10).${r.gatedDropped?.length ? " ‡ = aðeins þau sem fengu heildarlista eftir jákvæða skimun; sjá aðferð." : ""}</p>
     ${pillarChart(ins)}`;
 
   const pillars: InsightArea["key"][] = ["exercise", "nutrition", "sleep", "mental"];
@@ -246,7 +255,7 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
     : lifeReMeasured
       ? "<b>Endurmæling eftir 12 mánuði, einnig með blóðprufum.</b> Blóðprufur voru ekki teknar í eftirfylgni en þær sýna hvort bættar venjur skili sér í blóðsykri, insúlínviðnámi og blóðfitum."
       : "<b>Endurmæling eftir 12 mánuði með blóðprufum og heilsumati.</b> Í eftirfylgni voru aðeins þyngd og blóðþrýstingur mæld. Endurtekið heilsumat sýnir hvort venjur hafi í raun breyst.");
-  if (r.excluded?.length) steps.push("<b>Sömu spurningar í næstu mælingu:</b> leggja fyrir allan PHQ-9 og GAD-7 og halda spurningum um koffín óbreyttum, svo allir þættir verði samanburðarhæfir.");
+  if (r.excluded?.length || r.gatedDropped?.length) steps.push("<b>Sömu spurningar í næstu mælingu:</b> heildarlistar PHQ-9 og GAD-7 birtist öllum sem skimast jákvætt (3 eða hærra) og spurningum um koffín verði haldið óbreyttum.");
   const weakest = [...ins.pillars].filter((p) => ["sleep", "exercise", "nutrition"].includes(p.key)).sort((a, b) => (a.mean ?? 99) - (b.mean ?? 99))[0];
   const ACC: Record<string, string> = { sleep: "svefn", exercise: "hreyfingu", nutrition: "næringu" };
   if (weakest) {
@@ -266,19 +275,21 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
     <p class="lead">Sjálfsmat úr eftirfylgnikönnun. Ekki hluti af gagnasettunum; bætir við mælingarnar.</p>
     ${surveySection(ins)}
     <h2>Næstu skref</h2><div class="steps"><ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol></div>
-    ${excludedNote(ins)}
     <div class="method"><div class="mt">Aðferð</div><ul>
-      <li>Lífsstíll byggir á heilsumati Lifeline Health. Einkunnir eru á kvarðanum 0–10 þar sem 10 er best.</li>
-      <li>Áhættuþættir miðast við viðurkennd klínísk mörk sem tilgreind eru við hvern þátt.</li>
-      <li>Breytingar: fyrsta og síðasta mæling hvers þátttakanda eru bornar saman (að minnsta kosti 14 dagar á milli); Wilcoxon-próf. Breytingar á venjum eru metnar með McNemar-prófi.</li>
-      <li>Einungis eru bornar saman spurningar sem voru lagðar eins fyrir í bæði skiptin.</li>
+      <li>Lífsstíll byggir á heilsumati Lifeline Health; einkunnir á kvarðanum 0–10 þar sem 10 er best. Áhættuþættir miðast við viðurkennd klínísk mörk.</li>
+      <li>Fyrsta og síðasta mæling hvers þátttakanda eru bornar saman (a.m.k. 14 dagar á milli); Wilcoxon-próf fyrir mælingar, McNemar-próf fyrir venjur. Aðeins eru bornar saman spurningar sem voru lagðar eins fyrir í bæði skiptin.</li>
+      ${excludedNote(ins)}
+      ${gatedNote(r) ? `<li>${esc(gatedNote(r)!)}</li>` : ""}
       <li>Upplifun þátttakenda kemur úr eftirfylgnikönnun og er aðeins birt þegar að minnsta kosti fimm hafa svarað.</li>
       <li>Samanburðarhópur er ekki til staðar og því er ekki hægt að fullyrða að breytingar séu þjónustunni einni að þakka.</li>
       <li>Útgáfa aðferðar: ${esc(methodsVersion)}.</li>
     </ul></div>`;
 
   const pc = comparisonPage(ins), pch = changesPage(ins);
-  const pages = [p1, pc, pch, p2, p3, p4].filter(Boolean);
+  // The lifestyle × risk page (p3) is intentionally left out of the PDF; the
+  // correlations remain in the admin Clinical overview.
+  void p3;
+  const pages = [p1, pc, pch, p2, p4].filter(Boolean);
   return `<!doctype html><html lang="is"><head><meta charset="utf-8"/><title>${esc(ins.cohortName)} — heildarskýrsla</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
