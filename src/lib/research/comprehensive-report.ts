@@ -153,7 +153,7 @@ function changesPage(ins: CohortInsights): string {
     const rows = r.metrics.filter((m) => (PDF_GROUP[m.feature] ?? featureDomain(m.feature)) === key && (m.improved + m.worsened) >= 5 && !isConditional(m.feature) && !PDF_SKIP.has(m.feature));
     const habits = key === "addiction" ? shifts.filter((h) => h.pillar === "substances") : [];
     if (!rows.length && !habits.length && !(key === "exercise" && ins.exerciseShift?.length) && !(key === "mental" && ins.itemChanges?.length)) return "";
-    const tail = key === "mental" && gated.size ? `<tr><td colspan="6" class="gnote">‡ Aðeins þau sem fengu heildarlista eftir jákvæða skimun; breytingin gæti verið ofmetin (sjá aðferð).</td></tr>` : "";
+    const tail = key === "mental" && gated.size ? `<tr><td colspan="6" class="gnote">‡ Heildarlista vantaði eftir jákvæða skimun hjá ${(r.gatedDropped ?? []).map((g) => `${g.n} af ${g.n + g.nCompared} (${g.label.split(" (")[0]})`).join(" og ")}; breytingin er í sömu átt þótt gert sé ráð fyrir versta tilviki (sjá aðferð).</td></tr>` : "";
     const note = key === "addiction" ? `<tr><td colspan="6" class="gnote">Einkunn 0–10: hærri einkunn merkir minni notkun eða minni vanda. Prósentur: hlutfall þátttakenda sem hafa vanann.</td></tr>` : "";
     const extra = key === "exercise" ? (ins.exerciseShift ?? []).map(exRow).join("") : key === "mental" ? (ins.itemChanges ?? []).map(itRow).join("") : "";
     return `<tr><td colspan="6" class="grp">${esc(label)}</td></tr>${note}${rows.map((m) => row(m)).join("")}${extra}${tail}${habits.map((h) => habitRow(h, total)).join("")}${key === "cardio" && hb ? hb.metrics.filter((m) => ["bp_systolic_avg", "weight"].includes(m.feature)).map((m) => row(m, " — hópur með háþrýsting við upphaf")).join("") : ""}`;
@@ -172,8 +172,10 @@ function excludedNote(ins: CohortInsights): string {
 export function gatedNote(r: CohortInsights["result"]): string | null {
   const g = r.gatedDropped ?? [];
   if (!g.length) return null;
-  const parts = g.map((x) => `${x.label.split(" (")[0]} (${x.n})`).join(" og ");
-  return `Andleg heilsa og streita (‡) byggja á heildarlista (PHQ-9/GAD-7) þegar skimun er jákvæð. Í eftirfylgni vantaði heildarlistann hjá sumum sem skimuðust jákvætt: ${parts}. Þeir eru ekki með í samanburði einkunnanna og breytingin gæti því verið ofmetin; PHQ-2 og GAD-2 ná til allra og sýna sömu stefnu.`;
+  const nm = (x: (typeof g)[number]) => x.label.split(" (")[0];
+  const pw = (p: number | null) => (p === null ? "–" : p < 0.001 ? "< 0,001" : num(p, 3));
+  const worst = g.map((x) => `${nm(x)} ${num(x.worstBefore)} → ${num(x.worstAfter)} (p = ${pw(x.worstP)})`).join(", ");
+  return `Andleg heilsa og streita (‡) byggja á heildarlista (PHQ-9/GAD-7) þegar skimun er jákvæð. Heildartölur voru endurreiknaðar úr svörum við einstökum spurningum. Í eftirfylgni vantaði heildarlistann eftir jákvæða skimun hjá ${g.map((x) => `${x.n} þátttakendum (${nm(x)})`).join(" og ")}; þeir eru ekki með í samanburðinum. Ef þeim er gefin lægsta einkunn sem skimunin leyfir verður niðurstaðan: ${worst}.`;
 }
 
 function page(inner: string, n: number, total: number, cohort: string, sub: string, logo: string): string {
@@ -195,7 +197,7 @@ export function buildComprehensiveReport(ins: CohortInsights, logoUrl: string, m
     <h2>Helstu niðurstöður eftir sviðum</h2>
     <div class="areas">${areas.map((a) => `<div class="area"><div class="at">${esc(a.title)}</div><div class="as" style="color:${toneCol[a.scoreTone]}">${esc(a.scoreLabel)}</div><div class="ac">${esc(a.scoreCaption)}</div><p>${esc(a.headline)}</p></div>`).join("")}</div>
     <h2>Stoðir lífsstíls: fyrir og eftir</h2>
-    <p class="lead">Meðaleinkunn á kvarðanum 0–10 þar sem 10 er best. Grá stika: fyrsta mæling; lituð stika: endurmæling hjá sömu einstaklingum. Litur sýnir stöðuna eftir á: grænt 7 eða hærra, gult 5–7, rautt undir 5. Brotalínan markar einkunnina 6. * = tölfræðilega marktæk breyting; † = á mörkum marktækni (0,05 ≤ p &lt; 0,10).${r.gatedDropped?.length ? " ‡ = aðeins þau sem fengu heildarlista eftir jákvæða skimun; sjá aðferð." : ""}</p>
+    <p class="lead">Meðaleinkunn á kvarðanum 0–10 þar sem 10 er best. Grá stika: fyrsta mæling; lituð stika: endurmæling hjá sömu einstaklingum. Litur sýnir stöðuna eftir á: grænt 7 eða hærra, gult 5–7, rautt undir 5. Brotalínan markar einkunnina 6. * = tölfræðilega marktæk breyting; † = á mörkum marktækni (0,05 ≤ p &lt; 0,10).${r.gatedDropped?.length ? " ‡ = nokkra vantaði heildarlista eftir jákvæða skimun; sjá aðferð." : ""}</p>
     ${pillarChart(ins)}`;
 
   const pillars: InsightArea["key"][] = ["exercise", "nutrition", "sleep", "mental"];

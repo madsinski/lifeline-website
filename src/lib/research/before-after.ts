@@ -129,7 +129,10 @@ export interface BeforeAfterResult {
   excluded: { feature: string; label: string; reason: string }[];   // measured twice but NOT comparable
   // Gated 0–10 scores left out for people whose full questionnaire was missing
   // after a positive screen (see validateGatedScores).
-  gatedDropped?: { feature: string; label: string; n: number }[];
+  // n = screened at both times but no comparable score; nCompared = in the
+  // comparison. worst* = sensitivity with those n given the lowest score their
+  // screen allows (all remaining items at maximum).
+  gatedDropped?: { feature: string; label: string; n: number; nCompared: number; worstBefore: number; worstAfter: number; worstP: number | null }[];
 }
 
 export type BpCat = "normal" | "elevated" | "high";
@@ -233,7 +236,8 @@ const INSTRUMENT_PAIRS: { short: string; full: string; reason: string }[] = [
 // Gated 0–10 scores (Lifeline "andleg heilsa" / "streita", 10 = best). The
 // Heilsumat asks the 2-item screen first and the full list only when the
 // screen is positive (≥3):
-//   screen < 3 → depression 10, stress 10 − GAD-2·10/6   (stored value kept)
+//   screen < 3 → depression 10, stress 10 − GAD-2·10/6   (stored value kept;
+//                filled in when Medalia left it empty)
 //   screen ≥ 3 → 10 − PHQ-9·10/27  /  10 − GAD-7·10/21   (recomputed here)
 // When the screen is positive but the full list is missing (or impossible,
 // full < screen) the stored score is a default — e.g. the 2026-06 follow-up
@@ -241,10 +245,67 @@ const INSTRUMENT_PAIRS: { short: string; full: string; reason: string }[] = [
 // patient counted in `gatedDropped`. Idempotent.
 // ---------------------------------------------------------------------------
 const GATED_SCORES = [
-  { score: "lifeline_health_depression_score_1_10", short: "phq2", full: "phq9", max: 27 },
-  { score: "lifeline_health_anxiety_score_1_10", short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", max: 21 },
+  { score: "lifeline_health_depression_score_1_10", short: "phq2", full: "phq9", max: 27, rest: 7, negative: () => 10 },
+  { score: "lifeline_health_anxiety_score_1_10", short: "lifeline_health_anxiety_gad_2", full: "lifeline_health_anxiety_gad_7", max: 21, rest: 5, negative: (s: number) => Math.round((10 - (s * 10) / 6) * 10) / 10 },
 ];
 export const GATE_THRESHOLD = 3;
+
+// ---------------------------------------------------------------------------
+// PHQ-9 / GAD-7 totals from the item answers. Medalia sometimes stores 0 (or
+// nothing) for the total even when every item was answered (2026-06
+// follow-up), so a complete item set overrides the stored total. Items are
+// matched on link_id (phq-1-interest … phq-9-harm, gad-1-nervous …
+// gad-7-afraid); answer options are the standard 0–3 frequency scale.
+// ---------------------------------------------------------------------------
+export interface ItemAnswer { medalia_patient_id: string; link_id: string | null; value_text: string | null; authored_at: string | null }
+const ITEM_SCALE: Record<string, number> = {
+  "alls ekki": 0, aldrei: 0, "nokkra daga": 1,
+  "meira en helming tímans": 2, "oftar en helming daganna": 2,
+  "nánast alla daga": 3, "næstum daglega": 3,
+};
+const ITEM_SETS = [
+  { feature: "phq9", screen: "phq2", prefix: "phq-", items: 9 },
+  { feature: "lifeline_health_anxiety_gad_7", screen: "lifeline_health_anxiety_gad_2", prefix: "gad-", items: 7 },
+];
+
+export function applyItemTotals<T extends ObsRow>(obs: T[], items: ItemAnswer[]): { obs: T[]; recovered: Record<string, number> } {
+  const sums = new Map<string, Map<string, number>>(); // `${pid}|${day}|${feature}` → link_id → value
+  for (const a of items) {
+    const set = ITEM_SETS.find((x) => a.link_id?.startsWith(x.prefix));
+    const v = ITEM_SCALE[(a.value_text ?? "").trim().toLowerCase()];
+    if (!set || v === undefined || !a.authored_at) continue;
+    const k = `${a.medalia_patient_id}|${day(a.authored_at)}|${set.feature}`;
+    if (!sums.has(k)) sums.set(k, new Map());
+    sums.get(k)!.set(a.link_id!, v);
+  }
+  const total = new Map<string, number>();
+  for (const [k, m] of sums) {
+    const set = ITEM_SETS.find((x) => k.endsWith(`|${x.feature}`))!;
+    if (m.size === set.items) total.set(k, [...m.values()].reduce((a, b) => a + b, 0));
+  }
+  const recovered: Record<string, number> = {};
+  const seen = new Set<string>();
+  const out = obs.map((o) => {
+    if (!o.observed_at) return o;
+    const k = `${o.medalia_patient_id}|${day(o.observed_at)}|${o.feature}`;
+    const t = total.get(k);
+    if (t === undefined) return o;
+    seen.add(k);
+    if (o.value_num !== t) recovered[o.feature] = (recovered[o.feature] ?? 0) + 1;
+    return { ...o, value_num: t };
+  });
+  // complete item set but no stored total: add it next to that day's screen
+  for (const [k, t] of total) {
+    if (seen.has(k)) continue;
+    const [pid, d, feature] = k.split("|");
+    const set = ITEM_SETS.find((x) => x.feature === feature)!;
+    const sib = obs.find((o) => o.medalia_patient_id === pid && o.feature === set.screen && o.observed_at && day(o.observed_at) === d);
+    if (!sib) continue;
+    out.push({ ...sib, feature, value_num: t });
+    recovered[feature] = (recovered[feature] ?? 0) + 1;
+  }
+  return { obs: out, recovered };
+}
 
 export function validateGatedScores<T extends ObsRow>(obs: T[]): { obs: T[]; dropped: Record<string, Set<string>> } {
   const key = (o: ObsRow) => `${o.medalia_patient_id}|${o.observed_at ? day(o.observed_at) : ""}`;
@@ -261,7 +322,13 @@ export function validateGatedScores<T extends ObsRow>(obs: T[]): { obs: T[]; dro
     dropped[g.score] = new Set();
     for (const [k, byF] of at) {
       const s = byF.get(g.short)?.value_num;
-      if (s == null || s < GATE_THRESHOLD) continue;
+      if (s == null) continue;
+      if (s < GATE_THRESHOLD) {
+        // screen negative: Medalia sometimes leaves the score empty (2026-07
+        // follow-up forms); fill it with the same rule as the stored ones.
+        if (!byF.has(g.score)) extra.push({ ...byF.get(g.short)!, feature: g.score, value_num: g.negative(s) });
+        continue;
+      }
       const f = byF.get(g.full)?.value_num;
       const value = f != null && f >= s ? Math.round((10 - (f * 10) / g.max) * 10) / 10 : null;
       if (value === null) dropped[g.score].add(k.split("|")[0]);
@@ -395,9 +462,23 @@ export function computeBeforeAfter(rawObs: ObsRow[], patients: PatientRow[], dis
     weightBands,
     bpCategories,
     excluded: [...invalid].map(([feature, reason]) => ({ feature, label: LABEL_IS[feature] ?? displayOf[feature] ?? feature, reason })),
-    gatedDropped: Object.entries(dropped)
-      .filter(([f, pids]) => pids.size > 0 && pairs.has(f))
-      .map(([feature, pids]) => ({ feature, label: LABEL_IS[feature] ?? feature, n: [...pids].filter((pid) => followed.has(pid)).length }))
+    // people screened at both times whose score could not be compared
+    // (positive screen at follow-up, full list never answered)
+    gatedDropped: GATED_SCORES
+      .filter((g) => pairs.has(g.score) && pairs.has(g.short))
+      .map((g) => {
+        const sc = pairs.get(g.score)!, sp = pairs.get(g.short)!;
+        const miss = [...sp.keys()].filter((pid) => !sc.has(pid) && dropped[g.score]?.has(pid));
+        const b = [...sc.values()].map((p) => p.before), a = [...sc.values()].map((p) => p.after);
+        for (const pid of miss) {
+          const base = obs.find((o) => o.medalia_patient_id === pid && o.feature === g.score && o.observed_at && day(o.observed_at) === sp.get(pid)!.beforeAt)?.value_num;
+          if (base == null) continue;
+          b.push(base);
+          a.push(Math.max(0, Math.round((10 - ((sp.get(pid)!.after + g.rest * 3) * 10) / g.max) * 10) / 10));
+        }
+        const w = wilcoxonSignedRank(a.map((x, i) => x - b[i]));
+        return { feature: g.score, label: LABEL_IS[g.score] ?? g.score, n: miss.length, nCompared: sc.size, worstBefore: mean(b), worstAfter: mean(a), worstP: w ? w.p : null };
+      })
       .filter((g) => g.n > 0),
   };
 }
