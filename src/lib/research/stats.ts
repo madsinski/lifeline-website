@@ -101,7 +101,11 @@ const normalCdf = (z: number): number => {
 export interface WilcoxonResult { n: number; W: number; z: number; p: number; }
 /** Wilcoxon signed-rank test (normal approximation w/ continuity + tie correction). */
 export function wilcoxonSignedRank(deltas: number[]): WilcoxonResult | null {
-  const nz = deltas.filter((d) => d !== 0);
+  // Round away floating-point noise first: differences like 4.3 − 3.1 are not
+  // exactly 1.2, so equal changes would otherwise miss the tie handling (and
+  // tiny non-zero "zeros" would be ranked). Scores/measurements have ≤ 3 decimals.
+  const clean = deltas.map((d) => Math.round(d * 1e6) / 1e6);
+  const nz = clean.filter((d) => d !== 0);
   const n = nz.length;
   if (n < 6) return null; // normal approx unreliable below ~6
   const ranked = nz.map((d) => ({ abs: Math.abs(d), sign: Math.sign(d) })).sort((a, b) => a.abs - b.abs);

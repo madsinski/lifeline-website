@@ -1258,13 +1258,13 @@ function Stat({ label, value, small }: { label: string; value: string; small?: b
 
 function BeforeAfterCard({ m }: { m: MetricResult }) {
   const d = metricDec(m.feature);
-  const tone = m.significant ? (m.good ? "text-emerald-700 border-emerald-300 bg-emerald-50" : "text-orange-700 border-orange-300 bg-orange-50") : "text-gray-500 border-gray-200 bg-white";
+  const tone = m.significant ? (m.good ? "text-emerald-700 border-emerald-300 bg-emerald-50" : "text-orange-700 border-orange-300 bg-orange-50") : m.borderline && m.good ? "text-emerald-600 border-emerald-200 bg-white" : "text-gray-500 border-gray-200 bg-white";
   return (
     <div className="rounded-xl border border-gray-100 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium text-gray-800">{m.label}</div>
         <span className={`text-[11px] px-2 py-0.5 rounded-full border ${tone}`}>
-          {m.significant ? (m.good ? "Significant improvement" : "Significant worsening") : "No significant change"}
+          {m.significant ? (m.good ? "Significant improvement" : "Significant worsening") : m.borderline && m.good ? "Borderline improvement (p < 0.10)" : "No significant change"}
         </span>
       </div>
       <div className="mt-2 flex items-baseline gap-2">
@@ -1438,7 +1438,7 @@ function AreaDetail({ area }: { area: InsightArea }) {
             {area.change.map((c) => (
               <div key={c.label} className="rounded-lg bg-white border border-gray-100 px-3 py-2">
                 <div className="text-xs text-gray-500">{c.label}</div>
-                <div className={`${c.value.length > 16 ? "text-sm" : "text-lg"} font-bold tabular-nums ${c.tone === "good" ? "text-emerald-700" : c.tone === "bad" ? "text-orange-700" : "text-gray-800"}`}>{c.value}</div>
+                <div className={`${c.value.length > 16 ? "text-sm" : "text-lg"} font-bold tabular-nums ${c.tone === "good" ? "text-emerald-700" : c.tone === "trend" ? "text-emerald-500" : c.tone === "bad" ? "text-orange-700" : "text-gray-800"}`}>{c.value}{c.tone === "trend" ? " †" : ""}</div>
                 {c.dist && (
                   <div className="flex h-2 mt-1.5 gap-px rounded overflow-hidden" aria-label={c.dist.labels.map((l, i) => `${l}: ${c.dist!.counts[i]}`).join(", ")}>
                     {c.dist.counts.map((n, i) => n > 0 && (
@@ -1564,7 +1564,7 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
               </tbody>
             </table>
           )}
-          <p className="text-[11px] text-gray-400 mt-1.5">Fyrsta og síðasta mæling hvers þátttakanda eru bornar saman (Wilcoxon-próf). <b>Bættu sig / versnuðu</b>: hve margir færðust í heilsusamlega eða óheilsusamlega átt; aðrir stóðu í stað. Á kvarðanum 0–10 er hærri einkunn betri, líka fyrir nikótín, áfengi og skjánotkun (hærra = minni notkun). Grænt = marktæk framför, appelsínugult = marktæk afturför (p &lt; 0,05).</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">Fyrsta og síðasta mæling hvers þátttakanda eru bornar saman (Wilcoxon-próf). <b>Bættu sig / versnuðu</b>: hve margir færðust í heilsusamlega eða óheilsusamlega átt; aðrir stóðu í stað. Á kvarðanum 0–10 er hærri einkunn betri, líka fyrir nikótín, áfengi og skjánotkun (hærra = minni notkun). Grænt = marktæk framför, appelsínugult = marktæk afturför (p &lt; 0,05); † ljósgrænt = á mörkum marktækni (0,05 ≤ p &lt; 0,10).</p>
           {r.excluded?.length > 0 && (
             <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
               <div className="text-xs font-semibold text-amber-900">Mælt tvisvar en ekki borið saman</div>
@@ -1580,14 +1580,14 @@ function DatasetComparisonPanel({ ins }: { ins: CohortInsights }) {
 }
 
 function ChangeRow({ m, fmt, note }: { m: MetricResult; fmt: (m: MetricResult, v: number) => string; note?: string }) {
-  const col = m.significant ? (m.good ? "text-emerald-700" : "text-orange-700") : "text-gray-500";
+  const col = m.significant ? (m.good ? "text-emerald-700" : "text-orange-700") : m.borderline && m.good ? "text-emerald-500" : "text-gray-500";
   return (
     <tr className={`border-b border-gray-50 ${note ? "bg-emerald-50/60" : ""}`}>
       <td className="py-1.5 text-gray-800">{m.label}{note && <> — <span className="font-medium">{note}</span></>} <span className="text-xs text-gray-400">({m.n})</span></td>
-      <td className={`text-right tabular-nums ${m.significant ? col : ""}`}>{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
+      <td className={`text-right tabular-nums ${m.significant || m.borderline ? col : ""}`}>{fmt(m, m.before)} → <b>{fmt(m, m.after)}</b> <span className="text-xs text-gray-400">{m.unit}</span></td>
       <td className="text-right tabular-nums text-xs text-gray-600">{m.improved}</td>
       <td className="text-right tabular-nums text-xs text-gray-600">{m.worsened}</td>
-      <td className={`text-right tabular-nums text-xs ${m.significant ? `font-bold ${col}` : "text-gray-500"}`}>{m.p === null ? "–" : m.p < 0.001 ? "<0,001" : m.p.toFixed(3).replace(".", ",")}</td>
+      <td className={`text-right tabular-nums text-xs ${m.significant ? `font-bold ${col}` : m.borderline ? col : "text-gray-500"}`}>{m.p === null ? "–" : m.p < 0.001 ? "<0,001" : m.p.toFixed(3).replace(".", ",")}{m.borderline ? " †" : ""}</td>
     </tr>
   );
 }

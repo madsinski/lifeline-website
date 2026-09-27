@@ -7,6 +7,7 @@
 
 import type { BeforeAfterResult, MetricResult, ProfileItem } from "./before-after";
 import type { HabitShift, PositiveShift, ItemChange } from "./lifestyle";
+import { sigLevel } from "./before-after";
 
 export interface EmployerOnePagerInput {
   cohortName: string;
@@ -66,7 +67,7 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   const profile = input.profile.filter((p) => p.of >= MIN_GROUP);
 
   // ── "what changed" cards (data-driven, honest) ──
-  const cards: string[] = [];
+  let lifeCard = "", exCard = "", dietCard = "";
   const minor: string[] = [];
   const M = (f: string) => r.metrics.find((m) => m.feature === f);
   const LIFE: [string, string][] = [
@@ -75,34 +76,34 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   ];
   const lifeRows = LIFE.map(([f, label]) => ({ label, m: M(f) })).filter((x): x is { label: string; m: MetricResult } => !!x.m);
   if (lifeRows.some((x) => x.m.significant && x.m.good)) {
-    cards.push(`<div class="card hl"><div class="ct">Lífsstíll batnaði mælanlega</div>
-      <table class="lt">${lifeRows.map(({ label, m }) => `<tr><td>${esc(label)}</td><td class="bar"><i style="width:${m.before * 10}%;background:#D1D5DB"></i><i style="width:${m.after * 10}%"></i></td><td class="v"${m.significant && m.good ? ` style="color:${C.dark}"` : ""}>${num(m.before, 1)} → <b>${num(m.after, 1)}</b>${m.significant ? "*" : ""}</td></tr>`).join("")}</table>
-      <p class="fn">Einkunn 0–10 (hærra er betra) hjá sömu ${Math.max(...lifeRows.map((x) => x.m.n))} einstaklingum. * = tölfræðilega marktæk breyting.</p></div>`);
+    lifeCard = (`<div class="card hl"><div class="ct">Lífsstíll batnaði mælanlega</div>
+      <table class="lt">${lifeRows.map(({ label, m }) => `<tr><td>${esc(label)}</td><td class="bar"><i style="width:${m.before * 10}%;background:#D1D5DB"></i><i style="width:${m.after * 10}%"></i></td><td class="v"${m.significant && m.good ? ` style="color:${C.dark}"` : m.borderline && m.good ? ` style="color:${C.brand}"` : ""}>${num(m.before, 1)} → <b>${num(m.after, 1)}</b>${m.significant ? "*" : m.borderline && m.good ? "†" : ""}</td></tr>`).join("")}</table>
+      <p class="fn">Einkunn 0–10, hærra er betra. * marktæk breyting${lifeRows.some((x) => x.m.borderline && x.m.good) ? "; † á mörkum marktækni" : ""}.</p></div>`);
   }
   // exercise: what people actually do (healthy behaviour → higher share is better)
   const ex = input.exerciseShift ?? [];
   if (ex.some((e) => e.p < 0.05 && e.after > e.before)) {
-    cards.push(`<div class="card"><div class="ct">Hreyfing</div>
-      <table class="lt">${ex.map((e) => { const sig = e.p < 0.05; return `<tr><td>${esc(EX_SHORT[e.key] ?? e.label)}</td><td class="v"${sig && e.after > e.before ? ` style="color:${C.dark}"` : ""}>${pct(e.before, e.of)}% → <b>${pct(e.after, e.of)}%</b>${sig ? "*" : ""}</td></tr>`; }).join("")}</table>
-      <p class="fn">Hlutfall þátttakenda. * = tölfræðilega marktæk breyting.</p></div>`);
+    exCard = (`<div class="card"><div class="ct">Hreyfing</div>
+      <table class="lt">${ex.map((e) => { const lv = sigLevel(e.p), up = e.after > e.before; return `<tr><td>${esc(EX_SHORT[e.key] ?? e.label)}</td><td class="v"${lv === "sig" && up ? ` style="color:${C.dark}"` : lv === "trend" && up ? ` style="color:${C.brand}"` : ""}>${pct(e.before, e.of)}% → <b>${pct(e.after, e.of)}%</b>${lv === "sig" ? "*" : lv === "trend" && up ? "†" : ""}</td></tr>`; }).join("")}</table>
+      <p class="fn">Hlutfall þátttakenda. * marktæk breyting${ex.some((e) => sigLevel(e.p) === "trend" && e.after > e.before) ? "; † á mörkum marktækni" : ""}.</p></div>`);
   }
   // diet: unhealthy habits that became significantly less common
   const diet = (input.habitShift ?? []).filter((h) => h.pillar === "nutrition" && h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
   if (diet.length) {
-    cards.push(`<div class="card"><div class="ct">Mataræði</div>
+    dietCard = (`<div class="card"><div class="ct">Mataræði</div>
       ${diet.map((h) => `<div class="hs"><span>${esc(h.label.charAt(0).toUpperCase() + h.label.slice(1))}</span><b>${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%</b></div>`).join("")}
-      <p class="fn">Hlutfall þátttakenda með vanann. Allar breytingarnar eru tölfræðilega marktækar.</p></div>`);
+      <p class="fn">Hlutfall þátttakenda með vanann. Allar breytingar marktækar.</p></div>`);
   }
   // wellbeing: single 0–10 items that improved significantly (left column)
   const items = (input.itemChanges ?? []).filter((it) => it.p !== null && it.p < 0.05 && it.after > it.before);
   const wellbeing = items.length ? `<div class="card hl" style="margin-top:4mm"><div class="ct">Líðan og heilsa</div>
       <table class="lt">${items.map((it) => `<tr><td>${esc(it.label)}</td><td class="v" style="color:${C.dark}">${num(it.before, 1)} → <b>${num(it.after, 1)}</b>*</td></tr>`).join("")}</table>
-      <p class="fn">Sjálfsmat 0–10 í fyrra og seinna heilsumati. * = tölfræðilega marktæk breyting.</p></div>` : "";
+      <p class="fn">Sjálfsmat 0–10, hærra er betra. * marktæk breyting.</p></div>` : "";
   const fp = M("fat_mass_percent"), mm = M("skeletal_muscle_mass_kg"), w = M("weight");
-  if (fp?.significant && fp.good) minor.push(`<div class="card"><div class="ct">Líkamssamsetning</div><div class="big sm">${num(fp.before, 1)}% → ${num(fp.after, 1)}%</div><p>Fituhlutfall lækkaði${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta, 1)} kg` : ""}${w && !w.significant ? ", þótt meðalþyngd hafi lítið breyst" : ""}.</p></div>`);
+  if (fp?.significant && fp.good) minor.push(`<div class="card wide"><div><div class="ct">Líkamssamsetning</div><p>Fituhlutfall lækkaði${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta, 1)} kg` : ""}.${w && !w.significant ? " Meðalþyngd breyttist lítið." : ""}</p></div><div class="big sm">${num(fp.before, 1)}% → ${num(fp.after, 1)}%</div></div>`);
   const bpHigh = r.subgroups.find((s) => s.key === "bp_high" && s.n >= MIN_GROUP);
   const bpSys = bpHigh?.metrics.find((m) => m.feature === "bp_systolic_avg");
-  if (bpHigh && bpSys?.significant && bpSys.good) minor.push(`<div class="card"><div class="ct">Þau sem voru með háþrýsting</div><div class="big sm">${num(bpSys.before)} → ${num(bpSys.after)}</div><p>Efri mörk blóðþrýstings (mmHg) hjá þeim ${bpHigh.n} sem voru með háþrýsting við upphaf.</p></div>`);
+  if (bpHigh && bpSys?.significant && bpSys.good) minor.push(`<div class="card wide"><div><div class="ct">Þau sem voru með háþrýsting</div><p>Efri mörk blóðþrýstings (mmHg) hjá þeim ${bpHigh.n} sem voru með háþrýsting við upphaf.</p></div><div class="big sm">${num(bpSys.before)} → ${num(bpSys.after)}</div></div>`);
   // (the "weight barely changed" note now lives in the body-composition card)
   if (!(fp?.significant && fp.good)) minor.push(`<div class="card muted"><p>Að meðaltali var lítil breyting á þyngd og blóðþrýstingi hópsins í heild. Árangurinn var mestur hjá þeim sem voru í mestri áhættu.</p></div>`);
 
@@ -144,7 +145,8 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   .stack{display:flex;flex-direction:column;gap:2.5mm}
   .lt{width:100%;border-collapse:collapse;margin-top:1.5mm;font-size:8.2pt}.lt td{padding:.8mm 0}.lt td.v{text-align:right;white-space:nowrap;padding-left:2mm}
   .lt td.bar{width:34%;padding:0 2mm}.lt td.bar i{display:block;height:1.6mm;border-radius:1mm;background:${C.brand};margin:.4mm 0}
-  .big.sm{font-size:13pt;white-space:nowrap}.fn{font-size:6.8pt;color:${C.muted};margin-top:1.2mm}.hs{display:flex;justify-content:space-between;gap:3mm;font-size:8.2pt;padding:.7mm 0;border-bottom:1px solid #F3F4F6}.hs b{white-space:nowrap;color:${C.dark}}.row2{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm}
+  .grid4{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm 3mm;margin-top:3mm}
+  .big.sm{font-size:13pt;white-space:nowrap}.card.wide{display:flex;justify-content:space-between;align-items:center;gap:4mm}.card.wide p{margin:.6mm 0 0}.fn{font-size:6.8pt;color:${C.muted};margin-top:1.2mm}.hs{display:flex;justify-content:space-between;gap:3mm;font-size:8.2pt;padding:.7mm 0;border-bottom:1px solid #F3F4F6}.hs b{white-space:nowrap;color:${C.dark}}.row2{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm}
   ol{margin:0;padding-left:4.5mm;font-size:8.3pt;line-height:1.45}ol li{margin:0 0 1.3mm}
   .steps{background:#F0FDF4;border-radius:3mm;padding:3mm 5mm}
   .foot{margin-top:auto;padding-top:2.5mm;border-top:1px solid ${C.faint};font-size:6.8pt;color:${C.muted};line-height:1.45;display:flex;justify-content:space-between;gap:6mm}
@@ -157,7 +159,7 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
 
   <div class="hero">
     <div><h1>Heilsuverkefni starfsfólks</h1>
-      <p>Heilsufarsskoðun ${esc(span(r.baselineRange))}${r.followupRange ? ` · endurmæling ${esc(span(r.followupRange))}` : ""}.<br/>Hér eru eingöngu samantekin gögn. Engar upplýsingar koma fram um einstaka starfsmenn.</p></div>
+      <p>Heilsufarsskoðun ${esc(span(r.baselineRange))}${r.followupRange ? ` · endurmæling ${esc(span(r.followupRange))}` : ""}.<br/>Eingöngu samantekin gögn; engar upplýsingar um einstaka starfsmenn.</p></div>
     <div class="kpis">
       <div class="kpi"><b>${r.nPatients}</b><span>þátttakendur</span></div>
       <div class="kpi"><b>${followPct}%</b><span>mættu í endurmælingu</span></div>
@@ -170,15 +172,14 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
       <h2>Hvað kom í ljós í heilsufarsskoðuninni?</h2>
       <p class="lead">Hlutfall þátttakenda yfir viðurkenndum mörkum við fyrstu mælingu.</p>
       ${profileChart(profile)}
-      ${wellbeing}
-      ${minor.length ? `<div class="row2" style="margin-top:3mm">${minor.slice(0, 2).join("")}</div>${minor.slice(2).join("")}` : ""}
     </div>
     <div>
       <h2>Hvað breyttist?</h2>
       <p class="lead">Fyrsta mæling er borin saman við endurmælingu hjá sömu einstaklingum (${r.nFollowed} manns).</p>
-      <div class="stack">${cards.join("")}</div>
+      <div class="stack">${lifeCard}${wellbeing.replace('style="margin-top:4mm"', "")}</div>
     </div>
   </div>
+  ${[exCard, dietCard, ...minor].filter(Boolean).length ? `<div class="grid4">${[exCard, dietCard, ...minor].filter(Boolean).join("")}</div>` : ""}
 
   <h2>Næstu skref</h2>
   <div class="steps"><ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol></div>

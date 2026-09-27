@@ -104,6 +104,7 @@ export interface MetricResult {
   worsened: number;
   unchanged: number;
   significant: boolean;      // headline p < 0.05
+  borderline: boolean;       // 0.05 ≤ p < 0.10 — "á mörkum marktækni", reported as such, never as significant
   good: boolean | null;      // mean change in the healthy direction?
 }
 
@@ -197,6 +198,7 @@ function summarise(feature: string, pairs: Pair[], displayFallback?: string): Me
     worsened: deltas.filter(isBad).length,
     unchanged: deltas.filter((x) => !isGood(x) && !isBad(x)).length,
     significant: (w ? w.p : t ? t.p : 1) < 0.05,
+    borderline: (() => { const pp = w ? w.p : t ? t.p : 1; return pp >= 0.05 && pp < 0.1; })(),
     good: d === "neutral" || delta === 0 ? null : isGood(delta),
   };
 }
@@ -387,3 +389,7 @@ export function baselineProfile(obs: ObsRow[]): ProfileItem[] {
   push("exercise", "Hreyfing undir viðmiðum", "hreyfivenjur undir 5 af 10", count("lifeline_health_exercise_behavioural_score", (v) => v < 5));
   return items;
 }
+
+/** Shared three-level reading of a p-value, used by every report and card. */
+export type SigLevel = "sig" | "trend" | "ns";
+export const sigLevel = (p: number | null | undefined): SigLevel => (p == null ? "ns" : p < 0.05 ? "sig" : p < 0.1 ? "trend" : "ns");

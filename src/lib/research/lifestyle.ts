@@ -362,6 +362,7 @@ const DOMAIN_IS: [string, string][] = [
   ["body", "Líkamsmælingar og samsetning"], ["cardio", "Blóðþrýstingur og hjartaáhætta"], ["metabolic", "Blóðprufur"],
   ["sleep", "Svefn"], ["exercise", "Hreyfing"], ["nutrition", "Næring"], ["mental", "Andleg líðan"],
   ["addiction", "Nikótín, áfengi, koffín og skjár"],
+  ["other", "Heildarmat"],
 ];
 const FEATURE_IS: Record<string, string> = {
   weight: "þyngd", bmi: "BMI", height: "hæð", bp_systolic_avg: "efri mörk blóðþrýstings", bp_diastolic_avg: "neðri mörk blóðþrýstings",
@@ -409,7 +410,7 @@ export function datasetComparison(
 // ── positive exercise behaviour: share doing each type, first vs latest ──
 // (the "habits" above are unhealthy habits; these are the healthy ones, so a
 // HIGHER share is better). Same people, same questions, McNemar p.
-export interface PositiveShift { key: string; label: string; before: number; after: number; of: number; p: number }
+export interface PositiveShift { key: string; label: string; before: number; after: number; of: number; p: number; improved: number; worsened: number }
 const EXERCISE: { key: string; label: string; q: string; good: (v: string) => boolean }[] = [
   { key: "cardio_light", label: "Létt eða meðalerfið þolþjálfun, tvo daga eða oftar í viku", q: "stundar þú létta eða meðalerfiða", good: (v) => v === "2-4 daga" || v.startsWith("5 daga") },
   { key: "cardio_hard", label: "Erfið þolþjálfun, einu sinni eða oftar í viku", q: "stundar þú erfiða þolþjálfun", good: (v) => v !== "Ekkert" },
@@ -429,7 +430,7 @@ export function exerciseShift(answers: AnswerRow[]): PositiveShift[] {
     const b = valueAt(e.q, firstDay), a = valueAt(e.q, lastDay);
     const ids = [...b.keys()].filter((id) => a.has(id));
     const up = ids.filter((id) => !e.good(b.get(id)!) && e.good(a.get(id)!)).length, down = ids.filter((id) => e.good(b.get(id)!) && !e.good(a.get(id)!)).length;
-    return { key: e.key, label: e.label, before: ids.filter((id) => e.good(b.get(id)!)).length, after: ids.filter((id) => e.good(a.get(id)!)).length, of: ids.length, p: mcnemar(up, down).p };
+    return { key: e.key, label: e.label, before: ids.filter((id) => e.good(b.get(id)!)).length, after: ids.filter((id) => e.good(a.get(id)!)).length, of: ids.length, p: mcnemar(up, down).p, improved: up, worsened: down };
   }).filter((x) => x.of >= MIN_SURVEY_N);
 }
 

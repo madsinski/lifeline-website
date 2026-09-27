@@ -11,14 +11,14 @@
 import type { CohortInsights, HabitFact, MatrixCell, SubScore } from "./lifestyle";
 import { CHANGE_PILLAR, MIN_SURVEY_N } from "./lifestyle";
 import { featureDomain } from "./clinical";
-import { LABEL_IS } from "./before-after";
+import { LABEL_IS, sigLevel } from "./before-after";
 import type { MetricResult } from "./before-after";
 
 export type AreaKey = "body" | "exercise" | "nutrition" | "sleep" | "mental";
 
 export interface AreaFact { label: string; n: number; of: number }
 export interface AreaChange {
-  label: string; value: string; tone: "good" | "bad" | "neutral"; note?: string;
+  label: string; value: string; tone: "good" | "trend" | "bad" | "neutral"; note?: string;
   dist?: { labels: string[]; counts: number[] };   // 5-point self-report, index 0 = most positive
 }
 export interface InsightArea {
@@ -126,12 +126,42 @@ const SUB_LABEL: Record<string, string> = {
 // unhealthy one, so a lower share is better. McNemar p on discordant pairs.
 function habitShiftRows(ins: CohortInsights, pillar: string): AreaChange[] {
   return (ins.habitShift ?? []).filter((h) => h.pillar === pillar).map((h) => {
-    const sig = h.p < 0.05, better = h.after < h.before;
+    const lv = sigLevel(h.p), better = h.after < h.before;
     return {
       label: `Hlutfall þeirra sem ${h.label}`,
       value: `${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%`,
-      tone: sig ? (better ? "good" : "bad") : "neutral",
-      note: `${h.of} manns sem svöruðu báðum heilsumötum.${sig ? " Tölfræðilega marktækt." : ""}`,
+      tone: lv === "sig" ? (better ? "good" : "bad") : lv === "trend" && better ? "trend" : "neutral",
+      note: `${h.of} manns sem svöruðu báðum heilsumötum.${lv === "sig" ? " Tölfræðilega marktækt." : lv === "trend" ? ` Á mörkum marktækni (p = ${num(h.p, 2)}).` : ""}`,
+    } as AreaChange;
+  });
+}
+// Exercise habits covered by the positive exercise measures (shown instead).
+const EXERCISE_OVERLAP = ["stunda enga styrktarþjálfun", "stunda þolþjálfun 0–1 dag í viku"];
+function habitRowsFor(ins: CohortInsights, pillar: string): AreaChange[] {
+  const rows = habitShiftRows(ins, pillar);
+  return pillar === "exercise" && ins.exerciseShift?.length ? rows.filter((r) => !EXERCISE_OVERLAP.some((o) => r.label.endsWith(o))) : rows;
+}
+// Healthy exercise behaviour, same people, first vs latest Heilsumat: higher share is better.
+function exerciseRows(ins: CohortInsights): AreaChange[] {
+  return (ins.exerciseShift ?? []).map((e) => {
+    const lv = sigLevel(e.p), up = e.after > e.before;
+    return {
+      label: `Stunda: ${e.label.charAt(0).toLowerCase()}${e.label.slice(1)}`,
+      value: `${pct(e.before, e.of)}% → ${pct(e.after, e.of)}%`,
+      tone: lv === "sig" ? (up ? "good" : "bad") : lv === "trend" && up ? "trend" : "neutral",
+      note: `${e.of} manns sem svöruðu báðum heilsumötum.${lv === "sig" ? " Tölfræðilega marktækt." : lv === "trend" ? ` Á mörkum marktækni (p = ${num(e.p, 2)}).` : ""}`,
+    } as AreaChange;
+  });
+}
+// 0–10 self-report items (self-rated health, PWI items): higher is better.
+function itemRows(ins: CohortInsights): AreaChange[] {
+  return (ins.itemChanges ?? []).map((it) => {
+    const lv = sigLevel(it.p), up = it.after > it.before;
+    return {
+      label: `${it.label} (sjálfsmat 0–10)`,
+      value: `${num(it.before)} → ${num(it.after)}`,
+      tone: lv === "sig" ? (up ? "good" : "bad") : lv === "trend" && up ? "trend" : "neutral",
+      note: `${it.improved} hækkuðu, ${it.worsened} lækkuðu (${it.n} manns).${lv === "sig" ? " Tölfræðilega marktækt." : lv === "trend" ? ` Á mörkum marktækni (p = ${num(it.p ?? 0, 2)}).` : ""}`,
     } as AreaChange;
   });
 }
@@ -144,8 +174,8 @@ function measuredChange(ins: CohortInsights, domains: string[]): AreaChange[] {
     return ms.map((m) => ({
       label: `${SUB_LABEL[m.feature] ?? LABEL_IS[m.feature] ?? m.label} (${m.n} manns)`,
       value: `${num(m.before)} → ${num(m.after)}${m.unit === "kg" ? " kg" : m.unit === "%" ? "%" : ""}`,
-      tone: m.significant ? (m.good ? "good" : "bad") : "neutral",
-      note: `${m.improved} bættu sig, ${m.worsened} versnuðu.${m.significant ? " Tölfræðilega marktækt." : " Ekki tölfræðilega marktækt."}`,
+      tone: m.significant ? (m.good ? "good" : "bad") : m.borderline && m.good ? "trend" : "neutral",
+      note: `${m.improved} bættu sig, ${m.worsened} versnuðu.${m.significant ? " Tölfræðilega marktækt." : m.borderline ? ` Á mörkum marktækni (p = ${num(m.p ?? 0, 2)}).` : " Ekki tölfræðilega marktækt."}`,
     }));
   }
   if (!cmp || cmp.datasets.length < 2) return [{ label: "Samanburður gagnasetta", value: "Aðeins eitt gagnasett", tone: "neutral", note: "Breytingar birtast þegar eftirfylgnigögnum hefur verið hlaðið upp." }];
@@ -231,11 +261,18 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       title: l.title,
       ...(() => {
         const beh = metric(ins, l.row);
-        if (beh) return { scoreLabel: `${num(beh.before)} → ${num(beh.after)}`, scoreCaption: `venjueinkunn af 10 · ${beh.n} manns${beh.significant ? " · marktækt" : ""}`, scoreTone: toneFor10(beh.after) };
+        if (beh) return { scoreLabel: `${num(beh.before)} → ${num(beh.after)}`, scoreCaption: `venjueinkunn af 10 · ${beh.n} manns${beh.significant ? " · marktækt" : beh.borderline && beh.good ? " · á mörkum marktækni" : ""}`,
+          // colour follows the CHANGE (a significant improvement is green even if the level is still low)
+          scoreTone: beh.significant ? (beh.good ? "good" : "bad") : toneFor10(beh.after) };
         return { scoreLabel: p?.mean != null ? `${num(p.mean)} / 10` : "–", scoreCaption: p ? `venjur · ${pct(p.below6, p.n)}% undir 6` : "", scoreTone: toneFor10(p?.mean ?? null) };
       })(),
       headline: (() => {
         const beh = metric(ins, l.row), shift = bestShift(ins, l.pillarKey);
+        const exWin = l.pillarKey === "exercise" ? (ins.exerciseShift ?? []).filter((e) => e.p < 0.05 && e.after > e.before).sort((a, b) => a.p - b.p)[0] : undefined;
+        if (exWin) {
+          const weak = weakest?.key === l.pillarKey ? `${l.title} var veikasta stoð hópsins við upphaf. ` : "";
+          return `${weak}Hlutfall þeirra sem stunda ${exWin.label.charAt(0).toLowerCase()}${exWin.label.slice(1)} fór úr ${pct(exWin.before, exWin.of)}% í ${pct(exWin.after, exWin.of)}%.`;
+        }
         if (beh?.significant && beh.good) {
           return `${SUB_LABEL[l.row]} bötnuðu úr ${num(beh.before)} í ${num(beh.after)} af 10.${shift ? ` Hlutfall þeirra sem ${shift.label} fór úr ${pct(shift.before, shift.of)}% í ${pct(shift.after, shift.of)}%.` : ""}`;
         }
@@ -246,7 +283,7 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
       factGroups: f.length ? [{ title: "Venjur við heilsufarsskoðun", facts: f }] : [],
       links,
       subScores: ins.subScores?.[l.pillarKey] ?? [],
-      change: [...measuredChange(ins, [l.pillarKey]), ...habitShiftRows(ins, l.pillarKey), ...sc.change],
+      change: [...measuredChange(ins, [l.pillarKey]), ...(l.pillarKey === "exercise" ? exerciseRows(ins) : []), ...habitRowsFor(ins, l.pillarKey), ...sc.change],
       changePending: sc.pending,
       surveyProgress: sc.progress,
     });
@@ -262,7 +299,7 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
     title: "Andleg líðan",
     ...(() => {
       const pw = metric(ins, "pwi");
-      if (pw) return { scoreLabel: `${num(pw.before)} → ${num(pw.after)}`, scoreCaption: `almenn vellíðan af 10 · ${pw.n} manns${pw.significant ? " · marktækt" : ""}`, scoreTone: toneFor10(pw.after) };
+      if (pw) return { scoreLabel: `${num(pw.before)} → ${num(pw.after)}`, scoreCaption: `almenn vellíðan af 10 · ${pw.n} manns${pw.significant ? " · marktækt" : ""}`, scoreTone: pw.significant ? (pw.good ? "good" : "bad") : toneFor10(pw.after) };
       return {
         scoreLabel: wellbeing?.mean != null ? `${num(wellbeing.mean)} / 10` : mental?.mean != null ? `${num(mental.mean)} / 10` : "–",
         scoreCaption: wellbeing ? "almenn vellíðan" : "andleg heilsa",
@@ -279,7 +316,7 @@ export function buildInsightAreas(ins: CohortInsights): InsightArea[] {
     factGroups: mf.length ? [{ title: "Við heilsufarsskoðun", facts: mf }] : [],
     links: linkSentences(ins, null, "phq9"),
     subScores: ins.subScores?.mental ?? [],
-    change: [...measuredChange(ins, ["mental"]), ...habitShiftRows(ins, "mental"), ...ms.change],
+    change: [...measuredChange(ins, ["mental"]), ...itemRows(ins), ...habitShiftRows(ins, "mental"), ...ms.change],
     changePending: ms.pending,
     surveyProgress: ms.progress,
   });
@@ -310,10 +347,12 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
     body: `Hjá þeim ${hb.n} sem voru með háþrýsting lækkuðu efri mörk úr ${num(hs.before, 0)} í ${num(hs.after, 0)} mmHg${hs.significant ? " (tölfræðilega marktækt)" : ""}${hw && hw.good ? ` og þyngd um ${num(Math.abs(hw.delta))} kg` : ""}.${r.bpCategories ? ` Fjöldi með háþrýsting fór úr ${r.bpCategories.before.high} í ${r.bpCategories.after.high}.` : ""}`,
   });
   // measured lifestyle change (same questions, same people)
-  const LIFE = ["lifeline_health_nutrition_behavioural_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_behavioural_score", "lifstilseinkunn", "pwi"];
+  // PWI is reported under "Betri líðan", so it is not repeated here.
+  const LIFE = ["lifeline_health_nutrition_behavioural_score", "lifeline_health_sleep_behaviour_score", "lifeline_health_exercise_behavioural_score", "lifstilseinkunn"];
   const lifeWins = LIFE.map((f) => r.metrics.find((m) => m.feature === f)).filter((m): m is MetricResult => !!m && m.significant && m.good === true);
-  const shifts = (ins.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
-  if (lifeWins.length || shifts.length) pts.push({
+  const shifts = (ins.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before && !(ins.exerciseShift?.length && EXERCISE_OVERLAP.includes(h.label))).sort((a, b) => a.p - b.p).slice(0, 3);
+  const exWins = (ins.exerciseShift ?? []).filter((e) => e.p < 0.05 && e.after > e.before);
+  if (lifeWins.length || shifts.length || exWins.length) pts.push({
     title: "Lífsstíll batnaði mælanlega",
     body: [
       lifeWins.length ? (() => {
@@ -325,7 +364,16 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
         const list = items.length > 1 ? `${items.slice(0, -1).join(", ")} og ${items[items.length - 1]}` : items[0];
         return `${list.charAt(0).toUpperCase()}${list.slice(1)}.`;
       })() : "",
+      exWins.length ? `Fleiri stunda ${exWins.map((e) => `${e.label.charAt(0).toLowerCase()}${e.label.slice(1)} (${pct(e.before, e.of)}% → ${pct(e.after, e.of)}%)`).join(" og ")}.` : "",
     ].filter(Boolean).join(" "),
+  });
+  const wins = (ins.itemChanges ?? []).filter((it) => it.p !== null && it.p < 0.05 && it.after > it.before);
+  if (wins.length) pts.push({
+    title: "Betri líðan",
+    body: (() => {
+      const items = wins.map((it) => `${it.label.charAt(0).toLowerCase()}${it.label.slice(1)} úr ${num(it.before)} í ${num(it.after)}`);
+      return `Sjálfsmat á kvarðanum 0–10 hækkaði marktækt: ${items.length > 1 ? `${items.slice(0, -1).join(", ")} og ${items[items.length - 1]}` : items[0]}.`;
+    })(),
   });
   const fp = r.metrics.find((m) => m.feature === "fat_mass_percent"), mm = r.metrics.find((m) => m.feature === "skeletal_muscle_mass_kg");
   if (fp?.significant && fp.good) pts.push({
