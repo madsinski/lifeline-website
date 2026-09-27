@@ -330,7 +330,7 @@ export function buildContinuationCase(ins: CohortInsights): ContinuationPoint[] 
   const fp = r.metrics.find((m) => m.feature === "fat_mass_percent"), mm = r.metrics.find((m) => m.feature === "skeletal_muscle_mass_kg");
   if (fp?.significant && fp.good) pts.push({
     title: "Líkamssamsetning batnaði",
-    body: `Fituhlutfall lækkaði úr ${num(fp.before)}% í ${num(fp.after)}%${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta)} kg` : ""}. Meðalþyngd breyttist því lítið: fita vék fyrir vöðvum.`,
+    body: `Fituhlutfall lækkaði úr ${num(fp.before)}% í ${num(fp.after)}%${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta)} kg` : ""}. Meðalþyngd breyttist því lítið: fitumassi minnkaði en vöðvamassi jókst.`,
   });
   const lost = r.weightBands.filter((b) => b.key.startsWith("lost")).reduce((a, b) => a + b.n, 0);
   const tot = r.weightBands.reduce((a, b) => a + b.n, 0);

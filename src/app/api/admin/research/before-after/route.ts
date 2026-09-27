@@ -21,7 +21,7 @@ import { computeBeforeAfter, baselineProfile, type ObsRow, type PatientRow } fro
 import { buildEmployerOnePager } from "@/lib/research/employer-onepager";
 import { buildComprehensiveReport } from "@/lib/research/comprehensive-report";
 import {
-  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores, datasetComparison, habitShift,
+  pillarSummary, habitFacts, lifestyleRiskMatrix, surveyChange, subScores, datasetComparison, habitShift, exerciseShift, itemChanges,
   type AnswerRow, type CohortInsights, type SurveyQ, type SurveyResp,
 } from "@/lib/research/lifestyle";
 import { buildBeforeAfterReport } from "@/lib/research/before-after-report";
@@ -134,6 +134,8 @@ export async function GET(req: NextRequest) {
       subScores: subScores(obs),
       comparison: datasetComparison(obs, used, featureDomain),
       habitShift: habitShift(answers),
+      exerciseShift: exerciseShift(answers),
+      itemChanges: itemChanges(answers),
     };
     if (format === "insights") return NextResponse.json(insights);
     const html = buildComprehensiveReport(insights, `${req.nextUrl.origin}/lifeline-logo-rebrand.svg`, METHODS_VERSION);
@@ -146,7 +148,7 @@ export async function GET(req: NextRequest) {
       logoUrl: `${req.nextUrl.origin}/lifeline-logo-rebrand.svg`,
       result,
       profile: baselineProfile(obs),
-      habitShift: habitShift(await loadAnswers()),
+      ...(await (async () => { const ans = await loadAnswers(); return { habitShift: habitShift(ans), exerciseShift: exerciseShift(ans), itemChanges: itemChanges(ans) }; })()),
     });
     return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
   }

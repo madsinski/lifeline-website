@@ -15,7 +15,7 @@
 // Pure functions; the route loads the rows.
 
 import type { ObsRow, PatientRow, BeforeAfterResult, ProfileItem } from "./before-after";
-import { mcnemar } from "./stats";
+import { mcnemar, wilcoxonSignedRank } from "./stats";
 
 export interface AnswerRow {
   medalia_patient_id: string;
@@ -86,6 +86,7 @@ const HABITS: HabitDef[] = [
   { pillar: "nutrition", label: "borða oft mat með miklum viðbættum sykri", q: "mikinn viðbættan sykur", bad: eq("Oft") },
   { pillar: "nutrition", label: "borða lítið af trefjum", q: "neysla þín á trefjum", bad: starts("Lítil") },
   { pillar: "nutrition", label: "borða seint á kvöldin flesta daga", q: "seint á kvöldin", bad: eq("Flesta daga") },
+  { pillar: "nutrition", label: "borða oft gjörunnin matvæli", q: "gjörunnin matvæli", bad: eq("Oft") },
   // andleg heilsa
   { pillar: "mental", label: "eru með einkenni þunglyndis (PHQ-9 10 eða hærra)", score: "phq9", bad: (v: number) => v >= 10 },
   { pillar: "mental", label: "eru með einkenni kvíða (GAD-7 10 eða hærra)", score: "lifeline_health_anxiety_gad_7", bad: (v: number) => v >= 10 },
@@ -298,6 +299,8 @@ export interface CohortInsights {
   subScores: Record<string, SubScore[]>;
   comparison: DatasetComparison;
   habitShift: HabitShift[];
+  exerciseShift?: PositiveShift[];
+  itemChanges?: ItemChange[];
 }
 
 // ── sub-scores (all 0–10, higher is better) ───────────────────────
@@ -401,4 +404,63 @@ export function datasetComparison(
   const sets = datasets.map((d) => new Set(obs.filter((o) => o.export_id === d.id).map((o) => o.medalia_patient_id)));
   const inBoth = sets.length >= 2 ? [...sets[0]].filter((p) => sets.slice(1).some((s) => s.has(p))).length : 0;
   return { datasets: datasets.map(({ feats: _f, ...d }) => { void _f; return d; }), coverage, inBoth };
+}
+
+// ── positive exercise behaviour: share doing each type, first vs latest ──
+// (the "habits" above are unhealthy habits; these are the healthy ones, so a
+// HIGHER share is better). Same people, same questions, McNemar p.
+export interface PositiveShift { key: string; label: string; before: number; after: number; of: number; p: number }
+const EXERCISE: { key: string; label: string; q: string; good: (v: string) => boolean }[] = [
+  { key: "cardio_light", label: "Létt eða meðalerfið þolþjálfun, tvo daga eða oftar í viku", q: "stundar þú létta eða meðalerfiða", good: (v) => v === "2-4 daga" || v.startsWith("5 daga") },
+  { key: "cardio_hard", label: "Erfið þolþjálfun, einu sinni eða oftar í viku", q: "stundar þú erfiða þolþjálfun", good: (v) => v !== "Ekkert" },
+  { key: "strength", label: "Styrktarþjálfun, einu sinni eða oftar í viku", q: "stundar þú styrktarþjálfun", good: (v) => v !== "Ekkert" },
+];
+export function exerciseShift(answers: AnswerRow[]): PositiveShift[] {
+  const days = heilsumatDays(answers);
+  const both = [...days].filter(([, d]) => d.length >= 2 && (Date.parse(d[d.length - 1]) - Date.parse(d[0])) / 86400000 >= 14);
+  if (both.length < MIN_SURVEY_N) return [];
+  const firstDay = new Map(both.map(([pid, d]) => [pid, d[0]])), lastDay = new Map(both.map(([pid, d]) => [pid, d[d.length - 1]]));
+  const valueAt = (q: string, dayOf: Map<string, string>) => {
+    const m = new Map<string, string>();
+    for (const a of answers) if (a.question_text?.includes(q) && a.value_text && a.authored_at && dayOf.get(a.medalia_patient_id) === a.authored_at.slice(0, 10)) m.set(a.medalia_patient_id, a.value_text.trim());
+    return m;
+  };
+  return EXERCISE.map((e) => {
+    const b = valueAt(e.q, firstDay), a = valueAt(e.q, lastDay);
+    const ids = [...b.keys()].filter((id) => a.has(id));
+    const up = ids.filter((id) => !e.good(b.get(id)!) && e.good(a.get(id)!)).length, down = ids.filter((id) => e.good(b.get(id)!) && !e.good(a.get(id)!)).length;
+    return { key: e.key, label: e.label, before: ids.filter((id) => e.good(b.get(id)!)).length, after: ids.filter((id) => e.good(a.get(id)!)).length, of: ids.length, p: mcnemar(up, down).p };
+  }).filter((x) => x.of >= MIN_SURVEY_N);
+}
+
+// ── single 0–10 wellbeing items (self-rated health, PWI items) ──
+export interface ItemChange { key: string; label: string; before: number; after: number; n: number; improved: number; worsened: number; p: number | null }
+const ITEMS: { key: string; label: string; q: string }[] = [
+  { key: "self_health", label: "Mat á eigin heilsu", q: "lýsa almennri heilsu þinni" },
+  { key: "pwi_health", label: "Ánægja með eigin heilsu", q: "ertu með heilsu þína" },
+  { key: "pwi_life", label: "Ánægja með lífsgæði", q: "ertu með lífsgæði þín" },
+  { key: "pwi_future", label: "Ánægja með framtíð og öryggi", q: "ertu með framtíð þína og öryggi" },
+  { key: "pwi_overall", label: "Ánægja með lífið í heild", q: "ertu með lífið þitt í heild" },
+];
+export function itemChanges(answers: AnswerRow[]): ItemChange[] {
+  const days = heilsumatDays(answers);
+  const both = [...days].filter(([, d]) => d.length >= 2 && (Date.parse(d[d.length - 1]) - Date.parse(d[0])) / 86400000 >= 14);
+  if (both.length < MIN_SURVEY_N) return [];
+  const firstDay = new Map(both.map(([pid, d]) => [pid, d[0]])), lastDay = new Map(both.map(([pid, d]) => [pid, d[d.length - 1]]));
+  const numAt = (q: string, dayOf: Map<string, string>) => {
+    const m = new Map<string, number>();
+    for (const a of answers) {
+      if (!a.question_text?.includes(q) || !a.value_text || !a.authored_at || dayOf.get(a.medalia_patient_id) !== a.authored_at.slice(0, 10)) continue;
+      const v = Number(a.value_text);
+      if (Number.isFinite(v)) m.set(a.medalia_patient_id, v);
+    }
+    return m;
+  };
+  return ITEMS.map((it) => {
+    const b = numAt(it.q, firstDay), a = numAt(it.q, lastDay);
+    const ids = [...b.keys()].filter((id) => a.has(id));
+    const d = ids.map((id) => a.get(id)! - b.get(id)!);
+    return { key: it.key, label: it.label, n: ids.length, before: mean(ids.map((id) => b.get(id)!)) ?? 0, after: mean(ids.map((id) => a.get(id)!)) ?? 0,
+      improved: d.filter((x) => x > 0).length, worsened: d.filter((x) => x < 0).length, p: wilcoxonSignedRank(d)?.p ?? null };
+  }).filter((x) => x.n >= MIN_SURVEY_N);
 }

@@ -6,7 +6,7 @@
 // individual can be singled out. Print-to-PDF HTML with inline SVG.
 
 import type { BeforeAfterResult, MetricResult, ProfileItem } from "./before-after";
-import type { HabitShift } from "./lifestyle";
+import type { HabitShift, PositiveShift, ItemChange } from "./lifestyle";
 
 export interface EmployerOnePagerInput {
   cohortName: string;
@@ -14,6 +14,8 @@ export interface EmployerOnePagerInput {
   result: BeforeAfterResult;
   profile: ProfileItem[];
   habitShift?: HabitShift[];
+  exerciseShift?: PositiveShift[];
+  itemChanges?: ItemChange[];
   generatedAt?: Date;
 }
 
@@ -51,6 +53,12 @@ function profileChart(items: ProfileItem[]): string {
 }
 
 
+const EX_SHORT: Record<string, string> = {
+  cardio_light: "Létt eða meðalerfið þolþjálfun, 2+ daga í viku",
+  cardio_hard: "Erfið þolþjálfun, 1+ dag í viku",
+  strength: "Styrktarþjálfun, 1+ dag í viku",
+};
+
 export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   const r = input.result;
   const gen = input.generatedAt ?? new Date();
@@ -69,23 +77,34 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
   if (lifeRows.some((x) => x.m.significant && x.m.good)) {
     cards.push(`<div class="card hl"><div class="ct">Lífsstíll batnaði mælanlega</div>
       <table class="lt">${lifeRows.map(({ label, m }) => `<tr><td>${esc(label)}</td><td class="bar"><i style="width:${m.before * 10}%;background:#D1D5DB"></i><i style="width:${m.after * 10}%"></i></td><td class="v"${m.significant && m.good ? ` style="color:${C.dark}"` : ""}>${num(m.before, 1)} → <b>${num(m.after, 1)}</b>${m.significant ? "*" : ""}</td></tr>`).join("")}</table>
-      <p class="fn">Einkunn á kvarðanum 0–10 (hærra er betra) hjá sömu ${Math.max(...lifeRows.map((x) => x.m.n))} einstaklingum í fyrra og seinna heilsumati. * = tölfræðilega marktæk breyting.</p></div>`);
+      <p class="fn">Einkunn 0–10 (hærra er betra) hjá sömu ${Math.max(...lifeRows.map((x) => x.m.n))} einstaklingum. * = tölfræðilega marktæk breyting.</p></div>`);
   }
-  const shifts = (input.habitShift ?? []).filter((h) => h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
-  if (shifts.length) {
-    cards.push(`<div class="card"><div class="ct">Venjur sem breyttust</div>
-      ${shifts.map((h) => `<div class="hs"><span>${esc(h.label.charAt(0).toUpperCase() + h.label.slice(1))}</span><b>${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%</b></div>`).join("")}
+  // exercise: what people actually do (healthy behaviour → higher share is better)
+  const ex = input.exerciseShift ?? [];
+  if (ex.some((e) => e.p < 0.05 && e.after > e.before)) {
+    cards.push(`<div class="card"><div class="ct">Hreyfing</div>
+      <table class="lt">${ex.map((e) => { const sig = e.p < 0.05; return `<tr><td>${esc(EX_SHORT[e.key] ?? e.label)}</td><td class="v"${sig && e.after > e.before ? ` style="color:${C.dark}"` : ""}>${pct(e.before, e.of)}% → <b>${pct(e.after, e.of)}%</b>${sig ? "*" : ""}</td></tr>`; }).join("")}</table>
+      <p class="fn">Hlutfall þátttakenda. * = tölfræðilega marktæk breyting.</p></div>`);
+  }
+  // diet: unhealthy habits that became significantly less common
+  const diet = (input.habitShift ?? []).filter((h) => h.pillar === "nutrition" && h.p < 0.05 && h.after < h.before).sort((a, b) => a.p - b.p).slice(0, 3);
+  if (diet.length) {
+    cards.push(`<div class="card"><div class="ct">Mataræði</div>
+      ${diet.map((h) => `<div class="hs"><span>${esc(h.label.charAt(0).toUpperCase() + h.label.slice(1))}</span><b>${pct(h.before, h.of)}% → ${pct(h.after, h.of)}%</b></div>`).join("")}
       <p class="fn">Hlutfall þátttakenda með vanann. Allar breytingarnar eru tölfræðilega marktækar.</p></div>`);
   }
-  const fp = M("fat_mass_percent"), mm = M("skeletal_muscle_mass_kg");
-  if (fp?.significant && fp.good) minor.push(`<div class="card"><div class="ct">Líkamssamsetning</div><div class="big sm">${num(fp.before, 1)}% → ${num(fp.after, 1)}%</div><p>Fituhlutfall lækkaði${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta, 1)} kg` : ""}.</p></div>`);
+  // wellbeing: single 0–10 items that improved significantly (left column)
+  const items = (input.itemChanges ?? []).filter((it) => it.p !== null && it.p < 0.05 && it.after > it.before);
+  const wellbeing = items.length ? `<div class="card hl" style="margin-top:4mm"><div class="ct">Líðan og heilsa</div>
+      <table class="lt">${items.map((it) => `<tr><td>${esc(it.label)}</td><td class="v" style="color:${C.dark}">${num(it.before, 1)} → <b>${num(it.after, 1)}</b>*</td></tr>`).join("")}</table>
+      <p class="fn">Sjálfsmat 0–10 í fyrra og seinna heilsumati. * = tölfræðilega marktæk breyting.</p></div>` : "";
+  const fp = M("fat_mass_percent"), mm = M("skeletal_muscle_mass_kg"), w = M("weight");
+  if (fp?.significant && fp.good) minor.push(`<div class="card"><div class="ct">Líkamssamsetning</div><div class="big sm">${num(fp.before, 1)}% → ${num(fp.after, 1)}%</div><p>Fituhlutfall lækkaði${mm?.significant && mm.good ? ` og vöðvamassi jókst um ${num(mm.delta, 1)} kg` : ""}${w && !w.significant ? ", þótt meðalþyngd hafi lítið breyst" : ""}.</p></div>`);
   const bpHigh = r.subgroups.find((s) => s.key === "bp_high" && s.n >= MIN_GROUP);
   const bpSys = bpHigh?.metrics.find((m) => m.feature === "bp_systolic_avg");
   if (bpHigh && bpSys?.significant && bpSys.good) minor.push(`<div class="card"><div class="ct">Þau sem voru með háþrýsting</div><div class="big sm">${num(bpSys.before)} → ${num(bpSys.after)}</div><p>Efri mörk blóðþrýstings (mmHg) hjá þeim ${bpHigh.n} sem voru með háþrýsting við upphaf.</p></div>`);
-  const w = M("weight");
-  minor.push(`<div class="card muted"><p>${w && !w.significant && fp?.significant && fp.good
-    ? "Meðalþyngd hópsins breyttist lítið en líkamssamsetningin batnaði: fita vék fyrir vöðvum. Þyngd ein og sér segir því ekki alla söguna."
-    : "Að meðaltali var lítil breyting á þyngd og blóðþrýstingi hópsins í heild. Árangurinn var mestur hjá þeim sem voru í mestri áhættu."}</p></div>`);
+  // (the "weight barely changed" note now lives in the body-composition card)
+  if (!(fp?.significant && fp.good)) minor.push(`<div class="card muted"><p>Að meðaltali var lítil breyting á þyngd og blóðþrýstingi hópsins í heild. Árangurinn var mestur hjá þeim sem voru í mestri áhættu.</p></div>`);
 
   // ── next steps (data-driven) ──
   const steps: string[] = [];
@@ -151,12 +170,13 @@ export function buildEmployerOnePager(input: EmployerOnePagerInput): string {
       <h2>Hvað kom í ljós í heilsufarsskoðuninni?</h2>
       <p class="lead">Hlutfall þátttakenda yfir viðurkenndum mörkum við fyrstu mælingu.</p>
       ${profileChart(profile)}
-      ${minor.length > 2 ? `<div style="margin-top:4mm">${minor.slice(2).join("")}</div>` : ""}
+      ${wellbeing}
+      ${minor.length ? `<div class="row2" style="margin-top:3mm">${minor.slice(0, 2).join("")}</div>${minor.slice(2).join("")}` : ""}
     </div>
     <div>
       <h2>Hvað breyttist?</h2>
       <p class="lead">Fyrsta mæling er borin saman við endurmælingu hjá sömu einstaklingum (${r.nFollowed} manns).</p>
-      <div class="stack">${cards.join("")}<div class="row2">${minor.slice(0, 2).join("")}</div></div>
+      <div class="stack">${cards.join("")}</div>
     </div>
   </div>
 
