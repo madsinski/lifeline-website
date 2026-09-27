@@ -28,6 +28,7 @@ import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import type { FeedbackSurvey, FeedbackQuestion } from "@/lib/feedback-survey-types";
 import { PRINT_CSS, ReportPages, buildDemo, type AssignmentRow, type ResponseRow, type Story } from "./ReportPages";
+import { cleanQuote, isFollowUpSurvey, quoteKind, type Quote } from "./ServiceReport";
 
 // ─── Page ─────────────────────────────────────────────────────────
 // useSearchParams() needs a Suspense boundary.
@@ -123,6 +124,19 @@ function SurveyReportPage() {
       });
   }, [questions, responses, assignments]);
 
+  // Service surveys: open answers become anonymous quotes (praise / suggestions).
+  const quotes = useMemo<Quote[]>(() => {
+    if (isFollowUpSurvey(questions)) return [];
+    const byId = new Map(questions.map((q) => [q.id, q]));
+    return responses.flatMap((r) => {
+      const q = byId.get(r.question_id);
+      const text = cleanQuote(r.text_value ?? "");
+      const kind = q && q.question_type === "open" ? quoteKind(q.label_is, text) : null;
+      if (!q || !kind) return [];
+      return [{ id: `${r.assignment_id}:${r.question_id}`, text, stage: q.section_title_is || "", kind }];
+    });
+  }, [questions, responses]);
+
   if (loading) return <div className="px-8 pt-6 text-sm text-gray-400">Hleð…</div>;
   if (!survey) return <div className="px-8 pt-6 text-sm text-red-700">Könnun fannst ekki.</div>;
 
@@ -138,6 +152,7 @@ function SurveyReportPage() {
       assignments={assignments}
       responses={responses}
       stories={shownStories}
+      quotes={quotes.filter((q) => !excluded.has(q.id))}
       demo={demo}
     />
   );
@@ -152,7 +167,9 @@ function SurveyReportPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#1F2937]">Skýrsla: {survey.title_is}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Niðurstöður á einni A4-síðu og frásagnir á annarri síðu þegar þær hafa borist. Prentaðu eða vistaðu sem PDF.
+            {isFollowUpSurvey(questions)
+              ? "Niðurstöður á einni A4-síðu og frásagnir á annarri síðu þegar þær hafa borist. Prentaðu eða vistaðu sem PDF."
+              : "Mat þátttakenda á hverjum þætti þjónustunnar á einni A4-síðu og nafnlaus svör á næstu síðum. Prentaðu eða vistaðu sem PDF."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -208,6 +225,27 @@ function SurveyReportPage() {
                 <span className="text-gray-700">
                   {s.text}
                   <span className="text-gray-400"> — {s.firstName ? `${s.firstName} (leyfi fyrir fornafni)` : "nafnlaust"}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {quotes.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-[#1F2937]">Nafnlaus svör ({quotes.filter((q) => !excluded.has(q.id)).length} af {quotes.length})</h2>
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Þátttakendur voru ekki beðnir um leyfi til að birta svörin. Notið skýrsluna innanhúss eða fjarlægið svör áður en hún er send út.
+          </p>
+          <ul className="space-y-2">
+            {quotes.map((q) => (
+              <li key={q.id} className="flex items-start gap-3 text-sm">
+                <input type="checkbox" className="mt-1" checked={!excluded.has(q.id)}
+                  onChange={(e) => { const next = new Set(excluded); if (e.target.checked) next.delete(q.id); else next.add(q.id); setExcluded(next); }} />
+                <span className="text-gray-700">
+                  „{q.text}“
+                  <span className="text-gray-400"> — {q.stage || "án kafla"} · {q.kind === "praise" ? "vel gert" : "tillaga"}</span>
                 </span>
               </li>
             ))}

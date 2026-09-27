@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FeedbackSurvey, FeedbackQuestion } from "@/lib/feedback-survey-types";
+import { ServiceReport, isFollowUpSurvey, type Quote } from "./ServiceReport";
 
 export interface AssignmentRow {
   id: string;
@@ -158,15 +159,21 @@ export const PRINT_CSS = `
 
 // ─── Report (results page + stories page when there are stories) ──────
 export function ReportPages({
-  survey, questions, assignments, responses, stories, demo,
+  survey, questions, assignments, responses, stories, quotes = [], demo,
 }: {
   survey: FeedbackSurvey;
   questions: FeedbackQuestion[];
   assignments: AssignmentRow[];
   responses: ResponseRow[];
   stories: Story[];
+  quotes?: Quote[];
   demo: boolean;
 }) {
+  // Service surveys (stage ratings) get their own layout; this one is for
+  // follow-up surveys that ask how things have changed.
+  if (!isFollowUpSurvey(questions)) {
+    return <ServiceReport survey={survey} questions={questions} assignments={assignments} responses={responses} quotes={quotes} demo={demo} />;
+  }
   const org = survey.title_is.split(/\s[–-]\s/)[1]?.trim() || "Lifeline Health";
   const sent = assignments.length;
   const completed = assignments.filter((a) => a.completed_at);
