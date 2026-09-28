@@ -81,10 +81,10 @@ function surveySection(ins: CohortInsights): string {
   const cols = ["#047857", "#34D399", "#D1D5DB", "#FB923C", "#C2410C"];
   const bars = s.change.map((c) => `<div class="sv"><span class="svl">${esc(c.label)}</span><div class="svb">${c.dist.map((d, i) => d ? `<i style="width:${(d / c.n) * 100}%;background:${cols[i]};color:${i === 1 || i === 2 ? "#1F2937" : "#fff"}" title="${esc(c.optionLabels[i])}: ${d}">${(d / c.n) >= 0.1 ? Math.round((d / c.n) * 100) + "%" : ""}</i>` : "").join("")}</div><b>${Math.round(c.better * 100)}%</b></div>`).join("");
   const legend = (s.change[0]?.optionLabels ?? []).map((l, i) => `<span><i style="background:${cols[i]}"></i>${esc(l)}</span>`).join("");
-  return `<p class="lead">Svör bárust frá ${s.completed} af ${s.sent}. Hægri dálkur sýnir hlutfall þeirra sem telja sviðið hafa batnað frá heilsufarsskoðun.</p>
+  return `<p class="lead">Hægri dálkur sýnir hlutfall þeirra sem telja sviðið hafa batnað frá heilsufarsskoðun.</p>
     <div class="legend">${legend}</div>${bars}
     <div class="two" style="margin-top:4mm">
-      ${s.lifeline ? `<div class="card"><div class="big">${Math.round(s.lifeline.top2 * 100)}%</div><p>telja Lifeline hafa átt mikinn eða mjög mikinn þátt í breytingunum (${s.lifeline.n} svör).</p></div>` : ""}
+      ${s.lifeline ? `<div class="card"><div class="big">${Math.round(s.lifeline.top2 * 100)}%</div><p>telja Lifeline hafa átt mikinn eða mjög mikinn þátt í breytingunum.</p></div>` : ""}
       ${s.nps !== null ? `<div class="card"><div class="big">${s.nps > 0 ? "+" : ""}${s.nps}</div><p>meðmælaskor (NPS, á kvarðanum −100 til +100).</p></div>` : ""}
     </div>
     ${s.madeChanges.some((m) => m.n > 0) ? `<h3>Breytingar sem þátttakendur segjast hafa gert</h3><div class="grid2" style="row-gap:0">${factBars(s.madeChanges.filter((m) => m.n > 0).slice(0, 6))}</div>` : ""}`;

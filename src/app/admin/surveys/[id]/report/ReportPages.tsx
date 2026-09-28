@@ -175,9 +175,7 @@ export function ReportPages({
     return <ServiceReport survey={survey} questions={questions} assignments={assignments} responses={responses} quotes={quotes} demo={demo} />;
   }
   const org = survey.title_is.split(/\s[–-]\s/)[1]?.trim() || "Lifeline Health";
-  const sent = assignments.length;
   const completed = assignments.filter((a) => a.completed_at);
-  const n = completed.length;
   const lastDate = completed.map((a) => new Date(a.completed_at!)).sort((a, b) => b.getTime() - a.getTime())[0] || new Date();
   const firstSent = assignments.map((a) => new Date(a.sent_at)).sort((a, b) => a.getTime() - b.getTime())[0];
 
@@ -213,8 +211,7 @@ export function ReportPages({
           <p className="text-[8.5pt] uppercase tracking-[0.12em] opacity-80">{survey.title_is}</p>
           <h1 className="text-[20pt] font-bold leading-tight mt-[1mm]">Hvernig hefur þátttakendum gengið?</h1>
           <p className="text-[10pt] mt-[1.5mm] opacity-90">
-            Sjálfsmat þátttakenda um sex mánuðum eftir heilsufarsskoðun Lifeline Health · {n} {n === 1 ? "svar" : "svör"}
-            {sent > 0 ? ` · svarhlutfall ${pct(n, sent)}%` : ""}
+            Sjálfsmat þátttakenda um sex mánuðum eftir heilsufarsskoðun Lifeline Health
           </p>
         </div>
 
@@ -248,7 +245,7 @@ export function ReportPages({
         </div>
 
         <Footer page={1} total={stories.length > 0 ? 2 : 1}>
-          {firstSent ? `Könnunin var send ${fmtDate(firstSent)}. ` : ""}Svör: {n} af {sent}. Niðurstöður byggja á sjálfsmati
+          {firstSent ? `Könnunin var send ${fmtDate(firstSent)}. ` : ""}Niðurstöður byggja á sjálfsmati
           þátttakenda en ekki á klínískum mælingum. Hlutföll eru reiknuð af þeim sem svöruðu hverri spurningu.
         </Footer>
       </A4>
