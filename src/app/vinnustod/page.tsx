@@ -921,6 +921,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         {cockpit && d.report && (
           <aside className="hidden xl:block" aria-label="Skýrslan">
             <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2">
+              {shownOpen === "plan" && <NotesPeek j={j} onBack={() => jump(j.followup_booked_for && j.interview_done_at ? "followup" : "interview")} />}
               <p className="px-2 pb-2 pt-1 text-xs font-bold uppercase tracking-wide text-slate-500">Skýrslan · til hliðsjónar</p>
               <ReportView report={d.report.report} signals={d.report.signals} reference={d.report.reference} sex={d.report.sex} />
             </div>
@@ -1543,6 +1544,30 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
         </div>
       )}
     </div>
+  );
+}
+
+/** While building the plan: what was said in the conversation, per topic. */
+function NotesPeek({ j, onBack }: { j: Journey; onBack: () => void }) {
+  const notes = (j.followup_booked_for && j.interview_done_at ? j.followup_notes : j.interview_notes) ?? {};
+  const rows = TOPICS.filter((t) => (notes[t.key] ?? "").trim());
+  return (
+    <section className="mb-3 rounded-xl bg-slate-50 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Úr viðtalinu</p>
+        <button type="button" onClick={onBack} className="text-xs font-semibold text-emerald-700 hover:underline">← Aftur í viðtalið</button>
+      </div>
+      {rows.length ? (
+        <dl className="mt-2 space-y-2">
+          {rows.map((t) => (
+            <div key={t.key}>
+              <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-700"><span className="h-2 w-2 rounded-full" style={{ background: t.color }} />{t.title}</dt>
+              <dd className="mt-0.5 whitespace-pre-line text-sm text-slate-700">{notes[t.key]}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : <p className="mt-1 text-sm text-slate-500">Engir minnispunktar enn.</p>}
+    </section>
   );
 }
 

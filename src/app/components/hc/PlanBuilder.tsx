@@ -9,6 +9,7 @@
 // /admin/coach/plans (Bearer auth) — the caller passes `api`, a fetch
 // wrapper that adds its own credentials.
 
+import PillarIcon from "./PillarIcon";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 import PlanView from "./PlanView";
@@ -495,7 +496,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                   aria-label={meta.label}
                 >
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full" style={{ background: meta.color }} aria-hidden />
+                    <PillarIcon pillar={p} size="sm" />
                     <h3 className="font-bold text-[#0F172A]">{meta.label}</h3>
                     <span className="flex-1" />
                     <button onClick={() => addCustom(p)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">+ Eigin aðgerð</button>

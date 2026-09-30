@@ -7,6 +7,7 @@
 // not fit right now — the nurse sees both, so the next conversation starts
 // from what actually happened rather than from what was prescribed.
 
+import PillarIcon from "./PillarIcon";
 import { useState } from "react";
 import { Check, EyeOff, Flame, RotateCcw } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
@@ -93,7 +94,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         return (
           <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
             <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: meta.soft }}>
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: meta.color }} aria-hidden />
+              <PillarIcon pillar={p} size="sm" />
               <p className="font-bold" style={{ color: meta.color }}>{meta.label}</p>
             </div>
             <ul className="divide-y divide-slate-100">

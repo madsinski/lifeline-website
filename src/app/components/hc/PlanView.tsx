@@ -4,6 +4,7 @@
 // first). In print: a separate one-page A4 summary (PrintPage) — client name,
 // who made the plan, the four pillars, the week and the nurse's message.
 
+import PillarIcon, { PillarBadge } from "./PillarIcon";
 import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { PILLARS, PILLAR_META, type ActionPlan, type ExerciseBlock, type ExerciseItem, type ExerciseSession, type LectureRef, type Pillar, type PlanItem } from "@/lib/hc/types";
@@ -147,7 +148,7 @@ function PillarHeading({ pillar }: { pillar: Pillar }) {
   const m = PILLAR_META[pillar];
   return (
     <div className="flex items-center gap-2">
-      <span className="h-3 w-3 rounded-full" style={{ background: m.color }} aria-hidden />
+      <PillarIcon pillar={pillar} />
       <h2 className="text-lg font-bold text-[#0F172A]">{m.label}</h2>
     </div>
   );
@@ -165,7 +166,7 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
           return (
             <div key={p} className="break-inside-avoid rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: meta.ring }}>
               <div className="flex items-center justify-between">
-                <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: meta.soft, color: meta.color }}>{meta.label}</span>
+                <PillarBadge pillar={p} />
                 <span className="text-xs text-slate-400">{items.length} {items.length === 1 ? "aðgerð" : "aðgerðir"}</span>
               </div>
               {goal && <p className="mt-3 text-[15px] font-semibold leading-snug text-[#0F172A]">{goal.text}</p>}
