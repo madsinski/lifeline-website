@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
         .eq("id", actor.staffId)
         .maybeSingle();
       me = {
-        id: actor.staffId,
+        // The linked hc_workers id, so "Mín viðtöl" (interviewer_id) works.
+        id: actor.workerId ?? actor.staffId,
         name: staff?.name ?? actor.label,
         email: staff?.email ?? "",
         organization: "lifeline",

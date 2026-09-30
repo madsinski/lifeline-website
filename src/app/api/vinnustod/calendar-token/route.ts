@@ -4,15 +4,15 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { newToken, sameOrigin } from "@/lib/hc/secrets";
-import { getWorkerSession } from "@/lib/hc/ws-auth";
+import { calendarWorker } from "@/lib/hc/ws-auth";
 import { siteOrigin } from "@/lib/hc/server";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  if (!sameOrigin(req)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  const me = await getWorkerSession();
+  const me = await calendarWorker(req);
   if (!me) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (me.cookie && !sameOrigin(req)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const b = await req.json().catch(() => ({}));
   const { data } = await supabaseAdmin.from("hc_workers").select("calendar_token").eq("id", me.id).single();
   let token = data?.calendar_token as string | null;

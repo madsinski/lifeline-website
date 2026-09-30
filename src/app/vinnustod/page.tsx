@@ -98,6 +98,19 @@ type View = { home: HomeTab } | { patient: string; compose?: boolean };
 // always talk over the nurse's own cookie session.
 const ws = cookieApi;
 
+/** Lifeline staff (/admin/vinnustod): same calendar, Bearer auth, so Google consent starts with a POST. */
+const staffCalendar = (api: WsApi): CalendarApi => ({
+  call: api,
+  googleStatusUrl: "/api/vinnustod/google",
+  startGoogle: async () => {
+    const r = await api("/api/vinnustod/google/start", { method: "POST" });
+    const j = await r.json().catch(() => ({}));
+    if (j.url) window.location.href = j.url; else alert(j.error || "Ekki tókst að tengja Google.");
+  },
+  icsTokenUrl: "/api/vinnustod/calendar-token",
+  subscriptionName: "Lifeline — viðtöl",
+});
+
 const WORKER_CALENDAR: CalendarApi = {
   call: ws,
   googleStatusUrl: "/api/vinnustod/google",
@@ -292,8 +305,8 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
 
   const menu: WsMenuItem[] = [
     { label: "Fletta upp", icon: "book", hint: "⌘K", onClick: () => setShowBook(true) },
+    { label: "Tengja dagatal", icon: "calendar" as const, onClick: () => setShowCal(true) },
     ...(mode === "worker" ? [
-      { label: "Tengja dagatal", icon: "calendar" as const, onClick: () => setShowCal(true) },
       { label: me.has_pin ? "Breyta PIN" : "Setja PIN", icon: "key" as const, onClick: () => setShowPin(true) },
       { label: "Útskrá", icon: "logout" as const, onClick: () => void logout() },
     ] : []),
@@ -332,7 +345,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
 
       <KnowledgeSearch api={api} open={showBook} onClose={() => setShowBook(false)} />
       {showPin && <PinModal onClose={() => setShowPin(false)} onDone={() => { setShowPin(false); onPinSet(); }} />}
-      <CalendarConnect api={WORKER_CALENDAR} open={showCal && mode === "worker"} onClose={() => setShowCal(false)}
+      <CalendarConnect api={mode === "worker" ? WORKER_CALENDAR : staffCalendar(api)} open={showCal} onClose={() => setShowCal(false)}
         intro="Viðtöl og eftirfylgd sem þér eru úthlutuð birtast í dagatalinu þínu um leið og þau eru bókuð. Aðeins upphafsstafir skjólstæðings koma fram." />
     </div>
   );

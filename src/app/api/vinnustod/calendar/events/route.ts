@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
+import { actorLocationFilter, actorWorkerId, getHcActor } from "@/lib/hc/ws-auth";
 import { APPT_MINUTES, type ApptKind } from "@/lib/hc/appointment-kinds";
 
 export const runtime = "nodejs";
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   const from = url.searchParams.get("from") || new Date(Date.now() - 7 * 86400_000).toISOString();
   const to = url.searchParams.get("to") || new Date(Date.now() + 28 * 86400_000).toISOString();
   const mineOnly = url.searchParams.get("scope") !== "all";
-  const meId = actor.kind === "worker" ? actor.worker.id : null;
+  const meId = actorWorkerId(actor);
 
   let q = supabaseAdmin
     .from("hc_journeys")

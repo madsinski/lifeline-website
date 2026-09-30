@@ -141,7 +141,33 @@ export async function issueWorkerLink(workerId: string, kind: "invite" | "reset"
  */
 export type HcActor =
   | { kind: "worker"; worker: Worker; label: string; isDoctor: boolean }
-  | { kind: "staff"; staffId: string; label: string; isDoctor: boolean };
+  | { kind: "staff"; staffId: string; label: string; isDoctor: boolean; workerId: string | null; email: string | null };
+
+/**
+ * The hc_workers row a Lifeline staff member acts through in the workstation
+ * (interviewer, calendar, Meet). Found by staff_id, else by email (then
+ * linked), else created — without a password, so it cannot sign in to
+ * /vinnustod on its own (migration-hc-staff-workers.sql).
+ */
+export async function workerForStaff(staff: { id: string; name: string | null; email: string | null; role: string | null }): Promise<string | null> {
+  const { data: linked } = await supabaseAdmin.from("hc_workers").select("id").eq("staff_id", staff.id).maybeSingle();
+  if (linked) return linked.id as string;
+  const email = (staff.email || "").toLowerCase();
+  if (!email) return null;
+  const { data: byEmail } = await supabaseAdmin.from("hc_workers").select("id, staff_id").ilike("email", email).maybeSingle();
+  if (byEmail) {
+    if (!byEmail.staff_id) await supabaseAdmin.from("hc_workers").update({ staff_id: staff.id }).eq("id", byEmail.id);
+    return byEmail.id as string;
+  }
+  const role = staff.role === "doctor" ? "doctor" : staff.role === "admin" ? "admin" : "nurse";
+  const { data: made } = await supabaseAdmin.from("hc_workers")
+    .insert({ email, name: staff.name || email, organization: "lifeline", role, staff_id: staff.id, active: true })
+    .select("id").single();
+  return (made?.id as string) ?? null;
+}
+
+/** The hc_workers id to act as: the worker's own, or a staff member's linked one. */
+export const actorWorkerId = (a: HcActor): string | null => (a.kind === "worker" ? a.worker.id : a.workerId);
 
 export async function getHcActor(req: Request): Promise<HcActor | null> {
   const auth = req.headers.get("authorization");
@@ -151,11 +177,13 @@ export async function getHcActor(req: Request): Promise<HcActor | null> {
     if (data.user?.id) {
       const { data: staff } = await supabaseAdmin
         .from("staff")
-        .select("id, name, role, active")
+        .select("id, name, email, role, active")
         .eq("id", data.user.id)
         .maybeSingle();
       if (staff?.active && staff.role !== "lawyer" && staff.role !== "medical_advisor" && aalFromToken(token) === "aal2") {
-        return { kind: "staff", staffId: staff.id, label: `${staff.name ?? data.user.email} (Lifeline)`, isDoctor: staff.role === "doctor" || staff.role === "admin" };
+        const email = staff.email ?? data.user.email ?? null;
+        const workerId = await workerForStaff({ id: staff.id, name: staff.name, email, role: staff.role });
+        return { kind: "staff", staffId: staff.id, label: `${staff.name ?? data.user.email} (Lifeline)`, isDoctor: staff.role === "doctor" || staff.role === "admin", workerId, email };
       }
     }
   }
@@ -172,4 +200,17 @@ export function actorLocationFilter(actor: HcActor): string[] | null {
   // (Vera, heilsugæsla) with none set sees nothing until one is assigned.
   if (actor.worker.location_ids.length === 0) return actor.worker.organization === "lifeline" ? null : [];
   return actor.worker.location_ids;
+}
+
+/**
+ * Whose workstation calendar a request is about: a worker's cookie session, or
+ * a staff member (Bearer) through their linked hc_workers row. `cookie` says
+ * whether same-origin must be checked on writes.
+ */
+export async function calendarWorker(req: Request): Promise<{ id: string; email: string | null; cookie: boolean } | null> {
+  const w = await getWorkerSession();
+  if (w) return { id: w.id, email: w.email, cookie: true };
+  const a = await getHcActor(req);
+  if (a?.kind === "staff" && a.workerId) return { id: a.workerId, email: a.email, cookie: false };
+  return null;
 }

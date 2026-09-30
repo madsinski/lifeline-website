@@ -13,7 +13,7 @@ import { loadReport } from "@/lib/hc/report-store";
 import { supabaseAdmin as db } from "@/lib/supabase-admin";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 import { sendSms } from "@/lib/sms";
-import { actorLocationFilter, getHcActor, type HcActor } from "@/lib/hc/ws-auth";
+import { actorLocationFilter, actorWorkerId, getHcActor, type HcActor } from "@/lib/hc/ws-auth";
 import { sameOrigin } from "@/lib/hc/secrets";
 import type { HcJourney } from "@/lib/hc/types";
 
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     // Moving a colleague's appointment must not take it over: the actor only
     // becomes the interviewer when there is none yet (or it is asked for).
     interviewerId: typeof body.interviewer_id === "string" ? body.interviewer_id
-      : actor.kind === "worker" && !journey.interviewer_id ? actor.worker.id : null,
+      : !journey.interviewer_id ? actorWorkerId(actor) : null,
     // A pasted https link sets it; "" clears it (Google mints a new one);
     // anything else (null, junk) leaves the current link alone.
     meetingUrl: typeof body.meeting_url === "string"
@@ -230,7 +230,7 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
           ctaLabel: "Opna heilsuferðina",
           ctaUrl: `${origin}/account/heilsuferd`,
         });
-        const r = await sendEmail({ to: email, subject, html, text: `${text}\n\n${origin}/account/heilsuferd`, replyTo: actor.kind === "worker" ? actor.worker.email : undefined });
+        const r = await sendEmail({ to: email, subject, html, text: `${text}\n\n${origin}/account/heilsuferd`, replyTo: actor.kind === "worker" ? actor.worker.email : actor.email ?? undefined });
         const status = r.id === "dev-log" ? "dry-run" : r.ok ? "sent" : "failed";
         results.push({ channel: "email", ok: r.ok, to: email, error: r.error, status });
         await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "email", recipient: email, template, subject, body: text, status, error: r.error ?? null, provider_id: r.id ?? null, sent_by: actor.label });
