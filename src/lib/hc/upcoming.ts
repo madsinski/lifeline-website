@@ -17,13 +17,13 @@ export interface Upcoming {
 }
 
 type J = Pick<HcJourney, "blood_test_booked_for" | "blood_test_done_at" | "blood_results_at" | "measurements_booked_for" | "measurements_done_at"
-  | "interview_booked_for" | "interview_mode" | "interview_done_at" | "meeting_url" | "followup_booked_for" | "followup_done_at"
-  | "followup_mode" | "followup_meeting_url">;
+  | "interview_booked_for" | "interview_done_at" | "meeting_url" | "followup_booked_for" | "followup_done_at" | "followup_meeting_url">
+  & { interview_mode: string | null; followup_mode?: string | null };
 
 const place = (site?: string | null, addr?: string | null) => [site, addr].filter(Boolean).join(", ") || null;
 
 /** Appointments not done yet, from an hour ago on, soonest first. */
-export function upcomingAppointments(j: J, loc: Pick<HcLocation, "blood_test_site" | "blood_test_address" | "measurement_site" | "measurement_address" | "interview_site" | "interview_address"> | null, now = Date.now()): Upcoming[] {
+export function upcomingAppointments(j: J, loc: Partial<Pick<HcLocation, "blood_test_site" | "blood_test_address" | "measurement_site" | "measurement_address" | "interview_site" | "interview_address">> | null, now = Date.now()): Upcoming[] {
   const out: Upcoming[] = [];
   const live = (at: string | null, minutes: number) => !!at && new Date(at).getTime() + minutes * 60_000 > now - 60 * 60_000;
   if (live(j.blood_test_booked_for, 20) && !(j.blood_test_done_at || j.blood_results_at)) out.push({

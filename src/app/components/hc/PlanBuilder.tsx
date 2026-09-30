@@ -9,7 +9,7 @@
 // /admin/coach/plans (Bearer auth) — the caller passes `api`, a fetch
 // wrapper that adds its own credentials.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 import PlanView from "./PlanView";
 import TrainingControls from "./TrainingControls";
@@ -296,18 +296,35 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
     } catch { /* not ours */ }
   };
 
-  const save = async (): Promise<boolean> => {
+  const save = async (quiet = false): Promise<boolean> => {
     if (!draft) return false;
-    setBusy(true); setMsg(null);
+    if (!quiet) { setBusy(true); setMsg(null); }
     const r = await api(`/api/hc/plans/${journeyId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
-    setBusy(false);
+    if (!quiet) setBusy(false);
     if (!r.ok) { setMsg({ tone: "err", text: (await r.json().catch(() => ({}))).error || "Vistun mistókst." }); return false; }
     const j = await r.json();
     setStatus(j.plan?.status ?? "draft");
     setDirty(false);
-    setMsg({ tone: "ok", text: "Drög vistuð." });
+    setMsg({ tone: "ok", text: quiet ? "Drög vistuð sjálfkrafa." : "Drög vistuð." });
     return true;
   };
+  // Autosave a draft a moment after the last change: a live interview is no
+  // place to lose work. A published plan is what the client sees, so edits
+  // to it still wait for "Uppfæra birta áætlun".
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    if (!dirty || status === "published") return;
+    const t = setTimeout(() => void saveRef.current(true), 2500);
+    return () => clearTimeout(t);
+  }, [draft, dirty, status]);
+  // Leaving with unsaved changes asks first.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   const publish = async () => {
     if (!(await save())) return;
     setBusy(true);
@@ -388,7 +405,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
         </select>
         <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
         <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
-        <button onClick={save} disabled={busy} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
+        <button onClick={() => void save()} disabled={busy} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
         <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
           {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
         </button>

@@ -40,6 +40,7 @@ import BookVideo from "@/app/components/hc/BookVideo";
 import type { Referral } from "@/lib/hc/referrals";
 import { adherence, NUDGE_IS, nudgeStatus, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
+import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { MESSAGE_TEMPLATES, smsSize, type MessageTemplateKey } from "@/lib/hc/message-templates";
 
@@ -350,10 +351,10 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
 
   // Today's bookings, in the order they happen.
   const agenda = useMemo(() => {
-    const out: { id: string; at: string; what: string; icon: React.ReactNode; row: Row }[] = [];
+    const out: { id: string; at: string; what: string; icon: React.ReactNode; row: Row; link?: string | null }[] = [];
     for (const r of rows) {
-      if (isToday(r.interview_booked_for) && !r.interview_done_at) out.push({ id: r.id, at: r.interview_booked_for!, what: `Viðtal${r.interview_mode === "video" ? " (myndsímtal)" : ""}`, icon: <MessageSquare className="h-4 w-4" />, row: r });
-      if (isToday(r.followup_booked_for) && !r.followup_done_at) out.push({ id: r.id, at: r.followup_booked_for!, what: "Eftirfylgd", icon: <CalendarClock className="h-4 w-4" />, row: r });
+      if (isToday(r.interview_booked_for) && !r.interview_done_at) out.push({ id: r.id, at: r.interview_booked_for!, what: `Viðtal${r.interview_mode === "video" ? " (myndsímtal)" : ""}`, icon: <MessageSquare className="h-4 w-4" />, row: r, link: r.interview_mode === "video" ? r.meeting_url : null });
+      if (isToday(r.followup_booked_for) && !r.followup_done_at) out.push({ id: r.id, at: r.followup_booked_for!, what: `Eftirfylgd${r.followup_mode === "video" ? " (myndsímtal)" : ""}`, icon: <CalendarClock className="h-4 w-4" />, row: r, link: r.followup_mode === "video" ? r.followup_meeting_url : null });
       if (isToday(r.measurements_booked_for) && !r.measurements_done_at) out.push({ id: r.id, at: r.measurements_booked_for!, what: "Mælingar", icon: <Ruler className="h-4 w-4" />, row: r });
       if (isToday(r.blood_test_booked_for) && !r.blood_test_done_at) out.push({ id: r.id, at: r.blood_test_booked_for!, what: "Blóðprufa", icon: <Droplet className="h-4 w-4" />, row: r });
     }
@@ -406,8 +407,8 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Í dag</h2>
           <ol className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {agenda.map((a, i) => (
-              <li key={`${a.id}-${i}`}>
-                <button type="button" onClick={() => onOpen(a.id)} className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
+              <li key={`${a.id}-${i}`} className="flex items-center">
+                <button type="button" onClick={() => onOpen(a.id)} className="flex min-w-0 flex-1 items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
                   <span className="w-12 text-lg font-bold tabular-nums text-slate-900">{time(a.at)}</span>
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">{a.icon}</span>
                   <span className="min-w-0 flex-1">
@@ -416,6 +417,11 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
                   </span>
                   <ChevronRight className="h-5 w-5 text-slate-300" />
                 </button>
+                {a.link && (
+                  <a href={a.link} target="_blank" rel="noreferrer" className={`${btnPrimary} mr-3 min-h-9 shrink-0 px-3`} aria-label={`Hefja myndsímtal við ${cleanName(a.row.client_name)}`}>
+                    <Video className="h-4 w-4" /> <span className="hidden sm:inline">Hefja</span>
+                  </a>
+                )}
               </li>
             ))}
           </ol>
@@ -739,7 +745,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
   const j = d.journey;
   const kt = d.patient.kennitala;
-  const steps = buildSteps({ d, isDoctor, api, record, reload: load, onChanged });
+  const steps = buildSteps({ d, isDoctor, api, record, reload: load, onChanged, onJump: (k) => { setTouched(true); setOpenStep(k); } });
   // Open the step that needs attention; on a finished journey fall back to
   // what comes next, so the page is never just a wall of closed rows.
   const live = steps.filter((x) => !x.hidden);
@@ -752,9 +758,14 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   // interview is spent on it. Opening the current step instead buried it
   // behind a one-line summary and it looked as though the questionnaire had
   // never imported.
-  const landOn = d.report ? "results" : current?.key ?? null;
+  // …until the interview is booked: from then on the nurse is here for the
+  // interview (the report sits beside it) or for what comes after.
+  const landOn = d.report && !j.interview_booked_for && !j.interview_done_at && !j.plan_published_at ? "results" : current?.key ?? (d.report ? "results" : null);
   const shownOpen = touched ? openStep : landOn;
 
+  const cockpit = !!d.report && (shownOpen === "interview" || shownOpen === "plan");
+  // The next video appointment, so the call is one click from the top.
+  const call = upcomingAppointments(j, null).find((x) => x.video) ?? null;
   // Payment as a chip on the status line rather than a drawer of its own.
   const paid = d.orders.some((o) => o.paid_at);
   const code = d.orders.find((o) => o.activation_code);
@@ -839,6 +850,15 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
             <ExternalLink className="h-4 w-4" /> Medalia
           </a>
         </div>
+        {call && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm ring-1 ring-emerald-100">
+            <Video className="h-4 w-4 text-emerald-700" aria-hidden />
+            <span className="text-emerald-900">{call.kind === "followup" ? "Eftirfylgd" : "Viðtal"} í myndsímtali {dayTime(call.at)}</span>
+            {call.link
+              ? <a href={call.link} target="_blank" rel="noreferrer" className={`${btnPrimary} ml-auto min-h-9 px-3`}><Video className="h-4 w-4" /> Hefja myndsímtal</a>
+              : <span className="ml-auto text-xs text-amber-800">Hlekkur ekki kominn. Tengdu Google-dagatal eða límdu hlekk í bókunina.</span>}
+          </div>
+        )}
         {j.plan_published_at && <div className="mt-3"><Adherence d={d} /></div>}
       </section>
 
@@ -864,8 +884,10 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         </button>
       </div>
 
-      <div className="grid gap-4">
-        {/* What you are doing right now. One panel, chosen from the line. */}
+      {/* Interview cockpit: while talking and while building the plan, the
+          report stays in view beside the notes (wide screens only; on a
+          tablet it is one tap away on the line). */}
+      <div className={`grid gap-4 ${cockpit ? "xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]" : ""}`}>
         <div>
           {open ? (
             <section className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
@@ -880,6 +902,14 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
             </section>
           ) : null}
         </div>
+        {cockpit && d.report && (
+          <aside className="hidden xl:block" aria-label="Skýrslan">
+            <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2">
+              <p className="px-2 pb-2 pt-1 text-xs font-bold uppercase tracking-wide text-slate-500">Skýrslan · til hliðsjónar</p>
+              <ReportView report={d.report.report} signals={d.report.signals} reference={d.report.reference} sex={d.report.sex} />
+            </div>
+          </aside>
+        )}
 
       </div>
 
@@ -972,10 +1002,11 @@ function shortStatus(status: string): string {
 /** The journey as the nurse walks it: tests in, report confirmed, interview,
  *  plan, follow-up. Each step knows whether it is waiting on us or on someone
  *  else, so the page can open itself on the one that matters. */
-function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
+function buildSteps({ d, isDoctor, api, record, reload, onChanged, onJump }: {
   d: Detail; isDoctor: boolean; api: WsApi;
   record: (p: Record<string, unknown>) => Promise<string | null>;
   reload: () => Promise<void>; onChanged: () => void;
+  onJump: (k: string) => void;
 }): FlowStep[] {
   const j = d.journey;
   const hasResults = (d.results ?? []).length > 0;
@@ -1008,7 +1039,7 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged }: {
         : j.interview_booked_for
           ? `${dayTime(j.interview_booked_for)}${j.interview_mode === "video" ? " · myndsímtal" : ""}`
           : j.report_generated_at ? "Ekki bókað — hafðu samband og finndu tíma" : "Bókast þegar skýrslan er staðfest",
-      body: <InterviewStep d={d} isDoctor={isDoctor} record={record} />,
+      body: <InterviewStep d={d} isDoctor={isDoctor} record={record} onPlan={() => onJump("plan")} />,
     },
     {
       key: "plan",
@@ -1117,7 +1148,7 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
   );
 }
 
-function InterviewStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; }) {
+function InterviewStep({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan: () => void }) {
   const j = d.journey;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1132,7 +1163,7 @@ function InterviewStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; 
         disabled={!j.report_generated_at} disabledText="Hægt að bóka þegar skýrsla er staðfest."
         onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
-      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} />}
+      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} />}
     </div>
   );
 }
