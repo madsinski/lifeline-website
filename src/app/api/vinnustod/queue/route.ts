@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     for (const c of clients || []) names[c.id] = { full_name: c.full_name, phone: c.phone, date_of_birth: c.date_of_birth };
   }
   const { data: plans } = await supabaseAdmin
-    .from("hc_action_plans")
+    .from("hc_action_plans_decrypted")
     .select("journey_id, status")
     .in("journey_id", (journeys || []).map((j) => j.id));
   const planStatus: Record<string, string> = {};

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { data, error } = await supabaseAdmin
-    .from("hc_results")
+    .from("hc_results_decrypted")
     .select("marker, value, unit, measured_at, source, note, entered_by, updated_at")
     .eq("journey_id", journeyId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data } = await supabaseAdmin
-    .from("hc_results")
+    .from("hc_results_decrypted")
     .select("marker, value, unit, measured_at, source, note, entered_by, updated_at")
     .eq("journey_id", journeyId);
   return NextResponse.json({ results: data || [] });

@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   const [lib, { data: plan }] = await Promise.all([
     library(),
-    supabaseAdmin.from("hc_action_plans").select("id, status, goals, modules, lecture_slugs, headline, version, edited_by_client_at").eq("journey_id", journey.id).maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("id, status, goals, modules, lecture_slugs, headline, version, edited_by_client_at").eq("journey_id", journey.id).maybeSingle(),
   ]);
   const canSee = !!(journey.report_generated_at || journey.own_report_at);
   const stored = canSee ? await loadReport(journey.id, user.id) : null;
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
   const [{ modules: lib, lectures }, { data: existing }] = await Promise.all([
     library(),
-    supabaseAdmin.from("hc_action_plans").select("*").eq("journey_id", journey.id).maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("*").eq("journey_id", journey.id).maybeSingle(),
   ]);
   if (existing?.status === "draft") {
     return NextResponse.json({ error: "Hjúkrunarfræðingur er að ganga frá áætluninni þinni. Þú getur breytt henni þegar hún er birt." }, { status: 409 });
@@ -112,14 +112,14 @@ export async function POST(req: NextRequest) {
   let version: number;
   if (existing) {
     version = existing.version + 1;
-    const { error } = await supabaseAdmin.from("hc_action_plans")
+    const { error } = await supabaseAdmin.from("hc_action_plans_decrypted")
       .update({ goals, modules: items, lecture_slugs, version, updated_by: label, updated_at: now.toISOString(), edited_by_client_at: now.toISOString() })
       .eq("id", existing.id);
     if (error) return NextResponse.json({ error: "Tókst ekki að vista." }, { status: 500 });
     planId = existing.id;
   } else {
     version = 1;
-    const { data, error } = await supabaseAdmin.from("hc_action_plans").insert({
+    const { data, error } = await supabaseAdmin.from("hc_action_plans_decrypted").insert({
       journey_id: journey.id, client_id: user.id, status: "published", published_at: now.toISOString(),
       headline: "Áætlunin mín", goals, modules: items, lecture_slugs,
       start_date: now.toISOString().slice(0, 10), review_date: new Date(now.getTime() + 91 * 86400_000).toISOString().slice(0, 10),
@@ -137,6 +137,6 @@ export async function POST(req: NextRequest) {
   const removed = [...before.keys()].filter((u) => !items.some((i) => i.uid === u)).length;
   await hcAudit(label, existing ? "plan_self_edit" : "plan_self_created", journey.id, { version, items: items.length, added, removed });
 
-  const { data: plan } = await supabaseAdmin.from("hc_action_plans").select("*").eq("id", planId).single();
+  const { data: plan } = await supabaseAdmin.from("hc_action_plans_decrypted").select("*").eq("id", planId).single();
   return NextResponse.json({ ok: true, plan });
 }

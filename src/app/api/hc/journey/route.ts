@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from("hc_union_claims").select("id, order_id, union_id, reimbursable_isk, status, sent_at, sent_to").eq("client_id", user.id),
     supabaseAdmin.from("hc_lectures").select("id, slug, title, subtitle, kind, duration_min, pillar, is_welcome, sort").eq("published", true).order("sort"),
     supabaseAdmin.from("hc_lecture_progress").select("lecture_id, completed_at").eq("client_id", user.id),
-    supabaseAdmin.from("hc_action_plans").select("id, headline, published_at, review_date").eq("journey_id", journey.id).eq("status", "published").maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("id, headline, published_at, review_date").eq("journey_id", journey.id).eq("status", "published").maybeSingle(),
     supabaseAdmin.from("account_calendar_feeds").select("token").eq("user_id", user.id).maybeSingle(),
     supabaseAdmin.from("hc_journeys").select("id, created_at, completed_at, plan_published_at").eq("client_id", user.id).neq("id", journey.id).order("created_at", { ascending: false }),
   ]);

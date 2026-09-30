@@ -13,6 +13,6 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
   const j = await currentJourney(user.id);
   // With a published plan, "Í dag" is home: saves the hop through the hub.
-  const { data: plan } = j ? await supabaseAdmin.from("hc_action_plans").select("id").eq("journey_id", j.id).eq("status", "published").maybeSingle() : { data: null };
+  const { data: plan } = j ? await supabaseAdmin.from("hc_action_plans_decrypted").select("id").eq("journey_id", j.id).eq("status", "published").maybeSingle() : { data: null };
   return NextResponse.json({ exists: !!j, has_plan: !!plan });
 }

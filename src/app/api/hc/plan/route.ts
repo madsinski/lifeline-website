@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const journeyId = req.nextUrl.searchParams.get("journey") || (await currentJourney(user.id))?.id;
   if (!journeyId) return NextResponse.json({ plan: null });
   const { data: plan } = await supabaseAdmin
-    .from("hc_action_plans")
+    .from("hc_action_plans_decrypted")
     .select("*")
     .eq("journey_id", journeyId)
     .eq("client_id", user.id)

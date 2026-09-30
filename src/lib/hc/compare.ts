@@ -29,7 +29,7 @@ export async function compareJourneys(clientId: string, journeyId: string, sex: 
   if (!earlier.length) return null;
   const ids = [journeyId, ...earlier.map((j) => j.id)];
   const [{ data: res }, { data: entries }] = await Promise.all([
-    supabaseAdmin.from("hc_results").select("journey_id, marker, value, unit, measured_at").in("journey_id", ids),
+    supabaseAdmin.from("hc_results_decrypted").select("journey_id, marker, value, unit, measured_at").in("journey_id", ids),
     supabaseAdmin.from("hc_knowledge").select("slug, category, title, aliases, unit, summary, body_md, bands, higher_better, sources, tags, sort").eq("active", true),
   ]);
   const by = new Map<string, R[]>();

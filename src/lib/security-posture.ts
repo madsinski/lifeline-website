@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.10";
+export const SECURITY_POSTURE_VERSION = "v1.11";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-09-30";
 
 export function renderSecurityPosture(): string {
@@ -174,6 +174,11 @@ Við hvíld (at rest):
       - hc_reports.payload (heilsufarsskýrslur í heilsuferð, frá
         2026-09-30; lesnar eingöngu með hc_report_latest(), sem aðeins
         þjónustuhlutverkið má kalla á)
+      - hc_results.value og note (mæli- og blóðgildi) og
+        hc_action_plans (fyrirsögn, samantekt, markmið, aðgerðir,
+        æfinga- og næringaráætlun, athugasemd hjúkrunarfræðings), frá
+        2026-09-30; lesin um hc_results_decrypted og
+        hc_action_plans_decrypted, aðeins fyrir þjónustuhlutverkið
     Notar pgcrypto pgp_sym_encrypt (AES-256) með lyklaorði sem geymt
     er í Supabase Vault (sjá vault.secrets.lifeline_encryption_key).
     Aðeins SECURITY DEFINER hjálparföll (encrypt_text / decrypt_text)
@@ -538,6 +543,11 @@ Skipulagslegt:
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
 
+v1.11 (2026-09-30)
+  Mæligildi (hc_results.value, note) og aðgerðaáætlanir
+  (hc_action_plans) dulkóðuð í dálki. Engin klartextagögn eftir í
+  heilsuferðartöflunum; kveikja hafnar klartexta í áætlanatöflunni.
+
 v1.10 (2026-09-30)
   Heilsufarsskýrslur (hc_reports.payload) dulkóðaðar í dálki eins og
   skilaboð og persónuupplýsingar. Þátttakandi getur sett eigin
@@ -804,6 +814,11 @@ At rest:
       - hc_reports.payload (health reports in the heilsuferð, from
         2026-09-30; read only through hc_report_latest(), callable by
         the service role alone)
+      - hc_results.value and note (measured and blood values) and
+        hc_action_plans (headline, summary, goals, actions, exercise and
+        nutrition plans, nurse note), from 2026-09-30; read through
+        hc_results_decrypted and hc_action_plans_decrypted, service
+        role only
     Uses pgcrypto pgp_sym_encrypt (AES-256) with a key held in
     Supabase Vault (vault.secrets.lifeline_encryption_key). Only
     SECURITY DEFINER helper functions (encrypt_text / decrypt_text)
@@ -1175,6 +1190,11 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.11 (2026-09-30)
+  Measured values (hc_results.value, note) and action plans
+  (hc_action_plans) column-encrypted. No plaintext health data left in
+  the heilsuferð tables; a trigger refuses plaintext in the plan table.
 
 v1.10 (2026-09-30)
   Health reports (hc_reports.payload) now column-encrypted like

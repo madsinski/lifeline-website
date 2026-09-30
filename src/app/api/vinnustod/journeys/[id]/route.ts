@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const [{ data: orders }, { data: audit }, { data: plan }, { data: loc }, { data: workers }, { data: messages }, { data: referrals }, { data: proposal }] = await Promise.all([
     supabaseAdmin.from("hc_orders").select("id, package_key, kind, payment_route, price_isk, amount_charged_isk, paid_at, activation_code, activation_redeemed_at").eq("journey_id", journey.id).order("created_at"),
     supabaseAdmin.from("hc_audit").select("actor, action, at, detail").eq("journey_id", journey.id).order("at", { ascending: false }).limit(60),
-    supabaseAdmin.from("hc_action_plans").select("id, status, published_at, updated_at, headline, modules").eq("journey_id", journey.id).maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("id, status, published_at, updated_at, headline, modules").eq("journey_id", journey.id).maybeSingle(),
     journey.location_id ? supabaseAdmin.from("hc_locations").select("id, name").eq("id", journey.location_id).maybeSingle() : Promise.resolve({ data: null }),
     supabaseAdmin.from("hc_workers").select("id, name, organization, role").eq("active", true),
     supabaseAdmin.from("hc_messages").select("id, channel, recipient, template, subject, body, status, error, sent_by, sent_at").eq("journey_id", journey.id).order("sent_at", { ascending: false }).limit(50),
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   ]);
   const storedReport = await loadReport(journey.id, journey.client_id);
   const { data: results } = await supabaseAdmin
-    .from("hc_results")
+    .from("hc_results_decrypted")
     .select("marker, value, unit, measured_at, source, note, entered_by, updated_at")
     .eq("journey_id", journey.id);
 

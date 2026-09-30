@@ -37,10 +37,10 @@ export async function GET(req: NextRequest) {
 
   const since = lastDays(28)[0];
   const [{ data: plan }, { data: logs }, { data: prefs }, { data: results }, { data: entries }, { data: profile }] = await Promise.all([
-    supabaseAdmin.from("hc_action_plans").select("id, modules, headline, published_at, review_date").eq("journey_id", journey.id).eq("status", "published").maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("id, modules, headline, published_at, review_date").eq("journey_id", journey.id).eq("status", "published").maybeSingle(),
     supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journey.id).gte("done_on", since),
     supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note").eq("journey_id", journey.id),
-    supabaseAdmin.from("hc_results").select("marker, value, unit, measured_at, note").eq("journey_id", journey.id),
+    supabaseAdmin.from("hc_results_decrypted").select("marker, value, unit, measured_at, note").eq("journey_id", journey.id),
     supabaseAdmin.from("hc_knowledge").select("slug, category, title, aliases, unit, summary, body_md, bands, higher_better, sources, tags, sort").eq("active", true),
     supabaseAdmin.from("clients_decrypted").select("sex").eq("id", user.id).maybeSingle(),
   ]);

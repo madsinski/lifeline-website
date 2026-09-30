@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (!j) { out.skipped++; continue; }
     const [{ data: plan }, { data: logs }, { data: prefs }] = await Promise.all([
-      supabaseAdmin.from("hc_action_plans").select("modules, exercise, start_date").eq("journey_id", j.id).eq("status", "published").maybeSingle(),
+      supabaseAdmin.from("hc_action_plans_decrypted").select("modules, exercise, start_date").eq("journey_id", j.id).eq("status", "published").maybeSingle(),
       supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", j.id).gte("done_on", since),
       supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note").eq("journey_id", j.id),
     ]);

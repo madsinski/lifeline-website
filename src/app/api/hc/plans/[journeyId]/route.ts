@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ journeyId: 
   const g = await gate(req, (await ctx.params).journeyId, false);
   if (g instanceof NextResponse) return g;
   const [{ data: plan }, profile] = await Promise.all([
-    supabaseAdmin.from("hc_action_plans").select("*").eq("journey_id", g.journey.id).maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("*").eq("journey_id", g.journey.id).maybeSingle(),
     getClientProfile(g.journey.client_id),
   ]);
   return NextResponse.json({
@@ -47,11 +47,11 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ journeyId: 
   const g = await gate(req, (await ctx.params).journeyId, true);
   if (g instanceof NextResponse) return g;
   const draft = sanitizePlan(await req.json().catch(() => ({})));
-  const { data: existing } = await supabaseAdmin.from("hc_action_plans").select("id, version, status").eq("journey_id", g.journey.id).maybeSingle();
+  const { data: existing } = await supabaseAdmin.from("hc_action_plans_decrypted").select("id, version, status").eq("journey_id", g.journey.id).maybeSingle();
   const now = new Date().toISOString();
   if (existing) {
     const { data, error } = await supabaseAdmin
-      .from("hc_action_plans")
+      .from("hc_action_plans_decrypted")
       .update({ ...draft, updated_by: g.actor.label, updated_at: now, version: existing.version + (existing.status === "published" ? 1 : 0) })
       .eq("id", existing.id)
       .select("*")
@@ -60,7 +60,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ journeyId: 
     return NextResponse.json({ plan: data });
   }
   const { data, error } = await supabaseAdmin
-    .from("hc_action_plans")
+    .from("hc_action_plans_decrypted")
     .insert({ ...draft, journey_id: g.journey.id, client_id: g.journey.client_id, created_by: g.actor.label, updated_by: g.actor.label })
     .select("*")
     .single();
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ journeyId:
   const body = await req.json().catch(() => ({}));
   if (body.action !== "publish") return NextResponse.json({ error: "unknown_action" }, { status: 400 });
 
-  const { data: plan } = await supabaseAdmin.from("hc_action_plans").select("*").eq("journey_id", g.journey.id).maybeSingle();
+  const { data: plan } = await supabaseAdmin.from("hc_action_plans_decrypted").select("*").eq("journey_id", g.journey.id).maybeSingle();
   if (!plan) return NextResponse.json({ error: "Vistaðu áætlunina fyrst." }, { status: 409 });
   if (!Array.isArray(plan.modules) || plan.modules.length === 0) return NextResponse.json({ error: "Áætlunin þarf að innihalda minnst eina aðgerð." }, { status: 400 });
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ journeyId:
   const start = plan.start_date || now.toISOString().slice(0, 10);
   const review = plan.review_date || new Date(now.getTime() + 91 * 86400_000).toISOString().slice(0, 10);
   const { error } = await supabaseAdmin
-    .from("hc_action_plans")
+    .from("hc_action_plans_decrypted")
     .update({ status: "published", published_at: now.toISOString(), start_date: start, review_date: review, updated_by: g.actor.label })
     .eq("id", plan.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

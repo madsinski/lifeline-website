@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
 
   // ── Three months after the plan: book the follow-up ──
   const today = new Date(now).toISOString().slice(0, 10);
-  const { data: plans } = await supabaseAdmin.from("hc_action_plans")
+  const { data: plans } = await supabaseAdmin.from("hc_action_plans_decrypted")
     .select("journey_id, client_id, review_date").eq("status", "published").lte("review_date", today).limit(200);
   const ids = (plans || []).map((p) => p.journey_id);
   if (ids.length) {

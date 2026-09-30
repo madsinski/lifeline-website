@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           .from(kind === "exercise" ? "hc_exercise_templates" : "hc_nutrition_templates")
           .select("*").eq("key", templateKey).maybeSingle()
       : Promise.resolve({ data: null }),
-    supabaseAdmin.from("hc_action_plans").select("modules").eq("journey_id", id).maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("modules").eq("journey_id", id).maybeSingle(),
   ]);
 
   const out = await composeProgram({

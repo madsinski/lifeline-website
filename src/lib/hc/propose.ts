@@ -61,7 +61,7 @@ export async function buildProposal(journeyId: string, actorLabel: string): Prom
   if (!journey) return { ok: false, reason: "failed", message: "Heilsuferð fannst ekki." };
 
   const [{ data: results }, { data: entries }, { data: modules }, profile] = await Promise.all([
-    supabaseAdmin.from("hc_results").select("marker, value, unit, note").eq("journey_id", journeyId),
+    supabaseAdmin.from("hc_results_decrypted").select("marker, value, unit, note").eq("journey_id", journeyId),
     supabaseAdmin.from("hc_knowledge").select("slug, category, title, aliases, unit, summary, body_md, bands, higher_better, sources, tags, sort").eq("active", true),
     supabaseAdmin.from("hc_plan_modules").select("*").eq("active", true).order("pillar").order("sort"),
     getClientProfile(journey.client_id),
