@@ -30,7 +30,7 @@ export function PillarBadge({ pillar }: { pillar: Pillar }) {
   const m = PILLAR_META[pillar];
   const Icon = PILLAR_ICON[pillar];
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold" style={{ background: m.soft, color: m.color }}>
+    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold" style={{ background: m.soft, color: m.ink }}>
       <Icon className="h-3.5 w-3.5" strokeWidth={2.4} aria-hidden />{m.label}
     </span>
   );

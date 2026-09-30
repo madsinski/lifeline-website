@@ -11,7 +11,8 @@
 // work are the only things that still take vertical space. A checkpoint is
 // clickable when there is something behind it.
 
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronDown } from "lucide-react";
 
 export interface Checkpoint {
   key: string;
@@ -41,11 +42,21 @@ const TEXT: Record<Checkpoint["state"], string> = {
   upcoming: "text-slate-400",
 };
 
-export default function StatusStrip({ steps, onOpen }: {
+export default function StatusStrip({ steps, onOpen, mobile = "scroll" }: {
   steps: Checkpoint[];
   /** Jump to the step this checkpoint belongs to, when it has a body. */
   onOpen?: (key: string) => void;
+  /** On a phone: the scrolling line (workstation) or a short vertical list (participant). */
+  mobile?: "scroll" | "vertical";
 }) {
+  if (mobile === "vertical") {
+    return (
+      <>
+        <div className="sm:hidden"><VerticalSteps steps={steps} onOpen={onOpen} /></div>
+        <div className="hidden sm:block"><StatusStrip steps={steps} onOpen={onOpen} /></div>
+      </>
+    );
+  }
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
@@ -75,6 +86,55 @@ export default function StatusStrip({ steps, onOpen }: {
           ))}
         </ol>
       </div>
+    </section>
+  );
+}
+
+/**
+ * Phone layout for the participant: the finished steps fold into one line,
+ * then where they are now and what comes next; the rest behind a toggle.
+ */
+function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: string) => void }) {
+  const [all, setAll] = useState(false);
+  const firstOpen = steps.findIndex((s) => s.state !== "done");
+  const done = firstOpen < 0 ? steps.length : firstOpen;
+  const shown = all ? steps : steps.slice(done, done + 2);
+  const hidden = steps.length - done - shown.length;
+  return (
+    <section className="rounded-hc-card bg-hc-surface p-3 shadow-hc-card ring-1 ring-slate-100" aria-label="Skref heilsuferðarinnar">
+      {done > 0 && !all && (
+        <button type="button" onClick={() => setAll(true)} className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left text-sm text-slate-600">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-3.5 w-3.5" /></span>
+          <span className="flex-1">{done} {done === 1 ? "skrefi lokið" : "skrefum lokið"}</span>
+          <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden />
+        </button>
+      )}
+      <ol>
+        {shown.map((s, i) => {
+          const n = steps.indexOf(s);
+          return (
+            <li key={`${s.key}-${n}`} className="relative">
+              {i < shown.length - 1 && <span className="absolute left-[1.05rem] top-9 h-[calc(100%-1.75rem)] w-0.5 bg-slate-200" aria-hidden />}
+              <button type="button" onClick={() => onOpen?.(s.key)} disabled={!onOpen}
+                className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left">
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${DOT[s.state]}`}>
+                  {s.state === "done" ? <Check className="h-3.5 w-3.5" /> : n + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className={`block truncate text-sm ${TEXT[s.state]}`}>{s.label}</span>
+                  {s.detail && <span className="block truncate text-xs text-slate-400">{s.detail}</span>}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      {!all && hidden > 0 && (
+        <button type="button" onClick={() => setAll(true)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-brand-dark">Sýna öll skref ({steps.length})</button>
+      )}
+      {all && (
+        <button type="button" onClick={() => setAll(false)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-slate-500">Fela</button>
+      )}
     </section>
   );
 }

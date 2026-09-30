@@ -535,7 +535,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
           const more = byPillar(p).length - items.length;
           return (
             <div key={p} className="overflow-hidden rounded-lg border px-3 py-2.5" style={{ borderColor: meta.ring, borderTopWidth: 4, borderTopColor: meta.color }}>
-              <p className="text-[10.5pt] font-bold" style={{ color: meta.color }}>{meta.label}</p>
+              <p className="text-[10.5pt] font-bold" style={{ color: meta.ink }}>{meta.label}</p>
               {goal && <p className="mt-0.5 text-[9pt] font-semibold text-slate-900">{clip(goal.text, 140)}</p>}
               {items.length === 0 && <p className="mt-1 text-[8.5pt] text-slate-400">Engar aðgerðir.</p>}
               <ul className="mt-1.5 space-y-1.5">

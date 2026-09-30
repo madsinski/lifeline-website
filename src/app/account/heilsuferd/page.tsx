@@ -5,6 +5,7 @@
 // is either the customer's own action here, or advances by itself (patient
 // portal, workstation). Backed by /api/hc/*.
 
+import { hcPage } from "@/app/components/hc/ui";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -167,7 +168,7 @@ function Heilsuferd() {
           is too many to stack: as a strip it reads as a sequence, and only the
           step being worked on takes up the page. */}
       <div className="mt-6">
-        <StatusStrip steps={journeyCheckpoints(data.steps).map((c) => (ours && c.key === current?.key ? { ...c, state: "waiting" as const, detail: "hjá okkur" } : c))} onOpen={(k) => setOpen(k as StepKey)} />
+        <StatusStrip mobile="vertical" steps={journeyCheckpoints(data.steps).map((c) => (ours && c.key === current?.key ? { ...c, state: "waiting" as const, detail: "hjá okkur" } : c))} onOpen={(k) => setOpen(k as StepKey)} />
       </div>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -228,7 +229,7 @@ const OURS_TEXT: Partial<Record<StepKey, string>> = {
 function Shell({ children }: { children: React.ReactNode }) {
   // No "back to account" link: the heilsuferð is the participant's home.
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
+    <div className={hcPage.participant}>
       <div className="mx-auto max-w-5xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28">
         {children}
       </div>

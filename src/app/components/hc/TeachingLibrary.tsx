@@ -6,6 +6,7 @@
 // injuries) so the nurse sees what a participant would get. Editing lectures
 // stays in /admin/lectures (staff).
 
+import EmptyState from "./EmptyState";
 import { useEffect, useRef, useState } from "react";
 import { SlideDeck } from "./LectureContent";
 import { ProgramPreview } from "./PlanView";
@@ -94,7 +95,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
               {l.subtitle && <p className="text-sm text-slate-600">{l.subtitle}</p>}
             </button>
           ))}
-          {!lectures.length && <p className="text-sm text-slate-500">Engin birt fræðsla.</p>}
+          {!lectures.length && <div className="sm:col-span-2"><EmptyState compact title="Engin birt fræðsla" body="Fræðsla er búin til og birt í stjórnborðinu (/admin/lectures)." /></div>}
         </div>
       </section>
 

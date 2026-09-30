@@ -4,6 +4,8 @@
 // done (tick actions, see the week, set something aside), "Áætlunin" is the
 // whole plan as the nurse wrote it, with the print layout behind it.
 
+import EmptyState from "@/app/components/hc/EmptyState";
+import { hcPage } from "@/app/components/hc/ui";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -130,18 +132,16 @@ function PlanPageInner() {
   const next = appointments[0] ?? null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5] print:bg-white">
+    <div className={`${hcPage.participant} print:bg-white`}>
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28 print:max-w-none print:p-0">
         {data === undefined && <p className="mt-4 text-slate-500">Hleð…</p>}
 
         {data !== undefined && !hasSomething && (
           <div className="mt-4 space-y-4">
             {next && <AppointmentCard a={next} />}
-            <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
-              <p className="text-lg font-semibold text-slate-800">Áætlunin er ekki tilbúin enn</p>
-              <p className="mt-1 text-slate-500">Hún birtist hér eftir viðtalið við hjúkrunarfræðinginn.</p>
-              <Link href="/account/heilsuferd?ferd=1" className="mt-4 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Sjá heilsuferðina</Link>
-            </div>
+            <EmptyState variant="waiting" title="Áætlunin er ekki tilbúin enn"
+              body="Hún birtist hér eftir viðtalið við hjúkrunarfræðinginn."
+              action={{ label: "Sjá heilsuferðina", href: "/account/heilsuferd?ferd=1" }} />
           </div>
         )}
 

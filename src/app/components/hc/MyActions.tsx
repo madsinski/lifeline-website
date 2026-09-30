@@ -96,7 +96,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
           <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
             <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: meta.soft }}>
               <PillarIcon pillar={p} size="sm" />
-              <p className="font-bold" style={{ color: meta.color }}>{meta.label}</p>
+              <p className="font-bold" style={{ color: meta.ink }}>{meta.label}</p>
             </div>
             <ul className="divide-y divide-slate-100">
               {byPillar(p).map((a) => (

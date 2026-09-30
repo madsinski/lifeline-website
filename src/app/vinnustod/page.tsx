@@ -13,6 +13,7 @@
 //
 // Own cookie auth (src/lib/hc/ws-auth.ts); nurses never need /admin.
 
+import EmptyState from "@/app/components/hc/EmptyState";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, CreditCard, Droplet, ExternalLink, Video,
@@ -25,6 +26,7 @@ import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarC
 import WeekCalendar from "@/app/components/hc/WeekCalendar";
 import ClientsView from "@/app/components/hc/ClientsView";
 import TeachingLibrary from "@/app/components/hc/TeachingLibrary";
+import { hcBtn, hcPage, hcTabs } from "@/app/components/hc/ui";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
@@ -165,11 +167,12 @@ const cleanName = (n: string | null) => (n || "—").replace(/^Prufa\s*[–-]\s*
 const isTest = (n: string | null) => /^Prufa\s*[–-]/.test(n || "");
 const toLocalInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
-const btn = "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-40";
-const btnPrimary = `${btn} bg-[#10B981] text-white hover:bg-[#047857]`;
-const btnDark = `${btn} bg-slate-900 text-white hover:bg-slate-700`;
-const btnSecondary = `${btn} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50`;
-const btnGhost = `${btn} text-slate-600 hover:bg-slate-100`;
+// Shared with the participant's pages (components/hc/ui.ts, --hc-* tokens).
+const btn = hcBtn.base;
+const btnPrimary = hcBtn.primary;
+const btnDark = hcBtn.dark;
+const btnSecondary = hcBtn.secondary;
+const btnGhost = hcBtn.ghost;
 
 /** What the next action for a client is — the heart of the to-do list. */
 type Task = { key: string; label: string; cta: string; tone: "urgent" | "normal" | "waiting"; doctorOnly?: boolean };
@@ -323,7 +326,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f9f8]">
+    <div className={hcPage.staff}>
       <WsHeader name={me.name} role={me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfræðingur"} items={menu} />
 
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
@@ -333,12 +336,11 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                 onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: "today" }))} onChanged={load} />
             : (
               <div className="space-y-4">
-                <nav className="flex overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-slate-200" aria-label="Vinnustöðin">
+                <nav className={hcTabs.bar} aria-label="Vinnustöðin">
                   {([["today", "Í dag"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla og þjálfun"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
-                      className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                        view.home === k ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                      className={hcTabs.tab(view.home === k)}>
                       {label}
                     </button>
                   ))}
@@ -460,7 +462,7 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
           Bíður þín {waiting.length > 0 && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
         </h2>
         {waiting.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">Ekkert bíður. Vel gert.</p>
+          <EmptyState variant="done" compact title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt. Vel gert." />
         ) : (
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} />)}

@@ -241,7 +241,7 @@ function Pillars({ lit }: { lit: { item: ReportItem; signal: Signal | null }[] }
             <div key={pillar}
               className={`rounded-2xl border bg-white p-4 ${first ? "border-slate-900/20 shadow-sm ring-1 ring-slate-900/5" : "border-slate-200"}`}>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: meta.color }}>{meta.label}</p>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: meta.ink }}>{meta.label}</p>
                 {first && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>}
               </div>
               <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{fmt1(avg)}</p>

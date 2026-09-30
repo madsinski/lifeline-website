@@ -27,6 +27,35 @@ html, body {
   --accent: #FB923C;
 }
 
+/* Health-check journey (heilsuferð + vinnustöð) design tokens.
+   One palette for the participant's pages and the nurse workstation.
+   Pillar hexes mirror PILLAR_META in src/lib/hc/types.ts (JS needs them for
+   inline styles and print); "-ink" is the text shade that passes WCAG AA on
+   the pillar's soft background. Usage: bg-hc-page, text-hc-ink,
+   rounded-hc-card, shadow-hc-card, text-hc-mental-ink … */
+:root {
+  --hc-brand: #10B981;
+  --hc-brand-dark: #047857;
+  --hc-brand-surface: #ECFDF5;
+  --hc-ink: #0F172A;
+  --hc-ink-2: #475569;
+  --hc-muted: #94A3B8;
+  --hc-border: #E2E8F0;
+  --hc-surface: #FFFFFF;
+  --hc-page: #F8FAFC;
+  --hc-hero-from: #0F2A23;
+  --hc-hero-to: #065F46;
+
+  --hc-sleep: #767194;     --hc-sleep-soft: #F1F0F6;     --hc-sleep-ink: #4F4A6E;
+  --hc-exercise: #EA580C;  --hc-exercise-soft: #FFF4ED;  --hc-exercise-ink: #C2410C;
+  --hc-nutrition: #65A30D; --hc-nutrition-soft: #F4FAE9; --hc-nutrition-ink: #3F6212;
+  --hc-mental: #0EA5E9;    --hc-mental-soft: #EAF7FD;    --hc-mental-ink: #0369A1;
+
+  --hc-signal-green: #10B981;
+  --hc-signal-yellow: #F59E0B;
+  --hc-signal-red: #EF4444;
+}
+
 /* Classic (pre-rebrand) theme override */
 [data-theme="classic"] {
   --primary: #0D9488;
@@ -56,6 +85,40 @@ html, body {
   --color-mental: var(--mental);
   --color-accent: var(--accent);
   --font-sans: var(--font-inter);
+
+  /* heilsuferð / vinnustöð */
+  --color-hc-brand: var(--hc-brand);
+  --color-hc-brand-dark: var(--hc-brand-dark);
+  --color-hc-brand-surface: var(--hc-brand-surface);
+  --color-hc-ink: var(--hc-ink);
+  --color-hc-ink-2: var(--hc-ink-2);
+  --color-hc-muted: var(--hc-muted);
+  --color-hc-border: var(--hc-border);
+  --color-hc-surface: var(--hc-surface);
+  --color-hc-page: var(--hc-page);
+  --color-hc-hero-from: var(--hc-hero-from);
+  --color-hc-hero-to: var(--hc-hero-to);
+  --color-hc-sleep: var(--hc-sleep);
+  --color-hc-sleep-soft: var(--hc-sleep-soft);
+  --color-hc-sleep-ink: var(--hc-sleep-ink);
+  --color-hc-exercise: var(--hc-exercise);
+  --color-hc-exercise-soft: var(--hc-exercise-soft);
+  --color-hc-exercise-ink: var(--hc-exercise-ink);
+  --color-hc-nutrition: var(--hc-nutrition);
+  --color-hc-nutrition-soft: var(--hc-nutrition-soft);
+  --color-hc-nutrition-ink: var(--hc-nutrition-ink);
+  --color-hc-mental: var(--hc-mental);
+  --color-hc-mental-soft: var(--hc-mental-soft);
+  --color-hc-mental-ink: var(--hc-mental-ink);
+  --color-hc-signal-green: var(--hc-signal-green);
+  --color-hc-signal-yellow: var(--hc-signal-yellow);
+  --color-hc-signal-red: var(--hc-signal-red);
+  --radius-hc-hero: 1.5rem;
+  --radius-hc-card: 1rem;
+  --radius-hc-element: 0.75rem;
+  --shadow-hc-card: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-hc-raised: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+  --shadow-hc-overlay: 0 10px 15px -3px rgb(15 23 42 / 0.10), 0 4px 6px -4px rgb(15 23 42 / 0.08);
 }
 
 body {

@@ -5,6 +5,7 @@
 // the journey's welcome step. Rendering is shared with the admin preview
 // (src/app/components/hc/LectureContent.tsx).
 
+import { hcPage } from "@/app/components/hc/ui";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -47,7 +48,7 @@ export default function LecturePage() {
   }, [done, slug]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
+    <div className={hcPage.participant}>
       <div className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:pt-28">
         <BackLink href="/account/heilsuferd" label="Heilsuferðin" />
         {error && <p className="mt-8 text-slate-600">{error}</p>}

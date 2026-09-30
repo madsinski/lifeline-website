@@ -7,11 +7,17 @@ export type PaymentRoute = "self" | "union" | "company" | "company_union";
 
 export const PILLARS: Pillar[] = ["sleep", "exercise", "nutrition", "mental"];
 
-export const PILLAR_META: Record<Pillar, { label: string; color: string; soft: string; ring: string }> = {
-  sleep: { label: "Svefn", color: "#767194", soft: "#F1F0F6", ring: "#C9C6DA" },
-  exercise: { label: "Hreyfing", color: "#EA580C", soft: "#FFF4ED", ring: "#FBC9A6" },
-  nutrition: { label: "Næring", color: "#65A30D", soft: "#F4FAE9", ring: "#C8E39A" },
-  mental: { label: "Andleg líðan", color: "#0EA5E9", soft: "#EAF7FD", ring: "#A5DDF5" },
+/**
+ * Pillar colours (mirrored as --hc-* tokens in globals.css).
+ * `color` is for marks (dots, bars, icons, fills); `ink` is for text — the
+ * brand colours fall below WCAG AA as text on their soft background (2.5–4.1:1),
+ * the ink shades pass (4.8–7.3:1).
+ */
+export const PILLAR_META: Record<Pillar, { label: string; color: string; soft: string; ring: string; ink: string }> = {
+  sleep: { label: "Svefn", color: "#767194", soft: "#F1F0F6", ring: "#C9C6DA", ink: "#4F4A6E" },
+  exercise: { label: "Hreyfing", color: "#EA580C", soft: "#FFF4ED", ring: "#FBC9A6", ink: "#C2410C" },
+  nutrition: { label: "Næring", color: "#65A30D", soft: "#F4FAE9", ring: "#C8E39A", ink: "#3F6212" },
+  mental: { label: "Andleg líðan", color: "#0EA5E9", soft: "#EAF7FD", ring: "#A5DDF5", ink: "#0369A1" },
 };
 
 export interface HcLocation {

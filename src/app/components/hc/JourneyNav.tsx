@@ -5,6 +5,7 @@
 // larger screens.
 
 import Link from "next/link";
+import { hcTabs } from "./ui";
 import { ClipboardList, Compass, FileHeart, Sun } from "lucide-react";
 
 export type JourneyPlace = "today" | "plan" | "report" | "journey";
@@ -29,8 +30,8 @@ export default function JourneyNav({ active, hasReport = true, onSelect }: {
       <Link key={i.key} href={i.href} aria-current={on ? "page" : undefined}
         onClick={(e) => { if (onSelect?.(i.key)) e.preventDefault(); }}
         className={mobile
-          ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-emerald-700" : "text-slate-500"}`
-          : `flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${on ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+          ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-dark" : "text-slate-500"}`
+          : `${hcTabs.tab(on)} flex items-center justify-center gap-2`}>
         <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={on && mobile ? 2.4 : 2} aria-hidden />
         {i.label}
       </Link>
@@ -38,7 +39,7 @@ export default function JourneyNav({ active, hasReport = true, onSelect }: {
   };
   return (
     <>
-      <nav aria-label="Heilsuferðin" className="hidden rounded-xl bg-white p-1 ring-1 ring-slate-200 sm:flex print:hidden">
+      <nav aria-label="Heilsuferðin" className={`hidden sm:flex print:hidden ${hcTabs.bar}`}>
         {items.map((i) => item(i, false))}
       </nav>
       <nav aria-label="Heilsuferðin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
