@@ -175,16 +175,23 @@ export interface EventResult {
   };
 }
 
-/** Meet links only appear on the response when this is 1. */
-const conf = (withConference?: boolean) => (withConference ? "?conferenceDataVersion=1" : "");
+/**
+ * Query string: Meet links only appear on the response with
+ * conferenceDataVersion=1; sendUpdates=all has Google email guests the
+ * invitation (and later changes).
+ */
+const conf = (withConference?: boolean, notifyGuests?: boolean) => {
+  const q = [withConference ? "conferenceDataVersion=1" : null, notifyGuests ? "sendUpdates=all" : null].filter(Boolean);
+  return q.length ? `?${q.join("&")}` : "";
+};
 
-export function insertEvent(token: string, calendarId: string, body: unknown, withConference?: boolean) {
-  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events${conf(withConference)}`, { method: "POST", body: JSON.stringify(body) })
+export function insertEvent(token: string, calendarId: string, body: unknown, withConference?: boolean, notifyGuests?: boolean) {
+  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events${conf(withConference, notifyGuests)}`, { method: "POST", body: JSON.stringify(body) })
     .then((r) => json<EventResult>(r, "Could not create event"));
 }
 
-export function patchEvent(token: string, calendarId: string, eventId: string, body: unknown, withConference?: boolean) {
-  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}${conf(withConference)}`, { method: "PATCH", body: JSON.stringify(body) })
+export function patchEvent(token: string, calendarId: string, eventId: string, body: unknown, withConference?: boolean, notifyGuests?: boolean) {
+  return api(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}${conf(withConference, notifyGuests)}`, { method: "PATCH", body: JSON.stringify(body) })
     .then((r) => json<EventResult>(r, "Could not update event"));
 }
 
