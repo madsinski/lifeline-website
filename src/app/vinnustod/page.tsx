@@ -1279,6 +1279,8 @@ function Adherence({ d }: { d: Detail }) {
   const a = adherence(d.plan?.modules ?? [], d.logs ?? [], d.prefs ?? []);
   const status = nudgeStatus(a, !!d.plan);
   const hidden = (d.prefs ?? []).filter((p) => p.hidden);
+  const notes = (d.prefs ?? []).filter((p) => (p.note ?? "").trim());
+  const titleOf = (uid: string) => d.plan?.modules?.find((m) => m.uid === uid)?.title ?? "aðgerð";
   const tone = status === "on-track" ? "bg-emerald-50 text-emerald-900 ring-emerald-200"
     : status === "needs-nudge" ? "bg-amber-50 text-amber-900 ring-amber-200"
     : "bg-slate-50 text-slate-700 ring-slate-200";
@@ -1307,6 +1309,13 @@ function Adherence({ d }: { d: Detail }) {
         {a.lastDoneOn ? `Síðast merkt ${day(a.lastDoneOn)}` : "Ekkert merkt enn"}
         {hidden.length ? ` · ${hidden.length} lagt til hliðar` : ""}
       </p>
+      {/* What the client wrote and what they set aside: the follow-up's agenda. */}
+      {(notes.length > 0 || hidden.length > 0) && (
+        <ul className="w-full space-y-1 border-t border-current/10 pt-2 text-sm">
+          {hidden.map((p) => <li key={`h-${p.action_uid}`}>Lagt til hliðar: <strong>{titleOf(p.action_uid)}</strong></li>)}
+          {notes.map((p) => <li key={`n-${p.action_uid}`}><strong>{titleOf(p.action_uid)}:</strong> „{p.note}“</li>)}
+        </ul>
+      )}
     </section>
   );
 }

@@ -15,7 +15,8 @@ import { adherence, isoDay, lastDays, weeklyTarget, type ActionLog, type ActionP
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-const WEEKDAY_SHORT = ["S", "M", "Þ", "M", "F", "F", "L"];
+// Two letters: one letter left "M" and "F" meaning two days each.
+const WEEKDAY_SHORT = ["Su", "Má", "Þr", "Mi", "Fi", "Fö", "La"];
 
 export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs }: {
   api: Api;
@@ -101,6 +102,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               {byPillar(p).map((a) => (
                 <ActionRow key={a.uid} a={a} meta={meta} today={today} week={week} busy={busy}
                   doneToday={doneToday(a.uid)} doneOn={doneOn} onToggle={toggle}
+                  myNote={prefs.find((x) => x.action_uid === a.uid)?.note ?? ""}
+                  onNote={(note) => post({ action_uid: a.uid, note })}
                   onHide={async () => { setBusy(a.uid); await post({ action_uid: a.uid, hidden: true }); setBusy(null); }} />
               ))}
             </ul>
@@ -145,7 +148,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, week, busy, doneToday, doneOn, onToggle, onHide }: {
+function ActionRow({ a, meta, today, week, busy, doneToday, doneOn, onToggle, onHide, myNote, onNote }: {
+  myNote: string;
+  onNote: (note: string) => Promise<unknown>;
   a: PlanItem;
   meta: { color: string; soft: string; label: string };
   today: string;
@@ -203,10 +208,34 @@ function ActionRow({ a, meta, today, week, busy, doneToday, doneOn, onToggle, on
                   Leggja til hliðar
                 </button>
               </div>
+              <NoteField initial={myNote} onSave={onNote} />
             </div>
           )}
         </div>
       </div>
     </li>
+  );
+}
+
+/** The participant's own note on an action: what got in the way, what worked. The nurse sees it. */
+function NoteField({ initial, onSave }: { initial: string; onSave: (note: string) => Promise<unknown> }) {
+  const [v, setV] = useState(initial);
+  const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
+  const dirty = v.trim() !== initial.trim();
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-slate-500">Athugasemd til hjúkrunarfræðingsins
+        <textarea value={v} onChange={(e) => { setV(e.target.value); setState("idle"); }} rows={2} maxLength={300}
+          placeholder="T.d. hvað gekk vel eða hvað var erfitt"
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-[#10B981]" />
+      </label>
+      {(dirty || state !== "idle") && (
+        <button type="button" disabled={!dirty || state === "saving"}
+          onClick={async () => { setState("saving"); await onSave(v); setState("saved"); }}
+          className="mt-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+          {state === "saving" ? "Vista…" : state === "saved" && !dirty ? "Vistað" : "Vista athugasemd"}
+        </button>
+      )}
+    </div>
   );
 }
