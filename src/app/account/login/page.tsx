@@ -17,8 +17,61 @@ import {
 export default function AccountLoginPage() {
   return (
     <Suspense>
-      <AccountLoginContent />
+      <LoginOrReset />
     </Suspense>
+  );
+}
+
+function LoginOrReset() {
+  return useSearchParams().get("nytt") === "1" ? <NewPassword /> : <AccountLoginContent />;
+}
+
+/**
+ * Landing for the password-reset link (?nytt=1). Supabase signs the person in
+ * with a recovery session from the link; they choose a new password here.
+ */
+function NewPassword() {
+  const router = useRouter();
+  const [ready, setReady] = useState<boolean | null>(null);
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || session) setReady(true);
+    });
+    supabase.auth.getSession().then(({ data }) => setReady((r) => r || !!data.session));
+    const t = setTimeout(() => setReady((r) => r ?? false), 4000);
+    return () => { sub.subscription.unsubscribe(); clearTimeout(t); };
+  }, []);
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw.length < 12) { setErr("Lykilorðið þarf að vera minnst 12 stafir."); return; }
+    if (pw !== pw2) { setErr("Lykilorðin eru ekki eins."); return; }
+    setBusy(true); setErr("");
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setBusy(false);
+    if (error) { setErr(error.message); return; }
+    router.replace("/account");
+  };
+  const input = "w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900";
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#eff4fa] to-[#e2ebf5] px-4 py-16">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
+        <h1 className="text-xl font-bold text-gray-900">Veldu nýtt lykilorð</h1>
+        {ready === false ? (
+          <p className="mt-3 text-sm text-gray-600">Hlekkurinn er útrunninn eða hefur verið notaður. <Link href="/account/login" className="font-semibold text-[#10B981]">Biddu um nýjan</Link>.</p>
+        ) : (
+          <form onSubmit={save} className="mt-4 space-y-3">
+            <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Nýtt lykilorð (minnst 12 stafir)" autoComplete="new-password" className={input} />
+            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Nýtt lykilorð aftur" autoComplete="new-password" className={input} />
+            {err && <p className="text-sm text-red-600">{err}</p>}
+            <button disabled={busy || !ready} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">{busy ? "Vista…" : "Vista nýtt lykilorð"}</button>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -45,7 +98,7 @@ function AccountLoginContent() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState(
     searchParams.get("verify") === "1"
-      ? "Please confirm your email address before continuing. Check your inbox (and spam folder) for the link from Lifeline Health."
+      ? "Staðfestu netfangið þitt áður en þú heldur áfram. Hlekkurinn frá Lifeline Health er í pósthólfinu (athugaðu líka ruslpóst)."
       : "",
   );
   const [loading, setLoading] = useState(false);
@@ -125,8 +178,10 @@ function AccountLoginContent() {
           .select("welcome_seen_at")
           .eq("id", signInData.user.id)
           .maybeSingle();
+        // Health-check participants go to their heilsuferð (/account sends
+        // them there); only others without the slideshow get it.
         if (profile && !profile.welcome_seen_at && !journeyNext) {
-          router.push("/account/welcome");
+          router.push("/account");
           return;
         }
       }
@@ -137,17 +192,17 @@ function AccountLoginContent() {
       // user reads + accepts the legal documents on stage 2.
       if (signupStage === "form") {
         if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
-          setError("Please fill in name, email and password.");
+          setError("Fylltu inn nafn, netfang og lykilorð.");
           setLoading(false);
           return;
         }
         if (password.length < 12) {
-          setError("Password must be at least 12 characters.");
+          setError("Lykilorðið þarf að vera minnst 12 stafir.");
           setLoading(false);
           return;
         }
         if (password !== confirmPassword) {
-          setError("Passwords don't match.");
+          setError("Lykilorðin eru ekki eins.");
           setLoading(false);
           return;
         }
@@ -158,7 +213,7 @@ function AccountLoginContent() {
       }
       // Stage 2 (terms) — actually create the account.
       if (!acceptTerms) {
-        setError("Please accept the Terms of Service and Privacy Policy to continue.");
+        setError("Samþykktu skilmálana og persónuverndarstefnuna til að halda áfram.");
         setLoading(false);
         return;
       }
@@ -226,7 +281,7 @@ function AccountLoginContent() {
         } catch {}
       }
       setInfo(
-        "Account created! Check your email to confirm, then sign in."
+        "Aðgangurinn er stofnaður. Staðfestu netfangið með hlekknum sem við sendum þér og skráðu þig svo inn."
       );
       setMode("login");
       setSignupStage("form");
@@ -242,19 +297,19 @@ function AccountLoginContent() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Enter your email address first.");
+      setError("Sláðu fyrst inn netfangið þitt.");
       return;
     }
     setError("");
     setInfo("");
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
-      { redirectTo: `${window.location.origin}/account` }
+      { redirectTo: `${window.location.origin}/account/login?nytt=1` }
     );
     if (resetError) {
       setError(resetError.message);
     } else {
-      setInfo("Password reset link sent to your email.");
+      setInfo("Við sendum þér hlekk til að velja nýtt lykilorð.");
     }
   };
 
@@ -270,12 +325,12 @@ function AccountLoginContent() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span className="text-xs font-semibold uppercase tracking-wide">Personal account</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">Aðgangurinn minn</span>
           </div>
           <p className="mt-3 text-[#6B7280] text-sm max-w-sm mx-auto">
             {mode === "login"
-              ? "Sign in to your Lifeline account to view your health plan and progress."
-              : "Create a Lifeline account to get a medical-grade health assessment and personal plan."}
+              ? "Skráðu þig inn til að sjá áætlunina þína, næsta tíma og hvernig gengur."
+              : "Stofnaðu aðgang til að hefja heilsufarsskoðunina og fá þína eigin áætlun."}
           </p>
         </div>
 
@@ -289,8 +344,8 @@ function AccountLoginContent() {
           {/* Inner tabs — match /business/login styling */}
           <div className="flex border-b border-gray-100 pt-2" role="tablist">
             {([
-              { key: "login", label: "Sign in" },
-              { key: "signup", label: "Create account" },
+              { key: "login", label: "Innskráning" },
+              { key: "signup", label: "Nýr aðgangur" },
             ] as const).map((tab) => {
               const active = mode === tab.key;
               return (
@@ -355,7 +410,7 @@ function AccountLoginContent() {
                       htmlFor="firstName"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      First name
+                      Fornafn
                     </label>
                     <input
                       id="firstName"
@@ -364,7 +419,7 @@ function AccountLoginContent() {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder="First name"
+                      placeholder="Fornafn"
                     />
                   </div>
                   <div className="flex-1">
@@ -372,7 +427,7 @@ function AccountLoginContent() {
                       htmlFor="lastName"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Last name
+                      Eftirnafn
                     </label>
                     <input
                       id="lastName"
@@ -381,7 +436,7 @@ function AccountLoginContent() {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder="Last name"
+                      placeholder="Eftirnafn"
                     />
                   </div>
                 </div>
@@ -393,7 +448,7 @@ function AccountLoginContent() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Email
+                Netfang
               </label>
               <input
                 id="email"
@@ -402,7 +457,7 @@ function AccountLoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                placeholder="you@example.com"
+                placeholder="nafn@netfang.is"
               />
             </div>
 
@@ -412,7 +467,7 @@ function AccountLoginContent() {
                   htmlFor="phone"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Phone
+                  Farsími
                 </label>
                 <input
                   id="phone"
@@ -420,7 +475,7 @@ function AccountLoginContent() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                  placeholder="Phone number"
+                  placeholder="Símanúmer"
                 />
               </div>
             )}
@@ -430,7 +485,7 @@ function AccountLoginContent() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Password
+                Lykilorð
               </label>
               <input
                 id="password"
@@ -441,8 +496,8 @@ function AccountLoginContent() {
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder={
                   mode === "signup"
-                    ? "Choose a password (min 12 characters)"
-                    : "Enter your password"
+                    ? "Veldu lykilorð (minnst 12 stafir)"
+                    : "Lykilorðið þitt"
                 }
                 minLength={mode === "signup" ? 12 : undefined}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
@@ -455,7 +510,7 @@ function AccountLoginContent() {
                   htmlFor="confirmPassword"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Confirm password
+                  Lykilorð aftur
                 </label>
                 <input
                   id="confirmPassword"
@@ -464,7 +519,7 @@ function AccountLoginContent() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                  placeholder="Re-enter your password"
+                  placeholder="Sláðu lykilorðið inn aftur"
                   minLength={12}
                   autoComplete="new-password"
                 />
@@ -489,11 +544,11 @@ function AccountLoginContent() {
             >
               {loading
                 ? mode === "login"
-                  ? "Signing in..."
-                  : "Creating account..."
+                  ? "Skrái inn…"
+                  : "Stofna aðgang…"
                 : mode === "login"
-                  ? "Sign In"
-                  : "Continue"}
+                  ? "Skrá inn"
+                  : "Áfram"}
             </button>
           </form>
           )}
@@ -511,7 +566,7 @@ function AccountLoginContent() {
               onClick={handleForgotPassword}
               className="block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981] mt-4 transition-colors"
             >
-              Forgot your password?
+              Gleymt lykilorð?
             </button>
           )}
           </div>
@@ -519,7 +574,7 @@ function AccountLoginContent() {
 
         <p className="text-center text-[#6B7280] text-xs mt-6">
           <Link href="/" className="hover:text-[#10B981] transition-colors">
-            Back to Lifeline Health
+            Til baka á forsíðu Lifeline Health
           </Link>
         </p>
       </div>

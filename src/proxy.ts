@@ -149,6 +149,9 @@ export async function proxy(request: NextRequest) {
   //    let everything through instead of rewriting to coming-soon.
   if (!(await isSiteGated(supabase, Date.now()))) return response;
 
-  // 5. Default: gate to coming-soon.
+  // 5. Default: gate to coming-soon — except the account area: a participant
+  //    who lands on /account (navbar, old emails, password reset) belongs in
+  //    their heilsuferð, which is open to them.
+  if (pathname.startsWith("/account")) return NextResponse.redirect(new URL("/account/heilsuferd", request.url));
   return NextResponse.rewrite(new URL("/coming-soon", request.url));
 }
