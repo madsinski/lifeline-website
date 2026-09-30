@@ -61,7 +61,7 @@ interface Row {
 }
 interface Journey extends Omit<Row, "client_name" | "client_phone" | "client_dob" | "plan_status"> {
   referral_note: string | null; referred_at: string | null; doctor_review_note: string | null;
-  interview_notes: InterviewNotes | null; location_id: string | null;
+  interview_notes: InterviewNotes | null; followup_notes?: InterviewNotes | null; location_id: string | null;
 }
 interface Detail {
   journey: Journey;
@@ -779,7 +779,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   const landOn = d.report && !j.interview_booked_for && !j.interview_done_at && !j.plan_published_at ? "results" : current?.key ?? (d.report ? "results" : null);
   const shownOpen = touched ? openStep : landOn;
 
-  const cockpit = !!d.report && (shownOpen === "interview" || shownOpen === "plan");
+  const cockpit = !!d.report && (shownOpen === "interview" || shownOpen === "plan" || shownOpen === "followup");
   // The next video appointment, so the call is one click from the top.
   const call = upcomingAppointments(j, null).find((x) => x.video) ?? null;
   // Payment as a chip on the status line rather than a drawer of its own.
@@ -1078,7 +1078,7 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged, onJump }: {
         : j.followup_booked_for
           ? dayTime(j.followup_booked_for)
           : daysSince(j.plan_published_at) >= 90 ? "Þrír mánuðir liðnir — ekki bókað" : `Bókast um ${day(new Date(new Date(j.plan_published_at ?? Date.now()).getTime() + 90 * 86400_000).toISOString())}`,
-      body: <FollowupStep d={d} record={record} />,
+      body: <FollowupStep d={d} record={record} isDoctor={isDoctor} onPlan={() => onJump("plan")} />,
     },
   ];
 }
@@ -1181,12 +1181,12 @@ function InterviewStep({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: b
         disabled={!j.report_generated_at && !j.report_imported_at} disabledText="Hægt að bóka þegar skýrslan er komin inn."
         onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
-      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} />}
+      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} mode="interview" />}
     </div>
   );
 }
 
-function FollowupStep({ d, record }: { d: Detail; record: (p: Record<string, unknown>) => Promise<string | null> }) {
+function FollowupStep({ d, record, isDoctor, onPlan }: { d: Detail; record: (p: Record<string, unknown>) => Promise<string | null>; isDoctor: boolean; onPlan: () => void }) {
   const j = d.journey;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1200,10 +1200,11 @@ function FollowupStep({ d, record }: { d: Detail; record: (p: Record<string, unk
       <Booking label="Eftirfylgd" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_mode ?? (j.followup_booked_for ? j.interview_mode : "video")} meetingUrl={j.followup_meeting_url ?? null}
         disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
         onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy} />
-      {j.followup_booked_for && !j.followup_done_at && (
-        <button type="button" disabled={busy} onClick={() => run({ event: "followup_done" }, "Eftirfylgd skráð.")} className={`${btnSecondary} w-full sm:w-auto`}>Merkja eftirfylgd lokið</button>
-      )}
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      {/* The follow-up conversation, guided like the first one but with its
+          own notes and questions about how it went. Marking it done is the
+          wizard's last step. */}
+      {(j.followup_booked_for || j.followup_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} mode="followup" />}
     </div>
   );
 }
@@ -1548,12 +1549,29 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
 // ── Viðtal: guided, step by step ───────────────────────────────────────────
 
 const PREP: string[] = [
-  "Opnaðu skýrsluna í Medalia og lestu samantekt læknis.",
-  "Skoðaðu blóðprufur: blóðsykur (HbA1c), blóðfitur og annað sem læknir merkti.",
+  "Lestu skýrsluna (hér til hliðar á breiðum skjá, annars undir „Skýrslan“) og samantekt læknis.",
+  "Skoðaðu blóðprufur: blóðsykur (HbA1c), blóðfitur og annað sem er rautt eða gult.",
   "Skoðaðu mælingar: blóðþrýsting og líkamssamsetningu.",
   "Lestu svör við spurningalista um svefn, hreyfingu, næringu og andlega líðan.",
   "Merktu við 1–2 atriði sem standa upp úr til að ræða.",
 ];
+
+const FOLLOWUP_PREP: string[] = [
+  "Skoðaðu fylgnina efst: hvað hefur gengið og hvað ekki síðustu vikur.",
+  "Lestu hvað skjólstæðingurinn lagði til hliðar og athugasemdir hans.",
+  "Rifjaðu upp markmiðin og minnispunkta úr fyrsta viðtali.",
+  "Veldu 1–2 atriði til að breyta eða bæta við í áætluninni.",
+];
+
+/** Follow-up prompts per topic: how it went, not how things are. */
+const FOLLOWUP_PROMPTS: Partial<Record<keyof InterviewNotes, string[]>> = {
+  goals: ["Hvernig hefur gengið að ná markmiðunum?", "Hvað hefur breyst síðan síðast?"],
+  sleep: ["Hvað hefur breyst í svefninum?", "Hvað hefur verið erfitt?"],
+  exercise: ["Hvernig hefur æfingaáætlunin gengið?", "Þarf að auka eða minnka álagið?"],
+  nutrition: ["Hvaða breytingar hafa haldist?", "Hvað hefur ekki gengið?"],
+  mental: ["Hvernig er álagið núna miðað við síðast?", "Hvað hjálpaði?"],
+  measurements: ["Hvað hefur breyst í mælingum, ef mælt var aftur?"],
+};
 
 const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts: string[] }[] = [
   { key: "goals", title: "Hvað vill skjólstæðingurinn?", color: "#10B981", prompts: ["Hvað viltu fá út úr þessu?", "Hvað myndi breyta mestu fyrir þig næstu þrjá mánuði?"] },
@@ -1566,13 +1584,23 @@ const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts
 
 const STEPS = ["Undirbúningur", "Samtal", "Mat", "Áætlun", "Ljúka"] as const;
 
-function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan?: () => void }) {
+function Interview({ d, isDoctor, record, onPlan, mode = "interview" }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan?: () => void; mode?: "interview" | "followup" }) {
   const api = useWsApi();
   const j = d.journey;
-  const isFollowup = !!j.interview_done_at;
-  const [step, setStep] = useState(0);
-  const [checked, setChecked] = useState<boolean[]>(() => PREP.map(() => false));
-  const [notes, setNotes] = useState<InterviewNotes>(j.interview_notes ?? {});
+  const isFollowup = mode === "followup";
+  const prep = isFollowup ? FOLLOWUP_PREP : PREP;
+  // The wizard remembers where it was: switching panels unmounts it.
+  const memo = `ws-iv:${j.id}:${mode}`;
+  const [step, setStepState] = useState(() => {
+    try { return Math.min(STEPS.length - 1, Number(sessionStorage.getItem(`${memo}:step`)) || 0); } catch { return 0; }
+  });
+  const setStep = (n: number) => { setStepState(n); try { sessionStorage.setItem(`${memo}:step`, String(n)); } catch { /* private mode */ } };
+  const [checked, setCheckedState] = useState<boolean[]>(() => {
+    try { const v = JSON.parse(sessionStorage.getItem(`${memo}:prep`) || "null"); if (Array.isArray(v) && v.length === prep.length) return v; } catch { /* none */ }
+    return prep.map(() => false);
+  });
+  const setChecked = (v: boolean[]) => { setCheckedState(v); try { sessionStorage.setItem(`${memo}:prep`, JSON.stringify(v)); } catch { /* private mode */ } };
+  const [notes, setNotes] = useState<InterviewNotes>((isFollowup ? j.followup_notes : j.interview_notes) ?? {});
   const [saved, setSaved] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1586,7 +1614,7 @@ function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boole
     setSaved("saving");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
-      const r = await api(`/api/vinnustod/journeys/${j.id}`, { method: "PATCH", body: JSON.stringify({ interview_notes: next }) });
+      const r = await api(`/api/vinnustod/journeys/${j.id}`, { method: "PATCH", body: JSON.stringify(isFollowup ? { followup_notes: next } : { interview_notes: next }) });
       setSaved(r.ok ? "saved" : "error");
     }, 900);
   };
@@ -1629,7 +1657,7 @@ function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boole
             <h3 className="text-lg font-bold text-slate-900">Undirbúningur</h3>
             <p className="mb-4 text-sm text-slate-500">Um 10 mínútur fyrir viðtalið.</p>
             <ul className="space-y-2">
-              {PREP.map((p, i) => (
+              {prep.map((p, i) => (
                 <li key={i}>
                   <button type="button" role="checkbox" aria-checked={checked[i]} onClick={() => setChecked(checked.map((c, k) => (k === i ? !c : c)))}
                     className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${checked[i] ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-slate-200 hover:bg-slate-50"}`}>
@@ -1662,7 +1690,7 @@ function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boole
               {TOPICS.map((t) => (
                 <div key={t.key} className="rounded-xl border border-slate-200 p-3" style={{ borderLeftWidth: 4, borderLeftColor: t.color }}>
                   <label htmlFor={`note-${t.key}`} className="font-semibold text-slate-900">{t.title}</label>
-                  <p className="mt-0.5 text-xs text-slate-500">{t.prompts.join(" · ")}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{((isFollowup ? FOLLOWUP_PROMPTS[t.key] : null) ?? t.prompts).join(" · ")}</p>
                   <textarea id={`note-${t.key}`} value={notes[t.key] ?? ""} onChange={(e) => setNote_(t.key, e.target.value)} rows={3}
                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" />
                 </div>

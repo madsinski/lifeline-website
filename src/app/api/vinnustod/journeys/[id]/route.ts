@@ -139,11 +139,13 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   const journey = await loadAllowed(actor, (await ctx.params).id);
   if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const body = await req.json().catch(() => ({}));
-  const src = (body.interview_notes && typeof body.interview_notes === "object" ? body.interview_notes : {}) as Record<string, unknown>;
+  // The first interview and the follow-up keep separate notes.
+  const field = body.followup_notes && typeof body.followup_notes === "object" ? "followup_notes" : "interview_notes";
+  const src = (body[field] && typeof body[field] === "object" ? body[field] : {}) as Record<string, unknown>;
   const notes: Record<string, string> = {};
   for (const k of NOTE_KEYS) if (typeof src[k] === "string") notes[k] = (src[k] as string).slice(0, 6000);
   // Plain update: notes are working text, not a milestone — no audit per keystroke.
-  const { error } = await db.from("hc_journeys").update({ interview_notes: notes, updated_at: new Date().toISOString() }).eq("id", journey.id);
+  const { error } = await db.from("hc_journeys").update({ [field]: notes, updated_at: new Date().toISOString() }).eq("id", journey.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, saved_at: new Date().toISOString() });
 }
