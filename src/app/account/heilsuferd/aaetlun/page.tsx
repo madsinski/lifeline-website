@@ -18,6 +18,7 @@ import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan, LectureRef } from "@/lib/hc/types";
 import { DEFAULT_TRAINING, adaptExercise, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
+import NudgeSettings from "@/app/components/hc/NudgeSettings";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
 import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
@@ -188,6 +189,7 @@ function PlanPageInner() {
                     </Link>
                   )}
                   <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs} />
+                  <NudgeSettings api={api} />
                 </div>
               )}
               {tab === "report" && data.report && (

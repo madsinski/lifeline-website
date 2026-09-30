@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.8";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-09-23";
+export const SECURITY_POSTURE_VERSION = "v1.9";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-09-30";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -143,6 +143,10 @@ Starfsmanna- og rekstrargögn:
   Supabase Inc.        | Gagnagrunnur, auðkenning              | Þýskaland (EES)
   Vercel Inc.          | Vefhýsing, framenda þjónusta          | EES + USA (SCC)
   Resend (Lilo Labs)   | Tölvupóstþjónusta (afhending)         | EES + USA (SCC)
+  Twilio Inc.          | SMS (áminningar, tilkynningar)        | EES + USA (SCC)
+  Push-þjónustur       | Afhending tilkynninga í tæki (Apple,  | EES + USA
+  vafra/stýrikerfa     | Google, Mozilla); efni dulkóðað enda  |
+                       | á milli, þjónustan getur ekki lesið   |
   OpenAI, L.L.C.       | AI-lestur skjala og tillaga að         | USA (SCC)
                        | lífsstílsáætlun (sjá 10. kafla)        |
 
@@ -327,6 +331,13 @@ Vinnsluaðilar (28. gr. GDPR):
   - Supabase Inc. — DPA samþykktur með notkunarskilmálum.
   - Vercel Inc. — DPA samþykktur með notkunarskilmálum.
   - Resend (Lilo Labs) — DPA samþykktur með notkunarskilmálum.
+  - Twilio Inc. — DPA samþykktur með notkunarskilmálum. SMS til
+    þátttakenda (áminningar, atriði úr áætlun) og lækna (nafn og
+    ástæða tilvísunar, sem getur lýst niðurstöðu). Skeytin eru höfð
+    stutt og án kennitölu.
+  - Áminningar með vefpúsi (Web Push, opt-in): efni dulkóðað enda á
+    milli (RFC 8291); Apple/Google/Mozilla flytja skeytið án þess að
+    geta lesið það. Enginn vinnslusamningur þarf.
   - OpenAI, L.L.C. — **vinnslusamningur ógerður, í forgangi.**
     Notkun er tvíþætt og afmörkuð:
       (a) Tillaga að lífsstílsáætlun. Mæligildi, aldur, kyn og
@@ -523,6 +534,12 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.9 (2026-09-30)
+  Twilio (SMS) og vefpús-þjónustur (Web Push) skráð í hýsingartöflu
+  (5. kafli) og sem vinnsluaðilar (10. kafli). Twilio var þegar í
+  notkun en vantaði í skrána. Vefpús bætist við vegna áminninga sem
+  þátttakendur velja sjálfir (opt-in); efni er dulkóðað enda á milli.
 
 v1.8 (2026-09-23)
   OpenAI skráð sem vinnsluaðili (10. kafli) og fært í hýsingartöflu
@@ -743,6 +760,10 @@ Staff and business data:
   Supabase Inc.        | Database, authentication            | Germany (EEA)
   Vercel Inc.          | Web hosting, frontend services      | EEA + USA (SCC)
   Resend (Lilo Labs)   | Email delivery                      | EEA + USA (SCC)
+  Twilio Inc.          | SMS (reminders, notifications)      | EEA + USA (SCC)
+  Browser/OS push      | Notification delivery to devices    | EEA + USA
+  services             | (Apple, Google, Mozilla); payload   |
+                       | end-to-end encrypted, unreadable    |
   OpenAI, L.L.C.       | AI document reading and lifestyle-  | USA (SCC)
                        | plan proposal (see section 10)      |
 
@@ -931,6 +952,13 @@ Processors (GDPR Art. 28):
   - Supabase Inc. — DPA accepted via terms of service.
   - Vercel Inc. — DPA accepted via terms of service.
   - Resend (Lilo Labs) — DPA accepted via terms of service.
+  - Twilio Inc. — DPA accepted via terms of service. SMS to
+    participants (reminders, plan items) and doctors (name and
+    referral reason, which can describe a finding). Messages are kept
+    short and never carry a kennitala.
+  - Web Push reminders (opt-in): payload end-to-end encrypted
+    (RFC 8291); Apple/Google/Mozilla relay it without being able to
+    read it. No processing agreement needed.
   - OpenAI, L.L.C. — **DPA not yet in place; being prioritised.**
     Two narrow uses:
       (a) Lifestyle-plan proposal. Measured values, age, sex and
@@ -1132,6 +1160,13 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.9 (2026-09-30)
+  Twilio (SMS) and browser/OS push services (Web Push) added to the
+  hosting table (section 5) and the processor list (section 10).
+  Twilio was already in use but missing from the register. Web Push
+  is new, for reminders participants opt into; payloads are
+  end-to-end encrypted.
 
 v1.7 (2026-06-10)
   Planned architecture change documented (no system change yet): a
