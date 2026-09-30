@@ -4,6 +4,7 @@
 // Schema: supabase/migration-health-journey.sql
 
 import { NextRequest, NextResponse } from "next/server";
+import { hasHealthConsent } from "@/lib/health-consent";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   getClientProfile, getOrCreateJourney, isProfileComplete, patchJourney, requireUser,
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
       kennitala_last4: kennitalaLast4,
       complete,
       company_name: companyName,
+      health_consent: await hasHealthConsent(user.id),
     },
     location: loc.data,
     packages,

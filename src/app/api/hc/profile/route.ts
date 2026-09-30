@@ -1,12 +1,15 @@
 // Onboarding profile: everything the union application and the patient
 // portal need about the person. Kennitala is encrypted with enc_kennitala
 // (service role only) — this is the first place a B2C kennitala is stored.
-// POST { full_name, phone, address, postcode, town, kennitala? }
+// POST { full_name, phone, address, postcode, town, kennitala?, accept_health_consent? }
+// PUT  { accept_health_consent: true } — consent alone, for people whose
+//      profile was complete before consent was part of this step.
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { cleanKennitala, isValidKennitala, isValidIcelandicPhone } from "@/lib/kennitala";
 import { currentJourney, getClientProfile, hcAudit, isProfileComplete, patchJourney, refreshStage, requireUser } from "@/lib/hc/server";
+import { hasHealthConsent, recordHealthConsent } from "@/lib/health-consent";
 
 export const runtime = "nodejs";
 
@@ -41,6 +44,9 @@ export async function POST(req: NextRequest) {
 
   const existing = await getClientProfile(user.id);
   if (!ktRaw && !existing?.kennitala_encrypted) errors.kennitala = "Kennitala er nauðsynleg.";
+  // Informed consent (GDPR 9. gr.) is part of this step, once per version.
+  const consented = await hasHealthConsent(user.id);
+  if (!consented && b.accept_health_consent !== true) errors.consent = "Samþykkið þarf til að halda áfram.";
   if (ktRaw && !isValidKennitala(ktRaw)) errors.kennitala = "Kennitalan er ekki gild.";
   if (Object.keys(errors).length) return NextResponse.json({ error: "validation", errors }, { status: 400 });
 
@@ -65,6 +71,13 @@ export async function POST(req: NextRequest) {
     const { error } = await supabaseAdmin.from("clients_decrypted").insert({ id: user.id, email: user.email, ...update });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  if (!consented) {
+    await recordHealthConsent({
+      userId: user.id, email: user.email ?? null,
+      ip: (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null,
+      userAgent: req.headers.get("user-agent") || null, tag: "hc/profile",
+    });
+  }
   await hcAudit(`client:${user.id}`, "profile_saved", null, { kennitala_changed: !!ktRaw });
 
   const profile = await getClientProfile(user.id);
@@ -77,4 +90,19 @@ export async function POST(req: NextRequest) {
     }
   }
   return NextResponse.json({ ok: true, complete: isProfileComplete(profile) });
+}
+
+export async function PUT(req: NextRequest) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
+  const b = await req.json().catch(() => ({}));
+  if (b.accept_health_consent !== true) return NextResponse.json({ error: "consent_required" }, { status: 400 });
+  const ok = await recordHealthConsent({
+    userId: user.id, email: user.email ?? null,
+    ip: (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null,
+    userAgent: req.headers.get("user-agent") || null, tag: "hc/profile",
+  });
+  if (!ok) return NextResponse.json({ error: "save_failed" }, { status: 500 });
+  await hcAudit(`client:${user.id}`, "health_consent_accepted", null);
+  return NextResponse.json({ ok: true });
 }

@@ -19,11 +19,12 @@ import JourneyNav from "@/app/components/hc/JourneyNav";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
+import { renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
 
 interface JourneyData {
   journey: HcJourney;
   steps: JourneyStep[];
-  profile: { email: string; full_name: string | null; phone: string | null; address: string | null; kennitala_last4: string | null; complete: boolean; company_name: string | null };
+  profile: { email: string; full_name: string | null; phone: string | null; address: string | null; kennitala_last4: string | null; complete: boolean; company_name: string | null; health_consent?: boolean };
   location: HcLocation | null;
   packages: HcPackage[];
   orders: HcOrder[];
@@ -126,6 +127,7 @@ function Heilsuferd() {
     <Shell>
       {data.plan && <div className="mb-4"><JourneyNav active="journey" /></div>}
       {next && <div className="mb-4"><AppointmentCard a={next} /></div>}
+      {data.profile.complete && data.profile.health_consent === false && <ConsentCard reload={load} />}
       {/* Hero */}
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] via-[#0B3B30] to-[#065F46] p-6 text-white shadow-lg sm:p-8">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
@@ -454,6 +456,50 @@ function splitAddress(a: string | null) {
   return m ? { street: m[1], postcode: m[2], town: m[3] } : { street: a || "", postcode: "", town: "" };
 }
 
+/** GDPR 9. gr.: informed consent for processing health data, with the full text one tap away. */
+function ConsentBox({ checked, onChange, error }: { checked: boolean; onChange: (v: boolean) => void; error?: string }) {
+  return (
+    <div className={`rounded-xl border p-3 text-sm ${error ? "border-red-300 bg-red-50" : "border-slate-200 bg-white"}`}>
+      <label className="flex cursor-pointer items-start gap-3">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#10B981]" />
+        <span className="text-slate-700">
+          Ég hef lesið <strong>upplýst samþykki fyrir heilsumat</strong> og samþykki að Lifeline Health vinni með heilsufarsupplýsingar mínar vegna heilsufarsskoðunarinnar. Ég get dregið samþykkið til baka hvenær sem er.
+        </span>
+      </label>
+      <details className="mt-2 pl-8">
+        <summary className="cursor-pointer text-xs font-semibold text-emerald-700">Lesa samþykkið í heild</summary>
+        <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-3 font-sans text-xs leading-relaxed text-slate-600">{renderHealthAssessmentConsent()}</pre>
+      </details>
+      {error && <p className="mt-2 pl-8 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+/** For people whose profile was done before consent was part of it. */
+function ConsentCard({ reload }: { reload: () => Promise<unknown> }) {
+  const [checked, setChecked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  return (
+    <section className="mb-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-amber-200">
+      <p className="font-bold text-slate-900">Eitt atriði vantar: samþykki</p>
+      <p className="mt-1 text-sm text-slate-600">Áður en við förum lengra þurfum við upplýst samþykki þitt fyrir vinnslu heilsufarsupplýsinga.</p>
+      <div className="mt-3"><ConsentBox checked={checked} onChange={setChecked} error={err || undefined} /></div>
+      <button type="button" disabled={!checked || busy}
+        onClick={async () => {
+          setBusy(true); setErr("");
+          const r = await api("/api/hc/profile", { method: "PUT", body: JSON.stringify({ accept_health_consent: true }) });
+          setBusy(false);
+          if (!r.ok) { setErr("Tókst ekki að vista. Reyndu aftur."); return; }
+          await reload();
+        }}
+        className="mt-3 rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+        {busy ? "Vistar…" : "Staðfesta samþykki"}
+      </button>
+    </section>
+  );
+}
+
 function ProfileForm({ data, reload }: { data: JourneyData; reload: () => Promise<void> }) {
   const addr = splitAddress(data.profile.address);
   const [f, setF] = useState({
@@ -464,6 +510,7 @@ function ProfileForm({ data, reload }: { data: JourneyData; reload: () => Promis
     town: addr.town,
     kennitala: "",
   });
+  const [consent, setConsent] = useState(!!data.profile.health_consent);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -471,7 +518,7 @@ function ProfileForm({ data, reload }: { data: JourneyData; reload: () => Promis
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setErrors({}); setSaved(false);
-    const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify(f) });
+    const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify({ ...f, accept_health_consent: consent }) });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
     if (!r.ok) { setErrors(j.errors || { form: j.error || "Vistun mistókst." }); return; }
@@ -504,6 +551,7 @@ function ProfileForm({ data, reload }: { data: JourneyData; reload: () => Promis
         {field("postcode", "Póstnúmer", { autoComplete: "postal-code", inputMode: "numeric", maxLength: 3 })}
         {field("town", "Bæjarfélag", { autoComplete: "address-level2" })}
       </div>
+      {!data.profile.health_consent && <ConsentBox checked={consent} onChange={setConsent} error={errors.consent} />}
       {errors.form && <p className="text-sm text-red-600">{errors.form}</p>}
       <div className="flex items-center gap-3">
         <button disabled={busy} className="rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
