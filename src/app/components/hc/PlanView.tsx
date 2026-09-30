@@ -6,10 +6,15 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { PILLARS, PILLAR_META, type ActionPlan, type ExerciseBlock, type ExerciseItem, type ExerciseSession, type Pillar, type PlanItem } from "@/lib/hc/types";
+import { PILLARS, PILLAR_META, type ActionPlan, type ExerciseBlock, type ExerciseItem, type ExerciseSession, type LectureRef, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
+import { DEFAULT_TRAINING, adaptExercise, isAdaptive, stageAt, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import TrainingControls from "./TrainingControls";
 
-type Tab = "overview" | "detail" | "exercise" | "nutrition";
+type Tab = "overview" | "detail" | "exercise" | "nutrition" | "lectures";
+
+/** Adaptive programme state: the settings, and a setter when they may be changed here. */
+export interface TrainingProp { settings: TrainingSettings; onChange?: (s: TrainingSettings) => void; saving?: boolean; who?: "participant" | "nurse" }
 
 // Spelled out by hand: browsers without Icelandic ICU data fall back to English.
 const MONTHS_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
@@ -22,8 +27,21 @@ const noopSubscribe = () => () => {};
 
 const LEVEL: Record<string, string> = { beginner: "Byrjandi", intermediate: "Miðlungs", advanced: "Lengra komin" };
 
-export default function PlanView({ plan, clientName, author }: { plan: ActionPlan; clientName?: string | null; author?: string | null }) {
+export default function PlanView({ plan: stored, clientName, author, training, lectures, lectureHref }: {
+  plan: ActionPlan;
+  clientName?: string | null;
+  author?: string | null;
+  training?: TrainingProp;
+  /** fræðsla attached to the plan */
+  lectures?: LectureRef[];
+  /** where a lecture card links; null = not a link (e.g. workstation preview) */
+  lectureHref?: (slug: string) => string | null;
+}) {
   const [tab, setTab] = useState<Tab>("overview");
+  // The adaptive programme stores no sessions: they come from the settings.
+  const adaptive = isAdaptive(stored.exercise?.key);
+  const tset = training?.settings ?? DEFAULT_TRAINING;
+  const plan: ActionPlan = adaptive && stored.exercise ? { ...stored, exercise: adaptExercise(stored.exercise, tset, stored.start_date) } : stored;
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const byPillar = (p: Pillar) => plan.modules.filter((m) => m.pillar === p);
   const tabs: { key: Tab; label: string; show: boolean }[] = [
@@ -31,6 +49,7 @@ export default function PlanView({ plan, clientName, author }: { plan: ActionPla
     { key: "detail", label: "Ítarlegt", show: true },
     { key: "exercise", label: "Hreyfing", show: !!plan.exercise?.sessions?.length },
     { key: "nutrition", label: "Næring", show: !!plan.nutrition },
+    { key: "lectures", label: "Fræðsla", show: !!lectures?.length },
   ];
 
   return (
@@ -76,7 +95,13 @@ export default function PlanView({ plan, clientName, author }: { plan: ActionPla
             ))}
           </div>
         )}
-        {tab === "exercise" && plan.exercise && <Exercise plan={plan} />}
+        {tab === "exercise" && plan.exercise && (
+          <div className="space-y-6">
+            {adaptive && <TrainingControls settings={tset} planStart={plan.start_date} onChange={training?.onChange} saving={training?.saving} who={training?.who} />}
+            <Exercise plan={plan} currentStage={adaptive ? stageAt(tset, plan.start_date).index : null} />
+          </div>
+        )}
+        {tab === "lectures" && !!lectures?.length && <Lectures lectures={lectures} href={lectureHref} />}
         {tab === "nutrition" && plan.nutrition && <Nutrition plan={plan} />}
       </div>
 
@@ -199,7 +224,49 @@ const WEEK = [
   { short: "Sun", full: "sunnudagur" },
 ];
 
-function Exercise({ plan }: { plan: ActionPlan }) {
+/** An exercise template on its own (workstation library): controls + sessions. */
+export function ProgramPreview({ exercise, training }: { exercise: NonNullable<ActionPlan["exercise"]>; training: TrainingProp }) {
+  const adaptive = isAdaptive(exercise.key);
+  const start = training.settings.started_on;
+  const plan = {
+    id: "preview", journey_id: "", client_id: "", template_key: null, headline: null, summary: null, goals: [], modules: [],
+    exercise: adaptive ? adaptExercise(exercise, training.settings, start) : exercise,
+    nutrition: null, nurse_note: null, start_date: start, review_date: null, status: "draft", published_at: null, version: 1, updated_at: "",
+  } satisfies ActionPlan;
+  return (
+    <div className="space-y-6">
+      {adaptive && <TrainingControls settings={training.settings} planStart={start} onChange={training.onChange} who="nurse" />}
+      <Exercise plan={plan} currentStage={adaptive ? stageAt(training.settings, start).index : null} />
+    </div>
+  );
+}
+
+const KIND_IS: Record<string, string> = { slides: "Glærur", video: "Myndband", article: "Grein" };
+
+function Lectures({ lectures, href }: { lectures: LectureRef[]; href?: (slug: string) => string | null }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {lectures.map((l) => {
+        const to = href?.(l.slug) ?? null;
+        const body = (
+          <>
+            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+              {KIND_IS[l.kind] ?? "Fræðsla"}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}
+            </p>
+            <p className="mt-1 text-lg font-bold leading-snug text-slate-900">{l.title}</p>
+            {l.subtitle && <p className="mt-1 text-sm text-slate-600">{l.subtitle}</p>}
+            {to && <p className="mt-3 text-sm font-semibold text-emerald-700">Opna fræðsluna →</p>}
+          </>
+        );
+        return to
+          ? <a key={l.slug} href={to} className="block rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 transition hover:ring-emerald-300">{body}</a>
+          : <div key={l.slug} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100">{body}</div>;
+      })}
+    </div>
+  );
+}
+
+function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStage?: number | null }) {
   const e = plan.exercise!;
   const dayIdx = (d: string) => WEEK.findIndex((w) => d.toLowerCase().startsWith(w.full.slice(0, 3)));
   const byDay = new Map<number, ExerciseSession>();
@@ -251,10 +318,11 @@ function Exercise({ plan }: { plan: ActionPlan }) {
 
       {!!e.progression?.length && (
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Næstu 12 vikur</h3>
-          <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">{currentStage !== null ? "Stigin" : "Næstu 12 vikur"}</h3>
+          <ol className={`mt-2 grid gap-2 ${e.progression.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
             {e.progression.map((p, i) => (
-              <li key={i} className="relative rounded-2xl bg-white p-4 shadow-sm ring-1 ring-orange-100">
+              <li key={i} className={`relative rounded-2xl bg-white p-4 shadow-sm ring-1 ${currentStage === i ? "ring-2 ring-orange-500" : "ring-orange-100"}`}>
+                {currentStage === i && <span className="absolute right-3 top-3 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Núna</span>}
                 <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-orange-500" style={{ opacity: 0.35 + (0.65 * (i + 1)) / e.progression!.length }} />
                 <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{p.weeks}</p>
                 <p className="mt-0.5 font-semibold text-slate-900">{p.title}</p>

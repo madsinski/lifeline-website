@@ -14,7 +14,8 @@ import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSign
 import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
-import type { ActionPlan } from "@/lib/hc/types";
+import type { ActionPlan, LectureRef } from "@/lib/hc/types";
+import { DEFAULT_TRAINING, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 
 type Tab = "today" | "plan" | "report" | "results";
@@ -43,6 +44,9 @@ function PlanPageInner() {
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
   const [name, setName] = useState<string | null>(null);
   const [tab, setTabState] = useState<Tab | null>(null);
+  const [lectures, setLectures] = useState<LectureRef[]>([]);
+  const [training, setTraining] = useState<TrainingSettings>(DEFAULT_TRAINING);
+  const [saving, setSaving] = useState(false);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data: s } = await supabase.auth.getSession();
@@ -66,6 +70,13 @@ function PlanPageInner() {
       const aj = await a.json().catch(() => ({}));
       const pj = await p.json().catch(() => ({}));
       setName(pj.client_name ?? null);
+      setLectures(pj.lectures ?? []);
+      const planKey = (aj.plan ?? pj.plan)?.exercise?.key;
+      if (isAdaptive(planKey)) {
+        const t = await api(`/api/hc/training${qs}`);
+        const tj = await t.json().catch(() => ({}));
+        if (t.ok && tj.settings) setTraining(tj.settings);
+      }
       const loaded = a.ok ? { journey_id: aj.journey_id, plan: aj.plan ?? pj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null } : null;
       setData(loaded);
       // Land on the plan when there is one, otherwise on the report.
@@ -74,6 +85,17 @@ function PlanPageInner() {
   }, [journey, router, api]);
 
   const plan = data?.plan ?? null;
+  // Save each change straight away; the page shows the new sessions at once.
+  const saveTraining = async (next: TrainingSettings) => {
+    const prev = training;
+    setTraining(next);
+    setSaving(true);
+    const qs = journey ? `?journey=${encodeURIComponent(journey)}` : "";
+    const r = await api(`/api/hc/training${qs}`, { method: "POST", body: JSON.stringify(next) });
+    const j = await r.json().catch(() => ({}));
+    setSaving(false);
+    if (r.ok && j.settings) setTraining(j.settings); else setTraining(prev);
+  };
   // The report often lands before the plan is written; show it either way.
   const hasSomething = !!plan || !!data?.report;
   const tabs: { key: Tab; label: string; show: boolean }[] = [
@@ -137,7 +159,11 @@ function PlanPageInner() {
                   <ResultSignals flagged={data.flagged} />
                 </div>
               )}
-              {tab === "plan" && plan && <PlanView plan={plan} clientName={name} author={plan.created_by ?? null} />}
+              {tab === "plan" && plan && (
+                <PlanView plan={plan} clientName={name} author={plan.created_by ?? null}
+                  training={{ settings: training, onChange: saveTraining, saving }}
+                  lectures={lectures} lectureHref={(slug) => `/account/heilsuferd/fraedsla/${slug}`} />
+              )}
             </div>
           </>
         )}

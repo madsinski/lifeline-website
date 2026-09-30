@@ -11,16 +11,18 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const actor = await getHcActor(req);
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const [modules, templates, exercise, nutrition] = await Promise.all([
+  const [modules, templates, exercise, nutrition, lectures] = await Promise.all([
     supabaseAdmin.from("hc_plan_modules").select("*").eq("active", true).order("pillar").order("sort"),
     supabaseAdmin.from("hc_plan_templates").select("*").eq("active", true).order("sort"),
     supabaseAdmin.from("hc_exercise_templates").select("*").eq("active", true).order("name"),
     supabaseAdmin.from("hc_nutrition_templates").select("*").eq("active", true).order("name"),
+    supabaseAdmin.from("hc_lectures").select("slug, title, subtitle, kind, duration_min, pillar").eq("published", true).order("sort"),
   ]);
   return NextResponse.json({
     modules: modules.data || [],
     templates: templates.data || [],
     exercise: exercise.data || [],
     nutrition: nutrition.data || [],
+    lectures: lectures.data || [],
   });
 }

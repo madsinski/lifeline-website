@@ -20,5 +20,11 @@ export async function GET(req: NextRequest) {
     .eq("status", "published")
     .maybeSingle();
   const profile = await getClientProfile(user.id);
-  return NextResponse.json({ plan, client_name: profile?.full_name ?? null });
+  // Fræðsla attached to the plan, in the order the nurse picked it.
+  const slugs: string[] = plan?.lecture_slugs ?? [];
+  const { data: lecs } = slugs.length
+    ? await supabaseAdmin.from("hc_lectures").select("slug, title, subtitle, kind, duration_min, pillar").in("slug", slugs).eq("published", true)
+    : { data: [] };
+  const lectures = slugs.map((s) => (lecs || []).find((l) => l.slug === s)).filter(Boolean);
+  return NextResponse.json({ plan, client_name: profile?.full_name ?? null, lectures });
 }

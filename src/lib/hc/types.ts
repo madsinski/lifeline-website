@@ -298,6 +298,8 @@ export interface PlanTemplate {
   exercise_template_key: string | null;
   nutrition_template_key: string | null;
   focus_pillars: Pillar[];
+  /** hc_lectures slugs that come with this template */
+  lecture_slugs?: string[];
   sort: number;
   active: boolean;
 }
@@ -331,6 +333,8 @@ export interface ActionPlan {
   exercise: Omit<ExerciseTemplate, "active"> | null;
   nutrition: Omit<NutritionTemplate, "active"> | null;
   nurse_note: string | null;
+  /** Fræðsla (hc_lectures slugs) attached to the plan. */
+  lecture_slugs?: string[];
   start_date: string | null;
   review_date: string | null;
   status: "draft" | "published";
@@ -346,6 +350,18 @@ export interface PlanLibrary {
   templates: PlanTemplate[];
   exercise: ExerciseTemplate[];
   nutrition: NutritionTemplate[];
+  /** published lectures that can be attached to a plan */
+  lectures?: LectureRef[];
+}
+
+/** A lecture as a plan refers to it (no slides). */
+export interface LectureRef {
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  kind: HcLecture["kind"];
+  duration_min: number | null;
+  pillar: HcLecture["pillar"];
 }
 
 export const formatIsk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;

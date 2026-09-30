@@ -24,6 +24,7 @@ import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import WeekCalendar from "@/app/components/hc/WeekCalendar";
 import ClientsView from "@/app/components/hc/ClientsView";
+import TeachingLibrary from "@/app/components/hc/TeachingLibrary";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
@@ -87,7 +88,7 @@ interface Detail {
 }
 /** The workstation is either on the home screen or on one client. */
 /** The three places on the home side, plus a client's workspace. */
-type HomeTab = "today" | "calendar" | "clients";
+type HomeTab = "today" | "calendar" | "clients" | "teaching";
 type View = { home: HomeTab } | { patient: string; compose?: boolean };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -222,7 +223,7 @@ export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
 
 // ── Shell ───────────────────────────────────────────────────────────────────
 
-const HOME_TABS: HomeTab[] = ["today", "calendar", "clients"];
+const HOME_TABS: HomeTab[] = ["today", "calendar", "clients", "teaching"];
 const isHomeTab = (v: unknown): v is HomeTab => typeof v === "string" && (HOME_TABS as string[]).includes(v);
 
 function readView(): View {
@@ -303,11 +304,11 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                 onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: "today" }))} onChanged={load} />
             : (
               <div className="space-y-4">
-                <nav className="flex rounded-xl bg-white p-1 ring-1 ring-slate-200" aria-label="Vinnustöðin">
-                  {([["today", "Í dag"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"]] as const).map(([k, label]) => (
+                <nav className="flex overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-slate-200" aria-label="Vinnustöðin">
+                  {([["today", "Í dag"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla og þjálfun"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
-                      className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
                         view.home === k ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
                       {label}
                     </button>
@@ -318,6 +319,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                   <WeekCalendar api={api} onOpenClient={(id) => open(id)} onConnect={() => setShowCal(true)} />
                 )}
                 {view.home === "clients" && <ClientsView api={api} onOpenClient={(id) => open(id)} />}
+                {view.home === "teaching" && <TeachingLibrary api={api} />}
               </div>
             )}
       </main>

@@ -36,7 +36,7 @@ function exerciseItem(it: Record<string, unknown>): ExerciseItem {
 const date = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
 export type PlanDraft = Pick<ActionPlan,
-  "template_key" | "headline" | "summary" | "goals" | "modules" | "exercise" | "nutrition" | "nurse_note" | "start_date" | "review_date">;
+  "template_key" | "headline" | "summary" | "goals" | "modules" | "exercise" | "nutrition" | "nurse_note" | "start_date" | "review_date"> & { lecture_slugs: string[] };
 
 export function sanitizePlan(b: Record<string, unknown>): PlanDraft {
   const goals: PlanGoal[] = (Array.isArray(b.goals) ? b.goals : [])
@@ -129,6 +129,7 @@ export function sanitizePlan(b: Record<string, unknown>): PlanDraft {
     exercise,
     nutrition,
     nurse_note: str(b.nurse_note, 4000),
+    lecture_slugs: [...new Set(strs(b.lecture_slugs, 10, 120).filter((x) => /^[a-z0-9-]+$/.test(x)))],
     start_date: date(b.start_date),
     review_date: date(b.review_date),
   };

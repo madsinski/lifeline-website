@@ -12,6 +12,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 import PlanView from "./PlanView";
+import TrainingControls from "./TrainingControls";
+import { DEFAULT_TRAINING, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
 import AiProposalPanel, { type ProposedAction } from "./AiProposalPanel";
@@ -32,6 +34,7 @@ type Draft = {
   exercise: ActionPlan["exercise"];
   nutrition: ActionPlan["nutrition"];
   nurse_note: string;
+  lecture_slugs: string[];
   start_date: string;
   review_date: string;
 };
@@ -155,6 +158,17 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   const [filter, setFilter] = useState<Pillar | "all">("all");
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState(false);
+  // The preview shows the adaptive programme with the participant's own settings.
+  const [previewTraining, setPreviewTraining] = useState<TrainingSettings | null>(null);
+  const adaptiveKey = draft?.exercise?.key;
+  useEffect(() => {
+    if (!preview || !isAdaptive(adaptiveKey)) return;
+    (async () => {
+      const r = await api(`/api/vinnustod/journeys/${journeyId}/training`);
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.settings) setPreviewTraining(j.settings);
+    })();
+  }, [preview, adaptiveKey, api, journeyId]);
   const [step, setStep] = useState(0);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
@@ -178,11 +192,12 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
         exercise: plan.exercise,
         nutrition: plan.nutrition,
         nurse_note: plan.nurse_note ?? "",
+        lecture_slugs: plan.lecture_slugs ?? [],
         start_date: plan.start_date ?? today(),
         review_date: plan.review_date ?? plus(91),
       } : {
         template_key: null, headline: seed?.headline ?? "", summary: seed?.summary ?? "", goals: seed?.goals ?? [], modules: [], exercise: null, nutrition: null,
-        nurse_note: "", start_date: today(), review_date: plus(91),
+        nurse_note: "", lecture_slugs: [], start_date: today(), review_date: plus(91),
       });
       if (!plan && (seed?.summary || seed?.goals?.length)) setDirty(true);
     })();
@@ -230,6 +245,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       modules: mods.map(fromModule),
       exercise: ex ? stripActive(ex) : draft.exercise,
       nutrition: nu ? stripActive(nu) : draft.nutrition,
+      lecture_slugs: t.lecture_slugs?.length ? t.lecture_slugs : draft.lecture_slugs,
     });
   };
 
@@ -331,7 +347,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       id: "preview", journey_id: journeyId, client_id: "", template_key: draft.template_key,
       headline: draft.headline || null, summary: draft.summary || null, goals: draft.goals, modules: draft.modules,
       exercise: draft.exercise, nutrition: draft.nutrition, nurse_note: draft.nurse_note || null,
-      start_date: draft.start_date, review_date: draft.review_date, status: "draft", published_at: null, version: 1, updated_at: "",
+      lecture_slugs: draft.lecture_slugs, start_date: draft.start_date, review_date: draft.review_date, status: "draft", published_at: null, version: 1, updated_at: "",
     };
     return (
       <div>
@@ -339,7 +355,9 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           <span>Forskoðun: svona sér skjólstæðingurinn áætlunina.</span>
           <button onClick={() => setPreview(false)} className="rounded-full bg-white px-4 py-1.5 font-semibold ring-1 ring-amber-200">Til baka í ritil</button>
         </div>
-        <PlanView plan={asPlan} clientName={clientName} author={author} />
+        <PlanView plan={asPlan} clientName={clientName} author={author}
+          lectures={draft.lecture_slugs.map((k) => lib.lectures?.find((l) => l.slug === k)).filter((l): l is NonNullable<typeof l> => !!l)}
+          training={previewTraining ? { settings: previewTraining } : undefined} />
       </div>
     );
   }
@@ -535,6 +553,27 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
 
       {step === 4 && (
         <div className="space-y-4">
+          {!!lib.lectures?.length && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+              <p className="font-semibold text-slate-700">Fræðsla</p>
+              <p className="text-xs text-slate-500">Birtist undir „Fræðsla“ í áætlun skjólstæðings.</p>
+              <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                {lib.lectures.map((l) => {
+                  const on = draft.lecture_slugs.includes(l.slug);
+                  return (
+                    <label key={l.slug} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 ring-1 ${on ? "bg-emerald-50 ring-emerald-300" : "ring-slate-200 hover:bg-slate-50"}`}>
+                      <input type="checkbox" className="mt-1" checked={on}
+                        onChange={(e) => update({ lecture_slugs: e.target.checked ? [...draft.lecture_slugs, l.slug] : draft.lecture_slugs.filter((x) => x !== l.slug) })} />
+                      <span>
+                        <span className="block font-medium text-slate-800">{l.title}</span>
+                        {l.subtitle && <span className="block text-xs text-slate-500">{l.subtitle}</span>}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <label className="block rounded-2xl border border-slate-200 bg-white p-4 text-sm">
             <span className="font-semibold text-slate-700">Skilaboð til skjólstæðings</span>
             <textarea value={draft.nurse_note} onChange={(e) => update({ nurse_note: e.target.value })} rows={4} placeholder="Birtist efst á yfirlitinu." className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
@@ -542,7 +581,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="font-bold text-[#0F172A]">Tilbúið?</p>
             <p className="mt-0.5 text-sm text-slate-600">
-              {draft.modules.length} aðgerðir · {draft.exercise ? "æfingaáætlun" : "engin æfingaáætlun"} · {draft.nutrition ? "næringaráætlun" : "engin næringaráætlun"}
+              {draft.modules.length} aðgerðir · {draft.exercise ? "æfingaáætlun" : "engin æfingaáætlun"} · {draft.nutrition ? "næringaráætlun" : "engin næringaráætlun"} · {draft.lecture_slugs.length ? `${draft.lecture_slugs.length} fræðsla` : "engin fræðsla"}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
@@ -625,6 +664,35 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
   );
 }
 
+/** The participant's training settings, edited by the nurse (same row the participant edits). */
+function AdaptiveSettings({ api, journeyId }: { api: Api; journeyId: string }) {
+  const [s, setS] = useState<TrainingSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      const r = await api(`/api/vinnustod/journeys/${journeyId}/training`);
+      const j = await r.json().catch(() => ({}));
+      setS(r.ok && j.settings ? j.settings : DEFAULT_TRAINING);
+    })();
+  }, [api, journeyId]);
+  if (!s) return <p className="text-sm text-slate-400">Hleð stillingum…</p>;
+  const change = async (next: TrainingSettings) => {
+    const prev = s;
+    setS(next); setSaving(true); setErr(null);
+    const r = await api(`/api/vinnustod/journeys/${journeyId}/training`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
+    const j = await r.json().catch(() => ({}));
+    setSaving(false);
+    if (r.ok && j.settings) setS(j.settings); else { setS(prev); setErr("Gat ekki vistað stillingarnar."); }
+  };
+  return (
+    <div>
+      <TrainingControls settings={s} planStart={s.started_on} onChange={change} saving={saving} who="nurse" />
+      {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
+    </div>
+  );
+}
+
 function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
   value: ActionPlan["exercise"];
   templates: ExerciseTemplate[];
@@ -651,7 +719,16 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
           {value && !templates.some((t) => t.key === value.key) && <option value={value.key}>{value.name} (sérsniðin)</option>}
         </select>
       </div>
-      {value && (
+      {value && isAdaptive(value.key) && (
+        <div className="mt-3 space-y-3">
+          <p className="text-sm text-slate-600">
+            Þessi áætlun lagar sig að skjólstæðingnum: byrjunarstigi (aðlögun eða beint á stig 1), álagi og meiðslum.
+            Skjólstæðingurinn getur líka breytt stillingunum sjálf/ur í áætluninni sinni.
+          </p>
+          <AdaptiveSettings api={api} journeyId={journeyId} />
+        </div>
+      )}
+      {value && !isAdaptive(value.key) && (
         <div className="mt-3 space-y-3">
           <p className="text-xs text-slate-500">
             Æfingar úr æfingasafninu fylgja með mynd, myndbandi og leiðbeiningum. Skiptu um æfingu ef eitthvað hentar ekki, t.d. vegna verkja eða búnaðar.
