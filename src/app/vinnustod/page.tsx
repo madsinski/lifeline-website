@@ -94,7 +94,7 @@ interface Detail {
 /** The workstation is either on the home screen or on one client. */
 /** The three places on the home side, plus a client's workspace. */
 type HomeTab = "today" | "calendar" | "clients" | "teaching";
-type View = { home: HomeTab } | { patient: string; compose?: boolean };
+type View = { home: HomeTab } | { patient: string; compose?: boolean; step?: string };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -309,7 +309,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
 
   const logout = async () => { await ws("/api/vinnustod/auth/logout", { method: "POST" }); onLogout(); };
   useKnowledgeHotkey(() => setShowBook(true));
-  const open = (id: string, compose = false) => setView({ patient: id, compose });
+  const open = (id: string, compose = false, step?: string) => setView({ patient: id, compose, step });
 
   const menu: WsMenuItem[] = [
     { label: "Fletta upp", icon: "book", hint: "⌘K", onClick: () => setShowBook(true) },
@@ -327,7 +327,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
           : "patient" in view
-            ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} me={me}
+            ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} step={view.step} me={me}
                 onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: "today" }))} onChanged={load} />
             : (
               <div className="space-y-4">
@@ -361,7 +361,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
 
 // ── Heim: skýrsla inn, leit, dagurinn, það sem bíður ───────────────────────
 
-function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean) => void; onChanged: () => void }) {
+function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean, step?: string) => void; onChanged: () => void }) {
   const api = useWsApi();
   const [q, setQ] = useState("");
   const [showAll, setShowAll] = useState(false);
@@ -501,7 +501,7 @@ function SearchHit({ r, t, f, onOpen }: { r: Row; t: Task; f: RowFlags; onOpen: 
 
 /** One thing waiting on the nurse: who, what, and the single next action. */
 function WaitingRow({ r, t, f, onOpen }: {
-  r: Row; t: Task; f: RowFlags; onOpen: (id: string, compose?: boolean) => void; onChanged: () => void;
+  r: Row; t: Task; f: RowFlags; onOpen: (id: string, compose?: boolean, step?: string) => void; onChanged: () => void;
 }) {
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -515,7 +515,7 @@ function WaitingRow({ r, t, f, onOpen }: {
           </span>
         </span>
       </button>
-      <button type="button" onClick={() => onOpen(r.id)} className={`${btnPrimary} min-h-9 px-3 text-xs`}>{t.cta}</button>
+      <button type="button" onClick={() => onOpen(r.id, t.key === "nudge")} className={`${btnPrimary} min-h-9 px-3 text-xs`}>{t.cta}</button>
     </li>
   );
 }
@@ -560,7 +560,7 @@ const SORTS = [
   { key: "name", label: "Nafn" },
 ] as const;
 
-function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean) => void }) {
+function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean, step?: string) => void }) {
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("all");
   const [mine, setMine] = useState(false);
@@ -658,7 +658,7 @@ function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor
 
 /** One client: the line a nurse scans, and the detail underneath it. */
 function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
-  r: Row; t: Task; f: RowFlags; expanded: boolean; onToggle: () => void; onOpen: (id: string, compose?: boolean) => void;
+  r: Row; t: Task; f: RowFlags; expanded: boolean; onToggle: () => void; onOpen: (id: string, compose?: boolean, step?: string) => void;
 }) {
   const name = cleanName(r.client_name);
   const planChip = r.plan_published_at ? { text: "Áætlun birt", cls: "bg-emerald-50 text-emerald-700" }
@@ -697,15 +697,15 @@ function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
           <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 sm:inline">{STAGE_TEXT[r.stage] ?? r.stage}</span>
           <ChevronRight className={`h-5 w-5 shrink-0 text-slate-300 transition ${expanded ? "rotate-90" : ""}`} />
         </button>
-        <button type="button" onClick={() => onOpen(r.id)} className={`${btnPrimary} hidden min-h-9 px-3 text-xs sm:inline-flex`}>{t.cta}</button>
+        <button type="button" onClick={() => onOpen(r.id, t.key === "nudge")} className={`${btnPrimary} hidden min-h-9 px-3 text-xs sm:inline-flex`}>{t.cta}</button>
       </div>
 
       {expanded && (
         <div className="space-y-4 border-t border-slate-200 bg-white px-4 py-4">
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => onOpen(r.id)} className={`${btnDark} min-h-9 px-3 text-xs`}>Opna skjólstæðing</button>
-            <button type="button" onClick={() => onOpen(r.id)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><ClipboardList className="h-4 w-4" /> Viðtal</button>
-            <button type="button" onClick={() => onOpen(r.id)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><FileCheck2 className="h-4 w-4" /> Áætlun</button>
+            <button type="button" onClick={() => onOpen(r.id, false, "interview")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><ClipboardList className="h-4 w-4" /> Viðtal</button>
+            <button type="button" onClick={() => onOpen(r.id, false, "plan")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><FileCheck2 className="h-4 w-4" /> Áætlun</button>
             <button type="button" onClick={() => onOpen(r.id, true)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Bell className="h-4 w-4" /> Skilaboð</button>
             {r.client_phone && <a href={`tel:${r.client_phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {r.client_phone}</a>}
             {planChip && <span className={`ml-auto self-center rounded-full px-2.5 py-1 text-xs font-semibold ${planChip.cls}`}>{planChip.text}</span>}
@@ -732,15 +732,15 @@ function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
 
 // ── Client page ─────────────────────────────────────────────────────────────
 
-function PatientView({ id, compose, me, onBack, onChanged }: {
-  id: string; compose: boolean; me: Me; onBack: () => void; onChanged: () => void;
+function PatientView({ id, compose, step, me, onBack, onChanged }: {
+  id: string; compose: boolean; step?: string; me: Me; onBack: () => void; onChanged: () => void;
 }) {
   const api = useWsApi();
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
-  const [openStep, setOpenStep] = useState<string | null>(null);
+  const [openStep, setOpenStep] = useState<string | null>(step ?? null);
   const [sheet, setSheet] = useState<"messages" | "referral" | "orders" | "history" | null>(null);
-  const [touched, setTouched] = useState(false);
+  const [touched, setTouched] = useState(!!step);
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
   const load = useCallback(async () => {
