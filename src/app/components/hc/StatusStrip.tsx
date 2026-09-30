@@ -51,7 +51,8 @@ export default function StatusStrip({ steps, onOpen }: {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         {/* The line itself. Scrolls sideways on a phone rather than wrapping
             into something that no longer reads as a sequence. */}
-        <ol className="-mx-1 flex min-w-0 flex-1 items-start gap-0 overflow-x-auto px-1 pb-1">
+        {/* A fade at the right edge on small screens says "there is more". */}
+        <ol className="-mx-1 flex min-w-0 flex-1 items-start gap-0 overflow-x-auto px-1 pb-1 [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none]">
           {steps.map((s, i) => (
             <li key={`${s.key}-${i}`} className="flex min-w-0 shrink-0 items-start lg:flex-1">
               {/* The button takes the width and the connector is fixed. They
