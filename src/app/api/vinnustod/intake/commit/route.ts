@@ -129,12 +129,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Skjólstæðingurinn er ekki á þínu svæði." }, { status: 403 });
   }
 
-  // Having the report means the tests are done and the report exists.
+  // Having the report means the tests are done and the report is in. It is
+  // not confirmed: that is the doctor's (report_generated_at).
   const measuredAt = /^\d{4}-\d{2}-\d{2}$/.test(String(body.measured_at)) ? `${body.measured_at}T09:00:00.000Z` : new Date().toISOString();
   const patch: Record<string, string> = {};
   if (!journey.blood_results_at && !journey.blood_test_done_at) patch.blood_results_at = measuredAt;
   if (!journey.measurements_done_at) patch.measurements_done_at = measuredAt;
-  if (!journey.report_generated_at) patch.report_generated_at = new Date().toISOString();
+  if (!journey.report_imported_at) patch.report_imported_at = new Date().toISOString();
   if (Object.keys(patch).length) await patchJourney(journey.id, patch, actor.label, "report_intake");
 
   // Store the values the nurse kept.

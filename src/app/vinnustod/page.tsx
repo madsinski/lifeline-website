@@ -52,7 +52,7 @@ interface Row {
   paid_at: string | null; protocol_activated_at: string | null;
   blood_test_booked_for: string | null; blood_test_done_at: string | null; blood_results_at: string | null;
   measurements_booked_for: string | null; measurements_done_at: string | null;
-  report_generated_at: string | null; report_sms_sent_at: string | null;
+  report_generated_at: string | null; report_sms_sent_at: string | null; report_imported_at?: string | null;
   interview_booked_for: string | null; interview_mode: string | null; interviewer_id: string | null; interview_done_at: string | null;
   meeting_url: string | null; followup_mode?: string | null; followup_meeting_url?: string | null;
   plan_published_at: string | null; followup_booked_for: string | null; followup_done_at: string | null;
@@ -159,6 +159,9 @@ type Task = { key: string; label: string; cta: string; tone: "urgent" | "normal"
 function nextTask(r: Row | Journey, isDoctor: boolean): Task {
   if (isDoctor && r.doctor_review_requested_at && !r.doctor_reviewed_at)
     return { key: "review", label: "Beiðni um mat læknis", cta: "Meta", tone: "urgent", doctorOnly: true };
+  // An imported report waits for a doctor, whatever else is going on.
+  if (isDoctor && r.report_imported_at && !r.report_generated_at)
+    return { key: "report", label: "Innflutt skýrsla bíður staðfestingar", cta: "Staðfesta", tone: "urgent", doctorOnly: true };
   switch (r.stage) {
     case "protocol": return { key: "activate", label: "Hefur ekki virkjað í gátt", cta: "Senda áminningu", tone: "waiting" };
     case "tests": {
@@ -1033,12 +1036,12 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged, onJump }: {
       key: "interview",
       title: "Viðtal",
       icon: <MessageSquare className="h-4 w-4" />,
-      state: j.interview_done_at ? "done" : j.interview_booked_for ? "current" : j.report_generated_at ? "current" : "upcoming",
+      state: j.interview_done_at ? "done" : j.interview_booked_for ? "current" : j.report_generated_at || j.report_imported_at ? "current" : "upcoming",
       status: j.interview_done_at
         ? `Lokið ${day(j.interview_done_at)}`
         : j.interview_booked_for
           ? `${dayTime(j.interview_booked_for)}${j.interview_mode === "video" ? " · myndsímtal" : ""}`
-          : j.report_generated_at ? "Ekki bókað — hafðu samband og finndu tíma" : "Bókast þegar skýrslan er staðfest",
+          : j.report_generated_at || j.report_imported_at ? "Ekki bókað — hafðu samband og finndu tíma" : "Bókast þegar skýrslan er komin",
       body: <InterviewStep d={d} isDoctor={isDoctor} record={record} onPlan={() => onJump("plan")} />,
     },
     {
@@ -1129,7 +1132,7 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
       </div>
     );
   }
-  if (!j.blood_results_at) return <p className="text-sm text-slate-500">Skýrslan er staðfest þegar blóðprufusvörin eru komin.</p>;
+  if (!j.blood_results_at && !j.report_imported_at) return <p className="text-sm text-slate-500">Skýrslan er staðfest þegar blóðprufusvörin eru komin.</p>;
   return (
     <div className="space-y-2">
       {isDoctor ? (
@@ -1140,7 +1143,9 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
         </>
       ) : (
         <p className="text-sm text-amber-800">
-          Svörin komu fyrir {minutesSince(j.blood_results_at)} mínútum. Læknir fær SMS ef skýrslan er ekki staðfest innan fimm mínútna.
+          {j.report_imported_at
+            ? "Skýrslan er komin inn og bíður staðfestingar læknis. Þú getur bókað og undirbúið viðtalið; skjólstæðingurinn sér skýrsluna þegar læknir hefur staðfest hana."
+            : `Svörin komu fyrir ${minutesSince(j.blood_results_at)} mínútum. Læknir fær SMS ef skýrslan er ekki staðfest innan fimm mínútna.`}
         </p>
       )}
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
@@ -1160,7 +1165,7 @@ function InterviewStep({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: b
   return (
     <div className="space-y-4">
       <Booking label="Viðtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode} meetingUrl={j.meeting_url}
-        disabled={!j.report_generated_at} disabledText="Hægt að bóka þegar skýrsla er staðfest."
+        disabled={!j.report_generated_at && !j.report_imported_at} disabledText="Hægt að bóka þegar skýrslan er komin inn."
         onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
       {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} />}
@@ -1581,8 +1586,8 @@ function Interview({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boole
     return !e;
   };
 
-  if (!j.report_generated_at) {
-    return <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">Viðtalið opnast þegar læknir hefur staðfest skýrsluna.</p>;
+  if (!j.report_generated_at && !j.report_imported_at) {
+    return <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">Viðtalið opnast þegar skýrslan er komin inn.</p>;
   }
 
   return (

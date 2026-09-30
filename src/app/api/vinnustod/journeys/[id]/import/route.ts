@@ -108,9 +108,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       });
       await supabaseAdmin
         .from("hc_journeys")
-        .update({ report_generated_at: new Date().toISOString() })
+        .update({ report_imported_at: new Date().toISOString() })
         .eq("id", journey.id)
-        .is("report_generated_at", null);
+        .is("report_imported_at", null);
     
       // The report is in; start thinking about the plan now.
       proposeInBackground(journey.id, actor.label);

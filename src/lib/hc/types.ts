@@ -59,6 +59,8 @@ export interface HcJourney {
   measurements_done_at: string | null;
   blood_results_at: string | null;
   report_generated_at: string | null;
+  /** Parsed report is in (import); report_generated_at = a doctor confirmed it. */
+  report_imported_at?: string | null;
   report_generated_by: string | null;
   report_sms_sent_at: string | null;
   interview_booked_for: string | null;

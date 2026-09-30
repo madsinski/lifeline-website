@@ -21,7 +21,7 @@ export const runtime = "nodejs";
 
 /** The journey, only if it belongs to this user. */
 async function ownJourney(userId: string, journeyId: string | null) {
-  const q = supabaseAdmin.from("hc_journeys").select("id, client_id").eq("client_id", userId);
+  const q = supabaseAdmin.from("hc_journeys").select("id, client_id, report_generated_at").eq("client_id", userId);
   const { data } = journeyId
     ? await q.eq("id", journeyId).maybeSingle()
     : await q.is("cancelled_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -45,8 +45,9 @@ export async function GET(req: NextRequest) {
   ]);
 
   const rows = (results || []).map((r) => ({ marker: r.marker, value: Number(r.value), unit: r.unit }));
-  const flagged = trafficLights(rows, (entries || []) as KnowledgeEntry[], sexOf(profile?.sex));
-  const report = await loadReport(journey.id, user.id);
+  const flagged = journey.report_generated_at ? trafficLights(rows, (entries || []) as KnowledgeEntry[], sexOf(profile?.sex)) : [];
+  // The client sees the report once a doctor has confirmed it.
+  const report = journey.report_generated_at ? await loadReport(journey.id, user.id) : null;
 
   return NextResponse.json({
     journey_id: journey.id,

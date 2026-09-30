@@ -56,7 +56,9 @@ function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string
       const all = [j.protocol_activated_at, blood, j.measurements_done_at];
       return all.every(Boolean) ? all.filter((x): x is string => !!x).sort().at(-1)! : null;
     }
-    case "report": return j.report_generated_at;
+    // For the journey, the report is there once it is in; the doctor's
+    // confirmation is tracked on its own (report_generated_at).
+    case "report": return j.report_generated_at ?? j.report_imported_at ?? null;
     case "interview": return j.interview_done_at;
     case "plan": return j.plan_published_at;
     case "followup": return j.followup_done_at;
@@ -157,11 +159,12 @@ export function stageFor(j: HcJourney, profileComplete: boolean): string {
   // clinical milestones before the customer-only steps are done. The
   // workstation works from the clinical side, so that wins; otherwise the
   // client sits in "profile" for ever and never reaches the to-do list.
-  if (CUSTOMER_ONLY.has(current.key) && (j.report_generated_at || j.blood_results_at || j.measurements_done_at || j.interview_booked_for || j.plan_published_at)) {
+  const reportIn = j.report_generated_at || j.report_imported_at;
+  if (CUSTOMER_ONLY.has(current.key) && (reportIn || j.blood_results_at || j.measurements_done_at || j.interview_booked_for || j.plan_published_at)) {
     if (!(j.blood_test_done_at || j.blood_results_at) || !j.measurements_done_at) {
-      if (!j.report_generated_at && !j.interview_booked_for && !j.plan_published_at) return "tests";
+      if (!reportIn && !j.interview_booked_for && !j.plan_published_at) return "tests";
     }
-    if (!j.report_generated_at && !j.plan_published_at) return "report";
+    if (!reportIn && !j.plan_published_at) return "report";
     if (!j.interview_done_at && !j.plan_published_at) return "interview";
     if (!j.plan_published_at) return "plan";
     return "action";
