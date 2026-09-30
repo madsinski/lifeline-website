@@ -65,6 +65,9 @@ export interface HcJourney {
   interview_mode: "in_person" | "video" | null;
   /** Video-call link for the interview or follow-up (Meet, Teams, Zoom). */
   meeting_url: string | null;
+  /** The follow-up's own mode and link (migration-hc-followup-video.sql). */
+  followup_mode?: "in_person" | "video" | null;
+  followup_meeting_url?: string | null;
   interviewer_id: string | null;
   interview_done_at: string | null;
   referral_to_heilsugaesla: boolean;

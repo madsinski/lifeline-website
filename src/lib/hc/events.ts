@@ -35,7 +35,8 @@ export async function applyJourneyEvent(
       patch.interview_booked_for = at;
       patch.interview_mode = opts.mode ?? "in_person";
       if (opts.interviewerId) patch.interviewer_id = opts.interviewerId;
-      // A video appointment carries its link; switching to in person clears it.
+      // A video appointment keeps its link unless a new one is given (null
+      // clears it so Google mints a fresh one); in person drops it.
       if (opts.mode === "video") { if (opts.meetingUrl !== undefined) patch.meeting_url = opts.meetingUrl; }
       else patch.meeting_url = null;
       break;
@@ -50,7 +51,10 @@ export async function applyJourneyEvent(
       break;
     case "followup_booked":
       patch.followup_booked_for = at;
-      if (opts.mode === "video" && opts.meetingUrl !== undefined) patch.meeting_url = opts.meetingUrl;
+      patch.followup_mode = opts.mode ?? journey.followup_mode ?? journey.interview_mode ?? "in_person";
+      if (patch.followup_mode === "video") { if (opts.meetingUrl !== undefined) patch.followup_meeting_url = opts.meetingUrl; }
+      else patch.followup_meeting_url = null;
+      if (opts.interviewerId && !journey.interviewer_id) patch.interviewer_id = opts.interviewerId;
       break;
     case "followup_done": patch.followup_done_at = at; break;
   }
@@ -59,9 +63,35 @@ export async function applyJourneyEvent(
   return updated;
 }
 
+const WD = ["sunnudaginn", "mánudaginn", "þriðjudaginn", "miðvikudaginn", "fimmtudaginn", "föstudaginn", "laugardaginn"];
+const MO = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+/** "fimmtudaginn 2. október kl. 10:30" in Iceland's time zone (UTC, no DST). Written by hand. */
+export function whenIs(iso: string): string {
+  const d = new Date(iso);
+  return `${WD[d.getUTCDay()]} ${d.getUTCDate()}. ${MO[d.getUTCMonth()]} kl. ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+}
+
+function bookingMessage(j: HcJourney, kind: "interview" | "followup"): { title: string; body: string } | null {
+  const at = kind === "interview" ? j.interview_booked_for : j.followup_booked_for;
+  if (!at || new Date(at).getTime() < Date.now()) return null;
+  const video = (kind === "interview" ? j.interview_mode : j.followup_mode) === "video";
+  const link = kind === "interview" ? j.meeting_url : j.followup_meeting_url;
+  const what = kind === "interview" ? "Viðtalið þitt við hjúkrunarfræðing" : "Eftirfylgdarviðtalið þitt";
+  return {
+    title: kind === "interview" ? "Viðtalið þitt er bókað" : "Eftirfylgdarviðtal bókað",
+    body: `${what} er ${whenIs(at)}. ` + (video
+      ? (link
+        ? `Það fer fram í myndsímtali. Þú tengist með hlekknum á heilsuferðinni þinni eða beint: ${link}`
+        : "Það fer fram í myndsímtali. Hlekkurinn birtist á heilsuferðinni þinni fyrir viðtalið.")
+      : "Það fer fram á staðnum. Heimilisfangið er á heilsuferðinni þinni."),
+  };
+}
+
 /** Nudges the customer when the next step is theirs. Best effort. */
 async function notifyClient(j: HcJourney, event: JourneyEvent, origin = "https://www.lifelinehealth.is") {
-  const messages: Partial<Record<JourneyEvent, { title: string; body: string }>> = {
+  const messages: Partial<Record<JourneyEvent, { title: string; body: string } | null>> = {
+    interview_booked: bookingMessage(j, "interview"),
+    followup_booked: bookingMessage(j, "followup"),
     report_generated: {
       title: "Skýrslan þín er tilbúin",
       body: "Læknir hefur staðfest skýrsluna þína. Næsta skref er viðtal við hjúkrunarfræðing þar sem þið farið yfir niðurstöðurnar og gerið áætlun. Bókaðu viðtalið í sjúklingagáttinni.",

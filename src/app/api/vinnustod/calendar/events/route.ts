@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabaseAdmin
     .from("hc_journeys")
-    .select("id, client_id, location_id, interviewer_id, measurements_booked_for, measurements_done_at, interview_booked_for, interview_mode, interview_done_at, meeting_url, followup_booked_for, followup_done_at")
+    .select("id, client_id, location_id, interviewer_id, measurements_booked_for, measurements_done_at, interview_booked_for, interview_mode, interview_done_at, meeting_url, followup_booked_for, followup_done_at, followup_mode, followup_meeting_url")
     .is("cancelled_at", null)
     .or(Object.values(FIELD).map((f) => `${f.at}.gte.${from}`).join(","))
     .limit(600);
@@ -88,8 +88,8 @@ export async function GET(req: NextRequest) {
         minutes: APPT_MINUTES[kind],
         done: !!row[FIELD[kind].done],
         mine,
-        mode: kind === "interview" ? r.interview_mode : null,
-        meeting_url: kind === "interview" ? r.meeting_url : null,
+        mode: kind === "interview" ? r.interview_mode : kind === "followup" ? r.followup_mode ?? null : null,
+        meeting_url: kind === "interview" ? r.meeting_url : kind === "followup" ? r.followup_meeting_url ?? null : null,
         location: r.location_id ? place.get(r.location_id) ?? null : null,
       });
     }

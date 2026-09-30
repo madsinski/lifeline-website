@@ -215,6 +215,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
   const [q, setQ] = useState("");
   const [all, setAll] = useState<Candidate[]>([]);
   const [kind, setKind] = useState<ApptKind>("interview");
+  const [mode, setMode] = useState<"video" | "in_person">("video");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -241,7 +242,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
     setBusy(true); setMsg("");
     const r = await api(`/api/vinnustod/journeys/${c.journey_id}`, {
       method: "POST",
-      body: JSON.stringify({ event: APPT_EVENT[kind], at, mode: kind === "measure" ? "in_person" : "video" }),
+      body: JSON.stringify({ event: APPT_EVENT[kind], at, mode: kind === "measure" ? "in_person" : mode }),
     });
     setBusy(false);
     if (!r.ok) { const j = await r.json().catch(() => ({})); setMsg(j.error || "Tókst ekki að bóka."); return; }
@@ -265,6 +266,17 @@ function BookDialog({ api, at, onClose, onBooked }: {
             </button>
           ))}
         </div>
+
+        {kind !== "measure" && (
+          <div className="mt-2 flex gap-1" role="group" aria-label="Hvar fer viðtalið fram">
+            {([["video", "Myndsímtal"], ["in_person", "Á staðnum"]] as const).map(([m, label]) => (
+              <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m}
+                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${mode === m ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <label className="mt-3 block">
           <span className="text-xs font-semibold text-slate-600">Skjólstæðingur</span>

@@ -153,6 +153,7 @@ const CALENDAR_FIELDS = new Set([
   "blood_test_booked_for", "blood_test_done_at", "measurements_booked_for", "measurements_done_at",
   "interview_booked_for", "interview_mode", "interviewer_id", "interview_done_at",
   "followup_booked_for", "followup_done_at", "cancelled_at", "completed_at",
+  "meeting_url", "followup_mode", "followup_meeting_url",
 ]);
 
 /**

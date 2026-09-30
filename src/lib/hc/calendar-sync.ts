@@ -43,7 +43,7 @@ const itemsFor = (kind: OwnerKind, id: string) => (kind === "client" ? clientApp
 
 function hashOf(i: CalItem): string {
   return createHash("sha256")
-    .update([i.start, i.minutes, i.summary, i.description, i.location ?? "", i.reminderMinutes ?? "", i.wantsMeet ? "meet" : ""].join("|"))
+    .update([i.start, i.minutes, i.summary, i.description, i.location ?? "", i.reminderMinutes ?? "", i.wantsMeet ? "meet" : "", i.inviteEmail ?? ""].join("|"))
     .digest("hex").slice(0, 16);
 }
 
@@ -59,6 +59,7 @@ function bodyOf(i: CalItem) {
       ? { useDefault: false, overrides: [{ method: "popup", minutes: i.reminderMinutes }] }
       : { useDefault: false },
     extendedProperties: { private: { lifelineItem: i.id } },
+    ...(i.inviteEmail ? { attendees: [{ email: i.inviteEmail }], guestsCanModify: false, guestsCanInviteOthers: false } : {}),
   };
 }
 
@@ -113,9 +114,10 @@ async function accessTokenFor(row: GoogleSyncRow): Promise<string> {
 async function askForMeet(token: string, calendarId: string, item: CalItem, body: Record<string, unknown>, exists: boolean) {
   if (!(await G.allowsMeet(token, calendarId))) return null;
   const withConf = { ...body, conferenceData: G.meetRequest(`lifeline-${item.id}`) };
+  const invite = !!item.inviteEmail;
   const ev = exists
-    ? await G.patchEvent(token, calendarId, item.id, withConf, true)
-    : await G.insertEvent(token, calendarId, { id: item.id, ...withConf }, true);
+    ? await G.patchEvent(token, calendarId, item.id, withConf, true, invite)
+    : await G.insertEvent(token, calendarId, { id: item.id, ...withConf }, true, invite);
   let link = G.meetLinkOf(ev);
   // Conferences are made asynchronously; the link often lands a moment later.
   if (!link) {
@@ -124,11 +126,12 @@ async function askForMeet(token: string, calendarId: string, item: CalItem, body
   }
   if (!link || !item.journeyId) return link ?? null;
   // Only fill an empty one — never overwrite a link a nurse pasted.
+  const field = item.meetField ?? "meeting_url";
   await supabaseAdmin
     .from("hc_journeys")
-    .update({ meeting_url: link })
+    .update({ [field]: link })
     .eq("id", item.journeyId)
-    .is("meeting_url", null);
+    .is(field, null);
   return link;
 }
 
@@ -147,18 +150,20 @@ async function writeEvent(token: string, calendarId: string, item: CalItem, beli
     }
   }
 
+  // A guest (the participant) hears about changes from Google.
+  const inv = !!item.inviteEmail;
   if (believedToExist) {
-    try { await G.patchEvent(token, calendarId, item.id, body); return; }
+    try { await G.patchEvent(token, calendarId, item.id, body, false, inv); return; }
     catch (e) { if (!(e instanceof G.GoogleApiError && e.isGone)) throw e; }
-    await G.insertEvent(token, calendarId, { id: item.id, ...body });
+    await G.insertEvent(token, calendarId, { id: item.id, ...body }, false, inv);
     return;
   }
   try {
-    await G.insertEvent(token, calendarId, { id: item.id, ...body });
+    await G.insertEvent(token, calendarId, { id: item.id, ...body }, false, inv);
   } catch (e) {
     // 409: Google keeps recently deleted ids; revive instead of duplicating.
     if (e instanceof G.GoogleApiError && e.status === 409) {
-      await G.patchEvent(token, calendarId, item.id, { ...body, status: "confirmed" });
+      await G.patchEvent(token, calendarId, item.id, { ...body, status: "confirmed" }, false, inv);
       return;
     }
     throw e;

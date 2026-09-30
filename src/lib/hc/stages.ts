@@ -153,8 +153,23 @@ export function stageFor(j: HcJourney, profileComplete: boolean): string {
   if (j.completed_at) return "completed";
   const current = journeySteps(j, profileComplete).find((s) => s.state === "current");
   if (!current) return j.plan_published_at ? "action" : "completed";
+  // A client created from a dropped-in report (or booked by staff) has
+  // clinical milestones before the customer-only steps are done. The
+  // workstation works from the clinical side, so that wins; otherwise the
+  // client sits in "profile" for ever and never reaches the to-do list.
+  if (CUSTOMER_ONLY.has(current.key) && (j.report_generated_at || j.blood_results_at || j.measurements_done_at || j.interview_booked_for || j.plan_published_at)) {
+    if (!(j.blood_test_done_at || j.blood_results_at) || !j.measurements_done_at) {
+      if (!j.report_generated_at && !j.interview_booked_for && !j.plan_published_at) return "tests";
+    }
+    if (!j.report_generated_at && !j.plan_published_at) return "report";
+    if (!j.interview_done_at && !j.plan_published_at) return "interview";
+    if (!j.plan_published_at) return "plan";
+    return "action";
+  }
   return current.key;
 }
+
+const CUSTOMER_ONLY = new Set(["account", "profile", "welcome", "package"]);
 
 export const STAGE_LABELS: Record<string, string> = {
   account: "Aðgangur",

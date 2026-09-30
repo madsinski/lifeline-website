@@ -53,7 +53,7 @@ interface Row {
   measurements_booked_for: string | null; measurements_done_at: string | null;
   report_generated_at: string | null; report_sms_sent_at: string | null;
   interview_booked_for: string | null; interview_mode: string | null; interviewer_id: string | null; interview_done_at: string | null;
-  meeting_url: string | null;
+  meeting_url: string | null; followup_mode?: string | null; followup_meeting_url?: string | null;
   plan_published_at: string | null; followup_booked_for: string | null; followup_done_at: string | null;
   referral_to_heilsugaesla: boolean; doctor_review_requested_at: string | null; doctor_reviewed_at: string | null;
   plan_status: string | null; updated_at: string;
@@ -174,6 +174,8 @@ function nextTask(r: Row | Journey, isDoctor: boolean): Task {
         : { key: "book", label: "Viðtal ekki bókað", cta: "Bóka viðtal", tone: "normal" };
     case "plan": return { key: "plan", label: "Viðtali lokið, áætlun vantar", cta: "Klára áætlun", tone: "urgent" };
     case "action": {
+      // Follow-up done: nothing is owed until the re-evaluation.
+      if (r.followup_done_at) return { key: "done", label: "Eftirfylgd lokið", cta: "Opna", tone: "waiting" };
       if (r.followup_booked_for && !r.followup_done_at) {
         return { key: "followup", label: `Eftirfylgd ${dayTime(r.followup_booked_for)}`, cta: "Opna", tone: isToday(r.followup_booked_for) ? "urgent" : "normal" };
       }
@@ -499,7 +501,10 @@ const STAGE_FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "Allir" }, { key: "tests", label: "Heilsufarsskoðun" }, { key: "report", label: "Skýrsla" },
   { key: "interview", label: "Viðtal" }, { key: "plan", label: "Áætlun" }, { key: "action", label: "Í aðgerð" },
 ];
-const STAGE_TEXT: Record<string, string> = { tests: "Heilsufarsskoðun", report: "Skýrsla", interview: "Viðtal", plan: "Áætlun", action: "Í aðgerð" };
+const STAGE_TEXT: Record<string, string> = {
+  account: "Nýr", profile: "Nýr", welcome: "Nýr", package: "Greiðsla", protocol: "Gátt",
+  tests: "Heilsufarsskoðun", report: "Skýrsla", interview: "Viðtal", plan: "Áætlun", action: "Í aðgerð", completed: "Lokið",
+};
 
 /** Urgency + waiting time, computed from the queue row (no extra queries). */
 type RowFlags = { rank: number; waitingDays: number; reportLate: boolean; interviewToday: boolean; nextAt: string | null; nextWhat: string };
@@ -1143,7 +1148,7 @@ function FollowupStep({ d, record }: { d: Detail; record: (p: Record<string, unk
   };
   return (
     <div className="space-y-3">
-      <Booking label="Eftirfylgd" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_booked_for ? j.interview_mode : "video"} meetingUrl={j.meeting_url}
+      <Booking label="Eftirfylgd" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_mode ?? (j.followup_booked_for ? j.interview_mode : "video")} meetingUrl={j.followup_meeting_url ?? null}
         disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
         onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy} />
       {j.followup_booked_for && !j.followup_done_at && (

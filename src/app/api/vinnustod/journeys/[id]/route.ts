@@ -114,9 +114,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     actor: actor.label,
     mode: body.mode === "video" ? "video" : body.mode === "in_person" ? "in_person" : null,
     note: typeof body.note === "string" ? body.note.slice(0, 2000) : null,
-    interviewerId: typeof body.interviewer_id === "string" ? body.interviewer_id : actor.kind === "worker" ? actor.worker.id : null,
+    // Moving a colleague's appointment must not take it over: the actor only
+    // becomes the interviewer when there is none yet (or it is asked for).
+    interviewerId: typeof body.interviewer_id === "string" ? body.interviewer_id
+      : actor.kind === "worker" && !journey.interviewer_id ? actor.worker.id : null,
+    // A pasted https link sets it; "" clears it (Google mints a new one);
+    // anything else (null, junk) leaves the current link alone.
     meetingUrl: typeof body.meeting_url === "string"
-      ? (/^https:\/\//.test(body.meeting_url.trim()) ? body.meeting_url.trim().slice(0, 500) : null)
+      ? (/^https:\/\//.test(body.meeting_url.trim()) ? body.meeting_url.trim().slice(0, 500) : body.meeting_url.trim() === "" ? null : undefined)
       : undefined,
     origin: siteOrigin(req),
   });

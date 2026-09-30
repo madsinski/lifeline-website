@@ -53,7 +53,7 @@ export default function StatusStrip({ steps, onOpen }: {
             into something that no longer reads as a sequence. */}
         <ol className="-mx-1 flex min-w-0 flex-1 items-start gap-0 overflow-x-auto px-1 pb-1">
           {steps.map((s, i) => (
-            <li key={s.key} className="flex min-w-0 shrink-0 items-start lg:flex-1">
+            <li key={`${s.key}-${i}`} className="flex min-w-0 shrink-0 items-start lg:flex-1">
               {/* The button takes the width and the connector is fixed. They
                   were both flex-1, which gave the button a basis of 0 — and a
                   truncating label inside a zero-width box shows nothing. */}
