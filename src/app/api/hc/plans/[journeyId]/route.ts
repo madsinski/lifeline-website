@@ -87,6 +87,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ journeyId:
     .update({ status: "published", published_at: now.toISOString(), start_date: start, review_date: review, updated_by: g.actor.label })
     .eq("id", plan.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // One timeline of versions with the participant's own edits (migration-hc-self-service.sql).
+  await supabaseAdmin.from("hc_plan_versions").insert({ plan_id: plan.id, journey_id: g.journey.id, version: plan.version, by_kind: "staff", by_label: g.actor.label, goals: plan.goals, modules: plan.modules, lecture_slugs: plan.lecture_slugs ?? [] }).then(() => {}, () => {});
 
   const reeval = new Date(now.getTime() + 365 * 86400_000).toISOString().slice(0, 10);
   const firstPublish = !g.journey.plan_published_at;

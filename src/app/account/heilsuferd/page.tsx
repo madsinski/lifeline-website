@@ -16,6 +16,7 @@ import PinPad from "@/app/components/hc/PinPad";
 import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
+import ReportUpload from "@/app/components/hc/ReportUpload";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
@@ -488,11 +489,23 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
       );
     case "report":
       return (
-        <p className="text-sm text-slate-600">
-          {step.state === "done"
-            ? "Skýrslan þín hefur verið staðfest af lækni. Hún er aðgengileg í sjúklingagáttinni og þú ferð yfir hana með hjúkrunarfræðingi í viðtalinu."
-            : "Skýrslan verður til þegar niðurstöður blóðprufu og mælinga liggja fyrir. Læknir Lifeline staðfestir hana og þú færð tölvupóst."}
-        </p>
+        <div className="space-y-3 text-sm text-slate-600">
+          <p>
+            {j.report_generated_at
+              ? "Skýrslan þín hefur verið staðfest af lækni. Hún er aðgengileg í sjúklingagáttinni og þú ferð yfir hana með hjúkrunarfræðingi í viðtalinu."
+              : j.own_report_at
+                ? "Skýrslan þín er komin inn. Þú getur skoðað niðurstöðurnar og búið til áætlunina sjálf(ur), eða gert hana með hjúkrunarfræðingi í viðtalinu."
+                : "Skýrslan verður til þegar niðurstöður blóðprufu og mælinga liggja fyrir. Þegar hún er komin í sjúklingagáttina getur þú sett hana inn hér."}
+          </p>
+          {(j.report_generated_at || j.own_report_at)
+            ? (
+              <div className="flex flex-wrap gap-2">
+                <Link href="/account/heilsuferd/aaetlun?tab=report" className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-white px-4 font-semibold text-slate-800 hover:bg-slate-50">Skoða niðurstöðurnar</Link>
+                {!data.plan && <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-flex min-h-10 items-center rounded-full bg-hc-brand px-4 font-semibold text-white hover:bg-hc-brand-dark">Búa til áætlun sjálf(ur)</Link>}
+              </div>
+            )
+            : <ReportUpload api={api} onDone={() => void reload()} />}
+        </div>
       );
     case "interview":
       return (

@@ -81,6 +81,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }
 
   const allowAi = String(form?.get("allow_ai") ?? "") === "true";
+  // Staff put the participant's own report in, at the participant's request.
+  const onBehalf = String(form?.get("on_behalf") ?? "") === "true";
 
   try {
     const read = await readReport(files, { allowAi });
@@ -105,6 +107,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         method: read.method.startsWith("ai") ? "ai" : "local",
         payload: read.report,
         imported_by: actor.label,
+        source: onBehalf ? "staff_on_behalf" : "staff",
+        on_behalf_consent_at: onBehalf ? new Date().toISOString() : null,
       });
       await supabaseAdmin
         .from("hc_journeys")
@@ -122,6 +126,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       found: read.values.length,
       method: read.method,
       report: !!read.report,
+      on_behalf: onBehalf,
     });
     return NextResponse.json({
       method: read.method,

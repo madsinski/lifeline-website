@@ -170,6 +170,7 @@ export async function POST(req: NextRequest) {
       method: String(body.method ?? "").startsWith("ai") ? "ai" : "local",
       payload: body.grunnheilsa,
       imported_by: actor.label,
+      source: "intake",
     });
   }
 

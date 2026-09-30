@@ -57,7 +57,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
         </div>
         {lecture.kind === "slides" && lecture.slides.length > 0 && (
           <div ref={stage} className="rounded-3xl bg-white p-2 [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center [&:fullscreen]:bg-white [&:fullscreen]:p-10">
-            <div className="w-full max-w-5xl"><SlideDeck slides={lecture.slides} /></div>
+            <div className="w-full max-w-5xl"><SlideDeck slides={lecture.slides} pillar={lecture.pillar} /></div>
           </div>
         )}
         {lecture.kind !== "slides" && <p className="text-sm text-slate-500">Forskoðun er aðeins fyrir glærur. Skjólstæðingar sjá fræðsluna í heilsuferðinni.</p>}

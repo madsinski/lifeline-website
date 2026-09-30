@@ -67,6 +67,8 @@ export interface HcJourney {
   report_generated_at: string | null;
   /** Parsed report is in (import); report_generated_at = a doctor confirmed it. */
   report_imported_at?: string | null;
+  /** The participant's own report is in (self upload or staff on their behalf) — visible without a doctor's confirmation. */
+  own_report_at?: string | null;
   report_generated_by: string | null;
   report_sms_sent_at: string | null;
   interview_booked_for: string | null;
@@ -129,7 +131,7 @@ export interface HcOrder {
 }
 
 /** Layout of one lecture slide. Missing = "text" (or "image" when image_url is set) for older slides. */
-export type SlideLayout = "text" | "image" | "fullimage" | "video" | "quote" | "bullets" | "stat" | "tip";
+export type SlideLayout = "text" | "image" | "fullimage" | "video" | "quote" | "bullets" | "stat" | "tip" | "sources";
 
 export const SLIDE_LAYOUTS: { key: SlideLayout; label: string; hint: string }[] = [
   { key: "text", label: "Texti", hint: "Fyrirsögn og texti" },
@@ -140,6 +142,7 @@ export const SLIDE_LAYOUTS: { key: SlideLayout; label: string; hint: string }[] 
   { key: "bullets", label: "Listi", hint: "Fyrirsögn og punktar" },
   { key: "stat", label: "Tala", hint: "Stór tala með skýringu" },
   { key: "tip", label: "Ráð", hint: "Hagnýtt ráð í áberandi kassa" },
+  { key: "sources", label: "Heimildir", hint: "Heimildaskrá, ein heimild í línu" },
 ];
 
 export interface LectureSlide {
@@ -154,6 +157,8 @@ export interface LectureSlide {
   stat?: string | null;
   /** fullimage / video caption, quote attribution */
   caption?: string | null;
+  /** Short in-slide citations, e.g. "Van Cauter o.fl., JAMA 2000". */
+  refs?: string[];
 }
 
 export function slideLayout(s: LectureSlide): SlideLayout {

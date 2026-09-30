@@ -62,7 +62,7 @@ export default function LecturePage() {
               {lecture.kind === "video" && lecture.video_url && (
                 <VideoEmbed url={lecture.video_url} title={lecture.title} onEnded={() => void complete()} />
               )}
-              {lecture.kind === "slides" && <SlideDeck slides={lecture.slides ?? []} onLastSlide={() => void complete()} />}
+              {lecture.kind === "slides" && <SlideDeck slides={lecture.slides ?? []} pillar={lecture.pillar} onLastSlide={() => void complete()} />}
               {lecture.article_md && (
                 <div className={lecture.kind === "article" ? "" : "mt-8"}><Markdown text={lecture.article_md} /></div>
               )}

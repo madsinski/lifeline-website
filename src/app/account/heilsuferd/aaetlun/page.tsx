@@ -5,7 +5,7 @@
 // whole plan as the nurse wrote it, with the print layout behind it.
 
 import EmptyState from "@/app/components/hc/EmptyState";
-import { hcPage } from "@/app/components/hc/ui";
+import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -25,6 +25,8 @@ import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
 import type { Upcoming } from "@/lib/hc/upcoming";
 import Link from "next/link";
 import * as cache from "@/lib/hc/client-cache";
+import PlanEditor from "@/app/components/hc/PlanEditor";
+import ReportUpload from "@/app/components/hc/ReportUpload";
 import { peek } from "@/lib/hc/client-cache";
 import { BookOpen, Dumbbell } from "lucide-react";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
@@ -55,6 +57,8 @@ function PlanPageInner() {
   const search = useSearchParams();
   const journey = search.get("journey");
   const askedTab = search.get("tab");
+  const [editing, setEditing] = useState(search.get("breyta") === "1");
+  const [reloadKey, setReloadKey] = useState(0);
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
   const [name, setName] = useState<string | null>(null);
   const [tab, setTabState] = useState<Tab | null>(null);
@@ -118,7 +122,7 @@ function PlanPageInner() {
       cache.prefetch(api, ["/api/hc/journey"]);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the tab is only read on first load
-  }, [journey, router, api]);
+  }, [journey, router, api, reloadKey]);
 
   const plan = data?.plan ?? null;
   const setTab = (t: Tab) => {
@@ -156,16 +160,24 @@ function PlanPageInner() {
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28 print:max-w-none print:p-0">
         {data === undefined && <p className="mt-4 text-slate-500">Hleð…</p>}
 
-        {data !== undefined && !hasSomething && (
+        {editing && data !== undefined && (
+          <PlanEditor api={api}
+            onDone={() => { setEditing(false); setTabState("plan"); setReloadKey((k) => k + 1); }}
+            onCancel={() => setEditing(false)} />
+        )}
+
+        {!editing && data !== undefined && !hasSomething && (
           <div className="mt-4 space-y-4">
             {next && <AppointmentCard a={next} />}
             <EmptyState variant="waiting" title="Áætlunin er ekki tilbúin enn"
-              body="Hún birtist hér eftir viðtalið við hjúkrunarfræðinginn."
+              body="Hún verður til í viðtalinu við hjúkrunarfræðinginn. Þú getur líka sett skýrsluna þína inn og búið áætlunina til sjálf(ur)."
               action={{ label: "Sjá heilsuferðina", href: "/account/heilsuferd?ferd=1" }} />
+            <ReportUpload api={api} onDone={() => setReloadKey((k) => k + 1)} />
+            <button type="button" onClick={() => setEditing(true)} className={`${hcBtn.secondary} w-full`}>Búa til áætlun sjálf(ur) án skýrslu</button>
           </div>
         )}
 
-        {hasSomething && data && (
+        {!editing && hasSomething && data && (
           <>
             <JourneyNav active={place} hasReport={!!data.report || !!data.flagged.length}
               onSelect={(k) => {
@@ -213,6 +225,15 @@ function PlanPageInner() {
               )}
               {tab === "report" && data.report && (
                 <div className="space-y-4 print:hidden">
+                  {!plan && (
+                    <div className={`${hcCard.hero} flex flex-wrap items-center gap-4 p-5`}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-lg font-bold">Búðu til áætlunina þína</p>
+                        <p className="text-sm text-emerald-100">Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og hjúkrunarfræðingurinn fer yfir hana með þér í viðtalinu.</p>
+                      </div>
+                      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Byrja →</button>
+                    </div>
+                  )}
                   {data.compare && <BeforeAfter c={data.compare} />}
                   <ReportView report={data.report.report} signals={data.report.signals}
                     reference={data.report.reference} sex={data.report.sex} audience="client" />
@@ -225,6 +246,11 @@ function PlanPageInner() {
               {tab === "results" && (
                 <div className="print:hidden">
                   <ResultSignals flagged={data.flagged} />
+                </div>
+              )}
+              {tab === "plan" && plan && (
+                <div className="mb-3 flex justify-end print:hidden">
+                  <button type="button" onClick={() => setEditing(true)} className={hcBtn.secondary}>Breyta áætluninni</button>
                 </div>
               )}
               {tab === "plan" && plan && (

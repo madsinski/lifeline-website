@@ -4,9 +4,31 @@
 // (/account/heilsuferd/fraedsla/[slug]) and the admin editor's live preview
 // (/admin/lectures) — so what staff see is exactly what customers see.
 
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Lightbulb, Quote } from "lucide-react";
-import { slideLayout, type LectureSlide } from "@/lib/hc/types";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { BookOpen, ChevronLeft, ChevronRight, Lightbulb, Quote } from "lucide-react";
+import { slideLayout, type LectureSlide, type Pillar } from "@/lib/hc/types";
+
+/** Each pillar's lectures get their own dark gradient; general ones stay green. */
+const THEMES: Record<Pillar | "general", { from: string; to: string }> = {
+  general: { from: "#0F2A23", to: "#065F46" },
+  sleep: { from: "#1E1B3A", to: "#4F4A6E" },
+  exercise: { from: "#3B1206", to: "#C2410C" },
+  nutrition: { from: "#172A05", to: "#4D7C0F" },
+  mental: { from: "#082F49", to: "#0369A1" },
+};
+const ThemeCtx = createContext(THEMES.general);
+const themeFor = (p?: string | null) => THEMES[(p ?? "general") as keyof typeof THEMES] ?? THEMES.general;
+
+/** Short citations under a slide: the evidence behind what it says. */
+function Refs({ refs, light }: { refs?: string[]; light?: boolean }) {
+  if (!refs?.length) return null;
+  return (
+    <p className={`mt-6 flex items-start gap-1.5 text-xs leading-snug ${light ? "text-slate-500" : "text-white/60"}`}>
+      <BookOpen className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span>{refs.join(" · ")}</span>
+    </p>
+  );
+}
 
 /** YouTube / Vimeo page URLs → embeddable URLs. Anything else plays as a file. */
 export function embedUrl(url: string): { kind: "iframe" | "file"; src: string } {
@@ -94,20 +116,34 @@ export function Markdown({ text }: { text: string }) {
   );
 }
 
-const DARK = "overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] text-white shadow-lg";
+/** DOIs and PMIDs in a reference become links. */
+function linkify(ref: string) {
+  return ref.split(/(doi:\s*10\.\S+|PMID:?\s*\d+)/gi).map((part, i) => {
+    const doi = /^doi:\s*(10\.\S+?)[.,;]?$/i.exec(part);
+    if (doi) return <a key={i} href={`https://doi.org/${doi[1]}`} target="_blank" rel="noreferrer" className="text-hc-brand-dark underline">{part}</a>;
+    const pm = /^PMID:?\s*(\d+)$/i.exec(part);
+    if (pm) return <a key={i} href={`https://pubmed.ncbi.nlm.nih.gov/${pm[1]}/`} target="_blank" rel="noreferrer" className="text-hc-brand-dark underline">{part}</a>;
+    return part;
+  });
+}
+
+const DARK = "overflow-hidden rounded-3xl text-white shadow-lg";
 
 /** One slide, laid out by its type. `counter` is e.g. "2 / 6". */
 export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: string }) {
   const layout = slideLayout(slide);
+  const t = useContext(ThemeCtx);
+  const bg = { backgroundImage: `linear-gradient(135deg, ${t.from}, ${t.to})` };
+  const refs = <Refs refs={slide.refs} />;
   const eyebrow = counter ? <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{counter}</p> : null;
   const body = slide.body ? <p className="mt-4 whitespace-pre-line text-base leading-relaxed text-emerald-50 sm:text-lg">{slide.body}</p> : null;
 
   switch (layout) {
     case "image":
       return (
-        <div className={DARK}>
+        <div className={DARK} style={bg}>
           <div className="grid min-h-[340px] items-center gap-6 p-7 sm:p-10 md:grid-cols-[1fr_1.15fr]">
-            <div>{eyebrow}<h2 className="mt-3 text-2xl font-bold sm:text-3xl">{slide.title}</h2>{body}</div>
+            <div>{eyebrow}<h2 className="mt-3 text-2xl font-bold sm:text-3xl">{slide.title}</h2>{body}{refs}</div>
             {slide.image_url
               ? <div className="rounded-2xl bg-white/95 p-2 shadow-inner">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -135,7 +171,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "video":
       return (
-        <div className={DARK}>
+        <div className={DARK} style={bg}>
           <div className="p-5 sm:p-8">
             {eyebrow}
             {slide.title && <h2 className="mt-2 text-xl font-bold sm:text-2xl">{slide.title}</h2>}
@@ -150,22 +186,23 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "quote":
       return (
-        <div className={DARK}>
+        <div className={DARK} style={bg}>
           <div className="flex min-h-[340px] flex-col justify-center p-8 sm:p-12">
             {eyebrow}
             <Quote className="mt-3 h-10 w-10 text-emerald-300" aria-hidden />
             <blockquote className="mt-4 text-2xl font-semibold leading-snug sm:text-3xl">{slide.body || slide.title}</blockquote>
             {slide.caption && <p className="mt-5 text-emerald-200">— {slide.caption}</p>}
+            {refs}
           </div>
         </div>
       );
     case "bullets":
       return (
-        <div className={DARK}>
+        <div className={DARK} style={bg}>
           <div className="min-h-[340px] p-8 sm:p-10">
             {eyebrow}
             <h2 className="mt-3 text-2xl font-bold sm:text-3xl">{slide.title}</h2>
-            {slide.body && <p className="mt-3 text-emerald-100">{slide.body}</p>}
+            {slide.body && <p className="mt-3 whitespace-pre-line text-emerald-50/90 sm:text-lg">{slide.body}</p>}
             <ul className="mt-6 space-y-3">
               {(slide.items ?? []).filter(Boolean).map((it, i) => (
                 <li key={i} className="flex gap-3 text-base sm:text-lg">
@@ -174,17 +211,19 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
                 </li>
               ))}
             </ul>
+            {refs}
           </div>
         </div>
       );
     case "stat":
       return (
-        <div className={DARK}>
+        <div className={DARK} style={bg}>
           <div className="flex min-h-[340px] flex-col items-center justify-center p-8 text-center sm:p-12">
             {eyebrow}
             <p className="mt-3 bg-gradient-to-r from-emerald-200 to-cyan-200 bg-clip-text text-6xl font-extrabold text-transparent sm:text-8xl">{slide.stat || "—"}</p>
             <h2 className="mt-3 text-xl font-bold sm:text-2xl">{slide.title}</h2>
-            {slide.body && <p className="mt-3 max-w-xl text-emerald-100">{slide.body}</p>}
+            {slide.body && <p className="mt-3 max-w-2xl whitespace-pre-line text-emerald-50/90 sm:text-lg">{slide.body}</p>}
+            {refs}
           </div>
         </div>
       );
@@ -197,15 +236,29 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
               {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">{counter} · Ráð</p>}
               <h2 className="mt-1 text-2xl font-bold text-[#0F172A]">{slide.title}</h2>
               {slide.body && <p className="mt-2 whitespace-pre-line text-lg text-slate-700">{slide.body}</p>}
+              <Refs refs={slide.refs} light />
             </div>
+          </div>
+        </div>
+      );
+    case "sources":
+      return (
+        <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-100">
+          <div className="min-h-[340px] p-7 sm:p-10">
+            {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{counter}</p>}
+            <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-[#0F172A]"><BookOpen className="h-6 w-6 text-slate-400" aria-hidden />{slide.title || "Heimildir"}</h2>
+            {slide.body && <p className="mt-2 text-sm text-slate-600">{slide.body}</p>}
+            <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-snug text-slate-700 marker:text-slate-400">
+              {(slide.items ?? []).filter(Boolean).map((it, i) => <li key={i} className="break-words pl-1">{linkify(it)}</li>)}
+            </ol>
           </div>
         </div>
       );
     default:
       return (
-        <div className={DARK}>
+        <div className={DARK} style={bg}>
           <div className="flex min-h-[340px] flex-col justify-center p-8 sm:p-12">
-            {eyebrow}<h2 className="mt-3 text-2xl font-bold sm:text-4xl">{slide.title}</h2>{body}
+            {eyebrow}<h2 className="mt-3 text-2xl font-bold sm:text-4xl">{slide.title}</h2>{body}{refs}
           </div>
         </div>
       );
@@ -213,8 +266,9 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
 }
 
 /** A slide deck with previous/next buttons, dots and arrow keys. */
-export function SlideDeck({ slides, onLastSlide, start = 0 }: { slides: LectureSlide[]; onLastSlide?: () => void; start?: number }) {
+export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: LectureSlide[]; onLastSlide?: () => void; start?: number; pillar?: string | null }) {
   const [i, setI] = useState(Math.min(start, Math.max(0, slides.length - 1)));
+  const touch = useRef<number | null>(null);
   const last = slides.length - 1;
   const idx = Math.min(i, Math.max(0, last));
 
@@ -238,14 +292,28 @@ export function SlideDeck({ slides, onLastSlide, start = 0 }: { slides: LectureS
   if (!slides.length) return <p className="rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500">Engar glærur enn.</p>;
 
   return (
+    <ThemeCtx.Provider value={themeFor(pillar)}>
     <div>
-      <SlideView slide={slides[idx]} counter={`${idx + 1} / ${slides.length}`} />
+      <div className="mb-3 h-1 overflow-hidden rounded-full bg-slate-200" aria-hidden>
+        <div className="h-full rounded-full bg-[#10B981] transition-all" style={{ width: `${((idx + 1) / slides.length) * 100}%` }} />
+      </div>
+      <div
+        onTouchStart={(e) => { touch.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (touch.current === null) return;
+          const dx = e.changedTouches[0].clientX - touch.current;
+          touch.current = null;
+          if (dx < -50) setI(Math.min(idx + 1, last));
+          if (dx > 50) setI(Math.max(idx - 1, 0));
+        }}>
+        <SlideView slide={slides[idx]} counter={`${idx + 1} / ${slides.length}`} />
+      </div>
       <div className="mt-4 flex items-center justify-between gap-3">
         <button type="button" onClick={() => setI(Math.max(0, idx - 1))} disabled={idx === 0}
           className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white px-4 font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-30">
           <ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri
         </button>
-        <div className="flex gap-1.5" role="tablist" aria-label="Glærur">
+        <div className="hidden flex-wrap justify-center gap-1.5 sm:flex" role="tablist" aria-label="Glærur">
           {slides.map((_, n) => (
             <button key={n} type="button" role="tab" aria-selected={n === idx} aria-label={`Glæra ${n + 1}`} onClick={() => setI(n)}
               className={`h-2 rounded-full transition-all ${n === idx ? "w-6 bg-[#10B981]" : "w-2 bg-slate-300 hover:bg-slate-400"}`} />
@@ -257,5 +325,6 @@ export function SlideDeck({ slides, onLastSlide, start = 0 }: { slides: LectureS
         </button>
       </div>
     </div>
+    </ThemeCtx.Provider>
   );
 }

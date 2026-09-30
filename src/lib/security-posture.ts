@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.9";
+export const SECURITY_POSTURE_VERSION = "v1.10";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-09-30";
 
 export function renderSecurityPosture(): string {
@@ -171,6 +171,9 @@ Við hvíld (at rest):
       - messages.content (öll skilaboð milli skjólstæðings og þjálfara)
       - clients.phone, address, date_of_birth,
         emergency_contact_name, emergency_contact_phone, kennitala_last4
+      - hc_reports.payload (heilsufarsskýrslur í heilsuferð, frá
+        2026-09-30; lesnar eingöngu með hc_report_latest(), sem aðeins
+        þjónustuhlutverkið má kalla á)
     Notar pgcrypto pgp_sym_encrypt (AES-256) með lyklaorði sem geymt
     er í Supabase Vault (sjá vault.secrets.lifeline_encryption_key).
     Aðeins SECURITY DEFINER hjálparföll (encrypt_text / decrypt_text)
@@ -535,6 +538,15 @@ Skipulagslegt:
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
 
+v1.10 (2026-09-30)
+  Heilsufarsskýrslur (hc_reports.payload) dulkóðaðar í dálki eins og
+  skilaboð og persónuupplýsingar. Þátttakandi getur sett eigin
+  skýrslu inn sjálfur: hún er lesin á okkar netþjóni eingöngu (ekkert
+  gervigreindarlíkan), skjalið er ekki geymt og kennitala á skýrslu
+  þarf að passa við aðganginn. Skýrsla sem starfsmaður setur inn fyrir
+  þátttakanda að hans beiðni er merkt svo (source, tími samþykkis) og
+  skráð í atvikaskrá. Útgáfusaga aðgerðaáætlana (hc_plan_versions).
+
 v1.9 (2026-09-30)
   Twilio (SMS) og vefpús-þjónustur (Web Push) skráð í hýsingartöflu
   (5. kafli) og sem vinnsluaðilar (10. kafli). Twilio var þegar í
@@ -789,6 +801,9 @@ At rest:
       - messages.content (all client–coach messages)
       - clients.phone, address, date_of_birth,
         emergency_contact_name, emergency_contact_phone, kennitala_last4
+      - hc_reports.payload (health reports in the heilsuferð, from
+        2026-09-30; read only through hc_report_latest(), callable by
+        the service role alone)
     Uses pgcrypto pgp_sym_encrypt (AES-256) with a key held in
     Supabase Vault (vault.secrets.lifeline_encryption_key). Only
     SECURITY DEFINER helper functions (encrypt_text / decrypt_text)
@@ -1160,6 +1175,15 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.10 (2026-09-30)
+  Health reports (hc_reports.payload) now column-encrypted like
+  messages and PII. Participants can upload their own report: parsed
+  on our server only (no AI model), the file is not kept, and the
+  kennitala on the report must match the account. A report staff put
+  in on the participant's behalf, at their request, is marked so
+  (source, consent time) and audited. Action plans keep a version
+  history (hc_plan_versions).
 
 v1.9 (2026-09-30)
   Twilio (SMS) and browser/OS push services (Web Push) added to the

@@ -81,6 +81,8 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   const [pending, setPending] = useState<File[]>([]);
   const [needsConsent, setNeedsConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // The report is the participant's own: staff put it in at their request.
+  const [onBehalf, setOnBehalf] = useState(true);
 
   /** Read a Medalia PDF / lab printout / photos and show what was found. */
   const readReport = async (files: FileList | File[], allowAi = false) => {
@@ -89,6 +91,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
     const fd = new FormData();
     for (const f of list) fd.append("files", f);
     if (allowAi) fd.append("allow_ai", "true");
+    if (onBehalf) fd.append("on_behalf", "true");
     const r = await api(`/api/vinnustod/journeys/${journeyId}/import`, { method: "POST", body: fd });
     const j = await r.json().catch(() => ({}));
     setReading(false);
@@ -204,6 +207,10 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
               {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
               {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
             </button>
+            <label className="inline-flex items-center gap-1.5 text-xs text-slate-600" title="Skráð í atvikaskrá: skýrslan er sett inn fyrir skjólstæðinginn, að hans beiðni.">
+              <input type="checkbox" checked={onBehalf} onChange={(e) => setOnBehalf(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
+              Að beiðni skjólstæðings
+            </label>
             <button type="button" onClick={() => setEditing(true)}
               className="inline-flex min-h-9 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               {recorded.length ? "Breyta gildum" : "Skrá gildi"}

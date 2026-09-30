@@ -11,8 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlignLeft, ArrowDown, ArrowUp, BarChart3, Bold, Copy, ExternalLink, Eye, EyeOff, FileText, Film, Heading2,
   Image as ImageIcon, Images, Lightbulb, Link2, List, ListOrdered, MessageSquareQuote, Plus, Presentation, Quote,
-  Save, Search, Trash2, Upload, X,
-} from "lucide-react";
+  Save, Search, Trash2, Upload, X, BookOpen } from "lucide-react";
 import { useStaffGuard } from "@/lib/useStaffGuard";
 import { adminApi, adminJson } from "../hc-api";
 import { Markdown, SlideDeck, SlideView, VideoEmbed } from "@/app/components/hc/LectureContent";
@@ -37,7 +36,7 @@ const KINDS: { key: HcLecture["kind"]; label: string; icon: React.ReactNode; hin
 const LAYOUT_ICON: Record<SlideLayout, React.ReactNode> = {
   text: <AlignLeft className="h-4 w-4" />, image: <ImageIcon className="h-4 w-4" />, fullimage: <Images className="h-4 w-4" />,
   video: <Film className="h-4 w-4" />, quote: <Quote className="h-4 w-4" />, bullets: <ListOrdered className="h-4 w-4" />,
-  stat: <BarChart3 className="h-4 w-4" />, tip: <Lightbulb className="h-4 w-4" />,
+  stat: <BarChart3 className="h-4 w-4" />, tip: <Lightbulb className="h-4 w-4" />, sources: <BookOpen className="h-4 w-4" />,
 };
 const EMPTY: Draft = { title: "", subtitle: "", kind: "slides", video_url: "", slides: [{ layout: "text", title: "", body: "" }], article_md: "", duration_min: 5, pillar: "general", is_welcome: false, sort: 100, published: false };
 
@@ -313,7 +312,7 @@ export default function LecturesAdmin() {
                         />
                       ))}
                     </ol>
-                    <AddSlide onAdd={(layout) => { setSlides([...slides, { layout, title: "", body: "", items: layout === "bullets" ? [""] : undefined }]); setActiveSlide(slides.length); }} />
+                    <AddSlide onAdd={(layout) => { setSlides([...slides, { layout, title: layout === "sources" ? "Heimildir" : "", body: "", items: layout === "bullets" ? [""] : undefined }]); setActiveSlide(slides.length); }} />
                   </section>
                 )}
 
@@ -334,7 +333,7 @@ export default function LecturesAdmin() {
                     {edit.subtitle && <p className="text-slate-500">{edit.subtitle}</p>}
                     <div className="mt-4 max-h-[70vh] space-y-6 overflow-y-auto pr-1">
                       {edit.kind === "video" && (edit.video_url ? <VideoEmbed url={edit.video_url} title={edit.title || "Myndband"} /> : <Placeholder text="Ekkert myndband valið" />)}
-                      {edit.kind === "slides" && <SlideDeck key={`${activeSlide}-${slides.length}`} slides={slides} start={activeSlide} />}
+                      {edit.kind === "slides" && <SlideDeck key={`${activeSlide}-${slides.length}`} slides={slides} start={activeSlide} pillar={edit.pillar} />}
                       {edit.article_md && <Markdown text={edit.article_md} />}
                     </div>
                   </div>
@@ -409,6 +408,10 @@ function SlideEditor({ index, count, slide, active, onFocus, onChange, onMove, o
           {layout !== "quote" && field(layout === "fullimage" ? "Fyrirsögn (valfrjálst)" : "Fyrirsögn", <input value={slide.title} onChange={(e) => onChange({ title: e.target.value })} className={input} />)}
           {layout !== "fullimage" && layout !== "video" && field(layout === "quote" ? "Tilvitnun" : layout === "bullets" ? "Inngangur (valfrjálst)" : "Texti",
             <textarea value={slide.body} onChange={(e) => onChange({ body: e.target.value })} rows={layout === "quote" ? 3 : 3} className={input} />)}
+          {layout !== "sources" && layout !== "fullimage" && layout !== "video" && field("Heimildir á glærunni (ein í línu, stutt)",
+            <textarea value={(slide.refs ?? []).join("\n")} onChange={(e) => onChange({ refs: e.target.value.split("\n").map((x) => x.trim()).filter(Boolean) })} rows={2} placeholder="t.d. Van Cauter o.fl., JAMA 2000" className={input} />)}
+          {layout === "sources" && field("Heimildaskrá (ein heimild í línu)",
+            <textarea value={(slide.items ?? []).join("\n")} onChange={(e) => onChange({ items: e.target.value.split("\n") })} rows={8} className={input} />)}
           {layout === "bullets" && (
             <div>
               <p className="text-sm font-medium text-slate-700">Punktar</p>

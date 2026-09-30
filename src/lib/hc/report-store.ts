@@ -22,13 +22,8 @@ export interface StoredReport {
 /** The newest report for a journey, with Lifeline's traffic lights applied. */
 export async function loadReport(journeyId: string, clientId: string): Promise<StoredReport | null> {
   const [{ data: row }, { data: entries }, { data: profile }] = await Promise.all([
-    supabaseAdmin
-      .from("hc_reports")
-      .select("payload, method, created_at")
-      .eq("journey_id", journeyId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    // Stored encrypted (migration-hc-reports-encrypt.sql); this RPC decrypts.
+    supabaseAdmin.rpc("hc_report_latest", { p_journey: journeyId }).maybeSingle<{ payload: unknown; method: string; source: string; created_at: string }>(),
     supabaseAdmin
       .from("hc_knowledge")
       .select("slug, bands, unit, title, summary, higher_better, improves, worsens, components")
