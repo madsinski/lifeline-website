@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }));
   if (rows.length) {
-    const { error } = await supabaseAdmin.from("hc_results").upsert(rows, { onConflict: "journey_id,marker" });
+    const { error } = await supabaseAdmin.rpc("hc_results_upsert", { p_rows: rows }); // encrypted upsert (migration-hc-encrypt-results-plans-2.sql)
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
 

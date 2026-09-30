@@ -52,3 +52,20 @@ end $$;
 drop trigger if exists hc_action_plans_no_plaintext on public.hc_action_plans;
 create trigger hc_action_plans_no_plaintext before insert or update on public.hc_action_plans
   for each row execute function public.hc_action_plans_no_plaintext();
+
+-- Upserts go through this function. A plain ON CONFLICT upsert copies the
+-- plaintext columns from EXCLUDED, which the trigger has already blanked, so
+-- an existing marker would keep its old value. Here the encrypted columns are
+-- copied explicitly. Service role only.
+create or replace function public.hc_results_upsert(p_rows jsonb) returns void
+language sql security definer set search_path = public, extensions as $$
+  insert into public.hc_results (journey_id, client_id, marker, value, unit, measured_at, source, note, entered_by, updated_at)
+  select x.journey_id, x.client_id, x.marker, x.value, x.unit, x.measured_at, coalesce(x.source, 'manual'), x.note, x.entered_by, coalesce(x.updated_at, now())
+  from jsonb_to_recordset(p_rows) as x(journey_id uuid, client_id uuid, marker text, value numeric, unit text, measured_at date, source text, note text, entered_by text, updated_at timestamptz)
+  on conflict (journey_id, marker) do update set
+    client_id = excluded.client_id, value_enc = excluded.value_enc, note_enc = excluded.note_enc,
+    unit = excluded.unit, measured_at = excluded.measured_at, source = excluded.source,
+    entered_by = excluded.entered_by, updated_at = excluded.updated_at
+$$;
+revoke all on function public.hc_results_upsert(jsonb) from public, anon, authenticated;
+grant execute on function public.hc_results_upsert(jsonb) to service_role;
