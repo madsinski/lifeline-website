@@ -7,6 +7,7 @@
 // not fit right now — the nurse sees both, so the next conversation starts
 // from what actually happened rather than from what was prescribed.
 
+import * as cache from "@/lib/hc/client-cache";
 import PillarIcon from "./PillarIcon";
 import { useState } from "react";
 import { Check, EyeOff, Flame, RotateCcw } from "lucide-react";
@@ -37,7 +38,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const post = async (body: Record<string, unknown>) => {
     const r = await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ journey_id: journeyId, ...body }) });
     const j = await r.json().catch(() => ({}));
-    if (r.ok) { setLogs(j.logs ?? []); setPrefs(j.prefs ?? []); }
+    if (r.ok) { setLogs(j.logs ?? []); setPrefs(j.prefs ?? []); cache.invalidate("/api/hc/actions"); }
     return r.ok;
   };
 

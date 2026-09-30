@@ -5,7 +5,8 @@
 // is either the customer's own action here, or advances by itself (patient
 // portal, workstation). Backed by /api/hc/*.
 
-import { hcPage } from "@/app/components/hc/ui";
+import * as cache from "@/lib/hc/client-cache";
+import { hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,8 +14,7 @@ import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
-import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, journeyCheckpoints, type JourneyStep, type StepKey } from "@/lib/hc/stages";
-import StatusStrip from "@/app/components/hc/StatusStrip";
+import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
@@ -47,10 +47,20 @@ async function api(url: string, init: RequestInit = {}) {
   return fetch(url, { ...init, headers });
 }
 
-const fmtDateTime = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("is-IS", { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) : null;
-const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" }) : null;
+// Written out by hand: a browser without Icelandic locale data falls back to
+// English ("Fri, October 2 at 09:08 PM").
+const MO_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+const WD_IS = ["sun.", "mán.", "þri.", "mið.", "fim.", "fös.", "lau."];
+const fmtDateTime = (iso: string | null) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return `${WD_IS[d.getDay()]} ${d.getDate()}. ${MO_IS[d.getMonth()]} kl. ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+const fmtDate = (iso: string | null) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return `${d.getDate()}. ${MO_IS[d.getMonth()]} ${d.getFullYear()}`;
+};
 
 export default function HeilsuferdPage() {
   return (
@@ -70,21 +80,33 @@ function Heilsuferd() {
   const [data, setData] = useState<JourneyData | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<StepKey | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const load = useCallback(async (): Promise<JourneyData | null> => {
-    const r = await api(`/api/hc/journey${stadur ? `?stadur=${encodeURIComponent(stadur)}` : ""}`);
+  const load = useCallback(async (fresh = false): Promise<JourneyData | null> => {
+    const url = `/api/hc/journey${stadur ? `?stadur=${encodeURIComponent(stadur)}` : ""}`;
+    const show = (j: JourneyData) => {
+      if (j.plan && !showJourney) { router.replace("/account/heilsuferd/aaetlun"); return false; }
+      setData(j);
+      setOpen((o) => o ?? j.steps.find((s) => s.state === "current")?.key ?? null);
+      return true;
+    };
+    // Cached first (coming back from "Í dag"), then fresh in the background.
+    const cached = fresh ? null : cache.peek<JourneyData>(url);
+    if (cached && !show(cached.body)) return null;
+    if (fresh) cache.invalidate("/api/hc/journey");
+    const r = await cache.load(api, url);
     if (r.status === 401) { setAuthed(false); return null; }
-    if (!r.ok) { setError("Ekki tókst að sækja heilsuferðina. Reyndu aftur."); return null; }
-    const j = (await r.json()) as JourneyData;
-    if (j.plan && !showJourney) { router.replace("/account/heilsuferd/aaetlun"); return null; }
-    setData(j);
-    setOpen((o) => o ?? j.steps.find((s) => s.state === "current")?.key ?? null);
+    if (r.status >= 400) { if (!cached) setError("Ekki tókst að sækja heilsuferðina. Reyndu aftur."); return null; }
+    const j = r.body as JourneyData;
+    if (!show(j)) return null;
+    // "Í dag" is one tap away: have it ready.
+    if (j.plan) cache.prefetch(api, ["/api/hc/actions", "/api/hc/plan"]);
     return j;
   }, [stadur, showJourney, router]);
 
   /** After a step is completed: reload and open the next step. */
   const advance = useCallback(async () => {
-    const j = await load();
+    const j = await load(true);
     const next = j?.steps.find((s) => s.state === "current")?.key ?? null;
     setOpen(next);
     if (next) setTimeout(() => document.getElementById(`step-${next}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
@@ -137,63 +159,109 @@ function Heilsuferd() {
     <Shell>
       {data.plan && <div className="mb-4"><JourneyNav active="journey" /></div>}
       {next && <div className="mb-4"><AppointmentCard a={next} /></div>}
-      {data.profile.complete && data.profile.health_consent === false && <ConsentCard reload={load} />}
-      {/* Hero */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] via-[#0B3B30] to-[#065F46] p-6 text-white shadow-lg sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
-          Heilsuferðin þín{data.location ? ` · ${data.location.name}` : ""}
-        </p>
-        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">
-          {data.profile.full_name ? `Hæ ${data.profile.full_name.split(" ")[0]}` : "Velkomin(n)"}
-        </h1>
-        <p className="mt-1 text-emerald-100">
-          {current
-            ? ours
-              ? <>Nú er komið að okkur: <strong className="text-white">{OURS_TEXT[current.key] ?? current.title}</strong>. Þú færð tölvupóst þegar næsta skref er þitt.</>
-              : <>Næsta skref: <strong className="text-white">{current.title}</strong></>
-            : "Þú hefur lokið öllum skrefum. Vel gert."}
-        </p>
-        <div className="mt-5">
-          <div className="h-2 overflow-hidden rounded-full bg-white/15">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#34D399] to-[#A7F3D0] transition-all" style={{ width: `${Math.round((done / required) * 100)}%` }} />
+      {data.profile.complete && data.profile.health_consent === false && <ConsentCard reload={() => load(true)} />}
+      {/* Hero: where you are, in one glance, and the one thing to do next. */}
+      <section className={`${hcCard.hero} overflow-hidden p-6 sm:p-8`}>
+        <div className="flex items-center gap-5">
+          <ProgressRing done={done} total={required} />
+          <div className="min-w-0 flex-1">
+            <p className={`${hcKicker} text-emerald-300`}>Heilsuferðin þín{data.location ? ` · ${data.location.name}` : ""}</p>
+            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+              {data.profile.full_name ? `Hæ ${data.profile.full_name.split(" ")[0]}` : "Velkomin(n)"}
+            </h1>
+            <p className="mt-1 text-emerald-100">
+              {data.plan
+                ? "Áætlunin þín er tilbúin. Hér sérðu ferðina í heild."
+                : current
+                  ? ours
+                    ? <>Nú er komið að okkur: <strong className="text-white">{OURS_TEXT[current.key] ?? current.title}</strong>. Þú færð tölvupóst þegar næsta skref er þitt.</>
+                    : <>Næsta skref: <strong className="text-white">{current.title}</strong></>
+                  : "Þú hefur lokið öllum skrefum. Vel gert."}
+            </p>
           </div>
-          <p className="mt-2 text-xs text-emerald-100">{done} af {required} skrefum lokið</p>
         </div>
-        {data.profile.company_name && (
-          <p className="mt-4 inline-block rounded-full bg-white/10 px-3 py-1 text-xs">Í boði {data.profile.company_name}</p>
-        )}
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          {data.plan ? (
+            <Link href="/account/heilsuferd/aaetlun?tab=today" className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Opna daginn í dag →</Link>
+          ) : current && !ours ? (
+            <button type="button" onClick={() => { setOpen(current.key); setTimeout(() => document.getElementById(`step-${current.key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
+              className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Halda áfram: {current.title} →</button>
+          ) : null}
+          {data.profile.company_name && <span className="rounded-full bg-white/10 px-3 py-1 text-xs">Í boði {data.profile.company_name}</span>}
+        </div>
       </section>
 
-      {/* The journey on one line, the same way the nurse sees it. Twelve steps
-          is too many to stack: as a strip it reads as a sequence, and only the
-          step being worked on takes up the page. */}
-      <div className="mt-6">
-        <StatusStrip mobile="vertical" steps={journeyCheckpoints(data.steps).map((c) => (ours && c.key === current?.key ? { ...c, state: "waiting" as const, detail: "hjá okkur" } : c))} onOpen={(k) => setOpen(k as StepKey)} />
-      </div>
-
-      <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div>
-          {shownStep ? (
-            <section className="overflow-hidden rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5" aria-label={shownStep.title}>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-bold text-slate-900">{shownStep.title}</h2>
-                {shownStep.state === "done" && (
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 ring-1 ring-emerald-200">Lokið</span>
-                )}
-                {shownStep.optional && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">valfrjálst</span>
-                )}
-              </div>
-              <p className="mt-0.5 text-sm text-slate-500">{shownStep.blurb}</p>
-              <div className="mt-3">
-                <StepBody step={shownStep} data={data} reload={async () => { await load(); }} advance={advance} healthOrder={healthOrder ?? null} />
-              </div>
-            </section>
-          ) : (
-            <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
-              Veldu skref hér fyrir ofan til að sjá hvað er í því.
-            </p>
-          )}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* The journey as a timeline in four phases. The open step unfolds in
+            place, so reading about a step and doing it happen in one spot. */}
+        <div className="space-y-5">
+          {PHASES.map((ph) => {
+            const steps = ph.keys.map((k) => data.steps.find((x) => x.key === k)).filter((x): x is JourneyStep => !!x);
+            if (!steps.length) return null;
+            const required = steps.filter((x) => !x.optional);
+            const phaseDone = required.length > 0 && required.every((x) => x.state === "done");
+            const folded = phaseDone && !steps.some((x) => x.key === shownStep?.key) && !expanded.has(ph.title);
+            if (folded) {
+              return (
+                <button key={ph.title} type="button" onClick={() => setExpanded((e) => new Set(e).add(ph.title))}
+                  className={`${hcCard.base} flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50`}>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-hc-brand text-white"><CheckIcon /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-hc-ink">{ph.title}</span>
+                    <span className="block text-xs text-hc-ink-2">{steps.length} {steps.length === 1 ? "skrefi lokið" : "skrefum lokið"}</span>
+                  </span>
+                  <span className="text-xs font-semibold text-hc-brand-dark">Sýna</span>
+                </button>
+              );
+            }
+            return (
+              <section key={ph.title} aria-label={ph.title}>
+                <p className={`${hcKicker} mb-2 flex items-center gap-2 ${phaseDone ? "text-hc-brand-dark" : "text-slate-500"}`}>
+                  {phaseDone && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-hc-brand text-white"><CheckIcon /></span>}
+                  {ph.title}
+                </p>
+                <ol className={`${hcCard.base} divide-y divide-slate-100 overflow-hidden`}>
+                  {steps.map((st) => {
+                    const isOpen = shownStep?.key === st.key;
+                    const waiting = ours && st.key === current?.key;
+                    const n = data.steps.indexOf(st) + 1;
+                    return (
+                      <li key={st.key} id={`step-${st.key}`} className="scroll-mt-24">
+                        <button type="button" onClick={() => setOpen(isOpen ? null : st.key)} aria-expanded={isOpen}
+                          className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition ${isOpen ? "bg-hc-brand-surface/60" : "hover:bg-slate-50"}`}>
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                            st.state === "done" ? "bg-hc-brand text-white"
+                              : waiting ? "bg-amber-100 text-amber-800"
+                              : st.state === "current" ? "bg-hc-ink text-white ring-4 ring-slate-900/10"
+                              : "bg-slate-100 text-slate-400"}`}>
+                            {st.state === "done" ? <CheckIcon /> : waiting ? "…" : n}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className={`block font-semibold ${st.state === "upcoming" || st.state === "optional" ? "text-slate-500" : "text-hc-ink"}`}>{st.title}</span>
+                            <span className="block truncate text-xs text-hc-ink-2">
+                              {st.state === "done" ? `Lokið${st.doneAt ? ` ${fmtDate(st.doneAt)}` : ""}`
+                                : waiting ? (OURS_TEXT[st.key] ?? "Hjá okkur")
+                                : st.state === "current" ? "Næsta skref"
+                                : st.optional ? "Valfrjálst" : "Síðar"}
+                            </span>
+                          </span>
+                          <svg className={`h-5 w-5 shrink-0 text-slate-400 transition ${isOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" /></svg>
+                        </button>
+                        {isOpen && (
+                          <div className="border-t border-slate-100 bg-hc-surface px-4 pb-5 pt-3">
+                            <p className="text-sm text-hc-ink-2">{st.blurb}</p>
+                            <div className="mt-3">
+                              <StepBody step={st} data={data} reload={async () => { await load(true); }} advance={advance} healthOrder={healthOrder ?? null} />
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            );
+          })}
         </div>
 
         {/* Side */}
@@ -207,7 +275,8 @@ function Heilsuferd() {
           )}
           <LecturesCard lectures={data.lectures} />
           <HistoryCard history={data.history ?? []} />
-          <ClaimsCard claims={data.claims} reload={async () => { await load(); }} />
+          <Link href="/account?klassiskt=1" className="block rounded-2xl border border-slate-100 bg-white p-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Aðgangur og greiðslur →</Link>
+          <ClaimsCard claims={data.claims} reload={async () => { await load(true); }} />
           <SettingsCard />
           <p className="px-1 text-xs text-slate-400">
             Spurningar? Skrifaðu á <a className="underline" href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
@@ -215,6 +284,35 @@ function Heilsuferd() {
         </aside>
       </div>
     </Shell>
+  );
+}
+
+/** The journey's phases: the steps grouped the way people think about them. */
+const PHASES: { title: string; keys: StepKey[] }[] = [
+  { title: "Undirbúningur", keys: ["account", "profile", "welcome", "package"] },
+  { title: "Heilsufarsskoðun", keys: ["tests", "report"] },
+  { title: "Viðtal og áætlun", keys: ["interview", "plan"] },
+  { title: "Eftirfylgd", keys: ["followup", "reevaluation"] },
+];
+
+const CheckIcon = () => (
+  <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden><path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 111.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clipRule="evenodd" /></svg>
+);
+
+/** Progress as a ring (done of required), for the hero. */
+function ProgressRing({ done, total }: { done: number; total: number }) {
+  const r = 30, c = 2 * Math.PI * r, pct = total ? done / total : 0;
+  return (
+    <div className="relative h-20 w-20 shrink-0" aria-label={`${done} af ${total} skrefum lokið`}>
+      <svg viewBox="0 0 72 72" className="h-20 w-20 -rotate-90">
+        <circle cx="36" cy="36" r={r} fill="none" stroke="rgb(255 255 255 / 0.15)" strokeWidth="7" />
+        <circle cx="36" cy="36" r={r} fill="none" stroke="#6EE7B7" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
+      </svg>
+      <span className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+        <span className="text-lg font-bold">{done}/{total}</span>
+        <span className="mt-0.5 text-[10px] text-emerald-100">skref</span>
+      </span>
+    </div>
   );
 }
 

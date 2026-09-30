@@ -351,7 +351,7 @@ function AccountPageInner() {
           const { data: sess } = await supabase.auth.getSession();
           const peek = await fetch("/api/hc/journey/exists", { headers: { Authorization: `Bearer ${sess.session?.access_token ?? ""}` } })
             .then((r) => (r.ok ? r.json() : null)).catch(() => null);
-          if (peek?.exists) { router.replace("/account/heilsuferd"); return; }
+          if (peek?.exists) { router.replace(peek.has_plan ? "/account/heilsuferd/aaetlun" : "/account/heilsuferd"); return; }
         }
         // First-time gate: B2C users who haven't seen the welcome
         // slideshow yet get bounced to /account/welcome. Body-composition

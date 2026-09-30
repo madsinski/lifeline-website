@@ -24,6 +24,8 @@ import type { Comparison } from "@/lib/hc/compare";
 import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
 import type { Upcoming } from "@/lib/hc/upcoming";
 import Link from "next/link";
+import * as cache from "@/lib/hc/client-cache";
+import { peek } from "@/lib/hc/client-cache";
 import { BookOpen, Dumbbell } from "lucide-react";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 
@@ -76,28 +78,44 @@ function PlanPageInner() {
   }, []);
 
   useEffect(() => {
+    let first = true;
+    // Apply one set of responses; the tab is chosen only the first time, so a
+    // background refresh never moves the participant.
+    type J = Record<string, unknown> & { plan?: ActionPlan | null };
+    const apply = (aOk: boolean, aj: J, pj: J, tj: J | null) => {
+      setName((pj.client_name as string) ?? null);
+      setLectures((pj.lectures as (LectureRef & { completed?: boolean })[]) ?? []);
+      setAppointments((pj.appointments as Upcoming[]) ?? []);
+      if (tj?.settings) setTraining(tj.settings as TrainingSettings);
+      const loaded = aOk ? {
+        journey_id: aj.journey_id as string, plan: pj.plan ?? aj.plan ?? null,
+        logs: (aj.logs as ActionLog[]) ?? [], prefs: (aj.prefs as ActionPref[]) ?? [], flagged: (aj.flagged as FlaggedValue[]) ?? [],
+        report: (aj.report as Loaded["report"]) ?? null, compare: (aj.compare as Comparison | null) ?? null,
+      } : null;
+      setData(loaded);
+      if (first) {
+        first = false;
+        // The tab in the address wins; else today when there is a plan, otherwise the report.
+        const wanted = (["today", "plan", "report"] as const).find((t) => t === askedTab);
+        setTabState(wanted && (wanted === "report" ? !!loaded?.report : !!loaded?.plan) ? wanted : loaded?.plan ? "today" : loaded?.report ? "report" : "today");
+      }
+    };
     (async () => {
       const { data: s } = await supabase.auth.getSession();
       if (!s.session?.access_token) { router.replace(`/account/login?next=${encodeURIComponent("/account/heilsuferd/aaetlun")}`); return; }
       const qs = journey ? `?journey=${encodeURIComponent(journey)}` : "";
-      const [a, p] = await Promise.all([api(`/api/hc/actions${qs}`), api(`/api/hc/plan${qs}`)]);
-      const aj = await a.json().catch(() => ({}));
-      const pj = await p.json().catch(() => ({}));
-      setName(pj.client_name ?? null);
-      setLectures(pj.lectures ?? []);
-      setAppointments(pj.appointments ?? []);
+      const U = { a: `/api/hc/actions${qs}`, p: `/api/hc/plan${qs}`, t: `/api/hc/training${qs}` };
+      // Show what we had at once (switching back from another page)…
+      const ca = peek<J>(U.a), cp = peek<J>(U.p);
+      if (ca && cp) apply(true, ca.body, cp.body, peek<J>(U.t)?.body ?? null);
+      // …then the fresh data.
+      const [a, p] = await Promise.all([cache.load(api, U.a), cache.load(api, U.p)]);
+      const aj = a.body as J, pj = p.body as J;
       const planKey = (pj.plan ?? aj.plan)?.exercise?.key;
-      if (isAdaptive(planKey)) {
-        const t = await api(`/api/hc/training${qs}`);
-        const tj = await t.json().catch(() => ({}));
-        if (t.ok && tj.settings) setTraining(tj.settings);
-      }
-      const loaded = a.ok ? { journey_id: aj.journey_id, plan: pj.plan ?? aj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null, compare: aj.compare ?? null } : null;
-      setData(loaded);
-      // The tab in the address wins; else land on today when there is a
-      // plan, otherwise on the report.
-      const wanted = (["today", "plan", "report"] as const).find((t) => t === askedTab);
-      setTabState(wanted && (wanted === "report" ? !!loaded?.report : !!loaded?.plan) ? wanted : loaded?.plan ? "today" : loaded?.report ? "report" : "today");
+      const t = isAdaptive(planKey) ? await cache.load(api, U.t) : null;
+      apply(a.status < 400, aj, pj, t && t.status < 400 ? (t.body as J) : null);
+      // Warm the journey page for the "Ferðin" tab.
+      cache.prefetch(api, ["/api/hc/journey"]);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the tab is only read on first load
   }, [journey, router, api]);
@@ -122,6 +140,7 @@ function PlanPageInner() {
     setSaving(true);
     const qs = journey ? `?journey=${encodeURIComponent(journey)}` : "";
     const r = await api(`/api/hc/training${qs}`, { method: "POST", body: JSON.stringify(next) });
+    cache.invalidate("/api/hc/training");
     const j = await r.json().catch(() => ({}));
     setSaving(false);
     if (r.ok && j.settings) setTraining(j.settings); else setTraining(prev);
