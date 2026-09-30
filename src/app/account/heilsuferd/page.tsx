@@ -7,7 +7,6 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import BackLink from "@/app/components/hc/BackLink";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
@@ -15,6 +14,9 @@ import PinPad from "@/app/components/hc/PinPad";
 import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, journeyCheckpoints, type JourneyStep, type StepKey } from "@/lib/hc/stages";
 import StatusStrip from "@/app/components/hc/StatusStrip";
+import AppointmentCard from "@/app/components/hc/AppointmentCard";
+import JourneyNav from "@/app/components/hc/JourneyNav";
+import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
 
@@ -59,6 +61,8 @@ function Heilsuferd() {
   const router = useRouter();
   const params = useSearchParams();
   const stadur = params.get("stadur") || "";
+  // Once the plan exists, "Í dag" is home; ?ferd=1 is the journey itself.
+  const showJourney = params.get("ferd") === "1";
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [data, setData] = useState<JourneyData | null>(null);
   const [error, setError] = useState("");
@@ -69,10 +73,11 @@ function Heilsuferd() {
     if (r.status === 401) { setAuthed(false); return null; }
     if (!r.ok) { setError("Ekki tókst að sækja heilsuferðina. Reyndu aftur."); return null; }
     const j = (await r.json()) as JourneyData;
+    if (j.plan && !showJourney) { router.replace("/account/heilsuferd/aaetlun"); return null; }
     setData(j);
     setOpen((o) => o ?? j.steps.find((s) => s.state === "current")?.key ?? null);
     return j;
-  }, [stadur]);
+  }, [stadur, showJourney, router]);
 
   /** After a step is completed: reload and open the next step. */
   const advance = useCallback(async () => {
@@ -108,13 +113,19 @@ function Heilsuferd() {
   // The step being worked on, unless the customer has picked another.
   const shownStep = data.steps.find((x) => x.key === open)
     ?? current
+    // Plan published: nothing is "current", and the last step (re-evaluation)
+    // is a year away. The plan is what they are living with now.
+    ?? (data.plan ? data.steps.find((x) => x.key === "plan") : undefined)
     ?? data.steps.find((x) => x.state === "upcoming")
     ?? data.steps.at(-1)
     ?? null;
+  const next = upcomingAppointments(data.journey, data.location)[0] ?? null;
   const healthOrder = data.orders.find((o) => o.journey_id === data.journey.id && (o.kind === "health_check" || o.kind === "reevaluation"));
 
   return (
     <Shell>
+      {data.plan && <div className="mb-4"><JourneyNav active="journey" /></div>}
+      {next && <div className="mb-4"><AppointmentCard a={next} /></div>}
       {/* Hero */}
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] via-[#0B3B30] to-[#065F46] p-6 text-white shadow-lg sm:p-8">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
@@ -191,12 +202,10 @@ function Heilsuferd() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
+  // No "back to account" link: the heilsuferð is the participant's home.
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
-      <div className="mx-auto max-w-5xl px-4 pb-16 pt-24 sm:pt-28">
-        <div className="mb-4 flex items-center justify-between">
-          <BackLink href="/account" label="Aðgangurinn minn" />
-        </div>
+      <div className="mx-auto max-w-5xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28">
         {children}
       </div>
     </div>

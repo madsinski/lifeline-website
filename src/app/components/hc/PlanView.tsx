@@ -27,7 +27,7 @@ const noopSubscribe = () => () => {};
 
 const LEVEL: Record<string, string> = { beginner: "Byrjandi", intermediate: "Miðlungs", advanced: "Lengra komin" };
 
-export default function PlanView({ plan: given, clientName, author, training, lectures, lectureHref }: {
+export default function PlanView({ plan: given, clientName, author, training, lectures, lectureHref, initialTab }: {
   plan: ActionPlan;
   clientName?: string | null;
   author?: string | null;
@@ -36,8 +36,9 @@ export default function PlanView({ plan: given, clientName, author, training, le
   lectures?: LectureRef[];
   /** where a lecture card links; null = not a link (e.g. workstation preview) */
   lectureHref?: (slug: string) => string | null;
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(initialTab ?? "overview");
   // The adaptive programme stores no sessions: they come from the settings.
   // A partial plan (e.g. the "today" payload) must never take the page down.
   const stored: ActionPlan = { ...given, goals: given.goals ?? [], modules: given.modules ?? [] };

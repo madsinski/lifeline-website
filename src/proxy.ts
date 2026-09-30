@@ -45,6 +45,7 @@ const BYPASS_PREFIXES = [
   "/account/heilsuferd",    // health-check journey — own Supabase session check; signup must reach it
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
+  "/manifest.webmanifest",  // installable app manifest (src/app/manifest.ts)
   "/_next",
   "/favicon",
 ];

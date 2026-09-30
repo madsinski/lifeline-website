@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, getClientProfile, requireUser } from "@/lib/hc/server";
+import { upcomingAppointments } from "@/lib/hc/upcoming";
+import type { HcJourney } from "@/lib/hc/types";
 
 export const runtime = "nodejs";
 
@@ -26,5 +28,17 @@ export async function GET(req: NextRequest) {
     ? await supabaseAdmin.from("hc_lectures").select("slug, title, subtitle, kind, duration_min, pillar").in("slug", slugs).eq("published", true)
     : { data: [] };
   const lectures = slugs.map((s) => (lecs || []).find((l) => l.slug === s)).filter(Boolean);
-  return NextResponse.json({ plan, client_name: profile?.full_name ?? null, lectures });
+  const { data: done } = lectures.length
+    ? await supabaseAdmin.from("hc_lecture_progress").select("lecture_id, hc_lectures!inner(slug)").eq("client_id", user.id)
+    : { data: [] };
+  const doneSlugs = new Set((done || []).map((d) => (d as unknown as { hc_lectures: { slug: string } }).hc_lectures.slug));
+  // The same journey's upcoming appointments, for the "Í dag" screen.
+  const { data: j } = await supabaseAdmin.from("hc_journeys").select("*").eq("id", journeyId).eq("client_id", user.id).maybeSingle();
+  const { data: loc } = j?.location_id ? await supabaseAdmin.from("hc_locations").select("*").eq("id", j.location_id).maybeSingle() : { data: null };
+  return NextResponse.json({
+    plan, client_name: profile?.full_name ?? null,
+    lectures: lectures.map((l) => ({ ...l, completed: doneSlugs.has(l!.slug) })),
+    appointments: j ? upcomingAppointments(j as HcJourney, loc) : [],
+    has_report: !!j?.report_generated_at,
+  });
 }

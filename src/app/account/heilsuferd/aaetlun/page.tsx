@@ -5,7 +5,6 @@
 // whole plan as the nurse wrote it, with the print layout behind it.
 
 import { Suspense, useCallback, useEffect, useState } from "react";
-import BackLink from "@/app/components/hc/BackLink";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
@@ -15,7 +14,12 @@ import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan, LectureRef } from "@/lib/hc/types";
-import { DEFAULT_TRAINING, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { DEFAULT_TRAINING, adaptExercise, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import AppointmentCard from "@/app/components/hc/AppointmentCard";
+import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
+import type { Upcoming } from "@/lib/hc/upcoming";
+import Link from "next/link";
+import { BookOpen, Dumbbell } from "lucide-react";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 
 type Tab = "today" | "plan" | "report" | "results";
@@ -40,11 +44,15 @@ export default function PlanPage() {
 
 function PlanPageInner() {
   const router = useRouter();
-  const journey = useSearchParams().get("journey");
+  const search = useSearchParams();
+  const journey = search.get("journey");
+  const askedTab = search.get("tab");
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
   const [name, setName] = useState<string | null>(null);
   const [tab, setTabState] = useState<Tab | null>(null);
-  const [lectures, setLectures] = useState<LectureRef[]>([]);
+  const [lectures, setLectures] = useState<(LectureRef & { completed?: boolean })[]>([]);
+  const [appointments, setAppointments] = useState<Upcoming[]>([]);
+  const [planTab, setPlanTab] = useState<"overview" | "exercise" | undefined>(undefined);
   const [training, setTraining] = useState<TrainingSettings>(DEFAULT_TRAINING);
   const [saving, setSaving] = useState(false);
 
@@ -71,6 +79,7 @@ function PlanPageInner() {
       const pj = await p.json().catch(() => ({}));
       setName(pj.client_name ?? null);
       setLectures(pj.lectures ?? []);
+      setAppointments(pj.appointments ?? []);
       const planKey = (pj.plan ?? aj.plan)?.exercise?.key;
       if (isAdaptive(planKey)) {
         const t = await api(`/api/hc/training${qs}`);
@@ -79,12 +88,27 @@ function PlanPageInner() {
       }
       const loaded = a.ok ? { journey_id: aj.journey_id, plan: pj.plan ?? aj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null } : null;
       setData(loaded);
-      // Land on the plan when there is one, otherwise on the report.
-      setTabState(loaded?.plan ? "today" : loaded?.report ? "report" : "today");
+      // The tab in the address wins; else land on today when there is a
+      // plan, otherwise on the report.
+      const wanted = (["today", "plan", "report"] as const).find((t) => t === askedTab);
+      setTabState(wanted && (wanted === "report" ? !!loaded?.report : !!loaded?.plan) ? wanted : loaded?.plan ? "today" : loaded?.report ? "report" : "today");
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the tab is only read on first load
   }, [journey, router, api]);
 
   const plan = data?.plan ?? null;
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    const u = new URL(window.location.href);
+    u.searchParams.set("tab", t === "results" ? "report" : t);
+    window.history.replaceState(null, "", u);
+    window.scrollTo({ top: 0 });
+  };
+  // Today's session from the exercise plan (adaptive ones computed from the settings).
+  const exercise = plan?.exercise ? (isAdaptive(plan.exercise.key) ? adaptExercise(plan.exercise, training, plan.start_date) : plan.exercise) : null;
+  const WD = ["sun", "mán", "þri", "mið", "fim", "fös", "lau"];
+  const todays = exercise?.sessions.find((x) => x.day.toLowerCase().startsWith(WD[new Date().getDay()]));
+  const nextLecture = lectures.find((l) => !l.completed);
   // Save each change straight away; the page shows the new sessions at once.
   const saveTraining = async (next: TrainingSettings) => {
     const prev = training;
@@ -98,49 +122,68 @@ function PlanPageInner() {
   };
   // The report often lands before the plan is written; show it either way.
   const hasSomething = !!plan || !!data?.report;
-  const tabs: { key: Tab; label: string; show: boolean }[] = [
-    { key: "today", label: "Í dag", show: !!plan },
-    { key: "plan", label: "Áætlunin", show: !!plan },
-    // One name for one thing. "Skýrslan" and "Niðurstöður" were two tabs for
-    // the same content — the second only appears when the full report has not
-    // been parsed and all we have is the flat values.
-    { key: "report", label: "Skýrslan mín", show: !!data?.report },
-    { key: "results", label: "Skýrslan mín", show: !!data?.flagged.length && !data?.report },
-  ];
+
+  const place: JourneyPlace = tab === "plan" ? "plan" : tab === "report" || tab === "results" ? "report" : "today";
+  const next = appointments[0] ?? null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5] print:bg-white">
-      <div className="mx-auto max-w-4xl px-4 pb-16 pt-24 sm:pt-28 print:max-w-none print:p-0">
-        <div className="print:hidden">
-          <BackLink href="/account/heilsuferd" label="Heilsuferðin" />
-        </div>
-
+      <div className="mx-auto max-w-4xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28 print:max-w-none print:p-0">
         {data === undefined && <p className="mt-4 text-slate-500">Hleð…</p>}
 
         {data !== undefined && !hasSomething && (
-          <div className="mt-4 rounded-3xl bg-white p-8 text-center shadow-sm">
-            <p className="text-lg font-semibold text-slate-800">Áætlunin er ekki tilbúin enn</p>
-            <p className="mt-1 text-slate-500">Hún birtist hér eftir viðtalið við hjúkrunarfræðinginn.</p>
+          <div className="mt-4 space-y-4">
+            {next && <AppointmentCard a={next} />}
+            <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
+              <p className="text-lg font-semibold text-slate-800">Áætlunin er ekki tilbúin enn</p>
+              <p className="mt-1 text-slate-500">Hún birtist hér eftir viðtalið við hjúkrunarfræðinginn.</p>
+              <Link href="/account/heilsuferd?ferd=1" className="mt-4 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Sjá heilsuferðina</Link>
+            </div>
           </div>
         )}
 
         {hasSomething && data && (
           <>
-            {/* Same control as the workstation's nav, so the two sides of the
-                same journey do not look like two products. */}
-            <nav className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-slate-200 print:hidden" role="tablist">
-              {tabs.filter((t) => t.show).map((t) => (
-                <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTabState(t.key)}
-                  className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                    tab === t.key ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
-                  {t.label}
-                </button>
-              ))}
-            </nav>
+            <JourneyNav active={place} hasReport={!!data.report || !!data.flagged.length}
+              onSelect={(k) => {
+                if (k === "journey") return false;
+                if (k === "plan" && !plan) return false;
+                setPlanTab(undefined);
+                setTab(k === "report" ? (data.report ? "report" : "results") : k);
+                return true;
+              }} />
 
             <div className="mt-4">
               {tab === "today" && plan && (
-                <div className="print:hidden">
+                <div className="space-y-4 print:hidden">
+                  {next && <AppointmentCard a={next} />}
+                  {todays ? (
+                    <button type="button" onClick={() => { setPlanTab("exercise"); setTab("plan"); }}
+                      className="flex w-full items-center gap-4 rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm sm:p-5">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20"><Dumbbell className="h-6 w-6" aria-hidden /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-bold uppercase tracking-[0.15em] text-white/80">Æfing dagsins</span>
+                        <span className="block text-lg font-bold">{todays.title}{todays.minutes ? ` · um ${todays.minutes} mín.` : ""}</span>
+                        <span className="block truncate text-sm text-white/90">{todays.items.filter((it) => it.block === "main").map((it) => it.name).slice(0, 3).join(" · ")}</span>
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold">Opna →</span>
+                    </button>
+                  ) : exercise ? (
+                    <p className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm ring-1 ring-slate-100">
+                      <strong className="text-slate-800">Hvíldardagur frá æfingum.</strong> Rösk ganga eða útivera telur samt.
+                    </p>
+                  ) : null}
+                  {nextLecture && (
+                    <Link href={`/account/heilsuferd/fraedsla/${nextLecture.slug}`}
+                      className="flex items-center gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-emerald-100 transition hover:ring-emerald-300 sm:p-5">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"><BookOpen className="h-6 w-6" aria-hidden /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">Fræðsla{nextLecture.duration_min ? ` · ${nextLecture.duration_min} mín.` : ""}</span>
+                        <span className="block font-bold text-slate-900">{nextLecture.title}</span>
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold text-emerald-700">Opna →</span>
+                    </Link>
+                  )}
                   <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs} />
                 </div>
               )}
@@ -160,7 +203,7 @@ function PlanPageInner() {
                 </div>
               )}
               {tab === "plan" && plan && (
-                <PlanView plan={plan} clientName={name} author={plan.created_by ?? null}
+                <PlanView key={planTab ?? "p"} plan={plan} clientName={name} author={plan.created_by ?? null} initialTab={planTab}
                   training={{ settings: training, onChange: saveTraining, saving }}
                   lectures={lectures} lectureHref={(slug) => `/account/heilsuferd/fraedsla/${slug}`} />
               )}
