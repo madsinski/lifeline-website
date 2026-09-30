@@ -1100,8 +1100,17 @@ function ResultsStep({ d, api, isDoctor, record, reload }: {
   reload: () => Promise<void>;
 }) {
   const j = d.journey;
+  const bloodDone = !!(j.blood_test_done_at || j.blood_results_at);
   return (
     <div className="space-y-4">
+      {/* Tests recorded by hand when no partner system does it. */}
+      {!d.report && (!bloodDone || !j.measurements_done_at) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm">
+          <span className="text-slate-600">Skrá handvirkt:</span>
+          {!bloodDone && <button type="button" onClick={() => void record({ event: "blood_test_done" })} className={`${btnSecondary} min-h-8 px-3 text-xs`}><Droplet className="h-3.5 w-3.5" /> Blóðprufa tekin</button>}
+          {!j.measurements_done_at && <button type="button" onClick={() => void record({ event: "measurements_done" })} className={`${btnSecondary} min-h-8 px-3 text-xs`}><Ruler className="h-3.5 w-3.5" /> Mælingar gerðar</button>}
+        </div>
+      )}
       {d.compare && <BeforeAfter c={d.compare} />}
       {d.report && (
         <>
@@ -1189,7 +1198,8 @@ function InterviewStep({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: b
     <div className="space-y-4">
       <Booking label="Viðtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode} meetingUrl={j.meeting_url}
         disabled={!j.report_generated_at && !j.report_imported_at} disabledText="Hægt að bóka þegar skýrslan er komin inn."
-        onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy} />
+        onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy}
+        onCancel={(noShow) => run({ event: "interview_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Viðtal afbókað.")} />
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
       {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} mode="interview" />}
     </div>
@@ -1209,7 +1219,8 @@ function FollowupStep({ d, record, isDoctor, onPlan }: { d: Detail; record: (p: 
     <div className="space-y-3">
       <Booking label="Eftirfylgd" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_mode ?? (j.followup_booked_for ? j.interview_mode : "video")} meetingUrl={j.followup_meeting_url ?? null}
         disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
-        onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy} />
+        onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy}
+        onCancel={(noShow) => run({ event: "followup_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Eftirfylgd afbókuð.")} />
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
       {/* The follow-up conversation, guided like the first one but with its
           own notes and questions about how it went. Marking it done is the
@@ -1486,12 +1497,15 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
   );
 }
 
-function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, onBook, busy, suggest }: {
+function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, onBook, busy, suggest, onCancel }: {
   label: string; at: string | null; done: string | null; mode?: string | null; meetingUrl?: string | null;
   disabled: boolean; disabledText: string;
   onBook: (at: string, mode: "in_person" | "video", meetingUrl: string | null) => void; busy: boolean; suggest?: number;
+  /** Cancel the slot; noShow when the time has passed and nobody came. */
+  onCancel?: (noShow: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [openedAt] = useState(() => Date.now());
   const [when, setWhen] = useState(() => {
     if (at) return toLocalInput(new Date(at));
     const d = new Date(Date.now() + (suggest ?? 1) * 86400_000);
@@ -1521,6 +1535,11 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
         </p>
         {!done && !disabled && !editing && (
           <button type="button" onClick={() => setEditing(true)} className={`${at ? btnSecondary : btnPrimary} min-h-9`}>{at ? "Breyta tíma" : "Bóka"}</button>
+        )}
+        {!done && at && !editing && onCancel && (
+          new Date(at).getTime() < openedAt
+            ? <button type="button" disabled={busy} onClick={() => onCancel(true)} className={`${btnGhost} min-h-9`}>Mætti ekki</button>
+            : <button type="button" disabled={busy} onClick={() => { if (confirm(`Afbóka ${label.toLowerCase()}? Skjólstæðingurinn fær tölvupóst.`)) onCancel(false); }} className={`${btnGhost} min-h-9`}>Afbóka</button>
         )}
       </div>
       {editing && (

@@ -6,9 +6,9 @@ export const JOURNEY_EVENTS = [
   "blood_test_booked", "blood_test_done", "blood_results_ready",
   "measurements_booked", "measurements_done",
   "report_generated",
-  "interview_booked", "interview_done",
+  "interview_booked", "interview_done", "interview_cancelled",
   "referral_heilsugaesla",
-  "followup_booked", "followup_done",
+  "followup_booked", "followup_done", "followup_cancelled",
 ] as const;
 export type JourneyEvent = (typeof JOURNEY_EVENTS)[number];
 
@@ -25,6 +25,8 @@ export const EVENT_LABELS: Record<JourneyEvent, string> = {
   referral_heilsugaesla: "Vísað á Heilsugæsluna",
   followup_booked: "Eftirfylgd bókuð",
   followup_done: "Eftirfylgd lokið",
+  interview_cancelled: "Viðtal afbókað",
+  followup_cancelled: "Eftirfylgd afbókuð",
 };
 
 /** Events only a doctor may record. */

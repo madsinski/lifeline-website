@@ -33,6 +33,7 @@ export async function applyJourneyEvent(
       break;
     case "interview_booked":
       patch.interview_booked_for = at;
+      patch.interview_reminded_at = null;   // a new time gets its own reminder
       patch.interview_mode = opts.mode ?? "in_person";
       if (opts.interviewerId) patch.interviewer_id = opts.interviewerId;
       // A video appointment keeps its link unless a new one is given (null
@@ -51,15 +52,24 @@ export async function applyJourneyEvent(
       break;
     case "followup_booked":
       patch.followup_booked_for = at;
+      patch.followup_reminded_at = null;
       patch.followup_mode = opts.mode ?? journey.followup_mode ?? journey.interview_mode ?? "in_person";
       if (patch.followup_mode === "video") { if (opts.meetingUrl !== undefined) patch.followup_meeting_url = opts.meetingUrl; }
       else patch.followup_meeting_url = null;
       if (opts.interviewerId && !journey.interviewer_id) patch.interviewer_id = opts.interviewerId;
       break;
     case "followup_done": patch.followup_done_at = at; break;
+    // Cancelled or no-show (note "no_show"): the slot is gone, a new one is
+    // booked the usual way. The audit keeps the old time.
+    case "interview_cancelled":
+      patch.interview_booked_for = null; patch.meeting_url = null; patch.interview_reminded_at = null;
+      break;
+    case "followup_cancelled":
+      patch.followup_booked_for = null; patch.followup_meeting_url = null; patch.followup_reminded_at = null;
+      break;
   }
   const updated = await patchJourney(journey.id, patch, opts.actor, `event:${event}`, { note: opts.note ?? null });
-  if (updated) await notifyClient(updated, event, opts.origin);
+  if (updated) await notifyClient(updated, event, opts.origin, opts.note === "no_show");
   return updated;
 }
 
@@ -88,10 +98,15 @@ function bookingMessage(j: HcJourney, kind: "interview" | "followup"): { title: 
 }
 
 /** Nudges the customer when the next step is theirs. Best effort. */
-async function notifyClient(j: HcJourney, event: JourneyEvent, origin = "https://www.lifelinehealth.is") {
+async function notifyClient(j: HcJourney, event: JourneyEvent, origin = "https://www.lifelinehealth.is", noShow = false) {
   const messages: Partial<Record<JourneyEvent, { title: string; body: string } | null>> = {
     interview_booked: bookingMessage(j, "interview"),
     followup_booked: bookingMessage(j, "followup"),
+    // A no-show is not told it was cancelled; a cancellation is.
+    ...(noShow ? {} : {
+      interview_cancelled: { title: "Viðtalinu var aflýst", body: "Tímanum þínum í viðtal var aflýst. Hjúkrunarfræðingur hefur samband til að finna nýjan tíma." },
+      followup_cancelled: { title: "Eftirfylgdarviðtali aflýst", body: "Tímanum þínum í eftirfylgd var aflýst. Hjúkrunarfræðingur hefur samband til að finna nýjan tíma." },
+    }),
     report_generated: {
       title: "Skýrslan þín er tilbúin",
       body: "Læknir hefur staðfest skýrsluna þína. Næsta skref er viðtal við hjúkrunarfræðing þar sem þið farið yfir niðurstöðurnar og gerið áætlun. Bókaðu viðtalið í sjúklingagáttinni.",

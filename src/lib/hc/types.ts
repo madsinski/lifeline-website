@@ -70,6 +70,9 @@ export interface HcJourney {
   /** The follow-up's own mode and link (migration-hc-followup-video.sql). */
   followup_mode?: "in_person" | "video" | null;
   followup_meeting_url?: string | null;
+  /** Reminder stamps (cron hc-reminders); cleared when the slot is cancelled. */
+  interview_reminded_at?: string | null;
+  followup_reminded_at?: string | null;
   interviewer_id: string | null;
   interview_done_at: string | null;
   referral_to_heilsugaesla: boolean;
