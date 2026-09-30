@@ -60,6 +60,7 @@ interface Row {
   plan_published_at: string | null; followup_booked_for: string | null; followup_done_at: string | null;
   referral_to_heilsugaesla: boolean; doctor_review_requested_at: string | null; doctor_reviewed_at: string | null;
   plan_status: string | null; updated_at: string;
+  last_tick_on?: string | null; ticks_7d?: number;
 }
 interface Journey extends Omit<Row, "client_name" | "client_phone" | "client_dob" | "plan_status"> {
   referral_note: string | null; referred_at: string | null; doctor_review_note: string | null;
@@ -196,6 +197,10 @@ function nextTask(r: Row | Journey, isDoctor: boolean): Task {
     case "action": {
       // Follow-up done: nothing is owed until the re-evaluation.
       if (r.followup_done_at) return { key: "done", label: "Eftirfylgd lokið", cta: "Opna", tone: "waiting" };
+      // A week of silence since the plan went out: worth a message.
+      if (!r.followup_booked_for && "ticks_7d" in r && (r.ticks_7d ?? 0) === 0 && daysSince(r.plan_published_at) >= 7 && daysSince(r.plan_published_at) < 90) {
+        return { key: "nudge", label: r.last_tick_on ? `Ekkert merkt síðan ${day(r.last_tick_on)}` : "Hefur ekki merkt neitt í áætluninni", cta: "Senda hvatningu", tone: "normal" };
+      }
       if (r.followup_booked_for && !r.followup_done_at) {
         return { key: "followup", label: `Eftirfylgd ${dayTime(r.followup_booked_for)}`, cta: "Opna", tone: isToday(r.followup_booked_for) ? "urgent" : "normal" };
       }
@@ -1366,7 +1371,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
     firstName: cleanName(d.patient.full_name).split(" ")[0] || "",
     activationCode: code,
     bloodAt: j.blood_test_booked_for, measurementsAt: j.measurements_booked_for,
-    interviewAt: j.interview_booked_for, interviewMode: j.interview_mode, followupAt: j.followup_booked_for, meetingUrl: j.meeting_url,
+    interviewAt: j.interview_booked_for, interviewMode: j.interview_mode, followupAt: j.followup_booked_for, meetingUrl: j.meeting_url, followupMeetingUrl: j.followup_meeting_url ?? null,
     bloodSite: "Heilsugæslunni", measurementSite: d.location?.name ? "Veru" : null, interviewSite: null,
     nurseName: d.actor.name,
   }), [d, j, code]);

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     // client the nurse created from a report has not done the customer-facing
     // steps (profile, payment), so their stage still reads "profile" — they
     // must still appear in the queue.
-    .or("stage.in.(tests,report,interview,plan,action,protocol),report_generated_at.not.is.null")
+    .or("stage.in.(tests,report,interview,plan,action,protocol),report_generated_at.not.is.null,report_imported_at.not.is.null")
     .order("updated_at", { ascending: false })
     .limit(400);
   if (locs) q = q.in("location_id", locs);
@@ -41,6 +41,18 @@ export async function GET(req: NextRequest) {
     .in("journey_id", (journeys || []).map((j) => j.id));
   const planStatus: Record<string, string> = {};
   for (const p of plans || []) planStatus[p.journey_id] = p.status;
+  // Plan use in the last week, for "needs a nudge" on the to-do list.
+  const live = (journeys || []).filter((j) => j.plan_published_at).map((j) => j.id);
+  const since = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
+  const week = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
+  const lastTick: Record<string, string> = {}, ticks7: Record<string, number> = {};
+  if (live.length) {
+    const { data: logs } = await supabaseAdmin.from("hc_action_logs").select("journey_id, done_on").in("journey_id", live).gte("done_on", since);
+    for (const l of logs || []) {
+      if (!lastTick[l.journey_id] || l.done_on > lastTick[l.journey_id]) lastTick[l.journey_id] = l.done_on;
+      if (l.done_on >= week) ticks7[l.journey_id] = (ticks7[l.journey_id] ?? 0) + 1;
+    }
+  }
 
   return NextResponse.json({
     journeys: (journeys || []).map((j) => ({
@@ -49,6 +61,8 @@ export async function GET(req: NextRequest) {
       client_phone: names[j.client_id]?.phone ?? null,
       client_dob: names[j.client_id]?.date_of_birth ?? null,
       plan_status: planStatus[j.id] ?? null,
+      last_tick_on: lastTick[j.id] ?? null,
+      ticks_7d: ticks7[j.id] ?? 0,
     })),
   });
 }

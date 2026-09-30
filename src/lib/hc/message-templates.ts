@@ -5,7 +5,7 @@
 import { FASTING_IS } from "./logistics";
 export type MessageTemplateKey =
   | "activate" | "book_tests" | "blood_reminder" | "measure_reminder"
-  | "interview_reminder" | "book_interview" | "plan_ready" | "followup_reminder" | "free";
+  | "interview_reminder" | "book_interview" | "plan_ready" | "plan_nudge" | "followup_reminder" | "free";
 
 export interface TemplateContext {
   firstName: string;
@@ -18,6 +18,7 @@ export interface TemplateContext {
   bloodSite?: string | null;
   measurementSite?: string | null;
   interviewSite?: string | null;
+  followupMeetingUrl?: string | null;
   /** Video-call link, included in the reminder when the appointment is online. */
   meetingUrl?: string | null;
   nurseName?: string | null;
@@ -59,7 +60,11 @@ export const MESSAGE_TEMPLATES: { key: MessageTemplateKey; label: string; subjec
   },
   {
     key: "followup_reminder", label: "Áminning um eftirfylgd", subject: "Áminning: eftirfylgdarviðtal",
-    body: (c) => `Hæ ${c.firstName}. Minnum á eftirfylgdarviðtalið ${when(c.followupAt)}. Við förum yfir hvernig hefur gengið og uppfærum áætlunina.${c.meetingUrl ? `\n\nHlekkur á fjarfundinn: ${c.meetingUrl}` : ""}${SIGN(c)}`,
+    body: (c) => `Hæ ${c.firstName}. Minnum á eftirfylgdarviðtalið ${when(c.followupAt)}. Við förum yfir hvernig hefur gengið og uppfærum áætlunina.${c.followupMeetingUrl ? `\n\nHlekkur á fjarfundinn: ${c.followupMeetingUrl}` : ""}${SIGN(c)}`,
+  },
+  {
+    key: "plan_nudge", label: "Hvatning", subject: "Hvernig gengur með áætlunina?",
+    body: (c) => `Hæ ${c.firstName}. Hvernig gengur með áætlunina? Það er eðlilegt að detta úr takti. Veldu eitt atriði í dag og merktu við það undir „Í dag“ á heilsuferðinni. Ef eitthvað hentar ekki, skrifaðu athugasemd við það og við breytum því saman.${SIGN(c)}`,
   },
   { key: "free", label: "Frjáls texti", subject: "Skilaboð frá Lifeline", body: (c) => `Hæ ${c.firstName}. ${SIGN(c).trim()}` },
 ];
