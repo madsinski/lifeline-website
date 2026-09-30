@@ -5,6 +5,12 @@
 //        → propose one or more, and text the responsible doctor once
 // PATCH { id, status }  → the doctor decides (doctors only)
 //
+// One model for everything that needs a doctor: "lifeline_doctor" is the
+// in-house assessment (it replaced the journey's request-doctor flag, which
+// is kept in step here so the to-do list and old data still read right), and
+// an approved Heilsugæsla referral sets the journey's referral flag. A doctor
+// may record a referral as already approved ({ decided: true }).
+//
 // The nurse proposes, the doctor decides: a nurse cannot set a status, and
 // the doctor is told by SMS because a referral sitting unseen in a web page
 // is the failure mode this is meant to prevent.
@@ -15,7 +21,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
-import { hcAudit, siteOrigin } from "@/lib/hc/server";
+import { hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
 import { sendSms, smsConfigured } from "@/lib/sms";
 import { REFERRAL_STATUSES, REFERRAL_TARGETS, referralSms, type ReferralTarget } from "@/lib/hc/referrals";
 
@@ -29,7 +35,7 @@ async function reach(req: NextRequest, id: string) {
   if (!actor) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
   const { data: journey } = await supabaseAdmin
     .from("hc_journeys")
-    .select("id, client_id, location_id")
+    .select("id, client_id, location_id, referral_to_heilsugaesla")
     .eq("id", id)
     .maybeSingle();
   const locs = actorLocationFilter(actor);
@@ -76,11 +82,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       note: x.note,
       suggested_by: x.suggested_by,
       requested_by: actor.label,
+      // A doctor recording it has decided already.
+      ...(actor.isDoctor && body.decided === true ? { status: "approved", decided_by: actor.label, decided_at: new Date().toISOString() } : {}),
     }));
   if (!rows.length) return NextResponse.json({ error: "Engin gild tilvísun." }, { status: 400 });
 
   const { data: made, error } = await supabaseAdmin.from("hc_referrals").insert(rows).select("*");
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  await mirrorOnJourney(id, actor.label, made ?? []);
 
   // Tell the doctor. One message however many referrals were added, because
   // five texts about one client is how an alert gets muted.
@@ -150,6 +159,32 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     .select("*")
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (data) await mirrorOnJourney(id, actor.label, [data]);
   await hcAudit(actor.label, "referral_decided", id, { referral: refId, status });
   return NextResponse.json({ referral: data });
+}
+
+/**
+ * Keep the journey's older flags in step with the referrals, so the to-do
+ * list, the queue and the participant's journey read the same thing.
+ */
+async function mirrorOnJourney(journeyId: string, actor: string, refs: { target: string; reason: string; note: string | null; status: string; decided_at: string | null; created_at: string }[]) {
+  const patch: Record<string, unknown> = {};
+  for (const r of refs) {
+    if (r.target === "lifeline_doctor") {
+      if (r.status === "requested") {
+        patch.doctor_review_requested_at = r.created_at;
+        patch.doctor_review_note = [r.reason, r.note].filter(Boolean).join(" — ");
+        patch.doctor_reviewed_at = null;
+      } else {
+        patch.doctor_reviewed_at = r.decided_at ?? new Date().toISOString();
+      }
+    }
+    if (r.target === "heilsugaesla" && (r.status === "approved" || r.status === "done")) {
+      patch.referral_to_heilsugaesla = true;
+      patch.referral_note = [r.reason, r.note].filter(Boolean).join(" — ");
+      patch.referred_at = r.decided_at ?? new Date().toISOString();
+    }
+  }
+  if (Object.keys(patch).length) await patchJourney(journeyId, patch, actor, "referral_mirror");
 }

@@ -15,7 +15,7 @@
 import { useState } from "react";
 import { Check, Loader2, Plus, Send, Stethoscope, X } from "lucide-react";
 import {
-  COMMON_REASONS, REFERRAL_TARGETS, STATUS_IS, TARGET_IS,
+  COMMON_REASONS, REFERRAL_TARGETS, STATUS_IS, TARGET_IS, isInHouse,
   type Referral, type ReferralTarget,
 } from "@/lib/hc/referrals";
 
@@ -41,7 +41,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
 }) {
   const [staged, setStaged] = useState<Staged[]>([]);
   const [note, setNote] = useState("");
-  const [pick, setPick] = useState<ReferralTarget>("heilsugaesla");
+  const [pick, setPick] = useState<ReferralTarget>("lifeline_doctor");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [over, setOver] = useState(false);
@@ -72,7 +72,8 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
     setBusy(true); setMsg("");
     const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, {
       method: "POST",
-      body: JSON.stringify({ items: staged.map((x) => ({ target: x.target, reason: x.reason, note: note || null, suggested_by: x.from })) }),
+      // A doctor adding a referral has made the decision already.
+      body: JSON.stringify({ items: staged.map((x) => ({ target: x.target, reason: x.reason, note: note || null, suggested_by: x.from })), decided: isDoctor }),
     });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
@@ -113,7 +114,15 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
                 {r.suggested_by === "ai" ? " · tillaga AI" : ""}
               </p>
               {r.note && <p className="mt-1 text-xs text-amber-900/80">{r.note}</p>}
-              {isDoctor && (
+              {isDoctor && isInHouse(r.target) && (
+                <div className="mt-2">
+                  <button type="button" disabled={busy} onClick={() => decide(r.id, "done")}
+                    className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-slate-900 px-2.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+                    <Check className="h-3.5 w-3.5" /> Metið
+                  </button>
+                </div>
+              )}
+              {isDoctor && !isInHouse(r.target) && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <button type="button" disabled={busy} onClick={() => decide(r.id, "approved")}
                     className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
@@ -167,7 +176,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
             <button type="button" disabled={busy} onClick={send}
               className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Senda til læknis
+              {isDoctor ? "Skrá tilvísun" : "Senda til læknis"}
             </button>
           </>
         )}

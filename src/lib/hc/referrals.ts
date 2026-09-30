@@ -12,7 +12,10 @@
 //
 // Client-safe: no imports.
 
-export const REFERRAL_TARGETS = ["heilsugaesla", "physio", "psychologist", "nutritionist", "specialist"] as const;
+// "lifeline_doctor" is the in-house one: a Lifeline doctor looks at a result
+// or a question before the plan goes further (it replaced the separate
+// "biðja lækni að meta" flag; the journey's doctor_review_* fields mirror it).
+export const REFERRAL_TARGETS = ["lifeline_doctor", "heilsugaesla", "physio", "psychologist", "nutritionist", "specialist"] as const;
 export type ReferralTarget = (typeof REFERRAL_TARGETS)[number];
 
 export const REFERRAL_STATUSES = ["requested", "approved", "declined", "done"] as const;
@@ -33,12 +36,16 @@ export interface Referral {
 }
 
 export const TARGET_IS: Record<ReferralTarget, { label: string; blurb: string; color: string }> = {
+  lifeline_doctor: { label: "Læknir Lifeline", blurb: "Læknir metur niðurstöðu eða spurningu áður en lengra er haldið", color: "#0F172A" },
   heilsugaesla: { label: "Heilsugæslan", blurb: "Læknismat, lyf, framhaldsrannsóknir", color: "#E11D48" },
   physio: { label: "Sjúkraþjálfari", blurb: "Verkir og stoðkerfi", color: "#F59E0B" },
   psychologist: { label: "Sálfræðingur", blurb: "Andleg líðan, streita, fíkn", color: "#8B5CF6" },
   nutritionist: { label: "Næringarfræðingur", blurb: "Mataræði og matarhegðun", color: "#10B981" },
   specialist: { label: "Sérfræðingur", blurb: "Beint til viðeigandi sérgreinar", color: "#0EA5E9" },
 };
+
+/** In-house assessment: the doctor's answer is "assessed", not approve/decline. */
+export const isInHouse = (t: ReferralTarget) => t === "lifeline_doctor";
 
 export const STATUS_IS: Record<ReferralStatus, string> = {
   requested: "Bíður læknis",
@@ -54,6 +61,13 @@ export const STATUS_IS: Record<ReferralStatus, string> = {
  * rather than "sykursýki". The doctor names the condition, we do not.
  */
 export const COMMON_REASONS: Record<ReferralTarget, string[]> = {
+  lifeline_doctor: [
+    "Óviss niðurstaða — læknir meti",
+    "Gildi á mörkum — þarf að endurtaka?",
+    "Einkenni sem skjólstæðingur lýsti í viðtali",
+    "Lyf eða saga sem gæti haft áhrif á áætlunina",
+    "Má skjólstæðingurinn hefja æfingaáætlunina?",
+  ],
   heilsugaesla: [
     "Fastandi blóðsykur yfir viðmiðum",
     "HbA1c yfir viðmiðum",

@@ -60,7 +60,7 @@ interface Row {
   plan_published_at: string | null; followup_booked_for: string | null; followup_done_at: string | null;
   referral_to_heilsugaesla: boolean; doctor_review_requested_at: string | null; doctor_reviewed_at: string | null;
   plan_status: string | null; updated_at: string;
-  last_tick_on?: string | null; ticks_7d?: number;
+  last_tick_on?: string | null; ticks_7d?: number; open_referrals?: number;
 }
 interface Journey extends Omit<Row, "client_name" | "client_phone" | "client_dob" | "plan_status"> {
   referral_note: string | null; referred_at: string | null; doctor_review_note: string | null;
@@ -176,6 +176,8 @@ type Task = { key: string; label: string; cta: string; tone: "urgent" | "normal"
 function nextTask(r: Row | Journey, isDoctor: boolean): Task {
   if (isDoctor && r.doctor_review_requested_at && !r.doctor_reviewed_at)
     return { key: "review", label: "Beiðni um mat læknis", cta: "Meta", tone: "urgent", doctorOnly: true };
+  if (isDoctor && "open_referrals" in r && (r.open_referrals ?? 0) > 0)
+    return { key: "referral", label: `${r.open_referrals} ${r.open_referrals === 1 ? "tilvísun bíður" : "tilvísanir bíða"} læknis`, cta: "Afgreiða", tone: "urgent", doctorOnly: true };
   // An imported report waits for a doctor, whatever else is going on.
   if (isDoctor && r.report_imported_at && !r.report_generated_at)
     return { key: "report", label: "Innflutt skýrsla bíður staðfestingar", cta: "Staðfesta", tone: "urgent", doctorOnly: true };
@@ -903,7 +905,7 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
             openReferrals > 0
               ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
               : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}>
-          <Stethoscope className="h-4 w-4" /> Þarf tilvísun?
+          <Stethoscope className="h-4 w-4" /> Læknir og tilvísanir
           {openReferrals > 0 && <span className="rounded-full bg-amber-200 px-1.5 text-xs">{openReferrals}</span>}
         </button>
       </div>
@@ -961,9 +963,8 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
       )}
 
       {sheet === "referral" && (
-        <Sheet title="Þarf tilvísun?" onClose={() => setSheet(null)}>
+        <Sheet title="Læknir og tilvísanir" onClose={() => setSheet(null)}>
           <div className="space-y-3">
-            <DoctorReview d={d} isDoctor={isDoctor} record={record} />
             <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []}
               suggestions={aiReferrals} isDoctor={isDoctor} onChanged={() => void load()} />
           </div>
@@ -1064,7 +1065,7 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged, onJump }: {
         : j.interview_booked_for
           ? `${dayTime(j.interview_booked_for)}${j.interview_mode === "video" ? " · myndsímtal" : ""}`
           : j.report_generated_at || j.report_imported_at ? "Ekki bókað — hafðu samband og finndu tíma" : "Bókast þegar skýrslan er komin",
-      body: <InterviewStep d={d} isDoctor={isDoctor} record={record} onPlan={() => onJump("plan")} />,
+      body: <InterviewStep d={d} isDoctor={isDoctor} record={record} onPlan={() => onJump("plan")} onChanged={() => void reload()} />,
     },
     {
       key: "plan",
@@ -1087,7 +1088,7 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged, onJump }: {
         : j.followup_booked_for
           ? dayTime(j.followup_booked_for)
           : daysSince(j.plan_published_at) >= 90 ? "Þrír mánuðir liðnir — ekki bókað" : `Bókast um ${day(new Date(new Date(j.plan_published_at ?? Date.now()).getTime() + 90 * 86400_000).toISOString())}`,
-      body: <FollowupStep d={d} record={record} isDoctor={isDoctor} onPlan={() => onJump("plan")} />,
+      body: <FollowupStep d={d} record={record} isDoctor={isDoctor} onPlan={() => onJump("plan")} onChanged={() => void reload()} />,
     },
   ];
 }
@@ -1185,7 +1186,7 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
   );
 }
 
-function InterviewStep({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan: () => void }) {
+function InterviewStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan: () => void; onChanged: () => void }) {
   const j = d.journey;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1201,12 +1202,12 @@ function InterviewStep({ d, isDoctor, record, onPlan }: { d: Detail; isDoctor: b
         onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy}
         onCancel={(noShow) => run({ event: "interview_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Viðtal afbókað.")} />
       {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
-      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} mode="interview" />}
+      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} onChanged={onChanged} mode="interview" />}
     </div>
   );
 }
 
-function FollowupStep({ d, record, isDoctor, onPlan }: { d: Detail; record: (p: Record<string, unknown>) => Promise<string | null>; isDoctor: boolean; onPlan: () => void }) {
+function FollowupStep({ d, record, isDoctor, onPlan, onChanged }: { d: Detail; record: (p: Record<string, unknown>) => Promise<string | null>; isDoctor: boolean; onPlan: () => void; onChanged: () => void }) {
   const j = d.journey;
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1225,45 +1226,7 @@ function FollowupStep({ d, record, isDoctor, onPlan }: { d: Detail; record: (p: 
       {/* The follow-up conversation, guided like the first one but with its
           own notes and questions about how it went. Marking it done is the
           wizard's last step. */}
-      {(j.followup_booked_for || j.followup_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} mode="followup" />}
-    </div>
-  );
-}
-
-function DoctorReview({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null> }) {
-  const j = d.journey;
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [note, setNote] = useState("");
-  const run = async (p: Record<string, unknown>, ok: string) => {
-    setBusy(true); setMsg("");
-    const e = await record(p);
-    setBusy(false); setMsg(e ?? ok);
-  };
-  return (
-    <div className="space-y-2">
-      {j.doctor_review_requested_at && (
-        <div className={`rounded-xl p-3 text-sm ${j.doctor_reviewed_at ? "bg-slate-50 text-slate-600" : "bg-amber-50 text-amber-900"}`}>
-          <p className="font-semibold">{j.doctor_reviewed_at ? `Læknir hefur metið (${day(j.doctor_reviewed_at)})` : `Beðið um mat læknis (${day(j.doctor_review_requested_at)})`}</p>
-          {j.doctor_review_note && <p className="mt-1">{j.doctor_review_note}</p>}
-          {isDoctor && !j.doctor_reviewed_at && (
-            <button type="button" disabled={busy} onClick={() => run({ action: "doctor_reviewed" }, "Skráð sem metið.")} className={`${btnDark} mt-2`}>Merkja sem metið</button>
-          )}
-        </div>
-      )}
-      {j.referral_to_heilsugaesla ? (
-        <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><b>Vísað á Heilsugæsluna</b> {day(j.referred_at)}{j.referral_note ? `: ${j.referral_note}` : ""}</p>
-      ) : (
-        <>
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={isDoctor ? "Ástæða tilvísunar (fer ekki til skjólstæðings)" : "Hvað á læknirinn að meta?"}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-          <div className="flex flex-wrap gap-2">
-            {!isDoctor && <button type="button" disabled={busy || !note.trim()} onClick={() => run({ action: "request_doctor", note }, "Læknar hafa fengið beiðnina.").then(() => setNote(""))} className={btnSecondary}>Biðja lækni að meta</button>}
-            {isDoctor && <button type="button" disabled={busy || !note.trim()} onClick={() => run({ event: "referral_heilsugaesla", note }, "Tilvísun skráð.").then(() => setNote(""))} className={`${btn} bg-amber-600 text-white hover:bg-amber-700`}>Skrá tilvísun á Heilsugæsluna</button>}
-          </div>
-        </>
-      )}
-      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      {(j.followup_booked_for || j.followup_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} onChanged={onChanged} mode="followup" />}
     </div>
   );
 }
@@ -1646,7 +1609,7 @@ const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts
 
 const STEPS = ["Undirbúningur", "Samtal", "Mat", "Áætlun", "Ljúka"] as const;
 
-function Interview({ d, isDoctor, record, onPlan, mode = "interview" }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan?: () => void; mode?: "interview" | "followup" }) {
+function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" }: { d: Detail; isDoctor: boolean; record: (p: Record<string, unknown>) => Promise<string | null>; onPlan?: () => void; onChanged?: () => void; mode?: "interview" | "followup" }) {
   const api = useWsApi();
   const j = d.journey;
   const isFollowup = mode === "followup";
@@ -1666,7 +1629,6 @@ function Interview({ d, isDoctor, record, onPlan, mode = "interview" }: { d: Det
   const [saved, setSaved] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [note, setNote] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Autosave notes a second after typing stops.
@@ -1776,17 +1738,13 @@ function Interview({ d, isDoctor, record, onPlan, mode = "interview" }: { d: Det
                 <button type="button" onClick={() => setStep(3)} className={`${btnPrimary} mt-3`}>Áfram í áætlun <ChevronRight className="h-4 w-4" /></button>
               </div>
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p className="font-semibold text-amber-900">{isDoctor ? "Já, vísa á Heilsugæsluna" : "Já eða óviss, biðja lækni að meta"}</p>
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder={isDoctor ? "Ástæða tilvísunar" : "Hvað á læknirinn að meta?"}
-                  className="mt-2 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm" />
-                {j.doctor_review_requested_at && !j.doctor_reviewed_at && <p className="mt-1 text-xs text-amber-800">Beiðni send {day(j.doctor_review_requested_at)}.</p>}
-                {j.referral_to_heilsugaesla && <p className="mt-1 text-xs text-amber-800">Þegar vísað á Heilsugæsluna.</p>}
-                <button type="button" disabled={busy || !note.trim()}
-                  onClick={async () => { if (await run(isDoctor ? { event: "referral_heilsugaesla", note } : { action: "request_doctor", note }, isDoctor ? "Tilvísun skráð." : "Læknar hafa fengið beiðnina með SMS og tölvupósti.")) setNote(""); }}
-                  className={`${btn} mt-2 bg-amber-600 text-white hover:bg-amber-700`}>
-                  {isDoctor ? "Skrá tilvísun" : "Senda beiðni til læknis"}
-                </button>
+                <p className="font-semibold text-amber-900">{isDoctor ? "Já, skrá tilvísun" : "Já eða óviss: læknir metur eða vísað áfram"}</p>
+                <p className="mt-1 text-sm text-amber-800">Veldu „Læknir Lifeline“ ef læknir á að líta á eitthvað, eða hvert á að vísa. Læknir fær skeyti.</p>
               </div>
+            </div>
+            <div className="mt-3">
+              <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []} suggestions={d.ai_referrals ?? []}
+                isDoctor={isDoctor} onChanged={() => onChanged?.()} />
             </div>
             <p className="mt-3 text-xs text-slate-500">Lífsstílsáætlunin heldur áfram þótt vísað sé á Heilsugæsluna.</p>
           </section>

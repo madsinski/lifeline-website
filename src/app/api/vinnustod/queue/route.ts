@@ -41,6 +41,12 @@ export async function GET(req: NextRequest) {
     .in("journey_id", (journeys || []).map((j) => j.id));
   const planStatus: Record<string, string> = {};
   for (const p of plans || []) planStatus[p.journey_id] = p.status;
+  // Referrals waiting for a doctor, for the doctor's to-do list.
+  const openRefs: Record<string, number> = {};
+  if ((journeys || []).length) {
+    const { data: refs } = await supabaseAdmin.from("hc_referrals").select("journey_id").eq("status", "requested").in("journey_id", (journeys || []).map((j) => j.id));
+    for (const r of refs || []) openRefs[r.journey_id] = (openRefs[r.journey_id] ?? 0) + 1;
+  }
   // Plan use in the last week, for "needs a nudge" on the to-do list.
   const live = (journeys || []).filter((j) => j.plan_published_at).map((j) => j.id);
   const since = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
@@ -62,6 +68,7 @@ export async function GET(req: NextRequest) {
       client_dob: names[j.client_id]?.date_of_birth ?? null,
       plan_status: planStatus[j.id] ?? null,
       last_tick_on: lastTick[j.id] ?? null,
+      open_referrals: openRefs[j.id] ?? 0,
       ticks_7d: ticks7[j.id] ?? 0,
     })),
   });
