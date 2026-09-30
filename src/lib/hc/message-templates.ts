@@ -2,6 +2,7 @@
 // Client-safe: the workstation composes the text, the nurse edits it, the
 // server sends exactly what was approved (/api/vinnustod/journeys/[id]).
 
+import { FASTING_IS } from "./logistics";
 export type MessageTemplateKey =
   | "activate" | "book_tests" | "blood_reminder" | "measure_reminder"
   | "interview_reminder" | "book_interview" | "plan_ready" | "followup_reminder" | "free";
@@ -38,7 +39,7 @@ export const MESSAGE_TEMPLATES: { key: MessageTemplateKey; label: string; subjec
   },
   {
     key: "blood_reminder", label: "Áminning um blóðprufu", subject: "Áminning: blóðprufa",
-    body: (c) => `Hæ ${c.firstName}. Minnum á blóðprufuna ${when(c.bloodAt)}${c.bloodSite ? ` á ${c.bloodSite}` : ""}. Mættu fastandi frá miðnætti, vatn er í lagi.${SIGN(c)}`,
+    body: (c) => `Hæ ${c.firstName}. Minnum á blóðprufuna ${when(c.bloodAt)}${c.bloodSite ? ` á ${c.bloodSite}` : ""}. ${FASTING_IS}${SIGN(c)}`,
   },
   {
     key: "measure_reminder", label: "Áminning um mælingar", subject: "Áminning: mælingar",

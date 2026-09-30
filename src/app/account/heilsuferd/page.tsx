@@ -122,6 +122,14 @@ function Heilsuferd() {
     ?? data.steps.at(-1)
     ?? null;
   const next = upcomingAppointments(data.journey, data.location)[0] ?? null;
+  // Steps where the next move is Lifeline's, not the participant's.
+  const jj = data.journey;
+  const ours = !!current && (
+    current.key === "report"
+    || current.key === "plan"
+    || (current.key === "interview" && !jj.interview_booked_for)
+    || (current.key === "tests" && !!jj.protocol_activated_at && !!(jj.blood_test_done_at || jj.blood_results_at) && !!jj.measurements_done_at)
+  );
   const healthOrder = data.orders.find((o) => o.journey_id === data.journey.id && (o.kind === "health_check" || o.kind === "reevaluation"));
 
   return (
@@ -138,7 +146,11 @@ function Heilsuferd() {
           {data.profile.full_name ? `Hæ ${data.profile.full_name.split(" ")[0]}` : "Velkomin(n)"}
         </h1>
         <p className="mt-1 text-emerald-100">
-          {current ? <>Næsta skref: <strong className="text-white">{current.title}</strong></> : "Þú hefur lokið öllum skrefum. Vel gert."}
+          {current
+            ? ours
+              ? <>Nú er komið að okkur: <strong className="text-white">{OURS_TEXT[current.key] ?? current.title}</strong>. Þú færð tölvupóst þegar næsta skref er þitt.</>
+              : <>Næsta skref: <strong className="text-white">{current.title}</strong></>
+            : "Þú hefur lokið öllum skrefum. Vel gert."}
         </p>
         <div className="mt-5">
           <div className="h-2 overflow-hidden rounded-full bg-white/15">
@@ -155,7 +167,7 @@ function Heilsuferd() {
           is too many to stack: as a strip it reads as a sequence, and only the
           step being worked on takes up the page. */}
       <div className="mt-6">
-        <StatusStrip steps={journeyCheckpoints(data.steps)} onOpen={(k) => setOpen(k as StepKey)} />
+        <StatusStrip steps={journeyCheckpoints(data.steps).map((c) => (ours && c.key === current?.key ? { ...c, state: "waiting" as const, detail: "hjá okkur" } : c))} onOpen={(k) => setOpen(k as StepKey)} />
       </div>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -204,6 +216,14 @@ function Heilsuferd() {
     </Shell>
   );
 }
+
+/** What Lifeline is doing, when the next move is ours. */
+const OURS_TEXT: Partial<Record<StepKey, string>> = {
+  tests: "niðurstöðurnar eru að berast",
+  report: "læknir fer yfir skýrsluna",
+  interview: "hjúkrunarfræðingur hefur samband til að bóka viðtalið",
+  plan: "hjúkrunarfræðingurinn gengur frá áætluninni þinni",
+};
 
 function Shell({ children }: { children: React.ReactNode }) {
   // No "back to account" link: the heilsuferð is the participant's home.

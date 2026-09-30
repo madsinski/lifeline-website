@@ -7,6 +7,7 @@
 // Worker events carry initials only — a calendar entry at a health service is
 // health information, and it lives in a third party's calendar.
 
+import { FASTING_IS, MEASURE_IS } from "./logistics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export interface CalItem {
@@ -69,13 +70,13 @@ export async function clientAppointments(clientId: string): Promise<CalItem[]> {
     if (recent(j.blood_test_booked_for)) out.push({
       id: itemId(j.id, "blood"), start: j.blood_test_booked_for!, minutes: 20,
       summary: "Blóðprufa – Lifeline heilsufarsskoðun",
-      description: "Mættu fastandi frá miðnætti. Vatn er í lagi.\n\nhttps://www.lifelinehealth.is/account/heilsuferd",
+      description: `${FASTING_IS}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
       location: place(loc?.blood_test_site, loc?.blood_test_address), reminderMinutes: 12 * 60,
     });
     if (recent(j.measurements_booked_for)) out.push({
       id: itemId(j.id, "measure"), start: j.measurements_booked_for!, minutes: 30,
       summary: "Mælingar – Lifeline heilsufarsskoðun",
-      description: "Léttur klæðnaður, ekkert málmskart eða úr.\n\nhttps://www.lifelinehealth.is/account/heilsuferd",
+      description: `${MEASURE_IS}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
       location: place(loc?.measurement_site, loc?.measurement_address), reminderMinutes: 120,
     });
     if (recent(j.interview_booked_for)) out.push({
