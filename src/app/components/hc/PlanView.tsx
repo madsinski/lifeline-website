@@ -27,7 +27,7 @@ const noopSubscribe = () => () => {};
 
 const LEVEL: Record<string, string> = { beginner: "Byrjandi", intermediate: "Miðlungs", advanced: "Lengra komin" };
 
-export default function PlanView({ plan: stored, clientName, author, training, lectures, lectureHref }: {
+export default function PlanView({ plan: given, clientName, author, training, lectures, lectureHref }: {
   plan: ActionPlan;
   clientName?: string | null;
   author?: string | null;
@@ -39,6 +39,8 @@ export default function PlanView({ plan: stored, clientName, author, training, l
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   // The adaptive programme stores no sessions: they come from the settings.
+  // A partial plan (e.g. the "today" payload) must never take the page down.
+  const stored: ActionPlan = { ...given, goals: given.goals ?? [], modules: given.modules ?? [] };
   const adaptive = isAdaptive(stored.exercise?.key);
   const tset = training?.settings ?? DEFAULT_TRAINING;
   const plan: ActionPlan = adaptive && stored.exercise ? { ...stored, exercise: adaptExercise(stored.exercise, tset, stored.start_date) } : stored;

@@ -71,13 +71,13 @@ function PlanPageInner() {
       const pj = await p.json().catch(() => ({}));
       setName(pj.client_name ?? null);
       setLectures(pj.lectures ?? []);
-      const planKey = (aj.plan ?? pj.plan)?.exercise?.key;
+      const planKey = (pj.plan ?? aj.plan)?.exercise?.key;
       if (isAdaptive(planKey)) {
         const t = await api(`/api/hc/training${qs}`);
         const tj = await t.json().catch(() => ({}));
         if (t.ok && tj.settings) setTraining(tj.settings);
       }
-      const loaded = a.ok ? { journey_id: aj.journey_id, plan: aj.plan ?? pj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null } : null;
+      const loaded = a.ok ? { journey_id: aj.journey_id, plan: pj.plan ?? aj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null } : null;
       setData(loaded);
       // Land on the plan when there is one, otherwise on the report.
       setTabState(loaded?.plan ? "today" : loaded?.report ? "report" : "today");
