@@ -71,6 +71,9 @@ async function checkCompanyCode(raw: string, userId: string, email: string | nul
   };
 }
 
+/** Days before reevaluation_due_at that the re-evaluation can be bought (also on the hub). */
+const REEVAL_OPENS_DAYS = 60;
+
 /** Which journey this purchase belongs to, and whether it is allowed now. */
 function eligibility(pkg: HcPackage, journey: HcJourney | null): string | null {
   if (!journey) return "Engin heilsuferð fannst.";
@@ -79,6 +82,10 @@ function eligibility(pkg: HcPackage, journey: HcJourney | null): string | null {
     return "Eftirfylgd opnast eftir fyrsta viðtalið.";
   }
   if (pkg.kind === "reevaluation" && !journey.plan_published_at) return "Endurmat opnast þegar aðgerðaáætlun liggur fyrir.";
+  // Re-evaluation compares with the first check, so it opens near the due date.
+  if (pkg.kind === "reevaluation" && journey.reevaluation_due_at && Date.parse(journey.reevaluation_due_at) - Date.now() > REEVAL_OPENS_DAYS * 86400_000) {
+    return "Endurmat opnast tveimur mánuðum áður en það er ráðlagt.";
+  }
   return null;
 }
 

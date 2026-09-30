@@ -16,6 +16,8 @@ import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan, LectureRef } from "@/lib/hc/types";
 import { DEFAULT_TRAINING, adaptExercise, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
+import BeforeAfter from "@/app/components/hc/BeforeAfter";
+import type { Comparison } from "@/lib/hc/compare";
 import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
 import type { Upcoming } from "@/lib/hc/upcoming";
 import Link from "next/link";
@@ -30,6 +32,7 @@ interface Loaded {
   logs: ActionLog[];
   prefs: ActionPref[];
   flagged: FlaggedValue[];
+  compare?: Comparison | null;
   report: {
     report: Grunnheilsa;
     signals: Record<string, ReportSignal | null>;
@@ -86,7 +89,7 @@ function PlanPageInner() {
         const tj = await t.json().catch(() => ({}));
         if (t.ok && tj.settings) setTraining(tj.settings);
       }
-      const loaded = a.ok ? { journey_id: aj.journey_id, plan: pj.plan ?? aj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null } : null;
+      const loaded = a.ok ? { journey_id: aj.journey_id, plan: pj.plan ?? aj.plan ?? null, logs: aj.logs ?? [], prefs: aj.prefs ?? [], flagged: aj.flagged ?? [], report: aj.report ?? null, compare: aj.compare ?? null } : null;
       setData(loaded);
       // The tab in the address wins; else land on today when there is a
       // plan, otherwise on the report.
@@ -188,7 +191,8 @@ function PlanPageInner() {
                 </div>
               )}
               {tab === "report" && data.report && (
-                <div className="print:hidden">
+                <div className="space-y-4 print:hidden">
+                  {data.compare && <BeforeAfter c={data.compare} />}
                   <ReportView report={data.report.report} signals={data.report.signals}
                     reference={data.report.reference} sex={data.report.sex} audience="client" />
                   <p className="mt-4 px-1 text-xs leading-relaxed text-slate-500">

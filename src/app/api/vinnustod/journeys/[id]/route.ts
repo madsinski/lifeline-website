@@ -5,6 +5,7 @@
 // Actor: workstation session or Lifeline staff (Bearer + AAL2).
 
 import { NextRequest, NextResponse } from "next/server";
+import { compareJourneys } from "@/lib/hc/compare";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { applyJourneyEvent, DOCTOR_ONLY, isJourneyEvent } from "@/lib/hc/events";
 import { decryptKennitala, getClientProfile, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     },
     results: results || [],
     report: storedReport,
+    compare: await compareJourneys(journey.client_id, journey.id, profile?.sex === "male" ? "m" : profile?.sex === "female" ? "f" : null).catch(() => null),
     logs: logs || [],
     prefs: prefs || [],
     orders: orders || [],

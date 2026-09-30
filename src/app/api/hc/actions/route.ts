@@ -14,6 +14,7 @@ import { requireUser } from "@/lib/hc/server";
 import { isoDay, lastDays } from "@/lib/hc/adherence";
 import { trafficLights } from "@/lib/hc/analyze";
 import { loadReport } from "@/lib/hc/report-store";
+import { compareJourneys } from "@/lib/hc/compare";
 import { sexOf } from "@/lib/hc/sex";
 import type { KnowledgeEntry } from "@/lib/hc/knowledge";
 
@@ -56,6 +57,8 @@ export async function GET(req: NextRequest) {
     prefs: prefs || [],
     flagged,
     report,
+    // Earlier health check vs this one, once this one is confirmed.
+    compare: journey.report_generated_at ? await compareJourneys(user.id, journey.id, sexOf(profile?.sex)).catch(() => null) : null,
     today: isoDay(),
   });
 }

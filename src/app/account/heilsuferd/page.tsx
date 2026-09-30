@@ -32,6 +32,7 @@ interface JourneyData {
   lectures: { id: string; slug: string; title: string; subtitle: string | null; kind: string; duration_min: number | null; pillar: string | null; is_welcome: boolean; completed_at: string | null }[];
   plan: { id: string; headline: string | null; published_at: string; review_date: string | null } | null;
   calendar_connected: boolean;
+  history?: { id: string; created_at: string; completed_at: string | null; plan_published_at: string | null }[];
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -192,6 +193,7 @@ function Heilsuferd() {
             </div>
           )}
           <LecturesCard lectures={data.lectures} />
+          <HistoryCard history={data.history ?? []} />
           <ClaimsCard claims={data.claims} reload={async () => { await load(); }} />
           <SettingsCard />
           <p className="px-1 text-xs text-slate-400">
@@ -825,8 +827,11 @@ function TestStep({ kind, title, address, info, bookedFor, done, portal, reload 
 
 function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "followup_3m" | "reevaluation"; reload: () => Promise<void> }) {
   const j = data.journey;
-  const order = data.orders.find((o) => o.journey_id === j.id && (kind === "followup_3m" ? o.kind === "followup_3m" || o.kind === "extra_followup" : false));
-  const pkgs = data.packages.filter((p) => (kind === "followup_3m" ? p.kind === "followup_3m" : p.kind === "reevaluation" || p.kind === "extra_followup"));
+  const order = data.orders.find((o) => o.journey_id === j.id && (kind === "followup_3m" ? o.kind === "followup_3m" || o.kind === "extra_followup" : o.kind === "reevaluation"));
+  // Re-evaluation opens two months before it is due; an extra interview any time.
+  const [now] = useState(() => Date.now());
+  const reevalOpen = !j.reevaluation_due_at || Date.parse(j.reevaluation_due_at) - now <= 60 * 86400_000;
+  const pkgs = data.packages.filter((p) => (kind === "followup_3m" ? p.kind === "followup_3m" : (p.kind === "reevaluation" && reevalOpen) || p.kind === "extra_followup"));
   const [buying, setBuying] = useState<string | null>(null);
 
   if (kind === "followup_3m" && !j.interview_done_at) return <p className="text-sm text-slate-600">Eftirfylgd opnast eftir fyrsta viðtalið. Hún er ráðlögð en valfrjáls.</p>;
@@ -843,7 +848,11 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
   }
   return (
     <div className="space-y-3">
-      {kind === "reevaluation" && j.reevaluation_due_at && <p className="text-sm text-slate-600">Endurmat er ráðlagt frá {fmtDate(j.reevaluation_due_at)}.</p>}
+      {kind === "reevaluation" && j.reevaluation_due_at && (
+        <p className="text-sm text-slate-600">
+          Endurmat er ráðlagt frá {fmtDate(j.reevaluation_due_at)}.{!reevalOpen && " Það opnast tveimur mánuðum fyrr; þangað til getur þú bókað aukaviðtal."}
+        </p>
+      )}
       {pkgs.map((p) =>
         buying === p.key ? (
           <div key={p.key} className="rounded-2xl border border-slate-200 p-4">
@@ -866,6 +875,27 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
 }
 
 // ── Side cards ─────────────────────────────────────────────────────────────
+
+/** Earlier health checks: their plans stay readable after a re-evaluation. */
+function HistoryCard({ history }: { history: NonNullable<JourneyData["history"]> }) {
+  const withPlan = history.filter((h) => h.plan_published_at);
+  if (!withPlan.length) return null;
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <p className="font-bold text-slate-900">Fyrri heilsuferðir</p>
+      <ul className="mt-2 space-y-1.5">
+        {withPlan.map((h) => (
+          <li key={h.id}>
+            <Link href={`/account/heilsuferd/aaetlun?journey=${h.id}&tab=plan`} className="flex items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 ring-slate-200 hover:bg-slate-50">
+              <span className="text-slate-700">Áætlun frá {fmtDate(h.plan_published_at)}</span>
+              <span className="text-emerald-700">Opna →</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 const PILLAR_LABEL: Record<string, string> = { sleep: "Svefn", exercise: "Hreyfing", nutrition: "Næring", mental: "Andleg líðan", general: "Almennt" };
 

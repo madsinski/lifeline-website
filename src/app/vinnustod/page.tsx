@@ -33,6 +33,8 @@ import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
+import BeforeAfter from "@/app/components/hc/BeforeAfter";
+import type { Comparison } from "@/lib/hc/compare";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
 import Referrals, { type ReferralSuggestion } from "@/app/components/hc/Referrals";
@@ -67,6 +69,7 @@ interface Detail {
   journey: Journey;
   patient: { full_name: string | null; kennitala: string | null; email: string | null; phone: string | null; address: string | null; date_of_birth: string | null; sex: string | null };
   results: HcResult[];
+  compare?: Comparison | null;
   report: {
     report: Grunnheilsa;
     signals: Record<string, ReportSignal | null>;
@@ -1094,6 +1097,7 @@ function ResultsStep({ d, api, isDoctor, record, reload }: {
   const j = d.journey;
   return (
     <div className="space-y-4">
+      {d.compare && <BeforeAfter c={d.compare} />}
       {d.report && (
         <>
           <ReportView report={d.report.report} signals={d.report.signals}
