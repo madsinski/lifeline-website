@@ -1,5 +1,8 @@
 // The customer's journey hub: everything /account/heilsuferd needs in one call.
-// GET  ?stadur=<location slug>  → creates the journey on first visit.
+// GET  → the current journey, or { journey: null } when there is none.
+//      ?stadur=<location slug> or ?start=1 creates it (an explicit start —
+//      just looking at the page must not, or an app subscriber who peeks is
+//      stuck in the health-check flow).
 // POST { action: "welcome_seen" } | { action: "set_booking", kind, at }
 // Schema: supabase/migration-health-journey.sql
 
@@ -7,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasHealthConsent } from "@/lib/health-consent";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
-  getClientProfile, getOrCreateJourney, isProfileComplete, patchJourney, requireUser,
+  currentJourney, getClientProfile, getOrCreateJourney, isProfileComplete, patchJourney, requireUser,
 } from "@/lib/hc/server";
 import { journeySteps } from "@/lib/hc/stages";
 import type { HcJourney } from "@/lib/hc/types";
@@ -19,6 +22,8 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
 
   const stadur = req.nextUrl.searchParams.get("stadur");
+  const start = !!stadur || req.nextUrl.searchParams.get("start") === "1";
+  if (!start && !(await currentJourney(user.id))) return NextResponse.json({ journey: null });
   let journey = await getOrCreateJourney(user.id, stadur);
   const profile = await getClientProfile(user.id);
   const complete = isProfileComplete(profile);

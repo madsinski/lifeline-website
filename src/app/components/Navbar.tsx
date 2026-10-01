@@ -16,6 +16,8 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [acctOpen, setAcctOpen] = useState(false);
+  // Only company admins see the business account link.
+  const [hasBusiness, setHasBusiness] = useState(false);
   const navItems = initialItems ?? NAV_ITEMS;
   const pathname = usePathname();
   const { t, locale } = useI18n();
@@ -53,9 +55,14 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
       }
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         loadUserName(session.user.id, session.user.email ?? undefined);
+        const [primary, coadmin] = await Promise.all([
+          supabase.from("companies").select("id").eq("contact_person_id", session.user.id).limit(1),
+          supabase.from("company_admins").select("company_id").eq("user_id", session.user.id).limit(1),
+        ]);
+        setHasBusiness((primary.data?.length || 0) > 0 || (coadmin.data?.length || 0) > 0);
       }
     });
     const {
@@ -172,10 +179,19 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       {t("nav.my_account", "Minn reikningur")}
                     </Link>
-                    <Link href="/business/account" onClick={() => setAcctOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100">
+                    <Link href="/account/heilsuferd/adgangur" onClick={() => setAcctOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.3 4.3c.4-1.7 2.9-1.7 3.4 0a1.7 1.7 0 002.6 1.1c1.5-.9 3.3.8 2.3 2.3a1.7 1.7 0 001.1 2.6c1.7.4 1.7 2.9 0 3.4a1.7 1.7 0 00-1.1 2.6c.9 1.5-.8 3.3-2.3 2.3a1.7 1.7 0 00-2.6 1.1c-.4 1.7-2.9 1.7-3.4 0a1.7 1.7 0 00-2.6-1.1c-1.5.9-3.3-.8-2.3-2.3a1.7 1.7 0 00-1.1-2.6c-1.7-.4-1.7-2.9 0-3.4a1.7 1.7 0 001.1-2.6c-.9-1.5.8-3.3 2.3-2.3 1 .6 2.3.1 2.6-1.1z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      Aðgangur og stillingar
+                    </Link>
+                    {hasBusiness && <Link href="/business/account" onClick={() => setAcctOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100">
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       {t("nav.business_account", "Fyrirtækjaaðgangur")}
-                    </Link>
+                    </Link>}
+                    <button type="button" onClick={async () => { setAcctOpen(false); await supabase.auth.signOut(); window.location.href = "/account/login"; }}
+                      className="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm text-gray-800 hover:bg-gray-50">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      Skrá út
+                    </button>
                   </div>
                 </>
               )}
@@ -267,7 +283,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                   </>
                 )}
               </Link>
-              <Link
+              {hasBusiness && <Link
                 href="/business/account"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border border-[#10B981] text-[#10B981] hover:bg-[#10B981]/5 transition-colors"
@@ -276,7 +292,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
                 {t('nav.business_account', 'Fyrirtækjaaðgangur')}
-              </Link>
+              </Link>}
               <Link
                 href="/coaching#download"
                 onClick={() => setMobileOpen(false)}

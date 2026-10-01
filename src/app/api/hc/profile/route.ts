@@ -4,6 +4,7 @@
 // POST { full_name, phone, address, postcode, town, kennitala?, accept_health_consent? }
 // PUT  { accept_health_consent: true } — consent alone, for people whose
 //      profile was complete before consent was part of this step.
+// GET  → the participant's own profile for "Aðgangur" (kennitala as last four only).
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -21,6 +22,21 @@ function dobFromKennitala(kt: string): string | null {
   // Kerfiskennitölur (útlendingar) bæta 40 við daginn.
   const day = dd > 40 ? dd - 40 : dd;
   return `${century}${kt.slice(4, 6)}-${kt.slice(2, 4)}-${String(day).padStart(2, "0")}`;
+}
+
+export async function GET(req: NextRequest) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
+  const p = await getClientProfile(user.id);
+  const { data: last4 } = p?.kennitala_encrypted ? await supabaseAdmin.rpc("kennitala_last4", { p_enc: p.kennitala_encrypted }) : { data: null };
+  return NextResponse.json({
+    profile: {
+      email: user.email ?? null, full_name: p?.full_name ?? null, phone: p?.phone ?? null, address: p?.address ?? null,
+      kennitala_last4: (last4 as string | null) ?? null, complete: isProfileComplete(p),
+    },
+    health_consent: await hasHealthConsent(user.id),
+    has_journey: !!(await currentJourney(user.id)),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -44,9 +60,11 @@ export async function POST(req: NextRequest) {
 
   const existing = await getClientProfile(user.id);
   if (!ktRaw && !existing?.kennitala_encrypted) errors.kennitala = "Kennitala er nauðsynleg.";
-  // Informed consent (GDPR 9. gr.) is part of this step, once per version.
+  // Informed consent (GDPR 9. gr.) is part of the health check, once per
+  // version — not needed just to correct a name or phone number.
   const consented = await hasHealthConsent(user.id);
-  if (!consented && b.accept_health_consent !== true) errors.consent = "Samþykkið þarf til að halda áfram.";
+  const inJourney = !!(await currentJourney(user.id));
+  if (inJourney && !consented && b.accept_health_consent !== true) errors.consent = "Samþykkið þarf til að halda áfram.";
   if (ktRaw && !isValidKennitala(ktRaw)) errors.kennitala = "Kennitalan er ekki gild.";
   if (Object.keys(errors).length) return NextResponse.json({ error: "validation", errors }, { status: 400 });
 
@@ -71,7 +89,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabaseAdmin.from("clients_decrypted").insert({ id: user.id, email: user.email, ...update });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  if (!consented) {
+  if (!consented && b.accept_health_consent === true) {
     await recordHealthConsent({
       userId: user.id, email: user.email ?? null,
       ip: (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || null,

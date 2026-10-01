@@ -12,8 +12,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
-import PinPad from "@/app/components/hc/PinPad";
-import CalendarConnect, { CalendarStatus, type CalendarApi } from "@/app/components/hc/CalendarConnect";
+import SettingsCard from "@/app/components/hc/SettingsCard";
 import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
@@ -75,6 +74,7 @@ function Heilsuferd() {
   const router = useRouter();
   const params = useSearchParams();
   const stadur = params.get("stadur") || "";
+  const startParam = params.get("start") === "1";
   // Once the plan exists, "Í dag" is home; ?ferd=1 is the journey itself.
   const showJourney = params.get("ferd") === "1";
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -82,10 +82,13 @@ function Heilsuferd() {
   const [error, setError] = useState("");
   const [open, setOpen] = useState<StepKey | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [noJourney, setNoJourney] = useState(false);
 
   const load = useCallback(async (fresh = false): Promise<JourneyData | null> => {
-    const url = `/api/hc/journey${stadur ? `?stadur=${encodeURIComponent(stadur)}` : ""}`;
+    const url = `/api/hc/journey${stadur ? `?stadur=${encodeURIComponent(stadur)}` : startParam ? "?start=1" : ""}`;
     const show = (j: JourneyData) => {
+      if (!j.journey) { setNoJourney(true); return false; }
+      setNoJourney(false);
       if (j.plan && !showJourney) { router.replace("/account/heilsuferd/aaetlun"); return false; }
       setData(j);
       setOpen((o) => o ?? j.steps.find((s) => s.state === "current")?.key ?? null);
@@ -103,7 +106,7 @@ function Heilsuferd() {
     // "Í dag" is one tap away: have it ready.
     if (j.plan) cache.prefetch(api, ["/api/hc/actions", "/api/hc/plan"]);
     return j;
-  }, [stadur, showJourney, router]);
+  }, [stadur, startParam, showJourney, router]);
 
   /** After a step is completed: reload and open the next step. */
   const advance = useCallback(async () => {
@@ -124,6 +127,7 @@ function Heilsuferd() {
   }, [load, router]);
 
   if (authed === false) return <FirstStep stadur={stadur} />;
+  if (noJourney) return <StartJourney />;
 
   if (!data) {
     return (
@@ -279,7 +283,7 @@ function Heilsuferd() {
           )}
           <LecturesCard lectures={data.lectures} />
           <HistoryCard history={data.history ?? []} />
-          <Link href="/account?klassiskt=1" className="block rounded-2xl border border-slate-100 bg-white p-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Aðgangur og greiðslur →</Link>
+          <Link href="/account/heilsuferd/adgangur" className="block rounded-2xl border border-slate-100 bg-white p-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Aðgangur og greiðslur →</Link>
           <ClaimsCard claims={data.claims} reload={async () => { await load(true); }} />
           <SettingsCard />
           <p className="px-1 text-xs text-slate-400">
@@ -340,6 +344,26 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 // ── Step 1 when logged out ─────────────────────────────────────────────────
+
+/** Signed in, no journey yet: starting one is a choice, not a side effect of looking. */
+function StartJourney() {
+  return (
+    <Shell>
+      <section className={`${hcCard.hero} p-6 sm:p-8`}>
+        <p className={`${hcKicker} text-emerald-300`}>Heilsuferðin</p>
+        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Heilsufarsskoðun og áætlun sem fylgir þér</h1>
+        <p className="mt-2 max-w-2xl text-emerald-100">
+          Mælingar og blóðprufa, skýrsla sem læknir fer yfir, viðtal við hjúkrunarfræðing og aðgerðaáætlun til þriggja mánaða
+          um svefn, hreyfingu, næringu og andlega líðan.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link href="/account/heilsuferd?start=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Hefja heilsuferð →</Link>
+          <Link href="/account/heilsuferd/adgangur" className="inline-flex min-h-11 items-center rounded-hc-element bg-white/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-white/25">Aðgangurinn minn</Link>
+        </div>
+      </section>
+    </Shell>
+  );
+}
 
 function FirstStep({ stadur }: { stadur: string }) {
   const next = `/account/heilsuferd${stadur ? `?stadur=${encodeURIComponent(stadur)}` : ""}`;
@@ -1119,81 +1143,4 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
   );
 }
 
-// Customer calendar: Google push sync (instant) or .ics subscription.
-const CUSTOMER_CALENDAR: CalendarApi = {
-  call: api,
-  googleStatusUrl: "/api/hc/google",
-  startGoogle: async () => {
-    const r = await api("/api/hc/google/start", { method: "POST", body: "{}" });
-    const j = await r.json().catch(() => ({}));
-    if (r.ok && j.url) window.location.href = j.url;
-    else alert(j.error || "Tókst ekki að tengja við Google.");
-  },
-  icsTokenUrl: "/api/hc/calendar-token",
-  subscriptionName: "Lifeline heilsuferð",
-};
 
-function SettingsCard() {
-  const [pinStep, setPinStep] = useState<"idle" | "first" | "confirm" | "done">("idle");
-  const [pin, setPin] = useState("");
-  const [first, setFirst] = useState("");
-  const [pinErr, setPinErr] = useState("");
-  const [pinEnabled, setPinEnabled] = useState<boolean | null>(null);
-  // Opens by itself when coming back from Google (?google=…) or a ?cal=1 link.
-  const [calOpen, setCalOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const q = new URLSearchParams(window.location.search);
-    return q.has("google") || q.get("cal") === "1";
-  });
-  const [calKey, setCalKey] = useState(0);
-
-  useEffect(() => {
-    fetch("/api/account/pin").then((r) => r.json()).then((j) => setPinEnabled(!!j.enabled)).catch(() => setPinEnabled(false));
-  }, []);
-
-  const onPin = async (v: string) => {
-    if (pinStep === "first") { setFirst(v); setPin(""); setPinStep("confirm"); return; }
-    if (v !== first) { setPinErr("PIN-númerin stemma ekki. Reyndu aftur."); setPin(""); setFirst(""); setPinStep("first"); return; }
-    const r = await api("/api/account/pin", { method: "POST", body: JSON.stringify({ pin: v }) });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) { setPinErr(j.error || "Tókst ekki."); setPin(""); setFirst(""); setPinStep("first"); return; }
-    setPinStep("done"); setPinEnabled(true); setPin("");
-  };
-
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <p className="font-semibold text-[#0F172A]">Stillingar</p>
-
-      <div className="mt-3 border-t border-slate-100 pt-3">
-        <p className="text-sm font-medium text-slate-800">Innskráning með PIN</p>
-        <p className="text-xs text-slate-500">Fjögurra stafa PIN á þessu tæki í stað lykilorðs.</p>
-        {pinStep === "idle" && (
-          <button onClick={() => { setPinStep("first"); setPinErr(""); }} className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold">
-            {pinEnabled ? "Breyta PIN" : "Setja upp PIN"}
-          </button>
-        )}
-        {(pinStep === "first" || pinStep === "confirm") && (
-          <div className="mt-3">
-            <p className="mb-3 text-center text-sm text-slate-700">{pinStep === "first" ? "Veldu PIN" : "Sláðu PIN inn aftur"}</p>
-            <PinPad value={pin} onChange={setPin} onComplete={onPin} error={!!pinErr} />
-            {pinErr && <p className="mt-2 text-center text-xs text-red-600">{pinErr}</p>}
-            <button onClick={() => { setPinStep("idle"); setPin(""); }} className="mt-3 block w-full text-center text-xs text-slate-500">Hætta við</button>
-          </div>
-        )}
-        {pinStep === "done" && <p className="mt-2 text-xs text-emerald-700">PIN er virkt á þessu tæki.</p>}
-      </div>
-
-      <div className="mt-4 border-t border-slate-100 pt-3">
-        <p className="text-sm font-medium text-slate-800">Dagatal</p>
-        <p className="text-xs text-slate-500">Blóðprufa, mælingar og viðtöl.</p>
-        <div className="mt-1"><CalendarStatus key={calKey} api={CUSTOMER_CALENDAR} onOpen={() => setCalOpen(true)} /></div>
-        <CalendarConnect
-          api={CUSTOMER_CALENDAR}
-          open={calOpen}
-          onClose={() => { setCalOpen(false); setCalKey((k) => k + 1); }}
-          intro="Blóðprufa, mælingar og viðtöl birtast í dagatalinu þínu með áminningu og uppfærast sjálfkrafa ef tími breytist."
-        />
-      </div>
-    </div>
-  );
-}
