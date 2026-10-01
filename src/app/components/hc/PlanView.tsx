@@ -28,7 +28,7 @@ const noopSubscribe = () => () => {};
 
 const LEVEL: Record<string, string> = { beginner: "Byrjandi", intermediate: "Miðlungs", advanced: "Lengra komin" };
 
-export default function PlanView({ plan: given, clientName, author, training, lectures, lectureHref, initialTab }: {
+export default function PlanView({ plan: given, clientName, author, training, lectures, lectureHref, initialTab, printOnly }: {
   plan: ActionPlan;
   clientName?: string | null;
   author?: string | null;
@@ -38,6 +38,8 @@ export default function PlanView({ plan: given, clientName, author, training, le
   /** where a lecture card links; null = not a link (e.g. workstation preview) */
   lectureHref?: (slug: string) => string | null;
   initialTab?: Tab;
+  /** Only the A4 print layout (the participant's pages show the plan in their own tabs). */
+  printOnly?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>(initialTab ?? "overview");
   // The adaptive programme stores no sessions: they come from the settings.
@@ -59,7 +61,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
   return (
     <div className="plan-view">
       {/* ── Screen ─────────────────────────────────────────────── */}
-      <div className="print:hidden">
+      {!printOnly && <div className="print:hidden">
         <Header plan={plan} clientName={clientName} />
         <div className="sticky top-0 z-10 -mx-4 mb-6 bg-white/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:px-2">
           <div className="flex items-center gap-2 overflow-x-auto" role="tablist" aria-label="Hlutar áætlunar">
@@ -107,7 +109,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
         )}
         {tab === "lectures" && !!lectures?.length && <Lectures lectures={lectures} href={lectureHref} />}
         {tab === "nutrition" && plan.nutrition && <Nutrition plan={plan} />}
-      </div>
+      </div>}
 
       {/* ── Print: one A4 page, portalled to <body> so nothing else on the
           page (navbar, footer, floating buttons) can end up on the sheet. */}

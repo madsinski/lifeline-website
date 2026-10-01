@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
-import { loadTraining, saveTraining } from "@/lib/hc/training-server";
+import { loadPlanPrefs, saveTraining } from "@/lib/hc/training-server";
 
 export const runtime = "nodejs";
 
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
   const journeyId = await ownJourney(req, user.id);
   if (!journeyId) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  return NextResponse.json({ settings: await loadTraining(journeyId) });
+  return NextResponse.json(await loadPlanPrefs(journeyId));
 }
 
 export async function POST(req: NextRequest) {
@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
   const journeyId = await ownJourney(req, user.id);
   if (!journeyId) return NextResponse.json({ error: "not_found" }, { status: 404 });
   try {
-    const settings = await saveTraining(journeyId, user.id, await req.json().catch(() => ({})), "client");
+    const { settings, personal } = await saveTraining(journeyId, user.id, await req.json().catch(() => ({})), "client");
     await hcAudit("client", "training_settings", journeyId, { level: settings.level, load: settings.load, injuries: settings.injuries });
-    return NextResponse.json({ settings });
+    return NextResponse.json({ settings, personal });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

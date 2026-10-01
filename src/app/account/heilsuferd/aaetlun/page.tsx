@@ -1,8 +1,12 @@
 "use client";
 
-// The customer's action plan. Two ways in: "Í dag" is where the plan gets
-// done (tick actions, see the week, set something aside), "Áætlunin" is the
-// whole plan as the nurse wrote it, with the print layout behind it.
+// The participant's plan, in the places they use it:
+//   Í dag    — today's workout and meals, the actions to tick, goals, fræðsla,
+//              and the controls for the plan itself (edit, print)
+//   Æfingar  — the exercise programme, arranged their way (days, swaps)
+//   Næring   — the nutrition programme with real meals and recipes
+//   Skýrslan — the health report
+// (The old "Áætlunin" tab is folded into these; ?tab=plan lands on Í dag.)
 
 import EmptyState from "@/app/components/hc/EmptyState";
 import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
@@ -15,7 +19,7 @@ import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSign
 import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
-import type { ActionPlan, LectureRef } from "@/lib/hc/types";
+import type { ActionPlan, LectureRef, Pillar } from "@/lib/hc/types";
 import { DEFAULT_TRAINING, adaptExercise, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
@@ -23,15 +27,20 @@ import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
 import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
 import type { Upcoming } from "@/lib/hc/upcoming";
-import Link from "next/link";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import { peek } from "@/lib/hc/client-cache";
-import { BookOpen, Dumbbell } from "lucide-react";
+import { Pencil } from "lucide-react";
+import TrainingView from "@/app/components/hc/TrainingView";
+import TrainingControls from "@/app/components/hc/TrainingControls";
+import NutritionView from "@/app/components/hc/NutritionView";
+import ProgramPicker from "@/app/components/hc/ProgramPicker";
+import TodayOverview, { TodayHeader } from "@/app/components/hc/TodayOverview";
+import { DEFAULT_PERSONAL, personalise, type Personal } from "@/lib/hc/personalise";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 
-type Tab = "today" | "plan" | "report" | "results";
+type Tab = "today" | "exercise" | "nutrition" | "report" | "results";
 
 interface Loaded {
   journey_id: string;
@@ -64,8 +73,9 @@ function PlanPageInner() {
   const [tab, setTabState] = useState<Tab | null>(null);
   const [lectures, setLectures] = useState<(LectureRef & { completed?: boolean })[]>([]);
   const [appointments, setAppointments] = useState<Upcoming[]>([]);
-  const [planTab, setPlanTab] = useState<"overview" | "exercise" | undefined>(undefined);
   const [training, setTraining] = useState<TrainingSettings>(DEFAULT_TRAINING);
+  const [personal, setPersonal] = useState<Personal>(DEFAULT_PERSONAL);
+  const [picker, setPicker] = useState<"exercise" | "nutrition" | null>(null);
   const [saving, setSaving] = useState(false);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
@@ -91,6 +101,7 @@ function PlanPageInner() {
       setLectures((pj.lectures as (LectureRef & { completed?: boolean })[]) ?? []);
       setAppointments((pj.appointments as Upcoming[]) ?? []);
       if (tj?.settings) setTraining(tj.settings as TrainingSettings);
+      if (tj?.personal) setPersonal(tj.personal as Personal);
       const loaded = aOk ? {
         journey_id: aj.journey_id as string, plan: pj.plan ?? aj.plan ?? null,
         logs: (aj.logs as ActionLog[]) ?? [], prefs: (aj.prefs as ActionPref[]) ?? [], flagged: (aj.flagged as FlaggedValue[]) ?? [],
@@ -100,8 +111,10 @@ function PlanPageInner() {
       if (first) {
         first = false;
         // The tab in the address wins; else today when there is a plan, otherwise the report.
-        const wanted = (["today", "plan", "report"] as const).find((t) => t === askedTab);
-        setTabState(wanted && (wanted === "report" ? !!loaded?.report : !!loaded?.plan) ? wanted : loaded?.plan ? "today" : loaded?.report ? "report" : "today");
+        const asked = askedTab === "plan" ? "today" : askedTab;
+        const wanted = (["today", "exercise", "nutrition", "report"] as const).find((t) => t === asked);
+        const ok = wanted === "report" ? !!loaded?.report : wanted === "exercise" ? !!loaded?.plan?.exercise : wanted === "nutrition" ? !!loaded?.plan?.nutrition : !!loaded?.plan;
+        setTabState(wanted && ok ? wanted : loaded?.plan ? "today" : loaded?.report ? "report" : "today");
       }
     };
     (async () => {
@@ -115,8 +128,8 @@ function PlanPageInner() {
       // …then the fresh data.
       const [a, p] = await Promise.all([cache.load(api, U.a), cache.load(api, U.p)]);
       const aj = a.body as J, pj = p.body as J;
-      const planKey = (pj.plan ?? aj.plan)?.exercise?.key;
-      const t = isAdaptive(planKey) ? await cache.load(api, U.t) : null;
+      // Days, swaps and meal picks apply to every programme, so always load them.
+      const t = (pj.plan ?? aj.plan) ? await cache.load(api, U.t) : null;
       apply(a.status < 400, aj, pj, t && t.status < 400 ? (t.body as J) : null);
       // Warm the journey page for the "Ferðin" tab.
       cache.prefetch(api, ["/api/hc/journey"]);
@@ -125,18 +138,43 @@ function PlanPageInner() {
   }, [journey, router, api, reloadKey]);
 
   const plan = data?.plan ?? null;
-  const setTab = (t: Tab) => {
+  const setTab = (t: Tab, sessionId?: string) => {
     setTabState(t);
     const u = new URL(window.location.href);
     u.searchParams.set("tab", t === "results" ? "report" : t);
     window.history.replaceState(null, "", u);
     window.scrollTo({ top: 0 });
+    if (sessionId) setTimeout(() => document.getElementById(`session-${sessionId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
-  // Today's session from the exercise plan (adaptive ones computed from the settings).
-  const exercise = plan?.exercise ? (isAdaptive(plan.exercise.key) ? adaptExercise(plan.exercise, training, plan.start_date) : plan.exercise) : null;
-  const WD = ["sun", "mán", "þri", "mið", "fim", "fös", "lau"];
-  const todays = exercise?.sessions.find((x) => x.day.toLowerCase().startsWith(WD[new Date().getDay()]));
-  const nextLecture = lectures.find((l) => !l.completed);
+  // The programme as written (adaptive ones computed from the settings), then arranged their way.
+  const baseExercise = plan?.exercise ? (isAdaptive(plan.exercise.key) ? adaptExercise(plan.exercise, training, plan.start_date) : plan.exercise) : null;
+  const exercise = baseExercise ? personalise(baseExercise, personal) : null;
+  const qs = journey ? `?journey=${encodeURIComponent(journey)}` : "";
+
+  /** Save the participant's arrangement at once; the server's answer (with library snapshots) replaces it. */
+  const savePersonal = async (next: Personal, fields: (keyof Personal)[]) => {
+    const prev = personal;
+    setPersonal(next);
+    const body = Object.fromEntries(fields.map((f) => [f, next[f]]));
+    const r = await api(`/api/hc/training${qs}`, { method: "POST", body: JSON.stringify(body) });
+    cache.invalidate("/api/hc/training");
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.personal) setPersonal(j.personal); else setPersonal(prev);
+  };
+  /** Another programme from the library. */
+  const changeProgram = async (kind: "exercise" | "nutrition", key: string) => {
+    const r = await api("/api/hc/my-plan", { method: "POST", body: JSON.stringify(kind === "exercise" ? { exercise_key: key } : { nutrition_key: key }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.plan && data) {
+      setData({ ...data, plan: j.plan });
+      cache.invalidate("/api/hc/");
+      if (kind === "nutrition") void savePersonal({ ...personal, meal_picks: {} }, ["meal_picks"]);
+    }
+  };
+  const lectureFor = (p: Pillar) => {
+    const l = lectures.find((x) => x.pillar === p && !x.completed) ?? lectures.find((x) => x.pillar === p);
+    return l ? { title: l.title, href: `/account/heilsuferd/fraedsla/${l.slug}` } : null;
+  };
   // Save each change straight away; the page shows the new sessions at once.
   const saveTraining = async (next: TrainingSettings) => {
     const prev = training;
@@ -152,7 +190,7 @@ function PlanPageInner() {
   // The report often lands before the plan is written; show it either way.
   const hasSomething = !!plan || !!data?.report;
 
-  const place: JourneyPlace = tab === "plan" ? "plan" : tab === "report" || tab === "results" ? "report" : "today";
+  const place: JourneyPlace = tab === "exercise" ? "exercise" : tab === "nutrition" ? "nutrition" : tab === "report" || tab === "results" ? "report" : "today";
   const next = appointments[0] ?? null;
 
   return (
@@ -162,7 +200,7 @@ function PlanPageInner() {
 
         {editing && data !== undefined && (
           <PlanEditor api={api}
-            onDone={() => { setEditing(false); setTabState("plan"); setReloadKey((k) => k + 1); }}
+            onDone={() => { setEditing(false); setTabState("today"); setReloadKey((k) => k + 1); }}
             onCancel={() => setEditing(false)} />
         )}
 
@@ -180,10 +218,10 @@ function PlanPageInner() {
         {!editing && hasSomething && data && (
           <>
             <JourneyNav active={place} hasReport={!!data.report || !!data.flagged.length}
+              hasExercise={!!plan?.exercise} hasNutrition={!!plan?.nutrition} hasPlan={!!plan}
               onSelect={(k) => {
                 if (k === "journey") return false;
-                if (k === "plan" && !plan) return false;
-                setPlanTab(undefined);
+                if ((k === "today" || k === "exercise" || k === "nutrition") && !plan) return false;
                 setTab(k === "report" ? (data.report ? "report" : "results") : k);
                 return true;
               }} />
@@ -191,36 +229,36 @@ function PlanPageInner() {
             <div className="mt-4">
               {tab === "today" && plan && (
                 <div className="space-y-4 print:hidden">
+                  <TodayHeader name={name} onEdit={() => setEditing(true)} />
                   {next && <AppointmentCard a={next} />}
-                  {todays ? (
-                    <button type="button" onClick={() => { setPlanTab("exercise"); setTab("plan"); }}
-                      className="flex w-full items-center gap-4 rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm sm:p-5">
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20"><Dumbbell className="h-6 w-6" aria-hidden /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-bold uppercase tracking-[0.15em] text-white/80">Æfing dagsins</span>
-                        <span className="block text-lg font-bold">{todays.title}{todays.minutes ? ` · um ${todays.minutes} mín.` : ""}</span>
-                        <span className="block truncate text-sm text-white/90">{todays.items.filter((it) => it.block === "main").map((it) => it.name).slice(0, 3).join(" · ")}</span>
-                      </span>
-                      <span className="shrink-0 text-sm font-semibold">Opna →</span>
-                    </button>
-                  ) : exercise ? (
-                    <p className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm ring-1 ring-slate-100">
-                      <strong className="text-slate-800">Hvíldardagur frá æfingum.</strong> Rösk ganga eða útivera telur samt.
-                    </p>
-                  ) : null}
-                  {nextLecture && (
-                    <Link href={`/account/heilsuferd/fraedsla/${nextLecture.slug}`}
-                      className="flex items-center gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-emerald-100 transition hover:ring-emerald-300 sm:p-5">
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"><BookOpen className="h-6 w-6" aria-hidden /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">Fræðsla{nextLecture.duration_min ? ` · ${nextLecture.duration_min} mín.` : ""}</span>
-                        <span className="block font-bold text-slate-900">{nextLecture.title}</span>
-                      </span>
-                      <span className="shrink-0 text-sm font-semibold text-emerald-700">Opna →</span>
-                    </Link>
-                  )}
-                  <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs} />
+                  <TodayOverview api={api} plan={plan} exercise={exercise} mealPicks={personal.meal_picks} lectures={lectures}
+                    onOpenExercise={(id) => setTab("exercise", id)} onOpenNutrition={() => setTab("nutrition")} onEdit={() => setEditing(true)} />
+                  <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs}
+                    links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }} />
+                  <button type="button" onClick={() => setEditing(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-4 py-4 text-sm font-semibold text-slate-700 hover:border-hc-brand hover:text-hc-brand-dark">
+                    <Pencil className="h-4 w-4" aria-hidden /> Bæta við, taka út eða raða aðgerðum
+                  </button>
                   <NudgeSettings api={api} />
+                </div>
+              )}
+              {tab === "exercise" && plan && baseExercise && (
+                <div className="print:hidden">
+                  <TrainingView api={api} exercise={baseExercise} personal={personal}
+                    onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
+                    onChangeProgram={() => setPicker("exercise")}
+                    controls={isAdaptive(plan.exercise?.key) ? <TrainingControls settings={training} planStart={plan.start_date} onChange={saveTraining} saving={saving} /> : null} />
+                </div>
+              )}
+              {tab === "nutrition" && plan?.nutrition && (
+                <div className="print:hidden">
+                  <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
+                    onPick={(slot, id) => {
+                      const picks = { ...personal.meal_picks };
+                      if (id) picks[slot] = id; else delete picks[slot];
+                      void savePersonal({ ...personal, meal_picks: picks }, ["meal_picks"]);
+                    }}
+                    onChangeProgram={() => setPicker("nutrition")} />
                 </div>
               )}
               {tab === "report" && data.report && (
@@ -248,15 +286,13 @@ function PlanPageInner() {
                   <ResultSignals flagged={data.flagged} />
                 </div>
               )}
-              {tab === "plan" && plan && (
-                <div className="mb-3 flex justify-end print:hidden">
-                  <button type="button" onClick={() => setEditing(true)} className={hcBtn.secondary}>Breyta áætluninni</button>
-                </div>
+              {plan && (
+                <PlanView printOnly plan={exercise ? { ...plan, exercise: { ...exercise, sessions: exercise.sessions } } : plan} clientName={name} author={plan.created_by ?? null}
+                  lectures={lectures} />
               )}
-              {tab === "plan" && plan && (
-                <PlanView key={planTab ?? "p"} plan={plan} clientName={name} author={plan.created_by ?? null} initialTab={planTab}
-                  training={{ settings: training, onChange: saveTraining, saving }}
-                  lectures={lectures} lectureHref={(slug) => `/account/heilsuferd/fraedsla/${slug}`} />
+              {picker && plan && (
+                <ProgramPicker api={api} kind={picker} current={(picker === "exercise" ? plan.exercise?.key : plan.nutrition?.key) ?? null}
+                  onPick={(k) => void changeProgram(picker, k)} onClose={() => setPicker(null)} />
               )}
             </div>
           </>

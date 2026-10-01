@@ -33,6 +33,28 @@ async function library() {
   return { modules: ((modules || []) as PlanModule[]).filter(selfServiceModule), lectures: lectures || [] };
 }
 
+/** exercise_key / nutrition_key from the body → library copies ({} when not sent, null to remove). */
+async function programsFrom(body: Record<string, unknown>): Promise<{ exercise?: Record<string, unknown> | null; nutrition?: Record<string, unknown> | null }> {
+  const out: { exercise?: Record<string, unknown> | null; nutrition?: Record<string, unknown> | null } = {};
+  if ("exercise_key" in body) {
+    const k = typeof body.exercise_key === "string" ? body.exercise_key : null;
+    if (!k) out.exercise = null;
+    else {
+      const { data } = await supabaseAdmin.from("hc_exercise_templates").select("key, name, level, goal, days_per_week, session_minutes, description, sessions, principles, progression").eq("key", k).eq("active", true).maybeSingle();
+      if (data) out.exercise = data;
+    }
+  }
+  if ("nutrition_key" in body) {
+    const k = typeof body.nutrition_key === "string" ? body.nutrition_key : null;
+    if (!k) out.nutrition = null;
+    else {
+      const { data } = await supabaseAdmin.from("hc_nutrition_templates").select("key, name, goal, description, principles, day_example").eq("key", k).eq("active", true).maybeSingle();
+      if (data) out.nutrition = data;
+    }
+  }
+  return out;
+}
+
 export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
@@ -41,7 +63,7 @@ export async function GET(req: NextRequest) {
 
   const [lib, { data: plan }] = await Promise.all([
     library(),
-    supabaseAdmin.from("hc_action_plans_decrypted").select("id, status, goals, modules, lecture_slugs, headline, version, edited_by_client_at").eq("journey_id", journey.id).maybeSingle(),
+    supabaseAdmin.from("hc_action_plans_decrypted").select("id, status, goals, modules, lecture_slugs, headline, version, edited_by_client_at, exercise, nutrition").eq("journey_id", journey.id).maybeSingle(),
   ]);
   const canSee = !!(journey.report_generated_at || journey.own_report_at);
   const stored = canSee ? await loadReport(journey.id, user.id) : null;
@@ -70,6 +92,22 @@ export async function POST(req: NextRequest) {
   if (existing?.status === "draft") {
     return NextResponse.json({ error: "Hjúkrunarfræðingur er að ganga frá áætluninni þinni. Þú getur breytt henni þegar hún er birt." }, { status: 409 });
   }
+  // Programmes chosen from the library (copied here, never taken from the client).
+  const programs = await programsFrom(body);
+  const label0 = `self:${user.id}`;
+
+  // Only a programme change: keep the actions as they are.
+  if (!Array.isArray(body.items) && (programs.exercise !== undefined || programs.nutrition !== undefined)) {
+    if (!existing) return NextResponse.json({ error: "Engin áætlun til að breyta." }, { status: 404 });
+    const version = existing.version + 1;
+    const patch = { ...programs, version, updated_by: label0, updated_at: new Date().toISOString(), edited_by_client_at: new Date().toISOString() };
+    const { data: plan, error } = await supabaseAdmin.from("hc_action_plans_decrypted").update(patch).eq("id", existing.id).select("*").single();
+    if (error || !plan) return NextResponse.json({ error: "Tókst ekki að vista." }, { status: 500 });
+    await supabaseAdmin.from("hc_plan_versions").insert({ plan_id: existing.id, journey_id: journey.id, version, by_kind: "self", by_label: label0, goals: plan.goals, modules: plan.modules, lecture_slugs: plan.lecture_slugs });
+    await hcAudit(label0, "plan_self_program", journey.id, { version, exercise: programs.exercise?.key ?? undefined, nutrition: programs.nutrition?.key ?? undefined });
+    return NextResponse.json({ ok: true, plan });
+  }
+
   const byKey = new Map(lib.map((m) => [m.key, m]));
   const before = new Map(((existing?.modules ?? []) as PlanItem[]).map((m) => [m.uid, m]));
 
@@ -113,7 +151,7 @@ export async function POST(req: NextRequest) {
   if (existing) {
     version = existing.version + 1;
     const { error } = await supabaseAdmin.from("hc_action_plans_decrypted")
-      .update({ goals, modules: items, lecture_slugs, version, updated_by: label, updated_at: now.toISOString(), edited_by_client_at: now.toISOString() })
+      .update({ goals, modules: items, lecture_slugs, ...programs, version, updated_by: label, updated_at: now.toISOString(), edited_by_client_at: now.toISOString() })
       .eq("id", existing.id);
     if (error) return NextResponse.json({ error: "Tókst ekki að vista." }, { status: 500 });
     planId = existing.id;
@@ -121,7 +159,7 @@ export async function POST(req: NextRequest) {
     version = 1;
     const { data, error } = await supabaseAdmin.from("hc_action_plans_decrypted").insert({
       journey_id: journey.id, client_id: user.id, status: "published", published_at: now.toISOString(),
-      headline: "Áætlunin mín", goals, modules: items, lecture_slugs,
+      headline: "Áætlunin mín", goals, modules: items, lecture_slugs, ...programs,
       start_date: now.toISOString().slice(0, 10), review_date: new Date(now.getTime() + 91 * 86400_000).toISOString().slice(0, 10),
       version, created_by: label, updated_by: label, edited_by_client_at: now.toISOString(),
     }).select("id").single();

@@ -221,6 +221,10 @@ export interface ExerciseItem {
   cues?: string[];
   rest?: string | null;
   block?: ExerciseBlock | null;
+  /** "<session id>:<item index>" in the programme as written — set by personalise(), used for swaps. */
+  slot?: string;
+  /** The participant swapped this one in from the library. */
+  swapped?: boolean;
 }
 
 export interface ExerciseSession {
@@ -242,6 +246,9 @@ export interface ExercisePhase {
 export interface LibraryExercise {
   id: string;
   name: string;
+  /** Icelandic name / how-to (seed-exercises-is.sql); prefer these when set. */
+  name_is?: string | null;
+  instructions_is?: string[] | null;
   category: string | null;
   equipment: string | null;
   level: string | null;

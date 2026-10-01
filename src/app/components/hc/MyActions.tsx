@@ -1,45 +1,70 @@
 "use client";
 
-// "Í dag" — the client's own view of their action plan.
+// "Í dag" — the participant's actions: tick today, fill in a missed day, open
+// what the action is about (the workout, the meals, the fræðsla), leave a note
+// for the nurse, set something aside.
 //
-// The plan is written by the nurse; this is where it gets done. Tick an
-// action for today, look back over the week, and set aside anything that does
-// not fit right now — the nurse sees both, so the next conversation starts
-// from what actually happened rather than from what was prescribed.
+// Every tap shows at once. Writes go to the server one after another in the
+// background; if one fails the view rolls back and says so. The server's
+// answer only replaces the local state when nothing else is waiting, so fast
+// tapping never flickers.
 
 import * as cache from "@/lib/hc/client-cache";
 import PillarIcon from "./PillarIcon";
-import { useState } from "react";
-import { Check, EyeOff, Flame, RotateCcw } from "lucide-react";
+import { useRef, useState } from "react";
+import { BookOpen, Check, ChevronDown, Dumbbell, EyeOff, Flame, RotateCcw, Utensils } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { adherence, isoDay, lastDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-// Two letters: one letter left "M" and "F" meaning two days each.
 const WEEKDAY_SHORT = ["Su", "Má", "Þr", "Mi", "Fi", "Fö", "La"];
+const WEEKDAY_LONG = ["sunnudagur", "mánudagur", "þriðjudagur", "miðvikudagur", "fimmtudagur", "föstudagur", "laugardagur"];
 
-export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs }: {
+export interface ActionLinks {
+  /** Opens the exercise programme at today's session. */
+  exercise?: (() => void) | null;
+  /** Opens today's meals. */
+  nutrition?: (() => void) | null;
+  /** A fræðsla for the action's pillar, if the plan has one. */
+  lecture?: (p: Pillar) => { title: string; href: string } | null;
+}
+
+export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links }: {
   api: Api;
   journeyId: string;
   plan: ActionPlan;
   logs: ActionLog[];
   prefs: ActionPref[];
+  links?: ActionLinks;
 }) {
   const [logs, setLogs] = useState<ActionLog[]>(initialLogs);
   const [prefs, setPrefs] = useState<ActionPref[]>(initialPrefs);
-  const [busy, setBusy] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
-  const today = isoDay();
-  const week = lastDays(7);
+  const [err, setErr] = useState("");
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const waiting = useRef(0);
+  const [today] = useState(() => isoDay());
+  const [week] = useState(() => lastDays(7));
 
-  /** Every write returns the fresh logs + prefs, so the server stays the
-   *  source of truth and a double tap cannot drift the view. */
-  const post = async (body: Record<string, unknown>) => {
-    const r = await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ journey_id: journeyId, ...body }) });
-    const j = await r.json().catch(() => ({}));
-    if (r.ok) { setLogs(j.logs ?? []); setPrefs(j.prefs ?? []); cache.invalidate("/api/hc/actions"); }
-    return r.ok;
+  /** Apply now, send in order, roll back on failure. */
+  const send = (body: Record<string, unknown>, apply: () => void, undo: () => void) => {
+    apply();
+    setErr("");
+    waiting.current += 1;
+    queue.current = queue.current.then(async () => {
+      let ok = false;
+      let j: { logs?: ActionLog[]; prefs?: ActionPref[] } = {};
+      try {
+        const r = await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ journey_id: journeyId, ...body }) });
+        j = await r.json().catch(() => ({}));
+        ok = r.ok;
+      } catch { ok = false; }
+      waiting.current -= 1;
+      if (!ok) { undo(); setErr("Náðist ekki að vista síðustu breytingu. Athugaðu nettenginguna."); return; }
+      cache.invalidate("/api/hc/actions");
+      if (waiting.current === 0) { if (j.logs) setLogs(j.logs); if (j.prefs) setPrefs(j.prefs); }
+    });
   };
 
   const hidden = new Set(prefs.filter((p) => p.hidden).map((p) => p.action_uid));
@@ -48,18 +73,24 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const put = actions.filter((a) => hidden.has(a.uid));
   const stats = adherence(actions, logs, prefs);
 
-  const doneToday = (uid: string) => logs.some((l) => l.action_uid === uid && l.done_on === today);
   const doneOn = (uid: string, day: string) => logs.some((l) => l.action_uid === uid && l.done_on === day);
 
-  const toggle = async (uid: string, day = today) => {
-    const key = `${uid}:${day}`;
-    setBusy(key);
-    await post({ action_uid: uid, done_on: day, done: !doneOn(uid, day) });
-    setBusy(null);
+  const toggle = (uid: string, day = today) => {
+    const was = doneOn(uid, day);
+    const add = () => setLogs((ls) => [...ls, { action_uid: uid, done_on: day }]);
+    const remove = () => setLogs((ls) => ls.filter((l) => !(l.action_uid === uid && l.done_on === day)));
+    send({ action_uid: uid, done_on: day, done: !was }, was ? remove : add, was ? add : remove);
+  };
+  const setPref = (uid: string, patch: { hidden?: boolean; note?: string }) => {
+    const before = prefs;
+    send({ action_uid: uid, ...patch }, () => setPrefs((ps) => {
+      const cur = ps.find((p) => p.action_uid === uid) ?? { action_uid: uid, hidden: false, note: null };
+      return [...ps.filter((p) => p.action_uid !== uid), { ...cur, ...patch, note: patch.note ?? cur.note }];
+    }), () => setPrefs(before));
   };
 
   const byPillar = (p: Pillar) => live.filter((a) => a.pillar === p);
-  const doneCount = live.filter((a) => doneToday(a.uid)).length;
+  const doneCount = live.filter((a) => doneOn(a.uid, today)).length;
 
   return (
     <section className="space-y-4">
@@ -67,9 +98,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white shadow-sm sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Í dag</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Aðgerðirnar mínar</p>
             <h2 className="mt-1 text-2xl font-bold">
-              {doneCount === 0 ? "Byrjum á einu atriði" : doneCount === live.length ? "Dagurinn kláraður" : `${doneCount} af ${live.length} búin`}
+              {doneCount === 0 ? "Byrjum á einu atriði" : doneCount === live.length ? "Dagurinn kláraður" : `${doneCount} af ${live.length} búin í dag`}
             </h2>
           </div>
           <div className="flex gap-4 text-center">
@@ -90,7 +121,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         </div>
       </div>
 
-      {/* The actions, by pillar */}
+      {err && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-800">{err}</p>}
+
       {PILLARS.filter((p) => byPillar(p).length).map((p) => {
         const meta = PILLAR_META[p];
         return (
@@ -98,14 +130,17 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
             <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: meta.soft }}>
               <PillarIcon pillar={p} size="sm" />
               <p className="font-bold" style={{ color: meta.ink }}>{meta.label}</p>
+              <span className="ml-auto text-xs font-semibold" style={{ color: meta.ink }}>
+                {byPillar(p).filter((a) => doneOn(a.uid, today)).length}/{byPillar(p).length}
+              </span>
             </div>
             <ul className="divide-y divide-slate-100">
               {byPillar(p).map((a) => (
-                <ActionRow key={a.uid} a={a} meta={meta} today={today} week={week} busy={busy}
-                  doneToday={doneToday(a.uid)} doneOn={doneOn} onToggle={toggle}
+                <ActionRow key={a.uid} a={a} meta={meta} today={today} week={week} doneOn={doneOn} onToggle={toggle}
                   myNote={prefs.find((x) => x.action_uid === a.uid)?.note ?? ""}
-                  onNote={(note) => post({ action_uid: a.uid, note })}
-                  onHide={async () => { setBusy(a.uid); await post({ action_uid: a.uid, hidden: true }); setBusy(null); }} />
+                  onNote={(note) => setPref(a.uid, { note })}
+                  onHide={() => setPref(a.uid, { hidden: true })}
+                  links={links} />
               ))}
             </ul>
           </div>
@@ -118,7 +153,6 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         </p>
       )}
 
-      {/* Set aside */}
       {put.length > 0 && (
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <button type="button" onClick={() => setShowHidden(!showHidden)} aria-expanded={showHidden}
@@ -130,8 +164,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               {put.map((a) => (
                 <li key={a.uid} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
                   <span className="min-w-0 flex-1 text-sm text-slate-600">{a.title}</span>
-                  <button type="button" disabled={busy === a.uid}
-                    onClick={async () => { setBusy(a.uid); await post({ action_uid: a.uid, hidden: false }); setBusy(null); }}
+                  <button type="button" onClick={() => setPref(a.uid, { hidden: false })}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline">
                     <RotateCcw className="h-3.5 w-3.5" /> Taka aftur inn
                   </button>
@@ -149,67 +182,90 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, week, busy, doneToday, doneOn, onToggle, onHide, myNote, onNote }: {
-  myNote: string;
-  onNote: (note: string) => Promise<unknown>;
+function ActionRow({ a, meta, today, week, doneOn, onToggle, onHide, myNote, onNote, links }: {
   a: PlanItem;
-  meta: { color: string; soft: string; label: string };
+  meta: { color: string; soft: string; label: string; ink: string };
   today: string;
   week: string[];
-  busy: string | null;
-  doneToday: boolean;
   doneOn: (uid: string, day: string) => boolean;
   onToggle: (uid: string, day?: string) => void;
   onHide: () => void;
+  myNote: string;
+  onNote: (note: string) => void;
+  links?: ActionLinks;
 }) {
   const [open, setOpen] = useState(false);
+  const done = doneOn(a.uid, today);
   const target = weeklyTarget(a.frequency);
   const thisWeek = week.filter((d) => doneOn(a.uid, d)).length;
+  const lecture = links?.lecture?.(a.pillar) ?? null;
+  const go = a.pillar === "exercise" ? links?.exercise : a.pillar === "nutrition" ? links?.nutrition : null;
 
   return (
-    <li className="px-3 py-2.5 sm:px-4">
+    <li className="px-3 py-3 sm:px-4">
       <div className="flex items-start gap-3">
-        <button type="button" onClick={() => onToggle(a.uid)} disabled={busy === `${a.uid}:${today}`}
-          aria-pressed={doneToday} aria-label={`${doneToday ? "Afmerkja" : "Merkja sem búið"}: ${a.title}`}
-          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition ${doneToday ? "border-transparent text-white" : "border-slate-200 text-transparent hover:border-slate-300"}`}
-          style={doneToday ? { background: meta.color } : undefined}>
-          <Check className="h-4 w-4" />
+        <button type="button" onClick={() => onToggle(a.uid)}
+          aria-pressed={done} aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${a.title}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 ${done ? "border-transparent text-white" : "border-slate-200 text-transparent hover:border-slate-400"}`}
+          style={done ? { background: meta.color } : undefined}>
+          <Check className="h-5 w-5" strokeWidth={3} />
         </button>
         <div className="min-w-0 flex-1">
-          <button type="button" onClick={() => setOpen(!open)} className="w-full text-left" aria-expanded={open}>
-            <p className={`font-semibold ${doneToday ? "text-slate-400 line-through" : "text-slate-900"}`}>{a.title}</p>
-            <p className="text-sm text-slate-500">
-              {a.frequency || "Daglega"}
-              {target < 7 && <span className="text-slate-400"> · {thisWeek}/{target} í vikunni</span>}
-            </p>
+          <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-start gap-2 text-left" aria-expanded={open}>
+            <span className="min-w-0 flex-1">
+              <span className={`block font-semibold ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{a.title}</span>
+              <span className="block text-sm text-slate-500">
+                {a.frequency || "Daglega"}
+                {target < 7 && <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-400"}> · {thisWeek}/{target} í vikunni</span>}
+              </span>
+            </span>
+            <ChevronDown className={`mt-1 h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
           </button>
 
+          {/* The last seven days: tap to fill in a missed day. */}
+          <div className="mt-2 flex gap-1" role="group" aria-label="Síðustu sjö dagar">
+            {week.map((d) => {
+              const on = doneOn(a.uid, d);
+              const wd = new Date(`${d}T12:00:00`).getDay();
+              return (
+                <button key={d} type="button" onClick={() => onToggle(a.uid, d)}
+                  aria-pressed={on} aria-label={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""}: ${on ? "búið" : "ekki búið"}`}
+                  className={`flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold transition active:scale-90 ${on ? "text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200"} ${d === today ? "ring-2 ring-slate-800 ring-offset-1" : ""}`}
+                  style={on ? { background: meta.color } : undefined}>
+                  {WEEKDAY_SHORT[wd]}
+                </button>
+              );
+            })}
+          </div>
+
           {open && (
-            <div className="mt-2 space-y-2">
-              {a.summary && <p className="text-sm text-slate-600">{a.summary}</p>}
+            <div className="mt-3 space-y-3">
+              {a.summary && <p className="text-sm text-slate-700">{a.summary}</p>}
               {a.details && <p className="whitespace-pre-line text-sm text-slate-600">{a.details}</p>}
               {a.note && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm italic text-emerald-900">{a.note}</p>}
 
-              {/* The week, so a missed day can still be filled in. */}
-              <div className="flex items-center gap-1.5">
-                {week.map((d) => {
-                  const done = doneOn(a.uid, d);
-                  const label = WEEKDAY_SHORT[new Date(d).getDay()];
-                  return (
-                    <button key={d} type="button" onClick={() => onToggle(a.uid, d)} disabled={busy === `${a.uid}:${d}`}
-                      aria-label={`${done ? "Afmerkja" : "Merkja"} ${d}`}
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold transition ${done ? "text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200"} ${d === today ? "ring-2 ring-slate-900 ring-offset-1" : ""}`}
-                      style={done ? { background: meta.color } : undefined}>
-                      {label}
+              {(go || lecture) && (
+                <div className="flex flex-wrap gap-2">
+                  {go && (
+                    <button type="button" onClick={go}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-white"
+                      style={{ background: meta.color }}>
+                      {a.pillar === "exercise" ? <Dumbbell className="h-4 w-4" aria-hidden /> : <Utensils className="h-4 w-4" aria-hidden />}
+                      {a.pillar === "exercise" ? "Opna æfingaáætlunina" : "Sjá máltíðir dagsins"}
                     </button>
-                  );
-                })}
-                <span className="flex-1" />
-                <button type="button" onClick={onHide} className="text-xs font-semibold text-slate-500 hover:text-slate-800">
-                  Leggja til hliðar
-                </button>
-              </div>
+                  )}
+                  {lecture && (
+                    <a href={lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                      <BookOpen className="h-4 w-4" aria-hidden /> {lecture.title}
+                    </a>
+                  )}
+                </div>
+              )}
+
               <NoteField initial={myNote} onSave={onNote} />
+              <button type="button" onClick={onHide} className="text-xs font-semibold text-slate-500 hover:text-slate-800">
+                Leggja til hliðar í bili
+              </button>
             </div>
           )}
         </div>
@@ -219,23 +275,21 @@ function ActionRow({ a, meta, today, week, busy, doneToday, doneOn, onToggle, on
 }
 
 /** The participant's own note on an action: what got in the way, what worked. The nurse sees it. */
-function NoteField({ initial, onSave }: { initial: string; onSave: (note: string) => Promise<unknown> }) {
+function NoteField({ initial, onSave }: { initial: string; onSave: (note: string) => void }) {
   const [v, setV] = useState(initial);
-  const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
-  const dirty = v.trim() !== initial.trim();
+  const [saved, setSaved] = useState(initial);
+  const dirty = v.trim() !== saved.trim();
   return (
     <div>
       <label className="block text-xs font-semibold text-slate-500">Athugasemd til hjúkrunarfræðingsins
-        <textarea value={v} onChange={(e) => { setV(e.target.value); setState("idle"); }} rows={2} maxLength={300}
+        <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
+          onBlur={() => { if (dirty) { onSave(v.trim()); setSaved(v.trim()); } }}
           placeholder="T.d. hvað gekk vel eða hvað var erfitt"
           className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-[#10B981]" />
       </label>
-      {(dirty || state !== "idle") && (
-        <button type="button" disabled={!dirty || state === "saving"}
-          onClick={async () => { setState("saving"); await onSave(v); setState("saved"); }}
-          className="mt-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
-          {state === "saving" ? "Vista…" : state === "saved" && !dirty ? "Vistað" : "Vista athugasemd"}
-        </button>
+      {dirty && (
+        <button type="button" onClick={() => { onSave(v.trim()); setSaved(v.trim()); }}
+          className="mt-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">Vista athugasemd</button>
       )}
     </div>
   );

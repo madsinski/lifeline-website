@@ -13,13 +13,14 @@ import { bangScore, GRADE_IS, scoreBand } from "@/lib/hc/rating";
 import { PILLAR_META, PILLARS, type Pillar, type PlanGoal, type PlanItem, type PlanModule } from "@/lib/hc/types";
 import type { PillarPriority } from "@/lib/hc/self-plan";
 import * as cache from "@/lib/hc/client-cache";
+import { ProgramList, usePrograms } from "./ProgramPicker";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 interface LectureRef { slug: string; title: string; subtitle: string | null; duration_min: number | null; pillar: string | null }
 interface Loaded {
   modules: PlanModule[];
   lectures: LectureRef[];
-  plan: { goals: PlanGoal[]; modules: PlanItem[]; lecture_slugs: string[] | null } | null;
+  plan: { goals: PlanGoal[]; modules: PlanItem[]; lecture_slugs: string[] | null; exercise?: { key: string } | null; nutrition?: { key: string } | null } | null;
   staff_drafting: boolean;
   has_report: boolean;
   priorities: PillarPriority[];
@@ -37,6 +38,9 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
   const [rows, setRows] = useState<Row[]>([]);
   const [goals, setGoals] = useState<PlanGoal[]>([]);
   const [lectures, setLectures] = useState<string[]>([]);
+  const [exKey, setExKey] = useState<string | null>(null);
+  const [nuKey, setNuKey] = useState<string | null>(null);
+  const programs = usePrograms(api);
   const [lib, setLib] = useState<Pillar>("sleep");
   const [own, setOwn] = useState<{ pillar: Pillar; title: string; frequency: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -55,6 +59,8 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
         setRows(j.plan.modules.map((m) => ({ uid: m.uid, key: m.key, pillar: m.pillar, title: m.title, summary: m.summary, frequency: m.frequency, note: m.note ?? "", own: !!m.key?.startsWith("own:"), tmp: tmpId() })));
         setGoals(j.plan.goals ?? []);
         setLectures(j.plan.lecture_slugs ?? []);
+        setExKey(j.plan.exercise?.key ?? null);
+        setNuKey(j.plan.nutrition?.key ?? null);
       } else {
         // A first plan starts from the suggestions; everything can be changed.
         setRows(j.suggestions.map((s) => byKey.get(s.key)).filter((m): m is PlanModule => !!m)
@@ -95,6 +101,9 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
         items: rows.map((x) => ({ uid: x.uid, key: x.own && !x.uid ? null : x.key, pillar: x.pillar, title: x.title, summary: x.summary, frequency: x.frequency, note: x.note })),
         goals: goals.filter((g) => g.text.trim()),
         lecture_slugs: lectures,
+        // Only sent when changed, so an unchanged programme keeps any edits staff made to it.
+        ...(exKey !== (d?.plan?.exercise?.key ?? null) ? { exercise_key: exKey } : {}),
+        ...(nuKey !== (d?.plan?.nutrition?.key ?? null) ? { nutrition_key: nuKey } : {}),
       }),
     });
     const j = await r.json().catch(() => ({}));
@@ -207,6 +216,26 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
             </div>
           ) : (
             <button type="button" onClick={() => setOwn({ pillar: lib, title: "", frequency: "" })} className={`${hcBtn.secondary} mt-3`}><Plus className="h-4 w-4" /> Mín eigin aðgerð</button>
+          )}
+
+          {/* Programmes */}
+          {programs && (
+            <div className="mt-6 space-y-5">
+              <div>
+                <div className="mb-2 flex items-baseline justify-between">
+                  <p className={`${hcKicker} text-slate-500`}>Æfingaáætlun</p>
+                  {exKey && <button type="button" onClick={() => setExKey(null)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Engin</button>}
+                </div>
+                <ProgramList rows={programs.exercise} current={exKey} onPick={setExKey} tone="exercise" />
+              </div>
+              <div>
+                <div className="mb-2 flex items-baseline justify-between">
+                  <p className={`${hcKicker} text-slate-500`}>Næringaráætlun</p>
+                  {nuKey && <button type="button" onClick={() => setNuKey(null)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Engin</button>}
+                </div>
+                <ProgramList rows={programs.nutrition} current={nuKey} onPick={setNuKey} tone="nutrition" />
+              </div>
+            </div>
           )}
 
           {/* Goals */}

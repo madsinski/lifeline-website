@@ -1,29 +1,35 @@
 "use client";
 
-// Participant navigation once the plan exists: one product, four places.
+// Participant navigation once the plan exists: Í dag, Æfingar, Næring,
+// Skýrslan, Ferðin (the programme tabs only when the plan has them).
 // Bottom bar on a phone (thumb reach, safe area), a segmented bar on top on
 // larger screens.
 
 import Link from "next/link";
 import { hcTabs } from "./ui";
-import { ClipboardList, Compass, FileHeart, Sun } from "lucide-react";
+import { Compass, Dumbbell, FileHeart, Sun, Utensils } from "lucide-react";
 
-export type JourneyPlace = "today" | "plan" | "report" | "journey";
+export type JourneyPlace = "today" | "exercise" | "nutrition" | "report" | "journey";
 
 const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun }[] = [
   { key: "today", label: "Í dag", href: "/account/heilsuferd/aaetlun?tab=today", Icon: Sun },
-  { key: "plan", label: "Áætlunin", href: "/account/heilsuferd/aaetlun?tab=plan", Icon: ClipboardList },
+  { key: "exercise", label: "Æfingar", href: "/account/heilsuferd/aaetlun?tab=exercise", Icon: Dumbbell },
+  { key: "nutrition", label: "Næring", href: "/account/heilsuferd/aaetlun?tab=nutrition", Icon: Utensils },
   { key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
   { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
 ];
 
-export default function JourneyNav({ active, hasReport = true, onSelect }: {
+export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, onSelect }: {
   active: JourneyPlace;
   hasReport?: boolean;
+  hasExercise?: boolean;
+  hasNutrition?: boolean;
+  hasPlan?: boolean;
   /** On the plan page the first three switch tabs in place. */
   onSelect?: (k: JourneyPlace) => boolean;
 }) {
-  const items = ITEMS.filter((i) => i.key !== "report" || hasReport);
+  const items = ITEMS.filter((i) =>
+    (i.key !== "report" || hasReport) && (i.key !== "exercise" || (hasPlan && hasExercise)) && (i.key !== "nutrition" || (hasPlan && hasNutrition)) && (i.key !== "today" || hasPlan));
   const item = (i: (typeof ITEMS)[number], mobile: boolean) => {
     const on = i.key === active;
     return (

@@ -96,7 +96,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
               const isAdded = added.includes(ex.id);
               return (
                 <div key={ex.id} className={`flex flex-col overflow-hidden rounded-2xl border bg-white ${isAdded ? "border-emerald-400" : "border-slate-200"}`}>
-                  <button type="button" onClick={() => setOpen(ex)} className="relative aspect-[4/3] bg-slate-100" aria-label={`Nánar um ${ex.name}`}>
+                  <button type="button" onClick={() => setOpen(ex)} className="relative aspect-[4/3] bg-slate-100" aria-label={`Nánar um ${ex.name_is || ex.name}`}>
                     {ex.illustration_url
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={ex.illustration_url} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -107,7 +107,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
                     </span>
                   </button>
                   <div className="flex flex-1 flex-col p-2.5">
-                    <p className="text-sm font-semibold leading-tight text-slate-900">{ex.name}</p>
+                    <p className="text-sm font-semibold leading-tight text-slate-900">{ex.name_is || ex.name}</p>
                     <p className="mt-0.5 text-[11px] text-slate-500">
                       {[ex.category && CATEGORY_IS[ex.category], ex.equipment && EQUIPMENT_IS[ex.equipment]].filter(Boolean).join(" · ")}
                     </p>
@@ -129,7 +129,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" onClick={(e) => { e.stopPropagation(); setOpen(null); }}>
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-bold text-[#0F172A]">{open.name}</h3>
+              <h3 className="text-lg font-bold text-[#0F172A]">{open.name_is || open.name}</h3>
               <button type="button" onClick={() => setOpen(null)} className="text-slate-400 hover:text-slate-700" aria-label="Loka">✕</button>
             </div>
             {open.video_url
@@ -137,9 +137,9 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
               // eslint-disable-next-line @next/next/no-img-element
               : open.illustration_url ? <img src={open.illustration_url} alt="" className="mt-3 w-full rounded-2xl" /> : null}
             <p className="mt-3 text-xs text-slate-500">{(open.primary_muscles ?? []).concat(open.secondary_muscles ?? []).map(muscleIs).join(" · ")}</p>
-            {!!open.instructions?.length && (
+            {!!(open.instructions_is?.length ? open.instructions_is : open.instructions)?.length && (
               <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-slate-700">
-                {open.instructions.map((s, i) => <li key={i}>{s}</li>)}
+                {(open.instructions_is?.length ? open.instructions_is : open.instructions ?? []).map((s, i) => <li key={i}>{s}</li>)}
               </ol>
             )}
             <button type="button" onClick={() => { pick(open); setOpen(null); }} className="mt-4 w-full rounded-xl bg-orange-600 py-2.5 text-sm font-semibold text-white">

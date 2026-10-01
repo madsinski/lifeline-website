@@ -34,7 +34,7 @@ export function itemFromLibrary(ex: LibraryExercise): ExerciseItem {
     block === "warmup" ? "1 mín" :
     cat === "core" ? "3 x 30 sek" : "3 x 8–12";
   return {
-    name: ex.name,
+    name: ex.name_is || ex.name,
     prescription,
     note: null,
     exercise_id: ex.id,
@@ -42,7 +42,7 @@ export function itemFromLibrary(ex: LibraryExercise): ExerciseItem {
     video: ex.video_url,
     muscles: [...(ex.primary_muscles ?? []), ...(ex.secondary_muscles ?? [])].slice(0, 4),
     equipment: ex.equipment,
-    cues: (ex.instructions ?? []).slice(0, 3),
+    cues: ((ex.instructions_is?.length ? ex.instructions_is : ex.instructions) ?? []).slice(0, 3),
     rest: block === "main" && cat !== "cardio" ? "60–90 sek" : null,
     block,
   };

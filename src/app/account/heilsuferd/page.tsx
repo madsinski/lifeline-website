@@ -183,7 +183,10 @@ function Heilsuferd() {
         </div>
         <div className="mt-5 flex flex-wrap items-center gap-2">
           {data.plan ? (
-            <Link href="/account/heilsuferd/aaetlun?tab=today" className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Opna daginn í dag →</Link>
+            <>
+              <Link href="/account/heilsuferd/aaetlun?tab=today" className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Opna daginn í dag →</Link>
+              <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-white/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-white/25">Breyta áætluninni</Link>
+            </>
           ) : current && !ours ? (
             <button type="button" onClick={() => { setOpen(current.key); setTimeout(() => document.getElementById(`step-${current.key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
               className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Halda áfram: {current.title} →</button>
@@ -531,10 +534,20 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
         ? (
           <div className="space-y-3 text-sm">
             <p className="text-slate-700"><strong>{data.plan.headline || "Aðgerðaáætlunin þín"}</strong>{data.plan.review_date ? ` · endurmat ${fmtDate(data.plan.review_date)}` : ""}</p>
-            <Link href="/account/heilsuferd/aaetlun" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Opna áætlunina</Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/account/heilsuferd/aaetlun" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Opna áætlunina</Link>
+              <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-block rounded-full border border-slate-300 bg-white px-5 py-2.5 font-semibold text-slate-800 hover:bg-slate-50">Breyta áætluninni</Link>
+            </div>
           </div>
         )
-        : <p className="text-sm text-slate-600">Hjúkrunarfræðingurinn gengur frá áætluninni eftir viðtalið. Hún birtist hér og þú færð tölvupóst.</p>;
+        : (
+          <div className="space-y-3 text-sm text-slate-600">
+            <p>Hjúkrunarfræðingurinn gengur frá áætluninni eftir viðtalið. Hún birtist hér og þú færð tölvupóst.</p>
+            {(j.report_generated_at || j.own_report_at) && (
+              <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-block rounded-full bg-hc-brand px-5 py-2.5 font-semibold text-white hover:bg-hc-brand-dark">Búa til áætlun sjálf(ur)</Link>
+            )}
+          </div>
+        );
     case "followup":
       return <FollowupStep data={data} kind="followup_3m" reload={reload} />;
     case "reevaluation":

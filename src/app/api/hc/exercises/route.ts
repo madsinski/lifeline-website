@@ -10,7 +10,7 @@ import { getHcActor } from "@/lib/hc/ws-auth";
 export const runtime = "nodejs";
 
 const COLUMNS =
-  "id, name, category, equipment, level, mechanic, illustration_url, video_url, instructions, primary_muscles, secondary_muscles, bang_for_buck, priority";
+  "id, name, name_is, category, equipment, level, mechanic, illustration_url, video_url, instructions, instructions_is, primary_muscles, secondary_muscles, bang_for_buck, priority";
 const CATEGORIES = ["legs", "back", "chest", "shoulders", "arms", "core", "full-body", "cardio", "warm-up", "flexibility"];
 const EQUIPMENT = ["bodyweight", "dumbbells", "kettlebell", "bands", "barbell", "cables", "machine", "other", "none"];
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   let query = supabaseAdmin.from("exercises").select(COLUMNS);
   if (q) {
     const muscle = /^[a-z]+$/i.test(q) ? `,primary_muscles.cs.{${q.toLowerCase()}}` : "";
-    query = query.or(`name.ilike.%${q}%,category.ilike.%${q}%${muscle}`);
+    query = query.or(`name.ilike.%${q}%,name_is.ilike.%${q}%,category.ilike.%${q}%${muscle}`);
   }
   if (category && CATEGORIES.includes(category)) query = query.eq("category", category);
   if (equipment && EQUIPMENT.includes(equipment)) {

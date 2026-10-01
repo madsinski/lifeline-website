@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hcAudit } from "@/lib/hc/server";
 import { sameOrigin } from "@/lib/hc/secrets";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
-import { loadTraining, saveTraining } from "@/lib/hc/training-server";
+import { loadPlanPrefs, saveTraining } from "@/lib/hc/training-server";
 
 export const runtime = "nodejs";
 
@@ -25,16 +25,16 @@ async function gate(req: NextRequest, id: string, write: boolean) {
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const g = await gate(req, (await ctx.params).id, false);
   if (g instanceof NextResponse) return g;
-  return NextResponse.json({ settings: await loadTraining(g.journey.id) });
+  return NextResponse.json(await loadPlanPrefs(g.journey.id));
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const g = await gate(req, (await ctx.params).id, true);
   if (g instanceof NextResponse) return g;
   try {
-    const settings = await saveTraining(g.journey.id, g.journey.client_id, await req.json().catch(() => ({})), g.actor.label);
+    const { settings, personal } = await saveTraining(g.journey.id, g.journey.client_id, await req.json().catch(() => ({})), g.actor.label);
     await hcAudit(g.actor.label, "training_settings", g.journey.id, { level: settings.level, load: settings.load, injuries: settings.injuries });
-    return NextResponse.json({ settings });
+    return NextResponse.json({ settings, personal });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

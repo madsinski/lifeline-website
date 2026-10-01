@@ -1,0 +1,85 @@
+// Real meals from the meal library (`meals`, /admin/content) for a nutrition
+// programme: which meals fit each programme, ranked per slot of the day.
+// Pure and client-safe; the Næring tab and "Í dag" share it.
+
+export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner";
+export const SLOTS: MealSlot[] = ["breakfast", "lunch", "snack", "dinner"];
+export const SLOT_IS: Record<MealSlot, string> = { breakfast: "Morgunmatur", lunch: "Hádegi", snack: "Millimál", dinner: "Kvöldmatur" };
+
+export interface Meal {
+  id: string;
+  name: string;
+  name_is: string | null;
+  description: string | null;
+  description_is: string | null;
+  category: string | null;
+  ingredients: string[] | null;
+  ingredients_is: string[] | null;
+  instructions: string[] | null;
+  instructions_is: string[] | null;
+  prep_time_min: number | null;
+  cook_time_min: number | null;
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  dietary_tags: string[] | null;
+  illustration_url: string | null;
+}
+
+export const mealName = (m: Pick<Meal, "name" | "name_is">) => m.name_is || m.name;
+export const mealText = (m: Meal) => ({
+  description: m.description_is || m.description,
+  ingredients: (m.ingredients_is?.length ? m.ingredients_is : m.ingredients) ?? [],
+  instructions: (m.instructions_is?.length ? m.instructions_is : m.instructions) ?? [],
+});
+
+interface Rule { prefer: string[]; avoid: string[]; nameBoost?: RegExp; nameAvoid?: RegExp; maxKcal?: Partial<Record<MealSlot, number>> }
+const FISH = /salmon|cod|trout|tuna|lax|þorsk|silung|túnfisk/i;
+const PLANTS = /lentil|chickpea|bean|quinoa|oat|rye|wholewheat|vegetable|veggie|tofu|edamame|hummus/i;
+const SWEET = /pancake|honey|granola|bar\b|chips|bagel/i;
+
+/** How each nutrition programme (hc_nutrition_templates.key) picks from the library. */
+const RULES: Record<string, Rule> = {
+  jafnvaegi: { prefer: [], avoid: ["protein-shake"], nameAvoid: /protein bar|protein chips/i },
+  efnaskipti: { prefer: ["low-carb", "high-protein"], avoid: ["protein-shake"], nameBoost: PLANTS, nameAvoid: SWEET },
+  blodthrystingur: { prefer: ["vegetarian", "vegan"], avoid: ["protein-shake"], nameBoost: FISH, nameAvoid: /bacon|jerky|chips|bagel/i },
+  "protein-fokus": { prefer: ["high-protein"], avoid: [] },
+  trefjar: { prefer: ["vegetarian", "vegan"], avoid: ["protein-shake"], nameBoost: PLANTS, nameAvoid: /protein bar|chips|shake/i },
+  thyngdarstjornun: { prefer: ["high-protein", "low-carb"], avoid: ["protein-shake"], nameAvoid: SWEET, maxKcal: { breakfast: 480, lunch: 520, dinner: 600, snack: 250 } },
+  "lifur-afengi": { prefer: ["high-protein"], avoid: [], nameBoost: new RegExp(`${FISH.source}|${PLANTS.source}`, "i"), nameAvoid: SWEET },
+  matarhegdun: { prefer: ["meal-prep", "no-cook"], avoid: ["protein-shake"] },
+};
+
+function score(m: Meal, r: Rule, slot: MealSlot): number {
+  const tags = m.dietary_tags ?? [];
+  let s = 0;
+  for (const t of r.prefer) if (tags.includes(t)) s += 2;
+  for (const t of r.avoid) if (tags.includes(t)) s -= 6;
+  if (r.nameBoost?.test(m.name)) s += 3;
+  if (r.nameAvoid?.test(m.name)) s -= 5;
+  const max = r.maxKcal?.[slot];
+  if (max && m.calories && m.calories > max) s -= 4;
+  // A snack slot wants a real snack, not a single egg or half a tuna pouch.
+  if (slot === "snack" && m.calories != null && m.calories < 120) s -= 3;
+  if (m.illustration_url) s += 1;
+  return s;
+}
+
+/** Library meals for a slot, best fit for the programme first; near-duplicate names dropped. */
+export function mealsFor(all: Meal[], programKey: string | null | undefined, slot: MealSlot): Meal[] {
+  const r = RULES[programKey ?? ""] ?? RULES.jafnvaegi;
+  const seen = new Set<string>();
+  return all
+    .filter((m) => m.category === slot)
+    .map((m) => ({ m, s: score(m, r, slot) }))
+    .sort((a, b) => b.s - a.s || (b.m.protein ?? 0) - (a.m.protein ?? 0))
+    .map((x) => x.m)
+    .filter((m) => { const k = m.name.toLowerCase().replace(/[^a-z]/g, ""); if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+/** The day: the participant's pick per slot, else the best fit. */
+export function dayFor(all: Meal[], programKey: string | null | undefined, picks: Record<string, string>): Record<MealSlot, Meal | null> {
+  const byId = new Map(all.map((m) => [m.id, m]));
+  return Object.fromEntries(SLOTS.map((slot) => [slot, (picks[slot] && byId.get(picks[slot])) || mealsFor(all, programKey, slot)[0] || null])) as Record<MealSlot, Meal | null>;
+}
