@@ -13,7 +13,7 @@
 // partial payload, so nothing outside it can be lost.
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, ChevronRight, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, ChevronRight, Dumbbell, Plus, Sparkles, Trash2, Utensils, X } from "lucide-react";
 import PillarIcon from "./PillarIcon";
 import { hcBtn, hcCard, hcKicker } from "./ui";
 import { bangScore, GRADE_IS, scoreBand } from "@/lib/hc/rating";
@@ -170,7 +170,13 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
     const chooser = (f: Focus, sub: string, extra?: React.ReactNode) => (
       <button key={f} type="button" onClick={() => setFocus(f)}
         className={`${hcCard.base} flex items-start gap-3 p-4 text-left transition hover:ring-2 hover:ring-hc-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand`}>
-        {isPillar(f) ? <PillarIcon pillar={f} /> : <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">{f === "lectures" ? <BookOpen className="h-5 w-5" aria-hidden /> : <Sparkles className="h-5 w-5" aria-hidden />}</span>}
+        {isPillar(f)
+          ? <PillarIcon pillar={f} />
+          : <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+              {f === "lectures" ? <BookOpen className="h-5 w-5" aria-hidden />
+                : f === "exercise-program" ? <Dumbbell className="h-5 w-5" aria-hidden />
+                : <Utensils className="h-5 w-5" aria-hidden />}
+            </span>}
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-hc-ink">{labelOf(f)}</span>
