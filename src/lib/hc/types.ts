@@ -199,6 +199,8 @@ export interface PlanModule {
   evidence_grade: string | null;
   evidence_note: string | null;
   minutes_per_week: number | null;
+  /** hc_knowledge slugs this action is meant to move. See src/lib/hc/fit.ts. */
+  addresses: string[] | null;
 }
 
 /** Where an exercise sits in a session. */

@@ -68,12 +68,28 @@ export async function GET(req: NextRequest) {
   const canSee = !!(journey.report_generated_at || journey.own_report_at);
   const stored = canSee ? await loadReport(journey.id, user.id) : null;
   const priorities = pillarPriorities(stored?.report ?? null, stored?.signals ?? {});
+
+  // The traffic lights again, keyed by hc_knowledge slug rather than by report
+  // row, which is what hc_plan_modules.addresses points at. With the row
+  // titles alongside, the editor can score each action against this person's
+  // own report and say which rows it is aimed at.
+  const signals: Record<string, string> = {};
+  const markerTitles: Record<string, string> = {};
+  for (const item of stored?.report.items ?? []) {
+    if (!item.slug) continue;
+    const sig = stored?.signals[item.key];
+    if (sig) signals[item.slug] = sig;
+    markerTitles[item.slug] = item.title;
+  }
+
   return NextResponse.json({
     ...lib,
     plan: plan?.status === "published" ? plan : null,
     staff_drafting: plan?.status === "draft",
     has_report: !!stored,
     priorities,
+    signals,
+    marker_titles: markerTitles,
     suggestions: suggestModules(lib.modules, priorities, !!stored),
   });
 }

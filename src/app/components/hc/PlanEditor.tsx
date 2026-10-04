@@ -16,7 +16,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, ChevronRight, Dumbbell, Plus, Sparkles, Trash2, Utensils, X } from "lucide-react";
 import PillarIcon from "./PillarIcon";
 import { hcBtn, hcCard, hcKicker } from "./ui";
-import { bangScore, GRADE_IS, scoreBand } from "@/lib/hc/rating";
+import { GRADE_IS } from "@/lib/hc/rating";
+import { fitOf } from "@/lib/hc/fit";
+import type { Signal } from "@/lib/hc/grunnheilsa";
+import FitMeter from "./FitMeter";
 import { PILLAR_META, PILLARS, type Pillar, type PlanGoal, type PlanItem, type PlanModule } from "@/lib/hc/types";
 import type { PillarPriority } from "@/lib/hc/self-plan";
 import * as cache from "@/lib/hc/client-cache";
@@ -31,6 +34,10 @@ interface Loaded {
   staff_drafting: boolean;
   has_report: boolean;
   priorities: PillarPriority[];
+  /** hc_knowledge slug → traffic light from this person's report. */
+  signals: Record<string, Signal | null>;
+  /** hc_knowledge slug → the report row's title. */
+  marker_titles: Record<string, string>;
   suggestions: { key: string; pillar: Pillar; why: string }[];
 }
 /** One row in the editor: an existing plan item, a library pick, or the participant's own. */
@@ -231,8 +238,13 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
   // ── Step 2: only what the chosen category covers ──────────────────────────
   const pillar = isPillar(focus) ? focus : null;
   const mine = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.pillar === pillar);
+  const signals = d.signals ?? {};
+  // Best for THIS person first: the report's need for what the action targets,
+  // weighed with how much the action is worth for the time it costs.
   const libModules = pillar
-    ? d.modules.filter((m) => m.pillar === pillar).sort((a, b) => (bangScore(b) ?? 0) - (bangScore(a) ?? 0))
+    ? d.modules.filter((m) => m.pillar === pillar)
+        .map((m) => ({ m, f: fitOf(m, signals) }))
+        .sort((a, b) => b.f.fit - a.f.fit)
     : [];
   const pr = pillar ? priorityOf.get(pillar) : undefined;
   /** Up/down swaps with the next action of the same pillar, leaving the rest alone. */
@@ -326,12 +338,10 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
             <div className={`${hcCard.base} overflow-hidden`}>
               <div className="border-b border-slate-100 p-3">
                 <p className="font-semibold text-hc-ink">Bæta við úr safninu</p>
-                <p className="text-xs text-slate-500">{PILLAR_META[pillar].label} · besta gagnið fyrir tímann fyrst</p>
+                <p className="text-xs text-slate-500">{PILLAR_META[pillar].label} · {d.has_report ? "það sem hentar þér best efst" : "besta gagnið fyrir tímann fyrst"}</p>
               </div>
               <ul className="max-h-[70vh] divide-y divide-slate-100 overflow-y-auto">
-                {libModules.map((m) => {
-                  const sc = bangScore(m);
-                  const band = sc != null ? scoreBand(sc) : null;
+                {libModules.map(({ m, f }, i) => {
                   const why = suggestionFor.get(m.key);
                   const taken = inPlan.has(m.key);
                   return (
@@ -343,9 +353,9 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
                           <p className="mt-0.5 line-clamp-2 text-xs text-slate-600">{m.summary}</p>
                           <div className="mt-1.5 flex flex-wrap gap-1">
                             {why && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200"><Sparkles className="h-3 w-3" aria-hidden />Tillaga · {why}</span>}
-                            {band && <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${band.className}`}>{band.label}</span>}
                             {m.evidence_grade && GRADE_IS[m.evidence_grade] && <span title={GRADE_IS[m.evidence_grade].hint} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${GRADE_IS[m.evidence_grade].className}`}>Rannsóknir {m.evidence_grade}</span>}
                           </div>
+                          <FitMeter fit={f} titles={d.marker_titles ?? {}} rank={i + 1} />
                         </div>
                         <button type="button" disabled={taken} onClick={() => { mark(focus); add(m); }} aria-label={taken ? `${m.title} er í áætluninni` : `Bæta við: ${m.title}`}
                           className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${taken ? "bg-emerald-50 text-emerald-700" : "bg-hc-brand text-white hover:bg-hc-brand-dark"}`}>
