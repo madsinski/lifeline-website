@@ -53,21 +53,34 @@ function Adgangur() {
     })();
   }, [api, router]);
 
-  if (!userId) return <div className={hcPage.participant}><p className="mx-auto max-w-4xl px-4 pt-28 text-slate-500">Hleð…</p></div>;
-
   return (
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-24 sm:pb-16 sm:pt-28">
-        {hasPlan && (
-          <div className="mb-3 print:hidden">
-            <BackLink href="/account/heilsuferd/aaetlun?tab=today" label="Heilsuferðin" />
-          </div>
-        )}
+        {/* Never gated on anything. The session check below is a round trip,
+            and a participant with no published plan still has a journey to
+            get back to — gating this on hasPlan left them with no way out of
+            the page at all. */}
+        <div className="mb-3 print:hidden">
+          <BackLink
+            href={hasPlan ? "/account/heilsuferd/aaetlun?tab=today" : "/account/heilsuferd"}
+            label="Heilsuferðin" />
+        </div>
         {hasPlan && <JourneyNav active="account" />}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">Aðgangurinn minn</h1>
-          <SignOutButton />
+          {userId && <SignOutButton />}
         </div>
+
+        {/* The heading and the way back are up already; the cards need the
+            session, so they are the only part that waits. */}
+        {!userId && (
+          <div className="animate-pulse space-y-4" aria-busy="true" aria-label="Hleð aðgangi">
+            <div className="h-28 rounded-3xl bg-slate-200/70" />
+            <div className="h-40 rounded-3xl bg-slate-200/60" />
+            <div className="h-28 rounded-3xl bg-slate-200/50" />
+          </div>
+        )}
+        {userId && (<>
 
         <ProfileCard />
 
@@ -98,6 +111,7 @@ function Adgangur() {
         </section>
 
         <ContextSwitcher current="personal" />
+        </>)}
       </div>
     </div>
   );
