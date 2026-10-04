@@ -358,7 +358,7 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
                           {m.frequency && <p className="text-xs text-hc-ink-2">{m.frequency}</p>}
                           <p className="mt-0.5 line-clamp-2 text-xs text-slate-600">{m.summary}</p>
                           <div className="mt-1.5 flex flex-wrap gap-1">
-                            {why && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200"><Sparkles className="h-3 w-3" aria-hidden />Tillaga · {why}</span>}
+                            {why && f.targets.length === 0 && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200"><Sparkles className="h-3 w-3" aria-hidden />Tillaga · {why}</span>}
                             {m.evidence_grade && GRADE_IS[m.evidence_grade] && <span title={GRADE_IS[m.evidence_grade].hint} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${GRADE_IS[m.evidence_grade].className}`}>Rannsóknir {m.evidence_grade}</span>}
                           </div>
                           <FitMeter fit={f} titles={d.marker_titles ?? {}} rank={i + 1} />
