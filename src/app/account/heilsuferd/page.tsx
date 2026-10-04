@@ -7,6 +7,7 @@
 
 import * as cache from "@/lib/hc/client-cache";
 import { hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
+import BackLink from "@/app/components/hc/BackLink";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -333,10 +334,16 @@ const OURS_TEXT: Partial<Record<StepKey, string>> = {
 };
 
 function Shell({ children }: { children: React.ReactNode }) {
-  // No "back to account" link: the heilsuferð is the participant's home.
+  // The heilsuferð is the participant's home, so this does not go "up" to
+  // /account — that redirects straight back here. It goes to the account
+  // page inside the journey, which is where the details, payments and
+  // sign-out live. Without it there was no visible way off this page at all.
   return (
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-5xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28">
+        <div className="mb-3 print:hidden">
+          <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />
+        </div>
         {children}
       </div>
     </div>
