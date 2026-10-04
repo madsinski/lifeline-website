@@ -78,7 +78,12 @@ export default function SignedDocumentsList() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-500">Hleð skjölum…</p>;
+    return (
+      <div className="animate-pulse space-y-2" aria-busy="true" aria-label="Hleð skjölum">
+        <div className="h-10 rounded-xl bg-gray-200/70" />
+        <div className="h-10 rounded-xl bg-gray-200/50" />
+      </div>
+    );
   }
   if (error) {
     return <p className="text-sm text-red-600">{error}</p>;

@@ -161,7 +161,7 @@ export default function BillingPanel({
         </div>
         {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
         {loading ? (
-          <div className="text-sm text-gray-500">Hleð…</div>
+          <div className="animate-pulse space-y-2" aria-busy="true"><div className="h-12 rounded-xl bg-gray-200/70" /><div className="h-12 rounded-xl bg-gray-200/50" /></div>
         ) : methods.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
             Ekkert greiðslukort skráð.
@@ -209,7 +209,7 @@ export default function BillingPanel({
           )}
         </div>
         {loading ? (
-          <div className="text-sm text-gray-500">Hleð…</div>
+          <div className="animate-pulse space-y-2" aria-busy="true"><div className="h-12 rounded-xl bg-gray-200/70" /><div className="h-12 rounded-xl bg-gray-200/50" /></div>
         ) : payments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
             Greiðslur birtast hér eftir fyrstu færslu.

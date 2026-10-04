@@ -74,7 +74,16 @@ export function ProfileCard() {
         <h2 id="acc-profile" className="flex-1 text-lg font-bold text-slate-900">Persónuupplýsingar</h2>
         {p && !edit && <button type="button" onClick={() => setEdit(true)} className={`${btn} border border-slate-300 text-slate-700 hover:bg-slate-50`}><Pencil className="h-4 w-4" aria-hidden />Breyta</button>}
       </div>
-      {!p && <p className="mt-3 text-sm text-slate-500">Hleð…</p>}
+      {!p && (
+        <div className="mt-3 grid animate-pulse gap-x-6 gap-y-3 sm:grid-cols-2" aria-busy="true" aria-label="Hleð persónuupplýsingum">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i}>
+              <div className="h-3 w-20 rounded bg-slate-200/80" />
+              <div className="mt-1.5 h-4 w-40 rounded bg-slate-200/60" />
+            </div>
+          ))}
+        </div>
+      )}
       {p && !edit && (
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           {[["Nafn", p.full_name], ["Netfang", p.email], ["Sími", p.phone], ["Heimilisfang", p.address], ["Kennitala", p.kennitala_last4 ? `••••••-${p.kennitala_last4}` : null]].map(([k, v]) => (
