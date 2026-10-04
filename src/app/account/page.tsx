@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import * as hcCache from "@/lib/hc/client-cache";
 import type { User } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import MedaliaButton from "../components/MedaliaButton";
@@ -339,6 +340,22 @@ function AccountPageInner() {
           });
       }
 
+      // Health-check participants are redirected into the heilsuferð, so that
+      // decision comes before the profile read rather than after it — the row
+      // below is wide and they never see it. Prefetching what the destination
+      // reads means it paints on arrival instead of loading again.
+      if (!new URLSearchParams(window.location.search).has("klassiskt")) {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token ?? "";
+        const hc = (url: string) => fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        const peek = await hcCache.load(hc, "/api/hc/journey/exists").then((e) => e.body as { exists?: boolean; has_plan?: boolean }).catch(() => null);
+        if (peek?.exists) {
+          hcCache.prefetch(hc, peek.has_plan ? ["/api/hc/actions", "/api/hc/plan"] : ["/api/hc/journey"]);
+          router.replace(peek.has_plan ? "/account/heilsuferd/aaetlun" : "/account/heilsuferd");
+          return;
+        }
+      }
+
       // Load profile from clients table
       try {
         const { data: clientData } = await supabase
@@ -346,14 +363,6 @@ function AccountPageInner() {
           .select("full_name, phone, address, emergency_contact_name, emergency_contact_phone, date_of_birth, sex, height_cm, weight_kg, activity_level, welcome_seen_at, company_id, last_body_comp_at, biody_patient_id, video_consultation_portal_confirmed_at, avatar_url, checkin_doctor_addon_paid_at, journey_checks")
           .eq("id", currentUser.id)
           .single();
-        // Health-check participants: the heilsuferð is their account. The
-        // legacy dashboard stays reachable with ?klassiskt=1.
-        if (!new URLSearchParams(window.location.search).has("klassiskt")) {
-          const { data: sess } = await supabase.auth.getSession();
-          const peek = await fetch("/api/hc/journey/exists", { headers: { Authorization: `Bearer ${sess.session?.access_token ?? ""}` } })
-            .then((r) => (r.ok ? r.json() : null)).catch(() => null);
-          if (peek?.exists) { router.replace(peek.has_plan ? "/account/heilsuferd/aaetlun" : "/account/heilsuferd"); return; }
-        }
         // First-time gate: B2C users who haven't seen the welcome
         // slideshow yet get bounced to /account/welcome. Body-composition
         // profile + health consent are collected later via the

@@ -9,6 +9,7 @@
 // (The old "Áætlunin" tab is folded into these; ?tab=plan lands on Í dag.)
 
 import EmptyState from "@/app/components/hc/EmptyState";
+import BackLink from "@/app/components/hc/BackLink";
 import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -55,6 +56,27 @@ interface Loaded {
     reference?: Record<string, ReportReference>;
     sex?: "m" | "f" | null;
   } | null;
+}
+
+/**
+ * The shape of the page while it loads.
+ *
+ * The cache usually fills this in the same tick, so it is only seen on a cold
+ * load. A grey word reading "Hleð…" let the whole layout jump when the data
+ * arrived; a skeleton of roughly the right size does not.
+ */
+function PlanSkeleton() {
+  return (
+    <div className="animate-pulse space-y-4" aria-busy="true" aria-label="Hleð áætluninni">
+      <div className="h-11 rounded-hc-element bg-slate-200/70" />
+      <div className="h-28 rounded-3xl bg-slate-200/70" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="h-24 rounded-3xl bg-slate-200/60" />
+        <div className="h-24 rounded-3xl bg-slate-200/60" />
+      </div>
+      <div className="h-40 rounded-3xl bg-slate-200/50" />
+    </div>
+  );
 }
 
 export default function PlanPage() {
@@ -132,7 +154,7 @@ function PlanPageInner() {
       const t = (pj.plan ?? aj.plan) ? await cache.load(api, U.t) : null;
       apply(a.status < 400, aj, pj, t && t.status < 400 ? (t.body as J) : null);
       // Warm the journey page for the "Ferðin" tab.
-      cache.prefetch(api, ["/api/hc/journey"]);
+      cache.prefetch(api, ["/api/hc/journey", "/api/hc/journey/exists"]);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the tab is only read on first load
   }, [journey, router, api, reloadKey]);
@@ -196,7 +218,15 @@ function PlanPageInner() {
   return (
     <div className={`${hcPage.participant} print:bg-white`}>
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28 print:max-w-none print:p-0">
-        {data === undefined && <p className="mt-4 text-slate-500">Hleð…</p>}
+        {/* The way back. "Aðgangur" is the sixth slot in JourneyNav, which on a
+            phone puts it behind "Meira", and /account bounces a participant
+            straight back here — so the account needs a button of its own that
+            is visible wherever you are. */}
+        <div className="mb-3 print:hidden">
+          <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />
+        </div>
+
+        {data === undefined && <PlanSkeleton />}
 
         {editing && data !== undefined && (
           <PlanEditor api={api}

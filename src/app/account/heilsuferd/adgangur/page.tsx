@@ -18,6 +18,8 @@ import SignedDocumentsList from "@/app/account/SignedDocumentsList";
 import DataPrivacyPanel from "@/app/components/account/DataPrivacyPanel";
 import { DeleteAccountCard, PasswordCard, ProfileCard, SignOutButton } from "@/app/components/account/AccountCards";
 import { hcPage } from "@/app/components/hc/ui";
+import BackLink from "@/app/components/hc/BackLink";
+import * as cache from "@/lib/hc/client-cache";
 
 export default function AdgangurPage() {
   return <Suspense><Adgangur /></Suspense>;
@@ -28,7 +30,10 @@ const card = "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6";
 function Adgangur() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
-  const [hasPlan, setHasPlan] = useState(false);
+  // Seeded from the cache so the nav is there on the first paint when the
+  // participant has come from the plan — the other pages prefetch this.
+  const [hasPlan, setHasPlan] = useState(
+    () => !!cache.peek<{ has_plan?: boolean }>("/api/hc/journey/exists")?.body?.has_plan);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data } = await supabase.auth.getSession();
@@ -41,9 +46,10 @@ function Adgangur() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) { router.replace(`/account/login?next=${encodeURIComponent("/account/heilsuferd/adgangur")}`); return; }
       setUserId(data.session.user.id);
-      const r = await api("/api/hc/journey/exists");
-      const j = await r.json().catch(() => ({}));
-      setHasPlan(!!j.has_plan);
+      const e = await cache.load(api, "/api/hc/journey/exists");
+      setHasPlan(!!(e.body as { has_plan?: boolean }).has_plan);
+      // Going back to the plan should be instant, so warm what it reads.
+      cache.prefetch(api, ["/api/hc/actions", "/api/hc/plan"]);
     })();
   }, [api, router]);
 
@@ -52,6 +58,11 @@ function Adgangur() {
   return (
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-24 sm:pb-16 sm:pt-28">
+        {hasPlan && (
+          <div className="mb-3 print:hidden">
+            <BackLink href="/account/heilsuferd/aaetlun?tab=today" label="Heilsuferðin" />
+          </div>
+        )}
         {hasPlan && <JourneyNav active="account" />}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">Aðgangurinn minn</h1>
