@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { loadReport } from "@/lib/hc/report-store";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 import { sanitizePlan } from "@/lib/hc/plan-sanitize";
 import { getClientProfile, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
@@ -31,14 +32,30 @@ async function gate(req: NextRequest, journeyId: string, write: boolean): Promis
 export async function GET(req: NextRequest, ctx: { params: Promise<{ journeyId: string }> }) {
   const g = await gate(req, (await ctx.params).journeyId, false);
   if (g instanceof NextResponse) return g;
-  const [{ data: plan }, profile] = await Promise.all([
+  const [{ data: plan }, profile, stored] = await Promise.all([
     supabaseAdmin.from("hc_action_plans_decrypted").select("*").eq("journey_id", g.journey.id).maybeSingle(),
     getClientProfile(g.journey.client_id),
+    loadReport(g.journey.id, g.journey.client_id),
   ]);
+
+  // The report's traffic lights keyed by hc_knowledge slug, which is what
+  // hc_plan_modules.addresses points at, so the nurse's library can rank by
+  // what this client actually needs — the same score the client sees.
+  const signals: Record<string, string> = {};
+  const markerTitles: Record<string, string> = {};
+  for (const item of stored?.report.items ?? []) {
+    if (!item.slug) continue;
+    const sig = stored?.signals[item.key];
+    if (sig) signals[item.slug] = sig;
+    markerTitles[item.slug] = item.title;
+  }
+
   return NextResponse.json({
     plan,
     client: { full_name: profile?.full_name ?? null, date_of_birth: profile?.date_of_birth ?? null },
     journey: { id: g.journey.id, stage: g.journey.stage, interview_done_at: g.journey.interview_done_at, plan_published_at: g.journey.plan_published_at },
+    signals,
+    marker_titles: markerTitles,
     actor: g.actor.label,
   });
 }

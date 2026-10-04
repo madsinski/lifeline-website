@@ -19,6 +19,9 @@ import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
 import AiProposalPanel, { type ProposedAction } from "./AiProposalPanel";
 import { bangScore, byScore, scoreBand, timeCost, GRADE_IS, type Rated } from "@/lib/hc/rating";
+import { byFit, fitOf } from "@/lib/hc/fit";
+import type { Signal } from "@/lib/hc/grunnheilsa";
+import FitMeter from "./FitMeter";
 import {
   PILLARS, PILLAR_META,
   type ActionPlan, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanGoal,
@@ -148,6 +151,11 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   seed?: { headline?: string; summary?: string; goals?: PlanGoal[] };
 }) {
   const [lib, setLib] = useState<PlanLibrary | null>(null);
+  // This client's traffic lights by hc_knowledge slug, so the library can be
+  // ranked by what they actually need — the same score they see themselves.
+  const [signals, setSignals] = useState<Record<string, Signal | null>>({});
+  const [markerTitles, setMarkerTitles] = useState<Record<string, string>>({});
+  const hasSignals = Object.keys(signals).length > 0;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
   const [author, setAuthor] = useState<string | null>(null);
@@ -181,6 +189,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       const pj = await p.json();
       setLib(library);
       setClientName(pj.client?.full_name ?? null);
+      setSignals(pj.signals ?? {});
+      setMarkerTitles(pj.marker_titles ?? {});
       setAuthor(pj.plan?.created_by ?? pj.actor ?? null);
       const plan = pj.plan as ActionPlan | null;
       setStatus(plan?.status ?? null);
@@ -340,14 +350,15 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   const libModules = useMemo(() => {
     if (!lib) return [];
     const q = search.trim().toLowerCase();
-    // Sorted by "mest fyrir minnst" rather than by hand-set order: the point
-    // of rating the library is that the list itself makes the argument.
+    // Ranked by what suits THIS client — the need their report shows for what
+    // each action targets, weighed with "mest fyrir minnst" — rather than by
+    // hand-set order. Falls back to the generic score before a report exists.
     return lib.modules
       .filter((m) =>
         (filter === "all" || m.pillar === filter) &&
         (!q || m.title.toLowerCase().includes(q) || m.summary.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q))))
-      .sort(byScore);
-  }, [lib, filter, search]);
+      .sort(hasSignals ? byFit(signals) : byScore);
+  }, [lib, filter, search, signals, hasSignals]);
 
   // "Prenta": render the preview (which holds the print layout), then print.
   useEffect(() => {
@@ -440,8 +451,9 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
             ))}
           </div>
           <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-            {libModules.map((m) => {
+            {libModules.map((m, i) => {
               const inPlan = draft.modules.some((x) => x.key === m.key);
+              const fit = hasSignals ? fitOf(m, signals) : null;
               return (
                 <div
                   key={m.key}
@@ -454,7 +466,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                     <div className="flex-1">
                       <p className="font-semibold text-[#0F172A]">{m.title}</p>
                       <p className="text-xs text-slate-600">{m.summary}</p>
-                      <Rating m={m} />
+                      {fit ? <FitMeter fit={fit} titles={markerTitles} rank={i + 1} /> : <Rating m={m} />}
                     </div>
                     <button onClick={() => addModule(m.key)} className="rounded-lg bg-white px-2 py-0.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200" aria-label={`Bæta við ${m.title}`}>+</button>
                   </div>

@@ -344,8 +344,14 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
                 {libModules.map(({ m, f }, i) => {
                   const why = suggestionFor.get(m.key);
                   const taken = inPlan.has(m.key);
+                  const top = i === 0 && d.has_report;
                   return (
-                    <li key={m.key} className="p-3">
+                    <li key={m.key} className={`p-3 ${top ? "bg-emerald-50/60 ring-1 ring-inset ring-hc-brand" : ""}`}>
+                      {top && (
+                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-brand-dark">
+                          <Sparkles className="h-3.5 w-3.5" aria-hidden /> Mælum helst með þessu
+                        </p>
+                      )}
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-hc-ink">{m.title}</p>
