@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, Dumbbell, Pencil, Printer, Target, Utensils } from "lucide-react";
+import { BookOpen, Dumbbell, Pencil, Printer, Target, Utensils } from "lucide-react";
 import PillarIcon from "./PillarIcon";
 import { dayFor, mealName, SLOT_IS, SLOTS, type Meal } from "@/lib/hc/meals";
 import { WEEKDAYS, weekdayOf, type PersonalExercise } from "@/lib/hc/personalise";
@@ -139,27 +139,20 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, lectures
         </section>
       )}
 
-      {lectures.length > 0 && (
-        <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 sm:p-5">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-hc-brand-dark" aria-hidden />
-            <p className="flex-1 font-semibold text-slate-900">Fræðslan mín</p>
-            <span className="text-xs text-slate-500">{doneLectures}/{lectures.length} lokið</span>
-          </div>
-          <ul className="mt-2 divide-y divide-slate-100">
-            {[...lectures].sort((a, b) => Number(!!a.completed) - Number(!!b.completed)).map((l) => (
-              <li key={l.slug}>
-                <Link href={`/account/heilsuferd/fraedsla/${l.slug}`} className={`flex items-center gap-3 py-2.5 ${l.slug === nextLecture?.slug ? "font-semibold" : ""}`}>
-                  {l.completed
-                    ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" aria-label="Lokið" />
-                    : <span className={`h-5 w-5 shrink-0 rounded-full border-2 ${l.slug === nextLecture?.slug ? "border-emerald-500" : "border-slate-200"}`} />}
-                  <span className={`min-w-0 flex-1 text-sm ${l.completed ? "text-slate-500" : "text-slate-900"}`}>{l.title}</span>
-                  <span className="shrink-0 text-xs text-slate-400">{l.duration_min ? `${l.duration_min} mín.` : ""}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {/* "Fræðslan mín" used to list every lecture here. It is a tab of its
+          own now (/account/heilsuferd/fraedsla) — a list read once a week does
+          not belong on the surface that is about today. What stays is the one
+          lecture that is next. */}
+      {nextLecture && (
+        <Link href={`/account/heilsuferd/fraedsla/${nextLecture.slug}`}
+          className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 transition hover:ring-slate-300 sm:p-5">
+          <BookOpen className="h-5 w-5 shrink-0 text-hc-brand-dark" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Næsta fræðsla</span>
+            <span className="block font-semibold text-slate-900">{nextLecture.title}</span>
+          </span>
+          <span className="shrink-0 text-xs text-slate-500">{doneLectures}/{lectures.length}</span>
+        </Link>
       )}
     </div>
   );

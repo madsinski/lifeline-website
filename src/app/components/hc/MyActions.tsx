@@ -94,31 +94,24 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
 
   return (
     <section className="space-y-4">
-      {/* Today */}
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Aðgerðirnar mínar</p>
-            <h2 className="mt-1 text-2xl font-bold">
-              {doneCount === 0 ? "Byrjum á einu atriði" : doneCount === live.length ? "Dagurinn kláraður" : `${doneCount} af ${live.length} búin í dag`}
-            </h2>
-          </div>
-          <div className="flex gap-4 text-center">
-            <div>
-              <p className="text-2xl font-bold">{stats.percent}%</p>
-              <p className="text-xs text-emerald-200">síðustu 7 daga</p>
-            </div>
-            {stats.streak > 1 && (
-              <div>
-                <p className="flex items-center justify-center gap-1 text-2xl font-bold"><Flame className="h-5 w-5 text-amber-300" />{stats.streak}</p>
-                <p className="text-xs text-emerald-200">dagar í röð</p>
-              </div>
-            )}
-          </div>
+      {/* The gradient hero that used to sit here said "Aðgerðirnar mínar" and
+          then repeated, in large type, the count that every category header
+          below already carries. On the daily surface that is a screenful
+          between the person and the thing they came to tick, so it is one
+          line now and the categories start at the top. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="text-sm font-semibold text-hc-ink">
+          {doneCount === 0 ? "Byrjum á einu atriði" : doneCount === live.length ? "Dagurinn kláraður" : `${doneCount} af ${live.length} búin í dag`}
+        </p>
+        <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200">
+          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${live.length ? (doneCount / live.length) * 100 : 0}%` }} />
         </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/20">
-          <div className="h-full rounded-full bg-emerald-300 transition-all" style={{ width: `${live.length ? (doneCount / live.length) * 100 : 0}%` }} />
-        </div>
+        <p className="flex items-center gap-3 text-xs text-slate-500">
+          <span><span className="font-bold text-slate-700">{stats.percent}%</span> síðustu 7 daga</span>
+          {stats.streak > 1 && (
+            <span className="flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-amber-500" aria-hidden /><span className="font-bold text-slate-700">{stats.streak}</span> dagar í röð</span>
+          )}
+        </p>
       </div>
 
       {err && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-800">{err}</p>}

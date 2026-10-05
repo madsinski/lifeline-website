@@ -273,7 +273,8 @@ function PlanPageInner() {
             <JourneyNav active={place} hasReport={!!data.report || !!data.flagged.length}
               hasExercise={!!plan?.exercise} hasNutrition={!!plan?.nutrition} hasPlan={!!plan}
               onSelect={(k) => {
-                if (k === "journey" || k === "account") return false;
+                // These are pages of their own, not tabs on this one.
+                if (k === "journey" || k === "account" || k === "fraedsla") return false;
                 if ((k === "today" || k === "exercise" || k === "nutrition") && !plan) return false;
                 setTab(k === "report" ? (data.report ? "report" : "results") : k);
                 return true;
