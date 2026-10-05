@@ -254,7 +254,7 @@ function PlanPageInner() {
    * rather than in a parallel one. The individual sets went to `set_logs` as
    * they were logged.
    */
-  const finishWorkout = async (info: { minutes: number; rpe: number; session: { id: string; title: string; modality: string; day?: string | null } }) => {
+  const finishWorkout = async (info: { minutes: number; rpe: number; session: { id: string; title: string; modality: string; weekday: number } }) => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
     await supabase.from("client_session_completions").insert({
@@ -264,7 +264,8 @@ function PlanPageInner() {
       modality: info.session.modality,
       duration_min: info.minutes,
       intensity_rpe: info.rpe,
-      prescribed_day: info.session.day ?? null,
+      // The column is checked against mon…sun, not the Icelandic day name.
+      prescribed_day: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][info.session.weekday] ?? null,
     });
     cache.invalidate("/api/hc/");
     setReloadKey((k) => k + 1);
