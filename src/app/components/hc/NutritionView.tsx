@@ -12,11 +12,12 @@ import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
 import { DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
 import type { Signal } from "@/lib/hc/grunnheilsa";
+import MealLogger from "./MealLogger";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
-export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals }: {
+export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg }: {
   api: Api;
   nutrition: PlanNutrition;
   picks: Record<string, string>;
@@ -29,6 +30,8 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   onCustomise?: () => void;
   /** Planning lights, for naming the emphasis the report asks for. */
   signals?: Record<string, Signal | null>;
+  /** From the report's þyngd row, for the protein target. */
+  weightKg?: number | null;
 }) {
   const [meals, setMeals] = useState<Meal[] | null>(() => cache.peek<{ meals: Meal[] }>("/api/hc/library?kind=meals")?.body.meals ?? null);
   const [slotOpen, setSlotOpen] = useState<MealSlot | null>(null);
@@ -83,6 +86,8 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
         )}
       </section>
 
+
+      {day && <MealLogger day={day} weightKg={weightKg ?? null} />}
 
       <section>
         <div className="flex items-baseline justify-between">

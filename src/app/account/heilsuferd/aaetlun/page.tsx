@@ -239,6 +239,12 @@ function PlanPageInner() {
     }
     return out;
   }, [data]);
+  /** The measured weight from the report, for the protein target. */
+  const weightKg = useMemo(() => {
+    const row = (data?.report?.report.items ?? []).find((i) => i.slug === "thyngd");
+    return row && Number.isFinite(row.value) ? Number(row.value) : null;
+  }, [data]);
+
   const reportTitlesBySlug = useMemo(() => {
     const out: Record<string, string> = {};
     for (const item of data?.report?.report.items ?? []) if (item.slug) out[item.slug] = item.title;
@@ -394,7 +400,7 @@ function PlanPageInner() {
                       onCancel={() => setNutritionSetup(false)} />
                   ) : (
                     <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
-                      prefs={nutritionPrefs} signals={reportSignalsBySlug}
+                      prefs={nutritionPrefs} signals={reportSignalsBySlug} weightKg={weightKg}
                       onPick={(slot, id) => {
                         const picks = { ...personal.meal_picks };
                         if (id) picks[slot] = id; else delete picks[slot];
