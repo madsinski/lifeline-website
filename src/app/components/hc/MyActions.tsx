@@ -285,7 +285,7 @@ function NoteField({ initial, onSave }: { initial: string; onSave: (note: string
   const dirty = v.trim() !== saved.trim();
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-500">Athugasemd til hjúkrunarfræðingsins
+      <label className="block text-xs font-semibold text-slate-500">Athugasemd til þjálfara
         <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
           onBlur={() => { if (dirty) { onSave(v.trim()); setSaved(v.trim()); } }}
           placeholder="T.d. hvað gekk vel eða hvað var erfitt"
