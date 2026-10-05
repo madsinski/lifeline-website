@@ -11,8 +11,9 @@
 
 import * as cache from "@/lib/hc/client-cache";
 import PillarIcon from "./PillarIcon";
+import ActionSheet from "./ActionSheet";
 import { useRef, useState } from "react";
-import { BookOpen, Check, ChevronDown, Dumbbell, EyeOff, Flame, RotateCcw, Utensils } from "lucide-react";
+import { Check, ChevronRight, EyeOff, Flame, RotateCcw } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { adherence, isoDay, lastDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 
@@ -30,17 +31,20 @@ export interface ActionLinks {
   lecture?: (p: Pillar) => { title: string; href: string } | null;
 }
 
-export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links }: {
+export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onEditPillar }: {
   api: Api;
   journeyId: string;
   plan: ActionPlan;
   logs: ActionLog[];
   prefs: ActionPref[];
   links?: ActionLinks;
+  /** Opens the plan editor with this pillar already chosen. */
+  onEditPillar?: (p: Pillar) => void;
 }) {
   const [logs, setLogs] = useState<ActionLog[]>(initialLogs);
   const [prefs, setPrefs] = useState<ActionPref[]>(initialPrefs);
   const [showHidden, setShowHidden] = useState(false);
+  const [sheet, setSheet] = useState<PlanItem | null>(null);
   const [err, setErr] = useState("");
   const queue = useRef<Promise<void>>(Promise.resolve());
   const waiting = useRef(0);
@@ -114,6 +118,21 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         </p>
       </div>
 
+      {sheet && (
+        <ActionSheet a={sheet}
+          note={prefs.find((x) => x.action_uid === sheet.uid)?.note ?? ""}
+          onNote={(note) => setPref(sheet.uid, { note })}
+          onHide={() => setPref(sheet.uid, { hidden: true })}
+          onEditPillar={(p) => onEditPillar?.(p)}
+          links={{
+            lecture: links?.lecture?.(sheet.pillar) ?? null,
+            go: sheet.pillar === "exercise" && links?.exercise ? { label: "Opna æfingu dagsins", onClick: links.exercise }
+              : sheet.pillar === "nutrition" && links?.nutrition ? { label: "Opna máltíðir dagsins", onClick: links.nutrition }
+              : null,
+          }}
+          onClose={() => setSheet(null)} />
+      )}
+
       {err && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-800">{err}</p>}
 
       {live.length > 0 && (
@@ -137,10 +156,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
             <ul className="divide-y divide-slate-100">
               {byPillar(p).map((a) => (
                 <ActionRow key={a.uid} a={a} meta={meta} today={today} week={week} doneOn={doneOn} onToggle={toggle}
-                  myNote={prefs.find((x) => x.action_uid === a.uid)?.note ?? ""}
-                  onNote={(note) => setPref(a.uid, { note })}
-                  onHide={() => setPref(a.uid, { hidden: true })}
-                  links={links} />
+                  onOpen={() => setSheet(a)} />
               ))}
             </ul>
           </div>
@@ -182,24 +198,20 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, week, doneOn, onToggle, onHide, myNote, onNote, links }: {
+function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen }: {
   a: PlanItem;
   meta: { color: string; soft: string; label: string; ink: string };
   today: string;
   week: string[];
   doneOn: (uid: string, day: string) => boolean;
   onToggle: (uid: string, day?: string) => void;
-  onHide: () => void;
-  myNote: string;
-  onNote: (note: string) => void;
+  /** Opens the change sheet for this action. */
+  onOpen: () => void;
   links?: ActionLinks;
 }) {
-  const [open, setOpen] = useState(false);
   const done = doneOn(a.uid, today);
   const target = weeklyTarget(a.frequency);
   const thisWeek = week.filter((d) => doneOn(a.uid, d)).length;
-  const lecture = links?.lecture?.(a.pillar) ?? null;
-  const go = a.pillar === "exercise" ? links?.exercise : a.pillar === "nutrition" ? links?.nutrition : null;
 
   return (
     <li className="px-3 py-3 sm:px-4">
@@ -211,9 +223,9 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onHide, myNote, onN
           <Check className="h-5 w-5" strokeWidth={3} />
         </button>
         <div className="min-w-0 flex-1">
-          <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-start gap-2 text-left" aria-expanded={open}>
+          <button type="button" onClick={onOpen} className="flex w-full items-start gap-2 text-left">
             <span className={`min-w-0 flex-1 font-semibold ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{a.title}</span>
-            <ChevronDown className={`mt-0.5 h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+            <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
           </button>
 
           {/* How often it is meant to happen, and how the last seven days
@@ -242,36 +254,7 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onHide, myNote, onN
             </div>
           </div>
 
-          {open && (
-            <div className="mt-3 space-y-3">
-              {a.summary && <p className="text-sm text-slate-700">{a.summary}</p>}
-              {a.details && <p className="whitespace-pre-line text-sm text-slate-600">{a.details}</p>}
-              {a.note && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm italic text-emerald-900">{a.note}</p>}
-
-              {(go || lecture) && (
-                <div className="flex flex-wrap gap-2">
-                  {go && (
-                    <button type="button" onClick={go}
-                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-white"
-                      style={{ background: meta.color }}>
-                      {a.pillar === "exercise" ? <Dumbbell className="h-4 w-4" aria-hidden /> : <Utensils className="h-4 w-4" aria-hidden />}
-                      {a.pillar === "exercise" ? "Opna æfingaáætlunina" : "Sjá máltíðir dagsins"}
-                    </button>
-                  )}
-                  {lecture && (
-                    <a href={lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                      <BookOpen className="h-4 w-4" aria-hidden /> {lecture.title}
-                    </a>
-                  )}
-                </div>
-              )}
-
-              <NoteField initial={myNote} onSave={onNote} />
-              <button type="button" onClick={onHide} className="text-xs font-semibold text-slate-500 hover:text-slate-800">
-                Leggja til hliðar í bili
-              </button>
-            </div>
-          )}
+          
         </div>
       </div>
     </li>
@@ -279,22 +262,3 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onHide, myNote, onN
 }
 
 /** The participant's own note on an action: what got in the way, what worked. The nurse sees it. */
-function NoteField({ initial, onSave }: { initial: string; onSave: (note: string) => void }) {
-  const [v, setV] = useState(initial);
-  const [saved, setSaved] = useState(initial);
-  const dirty = v.trim() !== saved.trim();
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-slate-500">Athugasemd til þjálfara
-        <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
-          onBlur={() => { if (dirty) { onSave(v.trim()); setSaved(v.trim()); } }}
-          placeholder="T.d. hvað gekk vel eða hvað var erfitt"
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-[#10B981]" />
-      </label>
-      {dirty && (
-        <button type="button" onClick={() => { onSave(v.trim()); setSaved(v.trim()); }}
-          className="mt-1 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">Vista athugasemd</button>
-      )}
-    </div>
-  );
-}

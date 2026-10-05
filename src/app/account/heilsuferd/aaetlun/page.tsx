@@ -108,6 +108,8 @@ function PlanPageInner() {
   const [setup, setSetup] = useState(false);
   // "Hvað viltu breyta?" for the training programme.
   const [customise, setCustomise] = useState(false);
+  /** Which pillar the plan editor should open on, when it was opened from an action. */
+  const [editPillar, setEditPillar] = useState<Pillar | null>(null);
   // The same, for the nutrition plan.
   const [nutritionSetup, setNutritionSetup] = useState(false);
   const [nutritionPrefs, setNutritionPrefs] = useState<NutritionPrefs>(DEFAULT_NUTRITION);
@@ -325,9 +327,9 @@ function PlanPageInner() {
         {data === undefined && <PlanSkeleton />}
 
         {editing && data !== undefined && (
-          <PlanEditor api={api}
-            onDone={() => { setEditing(false); setTabState("today"); setReloadKey((k) => k + 1); }}
-            onCancel={() => setEditing(false)} />
+          <PlanEditor api={api} initialFocus={editPillar}
+            onDone={() => { setEditing(false); setEditPillar(null); setTabState("today"); setReloadKey((k) => k + 1); }}
+            onCancel={() => { setEditing(false); setEditPillar(null); }} />
         )}
 
         {!editing && data !== undefined && !hasSomething && (
@@ -360,7 +362,8 @@ function PlanPageInner() {
                   {next && <AppointmentCard a={next} />}
                   <TodayOverview api={api} plan={plan} exercise={exercise} mealPicks={personal.meal_picks} nutritionPrefs={nutritionPrefs} training={training} lectures={lectures}
                     onOpenExercise={(id) => setTab("exercise", id)} onOpenNutrition={() => setTab("nutrition")} onEdit={() => setEditing(true)} />
-                  <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs}
+                  <MyActions api={api} journeyId={data.journey_id} plan={plan}
+                    onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }} />
                   <button type="button" onClick={() => setEditing(true)}
                     className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-4 py-4 text-sm font-semibold text-slate-700 hover:border-hc-brand hover:text-hc-brand-dark">

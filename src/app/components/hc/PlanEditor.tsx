@@ -80,7 +80,11 @@ const tmpId = () => Math.random().toString(36).slice(2);
 const SIGNAL_IS = { red: "Þarfnast athygli", yellow: "Má bæta", green: "Í góðu lagi" } as const;
 const SIGNAL_CLS = { red: "bg-red-50 text-red-800 ring-red-200", yellow: "bg-amber-50 text-amber-900 ring-amber-200", green: "bg-emerald-50 text-emerald-800 ring-emerald-200" } as const;
 
-export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone: () => void; onCancel: () => void }) {
+export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
+  api: Api; onDone: () => void; onCancel: () => void;
+  /** Opened from an action on "Í dag": skip the chooser and go to its pillar. */
+  initialFocus?: Pillar | null;
+}) {
   const [d, setD] = useState<Loaded | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [goals, setGoals] = useState<PlanGoal[]>([]);
@@ -90,7 +94,7 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
   const programs = usePrograms(api);
   // Nothing is open to begin with: the first question is which part of the
   // plan this visit is about. Picking one narrows everything below to it.
-  const [focus, setFocus] = useState<Focus | null>(null);
+  const [focus, setFocus] = useState<Focus | null>(initialFocus ?? null);
   const [touched, setTouched] = useState<string[]>([]);
   const [own, setOwn] = useState<{ pillar: Pillar; title: string; frequency: string } | null>(null);
   const [busy, setBusy] = useState(false);
