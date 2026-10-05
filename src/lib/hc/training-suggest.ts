@@ -28,10 +28,10 @@ export interface TrainingHints {
 
 /** The rows that argue for taking the intensity down a notch. */
 const CARDIO_ROWS: { slug: string; label: string; redLimits: boolean }[] = [
-  { slug: "hjartaheilsa", label: "hjartaheilsu", redLimits: true },
-  { slug: "blodthrystingur", label: "blóðþrýstingi", redLimits: false },
-  { slug: "blodthrystingur-nedri", label: "blóðþrýstingi", redLimits: false },
-  { slug: "efnaskiptaheilsa", label: "efnaskiptaheilsu", redLimits: false },
+  { slug: "hjartaheilsa", label: "Hjartaheilsa", redLimits: true },
+  { slug: "blodthrystingur", label: "Blóðþrýstingur", redLimits: false },
+  { slug: "blodthrystingur-nedri", label: "Blóðþrýstingur", redLimits: false },
+  { slug: "efnaskiptaheilsa", label: "Efnaskiptaheilsa", redLimits: false },
 ];
 
 const MOVEMENT_ROWS = ["skor-hreyfing-vandamal", "skor-hreyfing-venjur"];
@@ -42,19 +42,23 @@ export function trainingHints(
 ): TrainingHints {
   let cardio: CardioLimit = "full";
   let cardioWhy: string | null = null;
-  const name = (slug: string, fallback: string) => titles[slug]?.toLowerCase() ?? fallback;
+  // Report titles are nominative noun phrases ("Blóðþrýstingur — efri mörk").
+  // Dropping one into a sentence after a verb gives the wrong case, so every
+  // message quotes the title after a colon, where the citation form is right
+  // whatever the word's gender and whatever case the verb would have wanted.
+  const name = (slug: string, fallback: string) => titles[slug] ?? fallback;
 
   for (const row of CARDIO_ROWS) {
     const sig = signals[row.slug];
     if (!sig || sig === "green") continue;
     if (sig === "red" && row.redLimits) {
       cardio = "limited";
-      cardioWhy = `Skýrslan þín merkir ${name(row.slug, row.label)} sem „þarfnast athygli“.`;
+      cardioWhy = `Úr skýrslunni þinni: „${name(row.slug, row.label)}“ þarfnast athygli. Þess vegna byrjum við á rólegu þoli.`;
       break; // the strongest reason wins; no need to keep looking
     }
     if (cardio === "full") {
       cardio = "easy";
-      cardioWhy = `Skýrslan þín merkir ${name(row.slug, row.label)}, svo við byrjum mildar.`;
+      cardioWhy = `Úr skýrslunni þinni: „${name(row.slug, row.label)}“. Þess vegna förum við rólega af stað.`;
     }
   }
 
@@ -64,7 +68,7 @@ export function trainingHints(
     cardioWhy,
     askLimitations: !!flaggedMovement,
     askWhy: flaggedMovement
-      ? `Skýrslan þín merkir ${name(flaggedMovement, "hreyfingu")} — segðu okkur hvar það er, svo við sníðum æfingarnar að því.`
+      ? `Úr skýrslunni þinni: „${name(flaggedMovement, "Hreyfing")}“. Segðu okkur hvar skórinn kreppir, svo við sníðum æfingarnar að því.`
       : null,
   };
 }
