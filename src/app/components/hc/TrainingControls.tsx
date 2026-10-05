@@ -54,7 +54,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
         <dl className="mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hvar</dt>
-            <dd className="text-slate-900">{PLACE_IS[settings.place].label}</dd>
+            <dd className="text-slate-900">{settings.places.map((pl) => PLACE_IS[pl].label).join(" + ")}</dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dagar</dt>

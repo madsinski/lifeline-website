@@ -10,18 +10,10 @@
 
 import { useState } from "react";
 import { Clock, X } from "lucide-react";
-import {
-  ACTIVITY_GROUPS, ACTIVITY_PRESETS, COVERS_IS,
-  type Activity, type Covers,
-} from "@/lib/hc/adaptive-program";
+import { ACTIVITY_GROUPS, ACTIVITY_PRESETS, type Activity } from "@/lib/hc/adaptive-program";
+import ActivityIcon, { CoverChips } from "./ActivityIcon";
 import { WEEKDAYS } from "@/lib/hc/personalise";
 import { hcBtn } from "./ui";
-
-const COVER_CLS: Record<Covers, string> = {
-  strength: "bg-orange-100 text-orange-900",
-  hiit: "bg-rose-100 text-rose-900",
-  cardio: "bg-sky-100 text-sky-900",
-};
 
 export default function AddDayActivity({ weekday, onAdd, onClose }: {
   weekday: number;
@@ -66,16 +58,17 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                 onClick={() => onAdd({
                   name: x.name, day: weekday,
                   at: /^([01]\d|2[0-3]):[0-5]\d$/.test(at) ? at : null,
-                  minutes: x.minutes, covers: x.covers, intensity: x.intensity,
+                  minutes: x.minutes, covers: x.covers, partial: x.partial ?? [], intensity: x.intensity,
                 })}
-                className="rounded-xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-hc-brand">
-                <span className="block font-semibold text-hc-ink">{x.name}</span>
-                <span className="mt-1 flex flex-wrap gap-1">
-                  {x.covers.length === 0
-                    ? <span className="text-[11px] text-slate-500">Kemur ekki í stað neins</span>
-                    : x.covers.map((c) => <span key={c} className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${COVER_CLS[c]}`}>{COVERS_IS[c]}</span>)}
+                className="flex gap-2.5 rounded-xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-hc-brand">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                  <ActivityIcon name={x.name} className="h-4 w-4" />
                 </span>
+                <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-hc-ink">{x.name}</span>
+                <CoverChips covers={x.covers} partial={x.partial} className="mt-1" />
                 {x.why && <span className="mt-1 block text-[11px] leading-snug text-slate-500">{x.why}</span>}
+                </span>
               </button>
             ))}
           </div>

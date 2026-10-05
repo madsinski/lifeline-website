@@ -358,7 +358,7 @@ function PlanPageInner() {
                 <div className="space-y-4 print:hidden">
                   <TodayHeader name={name} onEdit={() => setEditing(true)} />
                   {next && <AppointmentCard a={next} />}
-                  <TodayOverview api={api} plan={plan} exercise={exercise} mealPicks={personal.meal_picks} nutritionPrefs={nutritionPrefs} lectures={lectures}
+                  <TodayOverview api={api} plan={plan} exercise={exercise} mealPicks={personal.meal_picks} nutritionPrefs={nutritionPrefs} training={training} lectures={lectures}
                     onOpenExercise={(id) => setTab("exercise", id)} onOpenNutrition={() => setTab("nutrition")} onEdit={() => setEditing(true)} />
                   <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }} />

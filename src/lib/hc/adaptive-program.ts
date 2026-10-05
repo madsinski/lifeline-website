@@ -80,51 +80,109 @@ export interface Activity {
   at: string | null;
   minutes: number | null;
   covers: Covers[];
+  /** Qualities it half-covers; see ActivityPreset.partial. */
+  partial?: Covers[];
   intensity: Intensity;
 }
 
 /** The usual suspects, so adding one is two taps rather than a form. */
-export const ACTIVITY_PRESETS: { name: string; covers: Covers[]; intensity: Intensity; minutes: number; group: string; why?: string }[] = [
+export interface ActivityPreset {
+  name: string;
+  covers: Covers[];
+  /**
+   * Half-credit. A sport can contribute to a quality without replacing it.
+   *
+   * Football is the case that forced this. An hour of it is 5–10 km of
+   * running, so claiming it does nothing for the aerobic base is plainly
+   * wrong — but the time is spent at 80–90% of max heart rate, above the
+   * zone 2 band, and the adaptations zone 2 is for (mitochondrial density,
+   * fat oxidation, capillarisation) come from long efforts BELOW the first
+   * threshold. So two games a week count as one zone 2 session, not two and
+   * not none, and the plan adds the one that is missing.
+   */
+  partial?: Covers[];
+  intensity: Intensity;
+  minutes: number;
+  group: string;
+  /** A lucide icon name; see MODALITY_ICONS in ActivityIcon.tsx. */
+  icon: string;
+  why?: string;
+}
+
+/**
+ * What a sport actually trains.
+ *
+ * Each entry claims only what the evidence supports. Three rules decide the
+ * `covers` list and they are worth stating, because the obvious answer is
+ * often wrong:
+ *
+ *   • Sprint-and-stop sports cover HIIT and NOT rólegt þol. Football is
+ *     interval work; crediting it as steady aerobic work would let a
+ *     footballer skip the Zone 2 base, which is the opposite of true.
+ *   • Steady work at a conversational pace covers rólegt þol and not HIIT,
+ *     however long it lasts. A four-hour hike is still Zone 2.
+ *   • Something can be excellent and cover nothing. Yoga, mobility and
+ *     breath work are worth doing and are not a substitute for strength,
+ *     intervals or an aerobic base, so they say so.
+ */
+export const ACTIVITY_PRESETS: ActivityPreset[] = [
   // ── Styrkur ───────────────────────────────────────────────────────────
-  { group: "Styrkur", name: "Lyftingar", covers: ["strength"], intensity: "hard", minutes: 60 },
-  { group: "Styrkur", name: "CrossFit", covers: ["strength", "hiit"], intensity: "hard", minutes: 60, why: "Lyftingar og hörð lota í sama tíma." },
-  { group: "Styrkur", name: "Hóptími með lóðum", covers: ["strength"], intensity: "moderate", minutes: 55 },
-  { group: "Styrkur", name: "Áhaldaleikfimi", covers: ["strength"], intensity: "moderate", minutes: 55 },
+  { group: "Styrkur", name: "Lyftingar", covers: ["strength"], intensity: "hard", minutes: 60, icon: "Dumbbell" },
+  { group: "Styrkur", name: "CrossFit", covers: ["strength", "hiit"], intensity: "hard", minutes: 60, icon: "Flame", why: "Lyftingar og hörð lota í sama tíma — telst sem hvoru tveggja." },
+  { group: "Styrkur", name: "Hóptími með lóðum", covers: ["strength"], intensity: "moderate", minutes: 55, icon: "Users" },
+  { group: "Styrkur", name: "Áhaldaleikfimi", covers: ["strength"], intensity: "moderate", minutes: 55, icon: "PersonStanding" },
+  { group: "Styrkur", name: "Kettlebell-tími", covers: ["strength", "hiit"], intensity: "hard", minutes: 45, icon: "Weight", why: "Lyft og púl í senn." },
+  { group: "Styrkur", name: "Klifur", covers: ["strength"], intensity: "hard", minutes: 90, icon: "Mountain", why: "Gríðarlegur gripstyrkur og efri líkami." },
+  { group: "Styrkur", name: "Ólympískar lyftingar", covers: ["strength"], intensity: "hard", minutes: 75, icon: "Medal" },
+  { group: "Styrkur", name: "TRX eða hringir", covers: ["strength"], intensity: "moderate", minutes: 45, icon: "Cable" },
 
-  // ── Boltaíþróttir og aðrar spretta-og-stopp greinar ───────────────────
-  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota, ekki sem rólegt þol." },
-  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], intensity: "hard", minutes: 90, why: "Spretta-og-stopp — telst sem hörð lota." },
-  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
-  { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
-  { group: "Íþróttir", name: "Badminton", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
-  { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
-  { group: "Íþróttir", name: "Blak", covers: ["hiit"], intensity: "moderate", minutes: 60 },
+  // ── Íþróttir: spretta-og-stopp ────────────────────────────────────────
+  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — hörð lota, ekki rólegt þol." },
+  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "Goal", why: "Spretta-og-stopp — hörð lota." },
+  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Target", why: "Spretta-og-stopp — hörð lota." },
+  { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "CircleDot", why: "Spretta-og-stopp — hörð lota." },
+  { group: "Íþróttir", name: "Blak", covers: ["hiit"], partial: ["cardio"], intensity: "moderate", minutes: 60, icon: "Volleyball" },
+  { group: "Íþróttir", name: "Badminton", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Zap", why: "Spretta-og-stopp — hörð lota." },
+  { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Zap", why: "Spretta-og-stopp — hörð lota." },
+  { group: "Íþróttir", name: "Skvass", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Zap" },
+  { group: "Íþróttir", name: "Íshokkí", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Snowflake" },
+  { group: "Íþróttir", name: "Bardagaíþróttir", covers: ["hiit", "strength"], partial: ["cardio"], intensity: "hard", minutes: 75, icon: "Swords", why: "Lotur á fullu og mikil líkamleg vinna." },
+  { group: "Íþróttir", name: "Dans", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Music" },
 
-  // ── Harðar lotur ──────────────────────────────────────────────────────
-  { group: "Hörð þolþjálfun", name: "Spinning", covers: ["hiit"], intensity: "hard", minutes: 45 },
-  { group: "Hörð þolþjálfun", name: "HIIT-tími", covers: ["hiit"], intensity: "hard", minutes: 45 },
-  { group: "Hörð þolþjálfun", name: "Sprettir eða brekkur", covers: ["hiit"], intensity: "hard", minutes: 30 },
-  { group: "Hörð þolþjálfun", name: "Róður á fullu", covers: ["hiit"], intensity: "hard", minutes: 30 },
+  // ── Hörð þolþjálfun ───────────────────────────────────────────────────
+  { group: "Hörð þolþjálfun", name: "Spinning", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Bike" },
+  { group: "Hörð þolþjálfun", name: "HIIT-tími", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Flame" },
+  { group: "Hörð þolþjálfun", name: "Sprettir eða brekkur", covers: ["hiit"], intensity: "hard", minutes: 30, icon: "Timer" },
+  { group: "Hörð þolþjálfun", name: "Róður á fullu", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 30, icon: "Waves" },
+  { group: "Hörð þolþjálfun", name: "Þrektími", covers: ["hiit", "strength"], partial: ["cardio"], intensity: "hard", minutes: 50, icon: "Flame" },
+  { group: "Hörð þolþjálfun", name: "Hlaup — hraðaæfing", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Rabbit" },
 
-  // ── Rólegt þol: það sem byggir grunninn ───────────────────────────────
-  { group: "Rólegt þol", name: "Skokk innandyra (hlaupabretti)", covers: ["cardio"], intensity: "moderate", minutes: 40 },
-  { group: "Rólegt þol", name: "Skokk utandyra", covers: ["cardio"], intensity: "moderate", minutes: 40 },
-  { group: "Rólegt þol", name: "Hjól innandyra (þrekhjól)", covers: ["cardio"], intensity: "moderate", minutes: 45 },
-  { group: "Rólegt þol", name: "Hjól utandyra", covers: ["cardio"], intensity: "moderate", minutes: 60 },
-  { group: "Rólegt þol", name: "Róðravél, rólega", covers: ["cardio"], intensity: "moderate", minutes: 30 },
-  { group: "Rólegt þol", name: "Skíðavél", covers: ["cardio"], intensity: "moderate", minutes: 30 },
-  { group: "Rólegt þol", name: "Sund", covers: ["cardio"], intensity: "moderate", minutes: 45 },
-  { group: "Rólegt þol", name: "Gönguferð eða fjallganga", covers: ["cardio"], intensity: "easy", minutes: 90, why: "Löng og róleg — einmitt það sem Zone 2 er." },
-  { group: "Rólegt þol", name: "Ganga", covers: ["cardio"], intensity: "easy", minutes: 45 },
-  { group: "Rólegt þol", name: "Gönguskíði", covers: ["cardio"], intensity: "moderate", minutes: 60 },
-  { group: "Rólegt þol", name: "Fríköfun", covers: ["cardio"], intensity: "easy", minutes: 60, why: "Rólegt sund og öndunarvinna — telst sem rólegt þol, ekki sem hörð lota." },
-  { group: "Rólegt þol", name: "Golf", covers: ["cardio"], intensity: "easy", minutes: 180, why: "Löng, róleg ganga." },
+  // ── Rólegt þol ────────────────────────────────────────────────────────
+  { group: "Rólegt þol", name: "Skokk innandyra (hlaupabretti)", covers: ["cardio"], intensity: "moderate", minutes: 40, icon: "Footprints" },
+  { group: "Rólegt þol", name: "Skokk utandyra", covers: ["cardio"], intensity: "moderate", minutes: 40, icon: "Footprints" },
+  { group: "Rólegt þol", name: "Hjól innandyra (þrekhjól)", covers: ["cardio"], intensity: "moderate", minutes: 45, icon: "Bike" },
+  { group: "Rólegt þol", name: "Hjól utandyra", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Bike" },
+  { group: "Rólegt þol", name: "Fjallahjól", covers: ["cardio"], intensity: "moderate", minutes: 75, icon: "Bike" },
+  { group: "Rólegt þol", name: "Róðravél, rólega", covers: ["cardio"], intensity: "moderate", minutes: 30, icon: "Waves" },
+  { group: "Rólegt þol", name: "Skíðavél", covers: ["cardio"], intensity: "moderate", minutes: 30, icon: "Wind" },
+  { group: "Rólegt þol", name: "Sund", covers: ["cardio"], intensity: "moderate", minutes: 45, icon: "Waves" },
+  { group: "Rólegt þol", name: "Gönguferð eða fjallganga", covers: ["cardio"], intensity: "easy", minutes: 90, icon: "Mountain", why: "Löng og róleg — einmitt það sem rólegt þol er." },
+  { group: "Rólegt þol", name: "Ganga", covers: ["cardio"], intensity: "easy", minutes: 45, icon: "Footprints" },
+  { group: "Rólegt þol", name: "Gönguskíði", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Snowflake" },
+  { group: "Rólegt þol", name: "Svigskíði eða bretti", covers: ["cardio"], intensity: "moderate", minutes: 120, icon: "Snowflake" },
+  { group: "Rólegt þol", name: "Golf (gangandi)", covers: ["cardio"], intensity: "easy", minutes: 180, icon: "Target", why: "Löng, róleg ganga." },
+  { group: "Rólegt þol", name: "Kajak eða róður úti", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Sailboat" },
+  { group: "Rólegt þol", name: "Hestamennska", covers: ["cardio"], intensity: "easy", minutes: 60, icon: "Rabbit" },
+  { group: "Rólegt þol", name: "Garðvinna eða snjómokstur", covers: ["cardio"], intensity: "moderate", minutes: 45, icon: "TreePine", why: "Telst með — þetta er alvöru vinna." },
 
   // ── Gott fyrir þig, en kemur ekki í stað neins ────────────────────────
-  { group: "Annað", name: "Jóga", covers: [], intensity: "easy", minutes: 60, why: "Frábært fyrir liðleika og streitu, kemur ekki í stað styrks eða þols." },
-  { group: "Annað", name: "Pilates", covers: [], intensity: "easy", minutes: 55 },
-  { group: "Annað", name: "Teygjur eða liðleiki", covers: [], intensity: "easy", minutes: 30 },
-  { group: "Annað", name: "Sjósund eða kuldaböð", covers: [], intensity: "easy", minutes: 20 },
+  { group: "Annað", name: "Jóga", covers: [], intensity: "easy", minutes: 60, icon: "StretchHorizontal", why: "Frábært fyrir liðleika og streitu, kemur ekki í stað styrks eða þols." },
+  { group: "Annað", name: "Pilates", covers: [], intensity: "easy", minutes: 55, icon: "StretchHorizontal" },
+  { group: "Annað", name: "Teygjur eða liðleiki", covers: [], intensity: "easy", minutes: 30, icon: "StretchHorizontal" },
+  { group: "Annað", name: "Fríköfun", covers: [], intensity: "easy", minutes: 60, icon: "Anchor", why: "Köfunarviðbragðið hægir á hjartanu í stað þess að auka álagið, svo þetta kemur hvorki í stað rólegs þols né harðrar lotu. Frábær öndunar- og slökunarþjálfun eftir sem áður." },
+  { group: "Annað", name: "Sjósund eða kuldaböð", covers: [], intensity: "easy", minutes: 20, icon: "Snowflake" },
+  { group: "Annað", name: "Öndunaræfingar", covers: [], intensity: "easy", minutes: 15, icon: "Wind" },
+  { group: "Annað", name: "Sjúkraþjálfun", covers: [], intensity: "easy", minutes: 45, icon: "HeartPulse" },
 ];
 
 export const ACTIVITY_GROUPS = ["Styrkur", "Íþróttir", "Hörð þolþjálfun", "Rólegt þol", "Annað"] as const;
@@ -150,7 +208,18 @@ export interface TrainingSettings {
   injuries: Region[];
   /** First training day; the stage is counted from here (else the plan start). */
   started_on: string | null;
-  place: Place;
+  /**
+   * Where they train — several, because that is the normal case. Someone
+   * lifts at the gym, takes a class on Saturdays and does something in the
+   * living room when the week falls apart.
+   *
+   * The equipment the plan assumes comes from the best-equipped place they
+   * have (gym over home), since anyone with a gym can always do the home
+   * version but not the reverse. Classes only take over the delivery when
+   * they are the only place, because a class-goer who also lifts wants the
+   * lifts written out.
+   */
+  places: Place[];
   cardio: CardioLimit;
   /** Weekdays the participant can train, Monday-first 0–6. */
   days: number[];
@@ -163,8 +232,15 @@ export const DEFAULT_DAYS = [0, 2, 4];
 
 export const DEFAULT_TRAINING: TrainingSettings = {
   level: "beginner", load: 0, injuries: [], started_on: null,
-  place: "gym", cardio: "full", days: DEFAULT_DAYS, activities: [],
+  places: ["gym"], cardio: "full", days: DEFAULT_DAYS, activities: [],
 };
+
+/** The place whose equipment the prescription assumes. */
+export function effectivePlace(places: Place[]): Place {
+  if (places.includes("gym")) return "gym";
+  if (places.includes("home")) return "home";
+  return places.includes("class") ? "class" : "gym";
+}
 
 export const REGION_IS: Record<Region, { label: string; gen: string }> = {
   shoulder: { label: "Öxl", gen: "axlar" },
@@ -490,7 +566,8 @@ function strengthItem(slot: Slot, st: Stage, s: TrainingSettings): ExerciseItem 
   const injured = slot.loads.find((r) => s.injuries.includes(r) && slot.spare[r]);
   // An injury swap wins over the place: sparing the joint matters more than
   // matching the equipment, and every spare variant is doable at home.
-  const v = injured ? slot.spare[injured]! : s.place === "home" ? slot.atHome[st.key] : slot.byStage[st.key];
+  const place = effectivePlace(s.places);
+  const v = injured ? slot.spare[injured]! : place === "home" ? slot.atHome[st.key] : slot.byStage[st.key];
   // An injury swap also takes the load down a notch for that exercise.
   const load = clamp(s.load - (injured ? 1 : 0), -2, 2);
   const sets = clamp(st.sets + (load >= 2 ? 1 : 0) - (load <= -2 ? 1 : 0), 1, 5);
@@ -517,7 +594,7 @@ function strengthItem(slot: Slot, st: Stage, s: TrainingSettings): ExerciseItem 
 function hiitItem(st: Stage, s: TrainingSettings, extra = 0): ExerciseItem {
   // 10–20 minutes: never more than 20 minutes of intervals.
   const rounds = clamp(st.hiit.rounds + extra + s.load * 2, 4, Math.floor((20 * 60) / (st.hiit.work + st.hiit.rest)));
-  const { mode, note } = hiitMode(s.injuries, s.place);
+  const { mode, note } = hiitMode(s.injuries, effectivePlace(s.places));
   const min = Math.round((rounds * (st.hiit.work + st.hiit.rest)) / 60);
   return {
     name: `HIIT: ${mode}`,
@@ -547,7 +624,7 @@ const WARMUP: ExerciseItem = {
 // ── Zone 2 ─────────────────────────────────────────────────────────
 /** Easy aerobic work: the base everything else is built on. */
 function zone2Item(st: Stage, s: TrainingSettings): ExerciseItem {
-  const { mode } = hiitMode(s.injuries, s.place);
+  const { mode } = hiitMode(s.injuries, effectivePlace(s.places));
   const minutes = st.key === "adapt" ? 30 : st.key === "s1" ? 35 : st.key === "s2" ? 40 : 45;
   return {
     name: `Zone 2: ${mode.split(",")[0].trim().toLowerCase()}`,
@@ -600,18 +677,22 @@ export interface WeekGaps {
  */
 export function weekGaps(s: TrainingSettings, hiitOn: boolean): WeekGaps {
   const acts = s.activities ?? [];
-  const n = (c: Covers) => acts.filter((a) => a.covers.includes(c)).length;
+  // Full credit for what a session is, half for what it contributes to.
+  const n = (c: Covers) =>
+    acts.filter((a) => a.covers.includes(c)).length
+    + acts.filter((a) => !a.covers.includes(c) && (a.partial ?? []).includes(c)).length * 0.5;
   const strength = n("strength"), hiitAct = n("hiit"), cardio = n("cardio");
   const hardAlready = acts.filter((a) => a.intensity === "hard").length;
 
+  const fmt = (x: number) => (Number.isInteger(x) ? String(x) : String(x).replace(".", ","));
   const covered: string[] = [];
-  if (strength) covered.push(`${strength} styrktaræfing${strength === 1 ? "" : "ar"} í vikunni þinni`);
-  if (hiitAct) covered.push(`${hiitAct} hörð lota${hiitAct === 1 ? "" : "ur"} í vikunni þinni`);
-  if (cardio) covered.push(`${cardio} róleg þolæfing${cardio === 1 ? "" : "ar"} í vikunni þinni`);
+  if (strength) covered.push(`${fmt(strength)} styrktaræfing${strength === 1 ? "" : "ar"} í vikunni þinni`);
+  if (hiitAct) covered.push(`${fmt(hiitAct)} hörð lota${hiitAct === 1 ? "" : "ur"} í vikunni þinni`);
+  if (cardio) covered.push(`${fmt(cardio)} róleg þolæfing${cardio === 1 ? "" : "ar"} í vikunni þinni`);
 
   return {
-    strengthNeed: clamp(2 - strength, 0, 2),
-    zone2Need: clamp(2 - cardio, 0, 2),
+    strengthNeed: clamp(Math.round(2 - strength), 0, 2),
+    zone2Need: clamp(Math.round(2 - cardio), 0, 2),
     // No point adding intervals to a week that already has hard days in it.
     addHiit: hiitOn && hiitAct === 0 && hardAlready < 2,
     hardAlready,
@@ -657,7 +738,8 @@ export interface TrainingScore {
 export function trainingScore(s: TrainingSettings, hiitOn: boolean): TrainingScore {
   const acts = s.activities ?? [];
   const per: ModalityScore[] = (["strength", "hiit", "cardio"] as Covers[]).map((c) => {
-    const have = acts.filter((a) => a.covers.includes(c)).length;
+    const have = acts.filter((a) => a.covers.includes(c)).length
+      + acts.filter((a) => !a.covers.includes(c) && (a.partial ?? []).includes(c)).length * 0.5;
     // HIIT is not on the table during adaptation or while cardio is limited,
     // so it is not scored then — a zero there would be a mark against someone
     // for correctly not doing it yet.
@@ -666,7 +748,7 @@ export function trainingScore(s: TrainingSettings, hiitOn: boolean): TrainingSco
     const missing = Math.max(0, target - have);
     return {
       key: c, label: COVERS_IS[c], target, have, score,
-      gap: missing > 0 ? `Vantar ${missing} ${missing === 1 ? "æfingu" : "æfingar"} á viku` : null,
+      gap: missing > 0 ? `Vantar ${missing === 0.5 ? "hálfa" : String(missing).replace(".", ",")} ${missing === 1 ? "æfingu" : "æfingar"} á viku` : null,
     };
   });
   const counted = per.filter((x) => x.target > 0);
@@ -754,7 +836,8 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
     lastDay.minutes = (lastDay.minutes ?? 0) + 30;
     lastDay.focus = "Styrkur og rólegt þol";
   }
-  return s.place === "class" ? out.map((x) => asClass(x, st, s)) : out;
+  // Classes only rewrite the session when they are the only place they train.
+  return s.places.length === 1 && s.places[0] === "class" ? out.map((x) => asClass(x, st, s)) : out;
 }
 
 /** What to look for on the timetable, by what the session is for. */
@@ -845,29 +928,36 @@ export function sanitizeTraining(b: Record<string, unknown>): TrainingSettings {
   const load = clamp(Math.round(Number(b.load) || 0), -2, 2);
   const injuries = (Array.isArray(b.injuries) ? b.injuries : []).filter((r): r is Region => (REGIONS as unknown[]).includes(r));
   const started_on = typeof b.started_on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.started_on) ? b.started_on : null;
-  const place: Place = PLACES.includes(b.place as Place) ? (b.place as Place) : "gym";
+  const rawPlaces = Array.isArray(b.places) ? b.places : b.place ? [b.place] : [];
+  const places = [...new Set(rawPlaces.filter((p): p is Place => PLACES.includes(p as Place)))];
   const cardio: CardioLimit = b.cardio === "easy" || b.cardio === "limited" ? b.cardio : "full";
   // At least two days, or there is no programme to lay out.
   const picked = [...new Set((Array.isArray(b.days) ? b.days : []).map((d) => Math.round(Number(d))).filter((d) => d >= 0 && d <= 6))].sort((x, y) => x - y);
   const days = picked.length >= 2 ? picked : DEFAULT_DAYS;
-  return { level, load, injuries: [...new Set(injuries)], started_on, place, cardio, days, activities: sanitizeActivities(b.activities) };
+  return {
+    level, load, injuries: [...new Set(injuries)], started_on,
+    places: places.length ? places : ["gym"],
+    cardio, days, activities: sanitizeActivities(b.activities),
+  };
 }
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function sanitizeActivities(v: unknown): Activity[] {
   if (!Array.isArray(v)) return [];
-  return v.slice(0, 20).map((raw, i) => {
+  return v.slice(0, 20).map((raw, i): Activity | null => {
     const a = (raw ?? {}) as Record<string, unknown>;
     const name = String(a.name ?? "").trim().slice(0, 60);
     if (!name) return null;
     const day = Math.round(Number(a.day));
     const at = typeof a.at === "string" && HHMM.test(a.at) ? a.at : null;
     const minutes = Number.isFinite(Number(a.minutes)) ? clamp(Math.round(Number(a.minutes)), 10, 300) : null;
-    const covers = (Array.isArray(a.covers) ? a.covers : []).filter((c): c is Covers => c === "strength" || c === "hiit" || c === "cardio");
+    const isCover = (c: unknown): c is Covers => c === "strength" || c === "hiit" || c === "cardio";
+    const covers = (Array.isArray(a.covers) ? a.covers : []).filter(isCover);
+    const partial = (Array.isArray(a.partial) ? a.partial : []).filter(isCover);
     const intensity: Intensity = a.intensity === "hard" || a.intensity === "easy" ? a.intensity : "moderate";
     return day >= 0 && day <= 6
-      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], intensity }
+      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], intensity }
       : null;
   }).filter((a): a is Activity => !!a);
 }

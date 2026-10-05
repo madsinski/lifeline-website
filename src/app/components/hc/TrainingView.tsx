@@ -17,6 +17,8 @@ import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionAlternatives from "./SessionAlternatives";
 import AddDayActivity from "./AddDayActivity";
+import ActivityIcon from "./ActivityIcon";
+import { hcBtn } from "./ui";
 import type { BodyData } from "@/lib/hc/start-weight";
 import WorkoutRunner from "./WorkoutRunner";
 
@@ -168,10 +170,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                   <p className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>{d}</p>
                   {here.map((s) => (
                     <button key={s.id} type="button" {...(editable ? handle({ kind: "session", id: s.id }, s.title) : {})}
-                      disabled={!editable}
-                      onClick={() => editable && setPickDay(pickDay === s.id ? null : s.id)}
-                      aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}. Færa á annan dag`}
-                      className={`cursor-grab select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 active:cursor-grabbing sm:text-[11px] ${MODALITY_IS[s.modality].cls} ${pickDay === s.id ? "outline outline-2 outline-white" : ""}`}>
+                      onClick={() => setPickDay(pickDay === s.id ? null : s.id)}
+                      aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
+                      className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${editable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${MODALITY_IS[s.modality].cls} ${pickDay === s.id ? "outline outline-2 outline-hc-ink" : ""}`}>
                       <span className={`mb-0.5 block h-1 w-5 rounded-full ${MODALITY_IS[s.modality].dot}`} />
                       <span className="block truncate sm:hidden">{MODALITY_IS[s.modality].short}</span>
                       <span className="hidden line-clamp-2 sm:block">{s.title.length > 11 ? MODALITY_IS[s.modality].label : s.title}</span>
@@ -181,9 +182,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       put them there. */}
                   {mine.map((a) => (
                     <span key={a.id} title={`${a.name}${a.at ? ` · ${a.at}` : ""}`}
-                      className="rounded-lg border border-dashed border-slate-300 bg-white px-1 py-1 text-left text-[10px] font-semibold leading-tight text-slate-600">
-                      <span className="block truncate">{a.name}</span>
-                      {a.at && <span className="block text-[9px] font-normal text-slate-400">{a.at}</span>}
+                      className="flex flex-col items-center gap-0.5 rounded-lg border border-dashed border-slate-300 bg-white px-1 py-1 text-[10px] font-semibold leading-tight text-slate-700">
+                      <ActivityIcon name={a.name} className="h-3.5 w-3.5 text-slate-500" />
+                      <span className="w-full truncate text-center">{a.name}</span>
+                      {a.at && <span className="text-[9px] font-normal text-slate-400">{a.at}</span>}
                     </span>
                   ))}
                   {here.length === 0 && mine.length === 0 && (
@@ -201,15 +203,31 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           </div>
 
           {pickDay && (() => {
-            const s = view.sessions.find((x) => x.id === pickDay);
-            if (!s) return null;
+            const sess = view.sessions.find((x) => x.id === pickDay);
+            if (!sess) return null;
             return (
-              <div className="mt-3 rounded-2xl bg-white p-3 text-slate-900">
-                <p className="text-sm font-semibold">Færa „{s.title}“ á:</p>
-                <div className="mt-2 grid grid-cols-7 gap-1">
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                <p className="text-sm font-bold text-slate-900">{sess.title}</p>
+                <p className="text-xs text-slate-500">{sess.day}{sess.minutes ? ` · um ${sess.minutes} mín.` : ""}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" className={hcBtn.primary}
+                    onClick={() => { setRunning(sess); setPickDay(null); }}>
+                    <Play className="h-4 w-4" aria-hidden /> Byrja núna
+                  </button>
+                  <button type="button" className={hcBtn.secondary}
+                    onClick={() => { setOpenSession(sess.id); setPickDay(null); document.getElementById(`session-${sess.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+                    Sjá æfinguna
+                  </button>
+                  <button type="button" className={hcBtn.ghost}
+                    onClick={() => { setSwapSession(sess); setPickDay(null); }}>
+                    Gera annað
+                  </button>
+                </div>
+                <p className="mt-3 text-xs font-semibold text-slate-500">Færa á annan dag</p>
+                <div className="mt-1 grid grid-cols-7 gap-1">
                   {WEEKDAYS_SHORT.map((d, i) => (
-                    <button key={d} type="button" onClick={() => { moveSession(s.id, i); setPickDay(null); }}
-                      className={`rounded-lg py-2 text-xs font-bold ${s.weekday === i ? "bg-orange-600 text-white" : "bg-slate-100 hover:bg-orange-100"}`}>{d}</button>
+                    <button key={d} type="button" onClick={() => { moveSession(sess.id, i); setPickDay(null); }}
+                      className={`rounded-lg py-2 text-xs font-bold ${sess.weekday === i ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-orange-100"}`}>{d}</button>
                   ))}
                 </div>
               </div>

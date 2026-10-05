@@ -77,13 +77,21 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
       {/* 1 ─ where */}
       {step === 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-bold text-hc-ink">Hvar ætlarðu að æfa?</h3>
-          <p className="text-sm text-hc-ink-2">Þetta ræður því hvaða tæki áætlunin gerir ráð fyrir.</p>
+          <h3 className="text-lg font-bold text-hc-ink">Hvar æfirðu?</h3>
+          <p className="text-sm text-hc-ink-2">
+            Veldu allt sem á við — flestir gera fleira en eitt. Áætlunin miðar við best búna staðinn
+            sem þú hefur, því þú getur alltaf tekið heimaútgáfuna en ekki öfugt.
+          </p>
           <div className="grid gap-2 sm:grid-cols-3">
             {PLACES.map((pl) => {
               const Icon = PLACE_ICON[pl];
               return (
-                <button key={pl} type="button" onClick={() => set({ place: pl })} aria-pressed={s.place === pl} className={card(s.place === pl)}>
+                <button key={pl} type="button" aria-pressed={s.places.includes(pl)} className={card(s.places.includes(pl))}
+                  onClick={() => set({
+                    places: s.places.includes(pl)
+                      ? (s.places.length > 1 ? s.places.filter((x) => x !== pl) : s.places)
+                      : [...s.places, pl],
+                  })}>
                   <Icon className="h-5 w-5 text-hc-brand-dark" aria-hidden />
                   <span className="mt-1.5 block font-semibold text-hc-ink">{PLACE_IS[pl].label}</span>
                   <span className="mt-0.5 block text-xs text-hc-ink-2">{PLACE_IS[pl].hint}</span>
@@ -91,7 +99,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
               );
             })}
           </div>
-          {s.place === "class" && (
+          {s.places.includes("class") && (
             <div className="rounded-2xl bg-sky-50 p-4 ring-1 ring-sky-200">
               <p className="text-sm font-semibold text-sky-900">{gym?.name ? `Hóptímar hjá ${gym.name}` : "Hóptímar"}</p>
               <p className="mt-1 text-sm text-sky-900/80">
@@ -266,7 +274,7 @@ function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string 
     <div className="space-y-3">
       <h3 className="text-lg font-bold text-hc-ink">Vikan þín</h3>
       <p className="text-sm text-hc-ink-2">
-        {PLACE_IS[s.place].label} · {s.days.length} dagar · byrjar á {stage.title.toLowerCase()}
+        {s.places.map((pl) => PLACE_IS[pl].label).join(" + ")} · {s.days.length} dagar · byrjar á {stage.title.toLowerCase()}
       </p>
       <ScoreBars s={s} planStart={planStart} />
 

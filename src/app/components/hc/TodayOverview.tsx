@@ -10,6 +10,8 @@ import { BookOpen, Dumbbell, Pencil, Printer, Target, Utensils } from "lucide-re
 import PillarIcon from "./PillarIcon";
 import { dayFor, mealName, SLOT_IS, SLOTS, type Meal } from "@/lib/hc/meals";
 import type { NutritionPrefs } from "@/lib/hc/nutrition";
+import type { TrainingSettings } from "@/lib/hc/adaptive-program";
+import ActivityIcon from "./ActivityIcon";
 import { WEEKDAYS, weekdayOf, type PersonalExercise } from "@/lib/hc/personalise";
 import { PILLAR_META, type ActionPlan, type LectureRef } from "@/lib/hc/types";
 import * as cache from "@/lib/hc/client-cache";
@@ -38,13 +40,15 @@ export function TodayHeader({ name, onEdit }: { name: string | null; onEdit: () 
   );
 }
 
-export default function TodayOverview({ api, plan, exercise, mealPicks, nutritionPrefs, lectures, onOpenExercise, onOpenNutrition, onEdit }: {
+export default function TodayOverview({ api, plan, exercise, mealPicks, nutritionPrefs, training, lectures, onOpenExercise, onOpenNutrition, onEdit }: {
   api: Api;
   plan: ActionPlan;
   exercise: PersonalExercise | null;
   mealPicks: Record<string, string>;
   /** What they eat; restrictions are a hard filter on the meal library. */
   nutritionPrefs?: NutritionPrefs;
+  /** Their own weekly commitments, so today shows everything Æfingar shows. */
+  training?: TrainingSettings;
   lectures: (LectureRef & { completed?: boolean })[];
   onOpenExercise: (sessionId?: string) => void;
   onOpenNutrition: () => void;
@@ -61,6 +65,10 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, nutritio
   }, [api, plan.nutrition]);
 
   const todays = exercise?.sessions.filter((s) => s.weekday === today) ?? [];
+  // "Í dag" showed only prescribed sessions, so a Monday football game — drawn
+  // in the Æfingar week and counted when deciding what to prescribe — was
+  // invisible on the surface people actually read.
+  const myToday = (training?.activities ?? []).filter((a) => a.day === today);
   const next = exercise && !todays.length
     ? [...exercise.sessions].sort((a, b) => ((a.weekday - today + 7) % 7) - ((b.weekday - today + 7) % 7)).find((s) => s.weekday >= 0)
     : null;
@@ -76,7 +84,17 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, nutritio
         {exercise && (
           <button type="button" onClick={() => onOpenExercise(todays[0]?.id ?? next?.id)}
             className="flex flex-col rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm transition hover:shadow-md sm:p-5">
-            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/85"><Dumbbell className="h-4 w-4" aria-hidden />{todays.length ? "Æfing dagsins" : "Hvíldardagur"}</span>
+            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/85"><Dumbbell className="h-4 w-4" aria-hidden />{todays.length || myToday.length ? "Æfing dagsins" : "Hvíldardagur"}</span>
+            {myToday.length > 0 && (
+              <span className="mt-1 flex flex-wrap gap-1.5">
+                {myToday.map((a) => (
+                  <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-white/25 px-2.5 py-1 text-xs font-semibold">
+                    <ActivityIcon name={a.name} className="h-3.5 w-3.5" />
+                    {a.name}{a.at ? ` · ${a.at}` : ""}
+                  </span>
+                ))}
+              </span>
+            )}
             {todays.length ? todays.map((s) => (
               <span key={s.id} className="mt-1 block">
                 <span className="block text-lg font-bold leading-tight">{s.title}{s.minutes ? ` · um ${s.minutes} mín.` : ""}</span>
@@ -84,7 +102,8 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, nutritio
               </span>
             )) : (
               <span className="mt-1 block text-sm text-white/95">
-                Rösk ganga eða útivera telur samt.{next ? <> Næst: <strong>{next.title}</strong>, {WEEKDAYS[next.weekday].toLowerCase()}.</> : null}
+                {myToday.length ? "Þetta er það sem þú gerir í dag." : "Rösk ganga eða útivera telur samt."}
+                {next ? <> Næst: <strong>{next.title}</strong>, {WEEKDAYS[next.weekday].toLowerCase()}.</> : null}
               </span>
             )}
             {todays[0]?.items.some((i) => i.image) && (

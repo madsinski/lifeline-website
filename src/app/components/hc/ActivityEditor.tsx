@@ -1,27 +1,25 @@
 "use client";
 
-// The week the participant already has: football on Mondays, CrossFit on
-// Saturdays, a swim when they can.
+// The week someone already has: football on Mondays and Thursdays, CrossFit
+// on Tuesdays and Saturdays.
 //
-// Each entry says what it trains, because that is what decides whether the
-// core still needs to prescribe it. The classification is the interesting
-// part and is shown rather than hidden: innanhússfótbolti counts as a hard
-// lota and NOT as rólegt þol, which is why a footballer still gets Zone 2.
+// Rewritten around how people actually answer the question. The first version
+// asked for one sport and one day, so adding football twice a week meant
+// going through the whole form twice; a sport is picked once here and then
+// its days are toggled, which is both fewer taps and closer to how someone
+// describes their week out loud.
+//
+// What each one trains is shown rather than hidden, because the classification
+// is the part that decides what the core still has to prescribe — and it is
+// not always what people expect. Football covers the hard lota and only half
+// of the aerobic base; fríköfun covers neither.
 
 import { useState } from "react";
-import { Clock, Plus, Trash2 } from "lucide-react";
-import {
-  ACTIVITY_GROUPS, ACTIVITY_PRESETS, COVERS_IS, INTENSITY_IS,
-  type Activity, type Covers, type Intensity,
-} from "@/lib/hc/adaptive-program";
+import { Check, Clock, Plus, Trash2, X } from "lucide-react";
+import { ACTIVITY_GROUPS, ACTIVITY_PRESETS, INTENSITY_IS, type Activity } from "@/lib/hc/adaptive-program";
 import { WEEKDAYS, WEEKDAYS_SHORT } from "@/lib/hc/personalise";
+import ActivityIcon, { CoverChips, presetFor } from "./ActivityIcon";
 import { hcBtn } from "./ui";
-
-const COVER_CLS: Record<Covers, string> = {
-  strength: "bg-orange-100 text-orange-900 ring-orange-200",
-  hiit: "bg-rose-100 text-rose-900 ring-rose-200",
-  cardio: "bg-sky-100 text-sky-900 ring-sky-200",
-};
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -31,43 +29,62 @@ export default function ActivityEditor({ activities, onChange }: {
 }) {
   const [adding, setAdding] = useState(false);
   const [group, setGroup] = useState<string>(ACTIVITY_GROUPS[0]);
-  const [draft, setDraft] = useState<{ name: string; covers: Covers[]; intensity: Intensity; minutes: number; day: number; at: string }>(
-    { name: "", covers: [], intensity: "moderate", minutes: 60, day: 0, at: "" });
+  const [picked, setPicked] = useState<string | null>(null);
+  const [days, setDays] = useState<number[]>([]);
+  const [at, setAt] = useState("");
+  const [own, setOwn] = useState("");
+
+  const name = picked ?? own.trim();
+  const preset = picked ? ACTIVITY_PRESETS.find((x) => x.name === picked) ?? null : presetFor(own);
+
+  const reset = () => { setAdding(false); setPicked(null); setDays([]); setAt(""); setOwn(""); };
 
   const add = () => {
-    if (!draft.name.trim()) return;
-    onChange([...activities, {
-      id: newId(), name: draft.name.trim(), day: draft.day,
-      at: /^([01]\d|2[0-3]):[0-5]\d$/.test(draft.at) ? draft.at : null,
-      minutes: draft.minutes, covers: draft.covers, intensity: draft.intensity,
-    }]);
-    setDraft({ name: "", covers: [], intensity: "moderate", minutes: 60, day: 0, at: "" });
-    setAdding(false);
+    if (!name || days.length === 0) return;
+    onChange([...activities, ...days.map((day) => ({
+      id: newId(), name, day,
+      at: /^([01]\d|2[0-3]):[0-5]\d$/.test(at) ? at : null,
+      minutes: preset?.minutes ?? 60,
+      covers: preset?.covers ?? [],
+      partial: preset?.partial ?? [],
+      intensity: preset?.intensity ?? "moderate",
+    } satisfies Activity))]);
+    reset();
   };
 
-  const byDay = [...activities].sort((a, b) => a.day - b.day || (a.at ?? "").localeCompare(b.at ?? ""));
+  // One row per sport, with the days it falls on — the way someone would say it.
+  const grouped = [...new Map(activities.map((a) => [a.name, activities.filter((x) => x.name === a.name)])).values()]
+    .sort((x, y) => Math.min(...x.map((a) => a.day)) - Math.min(...y.map((a) => a.day)));
 
   return (
     <div className="space-y-3">
-      {byDay.length > 0 && (
+      {grouped.length > 0 && (
         <ul className="space-y-2">
-          {byDay.map((a) => (
-            <li key={a.id} className="flex items-start gap-3 rounded-2xl bg-white p-3 ring-1 ring-slate-200">
-              <span className="w-12 shrink-0 rounded-lg bg-slate-100 py-1 text-center text-xs font-bold text-slate-700">{WEEKDAYS_SHORT[a.day]}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-hc-ink">{a.name}</span>
-                <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                  {a.at && <span className="inline-flex items-center gap-1 text-xs text-hc-ink-2"><Clock className="h-3 w-3" aria-hidden />{a.at}{a.minutes ? `–${endTime(a.at, a.minutes)}` : ""}</span>}
-                  {a.covers.length === 0
-                    ? <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">Kemur ekki í stað neins</span>
-                    : a.covers.map((c) => <span key={c} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${COVER_CLS[c]}`}>{COVERS_IS[c]}</span>)}
-                  <span className="text-[11px] text-slate-500">{INTENSITY_IS[a.intensity]}</span>
+          {grouped.map((rows) => {
+            const a = rows[0];
+            return (
+              <li key={a.name} className="flex items-start gap-3 rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                  <ActivityIcon name={a.name} />
                 </span>
-              </span>
-              <button type="button" aria-label={`Fjarlægja ${a.name}`} onClick={() => onChange(activities.filter((x) => x.id !== a.id))}
-                className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-            </li>
-          ))}
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-hc-ink">{a.name}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    {rows.sort((x, y) => x.day - y.day).map((r) => (
+                      <span key={r.id} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">
+                        {WEEKDAYS_SHORT[r.day]}{r.at ? ` ${r.at}` : ""}
+                      </span>
+                    ))}
+                    <span className="text-[11px] text-slate-500">{INTENSITY_IS[a.intensity]}</span>
+                  </span>
+                  <CoverChips covers={a.covers} partial={a.partial} className="mt-1" />
+                </span>
+                <button type="button" aria-label={`Fjarlægja ${a.name}`}
+                  onClick={() => onChange(activities.filter((x) => x.name !== a.name))}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -77,62 +94,78 @@ export default function ActivityEditor({ activities, onChange }: {
         </button>
       ) : (
         <div className="space-y-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
-          <div className="flex flex-wrap gap-1.5">
-            {ACTIVITY_GROUPS.map((g) => (
-              <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>{g}</button>
-            ))}
-          </div>
-          <div className="grid gap-1.5 sm:grid-cols-2">
-            {ACTIVITY_PRESETS.filter((x) => x.group === group).map((x) => (
-              <button key={x.name} type="button"
-                onClick={() => setDraft((d) => ({ ...d, name: x.name, covers: x.covers, intensity: x.intensity, minutes: x.minutes }))}
-                aria-pressed={draft.name === x.name}
-                className={`rounded-xl p-2.5 text-left text-sm ring-1 transition ${draft.name === x.name ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-white ring-slate-200 hover:ring-slate-300"}`}>
-                <span className="block font-semibold text-hc-ink">{x.name}</span>
-                <span className="mt-0.5 flex flex-wrap gap-1">
-                  {x.covers.length === 0
-                    ? <span className="text-[11px] text-slate-500">Kemur ekki í stað neins</span>
-                    : x.covers.map((c) => <span key={c} className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ${COVER_CLS[c]}`}>{COVERS_IS[c]}</span>)}
-                </span>
-                {x.why && <span className="mt-1 block text-[11px] leading-snug text-slate-500">{x.why}</span>}
-              </button>
-            ))}
+          {/* 1 ─ which sport */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-semibold text-slate-900">{picked ?? "Hvað gerirðu?"}</p>
+            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-lg p-1 text-slate-400 hover:bg-slate-200"><X className="h-4 w-4" /></button>
           </div>
 
-          <label className="block text-sm">
-            <span className="font-medium text-slate-700">Eða skrifaðu þitt eigið</span>
-            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} maxLength={60}
-              placeholder="t.d. „Dans“" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
-          </label>
+          {!picked && (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                {ACTIVITY_GROUPS.map((g) => (
+                  <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>{g}</button>
+                ))}
+              </div>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {ACTIVITY_PRESETS.filter((x) => x.group === group).map((x) => (
+                  <button key={x.name} type="button" onClick={() => setPicked(x.name)}
+                    className="flex gap-2.5 rounded-xl bg-white p-2.5 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-hc-brand">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                      <ActivityIcon name={x.name} className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-hc-ink">{x.name}</span>
+                      <CoverChips covers={x.covers} partial={x.partial} className="mt-0.5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <label className="block text-sm">
+                <span className="font-medium text-slate-700">Eða skrifaðu þitt eigið</span>
+                <input value={own} onChange={(e) => setOwn(e.target.value)} maxLength={60}
+                  placeholder="t.d. „Dans“" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </label>
+            </>
+          )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm">
-              <span className="font-medium text-slate-700">Dagur</span>
-              <select value={draft.day} onChange={(e) => setDraft({ ...draft, day: Number(e.target.value) })}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
-                {WEEKDAYS.map((w, i) => <option key={w} value={i}>{w}</option>)}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-slate-700">Klukkan (valfrjálst)</span>
-              <input type="time" value={draft.at} onChange={(e) => setDraft({ ...draft, at: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
-            </label>
-          </div>
-
-          <div className="flex gap-2">
-            <button type="button" onClick={add} disabled={!draft.name.trim()} className={hcBtn.primary}>Bæta við</button>
-            <button type="button" onClick={() => setAdding(false)} className={hcBtn.ghost}>Hætta við</button>
-          </div>
+          {/* 2 ─ which days, as many as you like */}
+          {name && (
+            <>
+              {preset?.why && <p className="rounded-xl bg-white p-2.5 text-xs leading-snug text-slate-600 ring-1 ring-slate-200">{preset.why}</p>}
+              <div>
+                <p className="mb-1.5 text-sm font-medium text-slate-700">Hvaða daga?</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {WEEKDAYS.map((w, i) => {
+                    const on = days.includes(i);
+                    return (
+                      <button key={w} type="button" aria-pressed={on}
+                        onClick={() => setDays(on ? days.filter((d) => d !== i) : [...days, i].sort((a2, b2) => a2 - b2))}
+                        className={`inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold transition ${
+                          on ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-300"}`}>
+                        {on && <Check className="h-3.5 w-3.5" aria-hidden />}{WEEKDAYS_SHORT[i]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <label className="flex w-fit items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+                <Clock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                <input type="time" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Klukkan"
+                  className="bg-transparent text-sm outline-none" />
+                <span className="text-xs text-slate-500">valfrjálst</span>
+              </label>
+              <div className="flex gap-2">
+                <button type="button" onClick={add} disabled={days.length === 0} className={hcBtn.primary}>
+                  Bæta við {days.length > 0 ? `· ${days.length} ${days.length === 1 ? "dagur" : "dagar"}` : ""}
+                </button>
+                {picked && <button type="button" onClick={() => { setPicked(null); setDays([]); }} className={hcBtn.ghost}>Velja annað</button>}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
   );
-}
-
-function endTime(at: string, minutes: number): string {
-  const [h, m] = at.split(":").map(Number);
-  const t = h * 60 + m + minutes;
-  return `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 }

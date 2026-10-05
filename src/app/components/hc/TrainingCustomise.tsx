@@ -36,7 +36,7 @@ export default function TrainingCustomise({
 
   const CHOICES: { key: What; label: string; hint: string; Icon: typeof Gauge; now: string }[] = [
     { key: "setup", label: "Uppsetningin", hint: "Hvar þú æfir, hvaða daga, aðlögun og takmarkanir.", Icon: ListChecks,
-      now: `${PLACE_IS[settings.place].label} · ${settings.days.map((d) => WEEKDAYS_SHORT[d]).join(", ")} · ${CARDIO_IS[settings.cardio].label.toLowerCase()}` },
+      now: `${settings.places.map((pl) => PLACE_IS[pl].label).join(" + ")} · ${settings.days.map((d) => WEEKDAYS_SHORT[d]).join(", ")} · ${CARDIO_IS[settings.cardio].label.toLowerCase()}` },
     { key: "activities", label: "Það sem ég geri nú þegar", hint: "Fótbolti, CrossFit, sund — áætlunin fyllir upp í það sem vantar.", Icon: Dumbbell,
       now: settings.activities.length ? `${settings.activities.length} skráð` : "Ekkert skráð" },
     { key: "load", label: "Álagið", hint: "Léttara eða þyngra en áætlunin segir.", Icon: Gauge,
