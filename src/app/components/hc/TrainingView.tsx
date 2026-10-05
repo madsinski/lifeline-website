@@ -8,13 +8,14 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, ChevronDown, Dumbbell, Info, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
 import { stageAt, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
+import WorkoutRunner from "./WorkoutRunner";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanExercise = NonNullable<ActionPlan["exercise"]>;
@@ -26,7 +27,7 @@ interface LibEx {
 type Payload = { kind: "session"; id: string } | { kind: "exercise"; ex: LibEx };
 
 
-export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart }: {
+export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -49,11 +50,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   /** For "where am I in the programme" in the hero. */
   training?: TrainingSettings;
   planStart?: string | null;
+  /** A finished workout: minutes, RPE and which session it was. */
+  onFinish?: (info: { minutes: number; rpe: number; session: PSession }) => void;
 }) {
   const view = useMemo(() => personalise(exercise, personal), [exercise, personal]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
   const [pickDay, setPickDay] = useState<string | null>(null);
   const [swapItem, setSwapItem] = useState<{ slot: string; item: ExerciseItem } | null>(null);
+  const [running, setRunning] = useState<PSession | null>(null);
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
   // Read-only on the main page; everything that edits lives in the sheet.
@@ -221,6 +225,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
         <section className="space-y-3">
           {view.sessions.map((s) => (
             <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
+              onStart={() => setRunning(s)}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
               dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
               onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap} />
@@ -260,6 +265,13 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           being replaced, and it asks why first — too hard, too easy, bored,
           or it hurts — so what comes back is a handful of exercises on the
           same muscles that answer that reason, not a catalogue. */}
+      {running && (
+        <WorkoutRunner session={running}
+          onClose={() => setRunning(null)}
+          onSwap={(slot, it) => setSwapItem({ slot, item: it })}
+          onDone={(info) => { setRunning(null); onFinish?.({ ...info, session: running }); }} />
+      )}
+
       {swapItem && (
         <SwapWizard api={api} item={swapItem.item} injuries={training?.injuries ?? []}
           onPick={(ex) => swap(swapItem.slot, ex)}
@@ -270,9 +282,11 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   );
 }
 
-function SessionCard({ s, today, open, onToggle, dragOver, swapFor, onSwap, onUnswap }: {
+function SessionCard({ s, today, open, onToggle, onStart, dragOver, swapFor, onSwap, onUnswap }: {
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
   dragOver: string | null; swapFor: string | null;
+  /** Opens the runner for this session. */
+  onStart?: () => void;
   /** Undefined on the reading surface: swapping lives in the change sheet. */
   onSwap?: (slot: string, item: ExerciseItem) => void;
   onUnswap: (slot: string) => void;
@@ -293,6 +307,19 @@ function SessionCard({ s, today, open, onToggle, dragOver, swapFor, onSwap, onUn
         {s.minutes ? <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
         <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
+      {/* The point of the page. Today's session gets the solid button; the
+          others get a quiet one, because doing Thursday's workout on Monday
+          is allowed but is not what we are suggesting. */}
+      {onStart && (
+        <div className="border-b border-slate-100 px-4 py-3">
+          <button type="button" onClick={onStart}
+            className={today
+              ? "flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 py-3 font-bold text-white transition hover:bg-orange-700"
+              : "flex w-full items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-2.5 font-semibold text-orange-800 transition hover:bg-orange-50"}>
+            <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
+          </button>
+        </div>
+      )}
       {open && (
         <div className="divide-y divide-slate-100">
           {blocks.map((b) => (

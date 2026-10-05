@@ -245,6 +245,31 @@ function PlanPageInner() {
     return out;
   }, [data]);
 
+  /**
+   * A finished workout.
+   *
+   * Goes to client_session_completions, the table the app already writes for
+   * every kind of completed thing (meals, sleep routines, sessions), so a
+   * workout done on the web sits in the same history as one done in the app
+   * rather than in a parallel one. The individual sets went to `set_logs` as
+   * they were logged.
+   */
+  const finishWorkout = async (info: { minutes: number; rpe: number; session: { id: string; title: string; modality: string; day?: string | null } }) => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    await supabase.from("client_session_completions").insert({
+      client_id: u.user.id,
+      completed_action_key: info.session.id,
+      prescribed_action_key: info.session.id,
+      modality: info.session.modality,
+      duration_min: info.minutes,
+      intensity_rpe: info.rpe,
+      prescribed_day: info.session.day ?? null,
+    });
+    cache.invalidate("/api/hc/");
+    setReloadKey((k) => k + 1);
+  };
+
   const saveNutrition = async (next: NutritionPrefs) => {
     const prev = nutritionPrefs;
     setNutritionPrefs(next);
@@ -355,6 +380,7 @@ function PlanPageInner() {
                       onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
                       onChangeProgram={() => setPicker("exercise")}
                       training={training} planStart={plan.start_date}
+                      onFinish={(info) => void finishWorkout(info)}
                       onCustomise={isAdaptive(plan.exercise?.key) ? () => setCustomise(true) : undefined} />
                   )}
                 </div>
