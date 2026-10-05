@@ -41,6 +41,18 @@ const rankOf = (e: LibEx) => RANK[(e.difficulty ?? e.level ?? "").toLowerCase()]
 /** Equipment that spares a joint, as a rough second sort for limitations. */
 const GENTLE = new Set(["bodyweight", "none", "bands", "machine", "cables"]);
 
+/**
+ * Jumping movements, which the library rates "beginner" because they need no
+ * equipment and no technique to start.
+ *
+ * That rating is about the barrier to entry, not the load on the body: a
+ * squat jump puts several times bodyweight through the knee on landing. So
+ * they are not an answer to "this is too hard" and are plainly wrong for
+ * "my knee hurts", even though both filters would otherwise rank them first.
+ */
+const PLYO = /hopp|stökk|sipp|jump|plyo|burpee|skokk á staðnum/i;
+const isPlyo = (e: LibEx) => PLYO.test(`${e.name_is ?? ""} ${e.name}`);
+
 export default function SwapWizard({ api, item, onPick, onClose }: {
   api: Api;
   item: ExerciseItem;
@@ -78,10 +90,10 @@ export default function SwapWizard({ api, item, onPick, onClose }: {
     if (!all) return [];
     let pool = all.filter(sameMuscle);
     if (!pool.length) pool = all;
-    if (why === "lighter") pool = pool.filter((e) => rankOf(e) <= mine).sort((a, b) => rankOf(a) - rankOf(b));
+    if (why === "lighter") pool = pool.filter((e) => rankOf(e) <= mine && !isPlyo(e)).sort((a, b) => rankOf(a) - rankOf(b));
     else if (why === "harder") pool = pool.filter((e) => rankOf(e) >= mine).sort((a, b) => rankOf(b) - rankOf(a));
     else if (why === "limitation") {
-      pool = pool.filter((e) => GENTLE.has((e.equipment ?? "").toLowerCase()) || rankOf(e) === 0)
+      pool = pool.filter((e) => !isPlyo(e) && (GENTLE.has((e.equipment ?? "").toLowerCase()) || rankOf(e) === 0))
         .sort((a, b) => rankOf(a) - rankOf(b));
     } else pool = [...pool].sort((a, b) => Number(!!b.bang_for_buck) - Number(!!a.bang_for_buck));
     const needle = q.trim().toLowerCase();
