@@ -36,9 +36,9 @@ const M = {
   // ── Hreyfing ──────────────────────────────────────────────────────────
   "hreyfing-ganga": ["skor-hreyfing-venjur", "hreyfing-vikuskammtur"],
   "hreyfing-ganga-eftir-mat": ["fastandi-blodsykur", "hba1c", "skor-hreyfing-venjur"],
-  "hreyfing-zone2": ["vo2max", "hjartaheilsa", "hreyfing-vikuskammtur", "efnaskiptaheilsa"],
+  "hreyfing-zone2": ["vo2max", "hjartaheilsa", "hreyfing-vikuskammtur", "efnaskiptaheilsa", "fitumassi"],
   "hreyfing-vo2max": ["vo2max", "hjartaheilsa", "efnaskiptaheilsa"],
-  "hreyfing-styrkur": ["styrktarthjalfun", "vodvamassi", "homa-ir", "insulin"],
+  "hreyfing-styrkur": ["styrktarthjalfun", "vodvamassi", "homa-ir", "insulin", "fitumassi"],
   "hreyfing-grip": ["styrktarthjalfun", "vodvamassi"],
   "hreyfing-stodugleiki": ["skor-hreyfing-venjur"],
   "hreyfing-kyrrseta": ["skor-hreyfing-venjur", "fastandi-blodsykur"],
@@ -50,18 +50,18 @@ const M = {
 
   // ── Næring ────────────────────────────────────────────────────────────
   "naering-protein": ["protein", "vodvamassi"],
-  "naering-trefjar": ["trefjar", "heildarkolesterol", "ldl", "hba1c"],
-  "naering-diskur": ["skor-naering-venjur", "bmi", "thyngd"],
+  "naering-trefjar": ["trefjar", "heildarkolesterol", "ldl", "hba1c", "skor-naering-vandamal"],
+  "naering-diskur": ["skor-naering-venjur", "bmi", "thyngd", "fitumassi"],
   "naering-sykradir-drykkir": ["fastandi-blodsykur", "thriglyserid", "hba1c", "thyngd"],
-  "naering-unnin": ["skor-naering-venjur", "hscrp", "ldl"],
+  "naering-unnin": ["skor-naering-venjur", "hscrp", "ldl", "skor-naering-vandamal"],
   "naering-afengi": ["skor-afengi", "audit-c", "audit-10", "thriglyserid", "alt", "ggt"],
-  "naering-fiskur": ["thriglyserid", "hdl", "hjartaheilsa"],
-  "naering-olifuolia": ["heildarkolesterol", "ldl", "hdl", "apo-b"],
-  "naering-salt": ["blodthrystingur", "blodthrystingur-nedri"],
+  "naering-fiskur": ["thriglyserid", "hdl", "hjartaheilsa", "skor-naering-vandamal"],
+  "naering-olifuolia": ["heildarkolesterol", "ldl", "hdl", "apo-b", "skor-naering-vandamal"],
+  "naering-salt": ["blodthrystingur", "blodthrystingur-nedri", "skor-naering-vandamal"],
   "naering-timabil": ["fastandi-blodsykur", "insulin", "homa-ir"],
   "naering-skipulag": ["skor-naering-venjur", "skor-matarhegdun"],
-  "naering-skammtar": ["skor-matarhegdun", "thyngd", "bmi"],
-  "naering-d-vitamin": ["d-vitamin"],
+  "naering-skammtar": ["skor-matarhegdun", "thyngd", "bmi", "fitumassi"],
+  "naering-d-vitamin": ["d-vitamin", "skor-naering-vandamal"],
   "naering-protein-morgunmatur": ["protein", "skor-matarhegdun"],
   "naering-plontufaedi": ["trefjar", "heildarkolesterol", "skor-naering-venjur"],
   "naering-vokvi": ["skor-naering-venjur"],
@@ -69,7 +69,7 @@ const M = {
   "naering-fraeoliur": ["skor-naering-venjur"],
   "naering-snarl-kvold": ["skor-matarhegdun", "thyngd"],
   "naering-borda-undir-alagi": ["skor-matarhegdun", "skor-streita"],
-  "naering-magn": ["skor-matarhegdun", "thyngd", "bmi"],
+  "naering-magn": ["skor-matarhegdun", "thyngd", "bmi", "fitumassi"],
   "naering-kreatin": ["vodvamassi", "styrktarthjalfun"],
 
   // ── Andleg líðan ──────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ const M = {
   "andlegt-hugleidsla": ["skor-streita", "skor-andleg-heilsa"],
   "andlegt-skjar": ["skor-skjanotkun", "skor-streita"],
   "andlegt-nikotin": ["skor-nikotin", "hjartaheilsa", "hdl"],
-  "andlegt-fagleg": ["skor-andleg-heilsa", "phq-9", "gad-7"],
+  "andlegt-fagleg": ["skor-andleg-heilsa", "phq-9", "gad-7", "skor-fjarhaettuspil", "skor-onnur-efni"],
 };
 
 const h = { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
