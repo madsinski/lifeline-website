@@ -13,7 +13,7 @@
 // on the web therefore shows up in the app's history and its PRs.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Plus, Volume2, VolumeX, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   isBodyweight, isLoggable, isTimed, localDate, nextSetIndex, parseHoldSeconds,
@@ -23,6 +23,7 @@ import type { PSession } from "@/lib/hc/personalise";
 import type { ExerciseItem } from "@/lib/hc/types";
 import { muscleIs } from "@/lib/hc/exercise-labels";
 import { hcBtn } from "./ui";
+import { speakCue, speechAvailable, setVoiceEnabled, stopSpeaking, voiceEnabled, warmVoices } from "@/lib/hc/rest-voice";
 
 type Phase = "run" | "rate";
 
@@ -137,9 +138,19 @@ function Shell({ title, onClose, children }: { title: string; onClose: () => voi
 function ExercisePanel({ it, onSwap }: { it: ExerciseItem; onSwap?: (slot: string, item: ExerciseItem) => void }) {
   return (
     <div className="space-y-3 p-4">
-      {it.image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={it.image} alt="" className="h-44 w-full rounded-2xl object-cover" />
+      {/* object-contain on a dark panel: these are wide gym photos and
+          demo loops, and object-cover was cutting the lift out of the frame.
+          The video is the better demonstration when the library has one. */}
+      {(it.video || it.image) && (
+        <div className="overflow-hidden rounded-2xl bg-slate-900">
+          {it.video ? (
+            <video src={it.video} poster={it.image ?? undefined} autoPlay loop muted playsInline
+              className="h-52 w-full object-contain" aria-label={`Sýnikennsla: ${it.name}`} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={it.image!} alt="" className="h-52 w-full object-contain" />
+          )}
+        </div>
       )}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -183,6 +194,12 @@ function SetTracker({ it }: { it: ExerciseItem }) {
   const [busy, setBusy] = useState(false);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
+  const [pr, setPr] = useState<{ weight: number | null; reps: number | null } | null>(null);
+  const [voice, setVoice] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setVoice(voiceEnabled()), 0);
+    return () => { clearTimeout(t); stopSpeaking(); };
+  }, []);
 
   const load = useCallback(async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -194,8 +211,12 @@ function SetTracker({ it }: { it: ExerciseItem }) {
     const rows = (data ?? []) as LoggedSet[];
     const d = localDate();
     const mine = rows.filter((r) => r.date === d);
+    // The personal best, which the database maintains with its own trigger.
+    const { data: best } = await supabase.from("exercise_prs")
+      .select("weight, reps").eq("client_id", u.user.id).eq("exercise_id", it.exercise_id).maybeSingle();
     setTimeout(() => {
       setToday(mine);
+      setPr(best ? { weight: best.weight == null ? null : Number(best.weight), reps: best.reps } : null);
       // Pick up where the last session left off, as the app does.
       const last = rows[0];
       if (last && !timed) { if (last.weight != null) setWeight(Number(last.weight)); if (last.reps != null) setReps(last.reps); }
@@ -207,9 +228,18 @@ function SetTracker({ it }: { it: ExerciseItem }) {
   // throttled background tab cannot make the countdown wrong.
   useEffect(() => {
     if (restEndsAt === null) return;
+    let said = -1;
     const tick = () => {
       const t = Date.now();
       setNow(t);
+      // One cue per second mark, at the same points the app speaks.
+      const left = Math.max(0, Math.ceil((restEndsAt - t) / 1000));
+      if (left !== said) {
+        said = left;
+        if (left === 10) speakCue("ten");
+        else if (left === 3) speakCue("ready");
+        else if (left === 0) speakCue("go");
+      }
       if (t >= restEndsAt) setRestEndsAt(null);
     };
     const id = window.setInterval(tick, 500);
@@ -236,14 +266,34 @@ function SetTracker({ it }: { it: ExerciseItem }) {
     if (error) return;
     setToday((t) => [...t, row as LoggedSet]);
     const rest = parseRestSeconds(it.rest);
+    // Warm the voice list inside the tap: iOS Safari will not speak unless
+    // the first utterance descends from a user gesture.
+    warmVoices();
     if (rest) { setNow(Date.now()); setRestEndsAt(Date.now() + rest * 1000); }
   };
 
   return (
     <div className="space-y-3 rounded-2xl bg-slate-50 p-3">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-semibold text-slate-800">Skrá sett</p>
-        <p className="text-xs text-slate-500">{today.length} af {target} í dag</p>
+        <div className="flex items-center gap-3">
+          {pr?.weight != null && (
+            <p className="text-xs font-semibold text-amber-700" title="Þitt besta sett í þessari æfingu">
+              Best: {pr.weight} kg{pr.reps ? ` × ${pr.reps}` : ""}
+            </p>
+          )}
+          <p className="text-xs text-slate-500">{today.length} af {target} í dag</p>
+          {speechAvailable() && (
+            <button type="button"
+              onClick={() => { const v = !voice; setVoice(v); setVoiceEnabled(v); if (!v) stopSpeaking(); }}
+              aria-pressed={voice}
+              title={voice ? "Raddleiðbeiningar í hvíld: á" : "Raddleiðbeiningar í hvíld: af"}
+              className={`rounded-lg p-1 ${voice ? "text-orange-700" : "text-slate-400"}`}>
+              {voice ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
+              <span className="sr-only">Raddleiðbeiningar</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className={`grid gap-3 ${timed || bodyweight ? "" : "sm:grid-cols-2"}`}>
