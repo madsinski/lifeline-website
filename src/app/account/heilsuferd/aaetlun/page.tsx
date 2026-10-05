@@ -34,8 +34,8 @@ import ReportUpload from "@/app/components/hc/ReportUpload";
 import { peek } from "@/lib/hc/client-cache";
 import { Pencil } from "lucide-react";
 import TrainingView from "@/app/components/hc/TrainingView";
-import TrainingControls from "@/app/components/hc/TrainingControls";
 import TrainingWizard from "@/app/components/hc/TrainingWizard";
+import TrainingCustomise from "@/app/components/hc/TrainingCustomise";
 import NutritionView from "@/app/components/hc/NutritionView";
 import ProgramPicker from "@/app/components/hc/ProgramPicker";
 import TodayOverview, { TodayHeader } from "@/app/components/hc/TodayOverview";
@@ -103,6 +103,8 @@ function PlanPageInner() {
   // The setup wizard: opened on demand, and by itself the first time, when
   // the programme is still running on defaults nobody has confirmed.
   const [setup, setSetup] = useState(false);
+  // "Hvað viltu breyta?" for the training programme.
+  const [customise, setCustomise] = useState(false);
   const [picker, setPicker] = useState<"exercise" | "nutrition" | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -307,13 +309,22 @@ function PlanPageInner() {
                       signals={reportSignalsBySlug} titles={reportTitlesBySlug} gym={gym} saving={saving}
                       onSave={(next) => { void saveTraining(next); setSetup(false); }}
                       onCancel={() => setSetup(false)} />
+                  ) : customise && isAdaptive(plan.exercise?.key) ? (
+                    <TrainingCustomise
+                      settings={training} planStart={plan.start_date}
+                      signals={reportSignalsBySlug} titles={reportTitlesBySlug} gym={gym} saving={saving}
+                      onSave={(next) => void saveTraining(next)}
+                      onClose={() => setCustomise(false)}
+                      arrange={
+                        <TrainingView api={api} exercise={baseExercise} personal={personal} arranging
+                          onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
+                          onChangeProgram={() => setPicker("exercise")} />
+                      } />
                   ) : (
                     <TrainingView api={api} exercise={baseExercise} personal={personal}
                       onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
                       onChangeProgram={() => setPicker("exercise")}
-                      controls={isAdaptive(plan.exercise?.key)
-                        ? <TrainingControls settings={training} planStart={plan.start_date} onChange={saveTraining} saving={saving} onSetup={() => setSetup(true)} />
-                        : null} />
+                      onCustomise={isAdaptive(plan.exercise?.key) ? () => setCustomise(true) : undefined} />
                   )}
                 </div>
               )}

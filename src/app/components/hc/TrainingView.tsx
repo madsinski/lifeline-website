@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, ChevronDown, Dumbbell, Library, RotateCcw, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Dumbbell, Library, RotateCcw, Search, Sliders, Sparkles, X } from "lucide-react";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, CATEGORY_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
@@ -25,7 +25,7 @@ type Payload = { kind: "session"; id: string } | { kind: "exercise"; ex: LibEx }
 
 const LEVEL: Record<string, string> = { beginner: "Byrjendur", intermediate: "Miðlungs", advanced: "Lengra komnir" };
 
-export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram }: {
+export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -37,6 +37,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   stages?: React.ReactNode;
   /** Opens the programme chooser. */
   onChangeProgram?: () => void;
+  /**
+   * Opens the "Hvað viltu breyta?" sheet. When given, this page is for doing
+   * the training: the dials, the drag-and-drop and the exercise swapping all
+   * move behind that one button.
+   */
+  onCustomise?: () => void;
+  /** Rendered inside that sheet, where rearranging is the whole point. */
+  arranging?: boolean;
 }) {
   const view = useMemo(() => personalise(exercise, personal), [exercise, personal]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
@@ -45,6 +53,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [libOpen, setLibOpen] = useState(false);
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
+  // Read-only on the main page; everything that edits lives in the sheet.
+  const editable = !onCustomise || arranging;
 
   const save = (patch: Partial<Personal>) => onSave({ ...personal, ...(mine ? {} : { days: {}, swaps: {}, hiit_split: false }), program_key: exercise.key, ...patch });
   const moveSession = (id: string, day: number) => save({ days: { ...(mine ? personal.days : {}), [id]: day } });
@@ -85,7 +95,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             {exercise.session_minutes && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">um {exercise.session_minutes} mín.</span>}
             <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{LEVEL[exercise.level] ?? exercise.level}</span>
             {total > 0 && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{total} æfingar</span>}
-            {onChangeProgram && <button type="button" onClick={onChangeProgram} className="rounded-full bg-white px-3 py-1 font-semibold text-orange-700 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
+            {onChangeProgram && !onCustomise && <button type="button" onClick={onChangeProgram} className="rounded-full bg-white px-3 py-1 font-semibold text-orange-700 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
           </div>
 
           <div className="mt-5 grid grid-cols-7 gap-1.5">
@@ -97,8 +107,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                   className={`flex min-h-[92px] flex-col gap-1 rounded-xl p-1 transition ${over ? "bg-white/40 ring-2 ring-white" : "bg-white/15"} ${i === todayIdx ? "ring-2 ring-white/70" : ""}`}>
                   <p className="text-center text-[11px] font-bold uppercase">{d}{i === todayIdx ? " ·" : ""}</p>
                   {here.map((s) => (
-                    <button key={s.id} type="button" {...handle({ kind: "session", id: s.id }, s.title)}
-                      onClick={() => setPickDay(pickDay === s.id ? null : s.id)}
+                    <button key={s.id} type="button" {...(editable ? handle({ kind: "session", id: s.id }, s.title) : {})}
+                      disabled={!editable}
+                      onClick={() => editable && setPickDay(pickDay === s.id ? null : s.id)}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}. Færa á annan dag`}
                       className={`cursor-grab select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 active:cursor-grabbing sm:text-[11px] ${MODALITY_IS[s.modality].cls} ${pickDay === s.id ? "outline outline-2 outline-white" : ""}`}>
                       <span className={`mb-0.5 block h-1 w-5 rounded-full ${MODALITY_IS[s.modality].dot}`} />
@@ -134,10 +145,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                 <span className={`h-2 w-2 rounded-full ${MODALITY_IS[m].dot}`} />{MODALITY_IS[m].label} {counts[m]}×
               </span>
             ))}
-            <span className="text-white/80">Dragðu æfingadag á annan dag, eða ýttu á hann.</span>
+            {editable && <span className="text-white/80">Dragðu æfingadag á annan dag, eða ýttu á hann.</span>}
           </div>
 
-          {(canSplitHiit(exercise) || custom) && (
+          {editable && (canSplitHiit(exercise) || custom) && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               {canSplitHiit(exercise) && (
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-sm font-semibold">
@@ -155,7 +166,13 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           )}
         </section>
 
-        {controls}
+        {onCustomise && !arranging && (
+          <button type="button" onClick={onCustomise}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-orange-200 bg-white px-4 py-3.5 font-bold text-orange-800 shadow-sm transition hover:border-orange-300 hover:bg-orange-50">
+            <Sliders className="h-5 w-5" aria-hidden /> Breyta æfingaáætluninni
+          </button>
+        )}
+        {editable && controls}
         {exercise.description && <p className="text-slate-600">{exercise.description}</p>}
         {stages}
 
@@ -164,7 +181,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
               dragOver={drag?.over ?? null} swapFor={swapFor}
-              onSwap={(slot) => { setSwapFor(slot); setLibOpen(true); }} onUnswap={unswap} />
+              onSwap={editable ? (slot) => { setSwapFor(slot); setLibOpen(true); } : undefined} onUnswap={unswap} />
           ))}
         </section>
 
@@ -211,7 +228,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
 function SessionCard({ s, today, open, onToggle, dragOver, swapFor, onSwap, onUnswap }: {
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
-  dragOver: string | null; swapFor: string | null; onSwap: (slot: string) => void; onUnswap: (slot: string) => void;
+  dragOver: string | null; swapFor: string | null;
+  /** Undefined on the reading surface: swapping lives in the change sheet. */
+  onSwap?: (slot: string) => void;
+  onUnswap: (slot: string) => void;
 }) {
   const blocks = (["warmup", "main", "finisher"] as ExerciseBlock[])
     .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
@@ -248,7 +268,7 @@ function SessionCard({ s, today, open, onToggle, dragOver, swapFor, onSwap, onUn
 
 const canSwap = (it: ExerciseItem) => !!it.slot && !/^hiit/i.test(it.name) && it.name !== "Upphitun";
 
-function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseItem; over: boolean; choosing: boolean; onSwap: (slot: string) => void; onUnswap: (slot: string) => void }) {
+function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseItem; over: boolean; choosing: boolean; onSwap?: (slot: string) => void; onUnswap: (slot: string) => void }) {
   const [open, setOpen] = useState(false);
   const how = !!(it.cues?.length || it.video);
   const swappable = canSwap(it);
@@ -285,12 +305,12 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
                 {open ? "Fela" : it.video ? "▶ Sjá hvernig" : "Hvernig?"}
               </button>
             )}
-            {swappable && (
+            {swappable && onSwap && (
               <button type="button" onClick={() => onSwap(it.slot!)} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900">
                 <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
               </button>
             )}
-            {it.swapped && it.slot && (
+            {it.swapped && it.slot && onSwap && (
               <button type="button" onClick={() => onUnswap(it.slot!)} className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-900">
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Upprunaleg
               </button>
