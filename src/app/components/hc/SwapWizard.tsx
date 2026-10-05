@@ -70,11 +70,18 @@ const loadOf = (e: LibEx) => LOAD[(e.equipment ?? "").toLowerCase()] ?? 2;
 /** Difficulty first, then how much weight is on the bar. */
 const effort = (e: LibEx) => rankOf(e) * 10 + loadOf(e);
 
-export default function SwapWizard({ api, item, onPick, onClose }: {
+export default function SwapWizard({ api, item, onPick, onClose, injuries = [] }: {
   api: Api;
   item: ExerciseItem;
   onPick: (ex: LibEx) => void;
   onClose: () => void;
+  /**
+   * What they already told the setup is sore. Applied to every branch, not
+   * just the "it hurts" one: someone who has declared a bad knee should not
+   * have to re-declare it every time they swap an exercise, and should never
+   * be offered a jumping movement by the "I'm bored" list either.
+   */
+  injuries?: Region[];
 }) {
   const [why, setWhy] = useState<Why | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
@@ -97,6 +104,8 @@ export default function SwapWizard({ api, item, onPick, onClose }: {
   }, [api, muscleKey, showAll]);
   useEffect(() => { void load(); }, [load]);
 
+  const known = injuries.length > 0;
+
   // Same muscles first; that is what makes a swap a swap rather than a
   // different workout.
   const sameMuscle = (e: LibEx) =>
@@ -113,6 +122,9 @@ export default function SwapWizard({ api, item, onPick, onClose }: {
       pool = pool.filter((e) => !isPlyo(e) && (GENTLE.has((e.equipment ?? "").toLowerCase()) || rankOf(e) === 0))
         .sort((a, b) => effort(a) - effort(b));
     } else pool = [...pool].sort((a, b) => Number(!!b.bang_for_buck) - Number(!!a.bang_for_buck));
+    // A declared injury rules out impact everywhere, whatever the reason for
+    // swapping was.
+    if (known) pool = pool.filter((e) => !isPlyo(e));
     const needle = q.trim().toLowerCase();
     if (needle) pool = pool.filter((e) => `${e.name_is ?? ""} ${e.name}`.toLowerCase().includes(needle));
     return pool.slice(0, showAll ? 60 : 8);
@@ -137,6 +149,12 @@ export default function SwapWizard({ api, item, onPick, onClose }: {
         {!why && (
           <div className="space-y-2 overflow-y-auto p-4">
             <p className="font-semibold text-slate-900">Af hverju viltu skipta?</p>
+            {known && (
+              <p className="rounded-xl bg-sky-50 p-3 text-xs text-sky-900 ring-1 ring-sky-200">
+                Við vitum af {injuries.map((r) => REGION_IS[r].gen).join(" og ")} úr uppsetningunni þinni og sleppum
+                æfingum með höggi, hvað sem þú velur hér.
+              </p>
+            )}
             {WHY.map((w) => (
               <button key={w.key} type="button" onClick={() => setWhy(w.key)}
                 className="w-full rounded-2xl bg-white p-3.5 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-orange-400">

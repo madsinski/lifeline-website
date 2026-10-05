@@ -223,7 +223,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
               dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
-              onSwap={editable ? (slot, it) => setSwapItem({ slot, item: it }) : undefined} onUnswap={unswap} />
+              onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap} />
           ))}
         </section>
 
@@ -261,7 +261,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           or it hurts — so what comes back is a handful of exercises on the
           same muscles that answer that reason, not a catalogue. */}
       {swapItem && (
-        <SwapWizard api={api} item={swapItem.item}
+        <SwapWizard api={api} item={swapItem.item} injuries={training?.injuries ?? []}
           onPick={(ex) => swap(swapItem.slot, ex)}
           onClose={() => setSwapItem(null)} />
       )}
@@ -350,8 +350,10 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
               </button>
             )}
             {swappable && onSwap && (
-              <button type="button" onClick={() => onSwap(it.slot!, it)} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900">
-                <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
+              <button type="button" onClick={() => onSwap(it.slot!, it)}
+                aria-label={`Skipta út æfingunni ${it.name}`}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-800">
+                <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta um æfingu
               </button>
             )}
             {it.swapped && it.slot && onSwap && (
