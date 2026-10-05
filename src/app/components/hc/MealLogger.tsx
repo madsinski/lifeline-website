@@ -32,14 +32,26 @@ export default function MealLogger({ day, weightKg, compact = false }: {
 }) {
   const [rows, setRows] = useState<MealLogRow[] | null>(null);
   const [busy, setBusy] = useState<MealSlot | null>(null);
+  // The app computes a full macro target (Mifflin / Katch-McArdle / measured
+  // BMR → TDEE → protein split) and stores it in macro_targets. When that
+  // exists it wins: two different protein numbers on two screens is worse
+  // than either number alone. Our 1,2–1,6 g/kg band is the fallback.
+  const [appTarget, setAppTarget] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
-    const { data } = await supabase.from("meal_log")
-      .select("date, action_key, source, description, kcal, protein, carbs, fat")
-      .eq("client_id", u.user.id).eq("date", localDate());
-    setTimeout(() => setRows((data ?? []) as MealLogRow[]), 0);
+    const [{ data }, { data: t }] = await Promise.all([
+      supabase.from("meal_log")
+        .select("date, action_key, source, description, kcal, protein, carbs, fat")
+        .eq("client_id", u.user.id).eq("date", localDate()),
+      supabase.from("macro_targets").select("target_protein")
+        .eq("client_id", u.user.id).eq("active", true).maybeSingle(),
+    ]);
+    setTimeout(() => {
+      setRows((data ?? []) as MealLogRow[]);
+      setAppTarget(t?.target_protein == null ? null : Number(t.target_protein));
+    }, 0);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -63,6 +75,10 @@ export default function MealLogger({ day, weightKg, compact = false }: {
         kcal: Number(meal.calories) || 0, protein: Number(meal.protein) || 0,
         carbs: Number(meal.carbs) || 0, fat: Number(meal.fat) || 0,
       };
+      // One row per slot per day, as the app's logMeal does: delete first so
+      // a double tap cannot leave two breakfasts in the diary.
+      await supabase.from("meal_log").delete()
+        .eq("client_id", u.user.id).eq("date", localDate()).eq("action_key", slot);
       const { error } = await supabase.from("meal_log").insert({ ...row, client_id: u.user.id });
       if (!error) setRows((r) => [...(r ?? []), row]);
     }
@@ -70,7 +86,9 @@ export default function MealLogger({ day, weightKg, compact = false }: {
   };
 
   const totals = totalsOf(rows ?? []);
-  const target = proteinTarget(weightKg);
+  const target = appTarget != null
+    ? { min: Math.round(appTarget), max: Math.round(appTarget) }
+    : proteinTarget(weightKg);
   const state = proteinState(totals.protein, target);
 
   return (
@@ -88,7 +106,7 @@ export default function MealLogger({ day, weightKg, compact = false }: {
             <div className="mt-2 flex items-baseline justify-between text-sm">
               <span className="font-medium text-slate-700">Prótein</span>
               <span className="font-semibold tabular-nums text-slate-900">
-                {Math.round(totals.protein)} g <span className="font-normal text-slate-500">af {target.min}–{target.max} g</span>
+                {Math.round(totals.protein)} g <span className="font-normal text-slate-500">af {target.min === target.max ? `${target.min}` : `${target.min}–${target.max}`} g</span>
               </span>
             </div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
