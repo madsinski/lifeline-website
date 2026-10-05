@@ -59,7 +59,7 @@ const EXERCISE = [
       "Tíu til fimmtán mínútna ganga eftir stærstu máltíðinni, alla daga.",
       "Ekki æfa fastandi fyrstu vikurnar ef blóðsykur er óstöðugur.",
     ],
-    progression: "Vikur 1–4: byggja upp zone 2 í 45 mínútur. Vikur 5–8: auka þyngd í styrk. Vikur 9–12: bæta við einni háákefðarlotu á viku.",
+    progression: "Vikur 1–4: byggja upp zone 2 í 45 mínútur. Vikur 5–8: auka þyngd í styrk. Vikur 9–12: bæta við einni HIIT-lotu á viku.",
     sessions: [
       S("Mánudagur", "Styrkur — allur líkaminn", "Stórar hreyfingar", 40, [
         I("Hnébeygja", "3 × 8–10"), I("Axlapressa", "3 × 8–12"),
@@ -129,7 +129,7 @@ const EXERCISE = [
   },
   {
     key: "thol-upp", name: "Þol upp", level: "advanced",
-    goal: "Þegar grunnurinn er kominn og hámarkssúrefnisupptaka er markmiðið",
+    goal: "Þegar grunnurinn er kominn og þolið er markmiðið",
     days_per_week: 5, session_minutes: 50,
     description: "Zone 2 sem grunnur og ein erfið lota á viku ofan á hann — ekki í staðinn fyrir hann. Þetta er sá hluti þjálfunar sem hækkar VO2max mest, og VO2max er einn sterkasti mælikvarðinn á langlífi.",
     principles: [
