@@ -13,9 +13,9 @@
 // partial payload, so nothing outside it can be lost.
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, ChevronRight, Dumbbell, Plus, Sparkles, Trash2, Utensils, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, ChevronRight, Dumbbell, LayoutGrid, Plus, Sparkles, Trash2, Utensils, X } from "lucide-react";
 import PillarIcon from "./PillarIcon";
-import { hcBtn, hcCard, hcKicker } from "./ui";
+import { hcBtn, hcCard, hcKicker, hcTabs } from "./ui";
 import { GRADE_IS } from "@/lib/hc/rating";
 import { fitOf } from "@/lib/hc/fit";
 import type { Signal } from "@/lib/hc/grunnheilsa";
@@ -52,6 +52,23 @@ interface Row { uid?: string; key: string | null; pillar: Pillar; title: string;
 type Focus = Pillar | "exercise-program" | "nutrition-program" | "lectures";
 
 /** Dative of each pillar, for "… í svefni". Lowercasing the label is not enough. */
+/**
+ * A tab in the category bar.
+ *
+ * `shrink-0` rather than `flex-1`: with eight items and `flex-1` the basis
+ * collapses to 0 and the labels disappear instead of the bar scrolling.
+ */
+const tabCls = (active: boolean) =>
+  `flex shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+    active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`;
+
+/** The plan-wide categories need shorter labels to sit in a tab. */
+const TAB_SHORT: Record<string, string> = {
+  "exercise-program": "Æfingaáætlun",
+  "nutrition-program": "Næringaráætlun",
+  lectures: "Fræðsla",
+};
+
 const PILLAR_DATIVE: Record<Pillar, string> = {
   sleep: "svefni",
   exercise: "hreyfingu",
@@ -102,6 +119,20 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
   }, [api]);
 
   const inPlan = useMemo(() => new Set(rows.map((r) => r.key).filter(Boolean)), [rows]);
+
+  // Every pillar's library, scored and sorted once when the data arrives, so
+  // switching tabs is a lookup rather than re-scoring sixty actions.
+  const libByPillar = useMemo(() => {
+    const sig = d?.signals ?? {};
+    const out = {} as Record<Pillar, { m: PlanModule; f: ReturnType<typeof fitOf> }[]>;
+    for (const p of PILLARS) {
+      out[p] = (d?.modules ?? [])
+        .filter((m) => m.pillar === p)
+        .map((m) => ({ m, f: fitOf(m, sig) }))
+        .sort((a, b) => b.f.fit - a.f.fit);
+    }
+    return out;
+  }, [d]);
 
   const move = (from: number, to: number) => {
     if (from === to || to < 0 || to >= rows.length) return;
@@ -238,14 +269,8 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
   // ── Step 2: only what the chosen category covers ──────────────────────────
   const pillar = isPillar(focus) ? focus : null;
   const mine = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.pillar === pillar);
-  const signals = d.signals ?? {};
-  // Best for THIS person first: the report's need for what the action targets,
-  // weighed with how much the action is worth for the time it costs.
-  const libModules = pillar
-    ? d.modules.filter((m) => m.pillar === pillar)
-        .map((m) => ({ m, f: fitOf(m, signals) }))
-        .sort((a, b) => b.f.fit - a.f.fit)
-    : [];
+  // Already scored and sorted best-for-this-person first (see libByPillar).
+  const libModules = pillar ? libByPillar[pillar] : [];
   const pr = pillar ? priorityOf.get(pillar) : undefined;
   /** Up/down swaps with the next action of the same pillar, leaving the rest alone. */
   const nudge = (pos: number, dir: -1 | 1) => {
@@ -255,12 +280,30 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
 
   return (
     <div className="space-y-6">
+      {/* Every category one tap away. Switching is local state over data that
+          is already loaded and already scored, so it paints in the same frame. */}
+      <div className="sticky top-20 z-20 -mx-4 bg-hc-page/90 px-4 py-2 backdrop-blur print:hidden">
+        <nav className={hcTabs.bar} aria-label="Hvað er verið að breyta">
+          <button type="button" onClick={() => setFocus(null)} className={tabCls(false)} title="Yfirlit yfir alla flokka">
+            <LayoutGrid className="h-4 w-4" aria-hidden />
+          </button>
+          <span className="mx-1 w-px shrink-0 self-stretch bg-slate-200" aria-hidden />
+          {PILLARS.map((pl) => (
+            <button key={pl} type="button" onClick={() => setFocus(pl)} aria-current={focus === pl ? "page" : undefined} className={tabCls(focus === pl)}>
+              {PILLAR_META[pl].label}{touched.includes(pl) && <span className="ml-1 text-emerald-500" aria-label="breytt">•</span>}
+            </button>
+          ))}
+          <span className="mx-1 w-px shrink-0 self-stretch bg-slate-200" aria-hidden />
+          {(["exercise-program", "nutrition-program", "lectures"] as Focus[]).map((f) => (
+            <button key={f} type="button" onClick={() => setFocus(f)} aria-current={focus === f ? "page" : undefined} className={tabCls(focus === f)}>
+              {TAB_SHORT[f as string]}{touched.includes(f) && <span className="ml-1 text-emerald-500" aria-label="breytt">•</span>}
+            </button>
+          ))}
+        </nav>
+      </div>
+
       <section className={`${hcCard.hero} p-5`}>
-        <button type="button" onClick={() => setFocus(null)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-white/25">
-          <ArrowLeft className="h-4 w-4" aria-hidden /> Velja annað
-        </button>
-        <h1 className="mt-3 text-2xl font-bold">{labelOf(focus)}</h1>
+        <h1 className="text-2xl font-bold">{labelOf(focus)}</h1>
         <p className="mt-1 max-w-2xl text-emerald-100">
           {pillar
             ? "Hér er allt sem tengist þessum flokki. Annað í áætluninni breytist ekki."
@@ -420,12 +463,6 @@ export default function PlanEditor({ api, onDone, onCancel }: { api: Api; onDone
             )}
         </section>
       )}
-
-      <div className="flex">
-        <button type="button" onClick={() => setFocus(null)} className={hcBtn.secondary}>
-          <ArrowLeft className="h-4 w-4" aria-hidden /> Velja annað til að breyta
-        </button>
-      </div>
 
       {saveBar}
     </div>
