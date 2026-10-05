@@ -394,6 +394,10 @@ function PlanPageInner() {
                       onChangeProgram={() => setPicker("exercise")}
                       training={training} planStart={plan.start_date}
                       onFinish={(info) => void finishWorkout(info)} body={body}
+                      onAddDay={(a) => void saveTraining({
+                        ...training,
+                        activities: [...training.activities, { ...a, id: Math.random().toString(36).slice(2, 10) }],
+                      })}
                       onInstead={(info) => void finishWorkout({
                         minutes: 0, rpe: 5,
                         session: { ...info.session, modality: info.modality, title: info.label },

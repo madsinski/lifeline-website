@@ -16,6 +16,7 @@ import { stageAt, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionAlternatives from "./SessionAlternatives";
+import AddDayActivity from "./AddDayActivity";
 import type { BodyData } from "@/lib/hc/start-weight";
 import WorkoutRunner from "./WorkoutRunner";
 
@@ -29,7 +30,7 @@ interface LibEx {
 type Payload = { kind: "session"; id: string } | { kind: "exercise"; ex: LibEx };
 
 
-export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead }: {
+export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -58,6 +59,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   body?: BodyData;
   /** They did something else instead of this session. */
   onInstead?: (info: { label: string; modality: PSession["modality"]; session: PSession }) => void;
+  /** Tapping an empty day: add a sport or class that needs no programme. */
+  onAddDay?: (a: Omit<import("@/lib/hc/adaptive-program").Activity, "id">) => void;
 }) {
   const view = useMemo(() => personalise(exercise, personal), [exercise, personal]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
@@ -65,6 +68,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [swapItem, setSwapItem] = useState<{ slot: string; item: ExerciseItem } | null>(null);
   const [running, setRunning] = useState<PSession | null>(null);
   const [swapSession, setSwapSession] = useState<PSession | null>(null);
+  const [addDay, setAddDay] = useState<number | null>(null);
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
   // Read-only on the main page; everything that edits lives in the sheet.
@@ -155,6 +159,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           <div className="mt-5 grid grid-cols-7 gap-1.5">
             {WEEKDAYS_SHORT.map((d, i) => {
               const here = view.sessions.filter((s) => s.weekday === i);
+              const mine = (training?.activities ?? []).filter((a) => a.day === i);
               const over = drag?.over === `day:${i}`;
               return (
                 <div key={d} data-drop={`day:${i}`}
@@ -172,7 +177,24 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       <span className="hidden line-clamp-2 sm:block">{s.title.length > 11 ? MODALITY_IS[s.modality].label : s.title}</span>
                     </button>
                   ))}
-                  {here.length === 0 && <p className="mt-auto pb-1 text-center text-[10px] text-slate-400">Hvíld</p>}
+                  {/* Their own commitments: outlined, because the plan did not
+                      put them there. */}
+                  {mine.map((a) => (
+                    <span key={a.id} title={`${a.name}${a.at ? ` · ${a.at}` : ""}`}
+                      className="rounded-lg border border-dashed border-slate-300 bg-white px-1 py-1 text-left text-[10px] font-semibold leading-tight text-slate-600">
+                      <span className="block truncate">{a.name}</span>
+                      {a.at && <span className="block text-[9px] font-normal text-slate-400">{a.at}</span>}
+                    </span>
+                  ))}
+                  {here.length === 0 && mine.length === 0 && (
+                    onAddDay
+                      ? <button type="button" onClick={() => setAddDay(i)}
+                          aria-label={`Bæta við æfingu á ${WEEKDAYS[i].toLowerCase()}`}
+                          className="mt-auto rounded-lg py-1 text-center text-[10px] font-semibold text-slate-400 transition hover:bg-orange-50 hover:text-orange-700">
+                          Hvíld <span aria-hidden className="block text-sm leading-none">+</span>
+                        </button>
+                      : <p className="mt-auto pb-1 text-center text-[10px] text-slate-400">Hvíld</p>
+                  )}
                 </div>
               );
             })}
@@ -274,6 +296,12 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           being replaced, and it asks why first — too hard, too easy, bored,
           or it hurts — so what comes back is a handful of exercises on the
           same muscles that answer that reason, not a catalogue. */}
+      {addDay !== null && (
+        <AddDayActivity weekday={addDay}
+          onClose={() => setAddDay(null)}
+          onAdd={(a) => { onAddDay?.(a); setAddDay(null); }} />
+      )}
+
       {swapSession && (
         <SessionAlternatives modality={swapSession.modality} sessionTitle={swapSession.title}
           onClose={() => setSwapSession(null)}
