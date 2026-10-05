@@ -2,6 +2,8 @@
 // programme: which meals fit each programme, ranked per slot of the day.
 // Pure and client-safe; the Næring tab and "Í dag" share it.
 
+import { COOKING_IS, mealAllowed, type NutritionPrefs } from "./nutrition";
+
 export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner";
 export const SLOTS: MealSlot[] = ["breakfast", "lunch", "snack", "dinner"];
 export const SLOT_IS: Record<MealSlot, string> = { breakfast: "Morgunmatur", lunch: "Hádegi", snack: "Millimál", dinner: "Kvöldmatur" };
@@ -66,20 +68,45 @@ function score(m: Meal, r: Rule, slot: MealSlot): number {
   return s;
 }
 
-/** Library meals for a slot, best fit for the programme first; near-duplicate names dropped. */
-export function mealsFor(all: Meal[], programKey: string | null | undefined, slot: MealSlot): Meal[] {
+/**
+ * Library meals for a slot, best fit first, near-duplicate names dropped.
+ *
+ * `prefs` is what the person will actually eat. Restrictions are a hard
+ * filter — a vegetarian is not served a lamb casserole ranked low, they are
+ * not served it — while the cooking style only nudges the order, because
+ * someone who would rather not cook can still cook.
+ */
+export function mealsFor(all: Meal[], programKey: string | null | undefined, slot: MealSlot, prefs?: NutritionPrefs): Meal[] {
   const r = RULES[programKey ?? ""] ?? RULES.jafnvaegi;
+  const cook = prefs ? COOKING_IS[prefs.cooking].tags : [];
   const seen = new Set<string>();
   return all
     .filter((m) => m.category === slot)
-    .map((m) => ({ m, s: score(m, r, slot) }))
+    .filter((m) => !prefs || mealAllowed(m.dietary_tags, prefs))
+    .map((m) => (cook.length && (m.dietary_tags ?? []).some((t) => cook.includes(t)) ? { ...m, _cook: true } as Meal & { _cook?: boolean } : m))
+    .map((m) => ({ m, s: score(m, r, slot) + ((m as Meal & { _cook?: boolean })._cook ? 3 : 0) }))
     .sort((a, b) => b.s - a.s || (b.m.protein ?? 0) - (a.m.protein ?? 0))
     .map((x) => x.m)
     .filter((m) => { const k = m.name.toLowerCase().replace(/[^a-z]/g, ""); if (seen.has(k)) return false; seen.add(k); return true; });
 }
 
 /** The day: the participant's pick per slot, else the best fit. */
-export function dayFor(all: Meal[], programKey: string | null | undefined, picks: Record<string, string>): Record<MealSlot, Meal | null> {
+export function dayFor(all: Meal[], programKey: string | null | undefined, picks: Record<string, string>, prefs?: NutritionPrefs): Record<MealSlot, Meal | null> {
   const byId = new Map(all.map((m) => [m.id, m]));
-  return Object.fromEntries(SLOTS.map((slot) => [slot, (picks[slot] && byId.get(picks[slot])) || mealsFor(all, programKey, slot)[0] || null])) as Record<MealSlot, Meal | null>;
+  return Object.fromEntries(SLOTS.map((slot) => [slot, (picks[slot] && byId.get(picks[slot])) || mealsFor(all, programKey, slot, prefs)[0] || null])) as Record<MealSlot, Meal | null>;
+}
+
+/**
+ * How much of the library survives this person's restrictions, per slot.
+ *
+ * Worth knowing and worth saying: the library is 110 meals but only two
+ * dinners are vegetarian and none of the breakfasts are vegan, so a
+ * restriction can leave someone eating the same thing every day. Better to
+ * show that than to serve it silently.
+ */
+export function libraryDepth(all: Meal[], prefs: NutritionPrefs): { slot: MealSlot; have: number; total: number }[] {
+  return SLOTS.map((slot) => {
+    const inSlot = all.filter((m) => m.category === slot);
+    return { slot, have: inSlot.filter((m) => mealAllowed(m.dietary_tags, prefs)).length, total: inSlot.length };
+  });
 }

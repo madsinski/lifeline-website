@@ -37,6 +37,9 @@ import TrainingView from "@/app/components/hc/TrainingView";
 import TrainingWizard from "@/app/components/hc/TrainingWizard";
 import TrainingCustomise from "@/app/components/hc/TrainingCustomise";
 import NutritionView from "@/app/components/hc/NutritionView";
+import NutritionWizard from "@/app/components/hc/NutritionWizard";
+import { DEFAULT_NUTRITION, type NutritionPrefs } from "@/lib/hc/nutrition";
+import type { Meal } from "@/lib/hc/meals";
 import ProgramPicker from "@/app/components/hc/ProgramPicker";
 import TodayOverview, { TodayHeader } from "@/app/components/hc/TodayOverview";
 import { DEFAULT_PERSONAL, personalise, type Personal } from "@/lib/hc/personalise";
@@ -105,6 +108,10 @@ function PlanPageInner() {
   const [setup, setSetup] = useState(false);
   // "Hvað viltu breyta?" for the training programme.
   const [customise, setCustomise] = useState(false);
+  // The same, for the nutrition plan.
+  const [nutritionSetup, setNutritionSetup] = useState(false);
+  const [nutritionPrefs, setNutritionPrefs] = useState<NutritionPrefs>(DEFAULT_NUTRITION);
+  const [mealLibrary, setMealLibrary] = useState<Meal[] | null>(null);
   const [picker, setPicker] = useState<"exercise" | "nutrition" | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -133,6 +140,7 @@ function PlanPageInner() {
       if (tj?.settings) setTraining(tj.settings as TrainingSettings);
       if (tj?.personal) setPersonal(tj.personal as Personal);
       if (tj?.gym !== undefined) setGym(tj.gym as typeof gym);
+      if (tj?.nutrition) setNutritionPrefs(tj.nutrition as NutritionPrefs);
       if (tj?.settings && !(tj.settings as { saved?: boolean }).saved) setSetup(true);
       const loaded = aOk ? {
         journey_id: aj.journey_id as string, plan: pj.plan ?? aj.plan ?? null,
@@ -237,6 +245,28 @@ function PlanPageInner() {
     return out;
   }, [data]);
 
+  const saveNutrition = async (next: NutritionPrefs) => {
+    const prev = nutritionPrefs;
+    setNutritionPrefs(next);
+    setSaving(true);
+    const qs = journey ? `?journey=${encodeURIComponent(journey)}` : "";
+    const r = await api(`/api/hc/training${qs}`, { method: "POST", body: JSON.stringify({ nutrition_prefs: next }) });
+    cache.invalidate("/api/hc/training");
+    const j = await r.json().catch(() => ({}));
+    setSaving(false);
+    if (r.ok && j.nutrition) setNutritionPrefs(j.nutrition); else setNutritionPrefs(prev);
+  };
+
+  // The meal library, for showing how much of it survives the restrictions.
+  useEffect(() => {
+    if (!nutritionSetup || mealLibrary) return;
+    void (async () => {
+      const r = await cache.load(api, "/api/hc/library?kind=meals");
+      const rows = ((r.body as { meals?: Meal[] }).meals) ?? [];
+      setTimeout(() => setMealLibrary(rows), 0);
+    })();
+  }, [nutritionSetup, mealLibrary, api]);
+
   // The report often lands before the plan is written; show it either way.
   const hasSomething = !!plan || !!data?.report;
 
@@ -290,7 +320,7 @@ function PlanPageInner() {
                 <div className="space-y-4 print:hidden">
                   <TodayHeader name={name} onEdit={() => setEditing(true)} />
                   {next && <AppointmentCard a={next} />}
-                  <TodayOverview api={api} plan={plan} exercise={exercise} mealPicks={personal.meal_picks} lectures={lectures}
+                  <TodayOverview api={api} plan={plan} exercise={exercise} mealPicks={personal.meal_picks} nutritionPrefs={nutritionPrefs} lectures={lectures}
                     onOpenExercise={(id) => setTab("exercise", id)} onOpenNutrition={() => setTab("nutrition")} onEdit={() => setEditing(true)} />
                   <MyActions api={api} journeyId={data.journey_id} plan={plan} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }} />
@@ -331,13 +361,21 @@ function PlanPageInner() {
               )}
               {tab === "nutrition" && plan?.nutrition && (
                 <div className="print:hidden">
-                  <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
-                    onPick={(slot, id) => {
-                      const picks = { ...personal.meal_picks };
-                      if (id) picks[slot] = id; else delete picks[slot];
-                      void savePersonal({ ...personal, meal_picks: picks }, ["meal_picks"]);
-                    }}
-                    onChangeProgram={() => setPicker("nutrition")} />
+                  {nutritionSetup ? (
+                    <NutritionWizard prefs={nutritionPrefs} signals={reportSignalsBySlug} meals={mealLibrary} saving={saving}
+                      onSave={(next) => { void saveNutrition(next); setNutritionSetup(false); }}
+                      onCancel={() => setNutritionSetup(false)} />
+                  ) : (
+                    <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
+                      prefs={nutritionPrefs} signals={reportSignalsBySlug}
+                      onPick={(slot, id) => {
+                        const picks = { ...personal.meal_picks };
+                        if (id) picks[slot] = id; else delete picks[slot];
+                        void savePersonal({ ...personal, meal_picks: picks }, ["meal_picks"]);
+                      }}
+                      onCustomise={() => setNutritionSetup(true)}
+                      onChangeProgram={() => setPicker("nutrition")} />
+                  )}
                 </div>
               )}
               {tab === "report" && data.report && (

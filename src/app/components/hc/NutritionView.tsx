@@ -6,21 +6,29 @@
 // Picks are saved to hc_training_settings.meal_picks through onPick.
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronLeft, Clock, Salad, X } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders, X } from "lucide-react";
 import { dayFor, mealName, mealsFor, mealText, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
+import { DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
+import type { Signal } from "@/lib/hc/grunnheilsa";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
-export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram }: {
+export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals }: {
   api: Api;
   nutrition: PlanNutrition;
   picks: Record<string, string>;
   onPick: (slot: MealSlot, mealId: string | null) => void;
   /** Opens the programme chooser, when the participant may change it. */
   onChangeProgram?: () => void;
+  /** What they eat — restrictions are a hard filter on the library. */
+  prefs?: NutritionPrefs;
+  /** Opens "Hvað viltu breyta?"; when given, this page stops being editable. */
+  onCustomise?: () => void;
+  /** Planning lights, for naming the emphasis the report asks for. */
+  signals?: Record<string, Signal | null>;
 }) {
   const [meals, setMeals] = useState<Meal[] | null>(() => cache.peek<{ meals: Meal[] }>("/api/hc/library?kind=meals")?.body.meals ?? null);
   const [slotOpen, setSlotOpen] = useState<MealSlot | null>(null);
@@ -33,37 +41,48 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
     })();
   }, [api]);
 
-  const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks) : null), [meals, nutrition.key, picks]);
+  const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs) : null), [meals, nutrition.key, picks, prefs]);
+  const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
   const totals = day ? SLOTS.reduce((t, s) => ({ kcal: t.kcal + (day[s]?.calories ?? 0), protein: t.protein + (day[s]?.protein ?? 0) }), { kcal: 0, protein: 0 }) : null;
 
   return (
     <div className="space-y-6">
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-lime-700 via-lime-600 to-emerald-500 p-5 text-white shadow-sm sm:p-6">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">Næringaráætlunin mín</p>
-        <h2 className="mt-1 text-2xl font-bold">{nutrition.name}</h2>
-        {nutrition.goal && <p className="mt-1 text-white/90">{nutrition.goal}</p>}
-        {nutrition.description && <p className="mt-2 max-w-2xl text-sm text-white/85">{nutrition.description}</p>}
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-          {totals && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">Dagurinn: um {totals.protein} g prótein · {totals.kcal} kkal</span>}
-          {onChangeProgram && (
-            <button type="button" onClick={onChangeProgram} className="rounded-full bg-white px-3 py-1 font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">Næringaráætlunin mín</p>
+            <h2 className="mt-1 text-2xl font-bold">{nutrition.name}</h2>
+          </div>
+          {onChangeProgram && !onCustomise && (
+            <button type="button" onClick={onChangeProgram} className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
           )}
         </div>
+        {/* The emphasis and the day's protein are what this page is for. The
+            goal sentence and the long description used to sit here too; they
+            are in the disclosure at the end now. */}
+        {emphasis.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {emphasis.slice(0, 3).map((e) => (
+              <span key={e.emphasis} className="rounded-full bg-white/20 px-3 py-1 text-sm font-semibold">{EMPHASIS_IS[e.emphasis].label}</span>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+          {totals && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">Dagurinn: um {totals.protein} g prótein · {totals.kcal} kkal</span>}
+          {!!prefs?.diet.length && (
+            <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">
+              {prefs.diet.map((k) => DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k).join(" · ")}
+            </span>
+          )}
+        </div>
+        {onCustomise && (
+          <button type="button" onClick={onCustomise}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 font-bold text-lime-800 shadow-sm transition hover:bg-lime-50">
+            <Sliders className="h-5 w-5" aria-hidden /> Breyta næringaráætluninni
+          </button>
+        )}
       </section>
 
-      {nutrition.principles.length > 0 && (
-        <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Það sem skiptir mestu</h3>
-          <ol className="mt-2 grid gap-2 sm:grid-cols-2">
-            {nutrition.principles.map((p, i) => (
-              <li key={i} className="flex gap-3 rounded-2xl border border-lime-100 bg-white p-3 shadow-sm">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lime-100 text-sm font-bold text-lime-800">{i + 1}</span>
-                <span className="text-sm text-slate-700">{p}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
 
       <section>
         <div className="flex items-baseline justify-between">
@@ -111,7 +130,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       {slotOpen && meals && (
         <Sheet title={`${SLOT_IS[slotOpen]}: veldu máltíð`} onClose={() => setSlotOpen(null)}>
           <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-            {mealsFor(meals, nutrition.key, slotOpen).slice(0, 18).map((m) => {
+            {mealsFor(meals, nutrition.key, slotOpen, prefs).slice(0, 18).map((m) => {
               const on = day?.[slotOpen]?.id === m.id;
               return (
                 <li key={m.id}>
@@ -135,6 +154,29 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       )}
 
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
+      {(nutrition.description || nutrition.goal || nutrition.principles.length > 0) && (
+        <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+          <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
+            <Info className="h-4 w-4 text-lime-700" aria-hidden />
+            Um áætlunina — það sem skiptir mestu
+            <ChevronDown className="ml-auto h-4 w-4 text-slate-400 transition group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="mt-3 space-y-4">
+            {nutrition.goal && <p className="text-sm font-medium text-slate-800">{nutrition.goal}</p>}
+            {nutrition.description && <p className="text-sm leading-relaxed text-slate-700">{nutrition.description}</p>}
+            {nutrition.principles.length > 0 && (
+              <ol className="grid gap-2 sm:grid-cols-2">
+                {nutrition.principles.map((x, i) => (
+                  <li key={i} className="flex gap-3 rounded-2xl border border-lime-100 bg-lime-50/40 p-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lime-100 text-sm font-bold text-lime-800">{i + 1}</span>
+                    <span className="text-sm text-slate-700">{x}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

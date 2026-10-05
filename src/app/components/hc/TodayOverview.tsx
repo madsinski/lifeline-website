@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Dumbbell, Pencil, Printer, Target, Utensils } from "lucide-react";
 import PillarIcon from "./PillarIcon";
 import { dayFor, mealName, SLOT_IS, SLOTS, type Meal } from "@/lib/hc/meals";
+import type { NutritionPrefs } from "@/lib/hc/nutrition";
 import { WEEKDAYS, weekdayOf, type PersonalExercise } from "@/lib/hc/personalise";
 import { PILLAR_META, type ActionPlan, type LectureRef } from "@/lib/hc/types";
 import * as cache from "@/lib/hc/client-cache";
@@ -37,11 +38,13 @@ export function TodayHeader({ name, onEdit }: { name: string | null; onEdit: () 
   );
 }
 
-export default function TodayOverview({ api, plan, exercise, mealPicks, lectures, onOpenExercise, onOpenNutrition, onEdit }: {
+export default function TodayOverview({ api, plan, exercise, mealPicks, nutritionPrefs, lectures, onOpenExercise, onOpenNutrition, onEdit }: {
   api: Api;
   plan: ActionPlan;
   exercise: PersonalExercise | null;
   mealPicks: Record<string, string>;
+  /** What they eat; restrictions are a hard filter on the meal library. */
+  nutritionPrefs?: NutritionPrefs;
   lectures: (LectureRef & { completed?: boolean })[];
   onOpenExercise: (sessionId?: string) => void;
   onOpenNutrition: () => void;
@@ -61,7 +64,9 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, lectures
   const next = exercise && !todays.length
     ? [...exercise.sessions].sort((a, b) => ((a.weekday - today + 7) % 7) - ((b.weekday - today + 7) % 7)).find((s) => s.weekday >= 0)
     : null;
-  const day = useMemo(() => (meals && plan.nutrition ? dayFor(meals, plan.nutrition.key, mealPicks) : null), [meals, plan.nutrition, mealPicks]);
+  // The same restrictions as the Næring tab: a vegetarian must not be shown a
+  // lamb casserole here either, which is the surface they actually read.
+  const day = useMemo(() => (meals && plan.nutrition ? dayFor(meals, plan.nutrition.key, mealPicks, nutritionPrefs) : null), [meals, plan.nutrition, mealPicks, nutritionPrefs]);
   const nextLecture = lectures.find((l) => !l.completed);
   const doneLectures = lectures.filter((l) => l.completed).length;
 

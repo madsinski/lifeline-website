@@ -6,10 +6,11 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { DEFAULT_TRAINING, sanitizeTraining, type TrainingSettings } from "./adaptive-program";
 import { DEFAULT_PERSONAL, sanitizePersonal, type Personal, type SwapSnapshot } from "./personalise";
+import { sanitizeNutrition, type NutritionPrefs } from "./nutrition";
 
-const COLS = "level, load_step, injuries, started_on, place, cardio, training_days, activities, program_key, days, hiit_split, swaps, meal_picks";
+const COLS = "level, load_step, injuries, started_on, place, cardio, training_days, activities, nutrition_prefs, program_key, days, hiit_split, swaps, meal_picks";
 
-type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; cardio: string | null; training_days: number[] | null; activities: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; meal_picks: Record<string, string> | null };
+type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; cardio: string | null; training_days: number[] | null; activities: unknown; nutrition_prefs: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; meal_picks: Record<string, string> | null };
 
 function personalOf(r: Row | null): Personal {
   if (!r) return DEFAULT_PERSONAL;
@@ -20,15 +21,16 @@ export async function loadTraining(journeyId: string): Promise<TrainingSettings 
   return (await loadPlanPrefs(journeyId)).settings;
 }
 
-export async function loadPlanPrefs(journeyId: string): Promise<{ settings: TrainingSettings & { saved: boolean }; personal: Personal }> {
+export async function loadPlanPrefs(journeyId: string): Promise<{ settings: TrainingSettings & { saved: boolean }; personal: Personal; nutrition: NutritionPrefs }> {
   const { data } = await supabaseAdmin.from("hc_training_settings").select(COLS).eq("journey_id", journeyId).maybeSingle<Row>();
-  if (!data) return { settings: { ...DEFAULT_TRAINING, saved: false }, personal: DEFAULT_PERSONAL };
+  if (!data) return { settings: { ...DEFAULT_TRAINING, saved: false }, personal: DEFAULT_PERSONAL, nutrition: sanitizeNutrition(null) };
   return {
     settings: { ...sanitizeTraining({
       level: data.level, load: data.load_step, injuries: data.injuries, started_on: data.started_on,
       place: data.place, cardio: data.cardio, days: data.training_days, activities: data.activities,
     }), saved: true },
     personal: personalOf(data),
+    nutrition: sanitizeNutrition(data.nutrition_prefs),
   };
 }
 
@@ -50,7 +52,7 @@ async function snapshots(ids: string[]): Promise<Map<string, SwapSnapshot>> {
  * load/injuries are sent, personal fields when days/swaps/… are sent. The
  * first save sets the start date to today unless one is given.
  */
-export async function saveTraining(journeyId: string, clientId: string, body: Record<string, unknown>, by: string): Promise<{ settings: TrainingSettings & { saved: boolean }; personal: Personal }> {
+export async function saveTraining(journeyId: string, clientId: string, body: Record<string, unknown>, by: string): Promise<{ settings: TrainingSettings & { saved: boolean }; personal: Personal; nutrition: NutritionPrefs }> {
   const prev = await loadPlanPrefs(journeyId);
   const row: Record<string, unknown> = { journey_id: journeyId, client_id: clientId, updated_by: by, updated_at: new Date().toISOString() };
 
@@ -86,7 +88,10 @@ export async function saveTraining(journeyId: string, clientId: string, body: Re
   }
   Object.assign(row, personal);
 
+  const nutrition = "nutrition_prefs" in body ? sanitizeNutrition(body.nutrition_prefs) : prev.nutrition;
+  row.nutrition_prefs = nutrition;
+
   const { error } = await supabaseAdmin.from("hc_training_settings").upsert(row, { onConflict: "journey_id" });
   if (error) throw new Error(error.message);
-  return { settings: { ...s, started_on, saved: true }, personal };
+  return { settings: { ...s, started_on, saved: true }, personal, nutrition };
 }
