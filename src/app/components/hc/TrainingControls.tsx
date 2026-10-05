@@ -5,14 +5,17 @@
 // control and injured areas. Used on /account/heilsuferd/aaetlun (participant)
 // and in the workstation (nurse, same row). Read-only without onChange.
 
-import { LOAD_IS, REGION_IS, REGIONS, injuryNotes, stageAt, type Region, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { CARDIO_IS, LOAD_IS, PLACE_IS, REGION_IS, REGIONS, injuryNotes, stageAt, type Region, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { WEEKDAYS_SHORT } from "@/lib/hc/personalise";
 
-export default function TrainingControls({ settings, planStart, onChange, saving, who = "participant" }: {
+export default function TrainingControls({ settings, planStart, onChange, saving, who = "participant", onSetup }: {
   settings: TrainingSettings;
   planStart: string | null;
   onChange?: (s: TrainingSettings) => void;
   saving?: boolean;
   who?: "participant" | "nurse";
+  /** Reopen the setup questions (where, days, adaptation, limitations). */
+  onSetup?: () => void;
 }) {
   const st = stageAt(settings, planStart);
   const edit = !!onChange;
@@ -39,6 +42,29 @@ export default function TrainingControls({ settings, planStart, onChange, saving
           ))}
         </div>
         <p className="mt-3 text-sm text-slate-600">{st.text}</p>
+      </div>
+
+      {/* The practical setup, as answered in the wizard. Shown rather than
+          re-asked: the level/load/injury dials below are the day-to-day ones. */}
+      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 sm:p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-sm font-semibold text-slate-800">Uppsetningin þín</p>
+          {onSetup && <button type="button" onClick={onSetup} className="text-sm font-semibold text-orange-700 underline hover:text-orange-900">Breyta uppsetningu</button>}
+        </div>
+        <dl className="mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hvar</dt>
+            <dd className="text-slate-900">{PLACE_IS[settings.place].label}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dagar</dt>
+            <dd className="text-slate-900">{settings.days.map((d) => WEEKDAYS_SHORT[d]).join(", ")}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Þol</dt>
+            <dd className="text-slate-900">{CARDIO_IS[settings.cardio].label}</dd>
+          </div>
+        </dl>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

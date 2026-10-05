@@ -21,7 +21,18 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
   const journeyId = await ownJourney(req, user.id);
   if (!journeyId) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  return NextResponse.json(await loadPlanPrefs(journeyId));
+  const prefs = await loadPlanPrefs(journeyId);
+  // The gym behind their location, for the "í hóptímum" branch of the setup.
+  // A name and a link to the gym's own live timetable — never a copy of it.
+  const { data: loc } = await supabaseAdmin
+    .from("hc_journeys").select("hc_locations(gym_name, gym_url, gym_info)")
+    .eq("id", journeyId).maybeSingle<{ hc_locations: { gym_name: string | null; gym_url: string | null; gym_info: string | null } | null }>();
+  return NextResponse.json({
+    ...prefs,
+    gym: loc?.hc_locations
+      ? { name: loc.hc_locations.gym_name, url: loc.hc_locations.gym_url, info: loc.hc_locations.gym_info }
+      : null,
+  });
 }
 
 export async function POST(req: NextRequest) {

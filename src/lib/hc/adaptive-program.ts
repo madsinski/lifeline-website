@@ -20,6 +20,30 @@ import { PROGRAM_MEDIA } from "./adaptive-program-media";
 export type Region = "shoulder" | "knee" | "back";
 export type TrainingLevel = "beginner" | "active";
 
+/** Where the week actually happens. Changes which equipment the plan assumes. */
+export type Place = "gym" | "class" | "home";
+export const PLACES: Place[] = ["gym", "class", "home"];
+export const PLACE_IS: Record<Place, { label: string; hint: string }> = {
+  gym: { label: "Í ræktinni", hint: "Þú ferð sjálf(ur) í tækjasal með lóð og tæki." },
+  class: { label: "Í hóptímum", hint: "Þú mætir í tíma hjá þjálfara og fylgir tímaplaninu." },
+  home: { label: "Heima", hint: "Engin tæki — eigin líkamsþyngd, teygjur og það sem til er." },
+};
+
+/**
+ * How much hard cardio the body tolerates right now.
+ *
+ * HIIT is the goal for everyone — it is the single best lever on þol and
+ * efnaskipti — but it is earned, not assumed. "limited" keeps the week at
+ * Zone 2 until a doctor says otherwise; "easy" builds up through gentler
+ * intervals; "full" gets the real thing once the adaptation block is done.
+ */
+export type CardioLimit = "full" | "easy" | "limited";
+export const CARDIO_IS: Record<CardioLimit, { label: string; hint: string }> = {
+  full: { label: "Engar takmarkanir", hint: "Þú mátt taka á því." },
+  easy: { label: "Fer rólega af stað", hint: "Mæði, verkur eða lítil þjálfun síðustu mánuði. Byrjum mildar." },
+  limited: { label: "Má ekki taka hart á því", hint: "Hjartavandi, mikil mæði eða læknisráð um að fara varlega. Aðeins rólegt þol þar til annað kemur í ljós." },
+};
+
 export interface TrainingSettings {
   level: TrainingLevel;
   /** −2 … +2 */
@@ -27,9 +51,19 @@ export interface TrainingSettings {
   injuries: Region[];
   /** First training day; the stage is counted from here (else the plan start). */
   started_on: string | null;
+  place: Place;
+  cardio: CardioLimit;
+  /** Weekdays the participant can train, Monday-first 0–6. */
+  days: number[];
 }
 
-export const DEFAULT_TRAINING: TrainingSettings = { level: "beginner", load: 0, injuries: [], started_on: null };
+/** Monday, Wednesday, Friday until they say otherwise. */
+export const DEFAULT_DAYS = [0, 2, 4];
+
+export const DEFAULT_TRAINING: TrainingSettings = {
+  level: "beginner", load: 0, injuries: [], started_on: null,
+  place: "gym", cardio: "full", days: DEFAULT_DAYS,
+};
 
 export const REGION_IS: Record<Region, { label: string; gen: string }> = {
   shoulder: { label: "Öxl", gen: "axlar" },
@@ -148,6 +182,8 @@ interface Slot {
   /** areas the movement loads */
   loads: Region[];
   byStage: Record<StageKey, Variant>;
+  /** The same pattern with nothing but bodyweight, a band and a heavy bag. */
+  atHome: Record<StageKey, Variant>;
   /** the variant that spares an injured area */
   spare: Partial<Record<Region, Variant>>;
   /** timed hold instead of reps, e.g. plank */
@@ -163,6 +199,12 @@ const SQUAT: Slot = {
     s2: { name: "Bikarhnébeygja, þyngri ketilbjalla", lib: "Goblet Squat" },
     s3: { name: "Hnébeygja með stöng", lib: "Barbell Full Squat" },
   },
+  atHome: {
+    adapt: { name: "Hnébeygja niður á stól", lib: "Box Squat" },
+    s1: { name: "Hnébeygja með eigin líkamsþyngd", lib: "Bodyweight Squat" },
+    s2: { name: "Hnébeygja með bakpoka eða þyngd í fangi", lib: "Goblet Squat", note: "Bakpoki með bókum eða vatnsbrúsum dugar vel." },
+    s3: { name: "Búlgörsk hnébeygja með þyngd", lib: "Bulgarian Split Squat", note: "Aftari fótur upp á stól." },
+  },
   spare: {
     knee: { name: "Hnébeygja niður á háan kassa", lib: "Box Squat", note: "Styttri hreyfiferill sem minnkar álag á hnén. Hærri kassi, minna álag." },
     back: { name: "Fótapressa í tæki", lib: "Leg Press", note: "Bakið er stutt. Í stað hnébeygju vegna baks." },
@@ -177,6 +219,12 @@ const HINGE: Slot = {
     s2: { name: "Réttstöðulyfta með ketilbjöllu eða hex-stöng", lib: "Conventional Deadlift" },
     s3: { name: "Réttstöðulyfta með stöng", lib: "Barbell Deadlift" },
   },
+  atHome: {
+    adapt: { name: "Mjaðmalyfta á gólfi", lib: "Glute Bridges" },
+    s1: { name: "Mjaðmalyfta á öðrum fæti", lib: "Single Leg Glute Bridge" },
+    s2: { name: "Rúmensk réttstöðulyfta með teygju", lib: "Romanian Deadlift" },
+    s3: { name: "Réttstöðulyfta á öðrum fæti með þyngd", lib: "Single Leg Deadlift" },
+  },
   spare: {
     back: { name: "Mjaðmalyfta með lóð", lib: "Hip Thrust", note: "Í stað réttstöðulyftu vegna baks." },
   },
@@ -189,6 +237,12 @@ const LUNGE: Slot = {
     s1: { name: "Afturstig", lib: "Reverse Lunge" },
     s2: { name: "Afturstig með handlóðum", lib: "Reverse Lunge" },
     s3: { name: "Búlgörsk hnébeygja", lib: "Bulgarian Split Squat" },
+  },
+  atHome: {
+    adapt: { name: "Afturstig með stuðningi við vegg", lib: "Reverse Lunge" },
+    s1: { name: "Afturstig", lib: "Reverse Lunge" },
+    s2: { name: "Afturstig með bakpoka", lib: "Reverse Lunge" },
+    s3: { name: "Uppstig á stól með þyngd", lib: "Step-up" },
   },
   spare: {
     knee: { name: "Mjaðmalyfta á öðrum fæti", lib: "Single Leg Glute Bridge", note: "Í stað framstigs vegna hnés." },
@@ -203,6 +257,12 @@ const PUSH: Slot = {
     s2: { name: "Bekkpressa með handlóðum", lib: "Dumbbell Bench Press" },
     s3: { name: "Bekkpressa með stöng", lib: "Barbell Bench Press - Medium Grip" },
   },
+  atHome: {
+    adapt: { name: "Armbeygjur upp við vegg", lib: "Standard Push-Up", note: "Því hærra sem hendurnar eru, því léttara." },
+    s1: { name: "Armbeygjur á hnjám eða upp við borð", lib: "Standard Push-Up" },
+    s2: { name: "Armbeygjur á gólfi", lib: "Standard Push-Up" },
+    s3: { name: "Armbeygjur með fætur upp á stól", lib: "Decline Push-Up" },
+  },
   spare: {
     shoulder: { name: "Gólfpressa með handlóðum, hlutlaust grip", lib: "Dumbbell Floor Press", note: "Styttri hreyfiferill sem hlífir öxlinni." },
   },
@@ -215,6 +275,12 @@ const PULL: Slot = {
     s1: { name: "Róður með handlóð á bekk", lib: "Dumbbell Single-Arm Row" },
     s2: { name: "Sitjandi róður í kapli", lib: "Seated Cable Row" },
     s3: { name: "Róður með stöng", lib: "Pendlay Row" },
+  },
+  atHome: {
+    adapt: { name: "Róður með teygju, sitjandi", lib: "Seated Cable Row" },
+    s1: { name: "Róður með teygju", lib: "Seated Cable Row" },
+    s2: { name: "Róður með bakpoka, annar handleggur", lib: "Dumbbell Single-Arm Row", note: "Styðjið hina höndina á stól." },
+    s3: { name: "Öfugur róður undir traustu borði", lib: "Inverted Row", note: "Því láréttari sem líkaminn er, því þyngra." },
   },
   spare: {
     back: { name: "Sitjandi róður í tæki með brjóststuðningi", lib: "Seated Cable Row", note: "Bakið er stutt. Í stað frambeygðs róðurs vegna baks." },
@@ -229,6 +295,12 @@ const PRESS: Slot = {
     s2: { name: "Axlapressa standandi með handlóðum", lib: "Dumbbell One-Arm Shoulder Press" },
     s3: { name: "Axlapressa með stöng", lib: "Barbell Overhead Press" },
   },
+  atHome: {
+    adapt: { name: "Axlapressa með teygju, sitjandi", lib: "Seated Dumbbell Shoulder Press" },
+    s1: { name: "Axlapressa með teygju", lib: "Band Shoulder Press" },
+    s2: { name: "Axlapressa með bakpoka", lib: "Dumbbell One-Arm Shoulder Press" },
+    s3: { name: "Pike-armbeygjur", lib: "Pike Push-Up", note: "Mjaðmir hátt, höfuðið niður á milli handanna." },
+  },
   spare: {
     shoulder: { name: "Teygjusundurdráttur", lib: "Band Pull-Aparts", note: "Styrkir aftanverða öxlina án þess að lyfta yfir höfuð." },
     back: { name: "Axlapressa sitjandi með bakstuðningi", lib: "Seated Dumbbell Shoulder Press", note: "Bakið er stutt." },
@@ -239,6 +311,12 @@ const CORE: Slot = {
   loads: ["shoulder", "back"],
   hold: true,
   byStage: {
+    adapt: { name: "Planki á hnjám", lib: "Front Plank" },
+    s1: { name: "Planki", lib: "Plank" },
+    s2: { name: "Hliðarplanki", lib: "Side Plank" },
+    s3: { name: "Planki með axlasnertingu", lib: "Plank" },
+  },
+  atHome: {
     adapt: { name: "Planki á hnjám", lib: "Front Plank" },
     s1: { name: "Planki", lib: "Plank" },
     s2: { name: "Hliðarplanki", lib: "Side Plank" },
@@ -259,6 +337,12 @@ const CARRY: Slot = {
     s2: { name: "Bændaganga, þyngri", lib: "Farmer's Walk" },
     s3: { name: "Bændaganga, þung", lib: "Farmer's Walk" },
   },
+  atHome: {
+    adapt: { name: "Bændaganga með innkaupapoka", lib: "Farmer's Walk" },
+    s1: { name: "Bændaganga með bakpoka í annarri hendi", lib: "Farmer's Walk" },
+    s2: { name: "Bændaganga, þyngri poki", lib: "Farmer's Walk" },
+    s3: { name: "Bændaganga, þung, lengri vegalengd", lib: "Farmer's Walk" },
+  },
   spare: {
     back: { name: "Pallof-pressa með teygju", lib: "Pallof Press", note: "Styrkir kviðinn án þyngdar á hryggnum." },
     shoulder: { name: "Pallof-pressa með teygju", lib: "Pallof Press", note: "Létt fyrir axlirnar." },
@@ -267,8 +351,14 @@ const CARRY: Slot = {
 };
 
 // ── HIIT ───────────────────────────────────────────────────────────
-function hiitMode(injuries: Region[]): { mode: string; note: string | null } {
+function hiitMode(injuries: Region[], place: Place = "gym"): { mode: string; note: string | null } {
   const k = injuries.includes("knee"), b = injuries.includes("back"), s = injuries.includes("shoulder");
+  // Nothing that needs a machine when the machine is not there.
+  if (place === "home") {
+    if (k) return { mode: "Rösk ganga upp brekku eða þrep", note: "Engin hlaup eða stökk vegna hnés." };
+    if (b) return { mode: "Rösk ganga upp brekku", note: "Engin stökk vegna baks." };
+    return { mode: "Rösk ganga eða skokk upp brekku, þrepaganga", note: null };
+  }
   if (k && (b || s)) return { mode: "Þrekhjól með hóflegri mótstöðu", note: "Engin hlaup, stökk eða róðravél vegna meiðsla." };
   if (k) return { mode: "Þrekhjól, sund eða skíðavél", note: "Engin hlaup eða stökk vegna hnés." };
   if (b) return { mode: "Þrekhjól eða rösk ganga upp brekku", note: "Ekki róðravél eða stökk vegna baks." };
@@ -288,7 +378,9 @@ function rirText(rir: number): string {
 
 function strengthItem(slot: Slot, st: Stage, s: TrainingSettings): ExerciseItem {
   const injured = slot.loads.find((r) => s.injuries.includes(r) && slot.spare[r]);
-  const v = injured ? slot.spare[injured]! : slot.byStage[st.key];
+  // An injury swap wins over the place: sparing the joint matters more than
+  // matching the equipment, and every spare variant is doable at home.
+  const v = injured ? slot.spare[injured]! : s.place === "home" ? slot.atHome[st.key] : slot.byStage[st.key];
   // An injury swap also takes the load down a notch for that exercise.
   const load = clamp(s.load - (injured ? 1 : 0), -2, 2);
   const sets = clamp(st.sets + (load >= 2 ? 1 : 0) - (load <= -2 ? 1 : 0), 1, 5);
@@ -313,7 +405,7 @@ function strengthItem(slot: Slot, st: Stage, s: TrainingSettings): ExerciseItem 
 function hiitItem(st: Stage, s: TrainingSettings, extra = 0): ExerciseItem {
   // 10–20 minutes: never more than 20 minutes of intervals.
   const rounds = clamp(st.hiit.rounds + extra + s.load * 2, 4, Math.floor((20 * 60) / (st.hiit.work + st.hiit.rest)));
-  const { mode, note } = hiitMode(s.injuries);
+  const { mode, note } = hiitMode(s.injuries, s.place);
   const min = Math.round((rounds * (st.hiit.work + st.hiit.rest)) / 60);
   return {
     name: `HIIT: ${mode}`,
@@ -340,15 +432,141 @@ const WARMUP: ExerciseItem = {
   block: "warmup",
 };
 
+// ── Zone 2 ─────────────────────────────────────────────────────────
+/** Easy aerobic work: the base everything else is built on. */
+function zone2Item(st: Stage, s: TrainingSettings): ExerciseItem {
+  const { mode } = hiitMode(s.injuries, s.place);
+  const minutes = st.key === "adapt" ? 30 : st.key === "s1" ? 35 : st.key === "s2" ? 40 : 45;
+  return {
+    name: `Zone 2: ${mode.split(",")[0].trim().toLowerCase()}`,
+    prescription: `${clamp(minutes + s.load * 5, 20, 60)} mín. á jöfnum, rólegum hraða`,
+    note: "Þú átt að geta haldið uppi samtali allan tímann. Ef þú nærð ekki að tala í heilum setningum ertu að fara of hratt.",
+    muscles: [],
+    cues: ["Jafn hraði allan tímann — engar lotur.", "Neföndun ef þú getur; það heldur þér á réttum stað."],
+    rest: null,
+    block: "main",
+  };
+}
+
+/**
+ * Is hard interval work on the table yet?
+ *
+ * Not during the adaptation block — tendons are still catching up — and not
+ * at all while cardio is "limited". Everyone else gets it, which is the
+ * point: HIIT is the goal, reached when the body is ready for it.
+ */
+export function hiitState(s: TrainingSettings, st: Stage): { on: boolean; why: string | null } {
+  if (s.cardio === "limited") return { on: false, why: "HIIT bíður þar til læknir gefur grænt ljós. Rólegt þol byggir undir það." };
+  if (st.key === "adapt") return { on: false, why: "HIIT bætist við eftir aðlögunina — fyrst venjast sinar og vöðvar álaginu." };
+  return { on: true, why: null };
+}
+
+const dayName = (weekday: number) => WEEKDAY_NAMES[((weekday % 7) + 7) % 7];
+const WEEKDAY_NAMES = ["Mánudagur", "Þriðjudagur", "Miðvikudagur", "Fimmtudagur", "Föstudagur", "Laugardagur", "Sunnudagur"];
+
+/**
+ * The core week: two whole-body strength sessions and the rest aerobic.
+ *
+ * One programme, not ten. Two whole-body days beat a three-way split at this
+ * dose — every movement pattern gets trained twice a week, and missing one
+ * session costs half a week rather than a whole muscle group. Zone 2 fills
+ * the remaining days they said they could train, and HIIT replaces one of
+ * those once it has been earned.
+ */
 export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[] {
   const it = (slot: Slot) => strengthItem(slot, st, s);
-  const hiitMin = (extra: number) => Math.min(20, ((st.hiit.rounds + extra + s.load * 2) * (st.hiit.work + st.hiit.rest)) / 60);
-  const minutes = (n: number, extra = 0) => Math.round(5 + n * st.sets * 2.5 + hiitMin(extra));
-  return [
-    { day: "Mánudagur", title: "Fætur og kviður", focus: "Styrkur og HIIT", minutes: minutes(4), items: [WARMUP, it(SQUAT), it(HINGE), it(LUNGE), it(CORE), hiitItem(st, s)] },
-    { day: "Miðvikudagur", title: "Efri líkami", focus: "Styrkur og HIIT", minutes: minutes(4), items: [WARMUP, it(PUSH), it(PULL), it(PRESS), it(CARRY), hiitItem(st, s)] },
-    { day: "Föstudagur", title: "Allur líkaminn", focus: "Styrkur og lengri HIIT", minutes: minutes(4, 2), items: [WARMUP, it(HINGE), it(SQUAT), it(PUSH), it(PULL), hiitItem(st, s, 2)] },
-  ];
+  const strengthMinutes = Math.round(5 + 4 * st.sets * 2.5);
+  const hiit = hiitState(s, st);
+
+  // Spread the two strength days as far apart as the chosen days allow.
+  const days = s.days.length >= 2 ? s.days : DEFAULT_DAYS;
+  const first = 0;
+  const second = Math.min(days.length - 1, Math.round((days.length - 1) / 2) + (days.length > 3 ? 1 : 0));
+  const strengthAt = new Set([days[first], days[second === first ? days.length - 1 : second]]);
+
+  const out: ExerciseSession[] = [];
+  let aerobic = 0;
+  for (const d of days) {
+    if (strengthAt.has(d)) {
+      // Whole body, twice a week: the two halves alternate the emphasis but
+      // both cover legs, push, pull and trunk.
+      const aSession = out.every((x) => x.title !== "Allur líkaminn — A");
+      out.push(aSession
+        ? { day: dayName(d), title: "Allur líkaminn — A", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(SQUAT), it(PUSH), it(PULL), it(CORE)] }
+        : { day: dayName(d), title: "Allur líkaminn — B", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(HINGE), it(PRESS), it(LUNGE), it(CARRY)] });
+    } else {
+      // The first aerobic day is the hard one once HIIT is earned.
+      const useHiit = hiit.on && aerobic === 0;
+      aerobic++;
+      out.push(useHiit
+        ? { day: dayName(d), title: "HIIT", focus: "Þol á fullu", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
+        : { day: dayName(d), title: "Zone 2", focus: "Rólegt þol", minutes: 45, items: [zone2Item(st, s)] });
+    }
+  }
+  // Two available days means both are strength days and the aerobic base
+  // would vanish — but Zone 2 is half the core and needs no gym slot. It
+  // goes on the end of the second session instead of being dropped.
+  if (aerobic === 0 && out.length > 0) {
+    const lastDay = out[out.length - 1];
+    lastDay.items = [...lastDay.items, { ...zone2Item(st, s), block: "finisher" }];
+    lastDay.minutes = (lastDay.minutes ?? 0) + 30;
+    lastDay.focus = "Styrkur og rólegt þol";
+  }
+  return s.place === "class" ? out.map((x) => asClass(x, st, s)) : out;
+}
+
+/** What to look for on the timetable, by what the session is for. */
+export const CLASS_KINDS = {
+  strength: { title: "Styrktartími", look: ["Lyftingar", "Styrkur", "Functional", "Body Pump"] },
+  hiit: { title: "Brennslutími", look: ["HIIT", "Tabata", "Spinning", "Þrek"] },
+  zone2: { title: "Rólegur tími eða eigin þolæfing", look: ["Hjólatími á lágum styrk", "Jóga-flæði", "Rösk ganga"] },
+} as const;
+
+/**
+ * The same week, delivered as classes.
+ *
+ * A class-goer does not pick their own exercises, so prescribing eight of
+ * them is noise. What they need is which class on the timetable does the job
+ * and what to tell the instructor — the stage, the load and the injuries are
+ * exactly that.
+ */
+function asClass(x: ExerciseSession, st: Stage, s: TrainingSettings): ExerciseSession {
+  const kind = x.title.startsWith("Allur") ? CLASS_KINDS.strength : x.title === "HIIT" ? CLASS_KINDS.hiit : CLASS_KINDS.zone2;
+  const spare = s.injuries.map((r) => REGION_IS[r].label.toLowerCase());
+  return {
+    ...x,
+    title: kind.title,
+    focus: x.focus,
+    items: [{
+      name: kind.title,
+      prescription: `Leitaðu að: ${kind.look.join(", ")}`,
+      note: [
+        `Þú ert á ${st.title.toLowerCase()}.`,
+        s.load !== 0 ? `Þú hefur stillt álagið á „${LOAD_IS[s.load].toLowerCase()}“.` : null,
+        spare.length ? `Segðu þjálfaranum frá: ${spare.join(", ")}.` : null,
+        "Ef tíminn er fullbókaður eða fellur niður, taktu æfinguna sjálf(ur) í tækjasalnum.",
+      ].filter(Boolean).join(" "),
+      muscles: [],
+      cues: x.items.flatMap((i) => i.cues ?? []).slice(0, 2),
+      rest: null,
+      block: "main",
+    }],
+  };
+}
+
+/**
+ * The week these settings produce right now, for showing someone the result
+ * before they commit to it. STAGES stays private: callers have no business
+ * assembling a Stage by hand.
+ */
+export function previewWeek(s: TrainingSettings, planStart: string | null, now = new Date()): {
+  sessions: ExerciseSession[];
+  stage: StageInfo;
+  hiit: { on: boolean; why: string | null };
+} {
+  const stage = stageAt(s, planStart, now);
+  const st = STAGES[stage.key];
+  return { sessions: buildSessions(s, st), stage, hiit: hiitState(s, st) };
 }
 
 /** Which exercises were swapped for an injury, for the "adapted for you" note. */
@@ -370,17 +588,22 @@ export function adaptExercise(e: PlanExercise, s: TrainingSettings, planStart: s
   return {
     ...e,
     level,
-    days_per_week: 3,
+    days_per_week: s.days.length,
     session_minutes: Math.round(sessions.reduce((n, x) => n + (x.minutes ?? 0), 0) / sessions.length),
     sessions,
     progression: stagePhases(s.level),
   };
 }
 
-export function sanitizeTraining(b: Record<string, unknown>): Omit<TrainingSettings, "started_on"> & { started_on: string | null } {
+export function sanitizeTraining(b: Record<string, unknown>): TrainingSettings {
   const level: TrainingLevel = b.level === "active" ? "active" : "beginner";
   const load = clamp(Math.round(Number(b.load) || 0), -2, 2);
   const injuries = (Array.isArray(b.injuries) ? b.injuries : []).filter((r): r is Region => (REGIONS as unknown[]).includes(r));
   const started_on = typeof b.started_on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.started_on) ? b.started_on : null;
-  return { level, load, injuries: [...new Set(injuries)], started_on };
+  const place: Place = PLACES.includes(b.place as Place) ? (b.place as Place) : "gym";
+  const cardio: CardioLimit = b.cardio === "easy" || b.cardio === "limited" ? b.cardio : "full";
+  // At least two days, or there is no programme to lay out.
+  const picked = [...new Set((Array.isArray(b.days) ? b.days : []).map((d) => Math.round(Number(d))).filter((d) => d >= 0 && d <= 6))].sort((x, y) => x - y);
+  const days = picked.length >= 2 ? picked : DEFAULT_DAYS;
+  return { level, load, injuries: [...new Set(injuries)], started_on, place, cardio, days };
 }

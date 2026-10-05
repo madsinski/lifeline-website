@@ -11,7 +11,7 @@
 import EmptyState from "@/app/components/hc/EmptyState";
 import BackLink from "@/app/components/hc/BackLink";
 import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
@@ -35,6 +35,7 @@ import { peek } from "@/lib/hc/client-cache";
 import { Pencil } from "lucide-react";
 import TrainingView from "@/app/components/hc/TrainingView";
 import TrainingControls from "@/app/components/hc/TrainingControls";
+import TrainingWizard from "@/app/components/hc/TrainingWizard";
 import NutritionView from "@/app/components/hc/NutritionView";
 import ProgramPicker from "@/app/components/hc/ProgramPicker";
 import TodayOverview, { TodayHeader } from "@/app/components/hc/TodayOverview";
@@ -97,6 +98,10 @@ function PlanPageInner() {
   const [appointments, setAppointments] = useState<Upcoming[]>([]);
   const [training, setTraining] = useState<TrainingSettings>(DEFAULT_TRAINING);
   const [personal, setPersonal] = useState<Personal>(DEFAULT_PERSONAL);
+  const [gym, setGym] = useState<{ name: string | null; url: string | null; info: string | null } | null>(null);
+  // The setup wizard: opened on demand, and by itself the first time, when
+  // the programme is still running on defaults nobody has confirmed.
+  const [setup, setSetup] = useState(false);
   const [picker, setPicker] = useState<"exercise" | "nutrition" | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -124,6 +129,8 @@ function PlanPageInner() {
       setAppointments((pj.appointments as Upcoming[]) ?? []);
       if (tj?.settings) setTraining(tj.settings as TrainingSettings);
       if (tj?.personal) setPersonal(tj.personal as Personal);
+      if (tj?.gym !== undefined) setGym(tj.gym as typeof gym);
+      if (tj?.settings && !(tj.settings as { saved?: boolean }).saved) setSetup(true);
       const loaded = aOk ? {
         journey_id: aj.journey_id as string, plan: pj.plan ?? aj.plan ?? null,
         logs: (aj.logs as ActionLog[]) ?? [], prefs: (aj.prefs as ActionPref[]) ?? [], flagged: (aj.flagged as FlaggedValue[]) ?? [],
@@ -209,6 +216,22 @@ function PlanPageInner() {
     setSaving(false);
     if (r.ok && j.settings) setTraining(j.settings); else setTraining(prev);
   };
+  // The report's traffic lights keyed by hc_knowledge slug rather than by row
+  // key, which is what the training hints look things up by. Built here
+  // because the report is already on the page; no extra request.
+  const reportSignalsBySlug = useMemo(() => {
+    const out: Record<string, ReportSignal | null> = {};
+    for (const item of data?.report?.report.items ?? []) {
+      if (item.slug) out[item.slug] = data?.report?.signals[item.key] ?? null;
+    }
+    return out;
+  }, [data]);
+  const reportTitlesBySlug = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const item of data?.report?.report.items ?? []) if (item.slug) out[item.slug] = item.title;
+    return out;
+  }, [data]);
+
   // The report often lands before the plan is written; show it either way.
   const hasSomething = !!plan || !!data?.report;
 
@@ -274,10 +297,20 @@ function PlanPageInner() {
               )}
               {tab === "exercise" && plan && baseExercise && (
                 <div className="print:hidden">
-                  <TrainingView api={api} exercise={baseExercise} personal={personal}
-                    onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
-                    onChangeProgram={() => setPicker("exercise")}
-                    controls={isAdaptive(plan.exercise?.key) ? <TrainingControls settings={training} planStart={plan.start_date} onChange={saveTraining} saving={saving} /> : null} />
+                  {setup && isAdaptive(plan.exercise?.key) ? (
+                    <TrainingWizard
+                      settings={training} planStart={plan.start_date}
+                      signals={reportSignalsBySlug} titles={reportTitlesBySlug} gym={gym} saving={saving}
+                      onSave={(next) => { void saveTraining(next); setSetup(false); }}
+                      onCancel={() => setSetup(false)} />
+                  ) : (
+                    <TrainingView api={api} exercise={baseExercise} personal={personal}
+                      onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
+                      onChangeProgram={() => setPicker("exercise")}
+                      controls={isAdaptive(plan.exercise?.key)
+                        ? <TrainingControls settings={training} planStart={plan.start_date} onChange={saveTraining} saving={saving} onSetup={() => setSetup(true)} />
+                        : null} />
+                  )}
                 </div>
               )}
               {tab === "nutrition" && plan?.nutrition && (
