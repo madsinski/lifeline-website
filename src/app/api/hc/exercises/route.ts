@@ -1,11 +1,21 @@
-// Exercise library search for the plan builder (/vinnustod + /admin/coach/plans).
-// Reads the same `exercises` table that /admin/content manages.
-// GET ?q=&category=&equipment=&best=1&limit=
-// Actor: workstation session or Lifeline staff.
+// Exercise library search.
+//
+// Used by the plan builder (/vinnustod + /admin/coach/plans) and by the
+// participant's own swap wizard on /account/heilsuferd/aaetlun. Reads the
+// same `exercises` table that /admin/content manages.
+//
+// GET ?q=&category=&equipment=&muscles=&best=1&limit=
+//
+// Actor: workstation session, Lifeline staff, or a signed-in participant.
+// The library is generic reference material — exercise names, pictures and
+// which muscles they train — with nothing about any person in it, so a
+// participant reading it discloses nothing. Gating it to staff meant the
+// swap feature could not work for the people it is for.
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getHcActor } from "@/lib/hc/ws-auth";
+import { getUserFromRequest } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -15,7 +25,7 @@ const CATEGORIES = ["legs", "back", "chest", "shoulders", "arms", "core", "full-
 const EQUIPMENT = ["bodyweight", "dumbbells", "kettlebell", "bands", "barbell", "cables", "machine", "other", "none"];
 
 export async function GET(req: NextRequest) {
-  const actor = await getHcActor(req);
+  const actor = (await getHcActor(req)) ?? (await getUserFromRequest(req));
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const sp = req.nextUrl.searchParams;
   const q = (sp.get("q") || "").trim().slice(0, 60).replace(/[%,()*]/g, " ");
