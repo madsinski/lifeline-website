@@ -14,7 +14,7 @@
 import { createHash } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import * as G from "@/lib/google-calendar";
-import { clientAppointments, workerAppointments, windowStart, type CalItem } from "./appointments";
+import { clientAppointments, trainingCommitments, workerAppointments, windowStart, type CalItem } from "./appointments";
 
 export type OwnerKind = G.CalendarOwnerKind;
 
@@ -39,7 +39,10 @@ export interface GoogleSyncRow {
 
 export interface SyncResult { skipped?: string; written?: number; removed?: number; error?: string }
 
-const itemsFor = (kind: OwnerKind, id: string) => (kind === "client" ? clientAppointments(id) : workerAppointments(id));
+const itemsFor = async (kind: OwnerKind, id: string) =>
+  kind === "client"
+    ? [...(await clientAppointments(id)), ...(await trainingCommitments(id))]
+    : workerAppointments(id);
 
 function hashOf(i: CalItem): string {
   return createHash("sha256")
@@ -58,6 +61,7 @@ function bodyOf(i: CalItem) {
     reminders: i.reminderMinutes
       ? { useDefault: false, overrides: [{ method: "popup", minutes: i.reminderMinutes }] }
       : { useDefault: false },
+    ...(i.recurrence ? { recurrence: i.recurrence } : {}),
     extendedProperties: { private: { lifelineItem: i.id } },
     ...(i.inviteEmail ? { attendees: [{ email: i.inviteEmail }], guestsCanModify: false, guestsCanInviteOthers: false } : {}),
   };

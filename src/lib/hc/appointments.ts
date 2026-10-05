@@ -8,7 +8,9 @@
 // health information, and it lives in a third party's calendar.
 
 import { FASTING_IS, MEASURE_IS } from "./logistics";
+import { createHash } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sanitizeActivities } from "./adaptive-program";
 
 export interface CalItem {
   /** Stable, Google-safe id (base32hex: 0-9 a-v), derived from journey + kind. */
@@ -19,6 +21,12 @@ export interface CalItem {
   description: string;
   location: string | null;
   reminderMinutes: number | null;
+  /**
+   * An RRULE for things that happen every week — training that is pinned to
+   * a place and an hour. One recurring event beats a hundred copies, and it
+   * is what a calendar is for.
+   */
+  recurrence?: string[];
   /**
    * Ask Google to mint a Meet link for this event and write it back to the
    * journey. Set only on the interviewer's own copy: the same interview is on
@@ -42,6 +50,16 @@ type Kind = "blood" | "measure" | "interview" | "followup";
 // Suffixes restricted to base32hex so Google accepts the id as-is.
 const SUFFIX: Record<Kind, string> = { blood: "a0", measure: "a1", interview: "a2", followup: "a3" };
 export const itemId = (journeyId: string, kind: Kind) => `${journeyId.replace(/-/g, "")}${SUFFIX[kind]}`;
+
+/**
+ * The same, for a weekly training commitment.
+ *
+ * Activity ids are base36 and Google only accepts base32hex (0-9, a-v) in an
+ * event id, so the id is hashed to hex — every character of which is legal —
+ * rather than passed through and rejected.
+ */
+export const activityItemId = (journeyId: string, activityId: string) =>
+  `${journeyId.replace(/-/g, "")}b${createHash("sha1").update(activityId).digest("hex").slice(0, 10)}`;
 
 const JOURNEY_COLS = "id, client_id, location_id, interviewer_id, blood_test_booked_for, blood_test_done_at, measurements_booked_for, measurements_done_at, interview_booked_for, interview_mode, interview_done_at, meeting_url, followup_booked_for, followup_done_at, followup_mode, followup_meeting_url";
 
@@ -162,4 +180,61 @@ export async function workerAppointments(workerId: string): Promise<CalItem[]> {
     }
   }
   return out;
+}
+
+/**
+ * Training that belongs in a calendar.
+ *
+ * Not the whole plan. A Zone 2 session is "sometime on Wednesday, wherever
+ * you like" and putting it in someone's calendar at an invented hour is
+ * noise they will mute the whole feed over. What earns a slot is the
+ * intersection of the two things a calendar is actually for: being somewhere
+ * specific, at a specific time. That is exactly the weekly commitments they
+ * have given an hour to — CrossFit at 16:30, football at 12:00 — so those
+ * sync, as one weekly recurring event each, and nothing else does.
+ */
+export async function trainingCommitments(clientId: string): Promise<CalItem[]> {
+  const { data: journeys, error } = await supabaseAdmin
+    .from("hc_journeys").select("id").eq("client_id", clientId).is("cancelled_at", null);
+  if (error) throw new Error(error.message);
+  const ids = (journeys ?? []).map((j) => j.id);
+  if (!ids.length) return [];
+
+  const { data, error: sErr } = await supabaseAdmin
+    .from("hc_training_settings").select("journey_id, activities").in("journey_id", ids);
+  if (sErr) throw new Error(sErr.message);
+
+  // Monday-first 0–6 → the RRULE day codes.
+  const BYDAY = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+  const out: CalItem[] = [];
+  for (const row of data ?? []) {
+    const acts = sanitizeActivities((row as { activities: unknown }).activities);
+    for (const a of acts) {
+      if (!a.at) continue; // no hour means no calendar slot
+      out.push({
+        id: activityItemId(String((row as { journey_id: string }).journey_id), a.id),
+        start: nextOccurrence(a.day, a.at),
+        minutes: a.minutes ?? 60,
+        summary: a.name,
+        description: "Úr æfingaáætluninni þinni hjá Lifeline.\n\nhttps://www.lifelinehealth.is/account/heilsuferd/aaetlun?tab=exercise",
+        location: null,
+        reminderMinutes: 60,
+        recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${BYDAY[a.day]}`],
+      });
+    }
+  }
+  return out;
+}
+
+/** The coming (or today's, if still ahead) instance of a weekly slot. */
+function nextOccurrence(weekday: number, at: string): string {
+  const [h, m] = at.split(":").map(Number);
+  const now = new Date();
+  const d = new Date(now);
+  d.setHours(h, m, 0, 0);
+  const todayIdx = (now.getDay() + 6) % 7;
+  let delta = (weekday - todayIdx + 7) % 7;
+  if (delta === 0 && d.getTime() < now.getTime()) delta = 7;
+  d.setDate(d.getDate() + delta);
+  return d.toISOString();
 }

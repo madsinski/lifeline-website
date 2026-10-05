@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
 import { loadPlanPrefs, saveTraining } from "@/lib/hc/training-server";
+import { syncOwner } from "@/lib/hc/calendar-sync";
 
 export const runtime = "nodejs";
 
@@ -41,9 +42,14 @@ export async function POST(req: NextRequest) {
   const journeyId = await ownJourney(req, user.id);
   if (!journeyId) return NextResponse.json({ error: "not_found" }, { status: 404 });
   try {
-    const { settings, personal } = await saveTraining(journeyId, user.id, await req.json().catch(() => ({})), "client");
+    const body = await req.json().catch(() => ({}));
+    const { settings, personal, nutrition } = await saveTraining(journeyId, user.id, body, "client");
+    // A commitment with an hour on it belongs in their calendar, so a change
+    // to the week is a change to the calendar. Fire-and-forget: a Google
+    // outage must not cost someone their saved settings.
+    if ("activities" in body) void syncOwner("client", user.id).catch(() => {});
     await hcAudit("client", "training_settings", journeyId, { level: settings.level, load: settings.load, injuries: settings.injuries });
-    return NextResponse.json({ settings, personal });
+    return NextResponse.json({ settings, personal, nutrition });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
