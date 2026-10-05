@@ -45,7 +45,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ journeyId: 
   const markerTitles: Record<string, string> = {};
   for (const item of stored?.report.items ?? []) {
     if (!item.slug) continue;
-    const sig = stored?.signals[item.key];
+    // The planning light, not the printed one: a domain with red components
+    // under a good composite is a need, not "í góðu lagi".
+    const sig = stored?.actionSignals[item.key];
     if (sig) signals[item.slug] = sig;
     markerTitles[item.slug] = item.title;
   }

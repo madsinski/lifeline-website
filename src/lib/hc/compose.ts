@@ -138,8 +138,10 @@ export async function composeProgram(opts: {
 
   const stored = await loadReport(opts.journeyId, opts.clientId);
   const values = (stored?.report.items ?? [])
-    .filter((i) => stored?.signals[i.key] && stored.signals[i.key] !== "green")
-    .map((i) => `${i.title}: ${i.value}${i.unit ? ` ${i.unit}` : ""} → ${SIGNAL_IS[stored!.signals[i.key]!]}`)
+    // Planning lights: a row that scores well but carries red components is
+    // exactly the one the programme has to answer for.
+    .filter((i) => stored?.actionSignals[i.key] && stored.actionSignals[i.key] !== "green")
+    .map((i) => `${i.title}: ${i.value}${i.unit ? ` ${i.unit}` : ""} → ${SIGNAL_IS[stored!.actionSignals[i.key]!]}`)
     .join("\n");
 
   const actions = opts.planItems

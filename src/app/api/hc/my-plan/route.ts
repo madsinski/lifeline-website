@@ -67,7 +67,9 @@ export async function GET(req: NextRequest) {
   ]);
   const canSee = !!(journey.report_generated_at || journey.own_report_at);
   const stored = canSee ? await loadReport(journey.id, user.id) : null;
-  const priorities = pillarPriorities(stored?.report ?? null, stored?.signals ?? {});
+  // Planning lights, so a domain whose components are flagged is not treated
+  // as settled just because its composite score is good.
+  const priorities = pillarPriorities(stored?.report ?? null, stored?.actionSignals ?? {});
 
   // The traffic lights again, keyed by hc_knowledge slug rather than by report
   // row, which is what hc_plan_modules.addresses points at. With the row
@@ -77,7 +79,9 @@ export async function GET(req: NextRequest) {
   const markerTitles: Record<string, string> = {};
   for (const item of stored?.report.items ?? []) {
     if (!item.slug) continue;
-    const sig = stored?.signals[item.key];
+    // The planning light, not the printed one: a domain with red components
+    // under a good composite is a need, not "í góðu lagi".
+    const sig = stored?.actionSignals[item.key];
     if (sig) signals[item.slug] = sig;
     markerTitles[item.slug] = item.title;
   }

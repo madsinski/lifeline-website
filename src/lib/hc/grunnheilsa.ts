@@ -492,6 +492,48 @@ export function scoreSignal(value: number): Signal {
   return "red";
 }
 
+const SIGNAL_RANK: Record<Signal, number> = { green: 0, yellow: 1, red: 2 };
+
+/** The worst dot in the row's Ráðleggingar column, if it has any. */
+export function worstRecommendation(item: ReportItem): Signal | null {
+  let worst: Signal | null = null;
+  for (const r of item.recommendations ?? []) {
+    const p = r.priority;
+    if (!p) continue;
+    if (!worst || SIGNAL_RANK[p] > SIGNAL_RANK[worst]) worst = p;
+  }
+  return worst;
+}
+
+/**
+ * The light that should drive the PLAN, as opposed to the one printed on the
+ * report.
+ *
+ * Medalia scores a domain 0–10 and, separately, flags individual habits
+ * inside it. The two can disagree, and not rarely: "Hreyfing — venjur" comes
+ * back 7,5 and "Gott" with three red components under it — létt þolþjálfun,
+ * erfið þolþjálfun and styrktarþjálfun all below the recommended dose. That
+ * is not a parsing error. The composite and the component checks measure
+ * different things, and a good composite can sit on top of several habits
+ * that are missing entirely.
+ *
+ * For reading the report, Medalia's verdict is the verdict and we print it.
+ * For choosing what to work on, the components are what matter: a red dot
+ * that says "lyftu 2–4 sinnum í viku" is a need no matter what the composite
+ * says, and treating that domain as "í góðu lagi" would rank exactly the
+ * actions that would help it as the least urgent ones.
+ */
+export function actionSignalForItem(
+  item: ReportItem,
+  band: (slug: string, value: number) => Signal | null,
+): Signal | null {
+  const base = signalForItem(item, band);
+  const flagged = worstRecommendation(item);
+  if (!flagged) return base;
+  if (!base) return flagged;
+  return SIGNAL_RANK[flagged] > SIGNAL_RANK[base] ? flagged : base;
+}
+
 export const SIGNAL_LABEL: Record<Signal, string> = { green: "Gott", yellow: "Sæmilegt", red: "Ábótavant" };
 
 /** Every item's traffic light, worked out from our own reference ranges.
@@ -504,5 +546,15 @@ export function signalsForReport(
 ): Record<string, Signal | null> {
   const out: Record<string, Signal | null> = {};
   for (const item of report.items) out[item.key] = signalForItem(item, band);
+  return out;
+}
+
+/** The same, but with each row's flagged components taken into account. */
+export function actionSignalsForReport(
+  report: Grunnheilsa,
+  band: (slug: string, value: number) => Signal | null,
+): Record<string, Signal | null> {
+  const out: Record<string, Signal | null> = {};
+  for (const item of report.items) out[item.key] = actionSignalForItem(item, band);
   return out;
 }

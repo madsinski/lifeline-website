@@ -80,7 +80,9 @@ export async function buildProposal(journeyId: string, actorLabel: string): Prom
       title: i.title,
       value: i.value,
       unit: i.unit,
-      signal: stored?.signals[i.key] ?? null,
+      // The planning light (see actionSignalForItem): a good composite with
+      // red components under it is a need, and the model has to see that.
+      signal: stored?.actionSignals[i.key] ?? null,
       advice: i.advice,
       previous: i.trend.at(-1)?.value ?? null,
     }));

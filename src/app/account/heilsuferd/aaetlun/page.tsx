@@ -54,6 +54,7 @@ interface Loaded {
   report: {
     report: Grunnheilsa;
     signals: Record<string, ReportSignal | null>;
+    actionSignals: Record<string, ReportSignal | null>;
     reference?: Record<string, ReportReference>;
     sex?: "m" | "f" | null;
   } | null;
@@ -222,7 +223,9 @@ function PlanPageInner() {
   const reportSignalsBySlug = useMemo(() => {
     const out: Record<string, ReportSignal | null> = {};
     for (const item of data?.report?.report.items ?? []) {
-      if (item.slug) out[item.slug] = data?.report?.signals[item.key] ?? null;
+      // The planning light, not the printed verdict: a domain with flagged
+      // components is a need even when its composite score reads "Gott".
+      if (item.slug) out[item.slug] = data?.report?.actionSignals?.[item.key] ?? data?.report?.signals[item.key] ?? null;
     }
     return out;
   }, [data]);

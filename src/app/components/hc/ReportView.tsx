@@ -274,6 +274,7 @@ function Row({ item, signal, entry, sex }: {
   const [open, setOpen] = useState(false);
   // Medalia's own verdict, when it disagrees with our reference range.
   const disagrees = item.reportSignal && signal && item.reportSignal !== signal;
+  const flaggedCount = item.recommendations.filter((r) => r.priority === "red" || r.priority === "yellow").length;
   const last = item.trend.at(-1);
   const move = last ? item.value - last.value : 0;
   const improves = entry?.improves ?? [];
@@ -289,6 +290,15 @@ function Row({ item, signal, entry, sex }: {
           <span className="block text-xs text-slate-500">
             {signal ? SIGNAL_LABEL[signal] : "Engin viðmið"}
             {disagrees ? ` · skýrslan segir „${item.label}“` : ""}
+            {/* A good score can sit on top of several habits that are missing:
+                "Hreyfing — venjur" scores 7,5 and still carries three red
+                components. Saying so here stops the dots inside the dropdown
+                reading as a contradiction of the verdict above them. */}
+            {flaggedCount > 0 && (
+              <span className={signal === "green" ? "font-medium text-amber-700" : ""}>
+                {" · "}{flaggedCount} {flaggedCount === 1 ? "atriði" : "atriði"} til að taka á
+              </span>
+            )}
           </span>
         </span>
         {item.trend.length > 0 && (

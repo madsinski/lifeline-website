@@ -3,14 +3,20 @@
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { bandForValue, type KnowledgeEntry, type ReportReference } from "./knowledge";
-import { signalsForReport, type Grunnheilsa, type Signal } from "./grunnheilsa";
+import { actionSignalsForReport, signalsForReport, type Grunnheilsa, type Signal } from "./grunnheilsa";
 import { sexOf } from "./sex";
 
 export type { ReportReference };
 
 export interface StoredReport {
   report: Grunnheilsa;
+  /** Medalia's verdict per row — what the report view prints. */
   signals: Record<string, Signal | null>;
+  /**
+   * The same rows, but a row is only as green as its worst flagged component.
+   * This is what the plan is built from; see actionSignalForItem.
+   */
+  actionSignals: Record<string, Signal | null>;
   /** Keyed by report item key, so the view needs no slug logic of its own. */
   reference: Record<string, ReportReference>;
   /** Which sex the bands were read for — a row can say so when it matters. */
@@ -66,6 +72,7 @@ export async function loadReport(journeyId: string, clientId: string): Promise<S
   return {
     report,
     signals: signalsForReport(report, band),
+    actionSignals: actionSignalsForReport(report, band),
     reference,
     sex,
     method: row.method === "ai" ? "ai" : "local",
