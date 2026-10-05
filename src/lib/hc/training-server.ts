@@ -7,9 +7,9 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { DEFAULT_TRAINING, sanitizeTraining, type TrainingSettings } from "./adaptive-program";
 import { DEFAULT_PERSONAL, sanitizePersonal, type Personal, type SwapSnapshot } from "./personalise";
 
-const COLS = "level, load_step, injuries, started_on, place, cardio, training_days, program_key, days, hiit_split, swaps, meal_picks";
+const COLS = "level, load_step, injuries, started_on, place, cardio, training_days, activities, program_key, days, hiit_split, swaps, meal_picks";
 
-type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; cardio: string | null; training_days: number[] | null; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; meal_picks: Record<string, string> | null };
+type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; cardio: string | null; training_days: number[] | null; activities: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; meal_picks: Record<string, string> | null };
 
 function personalOf(r: Row | null): Personal {
   if (!r) return DEFAULT_PERSONAL;
@@ -26,7 +26,7 @@ export async function loadPlanPrefs(journeyId: string): Promise<{ settings: Trai
   return {
     settings: { ...sanitizeTraining({
       level: data.level, load: data.load_step, injuries: data.injuries, started_on: data.started_on,
-      place: data.place, cardio: data.cardio, days: data.training_days,
+      place: data.place, cardio: data.cardio, days: data.training_days, activities: data.activities,
     }), saved: true },
     personal: personalOf(data),
   };
@@ -60,14 +60,14 @@ export async function saveTraining(journeyId: string, clientId: string, body: Re
   // TrainingSettings object cannot silently write one into the other.
   const wireDays = "training_days" in body ? body.training_days : Array.isArray(body.days) ? body.days : undefined;
   const adaptive = "level" in body || "load" in body || "injuries" in body || "started_on" in body
-    || "place" in body || "cardio" in body || wireDays !== undefined;
+    || "place" in body || "cardio" in body || "activities" in body || wireDays !== undefined;
   // `training_days` on the wire, `days` in the model — hc_training_settings.days
   // is already taken by the drag-and-drop arrangement of individual sessions.
   const s = adaptive
     ? sanitizeTraining({ ...prev.settings, ...body, days: wireDays ?? prev.settings.days })
     : prev.settings;
   const started_on = s.started_on ?? (prev.settings.saved ? prev.settings.started_on : null) ?? new Date().toISOString().slice(0, 10);
-  Object.assign(row, { level: s.level, load_step: s.load, injuries: s.injuries, started_on, place: s.place, cardio: s.cardio, training_days: s.days });
+  Object.assign(row, { level: s.level, load_step: s.load, injuries: s.injuries, started_on, place: s.place, cardio: s.cardio, training_days: s.days, activities: s.activities });
 
   const p = sanitizePersonal(body);
   const personal: Personal = { ...prev.personal };

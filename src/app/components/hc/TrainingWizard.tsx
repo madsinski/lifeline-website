@@ -15,15 +15,16 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Dumbbell, Home, Users } from "lucide-react";
 import {
-  CARDIO_IS, PLACE_IS, PLACES, REGION_IS, REGIONS, previewWeek,
+  CARDIO_IS, PLACE_IS, PLACES, REGION_IS, REGIONS, previewWeek, SCORE_TONE,
   type CardioLimit, type Place, type Region, type TrainingSettings,
 } from "@/lib/hc/adaptive-program";
 import { trainingHints } from "@/lib/hc/training-suggest";
 import { WEEKDAYS, WEEKDAYS_SHORT } from "@/lib/hc/personalise";
 import type { Signal } from "@/lib/hc/grunnheilsa";
 import { hcBtn, hcCard, hcKicker } from "./ui";
+import ActivityEditor from "./ActivityEditor";
 
-const STEPS = ["Hvar", "Dagar", "Aðlögun", "Takmarkanir", "Vikan"] as const;
+const STEPS = ["Hvar", "Mitt núna", "Dagar", "Aðlögun", "Takmarkanir", "Vikan"] as const;
 
 const PLACE_ICON: Record<Place, typeof Home> = { gym: Dumbbell, class: Users, home: Home };
 
@@ -52,7 +53,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
   const toggleRegion = (r: Region) =>
     set({ injuries: s.injuries.includes(r) ? s.injuries.filter((x) => x !== r) : [...s.injuries, r] });
 
-  const canNext = step !== 1 || s.days.length >= 2;
+  const canNext = step !== 2 || s.days.length >= 2;
   const last = step === STEPS.length - 1;
 
   const card = (on: boolean) =>
@@ -108,8 +109,20 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         </div>
       )}
 
-      {/* 2 ─ which days */}
+      {/* 2 ─ what the week already holds */}
       {step === 1 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-bold text-hc-ink">Hvað ertu nú þegar að gera?</h3>
+          <p className="text-sm text-hc-ink-2">
+            Skráðu það sem er fast í vikunni þinni. Áætlunin fyllir þá bara upp í það sem vantar
+            í stað þess að bæta ofan á það sem þú gerir nú þegar.
+          </p>
+          <ActivityEditor activities={s.activities} onChange={(a) => set({ activities: a })} />
+        </div>
+      )}
+
+      {/* 3 ─ which days */}
+      {step === 2 && (
         <div className="space-y-3">
           <h3 className="text-lg font-bold text-hc-ink">Hvaða daga kemstu?</h3>
           <p className="text-sm text-hc-ink-2">Veldu að minnsta kosti tvo. Styrktaræfingarnar tvær raðast sjálfkrafa með sem mestu millibili og þolið fer á hina dagana.</p>
@@ -128,8 +141,8 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         </div>
       )}
 
-      {/* 3 ─ adaptation block */}
-      {step === 2 && (
+      {/* 4 ─ adaptation block */}
+      {step === 3 && (
         <div className="space-y-3">
           <h3 className="text-lg font-bold text-hc-ink">Þarftu aðlögun fyrst?</h3>
           <p className="text-sm text-hc-ink-2">Sinar og liðbönd aðlagast hægar en vöðvarnir. Fjórar vikur af léttu álagi fyrst eru það sem heldur fólki frá meiðslum.</p>
@@ -146,8 +159,8 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         </div>
       )}
 
-      {/* 4 ─ limitations */}
-      {step === 3 && (
+      {/* 5 ─ limitations */}
+      {step === 4 && (
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-bold text-hc-ink">Er eitthvað sem við þurfum að taka tillit til?</h3>
@@ -186,7 +199,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
       )}
 
       {/* 5 ─ the week this produced */}
-      {step === 4 && <WeekPreview s={s} planStart={planStart} />}
+      {step === 5 && <WeekPreview s={s} planStart={planStart} />}
 
       {/* Moving through */}
       <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
@@ -207,6 +220,45 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
   );
 }
 
+/**
+ * How well their own week covers each quality, before the plan adds anything.
+ *
+ * Scored per quality, not as one number: four games of football a week is
+ * not "80% trained", it is full marks on intervals and nothing on strength
+ * or the easy aerobic base — and that is the sentence worth reading.
+ */
+function ScoreBars({ s, planStart }: { s: TrainingSettings; planStart: string | null }) {
+  const { score } = previewWeek(s, planStart);
+  if (s.activities.length === 0) return null;
+  return (
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold text-hc-ink">Vikan þín í dag</p>
+        <p className="text-sm text-hc-ink-2">{score.overall}/10 · {score.summary}</p>
+      </div>
+      <dl className="mt-3 space-y-2.5">
+        {score.per.map((m) => {
+          const tone = SCORE_TONE(m.score);
+          return (
+            <div key={m.key}>
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="text-sm font-medium text-slate-700">{m.label}</dt>
+                <dd className="text-xs font-semibold tabular-nums text-slate-600">
+                  {m.target === 0 ? "ekki á dagskrá enn" : `${m.have} af ${m.target}`}
+                </dd>
+              </div>
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${Math.max(4, (m.score / 10) * 100)}%` }} />
+              </div>
+              {m.gap && <p className="mt-0.5 text-[11px] text-amber-800">{m.gap}</p>}
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+}
+
 /** The week the answers produced, before anything is saved. */
 function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string | null }) {
   const { sessions, stage, hiit } = previewWeek(s, planStart);
@@ -216,6 +268,11 @@ function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string 
       <p className="text-sm text-hc-ink-2">
         {PLACE_IS[s.place].label} · {s.days.length} dagar · byrjar á {stage.title.toLowerCase()}
       </p>
+      <ScoreBars s={s} planStart={planStart} />
+
+      {sessions.length === 0
+        ? <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">Vikan þín þekur nú þegar allt sem þarf — áætlunin bætir engu ofan á.</p>
+        : <p className="text-sm text-hc-ink-2">Áætlunin bætir þessu við:</p>}
       <ol className="space-y-2">
         {sessions.map((x, i) => (
           <li key={i} className="flex items-baseline gap-3 rounded-xl bg-slate-50 p-3">

@@ -44,6 +44,104 @@ export const CARDIO_IS: Record<CardioLimit, { label: string; hint: string }> = {
   limited: { label: "Má ekki taka hart á því", hint: "Hjartavandi, mikil mæði eða læknisráð um að fara varlega. Aðeins rólegt þol þar til annað kemur í ljós." },
 };
 
+/**
+ * What a session of something actually trains.
+ *
+ * The three are deliberately separate rather than one "cardio" bucket,
+ * because a sport can be excellent and still leave a hole. Innanhússfótbolti
+ * is sprint-and-stop — it is interval work, not steady aerobic work — so it
+ * covers `hiit` and leaves the Zone 2 base exactly as empty as it was. Lump
+ * them together and the plan wrongly concludes that a footballer needs no
+ * easy aerobic work at all, which is the opposite of true.
+ */
+export type Covers = "strength" | "hiit" | "cardio";
+export const COVERS_IS: Record<Covers, string> = { strength: "Styrkur", hiit: "Hörð lota", cardio: "Rólegt þol" };
+
+/** How hard it is on the body, for spacing and for not stacking hard days. */
+export type Intensity = "hard" | "moderate" | "easy";
+export const INTENSITY_IS: Record<Intensity, string> = { hard: "Erfitt", moderate: "Miðlungs", easy: "Rólegt" };
+
+/**
+ * Something the participant already does every week.
+ *
+ * Most people arrive with a week that is already half full — football on
+ * Mondays, CrossFit on Saturdays — and a plan that ignores it either
+ * double-books them or prescribes strength they are already getting. These
+ * are declared once, with what each one actually trains, and the core fills
+ * the gaps around them instead of competing with them.
+ */
+export interface Activity {
+  id: string;
+  name: string;
+  /** Monday-first 0–6 */
+  day: number;
+  /** "HH:MM", when they know it. */
+  at: string | null;
+  minutes: number | null;
+  covers: Covers[];
+  intensity: Intensity;
+}
+
+/** The usual suspects, so adding one is two taps rather than a form. */
+export const ACTIVITY_PRESETS: { name: string; covers: Covers[]; intensity: Intensity; minutes: number; group: string; why?: string }[] = [
+  // ── Styrkur ───────────────────────────────────────────────────────────
+  { group: "Styrkur", name: "Lyftingar", covers: ["strength"], intensity: "hard", minutes: 60 },
+  { group: "Styrkur", name: "CrossFit", covers: ["strength", "hiit"], intensity: "hard", minutes: 60, why: "Lyftingar og hörð lota í sama tíma." },
+  { group: "Styrkur", name: "Hóptími með lóðum", covers: ["strength"], intensity: "moderate", minutes: 55 },
+  { group: "Styrkur", name: "Áhaldaleikfimi", covers: ["strength"], intensity: "moderate", minutes: 55 },
+
+  // ── Boltaíþróttir og aðrar spretta-og-stopp greinar ───────────────────
+  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota, ekki sem rólegt þol." },
+  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], intensity: "hard", minutes: 90, why: "Spretta-og-stopp — telst sem hörð lota." },
+  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
+  { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
+  { group: "Íþróttir", name: "Badminton", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
+  { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], intensity: "hard", minutes: 60, why: "Spretta-og-stopp — telst sem hörð lota." },
+  { group: "Íþróttir", name: "Blak", covers: ["hiit"], intensity: "moderate", minutes: 60 },
+
+  // ── Harðar lotur ──────────────────────────────────────────────────────
+  { group: "Hörð þolþjálfun", name: "Spinning", covers: ["hiit"], intensity: "hard", minutes: 45 },
+  { group: "Hörð þolþjálfun", name: "HIIT-tími", covers: ["hiit"], intensity: "hard", minutes: 45 },
+  { group: "Hörð þolþjálfun", name: "Sprettir eða brekkur", covers: ["hiit"], intensity: "hard", minutes: 30 },
+  { group: "Hörð þolþjálfun", name: "Róður á fullu", covers: ["hiit"], intensity: "hard", minutes: 30 },
+
+  // ── Rólegt þol: það sem byggir grunninn ───────────────────────────────
+  { group: "Rólegt þol", name: "Skokk innandyra (hlaupabretti)", covers: ["cardio"], intensity: "moderate", minutes: 40 },
+  { group: "Rólegt þol", name: "Skokk utandyra", covers: ["cardio"], intensity: "moderate", minutes: 40 },
+  { group: "Rólegt þol", name: "Hjól innandyra (þrekhjól)", covers: ["cardio"], intensity: "moderate", minutes: 45 },
+  { group: "Rólegt þol", name: "Hjól utandyra", covers: ["cardio"], intensity: "moderate", minutes: 60 },
+  { group: "Rólegt þol", name: "Róðravél, rólega", covers: ["cardio"], intensity: "moderate", minutes: 30 },
+  { group: "Rólegt þol", name: "Skíðavél", covers: ["cardio"], intensity: "moderate", minutes: 30 },
+  { group: "Rólegt þol", name: "Sund", covers: ["cardio"], intensity: "moderate", minutes: 45 },
+  { group: "Rólegt þol", name: "Gönguferð eða fjallganga", covers: ["cardio"], intensity: "easy", minutes: 90, why: "Löng og róleg — einmitt það sem Zone 2 er." },
+  { group: "Rólegt þol", name: "Ganga", covers: ["cardio"], intensity: "easy", minutes: 45 },
+  { group: "Rólegt þol", name: "Gönguskíði", covers: ["cardio"], intensity: "moderate", minutes: 60 },
+  { group: "Rólegt þol", name: "Fríköfun", covers: ["cardio"], intensity: "easy", minutes: 60, why: "Rólegt sund og öndunarvinna — telst sem rólegt þol, ekki sem hörð lota." },
+  { group: "Rólegt þol", name: "Golf", covers: ["cardio"], intensity: "easy", minutes: 180, why: "Löng, róleg ganga." },
+
+  // ── Gott fyrir þig, en kemur ekki í stað neins ────────────────────────
+  { group: "Annað", name: "Jóga", covers: [], intensity: "easy", minutes: 60, why: "Frábært fyrir liðleika og streitu, kemur ekki í stað styrks eða þols." },
+  { group: "Annað", name: "Pilates", covers: [], intensity: "easy", minutes: 55 },
+  { group: "Annað", name: "Teygjur eða liðleiki", covers: [], intensity: "easy", minutes: 30 },
+  { group: "Annað", name: "Sjósund eða kuldaböð", covers: [], intensity: "easy", minutes: 20 },
+];
+
+export const ACTIVITY_GROUPS = ["Styrkur", "Íþróttir", "Hörð þolþjálfun", "Rólegt þol", "Annað"] as const;
+
+/**
+ * Other ways to satisfy a session.
+ *
+ * The plan asks for a quality, not for a particular room: a strength day is
+ * two whole-body lifts' worth of work, and a CrossFit class is that. Naming
+ * the equivalents on the session itself is what stops someone skipping the
+ * week because they could not face the gym.
+ */
+export const EQUIVALENTS: Record<Covers, string[]> = {
+  strength: ["CrossFit", "lyftingatími", "hóptími með lóðum", "áhaldaleikfimi"],
+  hiit: ["innanhússfótbolti", "handbolti", "spinning", "sprettir eða brekkur", "HIIT-tími"],
+  cardio: ["rösk ganga", "skokk úti eða á bretti", "hjól úti eða inni", "sund", "fjallganga"],
+};
+
 export interface TrainingSettings {
   level: TrainingLevel;
   /** −2 … +2 */
@@ -55,6 +153,8 @@ export interface TrainingSettings {
   cardio: CardioLimit;
   /** Weekdays the participant can train, Monday-first 0–6. */
   days: number[];
+  /** What they already do every week; the core fills in around it. */
+  activities: Activity[];
 }
 
 /** Monday, Wednesday, Friday until they say otherwise. */
@@ -62,7 +162,7 @@ export const DEFAULT_DAYS = [0, 2, 4];
 
 export const DEFAULT_TRAINING: TrainingSettings = {
   level: "beginner", load: 0, injuries: [], started_on: null,
-  place: "gym", cardio: "full", days: DEFAULT_DAYS,
+  place: "gym", cardio: "full", days: DEFAULT_DAYS, activities: [],
 };
 
 export const REGION_IS: Record<Region, { label: string; gen: string }> = {
@@ -422,6 +522,22 @@ function hiitItem(st: Stage, s: TrainingSettings, extra = 0): ExerciseItem {
   };
 }
 
+/**
+ * "This day is a strength day — here is one way to do it, and here are the
+ * others." The prescription above is the default, not the requirement.
+ */
+function swapNote(c: Covers): ExerciseItem {
+  return {
+    name: "Má skipta út fyrir",
+    prescription: EQUIVALENTS[c].join(", "),
+    note: `Þessi dagur snýst um ${COVERS_IS[c].toLowerCase()}. Ef þú gerir eitthvað af þessu í staðinn telst dagurinn búinn.`,
+    muscles: [],
+    cues: [],
+    rest: null,
+    block: "finisher",
+  };
+}
+
 const WARMUP: ExerciseItem = {
   name: "Upphitun",
   prescription: "5 mín.",
@@ -464,6 +580,118 @@ export function hiitState(s: TrainingSettings, st: Stage): { on: boolean; why: s
 const dayName = (weekday: number) => WEEKDAY_NAMES[((weekday % 7) + 7) % 7];
 const WEEKDAY_NAMES = ["Mánudagur", "Þriðjudagur", "Miðvikudagur", "Fimmtudagur", "Föstudagur", "Laugardagur", "Sunnudagur"];
 
+export interface WeekGaps {
+  /** Whole-body strength sessions still missing from the week (0–2). */
+  strengthNeed: number;
+  /** Easy aerobic sessions still missing (0–2). */
+  zone2Need: number;
+  /** Whether the plan should add a hard interval session of its own. */
+  addHiit: boolean;
+  /** Hard sessions already in the week from what they do anyway. */
+  hardAlready: number;
+  /** One line per thing the week already covers, for showing the reasoning. */
+  covered: string[];
+}
+
+/**
+ * What is actually missing from this person's week.
+ *
+ * Counted per quality rather than as one lump, because the qualities do not
+ * substitute for each other. Four games of football a week cover interval
+ * work completely and the Zone 2 base not at all; two CrossFit sessions
+ * cover strength and intervals but still leave the easy aerobic hole. The
+ * plan should fill the hole, not repeat what is already there.
+ */
+export function weekGaps(s: TrainingSettings, hiitOn: boolean): WeekGaps {
+  const acts = s.activities ?? [];
+  const n = (c: Covers) => acts.filter((a) => a.covers.includes(c)).length;
+  const strength = n("strength"), hiitAct = n("hiit"), cardio = n("cardio");
+  const hardAlready = acts.filter((a) => a.intensity === "hard").length;
+
+  const covered: string[] = [];
+  if (strength) covered.push(`${strength} styrktaræfing${strength === 1 ? "" : "ar"} í vikunni þinni`);
+  if (hiitAct) covered.push(`${hiitAct} hörð lota${hiitAct === 1 ? "" : "ur"} í vikunni þinni`);
+  if (cardio) covered.push(`${cardio} róleg þolæfing${cardio === 1 ? "" : "ar"} í vikunni þinni`);
+
+  return {
+    strengthNeed: clamp(2 - strength, 0, 2),
+    zone2Need: clamp(2 - cardio, 0, 2),
+    // No point adding intervals to a week that already has hard days in it.
+    addHiit: hiitOn && hiitAct === 0 && hardAlready < 2,
+    hardAlready,
+    covered,
+  };
+}
+
+/** What a good week holds, per quality. */
+export const WEEKLY_TARGET: Record<Covers, number> = { strength: 2, hiit: 1, cardio: 2 };
+
+export interface ModalityScore {
+  key: Covers;
+  label: string;
+  /** Sessions a good week holds. 0 when this quality is not on the table yet. */
+  target: number;
+  /** Sessions their own week already holds. */
+  have: number;
+  /** 0–10. */
+  score: number;
+  /** Null when it is covered; otherwise what is missing, in one line. */
+  gap: string | null;
+}
+
+export interface TrainingScore {
+  per: ModalityScore[];
+  /** 0–10 across the qualities that count right now. */
+  overall: number;
+  summary: string;
+}
+
+/**
+ * How well this person's own week already covers what training is for.
+ *
+ * Scored per quality rather than as one number, because that is where the
+ * useful answer lives: someone playing football four times a week is not
+ * "80% trained", they are fully covered for intervals and empty on both
+ * strength and the easy aerobic base. One number would hide exactly the
+ * thing worth telling them.
+ *
+ * It scores what they already do, not what the plan adds — otherwise every
+ * score would read 10 the moment a plan existed, which tells nobody anything.
+ */
+export function trainingScore(s: TrainingSettings, hiitOn: boolean): TrainingScore {
+  const acts = s.activities ?? [];
+  const per: ModalityScore[] = (["strength", "hiit", "cardio"] as Covers[]).map((c) => {
+    const have = acts.filter((a) => a.covers.includes(c)).length;
+    // HIIT is not on the table during adaptation or while cardio is limited,
+    // so it is not scored then — a zero there would be a mark against someone
+    // for correctly not doing it yet.
+    const target = c === "hiit" && !hiitOn ? 0 : WEEKLY_TARGET[c];
+    const score = target === 0 ? 10 : clamp(Math.round((have / target) * 100) / 10, 0, 10);
+    const missing = Math.max(0, target - have);
+    return {
+      key: c, label: COVERS_IS[c], target, have, score,
+      gap: missing > 0 ? `Vantar ${missing} ${missing === 1 ? "æfingu" : "æfingar"} á viku` : null,
+    };
+  });
+  const counted = per.filter((x) => x.target > 0);
+  const overall = counted.length ? Math.round((counted.reduce((n, x) => n + x.score, 0) / counted.length) * 10) / 10 : 10;
+  const worst = [...counted].sort((a, b) => a.score - b.score)[0];
+  return {
+    per, overall,
+    summary: !worst || worst.score >= 10
+      ? "Vikan þín þekur allt sem þarf."
+      : worst.score === 0
+        ? `${worst.label} vantar alveg í vikuna þína.`
+        : `Veikasti hlekkurinn er ${worst.label.toLowerCase()}.`,
+  };
+}
+
+export const SCORE_TONE = (score: number) =>
+  score >= 9.5 ? { label: "Fullþakið", bar: "bg-emerald-500", chip: "bg-emerald-100 text-emerald-900" }
+  : score >= 6 ? { label: "Næstum því", bar: "bg-emerald-400", chip: "bg-emerald-50 text-emerald-800" }
+  : score >= 3 ? { label: "Hálfnað", bar: "bg-amber-400", chip: "bg-amber-50 text-amber-900" }
+  : { label: "Vantar", bar: "bg-rose-400", chip: "bg-rose-50 text-rose-900" };
+
 /**
  * The core week: two whole-body strength sessions and the rest aerobic.
  *
@@ -478,35 +706,53 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
   const strengthMinutes = Math.round(5 + 4 * st.sets * 2.5);
   const hiit = hiitState(s, st);
 
-  // Spread the two strength days as far apart as the chosen days allow.
   const days = s.days.length >= 2 ? s.days : DEFAULT_DAYS;
-  const first = 0;
-  const second = Math.min(days.length - 1, Math.round((days.length - 1) / 2) + (days.length > 3 ? 1 : 0));
-  const strengthAt = new Set([days[first], days[second === first ? days.length - 1 : second]]);
+
+  // What the week already contains. Someone doing CrossFit twice does not
+  // need two more strength days bolted on top; they need whatever is missing.
+  const { strengthNeed, zone2Need, addHiit } = weekGaps(s, hiit.on);
+  const aerobicNeed = zone2Need + (addHiit ? 1 : 0);
+  const busy = new Set((s.activities ?? []).map((a) => a.day));
+
+  // Free days first; a day that already holds something stays as it is.
+  const free = days.filter((d) => !busy.has(d));
+  const usable = free.length >= strengthNeed + Math.min(aerobicNeed, 1) ? free : days;
+
+  const strengthDays = new Set<number>();
+  if (strengthNeed > 0 && usable.length > 0) {
+    strengthDays.add(usable[0]);
+    if (strengthNeed > 1 && usable.length > 1) strengthDays.add(usable[Math.min(usable.length - 1, Math.round((usable.length - 1) / 2) + (usable.length > 3 ? 1 : 0))] ?? usable[usable.length - 1]);
+    // Two strength days must not collapse onto one.
+    if (strengthDays.size < strengthNeed && usable.length > 1) strengthDays.add(usable[usable.length - 1]);
+  }
 
   const out: ExerciseSession[] = [];
   let aerobic = 0;
-  for (const d of days) {
-    if (strengthAt.has(d)) {
+  let strengthDone = 0;
+  for (const d of usable) {
+    if (strengthDays.has(d)) {
       // Whole body, twice a week: the two halves alternate the emphasis but
       // both cover legs, push, pull and trunk.
-      const aSession = out.every((x) => x.title !== "Allur líkaminn — A");
+      const aSession = strengthDone++ === 0;
       out.push(aSession
-        ? { day: dayName(d), title: "Allur líkaminn — A", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(SQUAT), it(PUSH), it(PULL), it(CORE)] }
-        : { day: dayName(d), title: "Allur líkaminn — B", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(HINGE), it(PRESS), it(LUNGE), it(CARRY)] });
-    } else {
-      // The first aerobic day is the hard one once HIIT is earned.
-      const useHiit = hiit.on && aerobic === 0;
+        ? { day: dayName(d), title: "Styrkur — allur líkaminn A", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(SQUAT), it(PUSH), it(PULL), it(CORE), swapNote("strength")] }
+        : { day: dayName(d), title: "Styrkur — allur líkaminn B", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(HINGE), it(PRESS), it(LUNGE), it(CARRY), swapNote("strength")] });
+    } else if (aerobic < aerobicNeed) {
+      // The first aerobic day is the hard one once HIIT is earned — unless
+      // the week already has hard lotur in it, in which case Zone 2 is what
+      // is actually missing.
+      const useHiit = addHiit && aerobic === 0;
       aerobic++;
       out.push(useHiit
-        ? { day: dayName(d), title: "HIIT", focus: "Þol á fullu", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
-        : { day: dayName(d), title: "Zone 2", focus: "Rólegt þol", minutes: 45, items: [zone2Item(st, s)] });
+        ? { day: dayName(d), title: "HIIT", focus: "Hörð lota", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0), swapNote("hiit")] }
+        : { day: dayName(d), title: "Zone 2", focus: "Rólegt þol", minutes: 45, items: [zone2Item(st, s), swapNote("cardio")] });
     }
   }
-  // Two available days means both are strength days and the aerobic base
-  // would vanish — but Zone 2 is half the core and needs no gym slot. It
-  // goes on the end of the second session instead of being dropped.
-  if (aerobic === 0 && out.length > 0) {
+  // Every chosen day went to strength and no aerobic day was left — but
+  // Zone 2 is half the core and needs no gym slot, so it goes on the end of
+  // the last session rather than being dropped. Not when the week already
+  // has þol in it from something they do anyway.
+  if (aerobic === 0 && aerobicNeed > 0 && out.length > 0) {
     const lastDay = out[out.length - 1];
     lastDay.items = [...lastDay.items, { ...zone2Item(st, s), block: "finisher" }];
     lastDay.minutes = (lastDay.minutes ?? 0) + 30;
@@ -563,10 +809,13 @@ export function previewWeek(s: TrainingSettings, planStart: string | null, now =
   sessions: ExerciseSession[];
   stage: StageInfo;
   hiit: { on: boolean; why: string | null };
+  gaps: WeekGaps;
+  score: TrainingScore;
 } {
   const stage = stageAt(s, planStart, now);
   const st = STAGES[stage.key];
-  return { sessions: buildSessions(s, st), stage, hiit: hiitState(s, st) };
+  const hiit = hiitState(s, st);
+  return { sessions: buildSessions(s, st), stage, hiit, gaps: weekGaps(s, hiit.on), score: trainingScore(s, hiit.on) };
 }
 
 /** Which exercises were swapped for an injury, for the "adapted for you" note. */
@@ -605,5 +854,24 @@ export function sanitizeTraining(b: Record<string, unknown>): TrainingSettings {
   // At least two days, or there is no programme to lay out.
   const picked = [...new Set((Array.isArray(b.days) ? b.days : []).map((d) => Math.round(Number(d))).filter((d) => d >= 0 && d <= 6))].sort((x, y) => x - y);
   const days = picked.length >= 2 ? picked : DEFAULT_DAYS;
-  return { level, load, injuries: [...new Set(injuries)], started_on, place, cardio, days };
+  return { level, load, injuries: [...new Set(injuries)], started_on, place, cardio, days, activities: sanitizeActivities(b.activities) };
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export function sanitizeActivities(v: unknown): Activity[] {
+  if (!Array.isArray(v)) return [];
+  return v.slice(0, 20).map((raw, i) => {
+    const a = (raw ?? {}) as Record<string, unknown>;
+    const name = String(a.name ?? "").trim().slice(0, 60);
+    if (!name) return null;
+    const day = Math.round(Number(a.day));
+    const at = typeof a.at === "string" && HHMM.test(a.at) ? a.at : null;
+    const minutes = Number.isFinite(Number(a.minutes)) ? clamp(Math.round(Number(a.minutes)), 10, 300) : null;
+    const covers = (Array.isArray(a.covers) ? a.covers : []).filter((c): c is Covers => c === "strength" || c === "hiit" || c === "cardio");
+    const intensity: Intensity = a.intensity === "hard" || a.intensity === "easy" ? a.intensity : "moderate";
+    return day >= 0 && day <= 6
+      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], intensity }
+      : null;
+  }).filter((a): a is Activity => !!a);
 }
