@@ -53,6 +53,23 @@ const GENTLE = new Set(["bodyweight", "none", "bands", "machine", "cables"]);
 const PLYO = /hopp|stökk|sipp|jump|plyo|burpee|skokk á staðnum/i;
 const isPlyo = (e: LibEx) => PLYO.test(`${e.name_is ?? ""} ${e.name}`);
 
+/**
+ * How much load the kit implies, which the difficulty rating does not say.
+ *
+ * A barbell back squat and a bodyweight squat are both rated for the same
+ * level — the technique is comparable — so sorting on difficulty alone put
+ * "Hnébeygja með stöng" in the list of exercises LIGHTER than a goblet
+ * squat. What someone means by lighter is less weight, and the equipment is
+ * the honest proxy for that.
+ */
+const LOAD: Record<string, number> = {
+  none: 0, bodyweight: 0, bands: 1, machine: 2, cables: 2,
+  other: 2, dumbbells: 3, kettlebell: 3, barbell: 4,
+};
+const loadOf = (e: LibEx) => LOAD[(e.equipment ?? "").toLowerCase()] ?? 2;
+/** Difficulty first, then how much weight is on the bar. */
+const effort = (e: LibEx) => rankOf(e) * 10 + loadOf(e);
+
 export default function SwapWizard({ api, item, onPick, onClose }: {
   api: Api;
   item: ExerciseItem;
@@ -90,11 +107,11 @@ export default function SwapWizard({ api, item, onPick, onClose }: {
     if (!all) return [];
     let pool = all.filter(sameMuscle);
     if (!pool.length) pool = all;
-    if (why === "lighter") pool = pool.filter((e) => rankOf(e) <= mine && !isPlyo(e)).sort((a, b) => rankOf(a) - rankOf(b));
-    else if (why === "harder") pool = pool.filter((e) => rankOf(e) >= mine).sort((a, b) => rankOf(b) - rankOf(a));
+    if (why === "lighter") pool = pool.filter((e) => rankOf(e) <= mine && !isPlyo(e)).sort((a, b) => effort(a) - effort(b));
+    else if (why === "harder") pool = pool.filter((e) => rankOf(e) >= mine).sort((a, b) => effort(b) - effort(a));
     else if (why === "limitation") {
       pool = pool.filter((e) => !isPlyo(e) && (GENTLE.has((e.equipment ?? "").toLowerCase()) || rankOf(e) === 0))
-        .sort((a, b) => rankOf(a) - rankOf(b));
+        .sort((a, b) => effort(a) - effort(b));
     } else pool = [...pool].sort((a, b) => Number(!!b.bang_for_buck) - Number(!!a.bang_for_buck));
     const needle = q.trim().toLowerCase();
     if (needle) pool = pool.filter((e) => `${e.name_is ?? ""} ${e.name}`.toLowerCase().includes(needle));
