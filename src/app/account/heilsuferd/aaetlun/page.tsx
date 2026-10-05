@@ -324,6 +324,7 @@ function PlanPageInner() {
                     <TrainingView api={api} exercise={baseExercise} personal={personal}
                       onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
                       onChangeProgram={() => setPicker("exercise")}
+                      training={training} planStart={plan.start_date}
                       onCustomise={isAdaptive(plan.exercise?.key) ? () => setCustomise(true) : undefined} />
                   )}
                 </div>

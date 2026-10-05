@@ -7,12 +7,14 @@
 //     "Skipta" and tap), with the library's pictures, video and how-to
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, ChevronDown, Dumbbell, Library, RotateCcw, Search, Sliders, Sparkles, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeftRight, ChevronDown, Dumbbell, Info, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
-import { BLOCK_IS, CATEGORY_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
+import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
+import { stageAt, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
+import SwapWizard from "./SwapWizard";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanExercise = NonNullable<ActionPlan["exercise"]>;
@@ -23,9 +25,8 @@ interface LibEx {
 }
 type Payload = { kind: "session"; id: string } | { kind: "exercise"; ex: LibEx };
 
-const LEVEL: Record<string, string> = { beginner: "Byrjendur", intermediate: "Miðlungs", advanced: "Lengra komnir" };
 
-export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false }: {
+export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -45,12 +46,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   onCustomise?: () => void;
   /** Rendered inside that sheet, where rearranging is the whole point. */
   arranging?: boolean;
+  /** For "where am I in the programme" in the hero. */
+  training?: TrainingSettings;
+  planStart?: string | null;
 }) {
   const view = useMemo(() => personalise(exercise, personal), [exercise, personal]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
   const [pickDay, setPickDay] = useState<string | null>(null);
-  const [swapFor, setSwapFor] = useState<string | null>(null);
-  const [libOpen, setLibOpen] = useState(false);
+  const [swapItem, setSwapItem] = useState<{ slot: string; item: ExerciseItem } | null>(null);
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
   // Read-only on the main page; everything that edits lives in the sheet.
@@ -64,8 +67,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
       muscles: ex.primary_muscles ?? [], equipment: ex.equipment, cues: [],
     };
     save({ swaps: { ...(mine ? personal.swaps : {}), [slot]: snap } });
-    setSwapFor(null);
-    setLibOpen(false);
+    setSwapItem(null);
   };
   const unswap = (slot: string) => {
     const next = { ...personal.swaps };
@@ -80,23 +82,64 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
   const custom = mine && (Object.keys(personal.days).length > 0 || Object.keys(personal.swaps).length > 0 || personal.hiit_split);
   const counts = view.sessions.reduce<Record<string, number>>((a, s) => ({ ...a, [s.modality]: (a[s.modality] ?? 0) + 1 }), {});
-  const total = view.sessions.reduce((n, s) => n + s.items.filter((i) => (i.block ?? "main") === "main").length, 0);
+  // Today's sessions, and the next one when today is a rest day — the two
+  // things the hero is for.
+  const todays = view.sessions.filter((x) => x.weekday === todayIdx);
+  const nextUp = [...view.sessions]
+    .sort((a, b) => ((a.weekday - todayIdx + 7) % 7) - ((b.weekday - todayIdx + 7) % 7))
+    .find((x) => x.weekday !== todayIdx) ?? null;
+  const stage = training ? stageAt(training, planStart ?? null) : null;
 
   return (
-    <div className={`grid gap-6 ${libOpen ? "" : ""} lg:grid-cols-[1fr_340px]`}>
-      <div className="min-w-0 space-y-6">
+    <div className="min-w-0 space-y-6">
         {/* Hero: the week */}
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-600 via-orange-500 to-amber-400 p-5 text-white shadow-sm sm:p-6">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">Æfingaáætlunin mín</p>
-          <h2 className="mt-1 text-2xl font-bold">{exercise.name}</h2>
-          {exercise.goal && <p className="mt-1 text-white/90">{exercise.goal}</p>}
-          <div className="mt-3 flex flex-wrap gap-2 text-sm">
-            <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{view.days_per_week} dagar í viku</span>
-            {exercise.session_minutes && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">um {exercise.session_minutes} mín.</span>}
-            <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{LEVEL[exercise.level] ?? exercise.level}</span>
-            {total > 0 && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{total} æfingar</span>}
-            {onChangeProgram && !onCustomise && <button type="button" onClick={onChangeProgram} className="rounded-full bg-white px-3 py-1 font-semibold text-orange-700 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">Æfingaáætlunin mín</p>
+              <h2 className="mt-1 text-2xl font-bold">{exercise.name}</h2>
+            </div>
+            {onChangeProgram && !onCustomise && <button type="button" onClick={onChangeProgram} className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-semibold text-orange-700 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
           </div>
+
+          {/* What the page is actually for: the next thing to do. The goal
+              sentence, the minutes, the level and the exercise count used to
+              sit here instead — all of it either repeated below or inferable
+              from the week, and none of it the question someone opens this
+              page with. */}
+          <div className="mt-4 rounded-2xl bg-white/15 p-4">
+            {todays.length > 0 ? (
+              <>
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-white/80">Í dag</p>
+                <p className="mt-0.5 text-lg font-bold">{todays.map((x) => x.title).join(" + ")}</p>
+                <p className="text-sm text-white/85">
+                  {[todays[0].focus, todays[0].minutes ? `um ${todays[0].minutes} mín.` : null].filter(Boolean).join(" · ")}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-white/80">Í dag</p>
+                <p className="mt-0.5 text-lg font-bold">Hvíldardagur</p>
+                {nextUp && <p className="text-sm text-white/85">Næst: {nextUp.title} á {WEEKDAYS[nextUp.weekday].toLowerCase()}</p>}
+              </>
+            )}
+          </div>
+
+          {stage && (
+            <div className="mt-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                <p className="font-semibold">{stage.title}</p>
+                <p className="text-white/80">
+                  Vika {stage.week}{stage.weeksToNext !== null && stage.nextTitle ? ` · ${stage.nextTitle} eftir ${stage.weeksToNext} ${stage.weeksToNext === 1 ? "viku" : "vikur"}` : ""}
+                </p>
+              </div>
+              <div className="mt-1.5 flex gap-1.5" aria-hidden>
+                {Array.from({ length: stage.count }, (_, i) => (
+                  <span key={i} className={`h-1.5 flex-1 rounded-full ${i < stage.index ? "bg-white/70" : i === stage.index ? "bg-white" : "bg-white/25"}`} />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-5 grid grid-cols-7 gap-1.5">
             {WEEKDAYS_SHORT.map((d, i) => {
@@ -173,53 +216,54 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           </button>
         )}
         {editable && controls}
-        {exercise.description && <p className="text-slate-600">{exercise.description}</p>}
         {stages}
 
         <section className="space-y-3">
           {view.sessions.map((s) => (
             <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
-              dragOver={drag?.over ?? null} swapFor={swapFor}
-              onSwap={editable ? (slot) => { setSwapFor(slot); setLibOpen(true); } : undefined} onUnswap={unswap} />
+              dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
+              onSwap={editable ? (slot, it) => setSwapItem({ slot, item: it }) : undefined} onUnswap={unswap} />
           ))}
         </section>
 
-        {!!exercise.principles?.length && (
-          <section>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Af hverju þetta virkar</h3>
-            <ol className="mt-2 grid gap-2 sm:grid-cols-2">
-              {exercise.principles.map((p, i) => (
-                <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-white p-3 shadow-sm">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">{i + 1}</span>
-                  <span className="text-sm text-slate-700">{p}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
+        {/* The paragraph explaining the programme and the list of why it works
+            both sat open on the page — one above the sessions and one below
+            them. Nobody reads a rationale while looking for today's workout,
+            and the sessions were pushed down by both. They are one disclosure
+            now, at the end, for whoever does want them. */}
+        {(exercise.description || !!exercise.principles?.length) && (
+          <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+            <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
+              <Info className="h-4 w-4 text-orange-700" aria-hidden />
+              Um áætlunina — af hverju þetta virkar
+              <ChevronDown className="ml-auto h-4 w-4 text-slate-400 transition group-open:rotate-180" aria-hidden />
+            </summary>
+            <div className="mt-3 space-y-4">
+              {exercise.description && <p className="text-sm leading-relaxed text-slate-700">{exercise.description}</p>}
+              {!!exercise.principles?.length && (
+                <ol className="grid gap-2 sm:grid-cols-2">
+                  {exercise.principles.map((p, i) => (
+                    <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-orange-50/40 p-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">{i + 1}</span>
+                      <span className="text-sm text-slate-700">{p}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </details>
         )}
-      </div>
 
-      {/* Library: a column on large screens, a sheet on phones */}
-      <aside className="hidden lg:block">
-        <div className="sticky top-24">
-          <ExerciseLibrary api={api} handle={handle} swapFor={swapFor} onPick={swapFor ? (ex) => swap(swapFor, ex) : undefined} onCancel={() => setSwapFor(null)} />
-        </div>
-      </aside>
-      {!libOpen && (
-        <button type="button" onClick={() => setLibOpen(true)}
-          className="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg lg:hidden">
-          <Library className="h-4 w-4" aria-hidden /> Æfingasafn
-        </button>
-      )}
-      {libOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 lg:hidden" onClick={() => { setLibOpen(false); setSwapFor(null); }}>
-          <div className="max-h-[85vh] overflow-hidden rounded-t-3xl bg-white" onClick={(e) => e.stopPropagation()}>
-            <ExerciseLibrary api={api} handle={handle} swapFor={swapFor} sheet
-              onPick={(ex) => (swapFor ? swap(swapFor, ex) : undefined)}
-              onCancel={() => { setSwapFor(null); setLibOpen(false); }} />
-          </div>
-        </div>
+      {/* Swapping used to mean a 976-exercise library pinned to the right of
+          the page at all times. It is a popup now, opened from the exercise
+          being replaced, and it asks why first — too hard, too easy, bored,
+          or it hurts — so what comes back is a handful of exercises on the
+          same muscles that answer that reason, not a catalogue. */}
+      {swapItem && (
+        <SwapWizard api={api} item={swapItem.item}
+          onPick={(ex) => swap(swapItem.slot, ex)}
+          onClose={() => setSwapItem(null)} />
       )}
       <DragGhost drag={drag} />
     </div>
@@ -230,7 +274,7 @@ function SessionCard({ s, today, open, onToggle, dragOver, swapFor, onSwap, onUn
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
   dragOver: string | null; swapFor: string | null;
   /** Undefined on the reading surface: swapping lives in the change sheet. */
-  onSwap?: (slot: string) => void;
+  onSwap?: (slot: string, item: ExerciseItem) => void;
   onUnswap: (slot: string) => void;
 }) {
   const blocks = (["warmup", "main", "finisher"] as ExerciseBlock[])
@@ -268,7 +312,7 @@ function SessionCard({ s, today, open, onToggle, dragOver, swapFor, onSwap, onUn
 
 const canSwap = (it: ExerciseItem) => !!it.slot && !/^hiit/i.test(it.name) && it.name !== "Upphitun";
 
-function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseItem; over: boolean; choosing: boolean; onSwap?: (slot: string) => void; onUnswap: (slot: string) => void }) {
+function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseItem; over: boolean; choosing: boolean; onSwap?: (slot: string, item: ExerciseItem) => void; onUnswap: (slot: string) => void }) {
   const [open, setOpen] = useState(false);
   const how = !!(it.cues?.length || it.video);
   const swappable = canSwap(it);
@@ -306,7 +350,7 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
               </button>
             )}
             {swappable && onSwap && (
-              <button type="button" onClick={() => onSwap(it.slot!)} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900">
+              <button type="button" onClick={() => onSwap(it.slot!, it)} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900">
                 <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
               </button>
             )}
@@ -332,83 +376,3 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
   );
 }
 
-const CATS = ["legs", "back", "chest", "shoulders", "arms", "core", "full-body", "cardio", "flexibility"];
-const EQUIP = ["bodyweight", "dumbbells", "kettlebell", "bands", "barbell", "cables", "machine"];
-
-function ExerciseLibrary({ api, handle, swapFor, onPick, onCancel, sheet }: {
-  api: Api;
-  handle: (p: Payload, label: string) => Record<string, unknown>;
-  swapFor: string | null;
-  onPick?: (ex: LibEx) => void;
-  onCancel: () => void;
-  sheet?: boolean;
-}) {
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState<string | null>(null);
-  const [equip, setEquip] = useState<string | null>(null);
-  const [list, setList] = useState<LibEx[] | null>(null);
-  const seq = useRef(0);
-
-  useEffect(() => {
-    const n = ++seq.current;
-    const t = setTimeout(async () => {
-      const u = new URLSearchParams({ kind: "exercises" });
-      if (q.trim()) u.set("q", q.trim());
-      if (cat) u.set("cat", cat);
-      if (equip) u.set("equip", equip);
-      const r = await api(`/api/hc/library?${u}`);
-      const j = await r.json().catch(() => ({}));
-      if (n === seq.current) setList(j.exercises ?? []);
-    }, q ? 250 : 0);
-    return () => clearTimeout(t);
-  }, [api, q, cat, equip]);
-
-  return (
-    <div className={`flex flex-col overflow-hidden bg-white ${sheet ? "max-h-[85vh]" : "max-h-[calc(100vh-7rem)] rounded-3xl shadow-sm ring-1 ring-slate-100"}`}>
-      <div className="space-y-2 border-b border-slate-100 p-3">
-        <div className="flex items-center justify-between">
-          <p className="font-semibold text-slate-900">{swapFor ? "Veldu æfingu í staðinn" : "Æfingasafnið"}</p>
-          {(swapFor || sheet) && <button type="button" onClick={onCancel} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>}
-        </div>
-        <p className="text-xs text-slate-500">{swapFor ? "Ýttu á æfingu til að skipta." : "Dragðu æfingu yfir æfingu í áætluninni til að skipta, eða ýttu á „Skipta“."}</p>
-        <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2">
-          <Search className="h-4 w-4 text-slate-400" aria-hidden />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita, t.d. hnébeygja" className="min-w-0 flex-1 text-sm outline-none" />
-        </label>
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {CATS.map((c) => (
-            <button key={c} type="button" onClick={() => setCat(cat === c ? null : c)} aria-pressed={cat === c}
-              className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${cat === c ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}>{CATEGORY_IS[c] ?? c}</button>
-          ))}
-        </div>
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {EQUIP.map((c) => (
-            <button key={c} type="button" onClick={() => setEquip(equip === c ? null : c)} aria-pressed={equip === c}
-              className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${equip === c ? "bg-orange-600 text-white" : "bg-orange-50 text-orange-800"}`}>{EQUIPMENT_IS[c] ?? c}</button>
-          ))}
-        </div>
-      </div>
-      <ul className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto p-3">
-        {list === null && <li className="col-span-2 py-6 text-center text-sm text-slate-500">Hleð…</li>}
-        {list?.length === 0 && <li className="col-span-2 py-6 text-center text-sm text-slate-500">Ekkert fannst.</li>}
-        {list?.map((ex) => (
-          <li key={ex.id}>
-            <button type="button" {...handle({ kind: "exercise", ex }, ex.name_is || ex.name)} onClick={() => onPick?.(ex)}
-              className={`w-full select-none overflow-hidden rounded-2xl bg-white text-left ring-1 ring-slate-200 transition hover:ring-orange-400 ${onPick ? "" : "cursor-grab"}`}>
-              <span className="block aspect-[4/3] bg-slate-100">
-                {ex.illustration_url
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={ex.illustration_url} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" />
-                  : null}
-              </span>
-              <span className="block p-2">
-                <span className="line-clamp-2 text-xs font-semibold leading-tight text-slate-900">{ex.name_is || ex.name}</span>
-                <span className="mt-0.5 block text-[10px] text-slate-500">{[ex.category ? CATEGORY_IS[ex.category] ?? ex.category : null, ex.equipment ? EQUIPMENT_IS[ex.equipment] ?? ex.equipment : null].filter(Boolean).join(" · ")}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
