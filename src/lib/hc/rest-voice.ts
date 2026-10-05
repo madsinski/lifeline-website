@@ -13,7 +13,8 @@
 // Everything is wrapped: speechSynthesis is missing in some browsers, throws
 // in others, and getVoices() is empty until the voiceschanged event fires.
 
-const IS_CUES = { ten: "Tíu sekúndur eftir", ready: "Tilbúin", go: "Áfram" };
+// "Tilbúin/tilbúinn" would have to pick a gender, so the cue counts instead.
+const IS_CUES = { ten: "Tíu sekúndur eftir", ready: "Þrjár sekúndur", go: "Af stað" };
 const EN_CUES = { ten: "10 seconds left", ready: "Get ready", go: "Go" };
 export type Cue = keyof typeof EN_CUES;
 

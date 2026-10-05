@@ -16,6 +16,7 @@
 
 import type { ActionPlan, ExerciseItem, ExercisePhase, ExerciseSession, ExerciseTemplate } from "./types";
 import { PROGRAM_MEDIA } from "./adaptive-program-media";
+import type { LiftPattern } from "./start-weight";
 
 export type Region = "shoulder" | "knee" | "back";
 export type TrainingLevel = "beginner" | "active";
@@ -281,6 +282,8 @@ interface Variant { name: string; lib?: string; note?: string }
 interface Slot {
   /** areas the movement loads */
   loads: Region[];
+  /** What kind of movement it is, for the starting-weight estimate. */
+  pattern?: LiftPattern;
   byStage: Record<StageKey, Variant>;
   /** The same pattern with nothing but bodyweight, a band and a heavy bag. */
   atHome: Record<StageKey, Variant>;
@@ -293,6 +296,7 @@ interface Slot {
 
 const SQUAT: Slot = {
   loads: ["knee", "back"],
+  pattern: "squat",
   byStage: {
     adapt: { name: "Hnébeygja niður á kassa eða stól", lib: "Box Squat" },
     s1: { name: "Bikarhnébeygja með ketilbjöllu", lib: "Goblet Squat" },
@@ -313,6 +317,7 @@ const SQUAT: Slot = {
 };
 const HINGE: Slot = {
   loads: ["back"],
+  pattern: "hinge",
   byStage: {
     adapt: { name: "Mjaðmalyfta á gólfi", lib: "Glute Bridges" },
     s1: { name: "Rúmensk réttstöðulyfta með handlóðum", lib: "Romanian Deadlift" },
@@ -323,7 +328,7 @@ const HINGE: Slot = {
     adapt: { name: "Mjaðmalyfta á gólfi", lib: "Glute Bridges" },
     s1: { name: "Mjaðmalyfta á öðrum fæti", lib: "Single Leg Glute Bridge" },
     s2: { name: "Rúmensk réttstöðulyfta með teygju", lib: "Romanian Deadlift" },
-    s3: { name: "Réttstöðulyfta á öðrum fæti með þyngd", lib: "Single Leg Deadlift" },
+    s3: { name: "Réttstöðulyfta á öðrum fæti með þyngd", lib: "Kettlebell One-Legged Deadlift" },
   },
   spare: {
     back: { name: "Mjaðmalyfta með lóð", lib: "Hip Thrust", note: "Í stað réttstöðulyftu vegna baks." },
@@ -332,6 +337,7 @@ const HINGE: Slot = {
 };
 const LUNGE: Slot = {
   loads: ["knee"],
+  pattern: "lunge",
   byStage: {
     adapt: { name: "Afturstig með stuðningi", lib: "Reverse Lunge" },
     s1: { name: "Afturstig", lib: "Reverse Lunge" },
@@ -342,7 +348,7 @@ const LUNGE: Slot = {
     adapt: { name: "Afturstig með stuðningi við vegg", lib: "Reverse Lunge" },
     s1: { name: "Afturstig", lib: "Reverse Lunge" },
     s2: { name: "Afturstig með bakpoka", lib: "Reverse Lunge" },
-    s3: { name: "Uppstig á stól með þyngd", lib: "Step-up" },
+    s3: { name: "Uppstig á stól með þyngd", lib: "Step-Up" },
   },
   spare: {
     knee: { name: "Mjaðmalyfta á öðrum fæti", lib: "Single Leg Glute Bridge", note: "Í stað framstigs vegna hnés." },
@@ -351,15 +357,16 @@ const LUNGE: Slot = {
 };
 const PUSH: Slot = {
   loads: ["shoulder"],
+  pattern: "push",
   byStage: {
-    adapt: { name: "Armbeygjur upp við vegg eða borð", lib: "Standard Push-Up", note: "Því hærra sem hendurnar eru, því léttara." },
-    s1: { name: "Armbeygjur á bekk eða hnjám", lib: "Standard Push-Up" },
+    adapt: { name: "Armbeygjur upp við vegg eða borð", lib: "Incline Push-Up", note: "Því hærra sem hendurnar eru, því léttara." },
+    s1: { name: "Armbeygjur á bekk eða hnjám", lib: "Incline Push-Up" },
     s2: { name: "Bekkpressa með handlóðum", lib: "Dumbbell Bench Press" },
     s3: { name: "Bekkpressa með stöng", lib: "Barbell Bench Press - Medium Grip" },
   },
   atHome: {
-    adapt: { name: "Armbeygjur upp við vegg", lib: "Standard Push-Up", note: "Því hærra sem hendurnar eru, því léttara." },
-    s1: { name: "Armbeygjur á hnjám eða upp við borð", lib: "Standard Push-Up" },
+    adapt: { name: "Armbeygjur upp við vegg", lib: "Incline Push-Up", note: "Því hærra sem hendurnar eru, því léttara." },
+    s1: { name: "Armbeygjur á hnjám eða upp við borð", lib: "Incline Push-Up" },
     s2: { name: "Armbeygjur á gólfi", lib: "Standard Push-Up" },
     s3: { name: "Armbeygjur með fætur upp á stól", lib: "Decline Push-Up" },
   },
@@ -370,15 +377,16 @@ const PUSH: Slot = {
 };
 const PULL: Slot = {
   loads: ["back"],
+  pattern: "pull",
   byStage: {
-    adapt: { name: "Róður með teygju", lib: "Seated Cable Row" },
+    adapt: { name: "Sitjandi róður í tæki", lib: "Seated Cable Row" },
     s1: { name: "Róður með handlóð á bekk", lib: "Dumbbell Single-Arm Row" },
     s2: { name: "Sitjandi róður í kapli", lib: "Seated Cable Row" },
     s3: { name: "Róður með stöng", lib: "Pendlay Row" },
   },
   atHome: {
-    adapt: { name: "Róður með teygju, sitjandi", lib: "Seated Cable Row" },
-    s1: { name: "Róður með teygju", lib: "Seated Cable Row" },
+    adapt: { name: "Róður með teygju, sitjandi", lib: "Bodyweight Mid Row" },
+    s1: { name: "Róður með teygju", lib: "Bodyweight Mid Row" },
     s2: { name: "Róður með bakpoka, annar handleggur", lib: "Dumbbell Single-Arm Row", note: "Styðjið hina höndina á stól." },
     s3: { name: "Öfugur róður undir traustu borði", lib: "Inverted Row", note: "Því láréttari sem líkaminn er, því þyngra." },
   },
@@ -389,6 +397,7 @@ const PULL: Slot = {
 };
 const PRESS: Slot = {
   loads: ["shoulder", "back"],
+  pattern: "press",
   byStage: {
     adapt: { name: "Axlapressa sitjandi, létt handlóð", lib: "Seated Dumbbell Shoulder Press" },
     s1: { name: "Axlapressa sitjandi með handlóðum", lib: "Seated Dumbbell Shoulder Press" },
@@ -397,9 +406,9 @@ const PRESS: Slot = {
   },
   atHome: {
     adapt: { name: "Axlapressa með teygju, sitjandi", lib: "Seated Dumbbell Shoulder Press" },
-    s1: { name: "Axlapressa með teygju", lib: "Band Shoulder Press" },
+    s1: { name: "Axlapressa með teygju", lib: "Shoulder Press - With Bands" },
     s2: { name: "Axlapressa með bakpoka", lib: "Dumbbell One-Arm Shoulder Press" },
-    s3: { name: "Pike-armbeygjur", lib: "Pike Push-Up", note: "Mjaðmir hátt, höfuðið niður á milli handanna." },
+    s3: { name: "Pike-armbeygjur", note: "Mjaðmir hátt, höfuðið niður á milli handanna." },
   },
   spare: {
     shoulder: { name: "Teygjusundurdráttur", lib: "Band Pull-Aparts", note: "Styrkir aftanverða öxlina án þess að lyfta yfir höfuð." },
@@ -430,6 +439,7 @@ const CORE: Slot = {
 };
 const CARRY: Slot = {
   loads: ["back", "shoulder"],
+  pattern: "carry",
   hold: true,
   byStage: {
     adapt: { name: "Bændaganga með létt lóð", lib: "Farmer's Walk" },
@@ -489,6 +499,8 @@ function strengthItem(slot: Slot, st: Stage, s: TrainingSettings): ExerciseItem 
   const holdSec = clamp((st.key === "adapt" ? 20 : st.key === "s1" ? 30 : 40) + load * 5, 10, 60);
   return {
     name: v.name,
+    pattern: slot.pattern,
+    stage: st.key,
     prescription: slot.hold ? `${sets} × ${holdSec} sek.` : `${sets} × ${st.reps}`,
     note: [slot.hold ? null : `Veldu þyngd svo að þú ${rirText(rir)}.`, st.tempo && !slot.hold ? `Taktur: ${st.tempo}.` : null, v.note ?? null].filter(Boolean).join(" ") || null,
     exercise_id: media?.id ?? null,
@@ -517,22 +529,6 @@ function hiitItem(st: Stage, s: TrainingSettings, extra = 0): ExerciseItem {
     ].filter(Boolean).join(" "),
     muscles: [],
     cues: ["Byrjaðu rólega og auktu hraðann í hverri lotu.", "Rólegu kaflarnir eru hluti af æfingunni."],
-    rest: null,
-    block: "finisher",
-  };
-}
-
-/**
- * "This day is a strength day — here is one way to do it, and here are the
- * others." The prescription above is the default, not the requirement.
- */
-function swapNote(c: Covers): ExerciseItem {
-  return {
-    name: "Má skipta út fyrir",
-    prescription: EQUIVALENTS[c].join(", "),
-    note: `Þessi dagur snýst um ${COVERS_IS[c].toLowerCase()}. Ef þú gerir eitthvað af þessu í staðinn telst dagurinn búinn.`,
-    muscles: [],
-    cues: [],
     rest: null,
     block: "finisher",
   };
@@ -735,8 +731,8 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
       // both cover legs, push, pull and trunk.
       const aSession = strengthDone++ === 0;
       out.push(aSession
-        ? { day: dayName(d), title: "Styrkur — allur líkaminn A", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(SQUAT), it(PUSH), it(PULL), it(CORE), swapNote("strength")] }
-        : { day: dayName(d), title: "Styrkur — allur líkaminn B", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(HINGE), it(PRESS), it(LUNGE), it(CARRY), swapNote("strength")] });
+        ? { day: dayName(d), title: "Styrkur — allur líkaminn A", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(SQUAT), it(PUSH), it(PULL), it(CORE)] }
+        : { day: dayName(d), title: "Styrkur — allur líkaminn B", focus: "Styrkur", minutes: strengthMinutes, items: [WARMUP, it(HINGE), it(PRESS), it(LUNGE), it(CARRY)] });
     } else if (aerobic < aerobicNeed) {
       // The first aerobic day is the hard one once HIIT is earned — unless
       // the week already has hard lotur in it, in which case Zone 2 is what
@@ -744,8 +740,8 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
       const useHiit = addHiit && aerobic === 0;
       aerobic++;
       out.push(useHiit
-        ? { day: dayName(d), title: "HIIT", focus: "Hörð lota", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0), swapNote("hiit")] }
-        : { day: dayName(d), title: "Zone 2", focus: "Rólegt þol", minutes: 45, items: [zone2Item(st, s), swapNote("cardio")] });
+        ? { day: dayName(d), title: "HIIT", focus: "Hörð lota", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
+        : { day: dayName(d), title: "Zone 2", focus: "Rólegt þol", minutes: 45, items: [zone2Item(st, s)] });
     }
   }
   // Every chosen day went to strength and no aerobic day was left — but

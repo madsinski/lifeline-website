@@ -239,11 +239,15 @@ function PlanPageInner() {
     }
     return out;
   }, [data]);
-  /** The measured weight from the report, for the protein target. */
-  const weightKg = useMemo(() => {
-    const row = (data?.report?.report.items ?? []).find((i) => i.slug === "thyngd");
-    return row && Number.isFinite(row.value) ? Number(row.value) : null;
+  /** The measured body data from the report: protein target and start weights. */
+  const body = useMemo(() => {
+    const val = (slug: string) => {
+      const row = (data?.report?.report.items ?? []).find((i) => i.slug === slug);
+      return row && Number.isFinite(row.value) ? Number(row.value) : null;
+    };
+    return { weightKg: val("thyngd"), bodyFatPct: val("fitumassi"), sex: data?.report?.sex ?? null };
   }, [data]);
+  const weightKg = body.weightKg;
 
   const reportTitlesBySlug = useMemo(() => {
     const out: Record<string, string> = {};
@@ -265,10 +269,12 @@ function PlanPageInner() {
     if (!u.user) return;
     await supabase.from("client_session_completions").insert({
       client_id: u.user.id,
-      completed_action_key: info.session.id,
+      // What they did, beside what was prescribed — so "fjallganga instead of
+      // Zone 2" reads as a kept week rather than a missed session.
+      completed_action_key: info.session.title,
       prescribed_action_key: info.session.id,
       modality: info.session.modality,
-      duration_min: info.minutes,
+      duration_min: info.minutes || null,
       intensity_rpe: info.rpe,
       // The column is checked against mon…sun, not the Icelandic day name.
       prescribed_day: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][info.session.weekday] ?? null,
@@ -387,7 +393,11 @@ function PlanPageInner() {
                       onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
                       onChangeProgram={() => setPicker("exercise")}
                       training={training} planStart={plan.start_date}
-                      onFinish={(info) => void finishWorkout(info)}
+                      onFinish={(info) => void finishWorkout(info)} body={body}
+                      onInstead={(info) => void finishWorkout({
+                        minutes: 0, rpe: 5,
+                        session: { ...info.session, modality: info.modality, title: info.label },
+                      })}
                       onCustomise={isAdaptive(plan.exercise?.key) ? () => setCustomise(true) : undefined} />
                   )}
                 </div>

@@ -21,7 +21,7 @@ export const MUSCLE_IS: Record<string, string> = {
   forearms: "framhandleggir", adductors: "innanvert læri", abductors: "utanvert læri", neck: "háls",
 };
 
-export const BLOCK_IS: Record<ExerciseBlock, string> = { warmup: "Upphitun", main: "Aðalhluti", finisher: "Lokahluti" };
+export const BLOCK_IS: Record<ExerciseBlock, string> = { warmup: "Upphitun", main: "Aðalæfing", finisher: "Í lokin" };
 
 export const muscleIs = (m: string) => MUSCLE_IS[m.toLowerCase()] ?? m;
 

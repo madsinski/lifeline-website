@@ -225,6 +225,10 @@ export interface ExerciseItem {
   block?: ExerciseBlock | null;
   /** "<session id>:<item index>" in the programme as written — set by personalise(), used for swaps. */
   slot?: string;
+  /** Movement pattern, for suggesting a starting weight. See start-weight.ts. */
+  pattern?: "squat" | "hinge" | "push" | "pull" | "press" | "lunge" | "carry";
+  /** Which stage the prescription was written for, same purpose. */
+  stage?: string;
   /** The participant swapped this one in from the library. */
   swapped?: boolean;
 }

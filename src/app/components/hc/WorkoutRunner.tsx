@@ -22,18 +22,21 @@ import {
 import type { PSession } from "@/lib/hc/personalise";
 import type { ExerciseItem } from "@/lib/hc/types";
 import { muscleIs } from "@/lib/hc/exercise-labels";
+import { BASIS_IS, suggestStartWeight, type BodyData } from "@/lib/hc/start-weight";
 import { hcBtn } from "./ui";
 import { speakCue, speechAvailable, setVoiceEnabled, stopSpeaking, voiceEnabled, warmVoices } from "@/lib/hc/rest-voice";
 
 type Phase = "run" | "rate";
 
-export default function WorkoutRunner({ session, onClose, onDone, onSwap }: {
+export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }: {
   session: PSession;
   onClose: () => void;
   /** Elapsed minutes and the RPE the participant gave. */
   onDone: (info: { minutes: number; rpe: number }) => void;
   /** Opens the swap wizard for one exercise, mid-workout. */
   onSwap?: (slot: string, item: ExerciseItem) => void;
+  /** Weight, body fat and sex, for suggesting a starting load. */
+  body?: BodyData;
 }) {
   const items = session.items.filter((i) => (i.block ?? "main") !== "finisher" || /^hiit/i.test(i.name));
   const [phase, setPhase] = useState<Phase>("run");
@@ -98,17 +101,17 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap }: {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {current && <ExercisePanel key={`${current.name}-${idx}`} it={current} onSwap={onSwap} />}
+        {current && <ExercisePanel key={`${current.name}-${idx}`} it={current} onSwap={onSwap} body={body} />}
       </div>
 
       <div className="flex items-center gap-2 border-t border-slate-100 p-3">
         <button type="button" onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}
           className={`${hcBtn.ghost} disabled:opacity-30`}><ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri</button>
-        <button type="button" onClick={finish} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Hætta núna</button>
+        <button type="button" onClick={finish} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Ljúka hér</button>
         <span className="flex-1" />
         {idx < items.length - 1
           ? <button type="button" onClick={() => setIdx((i) => i + 1)} className={hcBtn.primary}>Næsta <ChevronRight className="h-4 w-4" aria-hidden /></button>
-          : <button type="button" onClick={finish} className={hcBtn.primary}>Búin <Check className="h-4 w-4" aria-hidden /></button>}
+          : <button type="button" onClick={finish} className={hcBtn.primary}>Lokið <Check className="h-4 w-4" aria-hidden /></button>}
       </div>
     </Shell>
   );
@@ -135,7 +138,7 @@ function Shell({ title, onClose, children }: { title: string; onClose: () => voi
 }
 
 /** One exercise: what to do, and the set tracker when there is load to record. */
-function ExercisePanel({ it, onSwap }: { it: ExerciseItem; onSwap?: (slot: string, item: ExerciseItem) => void }) {
+function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot: string, item: ExerciseItem) => void; body?: BodyData }) {
   return (
     <div className="space-y-3 p-4">
       {/* object-contain on a dark panel: these are wide gym photos and
@@ -175,20 +178,27 @@ function ExercisePanel({ it, onSwap }: { it: ExerciseItem; onSwap?: (slot: strin
           {it.muscles.slice(0, 4).map((m) => <span key={m} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{muscleIs(m)}</span>)}
         </p>
       )}
-      {isLoggable(it) ? <SetTracker it={it} /> : (
+      {isLoggable(it) ? <SetTracker it={it} body={body} /> : (
         <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
-          {/^hiit/i.test(it.name) ? "Taktu lotuna eftir lýsingunni hér að ofan." : "Engin sett skráð fyrir þennan hluta."}
+          {/^hiit/i.test(it.name) ? "Taktu lotuna eftir lýsingunni hér að ofan." : "Hér eru engin sett skráð."}
         </p>
       )}
     </div>
   );
 }
 
-function SetTracker({ it }: { it: ExerciseItem }) {
+function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   const timed = isTimed(it);
   const bodyweight = isBodyweight(it);
   const target = parseSets(it.prescription);
-  const [weight, setWeight] = useState(0);
+  // A suggestion beats an empty box: the one question a beginner cannot
+  // answer is "how many kg?". Overwritten below by what they actually lifted
+  // last time, which is always the better number once it exists.
+  const suggested = !timed && !bodyweight && it.pattern && body
+    ? suggestStartWeight(it.pattern, parseReps(it.prescription), it.stage ?? "s1", body)
+    : null;
+  const [weight, setWeight] = useState(suggested?.kg ?? 0);
+  const [fromHistory, setFromHistory] = useState(false);
   const [reps, setReps] = useState(() => parseHoldSeconds(it.prescription) ?? parseReps(it.prescription));
   const [today, setToday] = useState<LoggedSet[]>([]);
   const [busy, setBusy] = useState(false);
@@ -219,7 +229,10 @@ function SetTracker({ it }: { it: ExerciseItem }) {
       setPr(best ? { weight: best.weight == null ? null : Number(best.weight), reps: best.reps } : null);
       // Pick up where the last session left off, as the app does.
       const last = rows[0];
-      if (last && !timed) { if (last.weight != null) setWeight(Number(last.weight)); if (last.reps != null) setReps(last.reps); }
+      if (last && !timed) {
+        if (last.weight != null) { setWeight(Number(last.weight)); setFromHistory(true); }
+        if (last.reps != null) setReps(last.reps);
+      }
     }, 0);
   }, [it.exercise_id, timed]);
   useEffect(() => { void load(); }, [load]);
@@ -278,8 +291,8 @@ function SetTracker({ it }: { it: ExerciseItem }) {
         <p className="text-sm font-semibold text-slate-800">Skrá sett</p>
         <div className="flex items-center gap-3">
           {pr?.weight != null && (
-            <p className="text-xs font-semibold text-amber-700" title="Þitt besta sett í þessari æfingu">
-              Best: {pr.weight} kg{pr.reps ? ` × ${pr.reps}` : ""}
+            <p className="text-xs font-semibold text-amber-700" title="Þitt besta sett í þessari æfingu til þessa">
+              Met: {pr.weight} kg{pr.reps ? ` × ${pr.reps}` : ""}
             </p>
           )}
           <p className="text-xs text-slate-500">{today.length} af {target} í dag</p>
@@ -315,6 +328,12 @@ function SetTracker({ it }: { it: ExerciseItem }) {
         </button>
       )}
 
+      {suggested && !fromHistory && (
+        <p className="text-xs text-slate-500">
+          Tillaga {BASIS_IS[suggested.basis]}. Stilltu hana þar til síðustu endurtekningarnar eru erfiðar.
+        </p>
+      )}
+
       {today.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {today.map((s, i) => (
@@ -336,12 +355,12 @@ function Stepper({ label, value, onChange, step, min, max }: {
     <div>
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => bump(-step)} aria-label={`Minnka ${label}`}
+        <button type="button" onClick={() => bump(-step)} aria-label={`Minnka ${label.replace(/\s*\(.*\)$/, "").toLowerCase()}`}
           className="h-11 w-11 shrink-0 rounded-xl bg-white text-xl font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">−</button>
         <input type="number" inputMode="decimal" value={value} aria-label={label}
           onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))}
           className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 text-center text-lg font-bold text-slate-900" />
-        <button type="button" onClick={() => bump(step)} aria-label={`Auka ${label}`}
+        <button type="button" onClick={() => bump(step)} aria-label={`Auka ${label.replace(/\s*\(.*\)$/, "").toLowerCase()}`}
           className="h-11 w-11 shrink-0 rounded-xl bg-white text-xl font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">+</button>
       </div>
     </div>
