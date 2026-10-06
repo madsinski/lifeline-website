@@ -33,6 +33,7 @@ import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
 import { type FlowStep } from "@/app/components/hc/Flow";
 import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
+import WsRequests from "@/app/components/hc/WsRequests";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
@@ -455,6 +456,9 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
           </ol>
         </section>
       )}
+
+      {/* 3b. What people have asked for themselves. */}
+      <WsRequests api={api} onOpen={onOpen} />
 
       {/* 4. Everything that needs a decision from you. */}
       <section>

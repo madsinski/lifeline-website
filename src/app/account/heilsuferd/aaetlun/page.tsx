@@ -25,6 +25,7 @@ import type { ActionPlan, LectureRef, Pillar } from "@/lib/hc/types";
 import { DEFAULT_TRAINING, activityModality, adaptExercise, hardDays, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
+import HelpCard from "@/app/components/hc/HelpCard";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
 import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
@@ -384,6 +385,11 @@ function PlanPageInner() {
                     className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-4 py-4 text-sm font-semibold text-slate-700 hover:border-hc-brand hover:text-hc-brand-dark">
                     <Pencil className="h-4 w-4" aria-hidden /> Bæta við, taka út eða raða aðgerðum
                   </button>
+                  {/* Where someone goes when something has gone wrong — an
+                      injury, a plan that does not fit, a question. On the
+                      daily surface because that is the page they are on when
+                      it happens. */}
+                  <HelpCard api={api} />
                   <NudgeSettings api={api} />
                 </div>
               )}
