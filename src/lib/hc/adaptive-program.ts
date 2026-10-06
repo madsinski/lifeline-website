@@ -196,6 +196,13 @@ export const ACTIVITY_PRESETS: ActivityPreset[] = [
  * When something covers two qualities the harder one names the day, because
  * that is what the day costs you.
  */
+/** Days already holding something hard — nothing else should land there. */
+export function hardDays(s: Pick<TrainingSettings, "activities">): number[] {
+  return [...new Set((s.activities ?? [])
+    .filter((a) => a.intensity === "hard" || a.covers.includes("hiit") || a.covers.includes("strength"))
+    .map((a) => a.day))];
+}
+
 export function activityModality(a: { covers: Covers[] }): "strength" | "hiit" | "cardio" | "other" {
   if (a.covers.includes("hiit")) return "hiit";
   if (a.covers.includes("strength")) return "strength";

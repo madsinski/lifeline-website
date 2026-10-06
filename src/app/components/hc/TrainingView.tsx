@@ -12,7 +12,7 @@ import { ArrowLeftRight, Check, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sl
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
-import { activityFocus, activityModality, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { activityFocus, activityModality, hardDays, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionAlternatives from "./SessionAlternatives";
@@ -69,7 +69,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   /** Tapping an empty day: add a sport or class that needs no programme. */
   onAddDay?: (a: Omit<import("@/lib/hc/adaptive-program").Activity, "id">) => void;
 }) {
-  const view = useMemo(() => personalise(exercise, personal), [exercise, personal]);
+  const view = useMemo(
+    () => personalise(exercise, personal, training ? hardDays(training) : []),
+    [exercise, personal, training]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
   const [pickDay, setPickDay] = useState<string | null>(null);
   const [swapItem, setSwapItem] = useState<{ slot: string; item: ExerciseItem } | null>(null);

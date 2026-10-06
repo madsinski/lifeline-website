@@ -21,7 +21,7 @@ import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan, LectureRef, Pillar } from "@/lib/hc/types";
-import { DEFAULT_TRAINING, activityModality, adaptExercise, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { DEFAULT_TRAINING, activityModality, adaptExercise, hardDays, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
@@ -190,7 +190,7 @@ function PlanPageInner() {
   };
   // The programme as written (adaptive ones computed from the settings), then arranged their way.
   const baseExercise = plan?.exercise ? (isAdaptive(plan.exercise.key) ? adaptExercise(plan.exercise, training, plan.start_date) : plan.exercise) : null;
-  const exercise = baseExercise ? personalise(baseExercise, personal) : null;
+  const exercise = baseExercise ? personalise(baseExercise, personal, hardDays(training)) : null;
   const qs = journey ? `?journey=${encodeURIComponent(journey)}` : "";
 
   /** Save the participant's arrangement at once; the server's answer (with library snapshots) replaces it. */

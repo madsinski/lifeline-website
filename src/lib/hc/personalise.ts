@@ -89,9 +89,28 @@ const keepGuidance = (note: string | null | undefined) =>
  * another programme are ignored (a new programme starts clean).
  */
 export type PersonalExercise = Omit<PlanExercise, "sessions"> & { sessions: PSession[] };
-export function personalise(e: PlanExercise, p: Personal): PersonalExercise {
+export function personalise(e: PlanExercise, p: Personal, blockedDays: number[] = []): PersonalExercise {
   const mine = !p.program_key || p.program_key === e.key;
-  const days = mine ? p.days : {};
+  /**
+   * A saved arrangement must not drop a session onto a day that is already
+   * hard.
+   *
+   * `days` is keyed by position — s0, s1, s2 — which was fine when the week
+   * was a fixed three sessions. It is not fine now: the week is built around
+   * the person's own commitments, their available days, their stage and what
+   * is already covered, so the session at index 0 today is not the session
+   * that was at index 0 when the arrangement was saved. A stale mapping
+   * therefore moves the WRONG session, and the one it moved onto a football
+   * day was exactly the Zone 2 that had been placed away from it.
+   *
+   * Honouring a move only when the destination is free fixes the symptom
+   * whatever the mapping meant, and the builder's own placement — which does
+   * know about the commitments — stands when it does not.
+   */
+  const blocked = new Set(blockedDays);
+  const days = mine
+    ? Object.fromEntries(Object.entries(p.days).filter(([, d]) => !blocked.has(d)))
+    : {};
   const swaps = mine ? p.swaps : {};
 
   let sessions: PSession[] = e.sessions.map((s, i) => {
