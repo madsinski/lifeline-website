@@ -8,11 +8,11 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
-import { stageAt, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { activityFocus, activityModality, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionAlternatives from "./SessionAlternatives";
@@ -32,7 +32,8 @@ interface LibEx {
 type Payload = { kind: "session"; id: string } | { kind: "exercise"; ex: LibEx };
 
 
-export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay }: {
+export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay,
+  onCompleteActivity, onMoveActivity, onRemoveActivity }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -61,6 +62,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   body?: BodyData;
   /** They did something else instead of this session. */
   onInstead?: (info: { label: string; modality: PSession["modality"]; session: PSession }) => void;
+  /** Marking one of their own sessions done. */
+  onCompleteActivity?: (a: Activity) => void;
+  onMoveActivity?: (id: string, weekday: number) => void;
+  onRemoveActivity?: (id: string) => void;
   /** Tapping an empty day: add a sport or class that needs no programme. */
   onAddDay?: (a: Omit<import("@/lib/hc/adaptive-program").Activity, "id">) => void;
 }) {
@@ -71,6 +76,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [running, setRunning] = useState<PSession | null>(null);
   const [swapSession, setSwapSession] = useState<PSession | null>(null);
   const [addDay, setAddDay] = useState<number | null>(null);
+  const [pickAct, setPickAct] = useState<Activity | null>(null);
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
   // Read-only on the main page; everything that edits lives in the sheet.
@@ -180,14 +186,23 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                   ))}
                   {/* Their own commitments: outlined, because the plan did not
                       put them there. */}
-                  {mine.map((a) => (
-                    <span key={a.id} title={`${a.name}${a.at ? ` · ${a.at}` : ""}`}
-                      className="flex flex-col items-center gap-0.5 rounded-lg border border-dashed border-slate-300 bg-white px-1 py-1 text-[10px] font-semibold leading-tight text-slate-700">
-                      <ActivityIcon name={a.name} className="h-3.5 w-3.5 text-slate-500" />
-                      <span className="w-full truncate text-center">{a.name}</span>
-                      {a.at && <span className="text-[9px] font-normal text-slate-400">{a.at}</span>}
-                    </span>
-                  ))}
+                  {mine.map((a) => {
+                    const am = activityModality(a);
+                    const mm = MODALITY_IS[am === "other" ? "other" : am];
+                    return (
+                      <button key={a.id} type="button" onClick={() => setPickAct(pickAct?.id === a.id ? null : a)}
+                        title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
+                        aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
+                        className={`cursor-pointer rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${mm.cls} ${pickAct?.id === a.id ? "outline outline-2 outline-hc-ink" : ""}`}>
+                        <span className={`mb-0.5 block h-1 w-5 rounded-full ${mm.dot}`} />
+                        <span className="flex items-center gap-1">
+                          <ActivityIcon name={a.name} className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{a.name}</span>
+                        </span>
+                        {a.at && <span className="block text-[9px] font-normal opacity-70">{a.at}</span>}
+                      </button>
+                    );
+                  })}
                   {here.length === 0 && mine.length === 0 && (
                     onAddDay
                       ? <button type="button" onClick={() => setAddDay(i)}
@@ -201,6 +216,30 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               );
             })}
           </div>
+
+          {pickAct && (
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+              <p className="text-sm font-bold text-slate-900">{pickAct.name}</p>
+              <p className="text-xs text-slate-500">{WEEKDAYS[pickAct.day]}{pickAct.at ? ` · ${pickAct.at}` : ""} · {activityFocus(pickAct)}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" className={hcBtn.primary}
+                  onClick={() => { onCompleteActivity?.(pickAct); setPickAct(null); }}>
+                  <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
+                </button>
+                <button type="button" className={hcBtn.ghost}
+                  onClick={() => { onRemoveActivity?.(pickAct.id); setPickAct(null); }}>
+                  Fjarlægja
+                </button>
+              </div>
+              <p className="mt-3 text-xs font-semibold text-slate-500">Færa á annan dag</p>
+              <div className="mt-1 grid grid-cols-7 gap-1">
+                {WEEKDAYS_SHORT.map((d, i) => (
+                  <button key={d} type="button" onClick={() => { onMoveActivity?.(pickAct.id, i); setPickAct(null); }}
+                    className={`rounded-lg py-2 text-xs font-bold ${pickAct.day === i ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{d}</button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {pickDay && (() => {
             const sess = view.sessions.find((x) => x.id === pickDay);
@@ -271,6 +310,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
         {stages}
 
         <section className="space-y-3">
+          {(training?.activities ?? []).length > 0 && (
+            <ActivityCards activities={training!.activities} todayIdx={todayIdx} onComplete={onCompleteActivity} />
+          )}
           {view.sessions.map((s) => (
             <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
               onStart={() => setRunning(s)}
@@ -474,3 +516,46 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
   );
 }
 
+
+/**
+ * The sports someone already does, listed with the programme's own sessions.
+ *
+ * They used to appear only as a footnote in the week grid, which made a
+ * Monday with an hour of football on it look like a rest day in the plan.
+ * An hour of football IS the hard lota for that day; it belongs in the list.
+ */
+function ActivityCards({ activities, todayIdx, onComplete }: {
+  activities: Activity[]; todayIdx: number; onComplete?: (a: Activity) => void;
+}) {
+  const sorted = [...activities].sort((a, b) => a.day - b.day || (a.at ?? "").localeCompare(b.at ?? ""));
+  return (
+    <>
+      {sorted.map((a) => {
+        const am = activityModality(a);
+        const mm = MODALITY_IS[am === "other" ? "other" : am];
+        const today = a.day === todayIdx;
+        return (
+          <div key={a.id}
+            className={`flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ${today ? "ring-2 ring-slate-400" : "ring-slate-200"}`}>
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${mm.dot} text-white`}>
+              <ActivityIcon name={a.name} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">
+                {WEEKDAYS[a.day]}{today ? " · í dag" : ""}{a.at ? ` · ${a.at}` : ""}
+              </span>
+              <span className="block font-semibold text-[#0F172A]">{a.name}</span>
+              <span className="block text-xs text-slate-500">{activityFocus(a)} · þitt eigið</span>
+            </span>
+            {onComplete
+              ? <button type="button" onClick={() => onComplete(a)}
+                  className="shrink-0 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                  Ég gerði þetta
+                </button>
+              : <span className={`hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline ${mm.cls}`}>{mm.label}</span>}
+          </div>
+        );
+      })}
+    </>
+  );
+}

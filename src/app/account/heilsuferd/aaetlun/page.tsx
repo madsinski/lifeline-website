@@ -21,7 +21,7 @@ import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan, LectureRef, Pillar } from "@/lib/hc/types";
-import { DEFAULT_TRAINING, adaptExercise, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { DEFAULT_TRAINING, activityModality, adaptExercise, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
@@ -397,6 +397,17 @@ function PlanPageInner() {
                       onChangeProgram={() => setPicker("exercise")}
                       training={training} planStart={plan.start_date}
                       onFinish={(info) => void finishWorkout(info)} body={body}
+                      onCompleteActivity={(a) => void finishWorkout({
+                        minutes: a.minutes ?? 60, rpe: a.intensity === "hard" ? 7 : a.intensity === "easy" ? 3 : 5,
+                        session: { id: a.id, title: a.name, modality: activityModality(a), weekday: a.day },
+                      })}
+                      onMoveActivity={(id, weekday) => void saveTraining({
+                        ...training,
+                        activities: training.activities.map((x) => (x.id === id ? { ...x, day: weekday } : x)),
+                      })}
+                      onRemoveActivity={(id) => void saveTraining({
+                        ...training, activities: training.activities.filter((x) => x.id !== id),
+                      })}
                       onAddDay={(a) => void saveTraining({
                         ...training,
                         activities: [...training.activities, { ...a, id: Math.random().toString(36).slice(2, 10) }],

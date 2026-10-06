@@ -7,16 +7,18 @@
 // and the "I did something else" sheet all draw from here.
 
 import {
-  Anchor, Bike, Cable, CircleDot, Dumbbell, Flame, Footprints, Goal, HeartPulse, Medal,
-  Mountain, Music, PersonStanding, Rabbit, Sailboat, Snowflake, StretchHorizontal, Swords,
-  Target, Timer, TreePine, Users, Volleyball, Waves, Weight, Wind, Zap,
+  Anchor, Bike, Cable, CircleDot, Dumbbell, Fish, Flag, Flame, Footprints, Goal, HeartPulse,
+  Medal, Mountain, MountainSnow, Music, PersonStanding, Rabbit, Sailboat, Shovel, Snowflake,
+  SportShoe, StretchHorizontal, Swords, Target, Timer, TreePine, Users, Volleyball, Waves,
+  WavesLadder, Weight, Wind, Zap,
 } from "lucide-react";
 import { ACTIVITY_PRESETS, COVERS_IS, type Covers } from "@/lib/hc/adaptive-program";
 
 const ICONS: Record<string, typeof Dumbbell> = {
-  Anchor, Bike, Cable, CircleDot, Dumbbell, Flame, Footprints, Goal, HeartPulse, Medal,
-  Mountain, Music, PersonStanding, Rabbit, Sailboat, Snowflake, StretchHorizontal, Swords,
-  Target, Timer, TreePine, Users, Volleyball, Waves, Weight, Wind, Zap,
+  Anchor, Bike, Cable, CircleDot, Dumbbell, Fish, Flag, Flame, Footprints, Goal, HeartPulse,
+  Medal, Mountain, MountainSnow, Music, PersonStanding, Rabbit, Sailboat, Shovel, Snowflake,
+  SportShoe, StretchHorizontal, Swords, Target, Timer, TreePine, Users, Volleyball, Waves,
+  WavesLadder, Weight, Wind, Zap,
 };
 
 const BY_NAME = new Map(ACTIVITY_PRESETS.map((p) => [p.name.toLowerCase(), p]));
