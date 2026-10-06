@@ -36,6 +36,7 @@ import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCa
 import WsRequests from "@/app/components/hc/WsRequests";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
+import ReportSignals from "@/app/components/hc/ReportSignals";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
@@ -747,7 +748,7 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
   const [openStep, setOpenStep] = useState<string | null>(step ?? null);
-  const [sheet, setSheet] = useState<"messages" | "referral" | "orders" | "history" | null>(null);
+  const [sheet, setSheet] = useState<"messages" | "referral" | "orders" | "history" | "report" | null>(null);
   const [touched, setTouched] = useState(!!step);
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
@@ -795,7 +796,7 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
   const landOn = d.report && !j.interview_booked_for && !j.interview_done_at && !j.plan_published_at ? "results" : current?.key ?? (d.report ? "results" : null);
   const shownOpen = touched ? openStep : landOn;
 
-  const cockpit = !!d.report && (shownOpen === "interview" || shownOpen === "plan" || shownOpen === "followup");
+  const showSignals = !!d.report && (shownOpen === "interview" || shownOpen === "plan" || shownOpen === "followup");
   // The next video appointment, so the call is one click from the top.
   const call = upcomingAppointments(j, null).find((x) => x.video) ?? null;
   // Payment as a chip on the status line rather than a drawer of its own.
@@ -916,11 +917,30 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
         </button>
       </div>
 
-      {/* Interview cockpit: while talking and while building the plan, the
-          report stays in view beside the notes (wide screens only; on a
-          tablet it is one tap away on the line). */}
-      <div className={`grid gap-4 ${cockpit ? "xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]" : ""}`}>
+      {/* The report used to be pinned in a 26rem column beside this while
+          talking and while building the plan. The container is capped at
+          1024px, so that left the work 544px — narrower than a phone in
+          landscape — and gave the report 416px to render ten expandable
+          sections in. Neither side could do its job.
+          What the nurse needs mid-conversation is the handful of values that
+          are out of range: that is the strip below. The whole report is one
+          button away, in the same drawer the workstation already uses for
+          messages and referrals. */}
+      <div className="grid gap-4">
         <div>
+          {showSignals && d.report && (
+            <div className="mb-3">
+              <ReportSignals report={d.report.report} signals={d.report.signals}
+                onOpen={() => setSheet("report")} />
+            </div>
+          )}
+          {/* The interview notes are what the plan is built FROM, so they go
+              above it rather than inside a panel to one side of it. */}
+          {shownOpen === "plan" && (
+            <div className="mb-3">
+              <NotesPeek j={j} onBack={() => jump(j.followup_booked_for && j.interview_done_at ? "followup" : "interview")} />
+            </div>
+          )}
           {open ? (
             <section className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center gap-2">
@@ -934,17 +954,15 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
             </section>
           ) : null}
         </div>
-        {cockpit && d.report && (
-          <aside className="hidden xl:block" aria-label="Skýrslan">
-            <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2">
-              {shownOpen === "plan" && <NotesPeek j={j} onBack={() => jump(j.followup_booked_for && j.interview_done_at ? "followup" : "interview")} />}
-              <p className="px-2 pb-2 pt-1 text-xs font-bold uppercase tracking-wide text-slate-500">Skýrslan · til hliðsjónar</p>
-              <ReportView report={d.report.report} signals={d.report.signals} reference={d.report.reference} sex={d.report.sex} />
-            </div>
-          </aside>
-        )}
-
       </div>
+
+      {sheet === "report" && d.report && (
+        <Sheet title="Skýrslan" onClose={() => setSheet(null)}>
+          <div className="p-4">
+            <ReportView report={d.report.report} signals={d.report.signals} reference={d.report.reference} sex={d.report.sex} />
+          </div>
+        </Sheet>
+      )}
 
       {sheet === "messages" && (
         <Sheet title="Skilaboð til skjólstæðings" onClose={() => setSheet(null)}>
