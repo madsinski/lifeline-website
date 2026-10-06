@@ -10,7 +10,14 @@ import * as cache from "@/lib/hc/client-cache";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-export default function ReportUpload({ api, onDone, compact }: { api: Api; onDone: () => void; compact?: boolean }) {
+export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
+  api: Api;
+  onDone: () => void;
+  compact?: boolean;
+  /** Overrides for the second home of this card: adding a LATER report. */
+  heading?: string;
+  blurb?: string;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -32,10 +39,9 @@ export default function ReportUpload({ api, onDone, compact }: { api: Api; onDon
     <div className={compact ? "" : `${hcCard.base} p-5`}>
       {!compact && (
         <>
-          <p className="font-semibold text-hc-ink">Ertu með skýrsluna þína?</p>
+          <p className="font-semibold text-hc-ink">{heading ?? "Ertu með skýrsluna þína?"}</p>
           <p className="mt-1 text-sm text-hc-ink-2">
-            Sæktu PDF-skýrsluna „Grunnheilsa“ í sjúklingagáttina og settu hana hér inn. Þá sérðu niðurstöðurnar strax og getur
-            búið til áætlunina þína sjálf(ur), eða beðið eftir viðtalinu.
+            {blurb ?? "Sæktu PDF-skýrsluna „Grunnheilsa“ í sjúklingagáttina og settu hana hér inn. Þá sérðu niðurstöðurnar strax og getur búið til áætlunina þína sjálf(ur), eða beðið eftir viðtalinu."}
           </p>
         </>
       )}
@@ -43,7 +49,7 @@ export default function ReportUpload({ api, onDone, compact }: { api: Api; onDon
         onChange={(e) => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ""; }} />
       <button type="button" onClick={() => ref.current?.click()} disabled={busy} className={`${hcBtn.dark} ${compact ? "" : "mt-3"}`}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileUp className="h-4 w-4" aria-hidden />}
-        {busy ? "Les skýrsluna…" : "Hlaða upp skýrslu (PDF)"}
+        {busy ? "Les skýrsluna…" : heading ? "Hlaða upp nýrri skýrslu (PDF)" : "Hlaða upp skýrslu (PDF)"}
       </button>
       <p className="mt-2 flex items-start gap-1.5 text-xs text-slate-500">
         <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />

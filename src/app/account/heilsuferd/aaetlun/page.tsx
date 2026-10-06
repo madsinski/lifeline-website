@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
 import MyActions from "@/app/components/hc/MyActions";
 import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSignals";
+import ResultsCard, { type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportView from "@/app/components/hc/ReportView";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ReportReference } from "@/lib/hc/knowledge";
@@ -95,6 +96,8 @@ function PlanPageInner() {
   const askedTab = search.get("tab");
   const [editing, setEditing] = useState(search.get("breyta") === "1");
   const [reloadKey, setReloadKey] = useState(0);
+  /** Every measured value on the journey, for "Mínar mælingar". */
+  const [results, setResults] = useState<HcResult[] | null>(null);
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
   const [name, setName] = useState<string | null>(null);
   const [tab, setTabState] = useState<Tab | null>(null);
@@ -297,6 +300,18 @@ function PlanPageInner() {
     if (r.ok && j.nutrition) setNutritionPrefs(j.nutrition); else setNutritionPrefs(prev);
   };
 
+  // Measured values, loaded when the Niðurstöður tab is actually opened —
+  // most visits never go there.
+  useEffect(() => {
+    if (tab !== "results" || !data) return;
+    void (async () => {
+      const r = await api("/api/hc/results");
+      if (!r.ok) return;
+      const j = (await r.json().catch(() => ({}))) as { results?: HcResult[] };
+      setTimeout(() => setResults(j.results ?? []), 0);
+    })();
+  }, [tab, data, api, reloadKey]);
+
   // The meal library, for showing how much of it survives the restrictions.
   useEffect(() => {
     if (!nutritionSetup || mealLibrary) return;
@@ -460,8 +475,25 @@ function PlanPageInner() {
                 </div>
               )}
               {tab === "results" && (
-                <div className="print:hidden">
+                <div className="space-y-4 print:hidden">
                   <ResultSignals flagged={data.flagged} />
+                  {/* A health journey is longitudinal: a new report comes
+                      every six to twelve months. The upload used to live only
+                      in the "you have no report yet" branch, so once the first
+                      one landed there was no way to add the next. */}
+                  {/* Measurements between reports: a home blood-pressure
+                      reading, a blood panel from somewhere else, a weight.
+                      The same card the nurse uses, so the bands and the
+                      traffic lights are the same ones — writing through
+                      /api/hc/results, which marks them 'self' and will not
+                      overwrite anything measured at the station. */}
+                  <ResultsCard api={api} journeyId={data.journey_id} sex={body.sex}
+                    results={results ?? []}
+                    endpoint="/api/hc/results" audience="client"
+                    onSaved={() => setReloadKey((k) => k + 1)} />
+                  <ReportUpload api={api} onDone={() => setReloadKey((k) => k + 1)}
+                    heading="Ný skýrsla"
+                    blurb="Komin með nýja Grunnheilsu-skýrslu? Settu hana inn og áætlunin uppfærist eftir nýju niðurstöðunum." />
                 </div>
               )}
               {plan && (

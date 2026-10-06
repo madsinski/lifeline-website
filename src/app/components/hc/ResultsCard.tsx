@@ -55,7 +55,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** Sex-specific bands with no sex on file: we must not pick one and pretend. */
 const sexUnknown = (e: KnowledgeEntry, sex: "m" | "f" | null) => !sex && e.bands.some((b) => b.sex);
 
-export default function ResultsCard({ api, journeyId, sex, results, onSaved, reportShown }: {
+export default function ResultsCard({ api, journeyId, sex, results, onSaved, reportShown, endpoint = "/api/vinnustod/results", audience = "staff" }: {
   /** The full report is already rendered above, so listing every value here
    *  again just repeats it — a second "Niðurstöður" heading under the first. */
   reportShown?: boolean;
@@ -64,6 +64,14 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   sex: "m" | "f" | null;
   results: HcResult[];
   onSaved?: () => void;
+  /**
+   * Where the values go. The workstation writes as the nurse; the participant
+   * writes their own through /api/hc/results, which records source 'self' and
+   * refuses to overwrite anything measured clinically.
+   */
+  endpoint?: string;
+  /** Changes the wording, not the maths. */
+  audience?: "staff" | "client";
 }) {
   const [entries, setEntries] = useState<KnowledgeEntry[] | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -117,9 +125,17 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
     const values = found
       .filter((_, i) => take[i])
       .map((v) => ({ marker: v.slug ?? `x:${v.code}`, value: v.value, unit: v.unit, measured_at: foundDate ?? date, note: v.slug ? null : v.label }));
-    const r = await api("/api/vinnustod/results", { method: "POST", body: JSON.stringify({ journey_id: journeyId, values }) });
+    const r = await api(endpoint, { method: "POST", body: JSON.stringify({ journey_id: journeyId, values }) });
+    const j = await r.json().catch(() => ({}));
     setBusy(false);
     if (!r.ok) { setMsg("Tókst ekki að vista."); return; }
+    if (Array.isArray(j.refused) && j.refused.length) {
+      // Said plainly rather than silently dropped: a value measured at the
+      // station outranks one typed at home, and the person should know which.
+      setMsg(`Vistað. ${j.refused.length} gildi stóðu óbreytt — þau voru mæld hjá okkur.`);
+      setDraft({}); setEditing(false); onSaved?.();
+      return;
+    }
     setFound(null); setMsg(`${values.length} gildi vistuð`);
     onSaved?.();
   };
@@ -190,7 +206,9 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-bold text-slate-900">{reportShown ? "Skrá eða lesa gildi" : "Niðurstöður"}</h3>
+        <h3 className="font-bold text-slate-900">
+          {audience === "client" ? "Mínar mælingar" : reportShown ? "Skrá eða lesa gildi" : "Niðurstöður"}
+        </h3>
         {recorded.length > 0 && (
           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{recorded.length} skráð</span>
         )}
