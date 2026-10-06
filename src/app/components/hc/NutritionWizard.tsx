@@ -12,9 +12,9 @@
 // every day, and saying so beats serving it quietly.
 
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import {
-  COOKING_IS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor,
+  ALLERGEN_OPTIONS, COOKING_IS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type Allergen,
   type NutritionPrefs,
 } from "@/lib/hc/nutrition";
 import { libraryDepth, SLOT_IS, type Meal } from "@/lib/hc/meals";
@@ -34,6 +34,8 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
   const [step, setStep] = useState(0);
   const [p, setP] = useState<NutritionPrefs>(prefs);
   const set = (patch: Partial<NutritionPrefs>) => setP((x) => ({ ...x, ...patch }));
+  const toggleAvoid = (k: Allergen) =>
+    set({ avoid: (p.avoid ?? []).includes(k) ? (p.avoid ?? []).filter((x) => x !== k) : [...(p.avoid ?? []), k] });
   const toggleDiet = (k: string) =>
     set({ diet: p.diet.includes(k) ? p.diet.filter((x) => x !== k) : [...p.diet, k] });
 
@@ -71,7 +73,38 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
               </button>
             ))}
           </div>
-          {p.diet.length === 0 && <p className="text-sm text-slate-500">Ekkert valið — allar máltíðir í boði.</p>}
+
+          <h4 className="pt-2 text-sm font-bold uppercase tracking-wide text-slate-500">Óþol og ofnæmi</h4>
+          <p className="text-sm text-hc-ink-2">
+            Við sleppum öllum máltíðum sem innihalda þetta — og líka þeim sem gætu innihaldið það.
+            Þú sérð því frekar of fáar máltíðir en of margar.
+          </p>
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            {ALLERGEN_OPTIONS.map((a) => {
+              const on = (p.avoid ?? []).includes(a.key);
+              return (
+                <button key={a.key} type="button" onClick={() => toggleAvoid(a.key)} aria-pressed={on}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
+                    on ? "border-rose-500 bg-rose-50 font-semibold text-rose-900" : "border-slate-200 bg-white text-hc-ink hover:border-slate-300"}`}>
+                  {a.label}
+                </button>
+              );
+            })}
+          </div>
+          {(p.avoid ?? []).map((k) => ALLERGEN_OPTIONS.find((a) => a.key === k)).filter((a) => a?.note).map((a) => (
+            <p key={a!.key} className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{a!.note}</p>
+          ))}
+          {/* Not a safety guarantee, and it must not read like one. */}
+          {(p.avoid ?? []).length > 0 && (
+            <p className="flex gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-700">
+              <AlertTriangle className="mt-px h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+              <span>
+                Þetta er uppskriftasafn, ekki innihaldslýsing frá framleiðanda. Við sjáum hvorki snefilmagn
+                né hvað er í tilteknum pakka. Ef ofnæmið er alvarlegt þarf alltaf að lesa pakkann.
+              </span>
+            </p>
+          )}
+          {p.diet.length === 0 && (p.avoid ?? []).length === 0 && <p className="text-sm text-slate-500">Ekkert valið — allar máltíðir í boði.</p>}
         </div>
       )}
 

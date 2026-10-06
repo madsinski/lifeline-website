@@ -22,13 +22,19 @@ import { localDate } from "@/lib/hc/workout";
 import { proteinState, proteinTarget, totalsOf, type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 
-export default function MealLogger({ day, weightKg, compact = false, onTarget }: {
+export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget }: {
   /** The meal in each slot today, as the plan has it. */
   day: Record<MealSlot, Meal | null>;
   /** From the report's þyngd row; null means no protein bar. */
   weightKg: number | null;
   /** On "Í dag" the bar is enough; the Næring tab shows every slot. */
   compact?: boolean;
+  /**
+   * Which half to render. The Næring hero shows the bar the way the exercise
+   * hero shows the stage, and the slot-by-slot list stays further down, so
+   * the two halves mount separately there.
+   */
+  part?: "bar" | "list" | "both";
   /**
    * Reports the band this bar measures against, so the plan can be built to
    * land inside it. Without this the plan was assembled to maximise protein
@@ -108,7 +114,8 @@ export default function MealLogger({ day, weightKg, compact = false, onTarget }:
   return (
     <div className="space-y-3">
       {/* The day so far */}
-      <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+      {part !== "list" && (
+      <div className={part === "bar" ? "" : "rounded-2xl bg-white p-4 ring-1 ring-slate-200"}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-sm font-semibold text-slate-800">Dagurinn þinn</p>
           <p className="text-sm text-slate-600">
@@ -138,8 +145,9 @@ export default function MealLogger({ day, weightKg, compact = false, onTarget }:
           </p>
         )}
       </div>
+      )}
 
-      {!compact && (
+      {!compact && part !== "bar" && (
         <ul className="space-y-2">
           {SLOTS.filter((s) => day[s]).map((slot) => {
             const meal = day[slot]!;

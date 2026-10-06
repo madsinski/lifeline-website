@@ -11,7 +11,7 @@ import { dayFor, mealName, mealsFor, mealText, pickKey, SLOT_IS, SLOTS, weekFor,
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
 import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
-import { DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
+import { ALLERGEN_OPTIONS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
 import type { Signal } from "@/lib/hc/grunnheilsa";
 import MealLogger from "./MealLogger";
 
@@ -65,82 +65,106 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-lime-700 via-lime-600 to-emerald-500 p-5 text-white shadow-sm sm:p-6">
+      {/* The hero, built like the exercise one: a white card with the next
+          thing to do in solid colour, the protein bar where that one has its
+          stage bar, and the week inside it rather than as a section below.
+          The gradient panel it replaced carried the programme name, some
+          chips and little else. */}
+      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">Næringaráætlunin mín</p>
-            <h2 className="mt-1 text-2xl font-bold">{nutrition.name}</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime-700">Næringaráætlunin mín</p>
+            <h2 className="mt-1 text-2xl font-bold text-slate-900">{nutrition.name}</h2>
           </div>
           {onChangeProgram && !onCustomise && (
-            <button type="button" onClick={onChangeProgram} className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
+            <button type="button" onClick={onChangeProgram} className="shrink-0 rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
           )}
         </div>
-        {/* The emphasis and the day's protein are what this page is for. The
-            goal sentence and the long description used to sit here too; they
-            are in the disclosure at the end now. */}
-        {emphasis.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+
+        {/* What the page is for: what is on the table today. */}
+        <div className="mt-4 rounded-2xl bg-lime-600 p-4 text-white">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-lime-100">
+            {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
+          </p>
+          <p className="mt-0.5 text-lg font-bold">{day?.dinner ? mealName(day.dinner) : "Engin máltíð valin"}</p>
+          <p className="text-sm text-lime-50">
+            {day
+              ? [day.breakfast ? mealName(day.breakfast) : null, day.lunch ? mealName(day.lunch) : null]
+                  .filter(Boolean).join(" · ")
+              : "Hleð máltíðum…"}
+          </p>
+          {totals && (
+            <p className="mt-2 text-sm font-semibold text-lime-50">
+              Á áætlun: {Math.round(totals.protein)} g prótein · {Math.round(totals.kcal)} kkal
+            </p>
+          )}
+        </div>
+
+        {/* The bar, in the place the exercise hero keeps its stage. */}
+        {today && (
+          <div className="mt-3">
+            <MealLogger day={today} weightKg={weightKg ?? null} part="bar" onTarget={onTarget} />
+          </div>
+        )}
+
+        {/* The week, inside the hero as the exercise one has it. */}
+        {week && (
+          <div className="mt-5">
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Vikan</p>
+              <p className="text-[11px] text-slate-400">Kvöldmatur og prótein · ýttu á dag</p>
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {week.map((d, i) => {
+                const on = i === shownDay;
+                return (
+                  <button key={i} type="button" onClick={() => setPickedDay(i)} aria-pressed={on}
+                    aria-label={`${WEEKDAYS[i]}${i === todayIdx ? " (í dag)" : ""}`}
+                    className={`flex min-h-[84px] flex-col gap-1 rounded-xl border p-1.5 text-left transition ${
+                      on ? "border-lime-500 bg-lime-50" : i === todayIdx ? "border-lime-300 bg-lime-50/60" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                    <span className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-lime-800" : "text-slate-400"}`}>
+                      {WEEKDAYS_SHORT[i]}
+                    </span>
+                    <span className="block flex-1 overflow-hidden text-[10px] leading-tight text-slate-700">
+                      {d.dinner ? mealName(d.dinner) : "—"}
+                    </span>
+                    <span className="block text-[10px] font-semibold text-slate-500">
+                      {SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0)} g
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {(emphasis.length > 0 || !!prefs?.diet.length || !!prefs?.avoid?.length) && (
+          <div className="mt-4 flex flex-wrap gap-1.5 text-sm">
             {emphasis.slice(0, 3).map((e) => (
-              <span key={e.emphasis} className="rounded-full bg-white/20 px-3 py-1 text-sm font-semibold">{EMPHASIS_IS[e.emphasis].label}</span>
+              <span key={e.emphasis} className="rounded-full bg-lime-50 px-3 py-1 font-semibold text-lime-900 ring-1 ring-lime-200">{EMPHASIS_IS[e.emphasis].label}</span>
+            ))}
+            {prefs?.diet.map((k) => (
+              <span key={k} className="rounded-full px-3 py-1 font-semibold text-slate-700 ring-1 ring-slate-200">
+                {DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k}
+              </span>
+            ))}
+            {prefs?.avoid?.map((k) => (
+              <span key={k} className="rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-900 ring-1 ring-rose-200">
+                Ekkert {(ALLERGEN_OPTIONS.find((a) => a.key === k)?.label ?? k).toLowerCase().replace(/ \(.*\)$/, "")}
+              </span>
             ))}
           </div>
         )}
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-          {totals && (
-            <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">
-              Á áætlun {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}: {Math.round(totals.protein)} g prótein · {Math.round(totals.kcal)} kkal
-            </span>
-          )}
-          {!!prefs?.diet.length && (
-            <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">
-              {prefs.diet.map((k) => DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k).join(" · ")}
-            </span>
-          )}
-        </div>
+
         {onCustomise && (
           <button type="button" onClick={onCustomise}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 font-bold text-lime-800 shadow-sm transition hover:bg-lime-50">
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-600 px-4 py-3 font-bold text-white shadow-sm transition hover:bg-lime-700">
             <Sliders className="h-5 w-5" aria-hidden /> Breyta næringaráætluninni
           </button>
         )}
       </section>
 
-
-      {today && <MealLogger day={today} weightKg={weightKg ?? null} onTarget={onTarget} />}
-
-      {/* The week. Until now the plan was one day repeated for ever — the
-          same four meals every day of the year — because a pick was stored
-          per slot with no day attached. Each day steps down the ranked list,
-          so the week is seven different days out of the same library. */}
-      {week && (
-        <section>
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Vikan þín</h3>
-            <p className="text-xs text-slate-500">Kvöldmatur og prótein dagsins · ýttu á dag</p>
-          </div>
-          <div className="mt-2 grid grid-cols-7 gap-1.5">
-            {week.map((d, i) => {
-              const on = i === shownDay;
-              return (
-                <button key={i} type="button" onClick={() => setPickedDay(i)} aria-pressed={on}
-                  aria-label={`${WEEKDAYS[i]}${i === todayIdx ? " (í dag)" : ""}`}
-                  className={`flex min-h-[84px] flex-col gap-1 rounded-xl border p-1.5 text-left transition ${
-                    on ? "border-lime-500 bg-lime-50" : i === todayIdx ? "border-lime-300 bg-white" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                  <span className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-lime-800" : "text-slate-400"}`}>
-                    {WEEKDAYS_SHORT[i]}
-                  </span>
-                  <span className="block flex-1 overflow-hidden text-[10px] leading-tight text-slate-700">
-                    {d.dinner ? mealName(d.dinner) : "—"}
-                  </span>
-                  <span className="block text-[10px] font-semibold text-slate-500">
-                    {SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0)} g
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {today && <MealLogger day={today} weightKg={weightKg ?? null} part="list" />}
 
       <section>
         <div className="flex items-baseline justify-between">

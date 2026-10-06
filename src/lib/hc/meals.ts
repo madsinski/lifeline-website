@@ -105,7 +105,7 @@ export function mealsFor(all: Meal[], programKey: string | null | undefined, slo
   const seen = new Set<string>();
   return all
     .filter((m) => m.category === slot)
-    .filter((m) => !prefs || mealAllowed(m.dietary_tags, prefs))
+    .filter((m) => !prefs || mealAllowed(m, prefs))
     .map((m) => (cook.length && (m.dietary_tags ?? []).some((t) => cook.includes(t)) ? { ...m, _cook: true } as Meal & { _cook?: boolean } : m))
     .map((m) => ({ m, s: score(m, r, slot, slotTarget) + ((m as Meal & { _cook?: boolean })._cook ? 3 : 0) }))
     .sort((a, b) => b.s - a.s || (slotTarget
@@ -183,6 +183,6 @@ export function weekFor(
 export function libraryDepth(all: Meal[], prefs: NutritionPrefs): { slot: MealSlot; have: number; total: number }[] {
   return SLOTS.map((slot) => {
     const inSlot = all.filter((m) => m.category === slot);
-    return { slot, have: inSlot.filter((m) => mealAllowed(m.dietary_tags, prefs)).length, total: inSlot.length };
+    return { slot, have: inSlot.filter((m) => mealAllowed(m, prefs)).length, total: inSlot.length };
   });
 }
