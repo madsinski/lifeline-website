@@ -12,7 +12,7 @@
 import * as cache from "@/lib/hc/client-cache";
 import PillarIcon from "./PillarIcon";
 import ActionSheet from "./ActionSheet";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, Flame, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { adherence, isoDay, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
@@ -136,6 +136,15 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       )}
 
       {err && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-800">{err}</p>}
+
+      {/* The whole week across all four, before the four lists that make it
+          up. Until now there was no view of a Thursday — only four separate
+          strips you had to read one at a time and add up yourself. Read-only
+          on purpose: ticking stays in the lists, so there is one place to do
+          it and one place to see it. */}
+      {live.length > 0 && (
+        <PillarWeek live={live} week={week} today={today} doneOn={doneOn} />
+      )}
 
       {live.length > 0 && (
         <p className="text-xs text-slate-500">
@@ -282,3 +291,74 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit }: {
 }
 
 /** The participant's own note on an action: what got in the way, what worked. The nurse sees it. */
+
+
+/**
+ * The week across all four pillars.
+ *
+ * One row per pillar, one column per day, Monday to Sunday — the same grid
+ * the exercise and meal calendars use. A cell is how much of that pillar was
+ * kept that day: empty, part-filled, or solid when everything was done. The
+ * point is to see at a glance which of the four is slipping, which four
+ * separate strips could not show.
+ */
+function PillarWeek({ live, week, today, doneOn }: {
+  live: PlanItem[];
+  week: string[];
+  today: string;
+  doneOn: (uid: string, day: string) => boolean;
+}) {
+  const pillars = PILLARS.filter((p) => live.some((a) => a.pillar === p));
+  if (!pillars.length) return null;
+
+  return (
+    <section className="overflow-hidden rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-100 sm:p-4">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Vikan mín</h3>
+        <p className="text-[11px] text-slate-400">Hversu mikið af hverjum flokki</p>
+      </div>
+      <div className="grid gap-1" style={{ gridTemplateColumns: "auto repeat(7, minmax(0, 1fr))" }}>
+        <span aria-hidden />
+        {week.map((d) => {
+          const wd = new Date(`${d}T12:00:00`).getDay();
+          return (
+            <span key={d} className={`text-center text-[10px] font-bold uppercase ${d === today ? "text-slate-900" : "text-slate-400"}`}>
+              {WEEKDAY_SHORT[wd]}
+            </span>
+          );
+        })}
+
+        {pillars.map((p) => {
+          const meta = PILLAR_META[p];
+          const mine = live.filter((a) => a.pillar === p);
+          return (
+            <Fragment key={p}>
+              <span className="flex items-center gap-1.5 pr-2 text-xs font-semibold" style={{ color: meta.ink }}>
+                <PillarIcon pillar={p} size="sm" />
+                <span className="hidden sm:inline">{meta.label}</span>
+              </span>
+              {week.map((d) => {
+                const done = mine.filter((a) => doneOn(a.uid, d)).length;
+                const ratio = mine.length ? done / mine.length : 0;
+                const future = d > today;
+                return (
+                  <span key={d}
+                    title={`${meta.label}, ${WEEKDAY_LONG[new Date(`${d}T12:00:00`).getDay()]}: ${done} af ${mine.length}`}
+                    aria-label={`${meta.label}, ${WEEKDAY_LONG[new Date(`${d}T12:00:00`).getDay()]}: ${done} af ${mine.length}`}
+                    className={`flex h-7 items-center justify-center rounded-md text-[10px] font-bold ${
+                      future ? "bg-slate-50 text-slate-300" : ratio === 0 ? "bg-slate-100 text-slate-400" : "text-white"
+                    } ${d === today ? "ring-2 ring-slate-800 ring-offset-1" : ""}`}
+                    style={!future && ratio > 0
+                      ? { background: meta.color, opacity: 0.35 + 0.65 * ratio }
+                      : undefined}>
+                    {future ? "" : `${done}/${mine.length}`}
+                  </span>
+                );
+              })}
+            </Fragment>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
