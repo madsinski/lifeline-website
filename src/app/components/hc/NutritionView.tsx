@@ -7,7 +7,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders, X } from "lucide-react";
-import { dayFor, mealName, mealsFor, mealText, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
+import { dayFor, mealName, mealsFor, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
+import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
 import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
 import { DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
@@ -35,6 +36,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 }) {
   const [meals, setMeals] = useState<Meal[] | null>(() => cache.peek<{ meals: Meal[] }>("/api/hc/library?kind=meals")?.body.meals ?? null);
   const [slotOpen, setSlotOpen] = useState<MealSlot | null>(null);
+  // Which day of the week is on screen. Defaults to today, because that is
+  // the one you are about to eat.
+  const [todayIdx] = useState(() => weekdayOf(new Date()));
+  const [pickedDay, setPickedDay] = useState<number | null>(null);
+  const shownDay = pickedDay ?? todayIdx;
   const [recipe, setRecipe] = useState<Meal | null>(null);
 
   useEffect(() => {
@@ -44,7 +50,9 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
     })();
   }, [api]);
 
-  const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs) : null), [meals, nutrition.key, picks, prefs]);
+  const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, shownDay) : null), [meals, nutrition.key, picks, prefs, shownDay]);
+  const today = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, todayIdx) : null), [meals, nutrition.key, picks, prefs, todayIdx]);
+  const week = useMemo(() => (meals ? weekFor(meals, nutrition.key, picks, prefs) : null), [meals, nutrition.key, picks, prefs]);
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
   const totals = day ? SLOTS.reduce((t, s) => ({ kcal: t.kcal + (day[s]?.calories ?? 0), protein: t.protein + (day[s]?.protein ?? 0) }), { kcal: 0, protein: 0 }) : null;
 
@@ -87,11 +95,47 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       </section>
 
 
-      {day && <MealLogger day={day} weightKg={weightKg ?? null} />}
+      {today && <MealLogger day={today} weightKg={weightKg ?? null} />}
+
+      {/* The week. Until now the plan was one day repeated for ever — the
+          same four meals every day of the year — because a pick was stored
+          per slot with no day attached. Each day steps down the ranked list,
+          so the week is seven different days out of the same library. */}
+      {week && (
+        <section>
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Vikan þín</h3>
+            <p className="text-xs text-slate-500">Kvöldmatur og prótein dagsins · ýttu á dag</p>
+          </div>
+          <div className="mt-2 grid grid-cols-7 gap-1.5">
+            {week.map((d, i) => {
+              const on = i === shownDay;
+              return (
+                <button key={i} type="button" onClick={() => setPickedDay(i)} aria-pressed={on}
+                  aria-label={`${WEEKDAYS[i]}${i === todayIdx ? " (í dag)" : ""}`}
+                  className={`flex min-h-[84px] flex-col gap-1 rounded-xl border p-1.5 text-left transition ${
+                    on ? "border-lime-500 bg-lime-50" : i === todayIdx ? "border-lime-300 bg-white" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                  <span className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-lime-800" : "text-slate-400"}`}>
+                    {WEEKDAYS_SHORT[i]}
+                  </span>
+                  <span className="block flex-1 overflow-hidden text-[10px] leading-tight text-slate-700">
+                    {d.dinner ? mealName(d.dinner) : "—"}
+                  </span>
+                  <span className="block text-[10px] font-semibold text-slate-500">
+                    {SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0)} g
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="flex items-baseline justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Dagurinn þinn</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+            {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
+          </h3>
           <p className="text-xs text-slate-500">Máltíðir úr uppskriftasafninu sem passa við áætlunina</p>
         </div>
         {!day && <p className="mt-3 text-sm text-slate-500">Hleð máltíðum…</p>}
@@ -122,7 +166,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     <button type="button" onClick={() => setSlotOpen(slot)} className="inline-flex items-center gap-1 text-lime-800 hover:underline">
                       <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
                     </button>
-                    {picks[slot] && <button type="button" onClick={() => onPick(slot, null)} className="text-slate-500 hover:text-slate-800">Tillaga áætlunarinnar</button>}
+                    {(picks[pickKey(shownDay, slot)] ?? picks[slot]) && <button type="button" onClick={() => onPick(pickKey(shownDay, slot) as MealSlot, null)} className="text-slate-500 hover:text-slate-800">Tillaga áætlunarinnar</button>}
                     {m && <button type="button" onClick={() => setRecipe(m)} className="ml-auto text-slate-600 hover:text-slate-900">Uppskrift →</button>}
                   </div>
                 </div>
@@ -133,13 +177,13 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       </section>
 
       {slotOpen && meals && (
-        <Sheet title={`${SLOT_IS[slotOpen]}: veldu máltíð`} onClose={() => setSlotOpen(null)}>
+        <Sheet title={`${SLOT_IS[slotOpen]} · ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`} onClose={() => setSlotOpen(null)}>
           <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
             {mealsFor(meals, nutrition.key, slotOpen, prefs).slice(0, 18).map((m) => {
               const on = day?.[slotOpen]?.id === m.id;
               return (
                 <li key={m.id}>
-                  <button type="button" onClick={() => { onPick(slotOpen, m.id); setSlotOpen(null); }}
+                  <button type="button" onClick={() => { onPick(pickKey(shownDay, slotOpen) as MealSlot, m.id); setSlotOpen(null); }}
                     className={`w-full overflow-hidden rounded-2xl bg-white text-left ring-1 transition ${on ? "ring-2 ring-lime-600" : "ring-slate-200 hover:ring-lime-500"}`}>
                     <span className="relative block aspect-[4/3] bg-lime-50">
                       {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -74,7 +74,11 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, nutritio
     : null;
   // The same restrictions as the Næring tab: a vegetarian must not be shown a
   // lamb casserole here either, which is the surface they actually read.
-  const day = useMemo(() => (meals && plan.nutrition ? dayFor(meals, plan.nutrition.key, mealPicks, nutritionPrefs) : null), [meals, plan.nutrition, mealPicks, nutritionPrefs]);
+  // Today's meals, not Monday's: dayFor defaults to day 0, which would have
+  // shown the same four meals here every day of the week.
+  const day = useMemo(
+    () => (meals && plan.nutrition ? dayFor(meals, plan.nutrition.key, mealPicks, nutritionPrefs, today) : null),
+    [meals, plan.nutrition, mealPicks, nutritionPrefs, today]);
   const nextLecture = lectures.find((l) => !l.completed);
   const doneLectures = lectures.filter((l) => l.completed).length;
 

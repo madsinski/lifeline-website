@@ -179,7 +179,11 @@ export function sanitizePersonal(b: Record<string, unknown>): { program_key: str
   const meal_picks: Record<string, string> = {};
   if (b.meal_picks && typeof b.meal_picks === "object") {
     for (const [k, v] of Object.entries(b.meal_picks as Record<string, unknown>)) {
-      if (/^(breakfast|lunch|snack|dinner)$/.test(k) && typeof v === "string" && /^[0-9a-f-]{36}$/.test(v)) meal_picks[k] = v;
+      // "dinner" is the old shape — one pick for every day. "2:dinner" is
+      // the new one, a pick for Wednesday alone. Both are accepted: a choice
+      // made before the week existed still applies, and is not thrown away.
+      const ok = /^([0-6]:)?(breakfast|lunch|snack|dinner)$/.test(k);
+      if (ok && typeof v === "string" && /^[0-9a-f-]{36}$/.test(v)) meal_picks[k] = v;
     }
   }
   const program_key = typeof b.program_key === "string" ? b.program_key.slice(0, 60) : null;

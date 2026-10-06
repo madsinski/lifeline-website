@@ -90,10 +90,49 @@ export function mealsFor(all: Meal[], programKey: string | null | undefined, slo
     .filter((m) => { const k = m.name.toLowerCase().replace(/[^a-z]/g, ""); if (seen.has(k)) return false; seen.add(k); return true; });
 }
 
-/** The day: the participant's pick per slot, else the best fit. */
-export function dayFor(all: Meal[], programKey: string | null | undefined, picks: Record<string, string>, prefs?: NutritionPrefs): Record<MealSlot, Meal | null> {
+/** A pick is stored per weekday and slot: "2:dinner". */
+export const pickKey = (weekday: number, slot: MealSlot) => `${weekday}:${slot}`;
+
+/**
+ * The meals for one day.
+ *
+ * `weekday` is what makes this a week rather than a single day on a loop.
+ * Without it every day returned the top-ranked meal in each slot, so the
+ * plan was the same four meals every day of the year — chicken for breakfast
+ * and lunch, seven days a week. Each weekday now steps one place down the
+ * ranked list, which gives seven different days out of a library that has
+ * eighteen or nineteen options per slot, deterministically and with nothing
+ * new to store. A restriction that leaves only two dinners will still repeat;
+ * that is the library's limit and the setup says so.
+ *
+ * An explicit pick always wins, and a pick made before the week existed —
+ * keyed by slot alone — still applies to every day, so nobody's choice is
+ * lost.
+ */
+export function dayFor(
+  all: Meal[],
+  programKey: string | null | undefined,
+  picks: Record<string, string>,
+  prefs?: NutritionPrefs,
+  weekday = 0,
+): Record<MealSlot, Meal | null> {
   const byId = new Map(all.map((m) => [m.id, m]));
-  return Object.fromEntries(SLOTS.map((slot) => [slot, (picks[slot] && byId.get(picks[slot])) || mealsFor(all, programKey, slot, prefs)[0] || null])) as Record<MealSlot, Meal | null>;
+  return Object.fromEntries(SLOTS.map((slot) => {
+    const chosen = picks[pickKey(weekday, slot)] ?? picks[slot];
+    if (chosen && byId.get(chosen)) return [slot, byId.get(chosen)!];
+    const ranked = mealsFor(all, programKey, slot, prefs);
+    return [slot, ranked.length ? ranked[weekday % ranked.length] : null];
+  })) as Record<MealSlot, Meal | null>;
+}
+
+/** The whole week, for the calendar strip. */
+export function weekFor(
+  all: Meal[],
+  programKey: string | null | undefined,
+  picks: Record<string, string>,
+  prefs?: NutritionPrefs,
+): Record<MealSlot, Meal | null>[] {
+  return Array.from({ length: 7 }, (_, d) => dayFor(all, programKey, picks, prefs, d));
 }
 
 /**
