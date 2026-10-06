@@ -99,11 +99,13 @@ export const pickKey = (weekday: number, slot: MealSlot) => `${weekday}:${slot}`
  * `weekday` is what makes this a week rather than a single day on a loop.
  * Without it every day returned the top-ranked meal in each slot, so the
  * plan was the same four meals every day of the year — chicken for breakfast
- * and lunch, seven days a week. Each weekday now steps one place down the
- * ranked list, which gives seven different days out of a library that has
- * eighteen or nineteen options per slot, deterministically and with nothing
- * new to store. A restriction that leaves only two dinners will still repeat;
- * that is the library's limit and the setup says so.
+ * and lunch, seven days a week.
+ *
+ * Each day now takes a different one of the seven best fits in each slot,
+ * deterministically and with nothing new to store, so the week is seven
+ * different days that are all good fits rather than a list walked from best
+ * to seventh-best. A restriction that leaves only two dinners will still
+ * repeat; that is the library's limit and the setup says so.
  *
  * An explicit pick always wins, and a pick made before the week existed —
  * keyed by slot alone — still applies to every day, so nobody's choice is
@@ -121,7 +123,15 @@ export function dayFor(
     const chosen = picks[pickKey(weekday, slot)] ?? picks[slot];
     if (chosen && byId.get(chosen)) return [slot, byId.get(chosen)!];
     const ranked = mealsFor(all, programKey, slot, prefs);
-    return [slot, ranked.length ? ranked[weekday % ranked.length] : null];
+    if (!ranked.length) return [slot, null];
+    // Rotate within the best fits rather than walking the whole list. Walking
+    // it meant Sunday ate the seventh choice in every slot and the week's
+    // protein slid downhill as it went; a pool of seven means every day is
+    // one of the seven best in each slot, and the offsets pair them so no
+    // single day collects all the lowest.
+    const pool = ranked.slice(0, 7);
+    const offset = SLOTS.indexOf(slot) * 2;
+    return [slot, pool[(weekday + offset) % pool.length]];
   })) as Record<MealSlot, Meal | null>;
 }
 
