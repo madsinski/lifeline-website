@@ -70,9 +70,11 @@ const loadOf = (e: LibEx) => LOAD[(e.equipment ?? "").toLowerCase()] ?? 2;
 /** Difficulty first, then how much weight is on the bar. */
 const effort = (e: LibEx) => rankOf(e) * 10 + loadOf(e);
 
-export default function SwapWizard({ api, item, onPick, onClose, injuries = [] }: {
+export default function SwapWizard({ api, item, onPick, onClose, injuries = [], heading }: {
   api: Api;
   item: ExerciseItem;
+  /** Overrides the title when the picker is adding rather than replacing. */
+  heading?: string;
   onPick: (ex: LibEx) => void;
   onClose: () => void;
   /**
@@ -135,11 +137,11 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [] }
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <div className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
-        role="dialog" aria-modal="true" aria-label={`Skipta út: ${title}`} onClick={(e) => e.stopPropagation()}>
+        role="dialog" aria-modal="true" aria-label={heading ?? `Skipta út: ${title}`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Skipta út</p>
-            <p className="truncate font-bold text-slate-900">{title}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{heading ? "Bæta við" : "Skipta út"}</p>
+            <p className="truncate font-bold text-slate-900">{heading ?? title}</p>
             {!!muscles.length && <p className="mt-0.5 truncate text-xs text-slate-500">{muscles.map(muscleIs).join(", ")}</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>

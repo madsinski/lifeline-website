@@ -35,11 +35,15 @@ export interface Personal {
   hiit_split: boolean;
   /** "<session id>:<item index>" → exercise from the library */
   swaps: Record<string, SwapSnapshot>;
+  /** Slots taken out of their sessions. */
+  drops: string[];
+  /** Session id → exercises added on top of the programme's own. */
+  extra: Record<string, SwapSnapshot[]>;
   /** meal slot → meals.id */
   meal_picks: Record<string, string>;
 }
 
-export const DEFAULT_PERSONAL: Personal = { program_key: null, days: {}, hiit_split: false, swaps: {}, meal_picks: {} };
+export const DEFAULT_PERSONAL: Personal = { program_key: null, days: {}, hiit_split: false, swaps: {}, drops: [], extra: {}, meal_picks: {} };
 
 export type Modality = "strength" | "hiit" | "cardio" | "other";
 export const MODALITY_IS: Record<Modality, { label: string; short: string; cls: string; dot: string }> = {
@@ -112,6 +116,8 @@ export function personalise(e: PlanExercise, p: Personal, blockedDays: number[] 
     ? Object.fromEntries(Object.entries(p.days).filter(([, d]) => !blocked.has(d)))
     : {};
   const swaps = mine ? p.swaps : {};
+  const drops = new Set(mine ? (p.drops ?? []) : []);
+  const extra = mine ? (p.extra ?? {}) : {};
 
   let sessions: PSession[] = e.sessions.map((s, i) => {
     const id = `s${i}`;
@@ -123,7 +129,17 @@ export function personalise(e: PlanExercise, p: Personal, blockedDays: number[] 
         ...it, slot, swapped: true, name: sw.name, exercise_id: sw.exercise_id, image: sw.image, video: sw.video,
         muscles: sw.muscles, equipment: sw.equipment, cues: sw.cues.slice(0, 6), note: keepGuidance(it.note),
       };
-    });
+    }).filter((it) => !drops.has(it.slot!));
+
+    // Added exercises sit after the programme's own, in the main block —
+    // somebody adding a lift is adding work, not a warm-up.
+    for (const [k, ex] of (extra[id] ?? []).entries()) {
+      items.push({
+        name: ex.name, prescription: "3 × 8–12", exercise_id: ex.exercise_id, image: ex.image, video: ex.video,
+        muscles: ex.muscles, equipment: ex.equipment, cues: ex.cues.slice(0, 6), rest: null, block: "main",
+        slot: `${id}:x${k}`, added: true, note: null,
+      });
+    }
     return { ...s, items, id, modality: modalityOf({ ...s, items }), weekday: weekdayIndex(s.day) };
   });
 
@@ -160,7 +176,7 @@ export function sessionsOn(e: { sessions: PSession[] }, date: Date): PSession[] 
 }
 
 /** Validate what the client sends. Swaps arrive as exercise ids and are snapshotted server-side. */
-export function sanitizePersonal(b: Record<string, unknown>): { program_key: string | null; days: Record<string, number>; hiit_split: boolean; swapIds: Record<string, string | null>; meal_picks: Record<string, string> } {
+export function sanitizePersonal(b: Record<string, unknown>): { program_key: string | null; days: Record<string, number>; hiit_split: boolean; swapIds: Record<string, string | null>; drops: string[]; extraIds: Record<string, string[]>; meal_picks: Record<string, string> } {
   const days: Record<string, number> = {};
   if (b.days && typeof b.days === "object") {
     for (const [k, v] of Object.entries(b.days as Record<string, unknown>)) {
@@ -186,6 +202,19 @@ export function sanitizePersonal(b: Record<string, unknown>): { program_key: str
       if (ok && typeof v === "string" && /^[0-9a-f-]{36}$/.test(v)) meal_picks[k] = v;
     }
   }
+  // Slots removed, and exercises added per session — both validated to the
+  // shapes personalise() builds, so nothing else can be written here.
+  const drops = [...new Set((Array.isArray(b.drops) ? b.drops : [])
+    .filter((x): x is string => typeof x === "string" && /^[sh]\d{1,2}:\d{1,2}$/.test(x)))].slice(0, 60);
+  const extraIds: Record<string, string[]> = {};
+  if (b.extra && typeof b.extra === "object") {
+    for (const [k, v] of Object.entries(b.extra as Record<string, unknown>)) {
+      if (!/^[sh]\d{1,2}$/.test(k) || !Array.isArray(v)) continue;
+      const ids = v.map((x) => (typeof x === "string" ? x : (x as { exercise_id?: unknown })?.exercise_id))
+        .filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/.test(x));
+      if (ids.length) extraIds[k] = [...new Set(ids)].slice(0, 8);
+    }
+  }
   const program_key = typeof b.program_key === "string" ? b.program_key.slice(0, 60) : null;
-  return { program_key, days, hiit_split: b.hiit_split === true, swapIds, meal_picks };
+  return { program_key, days, hiit_split: b.hiit_split === true, swapIds, drops, extraIds, meal_picks };
 }

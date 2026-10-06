@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
@@ -98,6 +98,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const daySessions = view.sessions.filter((x) => x.weekday === shownDay);
   const dayActivities = (training?.activities ?? []).filter((a) => a.day === shownDay);
   const [swapItem, setSwapItem] = useState<{ slot: string; item: ExerciseItem } | null>(null);
+  /** The session an exercise is being added to. */
+  const [addTo, setAddTo] = useState<PSession | null>(null);
   const [running, setRunning] = useState<PSession | null>(null);
   const [swapSession, setSwapSession] = useState<PSession | null>(null);
   const [addDay, setAddDay] = useState<number | null>(null);
@@ -108,6 +110,23 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
   const save = (patch: Partial<Personal>) => onSave({ ...personal, ...(mine ? {} : { days: {}, swaps: {}, hiit_split: false }), program_key: exercise.key, ...patch });
   const moveSession = (id: string, day: number) => save({ days: { ...(mine ? personal.days : {}), [id]: day } });
+  /** Take an exercise out of its session. */
+  const dropItem = (slot: string) => save({ drops: [...new Set([...(personal.drops ?? []), slot])] });
+  /** Put it back. */
+  const undrop = (slot: string) => save({ drops: (personal.drops ?? []).filter((x) => x !== slot) });
+  /** Add one from the library to the end of a session's main block. */
+  const addItem = (sessionId: string, ex: LibEx) => {
+    const snap: SwapSnapshot = {
+      exercise_id: ex.id, name: ex.name_is || ex.name, image: ex.illustration_url, video: ex.video_url,
+      muscles: ex.primary_muscles ?? [], equipment: ex.equipment, cues: [],
+    };
+    save({ extra: { ...(personal.extra ?? {}), [sessionId]: [...((personal.extra ?? {})[sessionId] ?? []), snap] } });
+    setAddTo(null);
+  };
+  /** Remove one that was added. */
+  const dropExtra = (sessionId: string, i: number) =>
+    save({ extra: { ...(personal.extra ?? {}), [sessionId]: ((personal.extra ?? {})[sessionId] ?? []).filter((_, k) => k !== i) } });
+
   const swap = (slot: string, ex: LibEx) => {
     const snap: SwapSnapshot = {
       exercise_id: ex.id, name: ex.name_is || ex.name, image: ex.illustration_url, video: ex.video_url,
@@ -239,14 +258,23 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       </button>
                     );
                   })}
-                  {here.length === 0 && mine.length === 0 && (
-                    onAddDay
-                      ? <button type="button" onClick={() => setAddDay(i)}
-                          aria-label={`Bæta við æfingu á ${WEEKDAYS[i].toLowerCase()}`}
-                          className="mt-auto rounded-lg py-1 text-center text-[10px] font-semibold text-slate-400 transition hover:bg-orange-50 hover:text-orange-700">
-                          Hvíld <span aria-hidden className="block text-sm leading-none">+</span>
-                        </button>
-                      : <p className="mt-auto pb-1 text-center text-[10px] text-slate-400">Hvíld</p>
+                  {/* A day that already has something can take more. Two
+                      sessions on a Tuesday is a normal week — football at
+                      noon and a lift in the evening — and the only way to
+                      add the second used to be to find an empty day. */}
+                  {onAddDay && (
+                    <button type="button" onClick={() => setAddDay(i)}
+                      aria-label={here.length === 0 && mine.length === 0
+                        ? `Bæta við æfingu á ${WEEKDAYS[i].toLowerCase()}`
+                        : `Bæta við öðru á ${WEEKDAYS[i].toLowerCase()}`}
+                      className="mt-auto rounded-lg py-1 text-center text-[10px] font-semibold text-slate-400 transition hover:bg-orange-50 hover:text-orange-700">
+                      {here.length === 0 && mine.length === 0
+                        ? <>Hvíld <span aria-hidden className="block text-sm leading-none">+</span></>
+                        : <span aria-hidden className="block text-sm leading-none">+</span>}
+                    </button>
+                  )}
+                  {!onAddDay && here.length === 0 && mine.length === 0 && (
+                    <p className="mt-auto pb-1 text-center text-[10px] text-slate-400">Hvíld</p>
                   )}
                 </div>
               );
@@ -315,7 +343,12 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
               onRemove={onRemoveDay ? () => onRemoveDay(s.weekday) : undefined}
               dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
-              onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap} />
+              onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap}
+              onDropItem={dropItem}
+              onDropExtra={(i) => dropExtra(s.id, i)}
+              onAdd={() => setAddTo(s)}
+              dropped={(personal.drops ?? []).filter((d) => d.startsWith(`${s.id}:`))}
+              onUndrop={undrop} />
           ))}
 
           {daySessions.length === 0 && dayActivities.length === 0 && (
@@ -381,6 +414,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           onClose={() => setRunning(null)}
           onSwap={(slot, it) => setSwapItem({ slot, item: it })}
           onDone={(info) => { setRunning(null); onFinish?.({ ...info, session: running }); }} />
+      )}
+
+      {addTo && (
+        /* The same picker as a swap: adding is choosing an exercise, and a
+           second way to choose one would be a second thing to learn. */
+        <SwapWizard api={api} item={{ name: "", prescription: "", muscles: [], cues: [] }} injuries={training?.injuries ?? []}
+          heading={`Bæta æfingu við ${addTo.title}`}
+          onPick={(ex) => addItem(addTo.id, ex)}
+          onClose={() => setAddTo(null)} />
       )}
 
       {swapItem && (
@@ -456,7 +498,7 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
   );
 }
 
-function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap }: {
+function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap, onDropItem, onDropExtra, onAdd, dropped = [], onUndrop }: {
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
   dragOver: string | null; swapFor: string | null;
   /** Opens the runner — only for sessions with sets or intervals to count. */
@@ -472,6 +514,15 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
   onUnswap: (slot: string) => void;
   /** Takes this whole day off the programme. */
   onRemove?: () => void;
+  /** Takes one exercise out of the session. */
+  onDropItem?: (slot: string) => void;
+  /** Takes out one the participant had added. */
+  onDropExtra?: (i: number) => void;
+  /** Opens the library to add one. */
+  onAdd?: () => void;
+  /** Slots currently removed from this session. */
+  dropped?: string[];
+  onUndrop?: (slot: string) => void;
 }) {
   const blocks = (["warmup", "main", "finisher"] as ExerciseBlock[])
     .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
@@ -536,8 +587,29 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
               {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">{BLOCK_IS[b.key]}</p>}
               <ul className="space-y-2">
                 {b.items.map((it, j) => <ExerciseRow key={it.slot ?? j} it={it} over={!!it.slot && dragOver === `slot:${it.slot}`}
-                  choosing={!!it.slot && swapFor === it.slot} onSwap={onSwap} onUnswap={onUnswap} />)}
+                  choosing={!!it.slot && swapFor === it.slot} onSwap={onSwap} onUnswap={onUnswap}
+                  onDrop={it.added
+                    ? () => onDropExtra?.(Number(/x(\d+)$/.exec(it.slot ?? "")?.[1] ?? -1))
+                    : onDropItem && it.slot ? () => onDropItem(it.slot!) : undefined} />)}
               </ul>
+              {/* Adding and putting back live at the foot of the main block,
+                  where the list they change ends. */}
+              {b.key === "main" && (onAdd || dropped.length > 0) && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  {onAdd && (
+                    <button type="button" onClick={onAdd}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline">
+                      <Plus className="h-3.5 w-3.5" aria-hidden /> Bæta við æfingu
+                    </button>
+                  )}
+                  {dropped.length > 0 && onUndrop && (
+                    <button type="button" onClick={() => dropped.forEach((d) => onUndrop(d))}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 hover:underline">
+                      <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Sækja aftur {dropped.length} sem þú tókst út
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -546,9 +618,9 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
   );
 }
 
-const canSwap = (it: ExerciseItem) => !!it.slot && !/^hiit/i.test(it.name) && it.name !== "Upphitun";
+const canSwap = (it: ExerciseItem) => !!it.slot && !/^hiit|—\s*lotur$/i.test(it.name) && it.name !== "Upphitun";
 
-function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseItem; over: boolean; choosing: boolean; onSwap?: (slot: string, item: ExerciseItem) => void; onUnswap: (slot: string) => void }) {
+function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: ExerciseItem; over: boolean; choosing: boolean; onSwap?: (slot: string, item: ExerciseItem) => void; onUnswap: (slot: string) => void; onDrop?: () => void }) {
   const [open, setOpen] = useState(false);
   const how = !!(it.cues?.length || it.video);
   const swappable = canSwap(it);
@@ -590,6 +662,12 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
                 aria-label={`Skipta út æfingunni ${it.name}`}
                 className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-800">
                 <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta um æfingu
+              </button>
+            )}
+            {onDrop && (
+              <button type="button" onClick={onDrop} aria-label={`Taka ${it.name} út úr æfingunni`}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-slate-500 transition hover:bg-red-50 hover:text-red-700">
+                <X className="h-3.5 w-3.5" aria-hidden /> Taka út
               </button>
             )}
             {it.swapped && it.slot && onSwap && (

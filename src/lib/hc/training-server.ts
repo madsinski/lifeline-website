@@ -8,13 +8,13 @@ import { DEFAULT_TRAINING, sanitizeTraining, type TrainingSettings } from "./ada
 import { DEFAULT_PERSONAL, sanitizePersonal, type Personal, type SwapSnapshot } from "./personalise";
 import { sanitizeNutrition, type NutritionPrefs } from "./nutrition";
 
-const COLS = "level, load_step, injuries, started_on, place, places, cardio, training_days, activities, nutrition_prefs, program_key, days, hiit_split, swaps, meal_picks";
+const COLS = "level, load_step, injuries, started_on, place, places, cardio, training_days, activities, nutrition_prefs, program_key, days, hiit_split, swaps, drops, extra, meal_picks";
 
-type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; places: string[] | null; cardio: string | null; training_days: number[] | null; activities: unknown; nutrition_prefs: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; meal_picks: Record<string, string> | null };
+type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; places: string[] | null; cardio: string | null; training_days: number[] | null; activities: unknown; nutrition_prefs: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; drops: string[] | null; extra: Record<string, SwapSnapshot[]> | null; meal_picks: Record<string, string> | null };
 
 function personalOf(r: Row | null): Personal {
   if (!r) return DEFAULT_PERSONAL;
-  return { program_key: r.program_key, days: r.days ?? {}, hiit_split: !!r.hiit_split, swaps: r.swaps ?? {}, meal_picks: r.meal_picks ?? {} };
+  return { program_key: r.program_key, days: r.days ?? {}, hiit_split: !!r.hiit_split, swaps: r.swaps ?? {}, drops: r.drops ?? [], extra: r.extra ?? {}, meal_picks: r.meal_picks ?? {} };
 }
 
 export async function loadTraining(journeyId: string): Promise<TrainingSettings & { saved: boolean }> {
@@ -76,11 +76,21 @@ export async function saveTraining(journeyId: string, clientId: string, body: Re
   const personal: Personal = { ...prev.personal };
   if ("program_key" in body) personal.program_key = p.program_key;
   // A different programme starts clean.
-  if (personal.program_key !== prev.personal.program_key) Object.assign(personal, { days: {}, swaps: {}, hiit_split: false });
+  if (personal.program_key !== prev.personal.program_key) Object.assign(personal, { days: {}, swaps: {}, drops: [], extra: {}, hiit_split: false });
   // Only the map form is the personal arrangement; an array is the settings.
   if ("days" in body && !Array.isArray(body.days)) personal.days = p.days;
   if ("hiit_split" in body) personal.hiit_split = p.hiit_split;
   if ("meal_picks" in body) personal.meal_picks = p.meal_picks;
+  if ("drops" in body) personal.drops = p.drops;
+  if ("extra" in body) {
+    // Added exercises arrive as library ids and are snapshotted here, the
+    // same way a swap is, so a card never has to look one up to render.
+    const ids = [...new Set(Object.values(p.extraIds).flat())];
+    const fresh = await snapshots(ids);
+    personal.extra = Object.fromEntries(Object.entries(p.extraIds).map(([k, list]) => [
+      k, list.map((id) => fresh.get(id)).filter((x): x is SwapSnapshot => !!x),
+    ]).filter(([, list]) => (list as SwapSnapshot[]).length));
+  }
   if ("swaps" in body) {
     const want = Object.entries(p.swapIds).filter((e): e is [string, string] => !!e[1]);
     const fresh = await snapshots([...new Set(want.map(([, id]) => id).filter((id) => !Object.values(prev.personal.swaps).some((x) => x.exercise_id === id)))]);
