@@ -317,6 +317,14 @@ function PlanPageInner() {
     if (r.ok && j.nutrition) setNutritionPrefs(j.nutrition); else setNutritionPrefs(prev);
   };
 
+  // Opening or closing the editor swaps the whole page under the scroll
+  // position. "Breyta" on the last action in the list is a long way down, and
+  // the editor that replaced it is short, so without this you land below its
+  // end looking at the footer.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [editing, customise, nutritionSetup]);
+
   // Measured values, loaded when the Niðurstöður tab is actually opened —
   // most visits never go there.
   useEffect(() => {
@@ -353,7 +361,10 @@ function PlanPageInner() {
             straight back here — so the account needs a button of its own that
             is visible wherever you are. */}
         <div className="mb-3 print:hidden">
-          <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />
+          {editing || customise || nutritionSetup
+            ? <BackLink label="Til baka í áætlunina"
+                onBack={() => { setEditing(false); setEditPillar(null); setCustomise(false); setNutritionSetup(false); }} />
+            : <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />}
         </div>
 
         {data === undefined && <PlanSkeleton />}
