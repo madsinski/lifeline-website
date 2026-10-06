@@ -19,6 +19,21 @@ export function lastDays(n: number, from: Date = new Date()): string[] {
 }
 
 /**
+ * Monday to Sunday of the week a date falls in.
+ *
+ * The action list used lastDays(7) — a rolling window ending today, so the
+ * columns read "Mi Fi Fö La Su Má Þr" and the count beside them said "3 af 3
+ * í vikunni" about something that was not a week. The exercise and the meal
+ * calendars are both Monday-first, so this is the third one agreeing with
+ * them: same seven columns, same order, everywhere.
+ */
+export function weekDays(from: Date = new Date()): string[] {
+  const monday = new Date(from);
+  monday.setDate(monday.getDate() - ((from.getDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => isoDay(new Date(monday.getTime() + i * 86400_000)));
+}
+
+/**
  * How many times a week an action is meant to happen, read from the Icelandic
  * frequency text the nurse wrote ("daglega", "3 sinnum í viku", "annan hvern
  * dag"). Unknown phrasing falls back to 7 — better to under-claim progress
@@ -109,3 +124,35 @@ export const NUDGE_IS: Record<NudgeStatus, string> = {
   inactive: "Óvirkt",
   "no-plan": "Engin áætlun",
 };
+
+/**
+ * Which habit a finished training session ticks off.
+ *
+ * The plan carries habits like "Styrktarþjálfun — 2–3 sinnum í viku" and the
+ * programme carries the sessions that satisfy them. They were tracked apart,
+ * so a workout had to be marked twice: once in the runner and once in the
+ * checklist.
+ *
+ * Matched on the words the nurse wrote, because that is all the link there
+ * is. Returns a uid only when exactly one habit matches and it is not already
+ * done today: two candidates means the plan is ambiguous about which habit
+ * this was, and ticking the wrong one is worse than ticking none.
+ */
+const MODALITY_WORDS: Record<string, RegExp> = {
+  strength: /styrk|lyfting|strength/i,
+  hiit: /hiit|lotur?|sprett|ákefð/i,
+  cardio: /þol|zone|ganga|göngu|hjól|skokk|hlaup|sund/i,
+};
+
+export function actionForSession(
+  plan: { modules?: { uid: string; pillar: string; title: string }[] } | null | undefined,
+  modality: string,
+  logs: { action_uid: string; done_on: string }[],
+  day: string = isoDay(),
+): string | null {
+  const re = MODALITY_WORDS[modality];
+  if (!re || !plan?.modules) return null;
+  const done = new Set(logs.filter((l) => l.done_on === day).map((l) => l.action_uid));
+  const hits = plan.modules.filter((a) => a.pillar === "exercise" && re.test(a.title) && !done.has(a.uid));
+  return hits.length === 1 ? hits[0].uid : null;
+}

@@ -15,10 +15,12 @@ import ActionSheet from "./ActionSheet";
 import { useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, Flame, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
-import { adherence, isoDay, lastDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
+import { adherence, isoDay, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
+// Monday-first, matching the exercise and meal calendars. Indexed by
+// Date#getDay(), which is Sunday-first, hence the order.
 const WEEKDAY_SHORT = ["Su", "Má", "Þr", "Mi", "Fi", "Fö", "La"];
 const WEEKDAY_LONG = ["sunnudagur", "mánudagur", "þriðjudagur", "miðvikudagur", "fimmtudagur", "föstudagur", "laugardagur"];
 
@@ -49,7 +51,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const queue = useRef<Promise<void>>(Promise.resolve());
   const waiting = useRef(0);
   const [today] = useState(() => isoDay());
-  const [week] = useState(() => lastDays(7));
+  const [week] = useState(() => weekDays());
 
   /** Apply now, send in order, roll back on failure. */
   const send = (body: Record<string, unknown>, apply: () => void, undo: () => void) => {
@@ -137,7 +139,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
 
       {live.length > 0 && (
         <p className="text-xs text-slate-500">
-          Stóri hringurinn merkir daginn í dag. Reitirnir til hægri eru síðustu sjö dagar —
+          Stóri hringurinn merkir daginn í dag. Reitirnir til hægri eru vikan, mánudagur til sunnudags —
           ýttu á dag til að fylla inn í ef þú gleymdir að merkja.
         </p>
       )}
@@ -251,16 +253,20 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit }: {
                 </button>
               )}
             </span>
-            <div className="ml-auto flex gap-1" role="group" aria-label={`Síðustu sjö dagar fyrir „${a.title}“. Ýttu á dag til að merkja hann.`}>
+            <div className="ml-auto flex gap-1" role="group" aria-label={`Vikan fyrir „${a.title}“. Ýttu á dag til að merkja hann.`}>
               {week.map((d) => {
                 const on = doneOn(a.uid, d);
                 const wd = new Date(`${d}T12:00:00`).getDay();
+                // The rest of the week is still to come. The server only
+                // accepts today and the six days behind it, so a button here
+                // would be one that always fails.
+                const future = d > today;
                 return (
-                  <button key={d} type="button" onClick={() => onToggle(a.uid, d)}
-                    aria-pressed={on} title={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""} — ${on ? "búið" : "ekki búið"}`}
-                    aria-label={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""}: ${on ? "búið" : "ekki búið"}`}
-                    className={`flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold transition active:scale-90 ${on ? "text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200"} ${d === today ? "ring-2 ring-slate-800 ring-offset-1" : ""}`}
-                    style={on ? { background: meta.color } : undefined}>
+                  <button key={d} type="button" disabled={future} onClick={() => onToggle(a.uid, d)}
+                    aria-pressed={on} title={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : future ? " (framundan)" : ""} — ${future ? "ekki komið" : on ? "búið" : "ekki búið"}`}
+                    aria-label={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""}: ${future ? "ekki komið" : on ? "búið" : "ekki búið"}`}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold transition ${future ? "cursor-default bg-slate-50 text-slate-300" : `active:scale-90 ${on ? "text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`} ${d === today ? "ring-2 ring-slate-800 ring-offset-1" : ""}`}
+                    style={on && !future ? { background: meta.color } : undefined}>
                     {WEEKDAY_SHORT[wd]}
                   </button>
                 );

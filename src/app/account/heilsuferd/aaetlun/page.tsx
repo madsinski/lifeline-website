@@ -11,6 +11,7 @@
 import EmptyState from "@/app/components/hc/EmptyState";
 import BackLink from "@/app/components/hc/BackLink";
 import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
+import { actionForSession, isoDay } from "@/lib/hc/adherence";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -285,6 +286,21 @@ function PlanPageInner() {
       // The column is checked against mon…sun, not the Icelandic day name.
       prescribed_day: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][info.session.weekday] ?? null,
     });
+    // Tick the habit this session satisfies, so the same workout is not
+    // marked twice. Doing the Monday strength session and then having to find
+    // "Styrktarþjálfun" in the checklist and tick it again is the duplication
+    // Mads reported — two places asking about one thing that happened.
+    //
+    // Only when exactly one action matches. Two candidates means the plan is
+    // ambiguous about which habit this was, and a wrong tick is worse than an
+    // untouched one.
+    const uid = actionForSession(plan, info.session.modality, data?.logs ?? []);
+    if (uid) {
+      await api("/api/hc/actions", {
+        method: "POST",
+        body: JSON.stringify({ journey_id: data?.journey_id, action_uid: uid, done_on: isoDay(), done: true }),
+      });
+    }
     cache.invalidate("/api/hc/");
     setReloadKey((k) => k + 1);
   };
