@@ -130,7 +130,46 @@ export const BREAKFAST = [
     prep_time_min: 4, cook_time_min: 0, calories: 260, protein: 22, carbs: 24, fat: 7,
     dietary_tags: ["high-protein", "vegetarian", "no-cook"],
   },
+  // These exist because measuring a real plan showed a gluten-free person got
+  // none of the quick options above — rye bread, sandwich, crispbread, toast,
+  // all of them — and fell back on the thirty-minute cooked dishes, which is
+  // the thing this rewrite was meant to stop.
+  {
+    name: "Scrambled eggs with avocado and tomato", name_is: "Eggjahræra með avókadó og tómötum",
+    description: "Eggs and avocado, no bread. Five minutes, naturally gluten-free.",
+    description_is: "Egg og avókadó, ekkert brauð. Fimm mínútur og náttúrulega glútenlaust.",
+    ingredients: ["3 eggs", "½ avocado", "1 tomato", "1 tsp butter", "Salt and pepper"],
+    ingredients_is: ["3 egg", "½ avókadó", "1 tómatur", "1 tsk smjör", "Salt og pipar"],
+    instructions: ["Whisk the eggs and scramble them gently in the butter.", "Slice the avocado and tomato onto the plate.", "Salt and pepper over everything."],
+    instructions_is: ["Þeyttu eggin og hrærðu þau rólega í smjörinu.", "Skerðu avókadóið og tómatinn á diskinn.", "Salt og pipar yfir allt."],
+    prep_time_min: 3, cook_time_min: 5, calories: 350, protein: 22, carbs: 10, fat: 26,
+    dietary_tags: ["high-protein", "vegetarian", "gluten-free", "low-carb"] },
+  {
+    name: "Skyr with peanut butter and banana", name_is: "Skyrskál með hnetusmjöri og banana",
+    description: "Three things in a bowl. Gluten-free without trying.",
+    description_is: "Þrennt í skál. Glútenlaust án þess að reyna.",
+    ingredients: ["200 g plain skyr", "1 tbsp peanut butter", "1 banana", "1 tsp cocoa (optional)"],
+    ingredients_is: ["200 g hreint skyr", "1 msk hnetusmjör", "1 banani", "1 tsk kakó (má sleppa)"],
+    instructions: ["Spoon the skyr into a bowl.", "Swirl the peanut butter through it.", "Slice the banana over the top."],
+    instructions_is: ["Settu skyrið í skál.", "Hrærðu hnetusmjörinu í gegn.", "Skerðu bananann yfir."],
+    prep_time_min: 3, cook_time_min: 0, calories: 380, protein: 26, carbs: 38, fat: 12,
+    dietary_tags: ["high-protein", "vegetarian", "no-cook", "gluten-free"] },
+  {
+    name: "Porridge from gluten-free oats with skyr", name_is: "Hafragrautur úr glútenlausum höfrum með skyri",
+    description: "Oats are gluten-free in themselves; buy the ones marked so and this is safe.",
+    description_is: "Hafrar eru glútenlausir í sjálfu sér — kauptu þá sem eru merktir þannig og þetta er óhætt.",
+    ingredients: ["60 g gluten-free oats", "3 dl water", "100 g plain skyr", "100 g berries", "Pinch of salt"],
+    ingredients_is: ["60 g glútenlaust haframjöl", "3 dl vatn", "100 g hreint skyr", "100 g ber", "Salt á hnífsoddi"],
+    instructions: ["Simmer the oats in the water with the salt for five minutes.", "Stir the skyr in off the heat.", "Berries on top."],
+    instructions_is: ["Sjóddu hafrana í vatninu með saltinu í fimm mínútur.", "Hrærðu skyrinu saman við utan hita.", "Ber ofan á."],
+    prep_time_min: 2, cook_time_min: 6, calories: 380, protein: 22, carbs: 58, fat: 6,
+    dietary_tags: ["vegetarian", "gluten-free"] },
 ];
+
+// Added after measuring a real plan: these exist because a gluten-free person
+// got none of the quick lunches above — rye bread, sandwich, crispbread, all
+// of them — and fell back on the thirty-minute cooked dishes, which is the
+// thing the rewrite was meant to stop. Lunch depth went 9 of 26 to 14 of 29.
 
 // Lunch is the meal people do not cook. Yesterday's dinner reheated, or
 // whatever the canteen put out, or something assembled standing up. A
@@ -224,6 +263,41 @@ export const LUNCH = [
     prep_time_min: 3, cook_time_min: 6, calories: 480, protein: 28, carbs: 44, fat: 20,
     dietary_tags: ["meal-prep"],
   },
+
+  // These exist because measuring a real plan showed a gluten-free person got
+  // none of the quick options above — rye bread, sandwich, crispbread, toast,
+  // all of them — and fell back on the thirty-minute cooked dishes, which is
+  // the thing this rewrite was meant to stop.
+  {
+    name: "Potato and chicken salad", name_is: "Kartöflusalat með kjúklingi",
+    description: "Cold potatoes from yesterday, chicken, and a spoon of skyr instead of mayonnaise.",
+    description_is: "Kaldar kartöflur frá í gær, kjúklingur og skyr í staðinn fyrir majónes.",
+    ingredients: ["300 g cooked potatoes", "150 g cooked chicken", "2 tbsp plain skyr", "¼ red onion", "Chives", "Salt and pepper"],
+    ingredients_is: ["300 g soðnar kartöflur", "150 g eldaður kjúklingur", "2 msk hreint skyr", "¼ rauðlaukur", "Graslaukur", "Salt og pipar"],
+    instructions: ["Chop the cold potatoes and the chicken into a box.", "Stir the skyr through with the finely chopped onion.", "Chives, salt and pepper."],
+    instructions_is: ["Saxaðu köldu kartöflurnar og kjúklinginn í box.", "Hrærðu skyrinu saman við með smátt söxuðum lauk.", "Graslaukur, salt og pipar."],
+    prep_time_min: 8, cook_time_min: 0, calories: 430, protein: 34, carbs: 38, fat: 12,
+    dietary_tags: ["high-protein", "no-cook", "gluten-free", "meal-prep"] },
+  {
+    name: "Rice bowl with egg and vegetables", name_is: "Hrísgrjónaskál með eggjum og grænmeti",
+    description: "Cold rice from yesterday, two eggs, whatever vegetables are in the drawer.",
+    description_is: "Köld hrísgrjón frá í gær, tvö egg og það grænmeti sem til er.",
+    ingredients: ["200 g cooked rice", "2 eggs", "½ cucumber", "1 carrot", "1 tbsp sesame-free oil", "Salt and pepper"],
+    ingredients_is: ["200 g soðin hrísgrjón", "2 egg", "½ gúrka", "1 gulrót", "1 msk olía", "Salt og pipar"],
+    instructions: ["Boil the eggs for 8 minutes, or use ones already boiled.", "Grate the carrot and chop the cucumber into the rice.", "Halve the eggs over the top, oil, salt and pepper."],
+    instructions_is: ["Sjóddu eggin í 8 mínútur, eða notaðu egg sem eru þegar soðin.", "Rífðu gulrótina og saxaðu gúrkuna saman við hrísgrjónin.", "Skerðu eggin í tvennt ofan á, olía, salt og pipar."],
+    prep_time_min: 7, cook_time_min: 8, calories: 420, protein: 20, carbs: 52, fat: 14,
+    dietary_tags: ["vegetarian", "gluten-free", "meal-prep"] },
+  {
+    name: "Tuna and egg salad bowl", name_is: "Salatskál með túnfiski og eggjum",
+    description: "A tin, two eggs, salad. No bread, no cooking, five minutes.",
+    description_is: "Ein dós, tvö egg og salat. Ekkert brauð, engin eldamennska, fimm mínútur.",
+    ingredients: ["1 tin tuna in water", "2 hard-boiled eggs", "100 g salad leaves", "1 tomato", "1 tbsp olive oil", "Salt and pepper"],
+    ingredients_is: ["1 dós túnfiskur í vatni", "2 harðsoðin egg", "100 g salatblöð", "1 tómatur", "1 msk ólífuolía", "Salt og pipar"],
+    instructions: ["Tear the salad into a bowl and drain the tuna over it.", "Halve the eggs and lay them on.", "Tomato, oil, salt and pepper."],
+    instructions_is: ["Rífðu salatið í skál og helltu túnfisknum yfir.", "Skerðu eggin í tvennt og leggðu þau á.", "Tómatur, olía, salt og pipar."],
+    prep_time_min: 6, cook_time_min: 0, calories: 390, protein: 36, carbs: 8, fat: 22,
+    dietary_tags: ["high-protein", "no-cook", "gluten-free", "low-carb", "dairy-free"] },
 ];
 
 // Dinner is the one meal that gets cooked, so it is the one worth cooking
