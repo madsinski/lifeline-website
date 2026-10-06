@@ -42,7 +42,7 @@ const BY_MODALITY: Record<Modality, { blurb: string; options: Alternative[] }> =
     ],
   },
   hiit: {
-    blurb: "Dagurinn snýst um eina harða lotu. Allt þetta telst sem hörð lota.",
+    blurb: "Dagurinn snýst um eina HIIT-æfingu. Allt þetta telst sem HIIT.",
     options: [
       { key: "boltaithrott", label: "Boltaíþrótt", hint: "Fótbolti, handbolti, körfubolti, badminton", Icon: Zap },
       { key: "spinning", label: "Spinning eða þrektími", hint: "Hóptími á fullu", Icon: Bike },

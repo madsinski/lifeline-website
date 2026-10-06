@@ -56,7 +56,7 @@ export const CARDIO_IS: Record<CardioLimit, { label: string; hint: string }> = {
  * easy aerobic work at all, which is the opposite of true.
  */
 export type Covers = "strength" | "hiit" | "cardio";
-export const COVERS_IS: Record<Covers, string> = { strength: "Styrkur", hiit: "Hörð lota", cardio: "Rólegt þol" };
+export const COVERS_IS: Record<Covers, string> = { strength: "Styrkur", hiit: "HIIT", cardio: "Rólegt þol" };
 
 /** How hard it is on the body, for spacing and for not stacking hard days. */
 export type Intensity = "hard" | "moderate" | "easy";
@@ -128,7 +128,7 @@ export interface ActivityPreset {
 export const ACTIVITY_PRESETS: ActivityPreset[] = [
   // ── Styrkur ───────────────────────────────────────────────────────────
   { group: "Styrkur", name: "Lyftingar", covers: ["strength"], intensity: "hard", minutes: 60, icon: "Dumbbell" },
-  { group: "Styrkur", name: "CrossFit", covers: ["strength", "hiit"], intensity: "hard", minutes: 60, icon: "Flame", why: "Lyftingar og hörð lota í sama tíma — telst sem hvoru tveggja." },
+  { group: "Styrkur", name: "CrossFit", covers: ["strength", "hiit"], intensity: "hard", minutes: 60, icon: "Flame", why: "Lyftingar og HIIT í sama tíma — telst sem hvoru tveggja." },
   { group: "Styrkur", name: "Hóptími með lóðum", covers: ["strength"], intensity: "moderate", minutes: 55, icon: "Users" },
   { group: "Styrkur", name: "Áhaldaleikfimi", covers: ["strength"], intensity: "moderate", minutes: 55, icon: "PersonStanding" },
   { group: "Styrkur", name: "Kettlebell-tími", covers: ["strength", "hiit"], intensity: "hard", minutes: 45, icon: "Weight", why: "Lyft og púl í senn." },
@@ -137,25 +137,25 @@ export const ACTIVITY_PRESETS: ActivityPreset[] = [
   { group: "Styrkur", name: "TRX eða hringir", covers: ["strength"], intensity: "moderate", minutes: 45, icon: "Cable" },
 
   // ── Íþróttir: spretta-og-stopp ────────────────────────────────────────
-  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — hörð lota, ekki rólegt þol." },
-  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "Goal", why: "Spretta-og-stopp — hörð lota." },
-  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Target", why: "Spretta-og-stopp — hörð lota." },
-  { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "CircleDot", why: "Spretta-og-stopp — hörð lota." },
+  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT, ekki sem rólegt þol." },
+  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Target", why: "Spretta-og-stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "CircleDot", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Blak", covers: ["hiit"], partial: ["cardio"], intensity: "moderate", minutes: 60, icon: "Volleyball" },
-  { group: "Íþróttir", name: "Badminton", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — hörð lota." },
-  { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — hörð lota." },
+  { group: "Íþróttir", name: "Badminton", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Skvass", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Volleyball" },
   { group: "Íþróttir", name: "Íshokkí", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Snowflake" },
   { group: "Íþróttir", name: "Bardagaíþróttir", covers: ["hiit", "strength"], partial: ["cardio"], intensity: "hard", minutes: 75, icon: "Swords", why: "Lotur á fullu og mikil líkamleg vinna." },
   { group: "Íþróttir", name: "Dans", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Music" },
 
-  // ── Hörð þolþjálfun ───────────────────────────────────────────────────
-  { group: "Hörð þolþjálfun", name: "Spinning", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Bike" },
-  { group: "Hörð þolþjálfun", name: "HIIT-tími", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Flame" },
-  { group: "Hörð þolþjálfun", name: "Sprettir eða brekkur", covers: ["hiit"], intensity: "hard", minutes: 30, icon: "Timer" },
-  { group: "Hörð þolþjálfun", name: "Róður á fullu", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 30, icon: "Waves" },
-  { group: "Hörð þolþjálfun", name: "Þrektími", covers: ["hiit", "strength"], partial: ["cardio"], intensity: "hard", minutes: 50, icon: "Flame" },
-  { group: "Hörð þolþjálfun", name: "Hlaup — hraðaæfing", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "SportShoe" },
+  // ── HIIT og púl ───────────────────────────────────────────────────
+  { group: "HIIT og púl", name: "Spinning", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Bike" },
+  { group: "HIIT og púl", name: "HIIT-tími", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Flame" },
+  { group: "HIIT og púl", name: "Sprettir eða brekkur", covers: ["hiit"], intensity: "hard", minutes: 30, icon: "Timer" },
+  { group: "HIIT og púl", name: "Róður á fullu", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 30, icon: "Waves" },
+  { group: "HIIT og púl", name: "Þrektími", covers: ["hiit", "strength"], partial: ["cardio"], intensity: "hard", minutes: 50, icon: "Flame" },
+  { group: "HIIT og púl", name: "Hlaup — hraðaæfing", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "SportShoe" },
 
   // ── Rólegt þol ────────────────────────────────────────────────────────
   { group: "Rólegt þol", name: "Skokk innandyra (hlaupabretti)", covers: ["cardio"], intensity: "moderate", minutes: 40, icon: "SportShoe" },
@@ -210,16 +210,19 @@ export function activityModality(a: { covers: Covers[] }): "strength" | "hiit" |
   return "other";
 }
 
-/** "Styrkur og hörð lota" — everything it trains, for the session's subtitle. */
+/** "Styrkur og HIIT" — everything it trains, for the session's subtitle. */
 export function activityFocus(a: { covers: Covers[]; partial?: Covers[] }): string {
-  const full = a.covers.map((c) => COVERS_IS[c].toLowerCase());
-  const half = (a.partial ?? []).filter((c) => !a.covers.includes(c)).map((c) => `hálft ${COVERS_IS[c].toLowerCase()}`);
+  // HIIT is an acronym; lower-casing it the way the other labels are would
+  // read as a typo.
+  const label = (c: Covers) => (c === "hiit" ? "HIIT" : COVERS_IS[c].toLowerCase());
+  const full = a.covers.map(label);
+  const half = (a.partial ?? []).filter((c) => !a.covers.includes(c)).map((c) => `hálft ${label(c)}`);
   const all = [...full, ...half];
   if (!all.length) return "Góð hreyfing";
   return all.join(" og ").replace(/^./, (m) => m.toUpperCase());
 }
 
-export const ACTIVITY_GROUPS = ["Styrkur", "Íþróttir", "Hörð þolþjálfun", "Rólegt þol", "Annað"] as const;
+export const ACTIVITY_GROUPS = ["Styrkur", "Íþróttir", "HIIT og púl", "Rólegt þol", "Annað"] as const;
 
 /**
  * Other ways to satisfy a session.
@@ -724,11 +727,13 @@ export function weekGaps(s: TrainingSettings, hiitOn: boolean): WeekGaps {
   const strength = n("strength"), hiitAct = n("hiit"), cardio = n("cardio");
   const hardAlready = acts.filter((a) => a.intensity === "hard").length;
 
-  const fmt = (x: number) => (Number.isInteger(x) ? String(x) : String(x).replace(".", ","));
+  /** "2", "hálf", "1,5" — Icelandic says "hálf æfing", not "0,5 æfingar". */
+  const count = (x: number, one: string, many: string) =>
+    x === 0.5 ? `hálf ${one}` : `${Number.isInteger(x) ? x : String(x).replace(".", ",")} ${x === 1 ? one : many}`;
   const covered: string[] = [];
-  if (strength) covered.push(`${fmt(strength)} styrktaræfing${strength === 1 ? "" : "ar"} í vikunni þinni`);
-  if (hiitAct) covered.push(`${fmt(hiitAct)} hörð lota${hiitAct === 1 ? "" : "ur"} í vikunni þinni`);
-  if (cardio) covered.push(`${fmt(cardio)} róleg þolæfing${cardio === 1 ? "" : "ar"} í vikunni þinni`);
+  if (strength) covered.push(`${count(strength, "styrktaræfing", "styrktaræfingar")} í vikunni þinni`);
+  if (hiitAct) covered.push(`${count(hiitAct, "HIIT-æfing", "HIIT-æfingar")} í vikunni þinni`);
+  if (cardio) covered.push(`${count(cardio, "róleg þolæfing", "rólegar þolæfingar")} í vikunni þinni`);
 
   return {
     strengthNeed: clamp(Math.round(2 - strength), 0, 2),
@@ -877,7 +882,7 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
       const useHiit = addHiit && aerobic === 0;
       aerobic++;
       out.push(useHiit
-        ? { day: dayName(d), title: `${primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode)} — lotur`, focus: "Hörð lota · HIIT", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
+        ? { day: dayName(d), title: `${primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode)} — lotur`, focus: "HIIT", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
         : { day: dayName(d), title: primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode), focus: "Rólegt þol · Zone 2", minutes: 45, items: [zone2Item(st, s)] });
     }
   }
