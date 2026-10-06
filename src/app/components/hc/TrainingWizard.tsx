@@ -12,11 +12,12 @@
 // The report pre-fills what it can (see training-suggest.ts) and says why, so
 // the limitations step is usually a confirmation rather than a form.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Dumbbell, Home, Users } from "lucide-react";
 import {
   CARDIO_IS, PLACE_IS, PLACES, REGION_IS, REGIONS, previewWeek, SCORE_TONE,
   type CardioLimit, type Place, type Region, type TrainingSettings,
+  suggestDays, COVERS_IS, dayDative,
 } from "@/lib/hc/adaptive-program";
 import { trainingHints } from "@/lib/hc/training-suggest";
 import { WEEKDAYS, WEEKDAYS_SHORT } from "@/lib/hc/personalise";
@@ -42,11 +43,23 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
   const [step, setStep] = useState(0);
   // The report's reading is the starting point, not an answer: it is in the
   // draft from the first render so the person can see and change it.
-  const [s, setS] = useState<TrainingSettings>({
-    ...settings,
-    cardio: settings.cardio === "full" ? hints.cardio : settings.cardio,
+  const [s, setS] = useState<TrainingSettings>(() => {
+    const base = { ...settings, cardio: settings.cardio === "full" ? hints.cardio : settings.cardio };
+    // The days they already train are days they can train. Asking "which
+    // days can you?" of someone who has just listed football on Monday and
+    // CrossFit on Wednesday, and starting them from nothing, is asking a
+    // question we already have the answer to.
+    const busy = [...new Set((settings.activities ?? []).map((a) => a.day))].sort((a, b) => a - b);
+    return base.days.length === 0 && busy.length ? { ...base, days: busy } : base;
   });
   const set = (patch: Partial<TrainingSettings>) => setS((x) => ({ ...x, ...patch }));
+
+  /**
+   * What the week is short of and where it would go, from what they have
+   * already told us they do. Recomputed as they add activities, so the
+   * advice follows the answers rather than a snapshot of them.
+   */
+  const suggested = useMemo(() => suggestDays(s, s.level !== "beginner" && s.cardio !== "limited"), [s]);
 
   const toggleDay = (d: number) =>
     set({ days: s.days.includes(d) ? s.days.filter((x) => x !== d) : [...s.days, d].sort((a, b) => a - b) });
@@ -135,17 +148,46 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
           <h3 className="text-lg font-bold text-hc-ink">Hvaða daga kemstu?</h3>
           <p className="text-sm text-hc-ink-2">Veldu að minnsta kosti tvo. Styrktaræfingarnar tvær raðast sjálfkrafa með sem mestu millibili og þolið fer á hina dagana.</p>
           <div className="flex flex-wrap gap-2">
-            {WEEKDAYS.map((w, i) => (
-              <button key={w} type="button" onClick={() => toggleDay(i)} aria-pressed={s.days.includes(i)}
-                className={`min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                  s.days.includes(i) ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
-                <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span><span className="hidden sm:inline">{w}</span>
-              </button>
-            ))}
+            {WEEKDAYS.map((w, i) => {
+              const on = s.days.includes(i);
+              const busy = (s.activities ?? []).some((a) => a.day === i);
+              const wanted = suggested.find((x) => x.day === i);
+              return (
+                <button key={w} type="button" onClick={() => toggleDay(i)} aria-pressed={on}
+                  title={busy ? (s.activities ?? []).filter((a) => a.day === i).map((a) => a.name).join(", ") : wanted ? wanted.why : undefined}
+                  className={`relative min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
+                    on ? "bg-hc-ink text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                  <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span><span className="hidden sm:inline">{w}</span>
+                  {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-slate-500"}`}>•</span>}
+                </button>
+              );
+            })}
           </div>
           <p className={`text-sm ${s.days.length >= 2 ? "text-hc-ink-2" : "text-amber-800"}`}>
             {s.days.length >= 2 ? `${s.days.length} dagar valdir.` : "Veldu að minnsta kosti tvo daga."}
+            {(s.activities ?? []).length > 0 && <span className="text-slate-500"> Punktur merkir dag sem þú ert þegar á ferðinni.</span>}
           </p>
+
+          {/* What the week is short of, and where it would sit. The setup
+              knew both and said neither: someone who listed three bike rides
+              was left to work out for themselves that they have no strength
+              work and that it should not go the day after football. */}
+          {suggested.length > 0 && (
+            <div className="rounded-2xl bg-amber-50 p-3 ring-1 ring-amber-200">
+              <p className="text-sm font-semibold text-amber-900">
+                Þetta vantar í vikuna: {[...new Set(suggested.map((x) => COVERS_IS[x.modality]))].join(", ")}
+              </p>
+              <ul className="mt-1 space-y-0.5 text-sm text-amber-900/90">
+                {suggested.map((x, i) => (
+                  <li key={i}>{COVERS_IS[x.modality]} á {dayDative(x.day)} — {x.why}</li>
+                ))}
+              </ul>
+              <button type="button" onClick={() => set({ days: [...new Set([...s.days, ...suggested.map((x) => x.day)])].sort((a, b) => a - b) })}
+                className="mt-2 rounded-full bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800">
+                Velja þessa daga
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -727,6 +727,9 @@ export function hiitState(s: TrainingSettings, st: Stage): { on: boolean; why: s
 }
 
 const dayName = (weekday: number) => WEEKDAY_NAMES[((weekday % 7) + 7) % 7];
+/** "á mánudegi", not "á mánudagur" — the preposition takes the dative. */
+const DAY_DATIVE = ["mánudegi", "þriðjudegi", "miðvikudegi", "fimmtudegi", "föstudegi", "laugardegi", "sunnudegi"];
+export const dayDative = (weekday: number) => DAY_DATIVE[((weekday % 7) + 7) % 7];
 const WEEKDAY_NAMES = ["Mánudagur", "Þriðjudagur", "Miðvikudagur", "Fimmtudagur", "Föstudagur", "Laugardagur", "Sunnudagur"];
 
 export interface WeekGaps {
@@ -1067,4 +1070,68 @@ export function sanitizeActivities(v: unknown): Activity[] {
       ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], benefits: [...new Set(benefits)], intensity }
       : null;
   }).filter((a): a is Activity => !!a);
+}
+
+/**
+ * What the week is missing, and the best days to put it on.
+ *
+ * The setup asked "which days can you train?" with no opinion about the
+ * answer, even though it already knew what the person does. Someone who
+ * listed three bike rides and nothing else was left to work out for
+ * themselves that they have no strength work and that Tuesday is a bad day
+ * for it because they play football on Monday.
+ *
+ * Rules, in the order they decide a day:
+ *  · a day already holding something hard cannot take more hard work
+ *  · nor can the day straight after one — that is the 48 hours tendons want
+ *  · the two strength days are spread as far apart as the week allows
+ *  · easy aerobic work avoids hard days but is happy next to them
+ */
+export interface DaySuggestion {
+  modality: Covers;
+  day: number;
+  /** Why this day and not another, in the person's own terms. */
+  why: string;
+}
+
+export function suggestDays(s: TrainingSettings, hiitOn: boolean): DaySuggestion[] {
+  const acts = s.activities ?? [];
+  const hard = new Set(hardDays({ activities: acts }));
+  const busy = new Set(acts.map((a) => a.day));
+  const score = trainingScore(s, hiitOn);
+  const out: DaySuggestion[] = [];
+  const taken = new Set<number>();
+
+  /** Distance to the nearest day in `days`, wrapping the week. */
+  const gapFrom = (d: number, days: Set<number>) =>
+    days.size === 0 ? 7 : Math.min(...[...days].map((x) => Math.min((d - x + 7) % 7, (x - d + 7) % 7)));
+
+  for (const m of score.per) {
+    const missing = Math.ceil(Math.max(0, m.target - m.have));
+    for (let k = 0; k < missing; k++) {
+      const needsRest = m.key !== "cardio";
+      const best = [...Array(7).keys()]
+        .filter((d) => !taken.has(d))
+        .map((d) => {
+          const after = hard.has((d + 6) % 7);
+          let pts = 0;
+          if (needsRest && hard.has(d)) pts -= 10;        // already hard
+          if (needsRest && after) pts -= 4;               // the day after a hard one
+          if (!needsRest && hard.has(d)) pts -= 6;        // easy work on a hard day is wasted
+          if (busy.has(d)) pts -= 1;                      // doable, just busier
+          pts += gapFrom(d, new Set([...hard, ...taken])); // spread it out
+          return { d, pts };
+        })
+        .sort((a, b) => b.pts - a.pts)[0];
+      if (!best) break;
+      taken.add(best.d);
+      const why = hard.has((best.d + 6) % 7)
+        ? "lengst frá hörðu dögunum sem eftir eru"
+        : busy.has(best.d)
+          ? `þú ert þegar á ferðinni á ${dayDative(best.d)}`
+          : `${dayName(best.d).toLowerCase()} er laus og vel staðsettur`;
+      out.push({ modality: m.key, day: best.d, why });
+    }
+  }
+  return out;
 }
