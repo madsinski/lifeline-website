@@ -76,9 +76,19 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime-700">Næringaráætlunin mín</p>
             <h2 className="mt-1 text-2xl font-bold text-slate-900">{nutrition.name}</h2>
           </div>
-          {onChangeProgram && !onCustomise && (
-            <button type="button" onClick={onChangeProgram} className="shrink-0 rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
-          )}
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {onChangeProgram && !onCustomise && (
+              <button type="button" onClick={onChangeProgram} className="rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
+            )}
+            {/* Was a full-width 816×48 block at the end of the page. The page
+                is for what to eat; changing the plan is the rarer errand. */}
+            {onCustomise && (
+              <button type="button" onClick={onCustomise}
+                className="inline-flex items-center gap-1.5 rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 transition hover:bg-lime-50">
+                <Sliders className="h-3.5 w-3.5" aria-hidden /> Breyta
+              </button>
+            )}
+          </div>
         </div>
 
         {/* What the page is for: what is on the table today. */}
@@ -156,12 +166,6 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           </div>
         )}
 
-        {onCustomise && (
-          <button type="button" onClick={onCustomise}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-600 px-4 py-3 font-bold text-white shadow-sm transition hover:bg-lime-700">
-            <Sliders className="h-5 w-5" aria-hidden /> Breyta næringaráætluninni
-          </button>
-        )}
       </section>
 
       {today && <MealLogger day={today} weightKg={weightKg ?? null} part="list" />}

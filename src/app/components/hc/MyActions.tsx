@@ -13,7 +13,7 @@ import * as cache from "@/lib/hc/client-cache";
 import PillarIcon from "./PillarIcon";
 import ActionSheet from "./ActionSheet";
 import { useRef, useState } from "react";
-import { Check, ChevronRight, EyeOff, Flame, RotateCcw } from "lucide-react";
+import { Check, ChevronRight, EyeOff, Flame, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { adherence, isoDay, lastDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 
@@ -156,7 +156,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
             <ul className="divide-y divide-slate-100">
               {byPillar(p).map((a) => (
                 <ActionRow key={a.uid} a={a} meta={meta} today={today} week={week} doneOn={doneOn} onToggle={toggle}
-                  onOpen={() => setSheet(a)} />
+                  onOpen={() => setSheet(a)} onEdit={onEditPillar ? () => onEditPillar(p) : undefined} />
               ))}
             </ul>
           </div>
@@ -198,7 +198,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen }: {
+function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit }: {
   a: PlanItem;
   meta: { color: string; soft: string; label: string; ink: string };
   today: string;
@@ -207,6 +207,12 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen }: {
   onToggle: (uid: string, day?: string) => void;
   /** Opens the change sheet for this action. */
   onOpen: () => void;
+  /**
+   * Opens the plan editor on this action's own pillar. On the row, because
+   * one big "change the plan" button at the bottom of the page is a long way
+   * from the thing you wanted to change.
+   */
+  onEdit?: () => void;
   links?: ActionLinks;
 }) {
   const done = doneOn(a.uid, today);
@@ -233,9 +239,17 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen }: {
               target standing next to it. Tapping a day fills in one that was
               missed, which is why they are buttons and not dots. */}
           <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-            <span className="text-sm text-slate-500">
-              {a.frequency || "Daglega"}
-              {target < 7 && <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-400"}> · {thisWeek} af {target} í vikunni</span>}
+            <span className="flex items-center gap-2 text-sm text-slate-500">
+              <span>
+                {a.frequency || "Daglega"}
+                {target < 7 && <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-400"}> · {thisWeek} af {target} í vikunni</span>}
+              </span>
+              {onEdit && (
+                <button type="button" onClick={onEdit} aria-label={`Breyta: ${a.title}`}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900">
+                  <Sliders className="h-3 w-3" aria-hidden /> Breyta
+                </button>
+              )}
             </span>
             <div className="ml-auto flex gap-1" role="group" aria-label={`Síðustu sjö dagar fyrir „${a.title}“. Ýttu á dag til að merkja hann.`}>
               {week.map((d) => {

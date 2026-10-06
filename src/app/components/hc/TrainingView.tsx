@@ -29,7 +29,10 @@ interface LibEx {
   id: string; name: string; name_is: string | null; category: string | null; equipment: string | null;
   illustration_url: string | null; video_url: string | null; primary_muscles: string[] | null; bang_for_buck: boolean | null;
 }
-type Payload = { kind: "session"; id: string } | { kind: "exercise"; ex: LibEx };
+type Payload =
+  | { kind: "session"; id: string }
+  | { kind: "activity"; id: string }
+  | { kind: "exercise"; ex: LibEx };
 
 
 export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay,
@@ -102,6 +105,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
   const { drag, handle } = useDrag<Payload>((p, target) => {
     if (p.kind === "session" && target.startsWith("day:")) moveSession(p.id, Number(target.slice(4)));
+    if (p.kind === "activity" && target.startsWith("day:")) onMoveActivity?.(p.id, Number(target.slice(4)));
     if (p.kind === "exercise" && target.startsWith("slot:")) swap(target.slice(5), p.ex);
   });
 
@@ -124,7 +128,17 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
               <h2 className="mt-1 text-2xl font-bold text-slate-900">{exercise.name}</h2>
             </div>
-            {onChangeProgram && !onCustomise && <button type="button" onClick={onChangeProgram} className="shrink-0 rounded-full border border-orange-200 px-3 py-1 text-sm font-semibold text-orange-800 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
+            <div className="flex shrink-0 flex-wrap gap-2">
+              {onChangeProgram && !onCustomise && <button type="button" onClick={onChangeProgram} className="rounded-full border border-orange-200 px-3 py-1 text-sm font-semibold text-orange-800 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
+              {/* Was a full-width block under the hero. The page is for the
+                  next session; changing the plan is the rarer errand. */}
+              {onCustomise && !arranging && (
+                <button type="button" onClick={onCustomise}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 px-3 py-1 text-sm font-semibold text-orange-800 transition hover:bg-orange-50">
+                  <Sliders className="h-3.5 w-3.5" aria-hidden /> Breyta
+                </button>
+              )}
+            </div>
           </div>
 
           {/* What the page is actually for: the next thing to do. The goal
@@ -177,10 +191,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     over ? "border-orange-400 bg-orange-50" : i === todayIdx ? "border-orange-300 bg-orange-50/60" : "border-slate-200 bg-white"}`}>
                   <p className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>{d}</p>
                   {here.map((s) => (
-                    <button key={s.id} type="button" {...(editable ? handle({ kind: "session", id: s.id }, s.title) : {})}
+                    <button key={s.id} type="button" {...handle({ kind: "session", id: s.id }, s.title)}
                       onClick={() => { setPickAct(null); setPickDay(pickDay === s.id ? null : s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
-                      className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${editable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${MODALITY_IS[s.modality].cls} ${pickDay === s.id ? "outline outline-2 outline-hc-ink" : ""}`}>
+                      className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${pickDay === s.id ? "outline outline-2 outline-hc-ink" : ""}`}>
                       <span className={`mb-0.5 block h-1 w-5 rounded-full ${MODALITY_IS[s.modality].dot}`} />
                       <span className="block truncate sm:hidden">{MODALITY_IS[s.modality].short}</span>
                       <span className="hidden line-clamp-2 sm:block">{s.title.length > 11 ? MODALITY_IS[s.modality].label : s.title}</span>
@@ -192,10 +206,11 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     const am = activityModality(a);
                     const mm = MODALITY_IS[am === "other" ? "other" : am];
                     return (
-                      <button key={a.id} type="button" onClick={() => { setPickDay(null); setPickAct(pickAct?.id === a.id ? null : a); }}
+                      <button key={a.id} type="button" {...(onMoveActivity ? handle({ kind: "activity", id: a.id }, a.name) : {})}
+                        onClick={() => { setPickDay(null); setPickAct(pickAct?.id === a.id ? null : a); }}
                         title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
                         aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
-                        className={`cursor-pointer rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${mm.cls} ${pickAct?.id === a.id ? "outline outline-2 outline-hc-ink" : ""}`}>
+                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${mm.cls} ${pickAct?.id === a.id ? "outline outline-2 outline-hc-ink" : ""}`}>
                         <span className={`mb-0.5 block h-1 w-5 rounded-full ${mm.dot}`} />
                         <span className="flex items-center gap-1">
                           <ActivityIcon name={a.name} className="h-3 w-3 shrink-0" />
@@ -281,7 +296,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                 <span className={`h-2 w-2 rounded-full ${MODALITY_IS[m].dot}`} />{MODALITY_IS[m].label} {counts[m]}×
               </span>
             ))}
-            {editable && <span className="text-slate-500">Dragðu æfingadag á annan dag, eða ýttu á hann.</span>}
+            <span className="text-slate-500">Dragðu hvað sem er í vikunni á annan dag — eða ýttu á það.</span>
           </div>
 
           {editable && (canSplitHiit(exercise) || custom) && (
@@ -302,12 +317,6 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           )}
         </section>
 
-        {onCustomise && !arranging && (
-          <button type="button" onClick={onCustomise}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-orange-200 bg-white px-4 py-3.5 font-bold text-orange-800 shadow-sm transition hover:border-orange-300 hover:bg-orange-50">
-            <Sliders className="h-5 w-5" aria-hidden /> Breyta æfingaáætluninni
-          </button>
-        )}
         {editable && controls}
         {stages}
 
