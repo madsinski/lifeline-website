@@ -55,7 +55,15 @@ export interface PSession extends ExerciseSession {
   weekday: number;
 }
 
-const isHiitItem = (it: ExerciseItem) => /^hiit/i.test(it.name);
+/**
+ * A hard interval block.
+ *
+ * Matched on the name because that is all a stored programme carries. The
+ * adaptive core used to call these "HIIT: þrekhjól"; they are named after the
+ * activity now ("Þrekhjól — lotur") because that is what you actually go and
+ * do, so the suffix is matched too.
+ */
+const isHiitItem = (it: ExerciseItem) => /^hiit|—\s*lotur$/i.test(it.name);
 
 export function modalityOf(s: Pick<ExerciseSession, "title" | "focus" | "items">): Modality {
   const main = s.items.filter((i) => (i.block ?? "main") === "main");

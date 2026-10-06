@@ -624,10 +624,10 @@ function hiitItem(st: Stage, s: TrainingSettings, extra = 0): ExerciseItem {
   const { mode, note } = hiitMode(s.injuries, effectivePlace(s.places));
   const min = Math.round((rounds * (st.hiit.work + st.hiit.rest)) / 60);
   return {
-    name: `HIIT: ${mode}`,
+    name: `${primaryMode(mode)} — lotur`,
     prescription: `${rounds} × ${st.hiit.work} sek. hratt / ${st.hiit.rest} sek. rólega`,
     note: [
-      `Um ${min} mín.`,
+      `Um ${min} mín. Má líka vera: ${mode}.`,
       st.key === "adapt" ? "„Hratt“ þýðir rösklega: þú getur sagt nokkur orð en ekki heila setningu." : "„Hratt“ þýðir nálægt hámarki í hverri lotu.",
       note,
     ].filter(Boolean).join(" "),
@@ -650,13 +650,19 @@ const WARMUP: ExerciseItem = {
 
 // ── Zone 2 ─────────────────────────────────────────────────────────
 /** Easy aerobic work: the base everything else is built on. */
+/** The first option in a mode list, as a title: "Þrekhjól". */
+export function primaryMode(mode: string): string {
+  const first = mode.split(/,| eða /)[0].trim();
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
 function zone2Item(st: Stage, s: TrainingSettings): ExerciseItem {
   const { mode } = hiitMode(s.injuries, effectivePlace(s.places));
   const minutes = st.key === "adapt" ? 30 : st.key === "s1" ? 35 : st.key === "s2" ? 40 : 45;
   return {
-    name: `Zone 2: ${mode.split(",")[0].trim().toLowerCase()}`,
+    name: primaryMode(mode),
     prescription: `${clamp(minutes + s.load * 5, 20, 60)} mín. á jöfnum, rólegum hraða`,
-    note: "Þú átt að geta haldið uppi samtali allan tímann. Ef þú nærð ekki að tala í heilum setningum ertu að fara of hratt.",
+    note: `Má líka vera: ${mode}. Þú átt að geta haldið uppi samtali allan tímann — ef þú nærð ekki að tala í heilum setningum ertu að fara of hratt.`,
     muscles: [],
     cues: ["Jafn hraði allan tímann — engar lotur.", "Neföndun ef þú getur; það heldur þér á réttum stað."],
     rest: null,
@@ -864,8 +870,8 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
       const useHiit = addHiit && aerobic === 0;
       aerobic++;
       out.push(useHiit
-        ? { day: dayName(d), title: "HIIT", focus: "Hörð lota", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
-        : { day: dayName(d), title: "Zone 2", focus: "Rólegt þol", minutes: 45, items: [zone2Item(st, s)] });
+        ? { day: dayName(d), title: `${primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode)} — lotur`, focus: "Hörð lota · HIIT", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
+        : { day: dayName(d), title: primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode), focus: "Rólegt þol · Zone 2", minutes: 45, items: [zone2Item(st, s)] });
     }
   }
   // Every chosen day went to strength and no aerobic day was left — but
