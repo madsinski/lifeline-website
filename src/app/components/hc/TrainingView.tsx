@@ -8,8 +8,8 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles, X } from "lucide-react";
-import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
+import { ArrowLeftRight, Check, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
 import { activityFocus, activityModality, hardDays, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
@@ -387,6 +387,69 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   );
 }
 
+
+/**
+ * One card shape for everything on a day.
+ *
+ * A programme session and a sport were drawn as two different things: the
+ * session had an orange ring, a tinted header band, a minutes pill and a
+ * chevron; the sport had a slate ring, no band and no header. Two items on
+ * one day therefore looked like they came from two different products.
+ *
+ * They are the same card now, and the colour says what it trains rather than
+ * where it came from — the same modality colours the week grid above uses, so
+ * an orange chip in the week opens an orange card below it.
+ */
+const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string }> = {
+  strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200" },
+  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200" },
+  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200" },
+  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200" },
+};
+
+/** The shell and header both cards share. */
+function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id, open, onToggle, actions, children }: {
+  modality: Modality;
+  tile: React.ReactNode;
+  eyebrow: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  minutes?: number | null;
+  today: boolean;
+  id?: string;
+  /** Given only when there is something to expand. */
+  open?: boolean;
+  onToggle?: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  const t = TONE[modality];
+  const m = MODALITY_IS[modality];
+  const head = (
+    <>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white ${t.tile}`}>{tile}</span>
+      <span className="min-w-0 flex-1">
+        <span className={`block text-xs font-bold uppercase tracking-wide ${t.ink}`}>{eyebrow}</span>
+        <span className="block font-semibold text-[#0F172A]">{title}</span>
+        {subtitle && <span className="block text-xs text-slate-500">{subtitle}</span>}
+      </span>
+      <span className={`hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline ${m.cls}`}>{m.label}</span>
+      {minutes ? <span className={`rounded-full bg-white px-3 py-1 text-xs font-semibold ring-1 ${t.pill}`}>{minutes} mín.</span> : null}
+      {onToggle && <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />}
+    </>
+  );
+  return (
+    <div id={id} className={`scroll-mt-24 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ${today ? `ring-2 ${t.today}` : t.ring}`}>
+      {onToggle
+        ? <button type="button" onClick={onToggle} aria-expanded={open}
+            className={`flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left ${t.band}`}>{head}</button>
+        : <div className={`flex w-full items-center gap-3 px-4 py-3 ${t.band} ${actions || children ? "border-b border-slate-100" : ""}`}>{head}</div>}
+      {actions}
+      {children}
+    </div>
+  );
+}
+
 function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap }: {
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
   dragOver: string | null; swapFor: string | null;
@@ -403,23 +466,21 @@ function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, d
   const blocks = (["warmup", "main", "finisher"] as ExerciseBlock[])
     .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
     .filter((b) => b.items.length);
-  const m = MODALITY_IS[s.modality];
   return (
-    <div id={`session-${s.id}`} className={`scroll-mt-24 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ${today ? "ring-2 ring-orange-500" : "ring-orange-100"}`}>
-      <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-3 border-b border-orange-100 bg-orange-50/60 px-4 py-3 text-left">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white ${s.modality === "hiit" ? "bg-rose-600" : s.modality === "cardio" ? "bg-sky-600" : "bg-orange-600"}`}><Dumbbell className="h-5 w-5" aria-hidden /></span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-xs font-bold uppercase tracking-wide text-orange-700">{s.day}{today ? " · í dag" : ""}</span>
-          <span className="block font-semibold text-[#0F172A]">{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</span>
-        </span>
-        <span className={`hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline ${m.cls}`}>{m.label}</span>
-        {s.minutes ? <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
-        <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
-      {/* The point of the page. Today's session gets the solid button; the
-          others get a quiet one, because doing Thursday's workout on Monday
-          is allowed but is not what we are suggesting. */}
-      {onStart && (
+    <ItemCard
+      id={`session-${s.id}`}
+      modality={s.modality}
+      tile={<Dumbbell className="h-5 w-5" aria-hidden />}
+      eyebrow={`${s.day}${today ? " · í dag" : ""}`}
+      title={<>{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</>}
+      minutes={s.minutes}
+      today={today}
+      open={open}
+      onToggle={onToggle}
+      /* The point of the page. Today's session gets the solid button; the
+         others get a quiet one, because doing Thursday's workout on Monday
+         is allowed but is not what we are suggesting. */
+      actions={onStart && (
         <div className="border-b border-slate-100 px-4 py-3">
           <button type="button" onClick={onStart}
             className={today
@@ -443,6 +504,7 @@ function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, d
           </div>
         </div>
       )}
+    >
       {open && (
         <div className="divide-y divide-slate-100">
           {blocks.map((b) => (
@@ -456,7 +518,7 @@ function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, d
           ))}
         </div>
       )}
-    </div>
+    </ItemCard>
   );
 }
 
@@ -545,36 +607,32 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove }: {
     <>
       {sorted.map((a) => {
         const am = activityModality(a);
-        const mm = MODALITY_IS[am === "other" ? "other" : am];
         const today = a.day === todayIdx;
         return (
-          <div key={a.id}
-            className={`flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ${today ? "ring-2 ring-slate-400" : "ring-slate-200"}`}>
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${mm.dot} text-white`}>
-              <ActivityIcon name={a.name} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">
-                {WEEKDAYS[a.day]}{today ? " · í dag" : ""}{a.at ? ` · ${a.at}` : ""}
-              </span>
-              <span className="block font-semibold text-[#0F172A]">{a.name}</span>
-              <span className="block text-xs text-slate-500">{activityFocus(a)} · þitt eigið</span>
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              {onComplete
-                ? <button type="button" onClick={() => onComplete(a)}
-                    className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                    Ég gerði þetta
+          <ItemCard key={a.id}
+            modality={am === "other" ? "other" : am}
+            tile={<ActivityIcon name={a.name} />}
+            eyebrow={`${WEEKDAYS[a.day]}${today ? " · í dag" : ""}${a.at ? ` · ${a.at}` : ""}`}
+            title={a.name}
+            subtitle={`${activityFocus(a)} · þitt eigið`}
+            minutes={a.minutes}
+            today={today}
+            actions={(onComplete || onRemove) && (
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-3">
+                {onComplete && (
+                  <button type="button" onClick={() => onComplete(a)}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
+                    <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
                   </button>
-                : <span className={`hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline ${mm.cls}`}>{mm.label}</span>}
-              {onRemove && (
-                <button type="button" onClick={() => onRemove(a.id)} aria-label={`Fjarlægja ${a.name}`}
-                  className="rounded-full p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-700">
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
-              )}
-            </span>
-          </div>
+                )}
+                {onRemove && (
+                  <button type="button" onClick={() => onRemove(a.id)}
+                    className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-red-700 hover:underline">
+                    Taka þetta af
+                  </button>
+                )}
+              </div>
+            )} />
         );
       })}
     </>

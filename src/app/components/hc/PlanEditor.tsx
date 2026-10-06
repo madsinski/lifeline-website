@@ -62,6 +62,17 @@ const tabCls = (active: boolean) =>
   `flex shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
     active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`;
 
+/**
+ * The same tab, in the category's own colour.
+ *
+ * The editor was emerald whatever you were editing, so choosing Næring from a
+ * lime-green group on the front page landed you on a green-brand page that
+ * looked like a different part of the product. A category keeps its colour
+ * across the two.
+ */
+const pillarTabStyle = (pl: Pillar, active: boolean): React.CSSProperties =>
+  active ? { background: PILLAR_META[pl].color, color: "#fff" } : { color: PILLAR_META[pl].ink };
+
 /** The plan-wide categories need shorter labels to sit in a tab. */
 const TAB_SHORT: Record<string, string> = {
   "exercise-program": "Æfingaáætlun",
@@ -222,7 +233,14 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-hc-ink">{labelOf(f)}</span>
-            {touched.includes(f) && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">Breytt</span>}
+            {touched.includes(f) && (
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1"
+                style={isPillar(f)
+                  ? { background: PILLAR_META[f].soft, color: PILLAR_META[f].ink, borderColor: PILLAR_META[f].ring }
+                  : undefined}>
+                Breytt
+              </span>
+            )}
           </span>
           {extra}
           <span className="mt-1 block text-xs text-hc-ink-2">{sub}</span>
@@ -293,8 +311,10 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
           </button>
           <span className="mx-1 w-px shrink-0 self-stretch bg-slate-200" aria-hidden />
           {PILLARS.map((pl) => (
-            <button key={pl} type="button" onClick={() => setFocus(pl)} aria-current={focus === pl ? "page" : undefined} className={tabCls(focus === pl)}>
-              {PILLAR_META[pl].label}{touched.includes(pl) && <span className="ml-1 text-emerald-500" aria-label="breytt">•</span>}
+            <button key={pl} type="button" onClick={() => setFocus(pl)} aria-current={focus === pl ? "page" : undefined}
+              className={`${tabCls(focus === pl)} ${focus === pl ? "" : "hover:bg-slate-50"}`} style={pillarTabStyle(pl, focus === pl)}>
+              {PILLAR_META[pl].label}
+              {touched.includes(pl) && <span className="ml-1" aria-label="breytt" style={{ color: focus === pl ? "#fff" : PILLAR_META[pl].color }}>•</span>}
             </button>
           ))}
           <span className="mx-1 w-px shrink-0 self-stretch bg-slate-200" aria-hidden />
@@ -306,19 +326,23 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         </nav>
       </div>
 
-      <section className={`${hcCard.hero} p-5`}>
-        <h1 className="text-2xl font-bold">{labelOf(focus)}</h1>
-        <p className="mt-1 max-w-2xl text-emerald-100">
+      <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3"
+          style={pillar ? { background: PILLAR_META[pillar].soft } : undefined}>
+          {pillar && <PillarIcon pillar={pillar} size="sm" />}
+          <h1 className="text-lg font-bold" style={pillar ? { color: PILLAR_META[pillar].ink } : undefined}>{labelOf(focus)}</h1>
+          {pr?.signal && (
+            <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${SIGNAL_CLS[pr.signal]}`}>
+              Skýrslan: {SIGNAL_IS[pr.signal]}{pr.reasons.length > 0 ? ` · ${pr.reasons.join(" · ")}` : ""}
+            </span>
+          )}
+        </div>
+        <p className="px-4 py-2 text-sm text-slate-600">
           {pillar
             ? "Hér er allt sem tengist þessum flokki. Annað í áætluninni breytist ekki."
             : focus === "lectures" ? "Veldu fræðsluna sem þú vilt hafa í áætluninni."
             : "Veldu áætlunina sem þú vilt fylgja."}
         </p>
-        {pr?.signal && (
-          <p className="mt-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold text-hc-ink">
-            Skýrslan: {SIGNAL_IS[pr.signal]}{pr.reasons.length > 0 ? ` · ${pr.reasons.join(" · ")}` : ""}
-          </p>
-        )}
       </section>
 
       {pillar && (
