@@ -9,6 +9,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowLeftRight, Check, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { needsRunner } from "@/lib/hc/workout";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
@@ -36,7 +37,7 @@ type Payload =
 
 
 export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay,
-  onCompleteActivity, onMoveActivity, onRemoveActivity, onRemoveDay }: {
+  onCompleteActivity, onMoveActivity, onRemoveActivity, onRemoveDay, doneToday }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -69,6 +70,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   onCompleteActivity?: (a: Activity) => void;
   onMoveActivity?: (id: string, weekday: number) => void;
   onRemoveActivity?: (id: string) => void;
+  /** Session and activity ids marked done today. */
+  doneToday?: Set<string>;
   /**
    * Take a programme session off the week.
    *
@@ -298,13 +301,16 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           </div>
 
           {dayActivities.length > 0 && (
-            <ActivityCards activities={dayActivities} todayIdx={todayIdx}
+            <ActivityCards activities={dayActivities} todayIdx={todayIdx} done={doneToday}
               onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
           )}
 
           {daySessions.map((s) => (
             <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
-              onStart={() => setRunning(s)}
+              done={!!doneToday?.has(s.id)}
+              // A ride has nothing to count, so it is ticked rather than run.
+              onStart={needsRunner(s.items) ? () => setRunning(s) : undefined}
+              onDid={() => onFinish?.({ minutes: s.minutes ?? 45, rpe: s.modality === "hiit" ? 7 : 4, session: s })}
               onInstead={() => setSwapSession(s)}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
               onRemove={onRemoveDay ? () => onRemoveDay(s.weekday) : undefined}
@@ -450,11 +456,15 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
   );
 }
 
-function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap }: {
+function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap }: {
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
   dragOver: string | null; swapFor: string | null;
-  /** Opens the runner for this session. */
+  /** Opens the runner — only for sessions with sets or intervals to count. */
   onStart?: () => void;
+  /** Marks it done without a runner, for a ride or a walk. */
+  onDid?: () => void;
+  /** Already marked done today. */
+  done?: boolean;
   /** "I did something else today." */
   onInstead?: () => void;
   /** Undefined on the reading surface: swapping lives in the change sheet. */
@@ -480,16 +490,30 @@ function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, d
       /* The point of the page. Today's session gets the solid button; the
          others get a quiet one, because doing Thursday's workout on Monday
          is allowed but is not what we are suggesting. */
-      actions={onStart && (
+      actions={(onStart || onDid) && (
         <div className="border-b border-slate-100 px-4 py-3">
-          <button type="button" onClick={onStart}
-            className={today
-              ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[s.modality].go}`
-              : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[s.modality].quiet}`}>
-            <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
-          </button>
+          {done ? (
+            <p className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 font-bold text-emerald-800 ring-1 ring-emerald-200">
+              <Check className="h-4 w-4" aria-hidden /> Búið í dag
+            </p>
+          ) : onStart ? (
+            <button type="button" onClick={onStart}
+              className={today
+                ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[s.modality].go}`
+                : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[s.modality].quiet}`}>
+              <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
+            </button>
+          ) : (
+            /* Nothing to count, so nothing to run — you did it or you did not. */
+            <button type="button" onClick={onDid}
+              className={today
+                ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[s.modality].go}`
+                : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[s.modality].quiet}`}>
+              <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
+            </button>
+          )}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-            {onInstead && (
+            {onInstead && !done && (
               <button type="button" onClick={onInstead}
                 className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
                 Ég geri eitthvað annað í dag
@@ -598,9 +622,11 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
  * Monday with an hour of football on it look like a rest day in the plan.
  * An hour of football IS the hard lota for that day; it belongs in the list.
  */
-function ActivityCards({ activities, todayIdx, onComplete, onRemove }: {
+function ActivityCards({ activities, todayIdx, onComplete, onRemove, done }: {
   activities: Activity[]; todayIdx: number; onComplete?: (a: Activity) => void;
   onRemove?: (id: string) => void;
+  /** Ids marked done today. */
+  done?: Set<string>;
 }) {
   const sorted = [...activities].sort((a, b) => a.day - b.day || (a.at ?? "").localeCompare(b.at ?? ""));
   return (
@@ -619,7 +645,11 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove }: {
             today={today}
             actions={(onComplete || onRemove) && (
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-3">
-                {onComplete && (
+                {done?.has(a.id) ? (
+                  <p className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-2.5 font-bold text-emerald-800 ring-1 ring-emerald-200">
+                    <Check className="h-4 w-4" aria-hidden /> Búið í dag
+                  </p>
+                ) : onComplete && (
                   <button type="button" onClick={() => onComplete(a)}
                     className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
                     <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta

@@ -93,3 +93,15 @@ export const RPE_IS: Record<number, string> = {
   1: "Mjög létt", 2: "Létt", 3: "Létt", 4: "Nokkuð létt", 5: "Miðlungs",
   6: "Nokkuð erfitt", 7: "Erfitt", 8: "Mjög erfitt", 9: "Nálægt hámarki", 10: "Hámark",
 };
+
+/**
+ * Does this session want the runner, or just a tick?
+ *
+ * The runner counts sets, loads and rest. That is the right tool for
+ * "4 × 6–8" and for "8 × 40 sek. hratt / 40 sek. rólega", and the wrong one
+ * for "45 mín. á jöfnum, rólegum hraða" — nobody wants a set tracker for a
+ * bike ride. A session with nothing to count gets "Ég gerði þetta" instead.
+ */
+export function needsRunner(items: { prescription?: string | null; block?: string | null }[]): boolean {
+  return items.some((it) => (it.block ?? "main") === "main" && /^\s*\d+\s*[×x]/.test(it.prescription ?? ""));
+}

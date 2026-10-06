@@ -97,6 +97,13 @@ function PlanPageInner() {
   const askedTab = search.get("tab");
   const [editing, setEditing] = useState(search.get("breyta") === "1");
   const [reloadKey, setReloadKey] = useState(0);
+  /**
+   * What has been marked done today, keyed by session or activity id.
+   *
+   * Without this a tick wrote a row and nothing on screen changed, so the
+   * button looked broken even when it had worked.
+   */
+  const [doneToday, setDoneToday] = useState<Set<string>>(() => new Set());
   /** Every measured value on the journey, for "Mínar mælingar". */
   const [results, setResults] = useState<HcResult[] | null>(null);
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
@@ -291,6 +298,7 @@ function PlanPageInner() {
       // The column is checked against mon…sun, not the Icelandic day name.
       prescribed_day: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][info.session.weekday] ?? null,
     });
+    setDoneToday((prev) => new Set([...prev, info.session.id, info.session.title]));
     // Tick the habit this session satisfies, so the same workout is not
     // marked twice. Doing the Monday strength session and then having to find
     // "Styrktarþjálfun" in the checklist and tick it again is the duplication
@@ -321,6 +329,20 @@ function PlanPageInner() {
     setSaving(false);
     if (r.ok && j.nutrition) setNutritionPrefs(j.nutrition); else setNutritionPrefs(prev);
   };
+
+  // Today's completions, so a session or a sport can show that it is done.
+  useEffect(() => {
+    void (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const start = `${isoDay()}T00:00:00`;
+      const { data } = await supabase.from("client_session_completions")
+        .select("prescribed_action_key, completed_action_key, completed_at")
+        .eq("client_id", u.user.id).gte("completed_at", start);
+      const keys = new Set((data ?? []).flatMap((r) => [r.prescribed_action_key, r.completed_action_key].filter(Boolean) as string[]));
+      setTimeout(() => setDoneToday(keys), 0);
+    })();
+  }, [reloadKey]);
 
   // Opening or closing the editor swaps the whole page under the scroll
   // position. "Breyta" on the last action in the list is a long way down, and
@@ -461,6 +483,7 @@ function PlanPageInner() {
                         ...training,
                         activities: training.activities.map((x) => (x.id === id ? { ...x, day: weekday } : x)),
                       })}
+                      doneToday={doneToday}
                       onRemoveActivity={(id) => void saveTraining({
                         ...training, activities: training.activities.filter((x) => x.id !== id),
                       })}
