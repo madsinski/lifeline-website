@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles, X } from "lucide-react";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
@@ -36,7 +36,7 @@ type Payload =
 
 
 export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay,
-  onCompleteActivity, onMoveActivity, onRemoveActivity }: {
+  onCompleteActivity, onMoveActivity, onRemoveActivity, onRemoveDay }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -69,6 +69,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   onCompleteActivity?: (a: Activity) => void;
   onMoveActivity?: (id: string, weekday: number) => void;
   onRemoveActivity?: (id: string) => void;
+  /**
+   * Take a programme session off the week.
+   *
+   * Removing one means that weekday is no longer a training day, which is
+   * what makes it stick: the programme is generated from the settings, so a
+   * session deleted by id would come straight back the next time the week was
+   * built. Anything the person put on that day themselves stays.
+   */
+  onRemoveDay?: (weekday: number) => void;
   /** Tapping an empty day: add a sport or class that needs no programme. */
   onAddDay?: (a: Omit<import("@/lib/hc/adaptive-program").Activity, "id">) => void;
 }) {
@@ -76,12 +85,19 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
     () => personalise(exercise, personal, training ? hardDays(training) : []),
     [exercise, personal, training]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
-  const [pickDay, setPickDay] = useState<string | null>(null);
+  /**
+   * The day the list below is showing. Clicking anything in the week picks
+   * its day; the week and the detail are one thing now rather than a grid
+   * plus a dropdown plus a list of every session in the week.
+   */
+  const [pickedDay, setPickedDay] = useState<number | null>(null);
+  const shownDay = pickedDay ?? todayIdx;
+  const daySessions = view.sessions.filter((x) => x.weekday === shownDay);
+  const dayActivities = (training?.activities ?? []).filter((a) => a.day === shownDay);
   const [swapItem, setSwapItem] = useState<{ slot: string; item: ExerciseItem } | null>(null);
   const [running, setRunning] = useState<PSession | null>(null);
   const [swapSession, setSwapSession] = useState<PSession | null>(null);
   const [addDay, setAddDay] = useState<number | null>(null);
-  const [pickAct, setPickAct] = useState<Activity | null>(null);
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
   // Read-only on the main page; everything that edits lives in the sheet.
@@ -192,9 +208,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                   <p className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>{d}</p>
                   {here.map((s) => (
                     <button key={s.id} type="button" {...handle({ kind: "session", id: s.id }, s.title)}
-                      onClick={() => { setPickAct(null); setPickDay(pickDay === s.id ? null : s.id); }}
+                      onClick={() => { setPickedDay(i); setOpenSession(s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
-                      className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${pickDay === s.id ? "outline outline-2 outline-hc-ink" : ""}`}>
+                      className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
                       <span className={`mb-0.5 block h-1 w-5 rounded-full ${MODALITY_IS[s.modality].dot}`} />
                       <span className="block truncate sm:hidden">{MODALITY_IS[s.modality].short}</span>
                       <span className="hidden line-clamp-2 sm:block">{s.title.length > 11 ? MODALITY_IS[s.modality].label : s.title}</span>
@@ -207,10 +223,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     const mm = MODALITY_IS[am === "other" ? "other" : am];
                     return (
                       <button key={a.id} type="button" {...(onMoveActivity ? handle({ kind: "activity", id: a.id }, a.name) : {})}
-                        onClick={() => { setPickDay(null); setPickAct(pickAct?.id === a.id ? null : a); }}
+                        onClick={() => { setPickedDay(a.day); }}
                         title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
                         aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
-                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${mm.cls} ${pickAct?.id === a.id ? "outline outline-2 outline-hc-ink" : ""}`}>
+                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
                         <span className={`mb-0.5 block h-1 w-5 rounded-full ${mm.dot}`} />
                         <span className="flex items-center gap-1">
                           <ActivityIcon name={a.name} className="h-3 w-3 shrink-0" />
@@ -234,69 +250,13 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             })}
           </div>
 
-          {pickAct && (
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
-              <p className="text-sm font-bold text-slate-900">{pickAct.name}</p>
-              <p className="text-xs text-slate-500">{WEEKDAYS[pickAct.day]}{pickAct.at ? ` · ${pickAct.at}` : ""} · {activityFocus(pickAct)}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" className={hcBtn.primary}
-                  onClick={() => { onCompleteActivity?.(pickAct); setPickAct(null); }}>
-                  <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
-                </button>
-                <button type="button" className={hcBtn.ghost}
-                  onClick={() => { onRemoveActivity?.(pickAct.id); setPickAct(null); }}>
-                  Fjarlægja
-                </button>
-              </div>
-              <p className="mt-3 text-xs font-semibold text-slate-500">Færa á annan dag</p>
-              <div className="mt-1 grid grid-cols-7 gap-1">
-                {WEEKDAYS_SHORT.map((d, i) => (
-                  <button key={d} type="button" onClick={() => { onMoveActivity?.(pickAct.id, i); setPickAct(null); }}
-                    className={`rounded-lg py-2 text-xs font-bold ${pickAct.day === i ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{d}</button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {pickDay && (() => {
-            const sess = view.sessions.find((x) => x.id === pickDay);
-            if (!sess) return null;
-            return (
-              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
-                <p className="text-sm font-bold text-slate-900">{sess.title}</p>
-                <p className="text-xs text-slate-500">{sess.day}{sess.minutes ? ` · um ${sess.minutes} mín.` : ""}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button type="button" className={hcBtn.primary}
-                    onClick={() => { setRunning(sess); setPickDay(null); }}>
-                    <Play className="h-4 w-4" aria-hidden /> Byrja núna
-                  </button>
-                  <button type="button" className={hcBtn.secondary}
-                    onClick={() => { setOpenSession(sess.id); setPickDay(null); document.getElementById(`session-${sess.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
-                    Sjá æfinguna
-                  </button>
-                  <button type="button" className={hcBtn.ghost}
-                    onClick={() => { setSwapSession(sess); setPickDay(null); }}>
-                    Gera annað
-                  </button>
-                </div>
-                <p className="mt-3 text-xs font-semibold text-slate-500">Færa á annan dag</p>
-                <div className="mt-1 grid grid-cols-7 gap-1">
-                  {WEEKDAYS_SHORT.map((d, i) => (
-                    <button key={d} type="button" onClick={() => { moveSession(sess.id, i); setPickDay(null); }}
-                      className={`rounded-lg py-2 text-xs font-bold ${sess.weekday === i ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-orange-100"}`}>{d}</button>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
             {(Object.keys(counts) as (keyof typeof MODALITY_IS)[]).map((m) => (
               <span key={m} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 font-semibold text-slate-600">
                 <span className={`h-2 w-2 rounded-full ${MODALITY_IS[m].dot}`} />{MODALITY_IS[m].label} {counts[m]}×
               </span>
             ))}
-            <span className="text-slate-500">Dragðu hvað sem er í vikunni á annan dag — eða ýttu á það.</span>
+            <span className="text-slate-500">Ýttu á dag til að sjá hann. Dragðu æfingu á annan dag til að færa hana.</span>
           </div>
 
           {editable && (canSplitHiit(exercise) || custom) && (
@@ -320,18 +280,49 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
         {editable && controls}
         {stages}
 
+        {/* One day at a time, the one picked in the week above. The whole
+            week used to be listed here as well — seven cards under a grid
+            that already showed the same seven days, so the page said
+            everything twice and you scrolled past five days you were not
+            doing to reach the one you were. */}
         <section className="space-y-3">
-          {(training?.activities ?? []).length > 0 && (
-            <ActivityCards activities={training!.activities} todayIdx={todayIdx} onComplete={onCompleteActivity} />
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
+            </h3>
+            {pickedDay !== null && pickedDay !== todayIdx && (
+              <button type="button" onClick={() => setPickedDay(null)} className="text-xs font-semibold text-orange-800 hover:underline">
+                Fara aftur á daginn í dag
+              </button>
+            )}
+          </div>
+
+          {dayActivities.length > 0 && (
+            <ActivityCards activities={dayActivities} todayIdx={todayIdx}
+              onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
           )}
-          {view.sessions.map((s) => (
+
+          {daySessions.map((s) => (
             <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
               onStart={() => setRunning(s)}
               onInstead={() => setSwapSession(s)}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
+              onRemove={onRemoveDay ? () => onRemoveDay(s.weekday) : undefined}
               dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
               onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap} />
           ))}
+
+          {daySessions.length === 0 && dayActivities.length === 0 && (
+            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-100">
+              <p className="font-semibold text-slate-800">Hvíldardagur</p>
+              <p className="mt-1 text-sm text-slate-500">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
+              {onAddDay && (
+                <button type="button" onClick={() => setAddDay(shownDay)} className={`${hcBtn.secondary} mx-auto mt-3`}>
+                  Setja eitthvað á þennan dag
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         {/* The paragraph explaining the programme and the list of why it works
@@ -396,7 +387,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   );
 }
 
-function SessionCard({ s, today, open, onToggle, onStart, onInstead, dragOver, swapFor, onSwap, onUnswap }: {
+function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap }: {
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
   dragOver: string | null; swapFor: string | null;
   /** Opens the runner for this session. */
@@ -406,6 +397,8 @@ function SessionCard({ s, today, open, onToggle, onStart, onInstead, dragOver, s
   /** Undefined on the reading surface: swapping lives in the change sheet. */
   onSwap?: (slot: string, item: ExerciseItem) => void;
   onUnswap: (slot: string) => void;
+  /** Takes this whole day off the programme. */
+  onRemove?: () => void;
 }) {
   const blocks = (["warmup", "main", "finisher"] as ExerciseBlock[])
     .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
@@ -434,12 +427,20 @@ function SessionCard({ s, today, open, onToggle, onStart, onInstead, dragOver, s
               : "flex w-full items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-2.5 font-semibold text-orange-800 transition hover:bg-orange-50"}>
             <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
           </button>
-          {onInstead && (
-            <button type="button" onClick={onInstead}
-              className="mt-2 w-full text-center text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
-              Ég geri eitthvað annað í dag
-            </button>
-          )}
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            {onInstead && (
+              <button type="button" onClick={onInstead}
+                className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                Ég geri eitthvað annað í dag
+              </button>
+            )}
+            {onRemove && (
+              <button type="button" onClick={onRemove}
+                className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-red-700 hover:underline">
+                Taka þennan dag af
+              </button>
+            )}
+          </div>
         </div>
       )}
       {open && (
@@ -535,8 +536,9 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap }: { it: ExerciseIte
  * Monday with an hour of football on it look like a rest day in the plan.
  * An hour of football IS the hard lota for that day; it belongs in the list.
  */
-function ActivityCards({ activities, todayIdx, onComplete }: {
+function ActivityCards({ activities, todayIdx, onComplete, onRemove }: {
   activities: Activity[]; todayIdx: number; onComplete?: (a: Activity) => void;
+  onRemove?: (id: string) => void;
 }) {
   const sorted = [...activities].sort((a, b) => a.day - b.day || (a.at ?? "").localeCompare(b.at ?? ""));
   return (
@@ -558,12 +560,20 @@ function ActivityCards({ activities, todayIdx, onComplete }: {
               <span className="block font-semibold text-[#0F172A]">{a.name}</span>
               <span className="block text-xs text-slate-500">{activityFocus(a)} · þitt eigið</span>
             </span>
-            {onComplete
-              ? <button type="button" onClick={() => onComplete(a)}
-                  className="shrink-0 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                  Ég gerði þetta
+            <span className="flex shrink-0 items-center gap-2">
+              {onComplete
+                ? <button type="button" onClick={() => onComplete(a)}
+                    className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    Ég gerði þetta
+                  </button>
+                : <span className={`hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline ${mm.cls}`}>{mm.label}</span>}
+              {onRemove && (
+                <button type="button" onClick={() => onRemove(a.id)} aria-label={`Fjarlægja ${a.name}`}
+                  className="rounded-full p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-700">
+                  <X className="h-4 w-4" aria-hidden />
                 </button>
-              : <span className={`hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline ${mm.cls}`}>{mm.label}</span>}
+              )}
+            </span>
           </div>
         );
       })}

@@ -445,6 +445,13 @@ function PlanPageInner() {
                       onRemoveActivity={(id) => void saveTraining({
                         ...training, activities: training.activities.filter((x) => x.id !== id),
                       })}
+                      // Taking a session off means that weekday stops being a
+                      // training day. Deleting it by id would not hold: the
+                      // programme is generated from these settings, so the
+                      // session would be back the next time the week is built.
+                      onRemoveDay={(weekday) => void saveTraining({
+                        ...training, days: (training.days ?? []).filter((d) => d !== weekday),
+                      })}
                       onAddDay={(a) => void saveTraining({
                         ...training,
                         activities: [...training.activities, { ...a, id: Math.random().toString(36).slice(2, 10) }],
