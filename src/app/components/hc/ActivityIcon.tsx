@@ -12,7 +12,7 @@ import {
   SportShoe, StretchHorizontal, Swords, Target, Timer, TreePine, Users, Volleyball, Waves,
   WavesLadder, Weight, Wind, Zap,
 } from "lucide-react";
-import { ACTIVITY_PRESETS, COVERS_IS, type Covers } from "@/lib/hc/adaptive-program";
+import { ACTIVITY_PRESETS, BENEFIT_IS, COVERS_IS, type Benefit, type Covers } from "@/lib/hc/adaptive-program";
 
 const ICONS: Record<string, typeof Dumbbell> = {
   Anchor, Bike, Cable, CircleDot, Dumbbell, Fish, Flag, Flame, Footprints, Goal, HeartPulse,
@@ -42,14 +42,25 @@ const COVER_CLS: Record<Covers, string> = {
  * that contributes to the aerobic base without replacing it should not claim
  * the same badge as one that does.
  */
-export function CoverChips({ covers, partial, className = "" }: {
+export function CoverChips({ covers, partial, benefits, className = "" }: {
   covers: Covers[];
   partial?: Covers[];
+  benefits?: Benefit[];
   className?: string;
 }) {
   const half = (partial ?? []).filter((c) => !covers.includes(c));
   if (covers.length === 0 && half.length === 0) {
-    return <span className={`text-[11px] text-slate-500 ${className}`}>Kemur ekki í stað neins</span>;
+    // It replaces nothing — so say what it IS for, which is not nothing.
+    const b = benefits ?? [];
+    return b.length
+      ? (
+        <span className={`flex flex-wrap gap-1 ${className}`}>
+          {b.map((x) => (
+            <span key={x} className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold capitalize text-violet-900">{BENEFIT_IS[x]}</span>
+          ))}
+        </span>
+      )
+      : <span className={`text-[11px] text-slate-500 ${className}`}>Kemur ekki í stað neins</span>;
   }
   return (
     <span className={`flex flex-wrap gap-1 ${className}`}>

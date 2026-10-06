@@ -58,6 +58,24 @@ export const CARDIO_IS: Record<CardioLimit, { label: string; hint: string }> = {
 export type Covers = "strength" | "hiit" | "cardio";
 export const COVERS_IS: Record<Covers, string> = { strength: "Styrkur", hiit: "HIIT", cardio: "Rólegt þol" };
 
+/**
+ * What something is good for when it trains none of the three qualities.
+ *
+ * "Góð hreyfing" was the fallback and it says nothing. Fríköfun is the case
+ * that forced the distinction: it covers no training quality — apnea research
+ * is explicit that breath-hold work does not raise aerobic power, and the
+ * dive reflex lowers heart rate rather than driving it — but freedivers score
+ * measurably lower on stress, state anxiety and negative affect, and the
+ * breathing itself is parasympathetic training. That is worth naming rather
+ * than filing under "exercise, sort of".
+ */
+export type Benefit = "mental" | "mobility" | "breath";
+export const BENEFIT_IS: Record<Benefit, string> = {
+  mental: "andleg líðan",
+  mobility: "liðleiki",
+  breath: "öndunarþjálfun",
+};
+
 /** How hard it is on the body, for spacing and for not stacking hard days. */
 export type Intensity = "hard" | "moderate" | "easy";
 export const INTENSITY_IS: Record<Intensity, string> = { hard: "Erfitt", moderate: "Miðlungs", easy: "Rólegt" };
@@ -82,6 +100,8 @@ export interface Activity {
   covers: Covers[];
   /** Qualities it half-covers; see ActivityPreset.partial. */
   partial?: Covers[];
+  /** What it is good for when it replaces none of the three. */
+  benefits?: Benefit[];
   intensity: Intensity;
 }
 
@@ -101,6 +121,8 @@ export interface ActivityPreset {
    * not none, and the plan adds the one that is missing.
    */
   partial?: Covers[];
+  /** What it is good for when it replaces none of the three. */
+  benefits?: Benefit[];
   intensity: Intensity;
   minutes: number;
   group: string;
@@ -176,13 +198,13 @@ export const ACTIVITY_PRESETS: ActivityPreset[] = [
   { group: "Rólegt þol", name: "Garðvinna eða snjómokstur", covers: ["cardio"], intensity: "moderate", minutes: 45, icon: "Shovel", why: "Telst með — þetta er alvöru vinna." },
 
   // ── Gott fyrir þig, en kemur ekki í stað neins ────────────────────────
-  { group: "Annað", name: "Jóga", covers: [], intensity: "easy", minutes: 60, icon: "StretchHorizontal", why: "Frábært fyrir liðleika og streitu, kemur ekki í stað styrks eða þols." },
-  { group: "Annað", name: "Pilates", covers: [], intensity: "easy", minutes: 55, icon: "PersonStanding" },
-  { group: "Annað", name: "Teygjur eða liðleiki", covers: [], intensity: "easy", minutes: 30, icon: "StretchHorizontal" },
-  { group: "Annað", name: "Fríköfun", covers: [], intensity: "easy", minutes: 60, icon: "Fish", why: "Köfunarviðbragðið hægir á hjartanu í stað þess að auka álagið, svo þetta kemur hvorki í stað rólegs þols né harðrar lotu. Frábær öndunar- og slökunarþjálfun eftir sem áður." },
-  { group: "Annað", name: "Sjósund eða kuldaböð", covers: [], intensity: "easy", minutes: 20, icon: "WavesLadder" },
-  { group: "Annað", name: "Öndunaræfingar", covers: [], intensity: "easy", minutes: 15, icon: "Wind" },
-  { group: "Annað", name: "Sjúkraþjálfun", covers: [], intensity: "easy", minutes: 45, icon: "HeartPulse" },
+  { group: "Annað", name: "Jóga", covers: [], benefits: ["mobility", "mental"], intensity: "easy", minutes: 60, icon: "StretchHorizontal", why: "Frábært fyrir liðleika og streitu, kemur ekki í stað styrks eða þols." },
+  { group: "Annað", name: "Pilates", covers: [], benefits: ["mobility"], intensity: "easy", minutes: 55, icon: "PersonStanding" },
+  { group: "Annað", name: "Teygjur eða liðleiki", covers: [], benefits: ["mobility"], intensity: "easy", minutes: 30, icon: "StretchHorizontal" },
+  { group: "Annað", name: "Fríköfun", covers: [], benefits: ["breath", "mental"], intensity: "easy", minutes: 60, icon: "Fish", why: "Köfunarviðbragðið hægir á hjartanu í stað þess að auka álagið, og rannsóknir sýna að öndunarstopp eykur ekki þolið. Það kemur því hvorki í stað rólegs þols né HIIT — en kafarar mælast marktækt lægri í streitu og kvíða, og öndunin sjálf er þjálfun í slökun." },
+  { group: "Annað", name: "Sjósund eða kuldaböð", covers: [], benefits: ["mental"], intensity: "easy", minutes: 20, icon: "WavesLadder" },
+  { group: "Annað", name: "Öndunaræfingar", covers: [], benefits: ["breath", "mental"], intensity: "easy", minutes: 15, icon: "Wind" },
+  { group: "Annað", name: "Sjúkraþjálfun", covers: [], benefits: ["mobility"], intensity: "easy", minutes: 45, icon: "HeartPulse" },
 ];
 
 /**
@@ -211,15 +233,26 @@ export function activityModality(a: { covers: Covers[] }): "strength" | "hiit" |
 }
 
 /** "Styrkur og HIIT" — everything it trains, for the session's subtitle. */
-export function activityFocus(a: { covers: Covers[]; partial?: Covers[] }): string {
+/** "a", "a og b", "a, b og c" — one conjunction, at the end, as Icelandic does. */
+function listIs(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join(", ")} og ${parts[parts.length - 1]}`;
+}
+
+export function activityFocus(a: { covers: Covers[]; partial?: Covers[]; benefits?: Benefit[] }): string {
   // HIIT is an acronym; lower-casing it the way the other labels are would
   // read as a typo.
   const label = (c: Covers) => (c === "hiit" ? "HIIT" : COVERS_IS[c].toLowerCase());
   const full = a.covers.map(label);
   const half = (a.partial ?? []).filter((c) => !a.covers.includes(c)).map((c) => `hálft ${label(c)}`);
   const all = [...full, ...half];
-  if (!all.length) return "Góð hreyfing";
-  return all.join(" og ").replace(/^./, (m) => m.toUpperCase());
+  // Nothing from the three qualities: say what it IS good for rather than
+  // the empty "Góð hreyfing".
+  if (!all.length) {
+    const b = (a.benefits ?? []).map((x) => BENEFIT_IS[x]);
+    return b.length ? listIs(b).replace(/^./, (m) => m.toUpperCase()) : "Góð hreyfing";
+  }
+  return listIs(all).replace(/^./, (m) => m.toUpperCase());
 }
 
 export const ACTIVITY_GROUPS = ["Styrkur", "Íþróttir", "HIIT og púl", "Rólegt þol", "Annað"] as const;
@@ -1026,10 +1059,12 @@ export function sanitizeActivities(v: unknown): Activity[] {
     const preset = ACTIVITY_PRESETS.find((x) => x.name.toLowerCase() === name.toLowerCase());
     const covers = preset ? preset.covers : (Array.isArray(a.covers) ? a.covers : []).filter(isCover);
     const partial = preset ? (preset.partial ?? []) : (Array.isArray(a.partial) ? a.partial : []).filter(isCover);
+    const isBenefit = (x: unknown): x is Benefit => x === "mental" || x === "mobility" || x === "breath";
+    const benefits = preset ? (preset.benefits ?? []) : (Array.isArray(a.benefits) ? a.benefits : []).filter(isBenefit);
     const intensity: Intensity = preset ? preset.intensity
       : a.intensity === "hard" || a.intensity === "easy" ? a.intensity : "moderate";
     return day >= 0 && day <= 6
-      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], intensity }
+      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], benefits: [...new Set(benefits)], intensity }
       : null;
   }).filter((a): a is Activity => !!a);
 }

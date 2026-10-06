@@ -66,7 +66,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                 </span>
                 <span className="min-w-0 flex-1">
                 <span className="block font-semibold text-hc-ink">{x.name}</span>
-                <CoverChips covers={x.covers} partial={x.partial} className="mt-1" />
+                <CoverChips covers={x.covers} partial={x.partial} benefits={x.benefits} className="mt-1" />
                 {x.why && <span className="mt-1 block text-[11px] leading-snug text-slate-500">{x.why}</span>}
                 </span>
               </button>

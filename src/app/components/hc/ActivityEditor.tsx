@@ -77,7 +77,7 @@ export default function ActivityEditor({ activities, onChange }: {
                     ))}
                     <span className="text-[11px] text-slate-500">{INTENSITY_IS[a.intensity]}</span>
                   </span>
-                  <CoverChips covers={a.covers} partial={a.partial} className="mt-1" />
+                  <CoverChips covers={a.covers} partial={a.partial} benefits={a.benefits} className="mt-1" />
                 </span>
                 <button type="button" aria-label={`Fjarlægja ${a.name}`}
                   onClick={() => onChange(activities.filter((x) => x.name !== a.name))}
@@ -117,7 +117,7 @@ export default function ActivityEditor({ activities, onChange }: {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-hc-ink">{x.name}</span>
-                      <CoverChips covers={x.covers} partial={x.partial} className="mt-0.5" />
+                      <CoverChips covers={x.covers} partial={x.partial} benefits={x.benefits} className="mt-0.5" />
                     </span>
                   </button>
                 ))}

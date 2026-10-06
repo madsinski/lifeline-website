@@ -178,7 +178,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                   <p className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>{d}</p>
                   {here.map((s) => (
                     <button key={s.id} type="button" {...(editable ? handle({ kind: "session", id: s.id }, s.title) : {})}
-                      onClick={() => setPickDay(pickDay === s.id ? null : s.id)}
+                      onClick={() => { setPickAct(null); setPickDay(pickDay === s.id ? null : s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
                       className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${editable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${MODALITY_IS[s.modality].cls} ${pickDay === s.id ? "outline outline-2 outline-hc-ink" : ""}`}>
                       <span className={`mb-0.5 block h-1 w-5 rounded-full ${MODALITY_IS[s.modality].dot}`} />
@@ -192,7 +192,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     const am = activityModality(a);
                     const mm = MODALITY_IS[am === "other" ? "other" : am];
                     return (
-                      <button key={a.id} type="button" onClick={() => setPickAct(pickAct?.id === a.id ? null : a)}
+                      <button key={a.id} type="button" onClick={() => { setPickDay(null); setPickAct(pickAct?.id === a.id ? null : a); }}
                         title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
                         aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
                         className={`cursor-pointer rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${mm.cls} ${pickAct?.id === a.id ? "outline outline-2 outline-hc-ink" : ""}`}>
