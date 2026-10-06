@@ -5,7 +5,7 @@
 // picture, protein and energy and the full recipe, and other meals to swap in.
 // Picks are saved to hc_training_settings.meal_picks through onPick.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders, X } from "lucide-react";
 import { dayFor, mealName, mealsFor, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
@@ -42,6 +42,13 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   const [pickedDay, setPickedDay] = useState<number | null>(null);
   const shownDay = pickedDay ?? todayIdx;
   const [recipe, setRecipe] = useState<Meal | null>(null);
+  // The band the protein bar measures against, reported up by MealLogger so
+  // the plan is built to land inside it rather than to maximise protein.
+  const [band, setBand] = useState<{ min: number; max: number } | null>(null);
+  const onTarget = useCallback((t: { min: number; max: number } | null) => {
+    setBand((prev) => (prev?.min === t?.min && prev?.max === t?.max ? prev : t));
+  }, []);
+  const targetG = band ? Math.round((band.min + band.max) / 2) : null;
 
   useEffect(() => {
     (async () => {
@@ -50,9 +57,9 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
     })();
   }, [api]);
 
-  const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, shownDay) : null), [meals, nutrition.key, picks, prefs, shownDay]);
-  const today = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, todayIdx) : null), [meals, nutrition.key, picks, prefs, todayIdx]);
-  const week = useMemo(() => (meals ? weekFor(meals, nutrition.key, picks, prefs) : null), [meals, nutrition.key, picks, prefs]);
+  const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, shownDay, targetG) : null), [meals, nutrition.key, picks, prefs, shownDay, targetG]);
+  const today = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, todayIdx, targetG) : null), [meals, nutrition.key, picks, prefs, todayIdx, targetG]);
+  const week = useMemo(() => (meals ? weekFor(meals, nutrition.key, picks, prefs, targetG) : null), [meals, nutrition.key, picks, prefs, targetG]);
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
   const totals = day ? SLOTS.reduce((t, s) => ({ kcal: t.kcal + (day[s]?.calories ?? 0), protein: t.protein + (day[s]?.protein ?? 0) }), { kcal: 0, protein: 0 }) : null;
 
@@ -79,7 +86,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           </div>
         )}
         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-          {totals && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">Dagurinn: um {totals.protein} g prótein · {totals.kcal} kkal</span>}
+          {totals && (
+            <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">
+              Á áætlun {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}: {Math.round(totals.protein)} g prótein · {Math.round(totals.kcal)} kkal
+            </span>
+          )}
           {!!prefs?.diet.length && (
             <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">
               {prefs.diet.map((k) => DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k).join(" · ")}
@@ -95,7 +106,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       </section>
 
 
-      {today && <MealLogger day={today} weightKg={weightKg ?? null} />}
+      {today && <MealLogger day={today} weightKg={weightKg ?? null} onTarget={onTarget} />}
 
       {/* The week. Until now the plan was one day repeated for ever — the
           same four meals every day of the year — because a pick was stored
@@ -179,7 +190,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       {slotOpen && meals && (
         <Sheet title={`${SLOT_IS[slotOpen]} · ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`} onClose={() => setSlotOpen(null)}>
           <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-            {mealsFor(meals, nutrition.key, slotOpen, prefs).slice(0, 18).map((m) => {
+            {mealsFor(meals, nutrition.key, slotOpen, prefs, targetG).slice(0, 18).map((m) => {
               const on = day?.[slotOpen]?.id === m.id;
               return (
                 <li key={m.id}>

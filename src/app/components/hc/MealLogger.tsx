@@ -15,20 +15,27 @@
 // kg), using the weight from the report. With no weight on file there is no
 // bar — a progress bar against a guessed target is worse than none.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { localDate } from "@/lib/hc/workout";
 import { proteinState, proteinTarget, totalsOf, type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 
-export default function MealLogger({ day, weightKg, compact = false }: {
+export default function MealLogger({ day, weightKg, compact = false, onTarget }: {
   /** The meal in each slot today, as the plan has it. */
   day: Record<MealSlot, Meal | null>;
   /** From the report's þyngd row; null means no protein bar. */
   weightKg: number | null;
   /** On "Í dag" the bar is enough; the Næring tab shows every slot. */
   compact?: boolean;
+  /**
+   * Reports the band this bar measures against, so the plan can be built to
+   * land inside it. Without this the plan was assembled to maximise protein
+   * and the bar measured it against 1,2–1,6 g/kg, so the two numbers on this
+   * page described different things.
+   */
+  onTarget?: (t: { min: number; max: number } | null) => void;
 }) {
   const [rows, setRows] = useState<MealLogRow[] | null>(null);
   const [busy, setBusy] = useState<MealSlot | null>(null);
@@ -86,10 +93,17 @@ export default function MealLogger({ day, weightKg, compact = false }: {
   };
 
   const totals = totalsOf(rows ?? []);
-  const target = appTarget != null
+  // What the plan puts on the table today, so the bar can say what reaching
+  // the target would take rather than leaving the hero's number unexplained.
+  const planned = useMemo(() => SLOTS.reduce(
+    (t, s) => ({ protein: t.protein + Number(day[s]?.protein ?? 0), kcal: t.kcal + Number(day[s]?.calories ?? 0) }),
+    { protein: 0, kcal: 0 }), [day]);
+  const target = useMemo(() => (appTarget != null
     ? { min: Math.round(appTarget), max: Math.round(appTarget) }
-    : proteinTarget(weightKg);
+    : proteinTarget(weightKg)), [appTarget, weightKg]);
   const state = proteinState(totals.protein, target);
+
+  useEffect(() => { onTarget?.(target); }, [target, onTarget]);
 
   return (
     <div className="space-y-3">
@@ -104,7 +118,7 @@ export default function MealLogger({ day, weightKg, compact = false }: {
         {target ? (
           <>
             <div className="mt-2 flex items-baseline justify-between text-sm">
-              <span className="font-medium text-slate-700">Prótein</span>
+              <span className="font-medium text-slate-700">Prótein skráð</span>
               <span className="font-semibold tabular-nums text-slate-900">
                 {Math.round(totals.protein)} g <span className="font-normal text-slate-500">af {target.min === target.max ? `${target.min}` : `${target.min}–${target.max}`} g</span>
               </span>
@@ -112,7 +126,10 @@ export default function MealLogger({ day, weightKg, compact = false }: {
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
               <div className={`h-full rounded-full transition-all ${state.tone}`} style={{ width: `${state.pct}%` }} />
             </div>
-            <p className="mt-0.5 text-xs text-slate-500">{state.label} · {Math.round(totals.kcal)} kkal skráðar</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {state.label} · {Math.round(totals.kcal)} kkal skráðar
+              {planned.protein > 0 && ` · áætlunin í dag gefur ${Math.round(planned.protein)} g`}
+            </p>
           </>
         ) : (
           <p className="mt-1 text-xs text-slate-500">
