@@ -400,11 +400,11 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
  * where it came from — the same modality colours the week grid above uses, so
  * an orange chip in the week opens an orange card below it.
  */
-const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string }> = {
-  strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200" },
-  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200" },
-  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200" },
-  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200" },
+const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string; go: string; quiet: string }> = {
+  strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700", quiet: "border-orange-200 text-orange-800 hover:bg-orange-50" },
+  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700",     quiet: "border-rose-200 text-rose-800 hover:bg-rose-50" },
+  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700",       quiet: "border-sky-200 text-sky-800 hover:bg-sky-50" },
+  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200",   go: "bg-slate-700 hover:bg-slate-800",   quiet: "border-slate-300 text-slate-800 hover:bg-slate-50" },
 };
 
 /** The shell and header both cards share. */
@@ -484,8 +484,8 @@ function SessionCard({ s, today, open, onToggle, onStart, onInstead, onRemove, d
         <div className="border-b border-slate-100 px-4 py-3">
           <button type="button" onClick={onStart}
             className={today
-              ? "flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 py-3 font-bold text-white transition hover:bg-orange-700"
-              : "flex w-full items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-2.5 font-semibold text-orange-800 transition hover:bg-orange-50"}>
+              ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[s.modality].go}`
+              : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[s.modality].quiet}`}>
             <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
           </button>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
