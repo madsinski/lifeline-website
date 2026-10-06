@@ -70,6 +70,21 @@ function score(m: Meal, r: Rule, slot: MealSlot, slotTarget?: number): number {
   if (max && m.calories && m.calories > max) s -= 4;
   // A snack slot wants a real snack, not a single egg or half a tuna pouch.
   if (slot === "snack" && m.calories != null && m.calories < 120) s -= 3;
+  /**
+   * Breakfast and lunch are the meals nobody cooks.
+   *
+   * The library had thirty-minute turkey chili and lentil soup filed under
+   * lunch — they are dinners, and on a Tuesday nobody makes them at noon.
+   * Rather than retire them (which would have taken two of the three vegan
+   * lunches with them) the clock counts here and not at dinner, where the
+   * cooking is the point.
+   */
+  if (slot === "lunch" || slot === "breakfast") {
+    const mins = (m.prep_time_min ?? 0) + (m.cook_time_min ?? 0);
+    if (mins > 25) s -= 4;
+    else if (mins > 15) s -= 2;
+    else if (mins <= 8) s += 2;
+  }
   if (m.illustration_url) s += 1;
   /**
    * Keep the slot near its share of the person's protein target.
@@ -98,13 +113,17 @@ function score(m: Meal, r: Rule, slot: MealSlot, slotTarget?: number): number {
  * not served it — while the cooking style only nudges the order, because
  * someone who would rather not cook can still cook.
  */
-export function mealsFor(all: Meal[], programKey: string | null | undefined, slot: MealSlot, prefs?: NutritionPrefs, proteinTargetG?: number | null): Meal[] {
+export function mealsFor(all: Meal[], programKey: string | null | undefined, slot: MealSlot, prefs?: NutritionPrefs, proteinTargetG?: number | null, weekday?: number): Meal[] {
   const r = RULES[programKey ?? ""] ?? RULES.jafnvaegi;
   const slotTarget = proteinTargetG ? proteinTargetG * SLOT_SHARE[slot] : undefined;
+  // The works canteen is not open on Saturday. Suggesting it then is the kind
+  // of small wrongness that makes someone stop trusting the whole plan.
+  const weekendOff = weekday != null && weekday >= 5;
   const cook = prefs ? COOKING_IS[prefs.cooking].tags : [];
   const seen = new Set<string>();
   return all
     .filter((m) => m.category === slot)
+    .filter((m) => !(weekendOff && (m.dietary_tags ?? []).includes("weekday-only")))
     .filter((m) => !prefs || mealAllowed(m, prefs))
     .map((m) => (cook.length && (m.dietary_tags ?? []).some((t) => cook.includes(t)) ? { ...m, _cook: true } as Meal & { _cook?: boolean } : m))
     .map((m) => ({ m, s: score(m, r, slot, slotTarget) + ((m as Meal & { _cook?: boolean })._cook ? 3 : 0) }))
@@ -148,7 +167,7 @@ export function dayFor(
   return Object.fromEntries(SLOTS.map((slot) => {
     const chosen = picks[pickKey(weekday, slot)] ?? picks[slot];
     if (chosen && byId.get(chosen)) return [slot, byId.get(chosen)!];
-    const ranked = mealsFor(all, programKey, slot, prefs, proteinTargetG);
+    const ranked = mealsFor(all, programKey, slot, prefs, proteinTargetG, weekday);
     if (!ranked.length) return [slot, null];
     // Rotate within the best fits rather than walking the whole list. Walking
     // it meant Sunday ate the seventh choice in every slot and the week's
