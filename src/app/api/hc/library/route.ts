@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   if (kind === "meals") {
     const { data, error } = await supabaseAdmin.from("meals")
-      .select("id, name, name_is, description, description_is, category, ingredients, ingredients_is, instructions, instructions_is, prep_time_min, cook_time_min, calories, protein, carbs, fat, dietary_tags, illustration_url")
+      .select("id, name, name_is, description, description_is, category, ingredients, ingredients_is, instructions, instructions_is, prep_time_min, cook_time_min, calories, protein, carbs, fat, dietary_tags, illustration_url, illustration_credit")
       // Retired meals stay in the table for the meal_log rows that point at
       // them; they just stop being offered. See migration-meals-retire.sql.
       .or("is_filler.is.null,is_filler.eq.false")

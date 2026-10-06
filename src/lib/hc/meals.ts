@@ -27,6 +27,8 @@ export interface Meal {
   fat: number | null;
   dietary_tags: string[] | null;
   illustration_url: string | null;
+  /** Shown with the picture when its licence asks for it; null for ours. */
+  illustration_credit?: string | null;
 }
 
 export const mealName = (m: Pick<Meal, "name" | "name_is">) => m.name_is || m.name;

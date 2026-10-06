@@ -288,8 +288,16 @@ function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
   return (
     <Sheet title={mealName(m)} onClose={onClose}>
       {m.illustration_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={m.illustration_url} alt="" className="aspect-[16/9] w-full object-cover" />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={m.illustration_url} alt="" className="aspect-[16/9] w-full object-cover" />
+          {/* Some licences require the photographer to be named. Ours do not,
+              so this is empty today — but a picture that needs a credit and
+              does not carry one is a licence breach, not a missing nicety. */}
+          {m.illustration_credit && (
+            <p className="px-4 pt-1 text-[11px] text-slate-400">Mynd: {m.illustration_credit}</p>
+          )}
+        </>
       )}
       <div className="space-y-4 p-4">
         {t.description && <p className="text-slate-700">{t.description}</p>}
