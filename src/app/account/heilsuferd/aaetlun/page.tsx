@@ -25,7 +25,6 @@ import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan, LectureRef, Pillar } from "@/lib/hc/types";
 import { DEFAULT_TRAINING, activityModality, adaptExercise, hardDays, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
-import NudgeSettings from "@/app/components/hc/NudgeSettings";
 import HelpCard from "@/app/components/hc/HelpCard";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
@@ -48,7 +47,7 @@ import TodayOverview, { TodayHeader } from "@/app/components/hc/TodayOverview";
 import { DEFAULT_PERSONAL, personalise, type Personal } from "@/lib/hc/personalise";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 
-type Tab = "today" | "exercise" | "nutrition" | "report" | "results";
+type Tab = "today" | "exercise" | "nutrition" | "coach" | "report" | "results";
 
 interface Loaded {
   journey_id: string;
@@ -159,8 +158,14 @@ function PlanPageInner() {
         first = false;
         // The tab in the address wins; else today when there is a plan, otherwise the report.
         const asked = askedTab === "plan" ? "today" : askedTab;
-        const wanted = (["today", "exercise", "nutrition", "report"] as const).find((t) => t === asked);
-        const ok = wanted === "report" ? !!loaded?.report : wanted === "exercise" ? !!loaded?.plan?.exercise : wanted === "nutrition" ? !!loaded?.plan?.nutrition : !!loaded?.plan;
+        const wanted = (["today", "exercise", "nutrition", "coach", "report"] as const).find((t) => t === asked);
+        // The coach tab needs no plan: it is where you go when you have not
+        // got one, or when the one you have does not fit.
+        const ok = wanted === "report" ? !!loaded?.report
+          : wanted === "coach" ? true
+          : wanted === "exercise" ? !!loaded?.plan?.exercise
+          : wanted === "nutrition" ? !!loaded?.plan?.nutrition
+          : !!loaded?.plan;
         setTabState(wanted && ok ? wanted : loaded?.plan ? "today" : loaded?.report ? "report" : "today");
       }
     };
@@ -350,7 +355,7 @@ function PlanPageInner() {
   // The report often lands before the plan is written; show it either way.
   const hasSomething = !!plan || !!data?.report;
 
-  const place: JourneyPlace = tab === "exercise" ? "exercise" : tab === "nutrition" ? "nutrition" : tab === "report" || tab === "results" ? "report" : "today";
+  const place: JourneyPlace = tab === "exercise" ? "exercise" : tab === "nutrition" ? "nutrition" : tab === "coach" ? "coach" : tab === "report" || tab === "results" ? "report" : "today";
   const next = appointments[0] ?? null;
 
   return (
@@ -412,12 +417,15 @@ function PlanPageInner() {
                     className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-4 py-4 text-sm font-semibold text-slate-700 hover:border-hc-brand hover:text-hc-brand-dark">
                     <Pencil className="h-4 w-4" aria-hidden /> Bæta við, taka út eða raða aðgerðum
                   </button>
-                  {/* Where someone goes when something has gone wrong — an
-                      injury, a plan that does not fit, a question. On the
-                      daily surface because that is the page they are on when
-                      it happens. */}
+                </div>
+              )}
+
+              {/* Everything to do with a person rather than a plan. It sat at
+                  the end of Í dag, under the checklist and the reminders,
+                  which is the last place someone with a hurt knee would look. */}
+              {tab === "coach" && (
+                <div className="print:hidden">
                   <HelpCard api={api} />
-                  <NudgeSettings api={api} />
                 </div>
               )}
               {tab === "exercise" && plan && baseExercise && (

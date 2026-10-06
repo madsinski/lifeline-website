@@ -1,22 +1,24 @@
 "use client";
 
 // Participant navigation once the plan exists: Í dag, Æfingar, Næring,
-// Skýrslan, Ferðin (the programme tabs only when the plan has them).
+// Fræðsla, Þjálfari, Skýrslan, Ferðin (the programme tabs only when the plan
+// has them).
 // Bottom bar on a phone (thumb reach, safe area), a segmented bar on top on
 // larger screens.
 
 import Link from "next/link";
 import { hcTabs } from "./ui";
 import { useState } from "react";
-import { BookOpen, CircleUser, Compass, Dumbbell, FileHeart, MoreHorizontal, Sun, Utensils } from "lucide-react";
+import { BookOpen, CircleUser, Compass, Dumbbell, FileHeart, MessageCircle, MoreHorizontal, Sun, Utensils } from "lucide-react";
 
-export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "report" | "journey" | "account";
+export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "account";
 
 const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun }[] = [
   { key: "today", label: "Í dag", href: "/account/heilsuferd/aaetlun?tab=today", Icon: Sun },
   { key: "exercise", label: "Æfingar", href: "/account/heilsuferd/aaetlun?tab=exercise", Icon: Dumbbell },
   { key: "nutrition", label: "Næring", href: "/account/heilsuferd/aaetlun?tab=nutrition", Icon: Utensils },
   { key: "fraedsla", label: "Fræðsla", href: "/account/heilsuferd/fraedsla", Icon: BookOpen },
+  { key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: MessageCircle },
   { key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
   { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
   { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: CircleUser },
