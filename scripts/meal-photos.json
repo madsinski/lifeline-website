@@ -1,0 +1,204 @@
+{
+ "_README": [
+  "Photographs for the meal pictures, one per archetype, chosen by eye from",
+  "Wikimedia Commons search results — every candidate was rendered into a",
+  "contact sheet and looked at, because Commons food photography is patchy:",
+  "the 'chia pudding' results were raw seeds on a ruler and the 'cod' results",
+  "included a 19th-century fish anatomy plate.",
+  "skyr-bowl, chia-pudding and leftovers are deliberately absent. Nothing in",
+  "the results showed those dishes, so they keep the drawn card instead of a",
+  "picture of the wrong food.",
+  "Each entry carries its licence and author. They are re-hosted in our own",
+  "bucket rather than hot-linked, and the credit is stored on the meal row and",
+  "shown under the picture."
+ ],
+ "porridge": {
+  "title": "File:Oatmeal porridge 1-minute with additional ingredients.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Oatmeal_porridge_1-minute_with_additional_ingredients.jpg/960px-Oatmeal_porridge_1-minute_with_additional_ingredients.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Oatmeal_porridge_1-minute_with_additional_ingredients.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "UserTwoSix"
+ },
+ "granola-yoghurt": {
+  "title": "File:Granola, yogurt, fruit. (16696981528).jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/9/94/Granola%2C_yogurt%2C_fruit._%2816696981528%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+  "page": "https://commons.wikimedia.org/wiki/File:Granola,_yogurt,_fruit._(16696981528).jpg",
+  "lic": "CC BY 2.0",
+  "artist": "Arnold Gatilao from Oakland, CA, USA"
+ },
+ "cottage-cheese": {
+  "title": "File:Cottagecheese200px.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/960px-Cottagecheese200px.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Cottagecheese200px.jpg",
+  "lic": "CC BY-SA 3.0",
+  "artist": "F ASTILY (T ALK )"
+ },
+ "eggs-toast": {
+  "title": "File:Avocado and Egg Toast (Unsplash).jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Avocado_and_Egg_Toast_%28Unsplash%29.jpg/960px-Avocado_and_Egg_Toast_%28Unsplash%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Avocado_and_Egg_Toast_(Unsplash).jpg",
+  "lic": "CC0",
+  "artist": "Joseph Gonzalez miracletwentyone"
+ },
+ "omelette": {
+  "title": "File:Scrambled eggs with basil.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Scrambled_eggs_with_basil.jpg/960px-Scrambled_eggs_with_basil.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Scrambled_eggs_with_basil.jpg",
+  "lic": "CC BY 4.0",
+  "artist": "OmegaFallon"
+ },
+ "boiled-eggs": {
+  "title": "File:Frankfurter grüne Soße mit Eiern, Oberauroff.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Frankfurter_gr%C3%BCne_So%C3%9Fe_mit_Eiern%2C_Oberauroff.jpg/960px-Frankfurter_gr%C3%BCne_So%C3%9Fe_mit_Eiern%2C_Oberauroff.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Frankfurter_gr%C3%BCne_So%C3%9Fe_mit_Eiern,_Oberauroff.jpg",
+  "lic": "CC0",
+  "artist": "Gerda Arendt"
+ },
+ "salmon": {
+  "title": "File:Creamy Garlic herb salmon bowl.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/1/12/Creamy_Garlic_herb_salmon_bowl.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+  "page": "https://commons.wikimedia.org/wiki/File:Creamy_Garlic_herb_salmon_bowl.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Shark2025"
+ },
+ "cod": {
+  "title": "File:20-09-2017 Cod, clams, peas and Samphire cataplana (1).JPG",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/20-09-2017_Cod%2C_clams%2C_peas_and_Samphire_cataplana_%281%29.JPG/960px-20-09-2017_Cod%2C_clams%2C_peas_and_Samphire_cataplana_%281%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:20-09-2017_Cod,_clams,_peas_and_Samphire_cataplana_(1).JPG",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Kolforn ( Kolforn ) I'd appreciate if you could mail me (Kolforn@gmail"
+ },
+ "tuna": {
+  "title": "File:Tuna salad sandwich (1).jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/Tuna_salad_sandwich_%281%29.jpg/960px-Tuna_salad_sandwich_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Tuna_salad_sandwich_(1).jpg",
+  "lic": "CC BY 2.0",
+  "artist": "jeffreyw"
+ },
+ "lamb": {
+  "title": "File:Longhorn Lamb Chops .jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Longhorn_Lamb_Chops_.jpg/960px-Longhorn_Lamb_Chops_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Longhorn_Lamb_Chops_.jpg",
+  "lic": "CC0",
+  "artist": "Bonnachoven"
+ },
+ "beef-mince": {
+  "title": "File:Spaghetti Bolognese von Unico Tauberbischofsheim.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Spaghetti_Bolognese_von_Unico_Tauberbischofsheim.jpg/960px-Spaghetti_Bolognese_von_Unico_Tauberbischofsheim.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Spaghetti_Bolognese_von_Unico_Tauberbischofsheim.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Triplec85"
+ },
+ "beef-steak": {
+  "title": "File:Beef Steak on Sizzling Plate.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Beef_Steak_on_Sizzling_Plate.jpg/960px-Beef_Steak_on_Sizzling_Plate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Beef_Steak_on_Sizzling_Plate.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Ceeseven"
+ },
+ "chicken-tray": {
+  "title": "File:Chicken and vegetables, roasted - Massachusetts.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Chicken_and_vegetables%2C_roasted_-_Massachusetts.jpg/960px-Chicken_and_vegetables%2C_roasted_-_Massachusetts.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Chicken_and_vegetables,_roasted_-_Massachusetts.jpg",
+  "lic": "CC0",
+  "artist": "Daderot"
+ },
+ "curry": {
+  "title": "File:Beef curry rice 003.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Beef_curry_rice_003.jpg/960px-Beef_curry_rice_003.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Beef_curry_rice_003.jpg",
+  "lic": "CC0",
+  "artist": "Ocdp"
+ },
+ "chicken": {
+  "title": "File:Chicken salad on striped tablecloth.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Chicken_salad_on_striped_tablecloth.jpg/960px-Chicken_salad_on_striped_tablecloth.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Chicken_salad_on_striped_tablecloth.jpg",
+  "lic": "CC0",
+  "artist": "Kotivalo"
+ },
+ "sandwich": {
+  "title": "File:Ham sandwich.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/c/c6/Ham_sandwich.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+  "page": "https://commons.wikimedia.org/wiki/File:Ham_sandwich.jpg",
+  "lic": "CC BY-SA 3.0",
+  "artist": "Fancy steve"
+ },
+ "rye-bread": {
+  "title": "File:Tuna with kimchi sauce on rye crisp bread and German multigrain bread - Massachusetts.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Tuna_with_kimchi_sauce_on_rye_crisp_bread_and_German_multigrain_bread_-_Massachusetts.jpg/960px-Tuna_with_kimchi_sauce_on_rye_crisp_bread_and_German_multigrain_bread_-_Massachusetts.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Tuna_with_kimchi_sauce_on_rye_crisp_bread_and_German_multigrain_bread_-_Massachusetts.jpg",
+  "lic": "CC0",
+  "artist": "Daderot"
+ },
+ "soup": {
+  "title": "File:Catalan lentil soup.JPG",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Catalan_lentil_soup.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+  "page": "https://commons.wikimedia.org/wiki/File:Catalan_lentil_soup.JPG",
+  "lic": "CC BY-SA 3.0",
+  "artist": "Xufanc"
+ },
+ "salad": {
+  "title": "File:Lachs Bowl Karches.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Lachs_Bowl_Karches.jpg/960px-Lachs_Bowl_Karches.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Lachs_Bowl_Karches.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Benreis"
+ },
+ "pasta": {
+  "title": "File:Homemade Tomato sauce pasta 2.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Homemade_Tomato_sauce_pasta_2.jpg/960px-Homemade_Tomato_sauce_pasta_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Homemade_Tomato_sauce_pasta_2.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Geoffreyrabbit"
+ },
+ "rice-bowl": {
+  "title": "File:VEGETABLE PATTY RICE BOWL.jpg",
+  "thumb": "https://upload.wikimedia.org/wikipedia/commons/d/d5/VEGETABLE_PATTY_RICE_BOWL.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+  "page": "https://commons.wikimedia.org/wiki/File:VEGETABLE_PATTY_RICE_BOWL.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Suhanees17"
+ },
+ "canteen": {
+  "title": "File:Value lunch A and Salad at Hino University cafeteria, -28 (30155026383).jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Value_lunch_A_and_Salad_at_Hino_University_cafeteria%2C_-28_%2830155026383%29.jpg/960px-Value_lunch_A_and_Salad_at_Hino_University_cafeteria%2C_-28_%2830155026383%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Value_lunch_A_and_Salad_at_Hino_University_cafeteria,_-28_(30155026383).jpg",
+  "lic": "CC BY-SA 2.0",
+  "artist": "nakashi from Chofu, Tokyo, JAPAN"
+ },
+ "shake": {
+  "title": "File:Kid friendly green smoothie in a personalized glass with spinach, Greek yogurt, frozen blueberries, blackberries and strawberries and berries, banana in a glass bowl on a wood table (16225943125).jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Kid_friendly_green_smoothie_in_a_personalized_glass_with_spinach%2C_Greek_yogurt%2C_frozen_blueberries%2C_blackberries_and_strawberries_and_berries%2C_banana_in_a_glass_bowl_on_a_wood_table_%2816225943125%29.jpg/960px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Kid_friendly_green_smoothie_in_a_personalized_glass_with_spinach,_Greek_yogurt,_frozen_blueberries,_blackberries_and_strawberries_and_berries,_banana_in_a_glass_bowl_on_a_wood_table_(16225943125).jpg",
+  "lic": "CC BY 2.0",
+  "artist": "Personal Creations"
+ },
+ "nuts-fruit": {
+  "title": "File:Mixed nuts small white1.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Mixed_nuts_small_white1.jpg/960px-Mixed_nuts_small_white1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Mixed_nuts_small_white1.jpg",
+  "lic": "CC BY-SA 3.0",
+  "artist": "User:Melchoir"
+ },
+ "vegetables": {
+  "title": "File:Vegetables and Hummus (7271118362).jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Vegetables_and_Hummus_%287271118362%29.jpg/960px-Vegetables_and_Hummus_%287271118362%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Vegetables_and_Hummus_(7271118362).jpg",
+  "lic": "CC BY 2.0",
+  "artist": "Jennifer from Vancouver, Canada"
+ },
+ "legumes": {
+  "title": "File:Vegan French lentil soup with salad, bread and tea.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Vegan_French_lentil_soup_with_salad%2C_bread_and_tea.jpg/960px-Vegan_French_lentil_soup_with_salad%2C_bread_and_tea.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Vegan_French_lentil_soup_with_salad,_bread_and_tea.jpg",
+  "lic": "CC BY 2.0",
+  "artist": "Max Kiesler from San Francisco, USA"
+ },
+ "edamame": {
+  "title": "File:Edamame by jark.jpg",
+  "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/da/Edamame_by_jark.jpg/960px-Edamame_by_jark.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "page": "https://commons.wikimedia.org/wiki/File:Edamame_by_jark.jpg",
+  "lic": "CC BY-SA 2.0",
+  "artist": "jark"
+ }
+}

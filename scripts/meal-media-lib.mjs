@@ -35,9 +35,10 @@ const ARCHETYPES = [
   ["beef-steak",      /nautasteik|nautakjöt|beef|steak/i,                    { glyph: "chop",   hue: 350 }],
   ["chicken-tray",    /kjúklingabringa|kjúklingalæri|kjúklingafajitas|ofnbakaður kjúkling|ofnplötu/i, { glyph: "tray", hue: 35 }],
   ["sandwich",        /samloka|vefja|beygla|sandwich|wrap|brauði með/i,      { glyph: "bread",  hue: 40 }],
-  ["rye-bread",       /rúgbrauð|hrökkbrauð|crispbread|ristuðu brauði|avókadóbrauð/i, { glyph: "bread", hue: 30 }],
+  ["rye-bread",       /rúgbrauð|hrökkbrauð|crispbread|á \S+ brauði|ristuðu brauði|avókadóbrauð|á brauði/i, { glyph: "bread", hue: 30 }],
   ["pasta",           /pasta|spaghetti|núðl/i,                               { glyph: "plate",  hue: 20 }],
   ["salad",           /salat|salad/i,                                        { glyph: "leaf",   hue: 120 }],
+  ["edamame",        /edamame/i,                                            { glyph: "bowl",   hue: 95 }],
   ["legumes",         /linsubaun|kjúklingabaun|baun|tófú|falafel|lentil|tofu/i, { glyph: "bowl", hue: 100 }],
   ["chicken",         /kjúkling|kalkún|chicken|turkey/i,                     { glyph: "plate",  hue: 38 }],
   ["rice-bowl",       /hrísgrjón|kínóa|quinoa|rice|skál|bowl/i,              { glyph: "bowl",   hue: 90 }],
@@ -113,5 +114,42 @@ export function card(m, art) {
        font-size="34" font-weight="700" fill="hsl(${h} 42% 22%)">${esc(l2)}</text>` : ""}
  ${foot ? `<text x="320" y="${l2 ? 338 : 300}" text-anchor="middle" font-family="Nunito Sans, Segoe UI, system-ui, sans-serif"
        font-size="19" font-weight="600" fill="hsl(${h} 30% 38%)">${esc(foot)}</text>` : ""}
+</svg>`;
+}
+
+/**
+ * A dish picture: a real photograph of that kind of food with this dish's own
+ * name across the bottom.
+ *
+ * The photograph alone would mean five salmon dinners sharing one image,
+ * which is most of what was wrong before. The name makes each one this dish's
+ * picture while the photograph keeps it honest about the food. The image is
+ * embedded rather than linked because an <img>-loaded SVG will not fetch an
+ * external resource, and because we re-host rather than hot-link Commons.
+ */
+export function photoCard(m, art, jpegBase64, credit) {
+  const [l1, l2] = wrap(m.name_is ?? m.name ?? "", 26);
+  // Nunito Bold runs about 0.56 em per character; 568 px is the usable width.
+  const longest = Math.max(l1?.length ?? 0, l2?.length ?? 0);
+  const size = Math.max(23, Math.min(34, Math.floor(568 / (longest * 0.56))));
+  const gid = `s${fingerprint(m)}`;
+  const mins = (m.prep_time_min ?? 0) + (m.cook_time_min ?? 0);
+  const foot = [m.protein != null ? `${m.protein} g prótein` : null, mins ? `${mins} mín.` : null].filter(Boolean).join("  ·  ");
+  const top = l2 ? 360 - 148 - size : 360 - 114 - size;
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="${esc(m.name_is ?? m.name)}">
+ <defs>
+  <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="hsl(${art.hue} 30% 8%)" stop-opacity="0"/>
+   <stop offset="0.45" stop-color="hsl(${art.hue} 30% 8%)" stop-opacity="0.55"/>
+   <stop offset="1" stop-color="hsl(${art.hue} 30% 8%)" stop-opacity="0.88"/>
+  </linearGradient>
+ </defs>
+ <image href="data:image/jpeg;base64,${jpegBase64}" xlink:href="data:image/jpeg;base64,${jpegBase64}"
+        x="0" y="0" width="640" height="360" preserveAspectRatio="xMidYMid slice"/>
+ <rect x="0" y="150" width="640" height="210" fill="url(#${gid})"/>
+ <text x="36" y="${top}" font-family="Nunito Sans, Segoe UI, system-ui, sans-serif" font-size="${size}" font-weight="700" fill="#ffffff">${esc(l1)}</text>
+ ${l2 ? `<text x="36" y="${top + size + 6}" font-family="Nunito Sans, Segoe UI, system-ui, sans-serif" font-size="${size}" font-weight="700" fill="#ffffff">${esc(l2)}</text>` : ""}
+ ${foot ? `<text x="36" y="${l2 ? top + 2 * size + 34 : top + size + 30}" font-family="Nunito Sans, Segoe UI, system-ui, sans-serif" font-size="19" font-weight="600" fill="#ffffff" fill-opacity="0.85">${esc(foot)}</text>` : ""}
+ ${credit ? `<text x="620" y="346" text-anchor="end" font-family="Segoe UI, system-ui, sans-serif" font-size="11" fill="#ffffff" fill-opacity="0.6">${esc(credit)}</text>` : ""}
 </svg>`;
 }

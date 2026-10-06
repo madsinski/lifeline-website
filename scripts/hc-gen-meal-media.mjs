@@ -12,23 +12,27 @@
 //
 //   --check    report missing and stale pictures, exit 1 if any   (CI-able)
 //   --cards    draw a clean card per dish, derived from the dish   (no key)
-//   --photos   generate a photograph per dish with OpenAI images   (needs key)
+//   --photos   a real photograph of that kind of food, with this dish's
+//              own name on it                                      (no key)
 //
-// --cards is the honest default and what ships today: a card carrying the
-// dish's own name and a motif chosen from its own main ingredient is always
-// correct and never pretends to be a photograph of the recipe. --photos is
-// written and waiting; production OPENAI_API_KEY is empty, so it cannot run
-// yet. Running it later replaces the cards one dish at a time and the
-// fingerprints keep up.
+// --photos is the real one. The photographs are curated per archetype in
+// scripts/meal-photos.json — chosen by eye from Wikimedia Commons, re-hosted
+// in our own bucket rather than hot-linked, and credited. The dish's own name
+// is composited across the bottom, because the photograph alone would mean
+// five salmon dinners sharing one image, which is most of what was wrong
+// before. Three archetypes have no usable photograph anywhere in the results
+// (skyr bowl, chia pudding, leftovers); those keep the drawn card rather than
+// take a picture of the wrong food.
 
 const U = "https://cfnibfxzltxiriqxvvru.supabase.co";
 const K = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const OPENAI = process.env.OPENAI_API_KEY;
+const PHOTOS = JSON.parse(readFileSync(new URL("./meal-photos.json", import.meta.url), "utf8"));
 const mode = process.argv.find((a) => ["--check", "--cards", "--photos"].includes(a)) ?? "--check";
 
 if (!K) { console.error("SUPABASE_SERVICE_ROLE_KEY missing"); process.exit(1); }
 
-import { archetypeOf, card, fingerprint } from "./meal-media-lib.mjs";
+import { archetypeOf, card, fingerprint, photoCard } from "./meal-media-lib.mjs";
+import { readFileSync } from "node:fs";
 
 const rest = async (path, init) => {
   const r = await fetch(`${U}/rest/v1/${path}`, { ...init, headers: { apikey: K, Authorization: `Bearer ${K}`, "Content-Type": "application/json", Prefer: "return=representation", ...(init?.headers ?? {}) } });
@@ -76,30 +80,37 @@ if (mode === "--check") {
   process.exit(0);
 }
 
-if (mode === "--photos" && !OPENAI) {
-  console.error("\n--photos needs OPENAI_API_KEY. Production has it set to an empty string;\nask Mads for a key, then: OPENAI_API_KEY=sk-… node scripts/hc-gen-meal-media.mjs --photos");
-  process.exit(1);
+/** Fetch each curated photograph once and keep it as base64. */
+const jpeg = new Map();
+async function photoFor(key) {
+  if (!PHOTOS[key]) return null;
+  if (!jpeg.has(key)) {
+    const r = await fetch(PHOTOS[key].thumb, { headers: { "User-Agent": "lifeline-health/1.0 (madsinski@gmail.com)" } });
+    if (r.status >= 400) throw new Error(`photo ${key}: ${r.status}`);
+    jpeg.set(key, Buffer.from(await r.arrayBuffer()).toString("base64"));
+  }
+  return { b64: jpeg.get(key), credit: `${PHOTOS[key].artist || "Wikimedia Commons"} · ${PHOTOS[key].lic}` };
 }
 
-const todo = [...missing, ...stale];
+// A change of image source is not a change of recipe, so the fingerprints are
+// all still valid and nothing would be regenerated. --force says: redo them.
+const force = process.argv.includes("--force");
+const todo = force ? meals : [...missing, ...stale];
 let n = 0;
 for (const m of todo) {
   const art = archetypeOf(m);
   const fp = fingerprint(m);
-  let url;
-  if (mode === "--cards") {
-    url = await upload(`card/${m.id}-${fp}.svg`, card(m, art), "image/svg+xml");
+  let url, credit = null;
+  const photo = mode === "--photos" ? await photoFor(art.key) : null;
+  if (photo) {
+    credit = photo.credit;
+    url = await upload(`dish/${m.id}-${fp}.svg`, photoCard(m, art, photo.b64, credit), "image/svg+xml");
   } else {
-    const prompt = `A single plated portion of ${m.name}, photographed from above on a plain light surface, natural daylight, no text, no hands, no branding. It contains exactly: ${(m.ingredients ?? []).join(", ")}. Nordic home cooking, honest and unstyled.`;
-    const r = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST", headers: { Authorization: `Bearer ${OPENAI}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-image-1", prompt, size: "1024x1024", n: 1 }),
-    });
-    if (r.status >= 400) throw new Error(`image ${m.name_is}: ${r.status} ${(await r.text()).slice(0, 200)}`);
-    const j = await r.json();
-    url = await upload(`photo/${m.id}-${fp}.png`, Buffer.from(j.data[0].b64_json, "base64"), "image/png");
+    // Either --cards, or no photograph of this kind of food exists in the
+    // results. A drawn card beats a picture of something else.
+    url = await upload(`card/${m.id}-${fp}.svg`, card(m, art), "image/svg+xml");
   }
-  await rest(`meals?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ illustration_url: url, illustration_key: fp, illustration_credit: null }) });
+  await rest(`meals?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ illustration_url: url, illustration_key: fp, illustration_credit: credit }) });
   n++;
   if (n % 10 === 0) console.log(`  …${n}/${todo.length}`);
 }
