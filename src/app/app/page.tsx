@@ -15,7 +15,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/hc/use-api";
-import { longDayIs } from "@/lib/hc/adherence";
+import { useT, useLongDate } from "./useT";
 
 interface Home {
   meters: {
@@ -29,12 +29,13 @@ interface Home {
   grid: { date: string; done_count: number }[];
 }
 
-const HELLO = () => {
+/** Which greeting the hour calls for; the words come from the dictionary. */
+const helloKey = () => {
   const h = new Date().getHours();
-  if (h < 5) return "Góða nótt";
-  if (h < 11) return "Góðan daginn";
-  if (h < 18) return "Góðan dag";
-  return "Gott kvöld";
+  if (h < 5) return "hello.night" as const;
+  if (h < 11) return "hello.morning" as const;
+  if (h < 18) return "hello.day" as const;
+  return "hello.evening" as const;
 };
 
 /** The app shows these as percentages out of 100. */
@@ -53,6 +54,8 @@ function Meter({ label, value, hint }: { label: string; value: number | null; hi
 
 export default function AppHome() {
   const api = useApi();
+  const t = useT();
+  const longDate = useLongDate();
   const [d, setD] = useState<Home | null | undefined>(undefined);
   const [name, setName] = useState<string | null>(null);
 
@@ -80,8 +83,8 @@ export default function AppHome() {
   return (
     <div className="space-y-4">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-dark">{longDayIs()}</p>
-        <h1 className="mt-0.5 text-2xl font-bold text-hc-ink">{HELLO()}{name ? `, ${name}` : ""}</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-dark">{longDate()}</p>
+        <h1 className="mt-0.5 text-2xl font-bold text-hc-ink">{t(helloKey())}{name ? `, ${name}` : ""}</h1>
       </header>
 
       {d === undefined && <div className="h-36 animate-pulse rounded-3xl bg-white" aria-hidden />}
@@ -89,9 +92,9 @@ export default function AppHome() {
       {d && (
         <>
           <div className="grid grid-cols-3 gap-2">
-            <Meter label="Mæting" value={d.meters.consistency7d ?? d.meters.consistency} hint="síðustu 7 daga" />
-            <Meter label="Klárað" value={d.meters.completion7d ?? d.meters.completion} hint="af því sem stóð til" />
-            <Meter label="Ákefð" value={d.meters.intensity} hint="hversu fast" />
+            <Meter label={t("home.showingUp")} value={d.meters.consistency7d ?? d.meters.consistency} hint={t("home.showingUp.hint")} />
+            <Meter label={t("home.completion")} value={d.meters.completion7d ?? d.meters.completion} hint={t("home.completion.hint")} />
+            <Meter label={t("home.intensity")} value={d.meters.intensity} hint={t("home.intensity.hint")} />
           </div>
 
           {d.meters.narrative && (
@@ -101,7 +104,7 @@ export default function AppHome() {
           )}
 
           <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Vikan</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{t("home.week")}</p>
             <div className="flex items-end justify-between gap-1.5" style={{ height: 72 }}>
               {days.map((x, i) => (
                 <div key={x.iso} className="flex flex-1 flex-col items-center gap-1">
@@ -111,7 +114,7 @@ export default function AppHome() {
                       title={`${x.iso}: ${x.done}`} />
                   </div>
                   <span className={`text-[10px] font-semibold ${i === 6 ? "text-hc-ink" : "text-slate-400"}`}>
-                    {["Su", "Má", "Þr", "Mi", "Fi", "Fö", "La"][new Date(`${x.iso}T12:00:00`).getDay()]}
+                    {t(`day.${new Date(`${x.iso}T12:00:00`).getDay()}` as "day.0")}
                   </span>
                 </div>
               ))}
@@ -120,16 +123,14 @@ export default function AppHome() {
 
           {/* Said plainly rather than left as a thin-looking home screen. */}
           <p className="px-1 text-xs text-slate-500">
-            Þetta er fyrsti hlutinn af Heim úr appinu. Næst koma aðgerðir dagsins úr
-            prógramminu, næringarhringurinn, skráning á máltíð og þyngd, stutt æfing og
-            áminningar þjálfarans.
+{t("home.rest")}
           </p>
         </>
       )}
 
       {d === null && (
         <p className="rounded-3xl bg-white p-5 text-sm text-hc-ink-2 shadow-sm ring-1 ring-slate-100">
-          Náði ekki í mælana þína.
+          {t("home.failed")}
         </p>
       )}
     </div>

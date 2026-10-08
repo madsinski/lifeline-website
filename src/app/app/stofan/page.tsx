@@ -1,9 +1,13 @@
+"use client";
+
 import Soon from "../Soon";
+import { useT } from "../useT";
 
 export default function Page() {
+  const t = useT();
   return (
-    <Soon title="Stofan"
-      body="Tímabókanir, mælingar, blóðprufur og upplýsingar um stofuna — það sem ClinicInfoScreen gerir í appinu."
-      now={{ label: "Bóka tíma", href: "/account/book" }} />
+    <Soon title={t("nav.clinic")} body={t("clinic.body")}
+      now={{ label: t("clinic.now"), href: "/account/book" }}
+    />
   );
 }

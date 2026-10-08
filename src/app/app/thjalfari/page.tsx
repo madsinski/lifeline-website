@@ -1,9 +1,13 @@
+"use client";
+
 import Soon from "../Soon";
+import { useT } from "../useT";
 
 export default function Page() {
+  const t = useT();
   return (
-    <Soon title="Þjálfari"
-      body="Prógrammið þitt, æfing dagsins og samtalið við þjálfarann — það sem HealthCoachScreen gerir í appinu."
-      now={{ label: "Hafa samband", href: "/account/heilsuferd/aaetlun?tab=coach" }} />
+    <Soon title={t("nav.coach")} body={t("coach.body")}
+      now={{ label: t("coach.now"), href: "/account/heilsuferd/aaetlun?tab=coach" }}
+    />
   );
 }

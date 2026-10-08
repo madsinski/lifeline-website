@@ -1,8 +1,12 @@
+"use client";
+
 import Soon from "../Soon";
+import { useT } from "../useT";
 
 export default function Page() {
+  const t = useT();
   return (
-    <Soon title="Samfélag"
-      body="Straumur, vinir, viðburðir, áskoranir og Lífstig. Stærsti hlutinn sem á eftir að smíða — sex flipar og tæplega sex þúsund línur í appinu." />
+    <Soon title={t("nav.community")} body={t("community.body")}
+    />
   );
 }

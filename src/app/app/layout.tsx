@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AppNav from "./AppNav";
+import { LanguagePicker } from "@/lib/i18n";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -36,6 +37,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-hc-page text-hc-ink lg:pl-56">
       {/* pb clears the bottom bar; the safe-area inset is on the bar itself. */}
       <main className="mx-auto max-w-2xl px-4 pb-24 pt-4 lg:max-w-4xl lg:pb-10 lg:pt-8">
+        {/* The marketing navbar carries the language toggle and is suppressed
+            here, so without this there is no way to switch inside the app.
+            Top-right and small: a setting, not a feature. */}
+        <div className="mb-2 flex justify-end">
+          <LanguagePicker />
+        </div>
         {ready ? children : <div className="h-40 animate-pulse rounded-3xl bg-white/70" aria-hidden />}
       </main>
       <AppNav />
