@@ -22,6 +22,16 @@ export interface StoredReport {
   /** Which sex the bands were read for — a row can say so when it matters. */
   sex: "m" | "f" | null;
   method: "local" | "ai";
+  /**
+   * Who put it there: the participant, or staff — and if staff, whether they
+   * recorded that the participant had asked them to.
+   *
+   * Surfaced so the participant can see it in their own account. The lawful
+   * basis for staff reading the report is 9. gr. (2)(h), care by a health
+   * professional, so this is not consent; it is 5. gr. (2) accountability and
+   * the thing that lets someone say "that is not my report".
+   */
+  source: "self" | "staff" | "staff_on_behalf";
   created_at: string;
 }
 
@@ -76,6 +86,7 @@ export async function loadReport(journeyId: string, clientId: string): Promise<S
     reference,
     sex,
     method: row.method === "ai" ? "ai" : "local",
+    source: row.source === "self" || row.source === "staff_on_behalf" ? row.source : "staff",
     created_at: row.created_at,
   };
 }

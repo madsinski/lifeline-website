@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.12";
+export const SECURITY_POSTURE_VERSION = "v1.13";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-08";
 
 export function renderSecurityPosture(): string {
@@ -97,9 +97,30 @@ Persónuupplýsingar:
                        villuleit).
 
 Heilsufarsgögn / Art. 9 sérflokkar:
-  9. gr. (2)(a) GDPR — afdráttarlaust samþykki skjólstæðings.
-  9. gr. (2)(h) GDPR — heilbrigðisþjónusta veitt af heilbrigðisstarfsfólki
-                       sem bundið er þagnarskyldu skv. lögum 34/2012.
+  9. gr. (2)(h) GDPR — AÐALGRUNDVÖLLUR. Heilbrigðisþjónusta veitt af
+                       heilbrigðisstarfsfólki sem bundið er þagnarskyldu
+                       skv. 17. gr. laga nr. 34/2012. Þetta er grundvöllur
+                       allrar vinnslu heilsufarsgagna í heilsuferðinni:
+                       lestur skýrslu, viðtal, mælingar og aðgerðaáætlun.
+                       Samþykki er því EKKI lagagrundvöllur þeirrar
+                       vinnslu — hún er hluti af þjónustunni sem
+                       skjólstæðingurinn hefur samið um.
+  9. gr. (2)(a) GDPR — notað eingöngu þar sem vinnslan er utan
+                       þjónustunnar sjálfrar: sending skjals til
+                       utanaðkomandi mállíkans (sjá 11. kafla) og
+                       þátttaka í rannsóknum.
+
+  Af hverju (h) og ekki (a): samþykki sem lagagrundvöllur verður að vera
+  afturkallanlegt án afleiðinga fyrir þjónustuna. Það gengur ekki upp um
+  gögn sem þjónustan getur ekki verið án — hjúkrunarfræðingur sem má
+  ekki lesa skýrsluna getur ekki haldið viðtalið. Að kalla það samþykki
+  gefur ranga mynd af valinu sem skjólstæðingurinn hefur.
+
+  Rekjanleiki í stað samþykkis: þegar starfsmaður setur skýrslu inn fyrir
+  skjólstæðing er skráð HVER gerði það, HVENÆR og AÐ HVERS BEIÐNI
+  (hc_reports.source, imported_by, on_behalf_consent_at), og
+  skjólstæðingurinn sér það í sínum aðgangi og getur andmælt. Það er
+  5. gr. (2) ábyrgðarskylda, ekki lagagrundvöllur.
 
 Markaðs- og rannsóknartilgangur:
   6. gr. (1)(a) GDPR — sérstakt opt-in samþykki, hvenær sem er afturkallanlegt.
@@ -550,6 +571,15 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.13 (2026-10-08)
+  Lagagrundvöllur heilsufarsgagna færður úr 9. gr. (2)(a) samþykki í
+  9. gr. (2)(h) heilbrigðisþjónustu. Samþykki hélt ekki: það verður að
+  vera afturkallanlegt án afleiðinga, en þjónustan getur ekki verið án
+  skýrslunnar. Samþykki er eftir sem áður grundvöllur fyrir vinnslu utan
+  þjónustunnar (mállíkan, rannsóknir). Í staðinn er rekjanleiki skráður
+  þegar starfsmaður setur skýrslu inn fyrir skjólstæðing, og
+  skjólstæðingurinn sér það og getur andmælt.
 
 v1.12 (2026-10-08)
   Sjálfvirkt eftirlit með aðgöngum á klukkustundar fresti bætt við

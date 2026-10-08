@@ -34,7 +34,7 @@ import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import { peek } from "@/lib/hc/client-cache";
-import { Pencil } from "lucide-react";
+import { Info, Pencil } from "lucide-react";
 import TrainingView from "@/app/components/hc/TrainingView";
 import TrainingWizard from "@/app/components/hc/TrainingWizard";
 import TrainingCustomise from "@/app/components/hc/TrainingCustomise";
@@ -62,6 +62,9 @@ interface Loaded {
     actionSignals: Record<string, ReportSignal | null>;
     reference?: Record<string, ReportReference>;
     sex?: "m" | "f" | null;
+    /** Who put it there — shown so the participant can object to it. */
+    source?: "self" | "staff" | "staff_on_behalf";
+    created_at?: string;
   } | null;
 }
 
@@ -547,6 +550,25 @@ function PlanPageInner() {
               )}
               {tab === "results" && (
                 <div className="space-y-4 print:hidden">
+                  {/* Where the report came from, in the participant's own
+                      account. Staff reading it is lawful under 9. gr. (2)(h)
+                      without consent, but someone whose results were put
+                      there by somebody else should be told so and have a way
+                      to say it is wrong. */}
+                  {data.report?.source && data.report.source !== "self" && (
+                    <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm ring-1 ring-slate-200">
+                      <Info className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                      <span className="text-slate-700">
+                        {data.report.source === "staff_on_behalf"
+                          ? "Starfsmaður Lifeline setti þessa skýrslu inn að þinni beiðni."
+                          : "Starfsmaður Lifeline las þessa skýrslu inn fyrir viðtalið þitt."}
+                      </span>
+                      <button type="button" onClick={() => setTab("coach")}
+                        className="ml-auto rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        Þetta er ekki rétt
+                      </button>
+                    </div>
+                  )}
                   <ResultSignals flagged={data.flagged} />
                   {/* A health journey is longitudinal: a new report comes
                       every six to twelve months. The upload used to live only

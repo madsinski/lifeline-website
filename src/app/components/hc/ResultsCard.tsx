@@ -88,9 +88,24 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   // Held only so the nurse can agree to send a file we could not read here.
   const [pending, setPending] = useState<File[]>([]);
   const [needsConsent, setNeedsConsent] = useState(false);
+  /** Asking how the report got here, before the file dialog opens. */
+  const [asking, setAsking] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  // The report is the participant's own: staff put it in at their request.
-  const [onBehalf, setOnBehalf] = useState(true);
+  /**
+   * How the report came to be here, which the actor states rather than the
+   * code assuming.
+   *
+   * This used to be `useState(true)` with no control anywhere, so every
+   * import wrote a timestamp asserting the participant had asked for it
+   * whether they had or not. A default is not a record of anything.
+   *
+   * The lawful basis for reading the report is 9. gr. (2)(h) — care by a
+   * health professional under professional secrecy — not consent, so this is
+   * not a consent gate and it does not block the work. It is provenance:
+   * 5. gr. (2) accountability, and what the participant sees in their own
+   * account so they can say "that is not mine".
+   */
+  const [onBehalf, setOnBehalf] = useState<boolean | null>(null);
 
   /** Read a Medalia PDF / lab printout / photos and show what was found. */
   const readReport = async (files: FileList | File[], allowAi = false) => {
@@ -99,7 +114,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
     const fd = new FormData();
     for (const f of list) fd.append("files", f);
     if (allowAi) fd.append("allow_ai", "true");
-    if (onBehalf) fd.append("on_behalf", "true");
+    if (onBehalf === true) fd.append("on_behalf", "true");
     const r = await api(`/api/vinnustod/journeys/${journeyId}/import`, { method: "POST", body: fd });
     const j = await r.json().catch(() => ({}));
     setReading(false);
@@ -203,8 +218,31 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
 
   if (entries === null) return null;
 
+  const pick = (v: boolean) => { setOnBehalf(v); setAsking(false); fileRef.current?.click(); };
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+      {/* Stated, not assumed. Reading the report is lawful either way under
+          9. gr. (2)(h) — this records which it was, so the participant can
+          see it in their own account and say if it is wrong. */}
+      {asking && (
+        <div className="mb-3 rounded-2xl border border-slate-300 bg-slate-50 p-3">
+          <p className="text-sm font-semibold text-slate-900">Hvernig kom skýrslan hingað?</p>
+          <div className="mt-2 grid gap-2">
+            <button type="button" onClick={() => pick(true)}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm hover:border-emerald-400">
+              <span className="block font-semibold text-slate-900">Skjólstæðingurinn bað mig um að setja hana inn</span>
+              <span className="block text-xs text-slate-500">Skráð á þig og sýnt skjólstæðingnum í hans aðgangi.</span>
+            </button>
+            <button type="button" onClick={() => pick(false)}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm hover:border-emerald-400">
+              <span className="block font-semibold text-slate-900">Ég les hana fyrir viðtalið</span>
+              <span className="block text-xs text-slate-500">Hluti af þjónustunni — engin beiðni skráð.</span>
+            </button>
+          </div>
+          <button type="button" onClick={() => setAsking(false)} className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-800">Hætta við</button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-bold text-slate-900">
           {audience === "client" ? "Mínar mælingar" : reportShown ? "Skrá eða lesa gildi" : "Niðurstöður"}
@@ -220,15 +258,20 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           <>
             <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
               onChange={(e) => { if (e.target.files?.length) void readReport(e.target.files); e.target.value = ""; }} />
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={reading}
+            <button type="button" onClick={() => setAsking(true)} disabled={reading}
               className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
               {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
               {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
             </button>
-            <label className="inline-flex items-center gap-1.5 text-xs text-slate-600" title="Skráð í atvikaskrá: skýrslan er sett inn fyrir skjólstæðinginn, að hans beiðni.">
-              <input type="checkbox" checked={onBehalf} onChange={(e) => setOnBehalf(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-              Að beiðni skjólstæðings
-            </label>
+            {/* Was a pre-ticked checkbox. A box that arrives already ticked
+                records the default, not the person — so the question is asked
+                when the file is chosen instead, and this only reports back
+                what was answered. */}
+            {onBehalf !== null && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                {onBehalf ? "Skráð: að beiðni skjólstæðings" : "Skráð: lesið fyrir viðtalið"}
+              </span>
+            )}
             <button type="button" onClick={() => setEditing(true)}
               className="inline-flex min-h-9 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               {recorded.length ? "Breyta gildum" : "Skrá gildi"}
