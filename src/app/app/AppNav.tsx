@@ -16,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { Building2, HeartPulse, Home, MessageCircle, Users } from "lucide-react";
 import { useT } from "./useT";
 import type { StringKey } from "./strings";
+import { appBrand } from "./ui";
 
 interface Tab {
   href: string;
@@ -51,12 +52,13 @@ export default function AppNav() {
   return (
     <>
       {/* Phone: fixed to the bottom, clear of the system bar. */}
-      <nav aria-label="Lifeline" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav aria-label="Lifeline" className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-white/95 backdrop-blur lg:hidden"
+        style={{ borderTopColor: appBrand.hairline, paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
         {APP_TABS.map((tab) => (
           <Link key={tab.href} href={tab.href} aria-current={on(tab) ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold transition ${
-              on(tab) ? "text-hc-brand-dark" : "text-slate-500"}`}>
+            className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold transition"
+            style={{ color: on(tab) ? appBrand.primaryDark : appBrand.ink2 }}>
             <tab.Icon className="h-6 w-6" strokeWidth={on(tab) ? 2.4 : 2} aria-hidden />
             {t(tab.label)}
           </Link>
@@ -64,12 +66,15 @@ export default function AppNav() {
       </nav>
 
       {/* Desktop: a rail, so the content is not stuck in a phone column. */}
-      <nav aria-label="Lifeline" className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col gap-1 border-r border-slate-200 bg-white p-3 lg:flex">
-        <p className="px-3 pb-3 pt-2 text-sm font-bold tracking-tight text-hc-ink">Lifeline</p>
+      <nav aria-label="Lifeline" className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col gap-1 border-r bg-white p-3 lg:flex"
+        style={{ borderRightColor: appBrand.hairline }}>
+        <p className="px-3 pb-3 pt-2 text-sm font-bold tracking-tight" style={{ color: appBrand.ink1 }}>Lifeline</p>
         {APP_TABS.map((tab) => (
           <Link key={tab.href} href={tab.href} aria-current={on(tab) ? "page" : undefined}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
-              on(tab) ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-600 hover:bg-slate-50"}`}>
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition hover:bg-black/[0.03]"
+            style={on(tab)
+              ? { background: `${appBrand.primary}14`, color: appBrand.primaryDark }
+              : { color: appBrand.ink2 }}>
             <tab.Icon className="h-5 w-5" aria-hidden />{t(tab.label)}
           </Link>
         ))}

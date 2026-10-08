@@ -2,29 +2,34 @@
 
 // Heim — the Lifeline app's home screen, on the web.
 //
-// Built from fhir-health-dashboard/src/screens/HomeScreen.tsx rather than
-// from heilsuferð. They are different products sharing one database: the
-// heilsuferð pages run on hc_* tables and a nurse-authored action plan, the
-// app runs on the programme system, action_completions and the three meters
-// the server computes onto the client row.
+// Built from fhir-health-dashboard/src/screens/HomeScreen.tsx. The app and
+// heilsuferð are different products sharing one database: heilsuferð runs on
+// hc_* tables and a nurse-authored plan, the app runs on the programme
+// system, action_completions and the meters the server computes onto the
+// client row. This surface is the app's.
 //
-// This first pass is the hero — the three meters and the week strip, which
-// is what HomeScreen leads with (HomeScreen.tsx:688-740). Macros, meal and
-// weight logging, the quick session, modes and the coaching nudges are the
-// rest of that screen and are not here yet.
+// Section order is the screen's own (HomeScreen.tsx):
+//   1. one banner at most — transition outranks deload   (2146-2222)
+//   2. Today's Health / "Current insights"               (2253)
+//   3. the macros card, only when tracking is on         (2307)
+//   4. What's coming up                                  (2427)
+// The hero meters sit above all of it.
+//
+// The look comes from the app's own tokens — see ui.ts. Cards are radius 14
+// with a hairline border; the gradient header bars are the thing that makes
+// the app's home screen recognisable, so they are here too.
 
 import { useEffect, useState } from "react";
+import { Activity, BarChart3, CalendarClock, ChevronRight, TrendingDown } from "lucide-react";
 import { useApi } from "@/lib/hc/use-api";
 import { useT, useLongDate } from "./useT";
+import type { StringKey } from "./strings";
+import { appBrand, appCard, appHeaderBar, greenHeader, darkHeader } from "./ui";
 
 interface Home {
   meters: {
-    consistency: number | null;
-    intensity: number | null;
-    completion: number | null;
-    consistency7d: number | null;
-    completion7d: number | null;
-    narrative: string | null;
+    consistency: number | null; intensity: number | null; completion: number | null;
+    consistency7d: number | null; completion7d: number | null; narrative: string | null;
   };
   grid: { date: string; done_count: number }[];
   macros: {
@@ -32,6 +37,12 @@ interface Home {
     eaten: { kcal: number; protein: number; carbs: number; fat: number };
     meals: number;
   } | null;
+  scan: {
+    at: string; weightKg: number | null; bodyFatPct: number | null; muscleMassPct: number | null;
+    phaseAngle: number | null; bmrKcal: number | null; visceralFatIdx: number | null;
+  } | null;
+  banner: { kind: "transition"; next: string; reason: string | null } | { kind: "deload" } | null;
+  upcoming: { key: string; when?: string; detail?: string | null }[];
   weight: { kg: number; at: string; previousKg: number | null } | null;
 }
 
@@ -44,41 +55,58 @@ const helloKey = () => {
   return "hello.evening" as const;
 };
 
-/** The app shows these as percentages out of 100. */
 function Meter({ label, value, hint }: { label: string; value: number | null; hint: string }) {
   const pct = value == null ? null : Math.max(0, Math.min(100, Math.round(value)));
   return (
-    <div className="rounded-2xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-100">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-0.5 text-2xl font-bold tabular-nums text-hc-ink">
+    <div className={`${appCard} p-3 text-center`}>
+      <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: appBrand.ink2 }}>{label}</p>
+      <p className="mt-0.5 text-2xl font-bold tabular-nums" style={{ color: appBrand.ink1 }}>
         {pct == null ? "—" : `${pct}%`}
       </p>
-      <p className="text-[10px] leading-tight text-slate-400">{hint}</p>
+      <p className="text-[10px] leading-tight" style={{ color: appBrand.ink3 }}>{hint}</p>
     </div>
   );
 }
 
-/** One macro as a bar: eaten against target, over-target in amber. */
-function Bar({ label, eaten, target, unit = "g" }: { label: string; eaten: number; target: number; unit?: string }) {
+/** The app's section box: a gradient header bar, then content beneath it. */
+function Section({ title, Icon, dark = false, href, children }: {
+  title: string; Icon: typeof Activity; dark?: boolean; href?: string; children: React.ReactNode;
+}) {
+  const bar = (
+    <div className={appHeaderBar} style={dark ? darkHeader : greenHeader}>
+      <Icon className="h-[18px] w-[18px]" aria-hidden />
+      <span className="flex-1 text-[15px] font-bold">{title}</span>
+      {href && <ChevronRight className="h-4 w-4 opacity-70" aria-hidden />}
+    </div>
+  );
+  return (
+    <section>
+      {href ? <a href={href} className="block transition active:opacity-90">{bar}</a> : bar}
+      <div className="mt-2 space-y-2">{children}</div>
+    </section>
+  );
+}
+
+function Bar({ label, eaten, target }: { label: string; eaten: number; target: number }) {
   const pct = target > 0 ? Math.min(100, (eaten / target) * 100) : 0;
   const over = target > 0 && eaten > target;
   return (
     <div>
       <div className="flex items-baseline justify-between text-xs">
-        <span className="font-semibold text-slate-600">{label}</span>
-        <span className="tabular-nums text-slate-500">{Math.round(eaten)}/{Math.round(target)} {unit}</span>
+        <span className="font-semibold" style={{ color: appBrand.ink2 }}>{label}</span>
+        <span className="tabular-nums" style={{ color: appBrand.ink3 }}>{Math.round(eaten)}/{Math.round(target)} g</span>
       </div>
-      <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-        <div className={`h-full rounded-full ${over ? "bg-amber-500" : "bg-hc-brand"}`} style={{ width: `${pct}%` }} />
+      <div className="mt-0.5 h-1.5 overflow-hidden rounded-full" style={{ background: appBrand.cardAlt }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: over ? appBrand.accent : appBrand.nutrition }} />
       </div>
     </div>
   );
 }
 
 /**
- * The app draws this as a wheel (MacrosWheel). A ring reads well at a glance
- * on a phone and the three macros underneath carry the detail — same
- * information, drawn the way the web draws things.
+ * Macros. The app draws a wheel (MacrosWheel); a ring for calories with the
+ * three macros as bars beside it is the same information, and reads at a
+ * glance on a phone. Teal, because nutrition is teal in the app's palette.
  */
 function Macros({ m }: { m: NonNullable<Home["macros"]> }) {
   const t = useT();
@@ -86,18 +114,18 @@ function Macros({ m }: { m: NonNullable<Home["macros"]> }) {
   const left = Math.round(m.target.kcal - m.eaten.kcal);
   const R = 34, C = 2 * Math.PI * R;
   return (
-    <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{t("macros.title")}</p>
+    <div className={`${appCard} p-4`}>
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: appBrand.ink2 }}>{t("macros.title")}</p>
       <div className="flex items-center gap-4">
         <div className="relative shrink-0">
           <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden>
-            <circle cx="44" cy="44" r={R} fill="none" stroke="#e2e8f0" strokeWidth="9" />
-            <circle cx="44" cy="44" r={R} fill="none" stroke="#10B981" strokeWidth="9" strokeLinecap="round"
+            <circle cx="44" cy="44" r={R} fill="none" stroke={appBrand.cardAlt} strokeWidth="9" />
+            <circle cx="44" cy="44" r={R} fill="none" stroke={appBrand.nutrition} strokeWidth="9" strokeLinecap="round"
               strokeDasharray={C} strokeDashoffset={C - (C * pct) / 100} transform="rotate(-90 44 44)" />
           </svg>
           <span className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-lg font-bold tabular-nums leading-none text-hc-ink">{Math.abs(left)}</span>
-            <span className="text-[9px] text-slate-500">{left >= 0 ? t("macros.left") : t("macros.over")}</span>
+            <span className="text-lg font-bold tabular-nums leading-none" style={{ color: appBrand.ink1 }}>{Math.abs(left)}</span>
+            <span className="text-[9px]" style={{ color: appBrand.ink2 }}>{left >= 0 ? t("macros.left") : t("macros.over")}</span>
           </span>
         </div>
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -106,26 +134,10 @@ function Macros({ m }: { m: NonNullable<Home["macros"]> }) {
           <Bar label={t("macros.fat")} eaten={m.eaten.fat} target={m.target.fat} />
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs" style={{ color: appBrand.ink2 }}>
         {m.meals === 0 ? t("macros.none") : `${m.meals} ${t("macros.meals")}`}
       </p>
-    </section>
-  );
-}
-
-function Weight({ w }: { w: NonNullable<Home["weight"]> }) {
-  const t = useT();
-  const diff = w.previousKg == null ? null : Math.round((w.kg - w.previousKg) * 10) / 10;
-  return (
-    <section className="flex items-baseline gap-3 rounded-3xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{t("weight.title")}</p>
-      <p className="text-lg font-bold tabular-nums text-hc-ink">{w.kg} kg</p>
-      {diff !== null && diff !== 0 && (
-        <p className={`text-xs font-semibold ${diff < 0 ? "text-emerald-700" : "text-slate-500"}`}>
-          {diff > 0 ? "+" : ""}{diff} kg <span className="font-normal text-slate-400">{t("weight.since")}</span>
-        </p>
-      )}
-    </section>
+    </div>
   );
 }
 
@@ -157,17 +169,49 @@ export default function AppHome() {
   });
   const best = Math.max(1, ...days.map((x) => x.done));
 
+  const scanRows: [StringKey, string][] = [];
+  if (d?.scan) {
+    const s = d.scan;
+    if (s.bodyFatPct != null) scanRows.push(["insights.fat", `${s.bodyFatPct.toFixed(1)} %`]);
+    if (s.muscleMassPct != null) scanRows.push(["insights.muscle", `${s.muscleMassPct.toFixed(1)} %`]);
+    if (s.visceralFatIdx != null) scanRows.push(["insights.visceral", String(s.visceralFatIdx)]);
+    if (s.bmrKcal != null) scanRows.push(["insights.bmr", `${Math.round(s.bmrKcal)} kcal`]);
+    if (s.phaseAngle != null) scanRows.push(["insights.phase", `${s.phaseAngle.toFixed(1)}°`]);
+  }
+
   return (
     <div className="space-y-4">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-dark">{longDate()}</p>
-        <h1 className="mt-0.5 text-2xl font-bold text-hc-ink">{t(helloKey())}{name ? `, ${name}` : ""}</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: appBrand.primaryDark }}>{longDate()}</p>
+        <h1 className="mt-0.5 text-2xl font-bold" style={{ color: appBrand.ink1 }}>
+          {t(helloKey())}{name ? `, ${name}` : ""}
+        </h1>
       </header>
 
-      {d === undefined && <div className="h-36 animate-pulse rounded-3xl bg-white" aria-hidden />}
+      {d === undefined && <div className="h-36 animate-pulse rounded-[14px] bg-white" aria-hidden />}
 
       {d && (
         <>
+          {/* One banner at most, in the app's priority order. */}
+          {d.banner?.kind === "transition" && (
+            <div className={`${appCard} border-l-[3px] p-4`} style={{ borderLeftColor: appBrand.primary }}>
+              <p className="text-sm font-bold" style={{ color: appBrand.ink1 }}>{t("banner.transition.title")}</p>
+              <p className="mt-0.5 text-xs" style={{ color: appBrand.ink2 }}>{d.banner.reason || t("banner.transition.body")}</p>
+              <a href="/app/thjalfari" className="mt-2 inline-block text-xs font-bold" style={{ color: appBrand.primaryDark }}>
+                {t("banner.transition.cta")} →
+              </a>
+            </div>
+          )}
+          {d.banner?.kind === "deload" && (
+            <div className={`${appCard} flex gap-3 border-l-[3px] p-4`} style={{ borderLeftColor: appBrand.accent }}>
+              <TrendingDown className="mt-0.5 h-4 w-4 shrink-0" style={{ color: appBrand.accent }} aria-hidden />
+              <div>
+                <p className="text-sm font-bold" style={{ color: appBrand.ink1 }}>{t("banner.deload.title")}</p>
+                <p className="mt-0.5 text-xs" style={{ color: appBrand.ink2 }}>{t("banner.deload.body")}</p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2">
             <Meter label={t("home.showingUp")} value={d.meters.consistency7d ?? d.meters.consistency} hint={t("home.showingUp.hint")} />
             <Meter label={t("home.completion")} value={d.meters.completion7d ?? d.meters.completion} hint={t("home.completion.hint")} />
@@ -175,43 +219,101 @@ export default function AppHome() {
           </div>
 
           {d.meters.narrative && (
-            <p className="rounded-2xl bg-white px-4 py-3 text-sm text-hc-ink-2 shadow-sm ring-1 ring-slate-100">
-              {d.meters.narrative}
-            </p>
+            <p className={`${appCard} px-4 py-3 text-sm`} style={{ color: appBrand.ink2 }}>{d.meters.narrative}</p>
           )}
 
-          <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{t("home.week")}</p>
+          <div className={`${appCard} p-4`}>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: appBrand.ink2 }}>{t("home.week")}</p>
             <div className="flex items-end justify-between gap-1.5" style={{ height: 72 }}>
               {days.map((x, i) => (
                 <div key={x.iso} className="flex flex-1 flex-col items-center gap-1">
                   <div className="flex w-full flex-1 items-end">
-                    <div className="w-full rounded-md bg-hc-brand transition-all"
-                      style={{ height: `${Math.max(x.done ? 12 : 4, (x.done / best) * 100)}%`, opacity: x.done ? 1 : 0.18 }}
+                    <div className="w-full rounded-md transition-all"
+                      style={{ height: `${Math.max(x.done ? 12 : 4, (x.done / best) * 100)}%`,
+                        background: appBrand.primary, opacity: x.done ? 1 : 0.18 }}
                       title={`${x.iso}: ${x.done}`} />
                   </div>
-                  <span className={`text-[10px] font-semibold ${i === 6 ? "text-hc-ink" : "text-slate-400"}`}>
+                  <span className="text-[10px] font-semibold"
+                    style={{ color: i === 6 ? appBrand.ink1 : appBrand.ink3 }}>
                     {t(`day.${new Date(`${x.iso}T12:00:00`).getDay()}` as "day.0")}
                   </span>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
+
+          {/* Today's Health — the app always renders it; scan values are additive. */}
+          <Section title={t("insights.title")} Icon={BarChart3} href="/app/heilsan">
+            {scanRows.length > 0 ? (
+              <div className={`${appCard} p-4`}>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                  {scanRows.map(([k, v]) => (
+                    <div key={k}>
+                      <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: appBrand.ink3 }}>{t(k)}</dt>
+                      <dd className="text-base font-bold tabular-nums" style={{ color: appBrand.ink1 }}>{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-3 text-[11px]" style={{ color: appBrand.ink3 }}>
+                  {t("insights.measured")} {d.scan!.at.slice(0, 10)}
+                </p>
+              </div>
+            ) : (
+              <div className={`${appCard} p-4`}>
+                <p className="text-sm" style={{ color: appBrand.ink2 }}>{t("insights.none")}</p>
+                <a href="/account/book" className="mt-2 inline-block text-xs font-bold" style={{ color: appBrand.primaryDark }}>
+                  {t("insights.book")} →
+                </a>
+              </div>
+            )}
+          </Section>
 
           {d.macros && <Macros m={d.macros} />}
-          {d.weight && <Weight w={d.weight} />}
 
-          {/* Said plainly rather than left as a thin-looking home screen. */}
-          <p className="px-1 text-xs text-slate-500">
-{t("home.rest")}
-          </p>
+          {d.weight && (
+            <div className={`${appCard} flex items-baseline gap-3 px-4 py-3`}>
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: appBrand.ink2 }}>{t("weight.title")}</p>
+              <p className="text-lg font-bold tabular-nums" style={{ color: appBrand.ink1 }}>{d.weight.kg} kg</p>
+              {d.weight.previousKg != null && d.weight.kg !== d.weight.previousKg && (() => {
+                const diff = Math.round((d.weight!.kg - d.weight!.previousKg!) * 10) / 10;
+                return (
+                  <p className="text-xs font-semibold" style={{ color: diff < 0 ? appBrand.primaryDark : appBrand.ink2 }}>
+                    {diff > 0 ? "+" : ""}{diff} kg{" "}
+                    <span className="font-normal" style={{ color: appBrand.ink3 }}>{t("weight.since")}</span>
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* What's coming up — the dark header, as in the app. */}
+          <Section title={t("upcoming.title")} Icon={CalendarClock} dark>
+            {d.upcoming.length === 0 ? (
+              <p className={`${appCard} px-4 py-3 text-sm`} style={{ color: appBrand.ink2 }}>{t("upcoming.none")}</p>
+            ) : (
+              d.upcoming.map((u) => (
+                <div key={`${u.key}-${u.when ?? ""}`} className={`${appCard} flex items-center gap-3 px-4 py-3`}>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full"
+                    style={{ background: `${appBrand.primary}14`, border: `1px solid ${appBrand.primary}` }}>
+                    <Activity className="h-4 w-4" style={{ color: appBrand.primaryDark }} aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold" style={{ color: appBrand.ink1 }}>
+                      {t(`upcoming.${u.key}` as "upcoming.questionnaire")}
+                    </span>
+                    <span className="block truncate text-xs" style={{ color: appBrand.ink2 }}>
+                      {u.when ? `${u.when}${u.detail ? ` · ${u.detail}` : ""}` : t(`upcoming.${u.key}.sub` as "upcoming.questionnaire.sub")}
+                    </span>
+                  </span>
+                </div>
+              ))
+            )}
+          </Section>
         </>
       )}
 
       {d === null && (
-        <p className="rounded-3xl bg-white p-5 text-sm text-hc-ink-2 shadow-sm ring-1 ring-slate-100">
-          {t("home.failed")}
-        </p>
+        <p className={`${appCard} p-5 text-sm`} style={{ color: appBrand.ink2 }}>{t("home.failed")}</p>
       )}
     </div>
   );

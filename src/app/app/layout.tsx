@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AppNav from "./AppNav";
 import { LanguagePicker } from "@/lib/i18n";
+import { appBrand } from "./ui";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -33,8 +34,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     })();
   }, [router]);
 
+  // The app's canvas is #ecf0f3 — a grey-blue, not the website's off-white.
+  // Cards read as raised against it, which is most of why the app's home
+  // screen looks the way it does.
   return (
-    <div className="min-h-screen bg-hc-page text-hc-ink lg:pl-56">
+    <div className="min-h-screen lg:pl-56" style={{ background: appBrand.canvas, color: appBrand.ink1 }}>
       {/* pb clears the bottom bar; the safe-area inset is on the bar itself. */}
       <main className="mx-auto max-w-2xl px-4 pb-24 pt-4 lg:max-w-4xl lg:pb-10 lg:pt-8">
         {/* The marketing navbar carries the language toggle and is suppressed

@@ -77,6 +77,35 @@ export const STRINGS = {
   "weight.none": { is: "Engin þyngd skráð", en: "No weight logged" },
   "weight.since": { is: "frá síðustu mælingu", en: "since last time" },
 
+  // ── Banners (one at most) ───────────────────────────────────────────
+  "banner.transition.title": { is: "Næsta þrep er tilbúið", en: "You're ready for the next step" },
+  "banner.transition.body": { is: "Núverandi prógrammi er lokið með góðri mætingu.", en: "You've finished your current programme with good attendance." },
+  "banner.transition.cta": { is: "Sjá næsta prógramm", en: "See the next programme" },
+  "banner.deload.title": { is: "Tími á léttari viku", en: "Time for a lighter week" },
+  "banner.deload.body": { is: "Álagið hefur verið hátt. Léttari vika núna skilar meiri framför síðar.", en: "Your load has been high. A lighter week now pays off later." },
+
+  // ── Today's Health / Current insights ───────────────────────────────
+  "insights.title": { is: "Staðan núna", en: "Current insights" },
+  "insights.fat": { is: "Fituhlutfall", en: "Body fat" },
+  "insights.muscle": { is: "Vöðvamassi", en: "Muscle mass" },
+  "insights.bmr": { is: "Grunnbrennsla", en: "BMR" },
+  "insights.phase": { is: "Fasahorn", en: "Phase angle" },
+  "insights.visceral": { is: "Innri kviðfita", en: "Visceral fat" },
+  "insights.measured": { is: "Mælt", en: "Measured" },
+  "insights.none": { is: "Engin mæling enn. Fyrsta mælingin er grunnlínan þín.", en: "No measurement yet. The first one is your baseline." },
+  "insights.book": { is: "Bóka mælingu", en: "Book a measurement" },
+
+  // ── What's coming up ────────────────────────────────────────────────
+  "upcoming.title": { is: "Það sem er fram undan", en: "What's coming up" },
+  "upcoming.choose-programs": { is: "Veldu prógrömmin þín", en: "Choose your programmes" },
+  "upcoming.choose-programs.sub": { is: "Hreyfing, næring, svefn og andleg vellíðan", en: "Exercise, nutrition, sleep and mental wellbeing" },
+  "upcoming.questionnaire": { is: "Svaraðu spurningalistanum", en: "Complete the questionnaire" },
+  "upcoming.questionnaire.sub": { is: "Þannig verður áætlunin sniðin að þér", en: "This is what makes your plan yours" },
+  "upcoming.measurement-appt": { is: "Mælingatími", en: "Measurements appointment" },
+  "upcoming.bloodtest-appt": { is: "Blóðprufa", en: "Blood test" },
+  "upcoming.coach-consultation": { is: "Samtal við þjálfara", en: "Coach consultation" },
+  "upcoming.none": { is: "Ekkert á döfinni.", en: "Nothing coming up." },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },

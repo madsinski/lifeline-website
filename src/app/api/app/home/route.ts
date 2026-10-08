@@ -22,7 +22,11 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
 
   const today = new Date().toISOString().slice(0, 10);
-  const [{ data: c }, { data: grid }, { data: targets }, { data: meals }, { data: weight }] = await Promise.all([
+  const [
+    { data: c }, { data: grid }, { data: targets }, { data: meals }, { data: weight },
+    { data: scan }, { data: transition }, { data: deload }, { data: programs },
+    { data: appointments }, { data: answers },
+  ] = await Promise.all([
     supabaseAdmin
       .from("clients")
       .select("consistency_score, intensity_score, consistency_depth_score, completion_score, consistency_score_7d, completion_score_7d, consistency_narrative")
@@ -49,6 +53,28 @@ export async function GET(req: NextRequest) {
       .eq("client_id", user.id)
       .order("recorded_at", { ascending: false })
       .limit(2),
+    // Latest body-comp scan — the "Current insights" card.
+    supabaseAdmin
+      .from("client_body_comp_measurements")
+      .select("measured_at, weight_kg, body_fat_pct, muscle_mass_pct, phase_angle, bmr_kcal, visceral_fat_idx")
+      .eq("client_id", user.id)
+      .order("measured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Both banner RPCs. Only one banner ever renders — see the client.
+    supabaseAdmin.rpc("suggest_next_program", { p_client_id: user.id }),
+    supabaseAdmin.rpc("check_deload_recommendation", { p_client_id: user.id }),
+    // The state behind "What's coming up": programmes chosen, appointments
+    // booked, questionnaire progress.
+    supabaseAdmin.from("client_programs").select("category_key").eq("client_id", user.id),
+    supabaseAdmin
+      .from("appointments")
+      .select("type, date, time, station_name, station_address, package_name, coach_name, status, video_room_url")
+      .eq("client_id", user.id)
+      .gte("date", today)
+      .neq("status", "cancelled")
+      .order("date", { ascending: true }),
+    supabaseAdmin.from("questionnaire_responses").select("question_key").eq("client_id", user.id),
   ]);
 
   // Today's intake, summed here so the client does not have to.
@@ -89,6 +115,45 @@ export async function GET(req: NextRequest) {
           meals: (meals ?? []).length,
         }
       : null,
+    scan: scan
+      ? {
+          at: scan.measured_at as string,
+          weightKg: scan.weight_kg == null ? null : Number(scan.weight_kg),
+          bodyFatPct: scan.body_fat_pct == null ? null : Number(scan.body_fat_pct),
+          muscleMassPct: scan.muscle_mass_pct == null ? null : Number(scan.muscle_mass_pct),
+          phaseAngle: scan.phase_angle == null ? null : Number(scan.phase_angle),
+          bmrKcal: scan.bmr_kcal == null ? null : Number(scan.bmr_kcal),
+          visceralFatIdx: scan.visceral_fat_idx == null ? null : Number(scan.visceral_fat_idx),
+        }
+      : null,
+    /**
+     * One banner at most, in the app's own priority order: a programme
+     * transition outranks a deload suggestion (HomeScreen.tsx:2146-2156).
+     */
+    banner: (() => {
+      const tr = (transition as { next?: string; reason?: string }[] | null)?.[0];
+      if (tr?.next) return { kind: "transition" as const, next: tr.next, reason: tr.reason ?? null };
+      if (deload === true) return { kind: "deload" as const };
+      return null;
+    })(),
+    /** The next-step list. Each item is a piece of account state, not a date. */
+    upcoming: (() => {
+      const items: { key: string; when?: string; detail?: string | null }[] = [];
+      if (!programs?.length) items.push({ key: "choose-programs" });
+      if (!answers?.length) items.push({ key: "questionnaire" });
+      for (const a of appointments ?? []) {
+        const key = a.type === "measurement" ? "measurement-appt"
+          : a.type === "blood_test" ? "bloodtest-appt"
+          : a.type === "consultation" ? "coach-consultation" : null;
+        if (!key) continue;
+        items.push({
+          key,
+          when: `${a.date}${a.time ? ` ${String(a.time).slice(0, 5)}` : ""}`,
+          detail: a.station_name ?? a.coach_name ?? a.package_name ?? null,
+        });
+      }
+      return items;
+    })(),
     weight: weight?.length
       ? {
           kg: Number(weight[0].weight_kg),
