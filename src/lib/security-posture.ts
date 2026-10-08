@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.11";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-09-30";
+export const SECURITY_POSTURE_VERSION = "v1.12";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-08";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -380,6 +380,13 @@ Innra ferli:
 Eigin villuskráningarkerfi (app_errors + /admin/errors) veitir
 tæknilega sýn á atvik.
 
+Sjálfvirkt eftirlit með aðgöngum keyrir á klukkustundar fresti
+(security_findings + /admin/security). Það leitar að nýskráningum frá
+lénum öryggisskanna, innspýtingartilraunum (injection) í skráningargögnum, aðgöngum
+sem eigna sér starfsmannahlutverk, nýjum starfsmannaaðgöngum og
+óvenju mörgum nýskráningum á stuttum tíma. Aðgangar frá skannalénum
+eru læstir sjálfkrafa og stjórnandi fær tölvupóst um ný tilvik.
+
 ═══════════════════════════════════════════════════════════════════
 12. MAT Á ÁHRIFUM Á PERSÓNUVERND / DPIA
 ═══════════════════════════════════════════════════════════════════
@@ -526,6 +533,7 @@ Tæknilegt:
   ✓ Audit log með Postgres triggerum (rakningarskylda skv. lögum 55/2009)
   ✓ Daglegar dulkóðaðar afritanir (Supabase pg_dump → Storage)
   ✓ Sjálfkrafa villuskráning og atvikastjórnun
+  ✓ Sjálfvirkt eftirlit með grunsamlegum aðgöngum á klukkustundar fresti
 
 Skipulagslegt:
   ✓ Skriflegir samningar við alla undirvinnsluaðila (28. gr. GDPR)
@@ -542,6 +550,13 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.12 (2026-10-08)
+  Sjálfvirkt eftirlit með aðgöngum á klukkustundar fresti bætt við
+  (security_findings, /admin/security) eftir að nýskráning frá léni
+  öryggisskanna fannst; aðganginum var eytt, hann hafði aldrei verið
+  staðfestur né skráð sig inn. Eyðing aðgangs (delete-user) er nú
+  bundin við eiganda aðgangsins eða starfsfólk með heimild.
 
 v1.11 (2026-09-30)
   Mæligildi (hc_results.value, note) og aðgerðaáætlanir
@@ -1025,6 +1040,13 @@ Internal process:
 The in-house error-logging system (app_errors + /admin/errors)
 provides the technical view of incidents.
 
+An automated account scan runs hourly (security_findings +
+/admin/security). It looks for signups from vulnerability-scanner
+domains, injection probes in signup data, accounts claiming a staff
+role, new staff accounts and unusual numbers of signups in a short
+time. Accounts on scanner domains are blocked automatically and an
+administrator is emailed about new findings.
+
 ═══════════════════════════════════════════════════════════════════
 12. DATA PROTECTION IMPACT ASSESSMENT / DPIA
 ═══════════════════════════════════════════════════════════════════
@@ -1174,6 +1196,7 @@ Technical:
   ✓ Audit log via Postgres triggers (traceability per Act 55/2009)
   ✓ Daily encrypted backups (Supabase pg_dump → Storage)
   ✓ Automatic error logging and incident management
+  ✓ Automated hourly scan for suspicious accounts
 
 Organisational:
   ✓ Written agreements with all processors (GDPR Art. 28)
@@ -1190,6 +1213,13 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.12 (2026-10-08)
+  Added an automated hourly account scan (security_findings,
+  /admin/security) after a signup from a vulnerability-scanner domain
+  was found; the account was deleted and had never been confirmed or
+  signed in. Account deletion (delete-user) is now restricted to the
+  account owner or authorised staff.
 
 v1.11 (2026-09-30)
   Measured values (hc_results.value, note) and action plans
