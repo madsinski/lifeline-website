@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "hc:meal-media": "node scripts/hc-gen-meal-media.mjs --check"
+    "hc:meal-media": "node scripts/hc-gen-meal-media.mjs --check",
+    "hc:recs": "node scripts/hc-check-recommendations.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.61",
