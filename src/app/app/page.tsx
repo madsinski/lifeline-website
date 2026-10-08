@@ -13,7 +13,7 @@ import Link from "next/link";
 import { ChevronRight, Dumbbell, Utensils } from "lucide-react";
 import { useApi } from "@/lib/hc/use-api";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar } from "@/lib/hc/types";
-import { isoDay } from "@/lib/hc/adherence";
+import { isoDay, longDayIs } from "@/lib/hc/adherence";
 
 interface Loaded {
   journey_id: string;
@@ -55,7 +55,7 @@ export default function AppHome() {
     <div className="space-y-4">
       <header>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-dark">
-          {new Date().toLocaleDateString("is-IS", { weekday: "long", day: "numeric", month: "long" })}
+          {longDayIs()}
         </p>
         <h1 className="mt-0.5 text-2xl font-bold text-hc-ink">
           {HELLO()}{name ? `, ${name}` : ""}

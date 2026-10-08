@@ -156,3 +156,17 @@ export function actionForSession(
   const hits = plan.modules.filter((a) => a.pillar === "exercise" && re.test(a.title) && !done.has(a.uid));
   return hits.length === 1 ? hits[0].uid : null;
 }
+
+/**
+ * "fimmtudagur 8. október" — hand-formatted, because Intl is not reliable here.
+ *
+ * toLocaleDateString("is-IS") returns English on runtimes without the
+ * Icelandic locale data, and Vercel's is one of them: the app home rendered
+ * "THURSDAY, OCTOBER 8" on an Icelandic-first surface. Hand-formatting is the
+ * only version that cannot quietly fall back.
+ */
+const DAYS_IS = ["sunnudagur", "mánudagur", "þriðjudagur", "miðvikudagur", "fimmtudagur", "föstudagur", "laugardagur"];
+const MONTHS_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+
+export const longDayIs = (d: Date = new Date()) =>
+  `${DAYS_IS[d.getDay()]} ${d.getDate()}. ${MONTHS_IS[d.getMonth()]}`;
