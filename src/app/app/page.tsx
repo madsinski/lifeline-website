@@ -230,10 +230,14 @@ export default function AppHome() {
             <div className="flex items-end justify-between gap-1.5" style={{ height: 72 }}>
               {days.map((x, i) => (
                 <div key={x.iso} className="flex flex-1 flex-col items-center gap-1">
-                  <div className="flex w-full flex-1 items-end">
+                  {/* Every day gets a full-height track, so a week with
+                      nothing done reads as an empty week rather than as a
+                      chart that failed to load. */}
+                  <div className="flex w-full flex-1 items-end overflow-hidden rounded-md"
+                    style={{ background: appBrand.cardAlt }}>
                     <div className="w-full rounded-md transition-all"
-                      style={{ height: `${Math.max(x.done ? 12 : 4, (x.done / best) * 100)}%`,
-                        background: appBrand.primary, opacity: x.done ? 1 : 0.18 }}
+                      style={{ height: x.done ? `${Math.max(14, (x.done / best) * 100)}%` : 0,
+                        background: appBrand.primary }}
                       title={`${x.iso}: ${x.done}`} />
                   </div>
                   <span className="text-[10px] font-semibold"

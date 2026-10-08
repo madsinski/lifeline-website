@@ -70,7 +70,10 @@ export default function BetaFeedback() {
     setSubmitting(false);
   };
 
-  if (!hasPreview || hidden) return null;
+  // The /app surface has a fixed bottom nav, and bottom-6 right-6 lands the
+  // pill squarely on top of its last tab. Nothing there to move it to, so the
+  // widget stays off that surface.
+  if (!hasPreview || hidden || pathname.startsWith("/app")) return null;
 
   return (
     <>
