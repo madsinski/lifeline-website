@@ -27,6 +27,12 @@ interface Home {
     narrative: string | null;
   };
   grid: { date: string; done_count: number }[];
+  macros: {
+    target: { kcal: number; protein: number; carbs: number; fat: number };
+    eaten: { kcal: number; protein: number; carbs: number; fat: number };
+    meals: number;
+  } | null;
+  weight: { kg: number; at: string; previousKg: number | null } | null;
 }
 
 /** Which greeting the hour calls for; the words come from the dictionary. */
@@ -49,6 +55,77 @@ function Meter({ label, value, hint }: { label: string; value: number | null; hi
       </p>
       <p className="text-[10px] leading-tight text-slate-400">{hint}</p>
     </div>
+  );
+}
+
+/** One macro as a bar: eaten against target, over-target in amber. */
+function Bar({ label, eaten, target, unit = "g" }: { label: string; eaten: number; target: number; unit?: string }) {
+  const pct = target > 0 ? Math.min(100, (eaten / target) * 100) : 0;
+  const over = target > 0 && eaten > target;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between text-xs">
+        <span className="font-semibold text-slate-600">{label}</span>
+        <span className="tabular-nums text-slate-500">{Math.round(eaten)}/{Math.round(target)} {unit}</span>
+      </div>
+      <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full rounded-full ${over ? "bg-amber-500" : "bg-hc-brand"}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The app draws this as a wheel (MacrosWheel). A ring reads well at a glance
+ * on a phone and the three macros underneath carry the detail — same
+ * information, drawn the way the web draws things.
+ */
+function Macros({ m }: { m: NonNullable<Home["macros"]> }) {
+  const t = useT();
+  const pct = m.target.kcal > 0 ? Math.min(100, (m.eaten.kcal / m.target.kcal) * 100) : 0;
+  const left = Math.round(m.target.kcal - m.eaten.kcal);
+  const R = 34, C = 2 * Math.PI * R;
+  return (
+    <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{t("macros.title")}</p>
+      <div className="flex items-center gap-4">
+        <div className="relative shrink-0">
+          <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden>
+            <circle cx="44" cy="44" r={R} fill="none" stroke="#e2e8f0" strokeWidth="9" />
+            <circle cx="44" cy="44" r={R} fill="none" stroke="#10B981" strokeWidth="9" strokeLinecap="round"
+              strokeDasharray={C} strokeDashoffset={C - (C * pct) / 100} transform="rotate(-90 44 44)" />
+          </svg>
+          <span className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-bold tabular-nums leading-none text-hc-ink">{Math.abs(left)}</span>
+            <span className="text-[9px] text-slate-500">{left >= 0 ? t("macros.left") : t("macros.over")}</span>
+          </span>
+        </div>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Bar label={t("macros.protein")} eaten={m.eaten.protein} target={m.target.protein} />
+          <Bar label={t("macros.carbs")} eaten={m.eaten.carbs} target={m.target.carbs} />
+          <Bar label={t("macros.fat")} eaten={m.eaten.fat} target={m.target.fat} />
+        </div>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">
+        {m.meals === 0 ? t("macros.none") : `${m.meals} ${t("macros.meals")}`}
+      </p>
+    </section>
+  );
+}
+
+function Weight({ w }: { w: NonNullable<Home["weight"]> }) {
+  const t = useT();
+  const diff = w.previousKg == null ? null : Math.round((w.kg - w.previousKg) * 10) / 10;
+  return (
+    <section className="flex items-baseline gap-3 rounded-3xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{t("weight.title")}</p>
+      <p className="text-lg font-bold tabular-nums text-hc-ink">{w.kg} kg</p>
+      {diff !== null && diff !== 0 && (
+        <p className={`text-xs font-semibold ${diff < 0 ? "text-emerald-700" : "text-slate-500"}`}>
+          {diff > 0 ? "+" : ""}{diff} kg <span className="font-normal text-slate-400">{t("weight.since")}</span>
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -120,6 +197,9 @@ export default function AppHome() {
               ))}
             </div>
           </section>
+
+          {d.macros && <Macros m={d.macros} />}
+          {d.weight && <Weight w={d.weight} />}
 
           {/* Said plainly rather than left as a thin-looking home screen. */}
           <p className="px-1 text-xs text-slate-500">

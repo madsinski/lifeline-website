@@ -36,8 +36,8 @@ export const STRINGS = {
   "home.week": { is: "Vikan", en: "This week" },
   "home.failed": { is: "Náði ekki í mælana þína.", en: "Could not load your meters." },
   "home.rest": {
-    is: "Þetta er fyrsti hlutinn af Heim úr appinu. Næst koma aðgerðir dagsins úr prógramminu, næringarhringurinn, skráning á máltíð og þyngd, stutt æfing og áminningar þjálfarans.",
-    en: "This is the first part of Home from the app. Next: the day's actions from your programme, the macros wheel, meal and weight logging, a short session, and your coach's nudges.",
+    is: "Næst koma skráning á máltíð og þyngd, það sem er framundan, og áminningar þjálfarans.",
+    en: "Next: meal and weight logging, what's coming up, and your coach's nudges.",
   },
 
   // ── Screens not built yet ───────────────────────────────────────────
@@ -60,6 +60,22 @@ export const STRINGS = {
     is: "Straumur, vinir, viðburðir, áskoranir og Lífstig.",
     en: "Feed, friends, events, challenges and Life Points.",
   },
+
+  // ── Macros ──────────────────────────────────────────────────────────
+  "macros.title": { is: "Næring í dag", en: "Nutrition today" },
+  "macros.kcal": { is: "hitaeiningar", en: "calories" },
+  "macros.protein": { is: "Prótein", en: "Protein" },
+  "macros.carbs": { is: "Kolvetni", en: "Carbs" },
+  "macros.fat": { is: "Fita", en: "Fat" },
+  "macros.left": { is: "eftir", en: "left" },
+  "macros.over": { is: "yfir", en: "over" },
+  "macros.none": { is: "Ekkert skráð í dag", en: "Nothing logged today" },
+  "macros.meals": { is: "máltíðir skráðar", en: "meals logged" },
+
+  // ── Weight ──────────────────────────────────────────────────────────
+  "weight.title": { is: "Þyngd", en: "Weight" },
+  "weight.none": { is: "Engin þyngd skráð", en: "No weight logged" },
+  "weight.since": { is: "frá síðustu mælingu", en: "since last time" },
 
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
